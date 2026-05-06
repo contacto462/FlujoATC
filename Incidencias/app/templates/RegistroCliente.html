@@ -158,7 +158,10 @@
 
     async function cargarRegiones() {
         const response = await fetch(withToken("/api/venta/catalogo/regiones"));
-        if (!response.ok) throw new Error("No se pudo cargar el catalogo de regiones.");
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({ detail: "No se pudo cargar el catalogo de regiones." }));
+            throw new Error(typeof err?.detail === "string" ? err.detail : "No se pudo cargar el catalogo de regiones.");
+        }
         const data = await response.json();
 
         const regionSelect = document.getElementById("region");
@@ -173,7 +176,10 @@
 
     async function cargarComunas(region) {
         const response = await fetch(withToken("/api/venta/catalogo/comunas?region=" + encodeURIComponent(region)));
-        if (!response.ok) throw new Error("No se pudo cargar el catalogo de comunas.");
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({ detail: "No se pudo cargar el catalogo de comunas." }));
+            throw new Error(typeof err?.detail === "string" ? err.detail : "No se pudo cargar el catalogo de comunas.");
+        }
         const data = await response.json();
 
         const comunaSelect = document.getElementById("comuna");

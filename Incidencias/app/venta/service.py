@@ -79,7 +79,14 @@ def _fetch_catalog(path: str) -> dict:
     base_url = (settings.venta_catalogo_base_url or "").rstrip("/")
     if not base_url:
         raise HTTPException(status_code=503, detail="La API externa de regiones/comunas no esta configurada.")
-    req = Request(url=f"{base_url}{path}", method="GET")
+    req = Request(
+        url=f"{base_url}{path}",
+        method="GET",
+        headers={
+            "User-Agent": "Mozilla/5.0",
+            "Accept": "application/json",
+        },
+    )
     try:
         timeout = int(settings.venta_catalogo_timeout_seconds or 8)
         ssl_context = None
