@@ -23,3 +23,7 @@ class VentaClienteCreateResponse(BaseModel):
     cliente_id: int
     message: str
 
+
+class VentaClienteTableUpdateRequest(BaseModel):
+    row_id: int
+    values: list[str]
