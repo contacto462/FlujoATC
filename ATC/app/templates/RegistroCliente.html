@@ -202,7 +202,6 @@
             }
 
             const payload = {
-                ejecutivo: document.getElementById("ejecutivoVenta").value,
                 rut: rutFormateado,
                 razonSocial: document.getElementById("razonSocial").value.trim(),
                 giro: document.getElementById("giro").value.trim(),
@@ -224,7 +223,16 @@
 
             if (!response.ok) {
                 const err = await response.json().catch(() => ({ detail: "Error al registrar el cliente." }));
-                throw new Error(err.detail || "Error al registrar el cliente.");
+                let message = "Error al registrar el cliente.";
+                if (typeof err?.detail === "string") {
+                    message = err.detail;
+                } else if (Array.isArray(err?.detail) && err.detail.length > 0) {
+                    const first = err.detail[0];
+                    message = first?.msg || JSON.stringify(first);
+                } else if (err?.message) {
+                    message = err.message;
+                }
+                throw new Error(message);
             }
 
             alert("Cliente registrado con exito.");
@@ -261,4 +269,3 @@
 </script>
 </body>
 </html>
-
