@@ -35,7 +35,6 @@ from app.schemas import (
 from app.services import IncidenciasService
 from app.protocolos_service import ProtocolosService
 from app.venta.routes import router as venta_router
-import app.venta.models  # noqa: F401
 
 
 BASE_DIR = Path(__file__).resolve().parent
