@@ -9,7 +9,7 @@ from app.core.db import Base
 
 
 class VentaCliente(Base):
-    __tablename__ = "venta_clientes"
+    __tablename__ = "bbdd_clientes"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     rut: Mapped[str] = mapped_column(String(32), nullable=False, unique=True)
@@ -31,4 +31,4 @@ class VentaCliente(Base):
     )
 
 
-Index("ix_venta_clientes_rut", VentaCliente.rut, unique=True)
+Index("ix_bbdd_clientes_rut", VentaCliente.rut, unique=True)
