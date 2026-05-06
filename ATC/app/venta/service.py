@@ -140,3 +140,77 @@ def fetch_comunas(region: str) -> list[str]:
         return cleaned or fallback_by_region.get((region or "").strip(), [])
     except HTTPException:
         return fallback_by_region.get((region or "").strip(), [])
+
+
+def get_clientes_table(db: Session) -> dict:
+    headers = [
+        "ID",
+        "RUT",
+        "Razon Social",
+        "Giro",
+        "Direccion",
+        "Region",
+        "Comuna",
+        "Email Facturas",
+        "Nombre Representante",
+        "RUT Representante",
+        "Telefono",
+        "Email Representante",
+        "Ejecutivo Email",
+        "Fecha Creacion",
+    ]
+    rows = (
+        db.query(VentaCliente)
+        .order_by(VentaCliente.id.asc())
+        .all()
+    )
+    data_rows: list[list[str]] = []
+    for row in rows:
+        data_rows.append([
+            str(row.id),
+            row.rut or "",
+            row.razon_social or "",
+            row.giro or "",
+            row.direccion or "",
+            row.region or "",
+            row.comuna or "",
+            row.email_facturas or "",
+            row.nombre_representante or "",
+            row.rut_representante or "",
+            row.telefono or "",
+            row.email_representante or "",
+            row.ejecutivo_email or "",
+            row.fecha_creacion.strftime("%Y-%m-%d %H:%M:%S") if row.fecha_creacion else "",
+        ])
+    return {"headers": headers, "rows": data_rows}
+
+
+def update_cliente_row(db: Session, row_id: int, values: list[str]) -> None:
+    if len(values) < 12:
+        raise HTTPException(status_code=400, detail="Fila invalida: faltan columnas para actualizar.")
+    record = db.query(VentaCliente).filter(VentaCliente.id == row_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Registro no encontrado.")
+
+    new_rut = normalize_rut(values[1])
+    if new_rut.lower() != (record.rut or "").lower():
+        exists = (
+            db.query(VentaCliente.id)
+            .filter(func.lower(func.trim(VentaCliente.rut)) == new_rut.lower(), VentaCliente.id != row_id)
+            .first()
+        )
+        if exists:
+            raise HTTPException(status_code=409, detail="El RUT ya existe en otro registro.")
+
+    record.rut = new_rut
+    record.razon_social = (values[2] or "").strip()
+    record.giro = (values[3] or "").strip()
+    record.direccion = (values[4] or "").strip()
+    record.region = (values[5] or "").strip()
+    record.comuna = (values[6] or "").strip()
+    record.email_facturas = (values[7] or "").strip()
+    record.nombre_representante = (values[8] or "").strip()
+    record.rut_representante = normalize_rut(values[9] or "")
+    record.telefono = normalize_phone(values[10] or "")
+    record.email_representante = (values[11] or "").strip()
+    db.commit()
