@@ -63,6 +63,14 @@ class Settings(BaseSettings):
         default_factory=lambda: os.getenv("SUPPORT_DB_TABLE") or "registro",
         description="Tabla destino en SQL de soporte.",
     )
+    venta_catalogo_base_url: str = Field(
+        default_factory=lambda: (os.getenv("VENTA_CATALOGO_BASE_URL") or "").rstrip("/"),
+        description="Base URL de la API externa de regiones/comunas para Venta.",
+    )
+    venta_catalogo_timeout_seconds: int = Field(
+        default_factory=lambda: int(os.getenv("VENTA_CATALOGO_TIMEOUT_SECONDS") or "8"),
+        description="Timeout para consultar la API externa de regiones/comunas de Venta.",
+    )
     smtp_enabled: bool = Field(
         default_factory=lambda: str(os.getenv("SMTP_ENABLED") or "false").strip().lower() in {"1", "true", "yes", "on"},
         description="Habilita envio automatico de correos desde backend.",
