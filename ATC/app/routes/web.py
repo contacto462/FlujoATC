@@ -4988,6 +4988,10 @@ def mark_spam(
 
         return HTMLResponse("Ticket no encontrado", status_code=404)
 
+    if _ticket_is_locked(ticket):
+        query = urlencode({"service_error": "El ticket ya esta resuelto y no permite cambios."})
+        return RedirectResponse(url=f"/dashboard/tickets/{ticket_id}?{query}", status_code=303)
+
     ticket.is_spam = True
     ticket.is_deleted = False
     apply_ticket_status_change(ticket, "closed")
@@ -5053,6 +5057,10 @@ def delete_ticket(
     if not ticket:
 
         return HTMLResponse("Ticket no encontrado", status_code=404)
+
+    if _ticket_is_locked(ticket):
+        query = urlencode({"service_error": "El ticket ya esta resuelto y no permite cambios."})
+        return RedirectResponse(url=f"/dashboard/tickets/{ticket_id}?{query}", status_code=303)
 
     ticket.is_deleted = True
     ticket.is_spam = False
