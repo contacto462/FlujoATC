@@ -68,12 +68,21 @@ def create_cliente(db: Session, payload: VentaClienteCreateRequest, ejecutivo_em
 
 
 def _fetch_catalog(path: str) -> dict:
-    base_url = (settings.VENTA_CATALOGO_BASE_URL or "").rstrip("/")
+    base_url = (
+        getattr(settings, "venta_catalogo_base_url", "")
+        or getattr(settings, "VENTA_CATALOGO_BASE_URL", "")
+        or ""
+    ).rstrip("/")
     if not base_url:
         raise HTTPException(status_code=503, detail="Catalogo externo no configurado.")
     req = Request(url=f"{base_url}{path}", method="GET")
     try:
-        with urlopen(req, timeout=settings.VENTA_CATALOGO_TIMEOUT_SECONDS) as resp:
+        timeout = int(
+            getattr(settings, "venta_catalogo_timeout_seconds", 8)
+            or getattr(settings, "VENTA_CATALOGO_TIMEOUT_SECONDS", 8)
+            or 8
+        )
+        with urlopen(req, timeout=timeout) as resp:
             body = resp.read().decode("utf-8")
             return json.loads(body)
     except Exception as exc:
