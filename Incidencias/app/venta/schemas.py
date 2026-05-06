@@ -6,16 +6,16 @@ from pydantic import BaseModel, EmailStr, Field
 class VentaClienteCreateRequest(BaseModel):
     rut: str = Field(min_length=3, max_length=32)
     razonSocial: str = Field(min_length=2, max_length=255)
-    giro: str = Field(min_length=2, max_length=255)
+    giro: str | None = Field(default=None, max_length=255)
     direccion: str = Field(min_length=2, max_length=255)
-    region: str = Field(min_length=2, max_length=120)
-    comuna: str = Field(min_length=2, max_length=120)
+    region: str | None = Field(default=None, max_length=120)
+    comuna: str | None = Field(default=None, max_length=120)
     emailFacturas: EmailStr
-    nombreRepresentante: str = Field(min_length=2, max_length=255)
-    rutRepresentante: str = Field(min_length=3, max_length=32)
-    telefono: str = Field(min_length=4, max_length=32)
-    emailRepresentante: EmailStr
-    ejecutivo: EmailStr | None = None
+    nombreRepresentante: str | None = Field(default=None, max_length=255)
+    rutRepresentante: str | None = Field(default=None, max_length=32)
+    telefono: str | None = Field(default=None, max_length=32)
+    emailRepresentante: EmailStr | None = None
+    ejecutivo: str | None = None
 
 
 class VentaClienteCreateResponse(BaseModel):
