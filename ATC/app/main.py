@@ -26,6 +26,7 @@ from app.models.email_sync_state import EmailSyncState  # noqa
 from app.models.ticket_sla_feedback import TicketSlaFeedback  # noqa
 from app.models.ticket_sla_feedback_event import TicketSlaFeedbackEvent  # noqa
 from app.models.automation_log import AutomationLog  # noqa
+from app.venta.models import VentaCliente  # noqa
 
 # =========================
 # IMPORTAR ROUTERS API
@@ -40,6 +41,7 @@ from app.routes.public import router as public_router
 # IMPORTAR ROUTER WEB (CRM)
 # =========================
 from app.routes.web import router as web_router
+from app.venta.routes import router as venta_router
 
 # =========================
 # SERVICIO EMAIL
@@ -155,6 +157,7 @@ app.include_router(whatsapp_router, prefix="/api")
 app.include_router(requesters_router, prefix="/api")
 app.include_router(public_router, prefix="/api")
 app.include_router(public_router)
+app.include_router(venta_router)
 
 # =========================
 # INCLUIR ROUTER WEB (DASHBOARD)
