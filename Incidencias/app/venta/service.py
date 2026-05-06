@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import unicodedata
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
@@ -19,6 +20,14 @@ def normalize_rut(value: str) -> str:
     if len(cleaned) < 2:
         return cleaned
     return f"{cleaned[:-1]}-{cleaned[-1]}"
+
+
+def _normalize_text(value: str) -> str:
+    return (
+        unicodedata.normalize("NFD", str(value or "").strip().lower())
+        .encode("ascii", "ignore")
+        .decode("ascii")
+    )
 
 
 def rut_exists(db: Session, rut: str) -> bool:
@@ -81,24 +90,76 @@ def _fetch_catalog(path: str) -> dict:
 
 def fetch_regiones() -> list[str]:
     data = _fetch_catalog("/regiones")
-    regiones = data.get("regiones") if isinstance(data, dict) else None
+    regiones = None
+    if isinstance(data, dict):
+        regiones = data.get("regiones")
+    elif isinstance(data, list):
+        regiones = data
     if not isinstance(regiones, list):
         raise HTTPException(status_code=502, detail="La API externa devolvio una respuesta invalida para regiones.")
-    cleaned = [str(item).strip() for item in regiones if str(item).strip()]
+
+    cleaned: list[str] = []
+    for item in regiones:
+        if isinstance(item, str):
+            nombre = item.strip()
+        elif isinstance(item, (list, tuple)) and len(item) >= 2:
+            nombre = str(item[1]).strip()
+        elif isinstance(item, dict):
+            nombre = str(item.get("nombre") or item.get("name") or "").strip()
+        else:
+            nombre = ""
+        if nombre:
+            cleaned.append(nombre)
     if not cleaned:
         raise HTTPException(status_code=502, detail="La API externa no devolvio regiones.")
     return cleaned
 
 
 def fetch_comunas(region: str) -> list[str]:
-    encoded = quote((region or "").strip())
-    data = _fetch_catalog(f"/comunas?region={encoded}")
-    comunas = data.get("comunas") if isinstance(data, dict) else None
+    region_name = (region or "").strip()
+    encoded = quote(region_name)
+    data = None
+
+    base_url = (settings.venta_catalogo_base_url or "").rstrip("/")
+    if base_url.endswith("/dpa"):
+        regiones_data = _fetch_catalog("/regiones")
+        regiones = regiones_data if isinstance(regiones_data, list) else regiones_data.get("regiones", [])
+        region_code = ""
+        for item in regiones:
+            if isinstance(item, dict):
+                nombre = str(item.get("nombre") or "").strip()
+                codigo = str(item.get("codigo") or "").strip()
+                if _normalize_text(nombre) == _normalize_text(region_name):
+                    region_code = codigo
+                    break
+        if not region_code:
+            raise HTTPException(status_code=404, detail=f"No se encontro la region '{region_name}' en la API externa.")
+        data = _fetch_catalog(f"/regiones/{quote(region_code)}/comunas")
+    else:
+        data = _fetch_catalog(f"/comunas?region={encoded}")
+
+    comunas = None
+    if isinstance(data, dict):
+        comunas = data.get("comunas")
+    elif isinstance(data, list):
+        comunas = data
     if not isinstance(comunas, list):
         raise HTTPException(status_code=502, detail="La API externa devolvio una respuesta invalida para comunas.")
-    cleaned = [str(item).strip() for item in comunas if str(item).strip()]
+
+    cleaned: list[str] = []
+    for item in comunas:
+        if isinstance(item, str):
+            nombre = item.strip()
+        elif isinstance(item, (list, tuple)) and len(item) >= 2:
+            nombre = str(item[1]).strip()
+        elif isinstance(item, dict):
+            nombre = str(item.get("nombre") or item.get("name") or "").strip()
+        else:
+            nombre = ""
+        if nombre:
+            cleaned.append(nombre)
     if not cleaned:
-        raise HTTPException(status_code=502, detail=f"La API externa no devolvio comunas para la region '{region}'.")
+        raise HTTPException(status_code=502, detail=f"La API externa no devolvio comunas para la region '{region_name}'.")
     return cleaned
 
 
