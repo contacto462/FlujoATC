@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BBDD Clientes</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#f8f9fc; margin:0; color:#333; }
+    h2 { text-align:center; margin:40px 0 10px; font-size:30px; color:#2c3e50; font-weight:600; }
+    p.aviso-edicion { text-align:center; color:#7f8c8d; font-size:13px; margin-bottom:20px; }
+    .table-container { width:100%; padding:0 30px 40px; box-sizing:border-box; max-height:75vh; overflow-y:auto; }
+    table { width:100%; border-collapse:collapse; background:#fff; box-shadow:0 4px 12px rgba(0,0,0,.05); border-radius:6px; overflow:hidden; }
+    thead { background:#2c3e50; color:#fff; }
+    thead th { position:sticky; top:0; background:#2c3e50; z-index:2; font-weight:500; font-size:14px; }
+    th, td { padding:12px 16px; border-bottom:1px solid #e0e0e0; font-size:14px; text-align:left; }
+    tr:nth-child(even) { background:#f6f8fa; }
+    tr:hover td { background:#eef2f5; }
+    td.editing { background:#fff8dc; }
+    td.edited { background:#fcf8e3 !important; }
+    td.guardado { background:#d4edda !important; transition: background-color .6s ease-in-out; }
+    .guardar-btn { padding:6px 12px; background:#1abc9c; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:13px; float:right; display:none; }
+    .guardar-btn:hover { background:#16a085; }
+    .visible { display:inline-block !important; }
+    input.filtro { width:95%; padding:6px 8px; font-size:12px; margin-top:6px; border:1px solid #ccc; border-radius:4px; }
+    input[type="text"]:focus { outline:none; border-color:#1abc9c; box-shadow:0 0 5px rgba(26,188,156,.3); }
+  </style>
+</head>
+<body>
+  <h2>BBDD Clientes</h2>
+  <p class="aviso-edicion">Haz doble clic sobre cualquier celda para editarla.</p>
+  <div class="table-container"><div id="tabla-container">Cargando datos...</div></div>
+  <script>
+    function renderTable(payload) {
+      const headers = payload.headers || [];
+      const rows = payload.rows || [];
+      const container = document.getElementById('tabla-container');
+      let html = '<table><thead><tr>';
+      headers.forEach((header, index) => {
+        html += `<th>${header}`;
+        if (index === 0 || index === 1 || index === 2) {
+          html += `<br><input type="text" class="filtro" onkeyup="filtrarTabla()" data-col="${index}" placeholder="Filtrar...">`;
+        }
+        html += '</th>';
+      });
+      html += '<th>Accion</th></tr></thead><tbody>';
+      rows.forEach((row, i) => {
+        const rowId = row[0];
+        html += `<tr data-fila="${i}" data-rowid="${rowId}">`;
+        row.forEach((cell, j) => {
+          if (j === 0 || j === 13) {
+            html += `<td data-fila="${i}" data-col="${j}">${cell || ''}</td>`;
+          } else {
+            html += `<td data-fila="${i}" data-col="${j}" ondblclick="editarCelda(this)">${cell || ''}</td>`;
+          }
+        });
+        html += `<td><button class="guardar-btn" id="guardar-${i}" onclick="guardarFila(${i}, this)">Guardar</button></td></tr>`;
+      });
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    }
+
+    function filtrarTabla() {
+      const filtros = document.querySelectorAll('input.filtro');
+      document.querySelectorAll('tbody tr').forEach(tr => {
+        let mostrar = true;
+        filtros.forEach(f => {
+          const col = f.dataset.col;
+          const value = f.value.trim().toLowerCase();
+          const td = tr.querySelector(`td[data-col="${col}"]`);
+          if (td && !td.textContent.trim().toLowerCase().includes(value)) mostrar = false;
+        });
+        tr.style.display = mostrar ? '' : 'none';
+      });
+    }
+
+    function editarCelda(td) {
+      if (td.querySelector('input')) return;
+      const original = td.textContent;
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = original;
+      td.classList.add('editing');
+      td.innerHTML = '';
+      td.appendChild(input);
+      input.focus();
+      let done = false;
+      function finish(key = '') {
+        if (done) return;
+        done = true;
+        const next = input.value;
+        td.classList.remove('editing');
+        if (key === 'Escape') {
+          td.innerHTML = original;
+          td.classList.remove('edited');
+          return;
+        }
+        td.innerHTML = next;
+        if (next !== original) {
+          td.classList.add('edited');
+          document.getElementById(`guardar-${td.dataset.fila}`).classList.add('visible');
+        } else {
+          td.classList.remove('edited');
+        }
+      }
+      input.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); finish(e.key); } });
+      input.addEventListener('blur', () => finish());
+    }
+
+    async function guardarFila(filaIndex, boton) {
+      const row = document.querySelector(`tr[data-fila="${filaIndex}"]`);
+      const rowId = Number(row.dataset.rowid);
+      const celdas = row.querySelectorAll(`td[data-fila="${filaIndex}"]`);
+      const values = [];
+      const edited = [];
+      celdas.forEach(td => {
+        values.push(td.textContent);
+        if (td.classList.contains('edited')) edited.push(td);
+      });
+      boton.disabled = true;
+      boton.textContent = "Guardando...";
+      try {
+        const response = await fetch('/api/venta/clientes/tabla/guardar-fila', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ row_id: rowId, values })
+        });
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({detail:'No se pudo guardar'}));
+          throw new Error(typeof err.detail === 'string' ? err.detail : 'No se pudo guardar');
+        }
+        edited.forEach(td => {
+          td.classList.remove('edited');
+          td.classList.add('guardado');
+          setTimeout(() => td.classList.remove('guardado'), 2000);
+        });
+        boton.textContent = "Guardado OK";
+        setTimeout(() => { boton.classList.remove('visible'); boton.disabled = false; boton.textContent = "Guardar"; }, 1500);
+      } catch (error) {
+        alert(error.message || 'Error al guardar fila');
+        boton.disabled = false;
+        boton.textContent = "Guardar";
+      }
+    }
+
+    async function init() {
+      try {
+        const response = await fetch('/api/venta/clientes/tabla');
+        if (!response.ok) throw new Error('No se pudo cargar la tabla');
+        const data = await response.json();
+        renderTable(data);
+      } catch (error) {
+        document.getElementById('tabla-container').textContent = error.message || 'Error cargando datos.';
+      }
+    }
+    init();
+  </script>
+</body>
+</html>
+
