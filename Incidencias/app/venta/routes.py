@@ -43,6 +43,19 @@ def venta_clientes_page(
     return templates.TemplateResponse("RegistroCliente.html", {"request": request, "token": token})
 
 
+@router.get("/venta/panel-selector", response_class=HTMLResponse)
+def venta_panel_selector_page(
+    request: Request,
+    token: str = Depends(require_venta_token),
+    service: IncidenciasService = Depends(get_service),
+):
+    tecnico = service.get_usuario_actual(token)
+    return templates.TemplateResponse(
+        "panel_selector_venta.html",
+        {"request": request, "token": token, "tecnico": tecnico},
+    )
+
+
 @router.get("/venta/bbdd-clientes", response_class=HTMLResponse)
 def venta_bbdd_clientes_page(
     request: Request,
@@ -110,4 +123,3 @@ def venta_clientes_guardar_fila(
 ):
     update_cliente_row(db, payload.row_id, payload.values)
     return {"ok": True}
-
