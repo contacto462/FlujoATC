@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="es">
 <head>
 <meta charset="utf-8" />
@@ -179,13 +179,22 @@ h1{
   background:var(--surface-2);
   color:inherit;
   text-decoration:none;
-  transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease;
+  transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease, filter .18s ease, opacity .18s ease;
+}
+
+.grid:has(.option:hover) .option:not(:hover){
+  filter:blur(1.8px);
+  opacity:.5;
+  transform:scale(.965);
 }
 
 .option:hover{
-  transform:translateY(-3px);
+  transform:translateY(-3px) scale(1.06);
   border-color:rgba(255,255,255,.18);
   box-shadow:0 18px 34px rgba(0,0,0,.22);
+  filter:none;
+  opacity:1;
+  z-index:2;
 }
 
 .option.incidencias:hover{
@@ -252,23 +261,57 @@ h1{
   font-size:13px;
 }
 
-.logout{
-  display:inline-flex;
+.Btn{
+  display:flex;
   align-items:center;
   justify-content:center;
-  min-width:120px;
-  padding:10px 16px;
+  width:40px;
+  height:40px;
+  border:none;
   border-radius:14px;
-  border:1px solid rgba(255,255,255,.12);
-  color:#dce5f3;
+  cursor:pointer;
+  position:relative;
+  overflow:hidden;
   text-decoration:none;
   background:rgba(255,255,255,.04);
-  transition:background .18s ease, transform .18s ease;
+  border:1px solid rgba(255,255,255,.12);
+  transition:all .22s ease;
 }
-
-.logout:hover{
+.sign{
+  position:absolute;
+  left:12px;
+  width:16px;
+  height:16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:all .22s ease;
+}
+.sign svg{width:16px}
+.sign svg path{fill:#dce5f3}
+.text{
+  position:absolute;
+  left:34px;
+  width:98px;
+  font-size:12px;
+  font-weight:700;
+  color:#dce5f3;
+  opacity:0;
+  transform:translateX(-6px);
+  pointer-events:none;
+  transition:all .22s ease;
+}
+.Btn:hover{
+  width:152px;
   background:rgba(255,255,255,.08);
-  transform:translateY(-1px);
+}
+.Btn:hover .sign{
+  left:12px;
+  width:16px;
+}
+.Btn:hover .text{
+  opacity:1;
+  transform:translateX(0);
 }
 
 @media (max-width: 940px){
@@ -298,9 +341,8 @@ h1{
     flex-direction:column;
     align-items:stretch;
   }
-  .logout{
-    width:100%;
-  }
+  .Btn{width:40px;}
+  .Btn:hover{width:152px;}
 }
 </style>
 </head>
@@ -314,15 +356,15 @@ h1{
           </div>
           <div class="brand-text">
             <strong>Alguien te Cuida</strong>
-            <span>Centro de operaciones</span>
+            <span>Centro de operaciónes</span>
           </div>
         </div>
 
         <p id="welcomeMessage" class="welcome-message" data-full-name="{{ tecnico|default('') }}">¡Hola!</p>
-        <h1>Escoge el modulo con el que quieres trabajar.</h1>
+        <h1>Escoge el módulo con el que quieres trabajar.</h1>
         <p class="lead">
-          Desde aqui puedes entrar rapidamente al modulo de Incidencias Servicio Tecnico o al modulo
-          de Ventas Servicio Tecnico. Tambien puedes revisar y aprobar rendiciones del equipo.
+          Desde aquí puedes entrar rápidamente al módulo de Incidencias Servicio Técnico o al módulo
+          de Ventas Servicio Técnico. Tambien puedes revisar y aprobar rendiciones del equipo.
         </p>
 
         <div class="user-chip">Acceso habilitado</div>
@@ -340,7 +382,7 @@ h1{
               <div class="icon">I</div>
             </div>
             <strong>Incidencias Servicio Técnico</strong>
-            <p>Revisa y gestiona las ODT del flujo operativo diario de Servicio Tecnico.</p>
+            <p>Revisa y gestiona las ODT del flujo operativo diario de Servicio Técnico.</p>
           </a>
 
           <a class="option protocolos" href="/?form=stVentas&token={{ token|default('') }}">
@@ -362,7 +404,10 @@ h1{
 
         <div class="footer">
           <span>Operaciones ATC 2026</span>
-          <a class="logout" href="/?form=login&next=servicioTecnico">Cerrar sesion</a>
+          <a class="Btn" href="/?form=login&next=servicioTecnico" aria-label="Cerrar Sesión">
+            <div class="sign"><svg viewBox="0 0 512 512" aria-hidden="true"><path d="M377.9 105.9L500.7 228.7c7.2 7.2 11.3 17.1 11.3 27.3s-4.1 20.1-11.3 27.3L377.9 406.1c-6.4 6.4-15 9.9-24 9.9c-18.7 0-33.9-15.2-33.9-33.9l0-62.1-128 0c-17.7 0-32-14.3-32-32l0-64c0-17.7 14.3-32 32-32l128 0 0-62.1c0-18.7 15.2-33.9 33.9-33.9c9 0 17.6 3.6 24 9.9zM160 96L96 96c-17.7 0-32 14.3-32 32l0 256c0 17.7 14.3 32 32 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-64 0c-53 0-96-43-96-96L0 128C0 75 43 32 96 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32z"></path></svg></div>
+            <div class="text">Cerrar Sesión</div>
+          </a>
         </div>
       </aside>
     </section>
@@ -385,3 +430,7 @@ h1{
   </script>
 </body>
 </html>
+
+
+
+

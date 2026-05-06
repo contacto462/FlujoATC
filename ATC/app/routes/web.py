@@ -84,6 +84,8 @@ from app.models.internal_chat_message import InternalChatMessage
 from app.models.internal_chat_read_state import InternalChatReadState
 
 from app.models.ticket_alert_read_state import TicketAlertReadState
+from app.models.ticket_message_read_state import TicketMessageReadState
+from app.models.ticket_internal_note_read_state import TicketInternalNoteReadState
 
 from app.models.user import User
 
@@ -1028,6 +1030,7 @@ def launcher_panel(
 def dashboard(
     request: Request,
     db: Session = Depends(get_db),
+    incidencias_db: Session = Depends(get_incidencias_db),
     current_user: User = Depends(get_current_user_web),
     status: str | None = None,
     q: str | None = None,
@@ -1043,7 +1046,7 @@ def dashboard(
 
     allowed_scopes = {"all", "open", "pending", "resolved", "spam", "trash"}
     allowed_sources = {"all", "email", "whatsapp", "internal"}
-    allowed_priorities = {"all", "low", "medium", "high", "urgent"}
+    allowed_priorities = {"all", "unassigned", "low", "medium", "high", "urgent"}
 
     date_from_value = (date_from or "").strip()
     date_to_value = (date_to or "").strip()
@@ -1139,7 +1142,13 @@ def dashboard(
         )
     else:
         scope_clauses = []
-        selected_statuses = [value for value in scope_filters if value in {"open", "pending", "resolved"}]
+        selected_statuses: list[str] = []
+        if "open" in scope_filters:
+            selected_statuses.append("open")
+        if "pending" in scope_filters:
+            selected_statuses.extend(PENDING_TICKET_STATUSES)
+        if "resolved" in scope_filters:
+            selected_statuses.append("resolved")
         if selected_statuses:
             scope_clauses.append(
                 and_(
@@ -1176,7 +1185,14 @@ def dashboard(
     if source_filters != ["all"]:
         query = query.filter(Ticket.source.in_(source_filters))
     if priority_filters != ["all"]:
-        query = query.filter(Ticket.priority.in_(priority_filters))
+        priority_clauses = []
+        selected_priorities = [value for value in priority_filters if value in {"low", "medium", "high", "urgent"}]
+        if selected_priorities:
+            priority_clauses.append(Ticket.priority.in_(selected_priorities))
+        if "unassigned" in priority_filters:
+            priority_clauses.append(or_(Ticket.priority.is_(None), Ticket.priority == ""))
+        if priority_clauses:
+            query = query.filter(or_(*priority_clauses))
     if date_from_dt:
         query = query.filter(Ticket.created_at >= date_from_dt)
     if date_to_dt:
@@ -1196,6 +1212,52 @@ def dashboard(
         .limit(page_size)
         .all()
     )
+
+    ticket_has_new_message: dict[int, bool] = {}
+    ticket_unseen_message_id: dict[int, int] = {}
+    ticket_unseen_message_count: dict[int, int] = {}
+    ticket_ids = [t.id for t in tickets]
+    if ticket_ids:
+        read_rows = (
+            db.query(
+                TicketMessageReadState.ticket_id,
+                TicketMessageReadState.last_seen_message_id,
+            )
+            .filter(
+                TicketMessageReadState.user_id == current_user.id,
+                TicketMessageReadState.ticket_id.in_(ticket_ids),
+            )
+            .all()
+        )
+        seen_by_ticket = {int(r.ticket_id): int(r.last_seen_message_id or 0) for r in read_rows}
+
+        for ticket_id in ticket_ids:
+            last_seen = seen_by_ticket.get(int(ticket_id), 0)
+            first_unseen = (
+                db.query(Message.id)
+                .filter(
+                    Message.ticket_id == ticket_id,
+                    Message.id > last_seen,
+                )
+                .order_by(Message.id.asc())
+                .first()
+            )
+            if first_unseen and first_unseen[0]:
+                ticket_unseen_message_id[int(ticket_id)] = int(first_unseen[0])
+            unseen_count = (
+                db.query(func.count(Message.id))
+                .filter(
+                    Message.ticket_id == ticket_id,
+                    Message.is_internal_note == False,
+                    Message.id > last_seen,
+                    or_(Message.sender_id.is_(None), Message.sender_id != current_user.id),
+                )
+                .scalar()
+                or 0
+            )
+            if unseen_count > 0:
+                ticket_unseen_message_count[int(ticket_id)] = int(unseen_count)
+            ticket_has_new_message[int(ticket_id)] = unseen_count > 0
 
     for t in tickets:
         _normalize_requester_name(t.requester)
@@ -1261,7 +1323,7 @@ def dashboard(
             Ticket.is_spam == False,
         ).count(),
         "pending": db.query(Ticket).filter(
-            Ticket.status == "pending",
+            Ticket.status.in_(PENDING_TICKET_STATUSES),
             Ticket.is_deleted == False,
             Ticket.is_spam == False,
         ).count(),
@@ -1282,12 +1344,42 @@ def dashboard(
     internal_chat_unread_count = _get_internal_chat_unread_count(db, current_user.id)
     ticket_alert_unread_count = _mark_ticket_alerts_as_read(db, current_user.id)
 
+    pending_incidencias: list[dict[str, str]] = []
+    pending_incidencias_count = 0
+    try:
+        _inc_table, incidencias_rows = _support_query_incidencias(incidencias_db)
+        pending_tokens = {"pendiente"}
+        for row in incidencias_rows:
+            derivacion_value = _support_text(_support_pick(row, "derivacion")).casefold()
+            if derivacion_value not in pending_tokens:
+                continue
+            pending_incidencias_count += 1
+            if len(pending_incidencias) >= 6:
+                continue
+            pending_incidencias.append(
+                {
+                    "id": str(_support_pick(row, "id") or ""),
+                    "odt": _support_text(_support_pick(row, "odt")) or f"#{_support_pick(row, 'id')}",
+                    "sucursal": _support_text(_support_pick(row, "sucursal", "cliente", "puesto")) or "Sin sucursal",
+                    "tipo_problema": _support_text(_support_pick(row, "problema", "tipo_incidencia", "descripcion"))
+                    or "Sin tipo de problema",
+                    "estado": _support_text(_support_pick(row, "estado")) or "Pendiente",
+                    "fecha": _support_format_radar_date(_support_pick(row, "fecha", "fecha_registro")),
+                }
+            )
+    except Exception:
+        pending_incidencias = []
+        pending_incidencias_count = 0
+
     return templates.TemplateResponse(
         "dashboard.html",
         {
             "request": request,
             "user": current_user,
             "tickets": tickets,
+            "ticket_has_new_message": ticket_has_new_message,
+            "ticket_unseen_message_id": ticket_unseen_message_id,
+            "ticket_unseen_message_count": ticket_unseen_message_count,
             "status": scope_filter if scope_filter in {"open", "pending", "resolved"} else None,
             "scope_filter": scope_filter,
             "scope_filters": scope_filters,
@@ -1304,6 +1396,8 @@ def dashboard(
             "date_to": date_to_value,
             "internal_chat_unread_count": internal_chat_unread_count,
             "ticket_alert_unread_count": ticket_alert_unread_count,
+            "pending_incidencias": pending_incidencias,
+            "pending_incidencias_count": pending_incidencias_count,
             "current_page": safe_page,
             "total_pages": total_pages,
             "page_size": page_size,
@@ -1340,8 +1434,8 @@ def etapa_board(
     stage_order = ["open", "pending", "resolved", "spam", "papelera"]
     stage_labels = {
         "open": "Open",
-        "pending": "Pending",
-        "resolved": "Resolved",
+        "pending": "Pendiente",
+        "resolved": "Cerrado",
         "spam": "Spam",
         "papelera": "Papelera",
     }
@@ -1429,6 +1523,30 @@ def _support_text(value: object) -> str:
     if value is None:
         return ""
     return str(value).strip()
+
+
+def _support_format_radar_date(value: object) -> str:
+    if value is None:
+        return "Sin fecha"
+    if isinstance(value, datetime):
+        return value.strftime("%d-%m-%Y")
+
+    raw_value = _support_text(value)
+    if not raw_value:
+        return "Sin fecha"
+
+    try:
+        parsed = datetime.fromisoformat(raw_value.replace("Z", "+00:00"))
+        return parsed.strftime("%d-%m-%Y")
+    except ValueError:
+        pass
+
+    match = re.search(r"(\d{4})-(\d{2})-(\d{2})", raw_value)
+    if match:
+        year, month, day = match.groups()
+        return f"{day}-{month}-{year}"
+
+    return raw_value.split(".")[0]
 
 
 def _support_pick(row: dict[str, object], *keys: str) -> str:
@@ -1842,7 +1960,7 @@ def _support_odt_sort_key(raw_odt: object, raw_id: object) -> tuple[int, int, st
 def _support_next_odt_value(db: Session, table: Table) -> str:
     # Calcula la siguiente ODT numerica basada en los registros existentes.
     if "odt" not in table.c:
-        return str(int(datetime.now().timestamp()))
+        return f"T{int(datetime.now().timestamp())}"
 
     rows = db.execute(select(table.c.odt)).scalars().all()
     max_number = 0
@@ -1856,9 +1974,11 @@ def _support_next_odt_value(db: Session, table: Table) -> str:
         if numbers:
             max_number = max(max_number, int(numbers[-1]))
 
-    candidate = str(max_number + 1 if max_number > 0 else (len(seen) + 1))
+    candidate_number = max_number + 1 if max_number > 0 else (len(seen) + 1)
+    candidate = f"T{candidate_number}"
     while candidate.casefold() in seen:
-        candidate = str(int(candidate) + 1)
+        candidate_number += 1
+        candidate = f"T{candidate_number}"
     return candidate
 
 
@@ -2808,9 +2928,11 @@ def update_ticket_stage(
     if safe_stage == "spam":
         ticket.is_spam = True
         ticket.is_deleted = False
+        apply_ticket_status_change(ticket, "closed")
     elif safe_stage == "papelera":
         ticket.is_deleted = True
         ticket.is_spam = False
+        apply_ticket_status_change(ticket, "closed")
     else:
         ticket.is_deleted = False
         ticket.is_spam = False
@@ -3282,7 +3404,7 @@ def _format_note_datetime(raw_value: str | None) -> str:
 
     return parsed.astimezone().strftime("%d-%m-%Y %H:%M")
 
-def _parse_requester_notes(raw_notes: str | None) -> list[dict[str, str]]:
+def _parse_requester_notes(raw_notes: str | None) -> list[dict[str, str | int]]:
     if not raw_notes:
         return []
 
@@ -3312,6 +3434,7 @@ def _parse_requester_notes(raw_notes: str | None) -> list[dict[str, str]]:
                 {
                     "text": text,
                     "author": author,
+                    "author_id": int(item.get("author_id") or 0),
                     "created_at": created_at_raw,
                     "created_at_display": _format_note_datetime(created_at_raw),
                 }
@@ -3328,8 +3451,8 @@ def _parse_requester_notes(raw_notes: str | None) -> list[dict[str, str]]:
     ]
 
 
-def _serialize_requester_notes(notes: list[dict[str, str]]) -> str:
-    payload: list[dict[str, str]] = []
+def _serialize_requester_notes(notes: list[dict[str, str | int]]) -> str:
+    payload: list[dict[str, str | int]] = []
     for note in notes:
         text = str(note.get("text", "")).strip()
         if not text:
@@ -3339,6 +3462,7 @@ def _serialize_requester_notes(notes: list[dict[str, str]]) -> str:
             {
                 "text": text,
                 "author": str(note.get("author", "")).strip() or "Agente",
+                "author_id": int(note.get("author_id") or 0),
                 "created_at": str(note.get("created_at", "")).strip(),
             }
         )
@@ -3354,24 +3478,89 @@ def _normalize_requester_name(requester: Requester | None) -> None:
         requester.name = decoded
 
 
+PENDING_TICKET_STATUSES = ("pending", "pending_service", "pending_client")
+RESOLVED_TICKET_STATUSES = ("resolved", "resolved_service", "resolved_client")
+TICKET_STATUS_LABELS = {
+    "open": "Open",
+    "pending": "Pendiente",
+    "pending_service": "Pendiente Servicio",
+    "pending_client": "Pendiente Cliente",
+    "resolved": "Resuelto",
+    "resolved_service": "Resuelto Servicio",
+    "resolved_client": "Resuelto Cliente",
+    "closed": "Cerrado",
+}
+
+
+def _normalize_ticket_status_code(status: str | None) -> str:
+    raw = re.sub(r"\s+", " ", (status or "").strip())
+    key = raw.casefold()
+    key = unicodedata.normalize("NFD", key)
+    key = "".join(ch for ch in key if unicodedata.category(ch) != "Mn")
+    key = key.replace(" ", "_").replace("-", "_")
+    aliases = {
+        "open": "open",
+        "abierto": "open",
+        "pending": "pending",
+        "pendiente": "pending",
+        "pending_service": "pending_service",
+        "pendiente_servicio": "pending_service",
+        "pending_client": "pending_client",
+        "pendiente_cliente": "pending_client",
+        "resolved": "resolved",
+        "resuelto": "resolved",
+        "resolved_service": "resolved_service",
+        "resuelto_servicio": "resolved_service",
+        "resuleto_servicio": "resolved_service",
+        "resolved_client": "resolved_client",
+        "resuelto_cliente": "resolved_client",
+        "cerrado": "closed",
+        "closed": "closed",
+    }
+    return aliases.get(key, key or "open")
+
+
+def _ticket_status_label(status: str | None) -> str:
+    code = _normalize_ticket_status_code(status)
+    return TICKET_STATUS_LABELS.get(code, (status or "Open").strip() or "Open")
+
+
+def _ticket_status_css(status: str | None) -> str:
+    return re.sub(r"[^a-z0-9_-]+", "-", _normalize_ticket_status_code(status)).strip("-") or "open"
+
+
+def _ticket_status_group(status: str | None) -> str:
+    code = _normalize_ticket_status_code(status)
+    if code in PENDING_TICKET_STATUSES:
+        return "pending"
+    if code in RESOLVED_TICKET_STATUSES or code == "closed":
+        return "resolved"
+    return code or "open"
+
+
+templates.env.globals["ticket_status_label"] = _ticket_status_label
+templates.env.globals["ticket_status_css"] = _ticket_status_css
+templates.env.globals["ticket_status_group"] = _ticket_status_group
+
+
 def _ticket_stage(ticket: Ticket) -> str:
     # Mapea el ticket al "estado visual" del tablero Etapa.
     if ticket.is_deleted:
         return "papelera"
     if ticket.is_spam:
         return "spam"
-    return (ticket.status or "open").strip().lower() or "open"
+    return _ticket_status_group(ticket.status)
 
 
 def _enforce_status_transition_rules(ticket: Ticket, new_status: str) -> None:
     # Regla de negocio: no permitimos Open -> Resolved directo.
     # Debe pasar por Pending para asegurar contacto previo con cliente.
-    old_status = (ticket.status or "").strip().lower()
-    target_status = (new_status or "").strip().lower()
-    if old_status == "open" and target_status == "resolved":
+    old_status = _normalize_ticket_status_code(ticket.status)
+    target_status = _normalize_ticket_status_code(new_status)
+    if old_status == "open" and (target_status in RESOLVED_TICKET_STATUSES or target_status == "closed"):
         raise HTTPException(
             status_code=400,
-            detail="No se puede mover de Open a Resolved directamente. Primero debe pasar por Pending.",
+            detail="No se puede mover de Open a Resuelto directamente. Primero debe pasar por Pendiente.",
         )
 
 
@@ -3400,7 +3589,9 @@ def _serialize_internal_chat_message(msg: InternalChatMessage) -> dict[str, str 
 def ticket_detail(
     request: Request,
     ticket_id: int,
+    focus_message_id: int | None = None,
     db: Session = Depends(get_db),
+    incidencias_db: Session = Depends(get_incidencias_db),
     current_user: User = Depends(get_current_user_web),
 ):
     # Ticket actual
@@ -3472,6 +3663,34 @@ def ticket_detail(
         .all()
     )
 
+    latest_message_id = messages[-1].id if messages else 0
+    ticket_read_state = (
+        db.query(TicketMessageReadState)
+        .filter(
+            TicketMessageReadState.user_id == current_user.id,
+            TicketMessageReadState.ticket_id == ticket_id,
+        )
+        .first()
+    )
+    previous_last_seen_message_id = int(ticket_read_state.last_seen_message_id or 0) if ticket_read_state else 0
+    unseen_reply_message_ids = [
+        int(m.id)
+        for m in messages
+        if int(m.id or 0) > previous_last_seen_message_id
+        and (m.sender_id is None or int(m.sender_id) != int(current_user.id))
+    ]
+    if ticket_read_state is None:
+        ticket_read_state = TicketMessageReadState(
+            user_id=current_user.id,
+            ticket_id=ticket_id,
+            last_seen_message_id=latest_message_id,
+        )
+        db.add(ticket_read_state)
+        db.commit()
+    elif latest_message_id > (ticket_read_state.last_seen_message_id or 0):
+        ticket_read_state.last_seen_message_id = latest_message_id
+        db.commit()
+
     for m in messages:
         if not m.content:
             continue
@@ -3501,6 +3720,47 @@ def ticket_detail(
         m.content = Markup(content)
 
     requester_notes = _parse_requester_notes(ticket.requester.notes if ticket.requester else None)
+    total_internal_notes = len(requester_notes)
+    internal_note_state = (
+        db.query(TicketInternalNoteReadState)
+        .filter(
+            TicketInternalNoteReadState.user_id == current_user.id,
+            TicketInternalNoteReadState.ticket_id == ticket.id,
+        )
+        .first()
+    )
+    seen_internal_notes = int(internal_note_state.last_seen_note_count or 0) if internal_note_state else 0
+    unseen_internal_notes = 0
+    if total_internal_notes > seen_internal_notes:
+        for idx, note in enumerate(requester_notes, start=1):
+            if idx <= seen_internal_notes:
+                continue
+            note_author_id = int(note.get("author_id") or 0) if isinstance(note, dict) else 0
+            if note_author_id and note_author_id == current_user.id:
+                continue
+            unseen_internal_notes += 1
+
+    message_read_state = (
+        db.query(TicketMessageReadState)
+        .filter(
+            TicketMessageReadState.user_id == current_user.id,
+            TicketMessageReadState.ticket_id == ticket.id,
+        )
+        .first()
+    )
+    last_seen_message_id = int(message_read_state.last_seen_message_id or 0) if message_read_state else 0
+    unseen_reply_count = (
+        db.query(func.count(Message.id))
+        .filter(
+            Message.ticket_id == ticket.id,
+            Message.is_internal_note == False,
+            Message.id > last_seen_message_id,
+            or_(Message.sender_id.is_(None), Message.sender_id != current_user.id),
+        )
+        .scalar()
+        or 0
+    )
+    unseen_total_count = int(unseen_internal_notes) + int(unseen_reply_count)
 
     requester_tickets = (
         db.query(Ticket)
@@ -3512,11 +3772,14 @@ def ticket_detail(
     status_counts = {
         "open": 0,
         "pending": 0,
+        "pending_service": 0,
+        "pending_client": 0,
         "resolved": 0,
     }
     for requester_ticket in requester_tickets:
-        if requester_ticket.status in status_counts:
-            status_counts[requester_ticket.status] += 1
+        status_code = _normalize_ticket_status_code(requester_ticket.status)
+        if status_code in status_counts:
+            status_counts[status_code] += 1
 
     requester_display_name = ticket.requester.display_name if ticket.requester else ""
     requester_info = {
@@ -3531,6 +3794,61 @@ def ticket_detail(
         "status_counts": status_counts,
         "tickets": requester_tickets,
     }
+    requester_name_catalog: list[str] = []
+    try:
+        catalog_rows = incidencias_db.execute(
+            text(
+                """
+                SELECT nombre_sucursal
+                FROM catalogo_clientes
+                WHERE COALESCE(TRIM(nombre_sucursal), '') <> ''
+                ORDER BY nombre_sucursal ASC
+                """
+            )
+        ).fetchall()
+        seen_names: set[str] = set()
+        for row in catalog_rows:
+            value = re.sub(r"\s+", " ", _support_text(row[0])).strip()
+            if not value:
+                continue
+            key = value.casefold()
+            if key in seen_names:
+                continue
+            seen_names.add(key)
+            requester_name_catalog.append(value)
+    except Exception:
+        requester_name_catalog = []
+
+    linked_odt: dict | None = None
+    try:
+        # Extraer número de ODT desde las notas de auditoría del ticket.
+        # El formato de la nota es: "Derivado a {destino}. ODT: {odt}."
+        odt_value_linked: str | None = None
+        audit_msgs = (
+            db.query(Message)
+            .filter(
+                Message.ticket_id == ticket_id,
+                Message.is_internal_note == True,
+            )
+            .order_by(Message.id.desc())
+            .all()
+        )
+        for _msg in audit_msgs:
+            _match = re.search(r"ODT:\s*([\w\-]+)", _msg.content or "")
+            if _match:
+                odt_value_linked = _match.group(1).strip()
+                break
+
+        if odt_value_linked:
+            odt_table = _support_incidencias_table(incidencias_db)
+            if "odt" in odt_table.c:
+                odt_row = incidencias_db.execute(
+                    select(*odt_table.c).where(odt_table.c.odt == odt_value_linked)
+                ).mappings().first()
+                if odt_row:
+                    linked_odt = dict(odt_row)
+    except Exception:
+        linked_odt = None
 
     assignable_users = (
         db.query(User)
@@ -3582,7 +3900,11 @@ def ticket_detail(
             "ticket": ticket,
             "messages": messages,
             "requester_notes": requester_notes,
+            "unseen_internal_notes": unseen_internal_notes,
+            "unseen_reply_count": unseen_reply_count,
+            "unseen_total_count": unseen_total_count,
             "requester_info": requester_info,
+            "requester_name_catalog": requester_name_catalog,
             "assignable_users": assignable_users,
             "internal_chat_unread_count": internal_chat_unread_count,
             "ticket_alert_unread_count": ticket_alert_unread_count,
@@ -3594,6 +3916,9 @@ def ticket_detail(
             "requires_reception": requires_reception,
             "reception_sent": reception_sent,
             "can_reply": reception_sent,
+            "focus_message_id": focus_message_id,
+            "unseen_reply_message_ids": unseen_reply_message_ids,
+            "linked_odt": linked_odt,
         },
     )
 
@@ -3643,6 +3968,7 @@ def add_requester_internal_note(
                 "text": note_text,
 
                 "author": current_user.name or current_user.username,
+                "author_id": current_user.id,
 
                 "created_at": datetime.now(timezone.utc).isoformat(),
 
@@ -3663,12 +3989,76 @@ def add_requester_internal_note(
     )
 
 
+@router.post("/dashboard/tickets/{ticket_id}/internal-notes/mark-read")
+def mark_internal_notes_as_read(
+    ticket_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket no encontrado")
+
+    notes = _parse_requester_notes(ticket.requester.notes if ticket.requester else None)
+    note_count = len(notes)
+
+    read_state = (
+        db.query(TicketInternalNoteReadState)
+        .filter(
+            TicketInternalNoteReadState.user_id == current_user.id,
+            TicketInternalNoteReadState.ticket_id == ticket_id,
+        )
+        .first()
+    )
+    if read_state is None:
+        read_state = TicketInternalNoteReadState(
+            user_id=current_user.id,
+            ticket_id=ticket_id,
+            last_seen_note_count=note_count,
+        )
+        db.add(read_state)
+    elif note_count > (read_state.last_seen_note_count or 0):
+        read_state.last_seen_note_count = note_count
+
+    latest_reply_message = (
+        db.query(Message.id)
+        .filter(
+            Message.ticket_id == ticket_id,
+            Message.is_internal_note == False,
+        )
+        .order_by(Message.id.desc())
+        .first()
+    )
+    latest_reply_message_id = int(latest_reply_message[0]) if latest_reply_message and latest_reply_message[0] else 0
+    message_read_state = (
+        db.query(TicketMessageReadState)
+        .filter(
+            TicketMessageReadState.user_id == current_user.id,
+            TicketMessageReadState.ticket_id == ticket_id,
+        )
+        .first()
+    )
+    if message_read_state is None:
+        message_read_state = TicketMessageReadState(
+            user_id=current_user.id,
+            ticket_id=ticket_id,
+            last_seen_message_id=latest_reply_message_id,
+        )
+        db.add(message_read_state)
+    elif latest_reply_message_id > (message_read_state.last_seen_message_id or 0):
+        message_read_state.last_seen_message_id = latest_reply_message_id
+
+    db.commit()
+    return JSONResponse({"ok": True, "unseen_internal_notes": 0, "unseen_reply_count": 0, "unseen_total_count": 0})
+
+
 @router.post("/tickets/requesters/{requester_id}/internal-name")
 def update_requester_internal_name(
     requester_id: int,
     ticket_id: int = Form(...),
     internal_name: str = Form(""),
     db: Session = Depends(get_db),
+    incidencias_db: Session = Depends(get_incidencias_db),
     current_user: User = Depends(get_current_user_web),
 ):
     # Guarda alias interno del cliente para todo el equipo.
@@ -3684,7 +4074,26 @@ def update_requester_internal_name(
         raise HTTPException(status_code=400, detail="Ticket y cliente no coinciden")
 
     sanitized_alias = re.sub(r"\s+", " ", (internal_name or "")).strip()[:120]
-    requester.internal_name = sanitized_alias or None
+    if sanitized_alias:
+        row = incidencias_db.execute(
+            text(
+                """
+                SELECT nombre_sucursal
+                FROM catalogo_clientes
+                WHERE LOWER(TRIM(nombre_sucursal)) = LOWER(TRIM(:alias))
+                LIMIT 1
+                """
+            ),
+            {"alias": sanitized_alias},
+        ).fetchone()
+        if not row or not row[0]:
+            raise HTTPException(
+                status_code=400,
+                detail="El nombre debe existir en catalogo_clientes.",
+            )
+        requester.internal_name = re.sub(r"\s+", " ", _support_text(row[0])).strip()[:120]
+    else:
+        requester.internal_name = None
     db.commit()
 
     return RedirectResponse(
@@ -3724,6 +4133,7 @@ def update_status(
 
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
 
+    status = _normalize_ticket_status_code(status)
     _enforce_status_transition_rules(ticket, status)
     change = apply_ticket_status_change(ticket, status)
 
@@ -3921,7 +4331,16 @@ def update_quick_actions(
 
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
 
-    allowed_status = ["open", "pending", "resolved"]
+    status = _normalize_ticket_status_code(status)
+    allowed_status = [
+        "open",
+        "pending",
+        "pending_service",
+        "pending_client",
+        "resolved",
+        "resolved_service",
+        "resolved_client",
+    ]
 
     if status not in allowed_status:
 
@@ -4060,7 +4479,7 @@ def send_ticket_to_service(
 
     direccion_clean = re.sub(r"\s+", " ", (direccion or "").strip())
     tecnico_clean = re.sub(r"\s+", " ", (tecnico or "").strip())
-    estado_clean = re.sub(r"\s+", " ", (estado or "").strip()) or "Pendiente"
+    estado_clean = "Pendiente"
     # Evita que el historial se parta en multiples bloques por saltos de linea.
     observacion_clean = re.sub(r"\s+", " ", (observacion or "").strip())
 
@@ -4120,8 +4539,6 @@ def send_ticket_to_service(
         # No inyectamos texto automatico en Registro Operaciones.
         # Gestion Soporte queda en observacion_soporte con firma de usuario/fecha.
         set_first(("direccion",), direccion_clean)
-        if derivacion_clean == "Servicio Técnico":
-            set_first(("tecnico", "tecnicos"), tecnico_clean)
         set_first(("estado",), estado_clean)
         set_first(("fecha_derivacion_area", "fecha_derivacion_tecnico", "fecha_derivacion"), now_label)
         set_first(("derivado_por",), current_user.name or current_user.username or "Soporte")
@@ -4144,21 +4561,75 @@ def send_ticket_to_service(
         query = urlencode({"service_error": f"No se pudo crear la incidencia: {error_text[:200]}"})
         return RedirectResponse(url=f"/dashboard/tickets/{ticket_id}?{query}", status_code=303)
 
+    correo_info = ""
     try:
+        ticket_status = "pending_client" if derivacion_clean == "Cliente" else "pending_service"
+        apply_ticket_status_change(ticket, ticket_status)
         audit_note = Message(
             ticket_id=ticket.id,
             sender_type="agent",
             sender_id=current_user.id,
             channel="internal",
-            content=f"Derivado a Servicio Técnico. ODT: {odt_value}.",
+            content=f"Derivado a {derivacion_clean}. ODT: {odt_value}.",
             is_internal_note=True,
         )
         db.add(audit_note)
+        requester_email = parseaddr(ticket.requester.email if ticket.requester else "")[1].strip()
+        if (ticket.source or "").strip().lower() == "email" and requester_email:
+            try:
+                from app.integrations.email_smtp import send_email_reply
+
+                detalle_derivacion = (
+                    f"<p>Informamos que el ticket #{ticket.id} fue derivado a "
+                    f"<strong>{html.escape(derivacion_clean)}</strong>.</p>"
+                    f"<p><strong>ODT:</strong> {html.escape(str(odt_value))}<br>"
+                    f"<strong>Sucursal:</strong> {html.escape(cliente_clean)}<br>"
+                    f"<strong>Incidencia:</strong> {html.escape(problema_clean)}</p>"
+                )
+                if observacion_clean:
+                    detalle_derivacion += f"<p><strong>Detalle:</strong> {html.escape(observacion_clean)}</p>"
+                detalle_derivacion += (
+                    "<p>El equipo de Alguien Te Cuida continuará la gestión por este mismo ticket.</p>"
+                )
+                send_email_reply(
+                    to=requester_email,
+                    subject=_build_ticket_email_subject(ticket.subject, ticket.id),
+                    body=detalle_derivacion,
+                    ticket_id=ticket.id,
+                )
+                db.add(
+                    Message(
+                        ticket_id=ticket.id,
+                        sender_type="agent",
+                        sender_id=current_user.id,
+                        channel="email",
+                        content=detalle_derivacion,
+                        is_internal_note=False,
+                    )
+                )
+                correo_info = " Correo enviado al solicitante."
+            except Exception as exc:
+                error_text = re.sub(r"\s+", " ", str(exc or "error desconocido")).strip()
+                db.add(
+                    Message(
+                        ticket_id=ticket.id,
+                        sender_type="system",
+                        channel="internal",
+                        content=(
+                            "No se pudo enviar el correo automatico de derivacion. "
+                            f"Detalle: {html.escape(error_text[:220])}"
+                        ),
+                        is_internal_note=True,
+                    )
+                )
+                correo_info = " No se pudo enviar el correo automatico."
+        elif (ticket.source or "").strip().lower() == "email":
+            correo_info = " No se envio correo: el solicitante no tiene email registrado."
         db.commit()
     except Exception:
         db.rollback()
 
-    query = urlencode({"service_success": f"Incidencia creada y enviada a Servicio Técnico (ODT: {odt_value})."})
+    query = urlencode({"service_success": f"Incidencia creada y enviada a {derivacion_clean} (ODT: {odt_value}).{correo_info}"})
     return RedirectResponse(url=f"/dashboard/tickets/{ticket_id}?{query}", status_code=303)
 
 # ======================================================
@@ -4183,6 +4654,12 @@ def send_reception_notice(
 
     if _has_reception_sent(db, ticket_id):
         return RedirectResponse(url=f"/dashboard/tickets/{ticket_id}", status_code=303)
+
+    allowed_priorities = {"low", "medium", "high", "urgent"}
+    priority_value = (ticket.priority or "").strip().lower()
+    if priority_value not in allowed_priorities:
+        query = urlencode({"send_error": "Debes seleccionar la prioridad antes de enviar la recepcion de solicitud."})
+        return RedirectResponse(url=f"/dashboard/tickets/{ticket_id}?{query}", status_code=303)
 
     latest_requester_email = (
         db.query(Message)
@@ -4448,6 +4925,8 @@ def mark_spam(
         return HTMLResponse("Ticket no encontrado", status_code=404)
 
     ticket.is_spam = True
+    ticket.is_deleted = False
+    apply_ticket_status_change(ticket, "closed")
 
     db.commit()
 
@@ -4512,6 +4991,8 @@ def delete_ticket(
         return HTMLResponse("Ticket no encontrado", status_code=404)
 
     ticket.is_deleted = True
+    ticket.is_spam = False
+    apply_ticket_status_change(ticket, "closed")
 
     db.commit()
 
@@ -4579,7 +5060,9 @@ def panel_indicadores(
 
         get_tickets_by_agent,
 
-        get_ticket_aging
+        get_ticket_aging,
+
+        get_ticket_status_breakdown
 
     )
 
@@ -4712,6 +5195,8 @@ def panel_indicadores(
 
     volume = get_ticket_volume_30d(db, date_from=volume_from_dt, date_to=volume_to_dt)
 
+    status_breakdown = get_ticket_status_breakdown(db, date_from=summary_status_from_dt, date_to=summary_status_to_dt)
+
     priorities = get_tickets_by_priority(db, date_from=priority_from_dt, date_to=priority_to_dt)
 
     agents = get_tickets_by_agent(db, date_from=agent_from_dt, date_to=agent_to_dt)
@@ -4737,6 +5222,8 @@ def panel_indicadores(
             "sla": sla,
 
             "volume": volume,
+
+            "status_breakdown": status_breakdown,
 
             "priorities": priorities,
 
@@ -4810,7 +5297,7 @@ def create_ticket(
 
     content: str = Form(...),                 # ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢Ãƒâ€šÃ‚Â¬ Mensaje inicial del ticket (obligatorio)
 
-    priority: str = Form("medium"),           # ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã‚Â¡Ãƒâ€šÃ‚Â¡ Prioridad (por defecto "medium")
+    priority: str = Form(""),
 
     assigned_to_id: int | None = Form(None),  # ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã‹Å“Ãƒâ€šÃ‚Â¤ Usuario asignado (opcional)
 
@@ -4869,6 +5356,11 @@ def create_ticket(
     # Si el usuario no selecciona un responsable en el modal,
 
     # el ticket se asigna automÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ticamente al creador.
+
+    allowed_priorities = {"low", "medium", "high", "urgent"}
+    priority = (priority or "").strip().lower()
+    if priority not in allowed_priorities:
+        raise HTTPException(status_code=400, detail="Debes seleccionar una prioridad")
 
     if not assigned_to_id:
 

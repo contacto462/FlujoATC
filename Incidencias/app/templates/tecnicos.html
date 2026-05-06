@@ -645,6 +645,7 @@
     <div id="modalContent" class="modal-card">
       <button type="button" class="modal-close-btn" aria-label="Cerrar modal finalizar" onclick="cerrarModalFinalizar()">&times;</button>
       <h3>Por favor, adjunta una Foto y agrega una Observacion</h3>
+      <p id="modalFinalizarOdt" style="margin:0 0 12px;color:var(--text-soft);font-weight:700;"></p>
       <div id="contenedorFotos">
         <input type="file" class="fotoAdjuntar" required />
       </div>
@@ -669,6 +670,7 @@
     <div class="modal-card modal-en-proceso">
       <button type="button" class="modal-close-btn" aria-label="Cerrar modal pendiente" onclick="cerrarModalEnProceso()">&times;</button>
       <h3>Informacion En Proceso</h3>
+      <p id="modalEnProcesoOdt" style="margin:0 0 12px;color:var(--text-soft);font-weight:700;"></p>
       <label><b>Grado de avance (%)</b></label>
       <input type="number" id="gradoAvance" min="0" max="100" placeholder="Ej: 50" />
       <label style="margin-top:10px;"><b>Observacion</b></label>
@@ -690,6 +692,8 @@
     let odtToReopen = "";
     let clienteToReopen = "";
     let reopenedEstado = "";
+    let odtModalFinalizar = "";
+    let odtModalEnProceso = "";
     const geocodeCache = new Map();
     const tecnicoFiltrado = (typeof tecnicoActual !== "undefined" ? String(tecnicoActual || "") : "").trim().toLowerCase();
 
@@ -1006,7 +1010,7 @@
 
       const registrosFiltrados = (Array.isArray(registros) ? registros : []).filter((fila) => {
         const codigoODT = String(fila?.[0] || "");
-        return /^[MVIS]/i.test(codigoODT);
+        return /^[MVIST]/i.test(codigoODT);
       });
 
       registrosFiltrados.sort((a, b) => {
@@ -1243,15 +1247,23 @@
           html += "</div></div>";
         }
         html += '<div class="action-buttons">' +
-                '<button id="btnEnProcesoSucursal" onclick="marcarEnProceso()">Pendiente</button>' +
-                '<button id="btnFinalizarSucursal" class="btn-primario" onclick="abrirModalFinalizar()">Finalizar</button>' +
-                '<button onclick="abrirFormularioRendicionPorODT(currentODT)">Rendicion Gastos</button>' +
+                '<button id="btnEnProcesoSucursal" type="button">Pendiente</button>' +
+                '<button id="btnFinalizarSucursal" class="btn-primario" type="button">Finalizar</button>' +
+                '<button id="btnRendicionSucursal" type="button">Rendicion Gastos</button>' +
                 '</div>';
         html += "</div>";
 
         td.innerHTML = html;
         infoBox.appendChild(td);
         loadingRow.replaceWith(infoBox);
+
+        const odtAccion = String(odt || "").trim();
+        const btnEnProceso = infoBox.querySelector("#btnEnProcesoSucursal");
+        const btnFinalizar = infoBox.querySelector("#btnFinalizarSucursal");
+        const btnRendicion = infoBox.querySelector("#btnRendicionSucursal");
+        if (btnEnProceso) btnEnProceso.addEventListener("click", () => marcarEnProceso(odtAccion));
+        if (btnFinalizar) btnFinalizar.addEventListener("click", () => abrirModalFinalizar(odtAccion));
+        if (btnRendicion) btnRendicion.addEventListener("click", () => abrirFormularioRendicionPorODT(odtAccion));
 
         const header = infoBox.querySelector(".hdr-incidencias");
         if (header) {
@@ -1262,7 +1274,6 @@
           });
         }
 
-        const btnFinalizar = infoBox.querySelector("#btnFinalizarSucursal");
         if (estadoCanonico(estado) === "Terminado" && btnFinalizar) {
           btnFinalizar.textContent = "Finalizado";
           btnFinalizar.disabled = true;
@@ -1290,15 +1301,30 @@
       if (!quedanOcultas) btn.style.display = "none";
     }
 
-    function abrirModalFinalizar() {
+    function abrirModalFinalizar(odt = currentODT) {
+      const odtSeleccionada = String(odt || "").trim();
+      if (!odtSeleccionada) {
+        alert("No hay ODT activa.");
+        return;
+      }
+      odtModalFinalizar = odtSeleccionada;
       const modal = document.getElementById("modalFinalizar");
-      if (modal) modal.style.display = "flex";
+      if (modal) {
+        modal.dataset.odt = odtSeleccionada;
+        const label = document.getElementById("modalFinalizarOdt");
+        if (label) label.textContent = `ODT a finalizar: ${odtSeleccionada}`;
+        modal.style.display = "flex";
+      }
     }
 
     function cerrarModalFinalizar() {
       const modal = document.getElementById("modalFinalizar");
       if (!modal) return;
       modal.style.display = "none";
+      modal.dataset.odt = "";
+      const label = document.getElementById("modalFinalizarOdt");
+      if (label) label.textContent = "";
+      odtModalFinalizar = "";
     }
 
     async function guardarYFinalizar() {
@@ -1307,10 +1333,18 @@
       const observacion = document.getElementById("observacion").value.trim();
       const modal = document.getElementById("modalProgreso");
       const estado = document.getElementById("mensajeEstado");
+      const odtCierre = String(
+        odtModalFinalizar || document.getElementById("modalFinalizar")?.dataset?.odt || ""
+      ).trim();
 
       const fotosBase64 = [];
       let leidos = 0;
       let totalArchivos = 0;
+
+      if (!odtCierre) {
+        alert("No hay ODT activa para finalizar.");
+        return;
+      }
 
       inputsArchivos.forEach((input) => {
         totalArchivos += input.files.length;
@@ -1339,7 +1373,7 @@
       try {
         await api("/api/incidencias/cerrar", {
           method: "POST",
-          body: JSON.stringify({ odt: currentODT, observacion }),
+          body: JSON.stringify({ odt: odtCierre, observacion }),
         });
 
         estado.textContent = "Procesando fotos...";
@@ -1362,7 +1396,7 @@
         estado.textContent = "Guardando imagenes...";
         const cierreResp = await api("/api/incidencias/finalizar-completo", {
           method: "POST",
-          body: JSON.stringify({ odt: currentODT, observacion, fotosBase64 }),
+          body: JSON.stringify({ odt: odtCierre, observacion, fotosBase64 }),
         });
 
         if (cierreResp?.drive_enabled && cierreResp?.drive_ok === false) {
@@ -1393,13 +1427,18 @@
       }
     }
 
-    function marcarEnProceso() {
-      if (!currentODT) {
+    function marcarEnProceso(odt = currentODT) {
+      const odtSeleccionada = String(odt || "").trim();
+      if (!odtSeleccionada) {
         alert("No hay ODT activa.");
         return;
       }
+      odtModalEnProceso = odtSeleccionada;
       const modal = document.getElementById("modalEnProceso");
       if (modal) {
+        modal.dataset.odt = odtSeleccionada;
+        const label = document.getElementById("modalEnProcesoOdt");
+        if (label) label.textContent = `ODT a actualizar: ${odtSeleccionada}`;
         document.getElementById("gradoAvance").value = "";
         document.getElementById("observacionEnProceso").value = "";
         modal.style.display = "flex";
@@ -1410,11 +1449,23 @@
       const modal = document.getElementById("modalEnProceso");
       if (!modal) return;
       modal.style.display = "none";
+      modal.dataset.odt = "";
+      const label = document.getElementById("modalEnProcesoOdt");
+      if (label) label.textContent = "";
+      odtModalEnProceso = "";
     }
 
     async function guardarEstadoEnProceso() {
       const avance = document.getElementById("gradoAvance").value.trim();
       const obs = document.getElementById("observacionEnProceso").value.trim();
+      const odtProceso = String(
+        odtModalEnProceso || document.getElementById("modalEnProceso")?.dataset?.odt || ""
+      ).trim();
+
+      if (!odtProceso) {
+        alert("No hay ODT activa para actualizar.");
+        return;
+      }
 
       if (!avance || Number.isNaN(Number(avance)) || Number(avance) < 0 || Number(avance) > 100) {
         alert("Ingresa un grado de avance valido entre 0 y 100.");
@@ -1430,7 +1481,7 @@
         await api("/api/incidencias/en-proceso", {
           method: "POST",
           body: JSON.stringify({
-            odt: currentODT,
+            odt: odtProceso,
             avance: Number(avance),
             observacion: obs,
             token: tokenSesion || "",

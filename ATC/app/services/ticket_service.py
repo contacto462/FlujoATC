@@ -14,7 +14,7 @@ def _create_ticket(
     subject: str,
     requester: Requester,
     source: str,
-    priority: str = "medium",
+    priority: str = "",
     initial_message: str,
     sender_type: str = "requester",
     channel: str,

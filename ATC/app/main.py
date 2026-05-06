@@ -18,6 +18,8 @@ from app.models.message import Message  # noqa
 from app.models.internal_chat_message import InternalChatMessage  # noqa
 from app.models.internal_chat_read_state import InternalChatReadState  # noqa
 from app.models.ticket_alert_read_state import TicketAlertReadState  # noqa
+from app.models.ticket_message_read_state import TicketMessageReadState  # noqa
+from app.models.ticket_internal_note_read_state import TicketInternalNoteReadState  # noqa
 from app.models.requester import Requester  # noqa
 from app.models.ticket_history import TicketAssignmentHistory  # noqa
 from app.models.email_sync_state import EmailSyncState  # noqa

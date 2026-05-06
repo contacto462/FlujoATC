@@ -1,9 +1,9 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="es">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Panel Coordinacion</title>
+<title>Panel Coordinación</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -84,9 +84,10 @@ h1{margin:20px 0 14px;font-size:46px;line-height:1.02;letter-spacing:-.03em}
 .option{
   display:block;padding:22px 20px;border-radius:22px;border:1px solid rgba(255,255,255,.10);
   background:var(--surface-2);color:inherit;text-decoration:none;
-  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,background .18s ease;
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,background .18s ease,filter .18s ease,opacity .18s ease;
 }
-.option:hover{transform:translateY(-3px);border-color:rgba(255,255,255,.18);box-shadow:0 18px 34px rgba(0,0,0,.22)}
+.grid:has(.option:hover) .option:not(:hover){filter:blur(1.8px);opacity:.5;transform:scale(.965)}
+.option:hover{transform:translateY(-3px) scale(1.06);border-color:rgba(255,255,255,.18);box-shadow:0 18px 34px rgba(0,0,0,.22);filter:none;opacity:1;z-index:2}
 .option.coordinacion:hover{background:linear-gradient(135deg, rgba(255,110,35,.24), rgba(255,139,51,.18))}
 .option.tabla:hover{background:linear-gradient(135deg, rgba(47,91,114,.24), rgba(36,73,92,.18))}
 .option.envio:hover{background:linear-gradient(135deg, rgba(31,156,131,.24), rgba(20,122,102,.18))}
@@ -100,12 +101,47 @@ h1{margin:20px 0 14px;font-size:46px;line-height:1.02;letter-spacing:-.03em}
 .option strong{display:block;font-size:20px;margin-bottom:6px}
 .option p{margin:0;color:var(--muted);line-height:1.55;font-size:14px}
 .footer{margin-top:18px;display:flex;justify-content:space-between;align-items:center;gap:16px;color:var(--muted);font-size:13px}
-.logout{
-  display:inline-flex;align-items:center;justify-content:center;min-width:120px;padding:10px 16px;
-  border-radius:14px;border:1px solid rgba(255,255,255,.12);color:#dce5f3;text-decoration:none;
-  background:rgba(255,255,255,.04);
+.Btn{
+  display:flex;align-items:center;justify-content:center;width:40px;height:40px;border:none;
+  border-radius:14px;cursor:pointer;position:relative;overflow:hidden;text-decoration:none;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);transition:all .22s ease;
 }
-.logout:hover{background:rgba(255,255,255,.08)}
+.sign{
+  position:absolute;
+  left:12px;
+  width:16px;
+  height:16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:all .22s ease;
+}
+.sign svg{width:16px}
+.sign svg path{fill:#dce5f3}
+.text{
+  position:absolute;
+  left:34px;
+  width:98px;
+  font-size:12px;
+  font-weight:700;
+  color:#dce5f3;
+  opacity:0;
+  transform:translateX(-6px);
+  pointer-events:none;
+  transition:all .22s ease;
+}
+.Btn:hover{
+  width:152px;
+  background:rgba(255,255,255,.08);
+}
+.Btn:hover .sign{
+  left:12px;
+  width:16px;
+}
+.Btn:hover .text{
+  opacity:1;
+  transform:translateX(0);
+}
 @media (max-width:940px){
   .hero{grid-template-columns:1fr}
   .hero-side{border-left:none;border-top:1px solid rgba(255,255,255,.08)}
@@ -116,7 +152,8 @@ h1{margin:20px 0 14px;font-size:46px;line-height:1.02;letter-spacing:-.03em}
   .hero-copy,.hero-side{padding:22px}
   .brand-badge{width:74px;height:74px}
   .footer{flex-direction:column;align-items:stretch}
-  .logout{width:100%}
+  .Btn{width:40px}
+  .Btn:hover{width:152px}
 }
 </style>
 </head>
@@ -130,12 +167,12 @@ h1{margin:20px 0 14px;font-size:46px;line-height:1.02;letter-spacing:-.03em}
           </div>
           <div class="brand-text">
             <strong>Alguien te Cuida</strong>
-            <span>Coordinacion operacional</span>
+            <span>Coordinación operaciónal</span>
           </div>
         </div>
 
-        <p id="welcomeMessage" class="welcome-message" data-full-name="{{ tecnico|default('') }}">Hola!</p>
-        <h1>Panel de Coordinacion</h1>
+        <p id="welcomeMessage" class="welcome-message" data-full-name="{{ tecnico|default('') }}">¡Hola!</p>
+        <h1>Escoge el módulo con el que quieres trabajar.</h1>
         <p class="lead">
           Accede a las vistas de coordinacion, consulta la tabla de protocolos y ejecuta el envio de
           informes semanales cuando corresponda.
@@ -151,8 +188,8 @@ h1{margin:20px 0 14px;font-size:46px;line-height:1.02;letter-spacing:-.03em}
         <div class="grid">
           <a class="option coordinacion" href="/?form=coordinacion&token={{ token|default('') }}">
             <div class="icon">C</div>
-            <strong>Coordinacion</strong>
-            <p>Vista principal del modulo de coordinacion operacional.</p>
+            <strong>Coordinación</strong>
+            <p>Vista principal del módulo de coordinacion operaciónal.</p>
           </a>
 
           <a class="option tabla" href="/?form=tablaProtocolos&token={{ token|default('') }}">
@@ -170,7 +207,10 @@ h1{margin:20px 0 14px;font-size:46px;line-height:1.02;letter-spacing:-.03em}
 
         <div class="footer">
           <span>Operaciones ATC 2026</span>
-          <a class="logout" href="/?form=login&next=coordinacion">Cerrar sesion</a>
+          <a class="Btn" href="/?form=login&next=coordinacion" aria-label="Cerrar Sesión">
+            <div class="sign"><svg viewBox="0 0 512 512" aria-hidden="true"><path d="M377.9 105.9L500.7 228.7c7.2 7.2 11.3 17.1 11.3 27.3s-4.1 20.1-11.3 27.3L377.9 406.1c-6.4 6.4-15 9.9-24 9.9c-18.7 0-33.9-15.2-33.9-33.9l0-62.1-128 0c-17.7 0-32-14.3-32-32l0-64c0-17.7 14.3-32 32-32l128 0 0-62.1c0-18.7 15.2-33.9 33.9-33.9c9 0 17.6 3.6 24 9.9zM160 96L96 96c-17.7 0-32 14.3-32 32l0 256c0 17.7 14.3 32 32 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-64 0c-53 0-96-43-96-96L0 128C0 75 43 32 96 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32z"></path></svg></div>
+            <div class="text">Cerrar Sesión</div>
+          </a>
         </div>
       </aside>
     </section>
@@ -183,11 +223,15 @@ h1{margin:20px 0 14px;font-size:46px;line-height:1.02;letter-spacing:-.03em}
       const firstName = fullName ? fullName.split(" ")[0] : "";
       const hour = new Date().getHours();
       let greeting = "Hola";
-      if (hour >= 6 && hour < 12) greeting = "Buenos dias";
-      else if (hour >= 12 && hour < 20) greeting = "Buenas tardes";
-      else greeting = "Buenas noches";
+      if (hour >= 6 && hour < 12) greeting = "¡Buenos días";
+      else if (hour >= 12 && hour < 20) greeting = "¡Buenas tardes";
+      else greeting = "¡Buenas noches";
       el.textContent = firstName ? `${greeting} ${firstName}, que gusto tenerte de vuelta!` : `${greeting}!`;
     })();
   </script>
 </body>
 </html>
+
+
+
+

@@ -4,6 +4,8 @@ from .message import Message
 from .internal_chat_message import InternalChatMessage
 from .internal_chat_read_state import InternalChatReadState
 from .ticket_alert_read_state import TicketAlertReadState
+from .ticket_message_read_state import TicketMessageReadState
+from .ticket_internal_note_read_state import TicketInternalNoteReadState
 from .requester import Requester
 from .ticket_history import TicketAssignmentHistory
 from .email_sync_state import EmailSyncState

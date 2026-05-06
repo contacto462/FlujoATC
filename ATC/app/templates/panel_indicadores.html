@@ -717,8 +717,8 @@
         <article class="card chart-card tall">
           <div class="chart-header">
             <div>
-              <h4>Solicitudes por estado</h4>
-              <p>Balance actual entre abiertos, pendientes y resueltos.</p>
+              <h4>Analisis por estado de ticket</h4>
+              <p>Balance entre tickets sin accion, respondidos, derivados y cerrados.</p>
             </div>
             <div class="chart-chip">Estado general</div>
           </div>
@@ -946,6 +946,7 @@
   <script id="panelDataJson" type="application/json">
     {{ {
       "volume": volume,
+      "statusBreakdown": status_breakdown,
       "priorities": priorities,
       "agents": agents,
       "aging": aging,
@@ -961,6 +962,7 @@
       if (!node) {
         return {
           volume: {},
+          statusBreakdown: {},
           priorities: {},
           agents: [],
           aging: {},
@@ -975,6 +977,7 @@
       } catch (_err) {
         return {
           volume: {},
+          statusBreakdown: {},
           priorities: {},
           agents: [],
           aging: {},
@@ -1063,8 +1066,8 @@
       makeChart("volumeChart", {
         type: "bar",
         data: {
-          labels: ["Abiertos", "Pendientes", "Resueltos"],
-          datasets: [{ data: [pageData.volume.open || 0, pageData.volume.pending || 0, pageData.volume.resolved || 0], backgroundColor: [p.blueStrong, p.amberStrong, p.greenStrong], borderRadius: 14, maxBarThickness: 72 }]
+          labels: ["Open", "Pendiente", "Pend. Servicio", "Pend. Cliente", "Cerrado"],
+          datasets: [{ data: [pageData.statusBreakdown.open || 0, pageData.statusBreakdown.pending || 0, pageData.statusBreakdown.pending_service || 0, pageData.statusBreakdown.pending_client || 0, pageData.statusBreakdown.closed || 0], backgroundColor: [p.blueStrong, p.amberStrong, p.purpleStrong, p.blue, p.greenStrong], borderRadius: 14, maxBarThickness: 72 }]
         },
         options: baseOptions()
       });
@@ -1098,8 +1101,8 @@
       makeChart("priorityChart", {
         type: "doughnut",
         data: {
-          labels: ["Low", "Medium", "High", "Urgent"],
-          datasets: [{ data: [pageData.priorities.low || 0, pageData.priorities.medium || 0, pageData.priorities.high || 0, pageData.priorities.urgent || 0], backgroundColor: [p.blue, p.green, p.amberStrong, p.redStrong], borderWidth: 0 }]
+          labels: ["No Asignado", "Baja", "Media", "Alta", "Urgente"],
+          datasets: [{ data: [pageData.priorities.unassigned || 0, pageData.priorities.low || 0, pageData.priorities.medium || 0, pageData.priorities.high || 0, pageData.priorities.urgent || 0], backgroundColor: [p.textSoft, p.blue, p.green, p.amberStrong, p.redStrong], borderWidth: 0 }]
         },
         options: {
           responsive: true,

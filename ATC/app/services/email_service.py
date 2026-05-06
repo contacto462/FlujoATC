@@ -467,7 +467,7 @@ def _resolve_ticket(
     ticket = Ticket(
         subject=subject or "Sin asunto",
         source="email",
-        priority="medium",
+        priority="",
         requester_id=requester_id,
         status="open",
         created_at=message_dt,

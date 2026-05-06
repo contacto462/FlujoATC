@@ -31,7 +31,7 @@ class Ticket(Base):
 
     priority: Mapped[str] = mapped_column(
         String(20),
-        default="medium",
+        default="",
         nullable=False
     )
 

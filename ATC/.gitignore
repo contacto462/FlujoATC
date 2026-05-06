@@ -1,0 +1,9 @@
+.env
+*.json
+*.db
+__pycache__/
+*.pyc
+
+ATC/secrets/
+Incidencias/secrets/
+**/secrets/**

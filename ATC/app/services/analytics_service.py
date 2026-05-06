@@ -1,4 +1,4 @@
-from sqlalchemy import and_, case, func
+from sqlalchemy import and_, case, func, or_
 from datetime import datetime, timezone, timedelta
 
 from app.models.ticket import Ticket
@@ -15,6 +15,8 @@ SLA_RULES_HOURS = {
     "high": {"first_reply": 2, "resolution": 24},
     "urgent": {"first_reply": 1, "resolution": 8},
 }
+
+PENDING_STATUS_CODES = ("pending", "pending_service", "pending_client")
 
 
 # =========================================================
@@ -46,7 +48,7 @@ def get_overview_kpis(db, date_from: datetime | None = None, date_to: datetime |
 
     total = base_query.count()
     open_count = base_query.filter(Ticket.status == "open").count()
-    pending_count = base_query.filter(Ticket.status == "pending").count()
+    pending_count = base_query.filter(Ticket.status.in_(PENDING_STATUS_CODES)).count()
     resolved_count = base_query.filter(Ticket.status == "resolved").count()
     backlog_count = open_count + pending_count
     assigned_count = base_query.filter(Ticket.assigned_to_id.isnot(None)).count()
@@ -153,7 +155,7 @@ def get_sla_summary(db, date_from: datetime | None = None, date_to: datetime | N
     active_query = db.query(Ticket).filter(
         Ticket.is_deleted == False,
         Ticket.is_spam == False,
-        Ticket.status.in_(["open", "pending"])
+        Ticket.status.in_(["open", *PENDING_STATUS_CODES])
     )
     active_query = _apply_ticket_created_range(active_query, date_from, date_to)
     active = active_query.all()
@@ -264,31 +266,62 @@ def get_ticket_volume_30d(db, date_from: datetime | None = None, date_to: dateti
 
 
 # =========================================================
+# TICKETS POR ESTADO DETALLADO
+# =========================================================
+def get_ticket_status_breakdown(db, date_from: datetime | None = None, date_to: datetime | None = None):
+
+    def _count_status(status_code: str) -> int:
+        query = db.query(Ticket).filter(
+            Ticket.status == status_code,
+            Ticket.is_deleted == False,
+            Ticket.is_spam == False,
+        )
+        query = _apply_ticket_created_range(query, date_from, date_to)
+        return query.count()
+
+    closed_query = db.query(Ticket).filter(
+        or_(
+            Ticket.status == "resolved",
+            Ticket.is_deleted == True,
+            Ticket.is_spam == True,
+        )
+    )
+    closed_query = _apply_ticket_created_range(closed_query, date_from, date_to)
+
+    return {
+        "open": _count_status("open"),
+        "pending": _count_status("pending"),
+        "pending_service": _count_status("pending_service"),
+        "pending_client": _count_status("pending_client"),
+        "closed": closed_query.count(),
+    }
+
+
+# =========================================================
 # TICKETS POR PRIORIDAD
 # =========================================================
 def get_tickets_by_priority(db, date_from: datetime | None = None, date_to: datetime | None = None):
 
-    priority_query = db.query(
-        Ticket.priority,
-        func.count(Ticket.id)
-    ).filter(
+    tickets_query = db.query(Ticket).filter(
         Ticket.is_deleted == False,
         Ticket.is_spam == False
     )
-    priority_query = _apply_ticket_created_range(priority_query, date_from, date_to)
-    rows = priority_query.group_by(Ticket.priority).all()
+    tickets_query = _apply_ticket_created_range(tickets_query, date_from, date_to)
 
     result = {
+        "unassigned": 0,
         "low": 0,
         "medium": 0,
         "high": 0,
         "urgent": 0
     }
 
-    for priority, count in rows:
-
+    for ticket in tickets_query.all():
+        priority = (ticket.priority or "").strip().lower()
         if priority in result:
-            result[priority] = count
+            result[priority] += 1
+        else:
+            result["unassigned"] += 1
 
     return result
 
@@ -348,7 +381,7 @@ def get_ticket_aging(db, date_from: datetime | None = None, date_to: datetime | 
     now = datetime.now(timezone.utc)
 
     aging_query = db.query(Ticket).filter(
-        Ticket.status.in_(["open", "pending"]),
+        Ticket.status.in_(["open", *PENDING_STATUS_CODES]),
         Ticket.is_deleted == False,
         Ticket.is_spam == False
     )

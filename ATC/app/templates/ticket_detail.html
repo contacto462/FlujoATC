@@ -9,60 +9,47 @@
 
 <style>
 :root{
-  --bg:#f7f9fc;
+  --bg:#f0f2f5;
   --panel:#ffffff;
-  --panel-2:#fbfdff;
-  --border:rgba(15,23,42,.10);
+  --panel-2:#fafbfd;
+  --border:rgba(15,23,42,.08);
   --border-2:rgba(15,23,42,.14);
   --text:#0f172a;
   --muted:#64748b;
   --muted-2:#94a3b8;
-
-  --brand:#0b1220;
-  --brand-2:#0f1b2d;
-
-  --chip:#eef2ff;
-  --chip-text:#334155;
-
+  --brand:#0f1729;
+  --brand-2:#152035;
+  --chip:#f0f4ff;
+  --chip-text:#3730a3;
   --blue:#2563eb;
-  --blue-soft:rgba(37,99,235,.12);
-
+  --blue-soft:rgba(37,99,235,.09);
   --yellow:#92400e;
-  --yellow-soft:rgba(245,158,11,.16);
-
+  --yellow-soft:rgba(245,158,11,.12);
   --green:#166534;
-  --green-soft:rgba(34,197,94,.14);
-
+  --green-soft:rgba(34,197,94,.11);
   --red:#b91c1c;
-  --red-soft:rgba(248,113,113,.14);
-
-  --shadow-sm:0 1px 2px rgba(15,23,42,.06);
-  --shadow:0 12px 30px rgba(15,23,42,.08);
-  --shadow-hover:0 18px 40px rgba(15,23,42,.12);
-  --focus:rgba(37,99,235,.35);
-
-  --r-sm:10px;
-  --r-md:14px;
-  --r-lg:18px;
-
-  /* Dashboard status tokens */
-  --open-bg:rgba(34,197,94,.14);
-  --open-fg:#166534;
-  --pending-bg:rgba(245,158,11,.16);
+  --red-soft:rgba(248,113,113,.11);
+  --shadow-sm:0 1px 2px rgba(15,23,42,.05);
+  --shadow:0 1px 2px rgba(15,23,42,.04), 0 2px 8px rgba(15,23,42,.06);
+  --shadow-hover:0 4px 18px rgba(15,23,42,.09), 0 1px 4px rgba(15,23,42,.04);
+  --focus:rgba(37,99,235,.25);
+  --r-sm:8px;
+  --r-md:10px;
+  --r-lg:14px;
+  --open-bg:rgba(34,197,94,.10);
+  --open-fg:#15803d;
+  --pending-bg:rgba(245,158,11,.11);
   --pending-fg:#92400e;
-  --resolved-bg:rgba(99,102,241,.14);
-  --resolved-fg:#3730a3;
+  --resolved-bg:rgba(99,102,241,.10);
+  --resolved-fg:#4338ca;
 }
 
 *{ box-sizing:border-box; }
-html,body{ height:100%; }
+html,body{ height:100%; width:100%; overflow-x:hidden; }
 body{
   margin:0;
   font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-  background:
-    radial-gradient(1200px 500px at 30% -10%, rgba(37,99,235,.12), transparent 60%),
-    radial-gradient(900px 400px at 90% 0%, rgba(99,102,241,.10), transparent 55%),
-    var(--bg);
+  background:var(--bg);
   color:var(--text);
 }
 :focus-visible{
@@ -73,17 +60,15 @@ body{
 
 /* ===== TOP APP BAR (Zendesk-like) ===== */
 .topbar{
-  height:58px;
-  background:
-    radial-gradient(900px 600px at 30% 0, rgba(37,99,235,.18), transparent 60%),
-    linear-gradient(180deg, var(--brand), var(--brand-2));
+  height:56px;
+  background:linear-gradient(180deg, var(--brand) 0%, var(--brand-2) 100%);
   color:#fff;
   display:flex;
   align-items:center;
-  padding:0 18px;
+  padding:0 20px;
   gap:14px;
-  box-shadow:0 2px 0 rgba(0,0,0,.12);
-  border-bottom:1px solid rgba(255,255,255,.08);
+  box-shadow:0 1px 0 rgba(0,0,0,.15), 0 2px 8px rgba(0,0,0,.08);
+  border-bottom:1px solid rgba(255,255,255,.06);
 }
 .brand{
   display:flex;
@@ -438,20 +423,21 @@ body{
 
 /* ===== WORKSPACE WRAP ===== */
 .workspace{
-  height:calc(100% - 58px);
+  height:calc(100% - 56px);
+  width:100%;
   display:flex;
   flex-direction:column;
+  overflow-x:hidden;
 }
 
 /* ===== TICKET HEADER STRIP ===== */
 .tickethead{
-  background:rgba(255,255,255,.84);
-  backdrop-filter:blur(8px);
+  background:#ffffff;
   border-bottom:1px solid var(--border);
   box-shadow: var(--shadow-sm);
 }
 .tickethead-inner{
-  padding:14px 18px 12px;
+  padding:13px 20px 11px;
 }
 .tabs{
   display:flex; gap:8px; align-items:center;
@@ -472,7 +458,7 @@ body{
 }
 .headrow{
   display:flex;
-  align-items:flex-start;
+  align-items:center;
   gap:12px;
 }
 .subject{
@@ -485,9 +471,10 @@ body{
 }
 .subject h1{
   margin:0;
-  font-size:16px;
+  font-size:15px;
   font-weight:700;
-  line-height:1.25;
+  line-height:1.3;
+  color:#0f172a;
 }
 .headtools{
   display:flex; gap:8px; align-items:center; position:relative;
@@ -496,28 +483,27 @@ body{
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  height:34px;
+  height:32px;
   padding:0 12px;
-  border-radius:12px;
+  border-radius:8px;
   background:#f8fafc;
-  border:1px solid var(--border);
-  color:var(--text);
-  font-size:13px;
+  border:1px solid var(--border-2);
+  color:#334155;
+  font-size:12.5px;
   font-weight:600;
   line-height:1;
   text-decoration:none;
   white-space:nowrap;
   cursor:pointer;
-  transition:all .18s ease;
+  transition:all .15s ease;
 }
 .ticket-nav-btn{
-  min-width:100px;
+  min-width:80px;
   text-align:center;
 }
 .smallbtn:hover{
   background:#eef2f7;
   border-color:var(--border-2);
-  transform:translateY(-1px);
 }
 .smallbtn.primary{
   background:linear-gradient(135deg,var(--blue),#1d4ed8);
@@ -569,11 +555,21 @@ body{
 .main{
   flex:1;
   min-height:0;
+  width:100%;
   display:grid;
-  grid-template-columns: 280px minmax(0, 1fr) 300px;
-  gap:14px;
-  padding:14px;
+  grid-template-columns: 268px minmax(0, 1fr) 296px;
+  gap:12px;
+  padding:12px 14px;
   align-items:start;
+  overflow-x:hidden;
+}
+.main > *{
+  min-width:0;
+  overflow-x:hidden;
+}
+
+.main > .leftcol{
+  overflow:visible;
 }
 
 .leftcol{
@@ -582,6 +578,17 @@ body{
   align-self:start;
   max-height:calc(100vh - 58px - 28px);
   overflow:auto;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.rightcol{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  min-width:0;
+  min-height:0;
 }
 
 /* Panels */
@@ -594,8 +601,9 @@ body{
   min-height:0;
 }
 .panel .panel-h{
-  padding:12px 14px 10px;
+  padding:11px 16px;
   border-bottom:1px solid var(--border);
+  background:#fafbfd;
   display:flex;
   align-items:center;
   justify-content:space-between;
@@ -603,27 +611,67 @@ body{
 }
 .panel .panel-h h3{
   margin:0;
-  font-size:13px;
+  font-size:10px;
   font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.1em;
+  color:var(--muted);
 }
 .panel .panel-b{
-  padding:12px;
+  padding:14px 16px;
   min-height:0;
+}
+
+.leftcol .panel .panel-h{
+  min-height:0;
+  padding:8px 16px;
+}
+
+.leftcol .panel .panel-h h3,
+.leftcol .panel .panel-h .mini{
+  line-height:1;
+}
+
+.leftcol .panel .panel-b{
+  padding:6px 16px 10px;
+}
+
+.details-panel .panel-b{
+  padding-top:10px;
+  padding-bottom:14px;
+}
+
+.details-panel{
+  margin-top:-13px;
+}
+
+@media (min-width: 901px){
+  .leftcol{
+    overflow:visible;
+  }
+}
+
+.details-panel .kv{
+  padding-top:8px;
+  padding-bottom:8px;
+}
+
+.linked-odt-panel{
+  margin-top:-6px;
 }
 
 .action-btn{
   width:100%;
-  height:42px;
-  border-radius:12px;
+  height:38px;
+  border-radius:10px;
   border:1px solid var(--border-2);
   background:#f8fafc;
   color:#0f172a;
-  font-weight:700;
-  font-size:13px;
-  letter-spacing:.12px;
+  font-weight:600;
+  font-size:12.5px;
+  letter-spacing:.08px;
   cursor:pointer;
-  transition:background-color .16s ease, border-color .16s ease, color .16s ease, box-shadow .16s ease, transform .16s ease;
-  box-shadow:0 1px 2px rgba(15,23,42,.06);
+  transition:background-color .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease, transform .15s ease;
 }
 .action-btn.cta-moderation{
   text-align:center;
@@ -634,7 +682,7 @@ body{
 }
 .action-btn:hover{
   transform:translateY(-1px);
-  box-shadow:0 8px 16px rgba(15,23,42,.10);
+  box-shadow:0 4px 12px rgba(15,23,42,.08);
 }
 
 .action-warning{
@@ -689,16 +737,19 @@ body{
 
 /* ===== LEFT: FIELDS (Zendesk-ish) ===== */
 .field{
-  margin-bottom:12px;
+  margin-bottom:14px;
 }
 .field label{
   display:flex;
   align-items:center;
   justify-content:space-between;
   gap:10px;
-  font-size:12px;
-  color:var(--muted);
-  margin-bottom:6px;
+  font-size:10.5px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  color:var(--muted-2);
+  margin-bottom:5px;
 }
 .field label a{
   font-size:12px;
@@ -708,26 +759,82 @@ body{
 }
 .field label a:hover{ text-decoration:underline; }
 
+/* Key-value rows: compact two-column facts in the left rail. */
+.kv{
+  display:grid;
+  grid-template-columns:88px minmax(0, 1fr);
+  align-items:center;
+  gap:8px;
+  padding:6px 0;
+  border-bottom:1px solid var(--border);
+}
+.leftcol .panel .panel-b > .kv:first-child{
+  padding-top:0;
+}
+.kv:last-of-type{ border-bottom:none; }
+.kv-k{
+  font-size:10px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:var(--muted-2);
+  line-height:1.1;
+}
+.kv-v{
+  font-size:13px;
+  font-weight:500;
+  color:var(--text);
+  min-width:0;
+  word-break:break-word;
+}
+.kv-sub{
+  font-size:11px;
+  color:var(--muted-2);
+  font-weight:500;
+}
+.priority-inline{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-wrap:nowrap;
+  white-space:nowrap;
+}
+.priority-inline .badge,
+.priority-inline .kv-sub{
+  flex:0 0 auto;
+}
+.kv > .assign-form{
+  min-width:0;
+}
+.divider-label{
+  font-size:10px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.09em;
+  color:var(--muted-2);
+  margin:14px 0 6px;
+}
+
 .input, select{
   width:100%;
-  height:36px;
-  padding:0 12px;
-  border-radius:12px;
-  border:1px solid var(--border);
+  height:34px;
+  padding:0 10px;
+  border-radius:8px;
+  border:1px solid var(--border-2);
   background:#f8fafc;
   font-family:inherit;
-  font-size:13px;
+  font-size:12.5px;
   color:var(--text);
-  transition:all .18s ease;
+  transition:all .14s ease;
 }
 select{
   appearance:none;
   -webkit-appearance:none;
   -moz-appearance:none;
-  padding-right:42px;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M6 8l4 4 4-4' stroke='%23334155' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  padding-right:38px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M6 8l4 4 4-4' stroke='%2364748b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat:no-repeat;
-  background-position:right 14px center;
+  background-position:right 10px center;
   background-size:16px 16px;
 }
 select::-ms-expand{
@@ -782,22 +889,79 @@ select::-ms-expand{
   font-weight:600;
 }
 
-/* Status/Priority pills (match screenshot vibe) */
+.reply-alerts{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));
+  gap:10px;
+  margin:0 0 12px;
+}
+.workflow-alert{
+  display:grid;
+  grid-template-columns:auto 1fr;
+  gap:10px;
+  align-items:flex-start;
+  min-height:48px;
+  padding:12px 13px;
+  border-radius:12px;
+  border:1px solid transparent;
+  font-size:13px;
+  line-height:1.35;
+  box-shadow:0 10px 22px rgba(15,23,42,.08);
+}
+.workflow-alert::before{
+  content:"";
+  width:9px;
+  height:9px;
+  margin-top:5px;
+  border-radius:999px;
+  background:currentColor;
+  box-shadow:0 0 0 4px color-mix(in srgb, currentColor 18%, transparent);
+}
+.workflow-alert strong{
+  display:block;
+  margin-bottom:2px;
+  font-size:12.5px;
+  letter-spacing:.02em;
+  text-transform:uppercase;
+}
+.workflow-alert span{
+  display:block;
+}
+.workflow-alert.warning{
+  color:#78350f;
+  border-color:#f59e0b;
+  background:linear-gradient(180deg,#fef3c7,#fffbeb);
+  box-shadow:0 12px 26px rgba(245,158,11,.16);
+}
+.workflow-alert.locked{
+  color:#1e3a8a;
+  border-color:#60a5fa;
+  background:linear-gradient(180deg,#dbeafe,#eff6ff);
+  box-shadow:0 12px 26px rgba(37,99,235,.14);
+}
+.workflow-alert.danger{
+  color:#991b1b;
+  border-color:#f87171;
+  background:linear-gradient(180deg,#fee2e2,#fff1f2);
+  box-shadow:0 12px 26px rgba(239,68,68,.14);
+}
+
+/* Status/Priority pills */
 .badge{
   display:inline-flex;
   align-items:center;
-  padding:4px 10px;
+  padding:3px 9px;
   border-radius:999px;
-  font-size:12px;
-  font-weight:700;
+  font-size:11.5px;
+  font-weight:600;
   border:1px solid transparent;
   line-height:1;
 }
 .badge-open{ background:var(--open-bg); color:var(--open-fg); border-color:rgba(34,197,94,.22); }
-.badge-pending{ background:var(--pending-bg); color:var(--pending-fg); border-color:rgba(245,158,11,.22); }
-.badge-resolved{ background:var(--resolved-bg); color:var(--resolved-fg); border-color:rgba(99,102,241,.20); }
+.badge-pending, .badge-pending_service, .badge-pending_client{ background:var(--pending-bg); color:var(--pending-fg); border-color:rgba(245,158,11,.22); }
+.badge-resolved, .badge-resolved_service, .badge-resolved_client, .badge-closed{ background:var(--resolved-bg); color:var(--resolved-fg); border-color:rgba(99,102,241,.20); }
 
-.badge-low{ background:#f1f5f9; color:#334155; border-color:#e2e8f0; }
+.badge-low, .badge-none{ background:#f1f5f9; color:#475569; border-color:#e2e8f0; }
 .badge-medium{ background:var(--blue-soft); color:var(--blue); border-color:#dbeafe; }
 .badge-high{ background:var(--yellow-soft); color:var(--yellow); border-color:#fde68a; }
 .badge-urgent{ background:var(--red-soft); color:var(--red); border-color:#fecaca; }
@@ -850,8 +1014,31 @@ select::-ms-expand{
   padding:0;
   color:inherit;
   appearance:none;
+  position:relative;
   display:grid;place-items:center; cursor:pointer;
   transition:all .18s ease;
+}
+.internal-notes-unread-badge{
+  position:absolute;
+  top:-7px;
+  right:-7px;
+  min-width:18px;
+  height:18px;
+  padding:0 5px;
+  border-radius:999px;
+  border:2px solid #fff;
+  background:#ef4444;
+  color:#fff;
+  font-size:11px;
+  font-weight:800;
+  line-height:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 6px 14px rgba(239,68,68,.35);
+}
+.internal-notes-unread-badge.empty{
+  display:none;
 }
 .tool:hover{
   background:#eef2f7;
@@ -883,64 +1070,77 @@ select::-ms-expand{
   flex:1;
   min-height:0;
   overflow:auto;
-  padding:14px 12px 24px;
+  padding:16px 14px 28px;
+  background:#f8fafc;
 }
-.messages::-webkit-scrollbar{ width:8px; }
+.messages::-webkit-scrollbar{ width:6px; }
 .messages::-webkit-scrollbar-thumb{
-  background:#cbd5e1;border-radius:999px;
-  border:2px solid transparent;
-  background-clip:content-box;
+  background:#d1d5db;border-radius:999px;
 }
 .msg{
   display:flex;
   gap:10px;
-  margin-bottom:14px;
+  margin-bottom:10px;
   align-items:flex-start;
 }
 .msg .bubble{
   flex:1;
+  min-width:0;
   border:1px solid var(--border);
-  border-radius:14px;
+  border-radius:10px;
   background:#fff;
-  box-shadow:0 6px 16px rgba(15,23,42,.05);
-  overflow:visible;
+  box-shadow:0 1px 2px rgba(15,23,42,.04);
+  overflow:hidden;
 }
 .msg.requester .bubble{
-  background:#f8fbff;
-  border-color:#dbeafe;
+  background:#fafcff;
+  border-color:rgba(37,99,235,.14);
 }
 .msg.agent .bubble{
-  background:#f9fffb;
-  border-color:#dcfce7;
+  background:#fafffe;
+  border-color:rgba(34,197,94,.14);
+}
+.msg.system .bubble{
+  background:#fffbf5;
+  border-color:rgba(245,158,11,.2);
+}
+.msg-unseen-focus .bubble{
+  box-shadow:0 0 0 2px rgba(239,68,68,.35), 0 8px 18px rgba(15,23,42,.08);
 }
 .msg-head{
   display:flex;
   justify-content:space-between;
+  align-items:center;
   gap:10px;
-  padding:10px 12px 6px;
-  font-size:12px;
+  padding:8px 12px 5px;
+  font-size:11px;
   color:var(--muted);
+  border-bottom:1px solid var(--border);
 }
 .msg-head .who{
   display:flex;
   align-items:center;
-  gap:8px;
-  font-weight:700;
+  gap:7px;
+  font-weight:600;
   color:#334155;
+  font-size:12px;
 }
 .dot{
-  width:8px;height:8px;border-radius:999px;
+  width:7px;height:7px;border-radius:999px;
   background:#94a3b8;
+  flex-shrink:0;
 }
 .msg.requester .dot{ background:#3b82f6; }
 .msg.agent .dot{ background:#22c55e; }
 .msg-body{
-  padding:0 12px 12px;
-  font-size:13px;
+  padding:10px 13px 13px;
+  font-size:13.5px;
   line-height:1.65;
   color:#0f172a;
+  overflow:hidden;
   overflow-x:hidden;
-  overflow-y:visible;
+  max-width:100%;
+  contain:layout paint style;
 }
 .msg-body img,
 .msg-body table,
@@ -960,6 +1160,15 @@ select::-ms-expand{
 .msg-body pre{
   white-space:pre-wrap;
   overflow-wrap:anywhere;
+}
+.msg-render{
+  display:block;
+  width:100%;
+  min-width:0;
+  overflow:hidden;
+}
+.msg-template{
+  display:none;
 }
 
 /* Image lightbox */
@@ -1010,8 +1219,51 @@ select::-ms-expand{
 /* Composer (bottom) */
 .composer{
   border-top:1px solid var(--border);
-  background:var(--panel);
-  padding:12px 14px;
+  background:#fafcff;
+  padding:12px 14px 14px;
+}
+.composer-workbench-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:12px;
+}
+.composer-workbench-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  flex:0 0 auto;
+}
+.composer-workbench-title{
+  display:flex;
+  align-items:center;
+  min-width:0;
+}
+.composer-workbench-title strong{
+  display:block;
+  font-size:13px;
+  color:#0f172a;
+}
+.composer-workbench-title span:last-child{
+  display:block;
+  margin-top:2px;
+  color:#64748b;
+  font-size:11.5px;
+  font-weight:600;
+}
+.reception-form{
+  flex:0 0 auto;
+  margin:0;
+}
+.send.reception-action{
+  height:36px;
+  padding:0 14px;
+  border-radius:11px;
+  font-size:12.5px;
+  background:linear-gradient(135deg,#1d4ed8,#1e3a8a);
+  box-shadow:0 10px 22px rgba(30,64,175,.24);
 }
 .composer-row{
   display:flex;
@@ -1125,8 +1377,8 @@ select::-ms-expand{
 }
 .compose-size-toggle-wrap{
   display:flex;
-  justify-content:center;
-  margin:0 0 8px;
+  justify-content:flex-end;
+  margin:0;
 }
 .compose-size-btn{
   width:30px;
@@ -1504,41 +1756,58 @@ body.is-inline-image-resizing{
 .profile-top{
   display:flex;
   align-items:center;
-  gap:10px;
+  gap:12px;
 }
 .profile-top .bigavatar{
-  width:34px;height:34px;border-radius:999px;
-  background:#eef2ff;
-  border:1px solid var(--border);
+  width:42px;height:42px;border-radius:12px;
+  background:linear-gradient(135deg,#3b82f6,#6366f1);
+  border:none;
   display:grid; place-items:center;
   font-weight:800;
-  color:#334155;
+  font-size:17px;
+  color:#fff;
+  flex-shrink:0;
+  letter-spacing:.5px;
 }
 .profile-name{
-  font-size:13px;
-  font-weight:800;
+  font-size:13.5px;
+  font-weight:700;
   margin:0;
+  color:#0f172a;
 }
 .profile-sub{
-  font-size:12px;
-  color:var(--muted);
-  margin-top:2px;
+  font-size:11px;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  color:var(--muted-2);
+  margin-top:3px;
 }
 
-.kv{
-  display:grid;
-  grid-template-columns: 120px 1fr;
-  gap:10px 12px;
+/* Right-column requester kv (separate from left-column .kv) */
+.req-kv{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
   font-size:12px;
-  padding-top:6px;
+  padding:8px 0;
+  border-bottom:1px solid var(--border);
 }
-.kv .k{ color:var(--muted); }
-.kv .v{ color:#0f172a; font-weight:600; word-break:break-word; }
-.kv.kv-email{
-  grid-template-columns: 1fr;
-  gap:4px;
+.req-kv:last-of-type{ border-bottom:none; }
+.req-kv .k{
+  font-size:10px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.07em;
+  color:var(--muted-2);
 }
-.kv.kv-email .v{
+.req-kv .v{
+  color:#0f172a;
+  font-weight:500;
+  word-break:break-word;
+  font-size:12.5px;
+}
+.req-kv.req-kv-email .v{
   white-space:nowrap;
   word-break:normal;
   overflow-wrap:normal;
@@ -1557,8 +1826,11 @@ body.is-inline-image-resizing{
   margin-bottom:8px;
 }
 .notes-head .k{
-  color:var(--muted);
-  font-size:12px;
+  font-size:10px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:var(--muted-2);
 }
 .plus-note-btn{
   width:30px;
@@ -1727,6 +1999,58 @@ body.is-inline-image-resizing{
   background:#eef2f7;
   border-color:var(--border-2);
 }
+
+/* ===== ODT PANEL ===== */
+.odt-row{
+  display:grid;
+  grid-template-columns:88px minmax(0, 1fr);
+  align-items:center;
+  gap:8px;
+  padding:6px 0;
+  border-bottom:1px solid var(--border);
+}
+.odt-row:last-child{ border-bottom:none; }
+.odt-k{
+  font-size:10px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:var(--muted-2);
+  line-height:1.1;
+}
+.odt-v{
+  font-size:13px;
+  font-weight:500;
+  color:#0f172a;
+  word-break:break-word;
+}
+.odt-divider{
+  border:none;
+  border-top:1px solid var(--border);
+  margin:6px 0;
+}
+.odt-section-label{
+  font-size:10px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.09em;
+  color:var(--muted);
+  padding:4px 0 2px;
+}
+.odt-section-label.final{
+  color:var(--resolved-fg,#4338ca);
+}
+.odt-textblock{
+  background:#f8fafc;
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:9px 11px;
+  white-space:pre-wrap;
+  line-height:1.55;
+  font-size:12.5px;
+  color:#1e293b;
+}
+
 .requester-sections{
   display:flex;
   flex-direction:column;
@@ -1782,6 +2106,7 @@ body.is-inline-image-resizing{
   gap:8px;
   flex-wrap:wrap;
   margin-top:8px;
+  position:relative;
 }
 .requester-alias-input{
   flex:1;
@@ -1858,6 +2183,34 @@ body.is-inline-image-resizing{
   color:var(--muted);
   font-size:11px;
   font-weight:500;
+}
+.requester-alias-suggest{
+  position:absolute;
+  left:0;
+  right:88px;
+  top:40px;
+  z-index:40;
+  border:1px solid var(--border);
+  border-radius:10px;
+  background:#fff;
+  box-shadow:0 12px 24px rgba(15,23,42,.16);
+  max-height:210px;
+  overflow:auto;
+  display:none;
+}
+.requester-alias-suggest.open{ display:block; }
+.requester-alias-suggest button{
+  width:100%;
+  border:0;
+  background:transparent;
+  text-align:left;
+  padding:8px 10px;
+  font-size:13px;
+  color:#0f172a;
+  cursor:pointer;
+}
+.requester-alias-suggest button:hover{
+  background:#eff6ff;
 }
 .requester-statuses{
   display:flex;
@@ -1995,10 +2348,68 @@ body.is-inline-image-resizing{
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1200px){
   .main{ grid-template-columns: 270px minmax(0,1fr); }
-  .rightcol{ display:none; }
+  .rightcol{ display:none !important; }
 }
 @media (max-width: 900px){
-  .main{ grid-template-columns: 1fr; }
+  .main{
+    grid-template-columns:1fr;
+    width:100%;
+    padding:10px 8px;
+    gap:10px;
+  }
+  .center,
+  .leftcol,
+  .rightcol{
+    width:100%;
+    max-width:100%;
+  }
+  .panel{
+    width:100%;
+    max-width:100%;
+  }
+  .leftcol .panel .panel-h{
+    min-height:0 !important;
+    padding:6px 10px !important;
+  }
+  .leftcol .panel .panel-b{
+    padding:3px 10px 7px !important;
+  }
+  .leftcol .panel .panel-h h3,
+  .leftcol .panel .panel-h .mini{
+    line-height:1 !important;
+  }
+  .leftcol .kv{
+    padding:4px 0 !important;
+    gap:6px !important;
+    grid-template-columns:82px minmax(0, 1fr);
+  }
+  .leftcol .odt-row{
+    padding:4px 0 !important;
+    gap:6px !important;
+    grid-template-columns:82px minmax(0, 1fr);
+  }
+  .leftcol .panel .panel-b > .kv:first-child{
+    padding-top:0 !important;
+  }
+  .leftcol .kv-k{
+    font-size:9px;
+    letter-spacing:.06em;
+  }
+  .leftcol .kv-v{
+    font-size:12px;
+    line-height:1.2;
+  }
+  .leftcol .field{
+    margin-bottom:8px;
+  }
+  .leftcol .field label{
+    margin-bottom:2px;
+    font-size:9.8px;
+  }
+  .leftcol .input,
+  .leftcol select{
+    height:32px;
+  }
   .leftcol{
     position:static;
     top:auto;
@@ -2007,7 +2418,18 @@ body.is-inline-image-resizing{
   }
   .leftcol{ order:2; }
   .center{ order:1; }
-  .rightcol{ display:block; order:3; }
+  .rightcol{ display:flex !important; order:3; }
+  .reply-alerts{ grid-template-columns:1fr; }
+  .composer-workbench-head{
+    flex-direction:column;
+    align-items:stretch;
+  }
+  .composer-workbench-actions{
+    width:100%;
+    justify-content:space-between;
+  }
+  .reception-form{ flex:1 1 auto; }
+  .send.reception-action{ width:100%; }
   .service-grid{ grid-template-columns:1fr; }
   .gmail-toolbar{
     flex-direction:column;
@@ -2026,7 +2448,8 @@ body.is-inline-image-resizing{
 <!-- TOP APP BAR -->
 <div class="topbar">
   <div class="brand">
-    <div>Tickets</div>
+    <div class="logo" style="background:linear-gradient(135deg,rgba(99,102,241,.5),rgba(37,99,235,.4));color:#fff;font-size:14px;font-weight:800;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;letter-spacing:-.5px;">A</div>
+    <span style="font-size:14px;letter-spacing:.3px;">Soporte ATC</span>
   </div>
 
   <div class="spacer"></div>
@@ -2100,7 +2523,7 @@ body.is-inline-image-resizing{
             aria-hidden="true"
             data-created-ms="{{ (ticket.created_at.timestamp() * 1000)|int if ticket.created_at else 0 }}"
             data-resolved-ms="{{ (ticket.resolved_at.timestamp() * 1000)|int if ticket.resolved_at else 0 }}"
-            data-status="{{ ticket.status }}"
+            data-status="{{ ticket_status_css(ticket.status) }}"
           >
             <p id="ticketTimerTitle" class="clock-popover-title">Tiempo sin resolver</p>
             <p id="ticketTimerValue" class="clock-popover-value">00:00:00:00</p>
@@ -2128,70 +2551,153 @@ body.is-inline-image-resizing{
   <div class="main">
 
     <!-- LEFT COLUMN (FIELDS) -->
-    <div class="panel leftcol">
-      <div class="panel-h">
-        <h3>Detalles</h3>
-        <span class="mini">Ticket #{{ ticket.id }}</span>
-      </div>
-      <div class="panel-b">
+    <div class="leftcol">
 
-        <div class="field">
-          <label>Solicitante</label>
-          <input class="input" readonly value="{{ ticket.requester.display_name if ticket.requester else "Cliente" }}">
+      <!-- Panel: Detalles -->
+      <div class="panel details-panel">
+        <div class="panel-h">
+          <h3>Detalles</h3>
+          <span class="mini">#{{ ticket.id }}</span>
         </div>
+        <div class="panel-b">
 
-        <div class="field">
-          <label>
-           Agente asignado
-          </label>
-          <form class="assign-form" method="POST" action="/dashboard/tickets/{{ ticket.id }}/assign">
-            <select name="user_id" onchange="this.form.submit()">
-              <option value="" disabled {% if not ticket.assigned_to_id %}selected{% endif %}>Seleccionar Usuario</option>
-              {% for u in assignable_users %}
-                <option value="{{ u.id }}" {% if ticket.assigned_to_id == u.id %}selected{% endif %}>
-                  {{ u.name }}
-                </option>
+          <div class="kv">
+            <span class="kv-k">Solicitante</span>
+            <span class="kv-v">{{ ticket.requester.display_name if ticket.requester else "Cliente" }}</span>
+          </div>
+
+          <div class="kv">
+            <span class="kv-k">Estado</span>
+            <span class="kv-v"><span class="badge badge-{{ ticket_status_css(ticket.status) }}">{{ ticket_status_label(ticket.status) }}</span></span>
+          </div>
+
+          <div class="kv">
+            <span class="kv-k">Prioridad</span>
+            <span class="kv-v priority-inline">
+              <span class="badge badge-{{ ticket.priority or 'none' }}">{{ {'low':'Baja','medium':'Media','high':'Alta','urgent':'Urgente'}.get(ticket.priority, 'Sin asignar') }}</span>
+              <span class="kv-sub">{{ ticket.source }}</span>
+            </span>
+          </div>
+
+          <div class="kv">
+            <span class="kv-k">Creado</span>
+            <span class="kv-v" style="font-size:12.5px;">{{ ticket.created_at.strftime('%d-%m-%Y %H:%M') }}</span>
+          </div>
+
+          <div class="kv">
+            <span class="kv-k">Agente asignado</span>
+            <form class="assign-form" method="POST" action="/dashboard/tickets/{{ ticket.id }}/assign">
+              <select name="user_id" onchange="this.form.submit()">
+                <option value="" disabled {% if not ticket.assigned_to_id %}selected{% endif %}>Sin asignar</option>
+                {% for u in assignable_users %}
+                  <option value="{{ u.id }}" {% if ticket.assigned_to_id == u.id %}selected{% endif %}>
+                    {{ u.name }}
+                  </option>
+                {% endfor %}
+              </select>
+            </form>
+          </div>
+
+          {% if ticket.custom_fields %}
+            <div style="margin-top:14px; border-top:1px solid var(--border); padding-top:14px;">
+              {% for cf in ticket.custom_fields %}
+                <div class="kv">
+                  <span class="kv-k">{{ cf.label }}</span>
+                  <span class="kv-v">{{ cf.value }}</span>
+                </div>
               {% endfor %}
-            </select>
-          </form>
+            </div>
+          {% endif %}
+
         </div>
-
-        <div class="field">
-          <label>Tipo</label>
-          <select>
-            <option selected>{{ ticket.type|capitalize if ticket.type else '-' }}</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label>Prioridad</label>
-          <div style="display:flex; align-items:center; gap:10px;">
-            <span class="badge badge-{{ ticket.priority }}">{{ ticket.priority|capitalize }}</span>
-            <span class="mini">Fuente: <b>{{ ticket.source }}</b></span>
-          </div>
-        </div>
-
-        <div class="field">
-          <label>Estado</label>
-          <div style="display:flex; align-items:center; gap:10px;">
-            <span class="badge badge-{{ ticket.status }}">{{ ticket.status|capitalize }}</span>
-            <span class="mini">Creado: <b>{{ ticket.created_at.strftime('%d-%m-%Y %H:%M') }}</b></span>
-          </div>
-        </div>
-
-        <!-- Si tienes campos extra, los puedes mostrar aqui -->
-        {% if ticket.custom_fields %}
-          <div style="margin-top:14px; border-top:1px dashed var(--border); padding-top:14px;">
-            {% for cf in ticket.custom_fields %}
-              <div class="field">
-                <label>{{ cf.label }}</label>
-                <input class="input" readonly value="{{ cf.value }}">
-              </div>
-            {% endfor %}
-          </div>
-        {% endif %}
-
       </div>
+
+      <!-- Panel: ODT Vinculada (si existe) -->
+      {% if linked_odt %}
+      {%- set _obs_serv = linked_odt.get('observacion_servicio') or '' -%}
+      {%- set _obs_final = linked_odt.get('observacion_final') or '' -%}
+      {%- set _estado_lower = (linked_odt.get('estado') or '')|lower -%}
+      {%- set _deriv_lower = (linked_odt.get('derivacion') or '')|lower -%}
+      {%- set odt_finalizado = _estado_lower in ['terminado', 'finalizado', 'repetida'] or _deriv_lower in ['finalizado por soporte', 'finalizado sin vt'] or _obs_final != '' -%}
+      <div class="panel linked-odt-panel">
+        <div class="panel-h">
+          <h3>ODT vinculada</h3>
+          <span class="badge {% if odt_finalizado %}badge-resolved{% else %}badge-pending{% endif %}" style="font-size:11px;">
+            {% if odt_finalizado %}Finalizado{% else %}{{ linked_odt.get('estado') or 'Pendiente' }}{% endif %}
+          </span>
+        </div>
+        <div class="panel-b" style="display:flex;flex-direction:column;gap:0;">
+          <div class="odt-row">
+            <span class="odt-k">Número ODT</span>
+            <span class="odt-v">{{ linked_odt.get('odt') or ('#' ~ linked_odt.get('id', '')) }}</span>
+          </div>
+          {% set odt_derivacion = linked_odt.get('derivacion') or '' %}
+          {% if odt_derivacion %}
+          <div class="odt-row">
+            <span class="odt-k">Derivación</span>
+            <span class="odt-v">{{ odt_derivacion }}</span>
+          </div>
+          {% endif %}
+          {% set odt_tecnico = linked_odt.get('tecnicos') or linked_odt.get('tecnico') or '' %}
+          {% if odt_tecnico and odt_tecnico not in ['-', 'Sin asignar'] %}
+          <div class="odt-row">
+            <span class="odt-k">Técnico</span>
+            <span class="odt-v">{{ odt_tecnico }}</span>
+          </div>
+          {% endif %}
+          {% set odt_acomp = linked_odt.get('acompanante') or '' %}
+          {% if odt_acomp and odt_acomp not in ['-', 'Sin asignar'] %}
+          <div class="odt-row">
+            <span class="odt-k">Acompañante</span>
+            <span class="odt-v">{{ odt_acomp }}</span>
+          </div>
+          {% endif %}
+          {% set odt_fecha_deriv = linked_odt.get('fecha_derivacion_area') or linked_odt.get('fecha_derivacion') or linked_odt.get('fecha_registro') or '' %}
+          {% if odt_fecha_deriv %}
+          <div class="odt-row">
+            <span class="odt-k">Derivado</span>
+            <span class="odt-v">{{ odt_fecha_deriv }}</span>
+          </div>
+          {% endif %}
+          {% set odt_obs_soporte = linked_odt.get('observacion_soporte') or '' %}
+          {% if odt_obs_soporte %}
+          <hr class="odt-divider">
+          <div class="odt-section-label">Gestión Soporte</div>
+          <div class="odt-textblock">{{ odt_obs_soporte }}</div>
+          {% endif %}
+          {% if _obs_serv %}
+          <hr class="odt-divider">
+          <div class="odt-section-label">Gestión Servicio Técnico</div>
+          <div class="odt-textblock">{{ _obs_serv }}</div>
+          {% endif %}
+          {% if odt_finalizado %}
+          <hr class="odt-divider">
+          <div class="odt-section-label final">Reporte Final</div>
+          {% set odt_fecha_cierre = linked_odt.get('fecha_cierre') or '' %}
+          {% if odt_fecha_cierre %}
+          <div class="odt-row">
+            <span class="odt-k">Fecha cierre</span>
+            <span class="odt-v">{{ odt_fecha_cierre }}</span>
+          </div>
+          {% endif %}
+          {% set odt_materiales = linked_odt.get('materiales') or '' %}
+          {% if odt_materiales %}
+          <div class="odt-row">
+            <span class="odt-k">Materiales</span>
+            <span class="odt-v" style="white-space:pre-wrap;">{{ odt_materiales }}</span>
+          </div>
+          {% endif %}
+          {% if _obs_final %}
+          <div style="display:flex;flex-direction:column;gap:6px;padding:8px 0;">
+            <span class="odt-k">Observación final</span>
+            <div class="odt-textblock">{{ _obs_final }}</div>
+          </div>
+          {% endif %}
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
     </div>
 
     <!-- CENTER COLUMN (CONVERSATION) -->
@@ -2202,12 +2708,14 @@ body.is-inline-image-resizing{
           <div id="ticketMessages" class="messages">
             {% if messages %}
               {% for m in messages %}
-                <div class="msg {{ m.sender_type }}">
+                <div id="msg-{{ m.id }}" class="msg {{ m.sender_type }}{% if (focus_message_id and m.id == focus_message_id) or (unseen_reply_message_ids and m.id in unseen_reply_message_ids) %} msg-unseen-focus{% endif %}">
                   <div class="bubble">
                     <div class="msg-head">
                       <div class="who">
                         <span class="dot"></span>
-                        {% if m.sender_type == "requester" %}
+                        {% if m.is_internal_note %}
+                          Nota interna · {{ m.sender.name if m.sender else "Agente" }}
+                        {% elif m.sender_type == "requester" %}
                           {% if m.sender_name %}
                             {{ m.sender_name }}
                           {% elif m.sender_email %}
@@ -2222,7 +2730,8 @@ body.is-inline-image-resizing{
                       <div>{{ m.created_at.strftime('%d-%m-%Y %H:%M') }}</div>
                     </div>
                     <div class="msg-body">
-                      {{ m.content | safe }}
+                      <div class="msg-render"></div>
+                      <template class="msg-template">{{ m.content | safe }}</template>
                     </div>
                   </div>
                 </div>
@@ -2234,13 +2743,40 @@ body.is-inline-image-resizing{
 
           <!-- COMPOSER -->
           <div class="composer">
+            <div class="composer-workbench-head">
+              <div class="composer-workbench-title">
+                <div>
+                  <strong>Mesa tecnica</strong>
+                  <span>Respuesta al cliente</span>
+                </div>
+              </div>
+
+              <div class="composer-workbench-actions">
             {% if requires_reception and not reception_sent %}
-              <form method="POST" action="/dashboard/tickets/{{ ticket.id }}/send-reception" style="margin-bottom:10px;">
-                <button class="send cta-reply" type="submit">
+              <form class="reception-form" method="POST" action="/dashboard/tickets/{{ ticket.id }}/send-reception">
+                <button class="send reception-action" type="submit">
                   Recepcion de solicitud
                 </button>
               </form>
             {% endif %}
+                <div class="compose-size-toggle-wrap">
+                  <button
+                    id="toggleComposeSizeBtn"
+                    class="compose-size-btn"
+                    type="button"
+                    title="Agrandar o achicar zona de respuesta"
+                    aria-label="Agrandar o achicar zona de respuesta"
+                    aria-expanded="false"
+                    {% if requires_reception and not can_reply %}disabled{% endif %}
+                  >
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                      <path d="M16 11h-3V5.41l.79.8a1 1 0 0 0 1.42 0 1 1 0 0 0 0-1.42l-2.5-2.5a1 1 0 0 0-.33-.21 1 1 0 0 0-.76 0 1 1 0 0 0-.33.21l-2.5 2.5a1 1 0 0 0 1.42 1.42l.79-.8V11H8a1 1 0 0 0 0 2h3v5.59l-.79-.8a1 1 0 0 0-1.42 1.42l2.5 2.5a1 1 0 0 0 .33.21.94.94 0 0 0 .76 0 1 1 0 0 0 .33-.21l2.5-2.5a1 1 0 0 0-1.42-1.42l-.79.8V13h3a1 1 0 0 0 0-2" fill="currentColor"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <form
               id="replyForm"
               method="POST"
@@ -2248,30 +2784,41 @@ body.is-inline-image-resizing{
               enctype="multipart/form-data"
               data-ticket-source="{{ (ticket.source or '').strip().lower() }}"
             >
-              <div class="compose-size-toggle-wrap">
-                <button
-                  id="toggleComposeSizeBtn"
-                  class="compose-size-btn"
-                  type="button"
-                  title="Agrandar o achicar zona de respuesta"
-                  aria-label="Agrandar o achicar zona de respuesta"
-                  aria-expanded="false"
-                  {% if requires_reception and not can_reply %}disabled{% endif %}
-                >
-                  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                    <path d="M16 11h-3V5.41l.79.8a1 1 0 0 0 1.42 0 1 1 0 0 0 0-1.42l-2.5-2.5a1 1 0 0 0-.33-.21 1 1 0 0 0-.76 0 1 1 0 0 0-.33.21l-2.5 2.5a1 1 0 0 0 1.42 1.42l.79-.8V11H8a1 1 0 0 0 0 2h3v5.59l-.79-.8a1 1 0 0 0-1.42 1.42l2.5 2.5a1 1 0 0 0 .33.21.94.94 0 0 0 .76 0 1 1 0 0 0 .33-.21l2.5-2.5a1 1 0 0 0-1.42-1.42l-.79.8V13h3a1 1 0 0 0 0-2" fill="currentColor"/>
-                  </svg>
-                </button>
-              </div>
               <button id="composeMiniHint" class="compose-mini-hint" type="button" {% if requires_reception and not can_reply %}disabled{% endif %}>
                 Respuesta minimizada. Haz clic para expandir y escribir.
               </button>
 
-              {% if send_error %}
-                <div class="flash-error">{{ send_error }}</div>
-              {% endif %}
-              {% if requires_reception and not can_reply %}
-                <div class="flash-error">Debes enviar la recepcion de solicitud para habilitar la respuesta.</div>
+              {% set priority_pending = (ticket.priority or '') not in ['low', 'medium', 'high', 'urgent'] %}
+              {% set send_error_text = (send_error or '')|lower %}
+              {% set show_send_error = send_error and not ('prioridad' in send_error_text) %}
+              {% set reception_pending = (not priority_pending) and requires_reception and not can_reply %}
+              {% if priority_pending or reception_pending or show_send_error %}
+                <div class="reply-alerts">
+                  {% if priority_pending %}
+                    <div class="workflow-alert warning">
+                      <div>
+                        <strong>Prioridad pendiente</strong>
+                        <span>Selecciona la prioridad antes de enviar la recepcion de solicitud.</span>
+                      </div>
+                    </div>
+                  {% endif %}
+                  {% if reception_pending %}
+                    <div class="workflow-alert danger">
+                      <div>
+                        <strong>Recepcion pendiente</strong>
+                        <span>Envia la recepcion de solicitud para habilitar la respuesta al cliente.</span>
+                      </div>
+                    </div>
+                  {% endif %}
+                  {% if show_send_error %}
+                    <div class="workflow-alert danger">
+                      <div>
+                        <strong>Revision requerida</strong>
+                        <span>{{ send_error }}</span>
+                      </div>
+                    </div>
+                  {% endif %}
+                </div>
               {% endif %}
               <textarea id="replyContent" name="content" class="hidden"></textarea>
 
@@ -2457,7 +3004,7 @@ body.is-inline-image-resizing{
     </div>
 
     <!-- RIGHT COLUMN (PROFILE + HISTORY) -->
-    <div class="rightcol" style="display:flex; flex-direction:column; gap:12px; min-height:0;">
+    <div class="rightcol">
 
       <div class="panel">
         <div class="panel-h">
@@ -2471,6 +3018,7 @@ body.is-inline-image-resizing{
             </div>
           </div>
           <button id="openRequesterModalBtn" class="tool" title="Expandir" type="button" aria-label="Ver informacion del cliente">
+            <span id="internalNotesUnreadBadge" class="internal-notes-unread-badge {% if not unseen_total_count %}empty{% endif %}">{{ unseen_total_count if unseen_total_count is not none else 0 }}</span>
             <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke="currentColor" width="16" height="16" aria-hidden="true">
               <path d="M8 3H3v5"></path>
               <path d="M3 3l6 6"></path>
@@ -2480,7 +3028,7 @@ body.is-inline-image-resizing{
           </button>
         </div>
         <div class="panel-b">
-          <div class="kv kv-email">
+          <div class="req-kv req-kv-email">
             <div class="k">Correo electronico</div>
             <div class="v">{{ ticket.requester.email if ticket.requester.email else "-" }}</div>
           </div>
@@ -2576,19 +3124,26 @@ body.is-inline-image-resizing{
       <div class="field" style="margin:0 0 12px;">
         <label>Estado</label>
         <select name="status">
-          <option value="open" {% if ticket.status=='open' %}selected{% endif %}>Open</option>
-          <option value="pending" {% if ticket.status=='pending' %}selected{% endif %}>Pending</option>
-          <option value="resolved" {% if ticket.status=='resolved' %}selected{% endif %}>Resolved</option>
+          <option value="open" {% if ticket_status_css(ticket.status)=='open' %}selected{% endif %}>Abierto</option>
+          <option value="pending" {% if ticket_status_css(ticket.status)=='pending' %}selected{% endif %}>Pendiente</option>
+          <option value="pending_service" {% if ticket_status_css(ticket.status)=='pending_service' %}selected{% endif %}>Pendiente Servicio</option>
+          <option value="pending_client" {% if ticket_status_css(ticket.status)=='pending_client' %}selected{% endif %}>Pendiente Cliente</option>
+          <option value="resolved" {% if ticket_status_css(ticket.status)=='resolved' %}selected{% endif %}>Resuelto</option>
+          <option value="resolved_service" {% if ticket_status_css(ticket.status)=='resolved_service' %}selected{% endif %}>Resuelto Servicio</option>
+          <option value="resolved_client" {% if ticket_status_css(ticket.status)=='resolved_client' %}selected{% endif %}>Resuelto Cliente</option>
         </select>
       </div>
 
       <div class="field" style="margin:0;">
         <label>Prioridad</label>
         <select name="priority">
-          <option value="low" {% if ticket.priority=='low' %}selected{% endif %}>Low</option>
-          <option value="medium" {% if ticket.priority=='medium' %}selected{% endif %}>Medium</option>
-          <option value="high" {% if ticket.priority=='high' %}selected{% endif %}>High</option>
-          <option value="urgent" {% if ticket.priority=='urgent' %}selected{% endif %}>Urgent</option>
+          {% if not ticket.priority %}
+          <option value="" selected>Seleccionar</option>
+          {% endif %}
+          <option value="low" {% if ticket.priority=='low' %}selected{% endif %}>Baja</option>
+          <option value="medium" {% if ticket.priority=='medium' %}selected{% endif %}>Media</option>
+          <option value="high" {% if ticket.priority=='high' %}selected{% endif %}>Alta</option>
+          <option value="urgent" {% if ticket.priority=='urgent' %}selected{% endif %}>Urgente</option>
         </select>
       </div>
 
@@ -2654,9 +3209,11 @@ body.is-inline-image-resizing{
                 placeholder="Nombre Cliente"
                 autocomplete="off"
               >
+              <div id="requesterAliasSuggest" class="requester-alias-suggest" role="listbox" aria-label="Sugerencias de cliente"></div>
               <button class="requester-alias-save" type="submit">Guardar</button>
             </form>
             <p class="requester-alias-help">Visible para todos los tecnicos.</p>
+            <script id="requesterNameCatalogData" type="application/json">{{ requester_name_catalog|tojson }}</script>
           </details>
         </div>
         <div class="k">Correo</div>
@@ -2683,8 +3240,10 @@ body.is-inline-image-resizing{
         <div class="v">
           <div class="requester-statuses">
             <span class="requester-status-pill open">Open: {{ requester_info.status_counts.open }}</span>
-            <span class="requester-status-pill pending">Pending: {{ requester_info.status_counts.pending }}</span>
-            <span class="requester-status-pill resolved">Resolved: {{ requester_info.status_counts.resolved }}</span>
+            <span class="requester-status-pill pending">Pendiente: {{ requester_info.status_counts.pending }}</span>
+            <span class="requester-status-pill pending">Pendiente Servicio: {{ requester_info.status_counts.pending_service }}</span>
+            <span class="requester-status-pill pending">Pendiente Cliente: {{ requester_info.status_counts.pending_client }}</span>
+            <span class="requester-status-pill resolved">Cerrado: {{ requester_info.status_counts.resolved }}</span>
           </div>
         </div>
       </div>
@@ -2730,7 +3289,7 @@ body.is-inline-image-resizing{
                         -
                       {% endif %}
                     </span>
-                    <span>Estado: <b>{{ rt.status|capitalize }}</b> | Prioridad: <b>{{ rt.priority|capitalize }}</b></span>
+                    <span>Estado: <b>{{ ticket_status_label(rt.status) }}</b> | Prioridad: <b>{{ rt.priority|capitalize }}</b></span>
                   </div>
                 </div>
               {% endfor %}
@@ -2794,20 +3353,7 @@ body.is-inline-image-resizing{
           </div>
 
           <input id="serviceDireccionInput" name="direccion" type="hidden" value="">
-
-          <div id="serviceTecnicoField" class="field">
-            <label>Tecnico asignado (opcional)</label>
-            <input id="serviceTecnicoInput" class="input" name="tecnico" type="text" maxlength="140" list="serviceTecnicosDatalist" placeholder="Nombre tecnico">
-          </div>
-
-          <div class="field">
-            <label>Estado inicial</label>
-            <select name="estado">
-              <option value="Pendiente" selected>Pendiente</option>
-              <option value="En proceso">En proceso</option>
-              <option value="Derivado">Derivado</option>
-            </select>
-          </div>
+          <input name="estado" type="hidden" value="Pendiente">
 
           <div class="field service-full">
             <label>Gestion Soporte</label>
@@ -2844,6 +3390,75 @@ body.is-inline-image-resizing{
 
 <script>
   (function () {
+    const input = document.querySelector(".requester-alias-input");
+    const suggest = document.getElementById("requesterAliasSuggest");
+    const dataEl = document.getElementById("requesterNameCatalogData");
+    if (!input || !suggest || !dataEl) return;
+
+    let source = [];
+    try {
+      source = JSON.parse(dataEl.textContent || "[]");
+      if (!Array.isArray(source)) source = [];
+    } catch (_) {
+      source = [];
+    }
+
+    function closeSuggest() {
+      suggest.classList.remove("open");
+      suggest.innerHTML = "";
+    }
+
+    function openSuggest(items) {
+      suggest.innerHTML = "";
+      for (const value of items.slice(0, 12)) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.setAttribute("role", "option");
+        btn.textContent = value;
+        btn.addEventListener("mousedown", (ev) => {
+          ev.preventDefault();
+          input.value = value;
+          closeSuggest();
+        });
+        suggest.appendChild(btn);
+      }
+      suggest.classList.toggle("open", suggest.children.length > 0);
+    }
+
+    input.addEventListener("input", () => {
+      const query = (input.value || "").trim().toLowerCase();
+      if (!query) {
+        closeSuggest();
+        return;
+      }
+      const filtered = source.filter((x) => String(x || "").toLowerCase().includes(query));
+      openSuggest(filtered);
+    });
+
+    input.addEventListener("focus", () => {
+      if ((input.value || "").trim()) {
+        input.dispatchEvent(new Event("input"));
+      }
+    });
+
+    document.addEventListener("click", (ev) => {
+      if (ev.target === input || suggest.contains(ev.target)) return;
+      closeSuggest();
+    });
+  })();
+</script>
+
+<script>
+  (function () {
+    const target = document.querySelector(".msg-unseen-focus");
+    const list = document.getElementById("ticketMessages");
+    if (!target || !list) return;
+    target.scrollIntoView({ block: "center", behavior: "smooth" });
+  })();
+</script>
+
+<script>
+  (function () {
     window.sanitizeTicketMessageBodies = function sanitizeTicketMessageBodies() {
       const bodies = document.querySelectorAll(".msg-body");
       bodies.forEach((body) => {
@@ -2852,6 +3467,45 @@ body.is-inline-image-resizing{
         });
       });
     };
+
+    const messageShadowStyles = `
+      <style>
+        :host{display:block;max-width:100%;overflow:hidden;color:#0f172a;font:13px/1.65 Inter,Arial,sans-serif;overflow-wrap:anywhere;word-break:normal;}
+        *{box-sizing:border-box;max-width:100% !important;}
+        html,body{margin:0 !important;padding:0 !important;background:transparent !important;color:#0f172a !important;font:13px/1.65 Inter,Arial,sans-serif !important;overflow-wrap:anywhere !important;}
+        img,video,iframe{max-width:100% !important;height:auto !important;}
+        table{max-width:100% !important;width:auto !important;border-collapse:collapse;}
+        td,th{max-width:100% !important;overflow-wrap:anywhere !important;}
+        pre{white-space:pre-wrap !important;overflow-wrap:anywhere !important;}
+        a{color:#2563eb;}
+      </style>`;
+
+    window.loadTicketMessageBodies = function loadTicketMessageBodies() {
+      document.querySelectorAll(".msg-body").forEach((body) => {
+        const target = body.querySelector(".msg-render");
+        const template = body.querySelector(".msg-template");
+        if (!target || !template || target.dataset.loaded === "1") return;
+        const shadow = target.shadowRoot || target.attachShadow({ mode: "open" });
+        shadow.innerHTML = messageShadowStyles + template.innerHTML;
+        shadow.querySelectorAll("script, link[rel='stylesheet'], meta, title, head").forEach((node) => node.remove());
+        shadow.querySelectorAll("img").forEach((img) => {
+          img.style.maxWidth = "100%";
+          img.style.height = "auto";
+          img.style.cursor = "zoom-in";
+          img.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const src = img.currentSrc || img.getAttribute("src");
+            if (typeof openTicketImageLightbox === "function") {
+              openTicketImageLightbox(src, img.getAttribute("alt"));
+            }
+          });
+        });
+        target.dataset.loaded = "1";
+      });
+    };
+
+    window.resizeTicketMessageFrames = function resizeTicketMessageFrames() {};
 
     const lightbox = document.getElementById("imgLightbox");
     const preview = document.getElementById("imgLightboxPreview");
@@ -2864,13 +3518,13 @@ body.is-inline-image-resizing{
       preview.src = "";
     }
 
-    function openLightbox(src, altText) {
+    window.openTicketImageLightbox = function openTicketImageLightbox(src, altText) {
       if (!src) return;
       preview.src = src;
       preview.alt = altText || "Vista previa";
       lightbox.classList.add("open");
       lightbox.setAttribute("aria-hidden", "false");
-    }
+    };
 
     window.bindTicketMessageImages = function bindTicketMessageImages() {
       document.querySelectorAll(".msg-body img").forEach((img) => {
@@ -2880,13 +3534,16 @@ body.is-inline-image-resizing{
           event.preventDefault();
           event.stopPropagation();
           const src = img.currentSrc || img.getAttribute("src");
-          openLightbox(src, img.getAttribute("alt"));
+          window.openTicketImageLightbox(src, img.getAttribute("alt"));
         });
       });
     };
 
     window.sanitizeTicketMessageBodies();
+    window.loadTicketMessageBodies();
     window.bindTicketMessageImages();
+    window.resizeTicketMessageFrames();
+    window.addEventListener("resize", window.resizeTicketMessageFrames);
 
     closeBtn.addEventListener("click", closeLightbox);
     lightbox.addEventListener("click", (event) => {
@@ -3343,7 +4000,7 @@ body.is-inline-image-resizing{
       const createdMs = Number(timerPopover.dataset.createdMs || "0");
       const resolvedMs = Number(timerPopover.dataset.resolvedMs || "0");
       const status = (timerPopover.dataset.status || "").toLowerCase();
-      const isResolved = status === "resolved" && resolvedMs > 0;
+      const isResolved = ["resolved", "resolved_service", "resolved_client", "closed"].includes(status) && resolvedMs > 0;
 
       if (isResolved) {
         timerTitle.textContent = "Tiempo hasta resolver";
@@ -4192,6 +4849,7 @@ body.is-inline-image-resizing{
     const requesterTabTickets = document.getElementById("requesterTabTickets");
     const requesterPanelNotes = document.getElementById("requesterPanelNotes");
     const requesterPanelTickets = document.getElementById("requesterPanelTickets");
+    const internalNotesUnreadBadge = document.getElementById("internalNotesUnreadBadge");
 
     if (!requesterModal || !openRequesterModalBtn || !closeRequesterModalBtn) return;
 
@@ -4215,6 +4873,12 @@ body.is-inline-image-resizing{
     }
 
     function openRequesterSection(kind) {
+      const notesOpen = requesterPanelNotes && requesterPanelNotes.classList.contains("open");
+      const ticketsOpen = requesterPanelTickets && requesterPanelTickets.classList.contains("open");
+      if ((kind === "notes" && notesOpen) || (kind === "tickets" && ticketsOpen)) {
+        resetRequesterSections();
+        return;
+      }
       resetRequesterSections();
       if (kind === "notes" && requesterTabNotes && requesterPanelNotes) {
         requesterTabNotes.classList.add("active");
@@ -4234,6 +4898,15 @@ body.is-inline-image-resizing{
       resetRequesterSections();
       requesterModal.classList.add("open");
       requesterModal.setAttribute("aria-hidden", "false");
+      fetch(`/dashboard/tickets/{{ ticket.id }}/internal-notes/mark-read`, {
+        method: "POST",
+        credentials: "same-origin",
+      }).finally(() => {
+        if (internalNotesUnreadBadge) {
+          internalNotesUnreadBadge.textContent = "0";
+          internalNotesUnreadBadge.classList.add("empty");
+        }
+      });
     }
 
     function closeRequesterModal() {
@@ -4674,8 +5347,14 @@ body.is-inline-image-resizing{
         if (typeof window.sanitizeTicketMessageBodies === "function") {
           window.sanitizeTicketMessageBodies();
         }
+        if (typeof window.loadTicketMessageBodies === "function") {
+          window.loadTicketMessageBodies();
+        }
         if (typeof window.bindTicketMessageImages === "function") {
           window.bindTicketMessageImages();
+        }
+        if (typeof window.resizeTicketMessageFrames === "function") {
+          window.resizeTicketMessageFrames();
         }
         if (
           nextCount > previousCount &&

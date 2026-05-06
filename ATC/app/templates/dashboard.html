@@ -609,9 +609,10 @@ body.sidebar-collapsed .sidebar-rail-toggle{
 }
 
 .search{
-  flex:1;
+  flex:0 0 auto;
+  width:min(900px, 92%);
   display:flex;
-  gap:10px;
+  gap:0;
   align-items:center;
   justify-content:flex-start;
 }
@@ -620,7 +621,7 @@ body.sidebar-collapsed .sidebar-rail-toggle{
   width:100%;
   display:flex;
   align-items:center;
-  gap:12px;
+  gap:0;
 }
 
 .search .searchbox{
@@ -715,6 +716,10 @@ body.sidebar-collapsed .sidebar-rail-toggle{
   margin-right:-75px;
 }
 
+.user-actions.settings-open .incidents-radar{
+  margin-top:calc(var(--settings-pop-height, 0px) + 24px);
+}
+
 .back-chip{
   display:inline-flex;
   align-items:center;
@@ -738,8 +743,9 @@ body.sidebar-collapsed .sidebar-rail-toggle{
 }
 
 .filter-trigger{
-  width:48px;
-  height:48px;
+  width:50px;
+  height:50px;
+  margin-left:6px;
   border-radius:16px;
   border:1px solid rgba(148,163,184,.34);
   background:linear-gradient(180deg, rgba(255,255,255,.96), rgba(244,248,255,.94));
@@ -1039,6 +1045,28 @@ body:not(.dark-mode) .settings-item{
   margin-bottom:10px;
 }
 
+.settings-actions{
+  margin-top:10px;
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.settings-theme-block{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.settings-theme-label{
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.03em;
+  color:#9fb0c9;
+  line-height:1;
+}
+
 .settings-item .meta{
   display:flex;
   flex-direction:column;
@@ -1089,6 +1117,159 @@ body:not(.dark-mode) .settings-link{
   background:rgba(209,79,93,.85);
   border-color:rgba(209,79,93,.35);
 }
+
+.settings-theme-switch{
+  margin-top:0;
+  display:flex;
+  justify-content:flex-start;
+}
+
+/* From Uiverse.io by Madflows */
+.toggle-switch {
+  position: relative;
+  width: 78px;
+  height: 40px;
+  --light: #d8dbe0;
+  --dark: #28292c;
+  --link: rgb(27, 129, 112);
+  --link-hover: rgb(24, 94, 82);
+}
+
+.switch-label {
+  position: absolute;
+  width: 100%;
+  height: 40px;
+  background-color: var(--dark);
+  border-radius: 20px;
+  cursor: pointer;
+  border: 3px solid var(--dark);
+}
+
+.checkbox {
+  position: absolute;
+  display: none;
+}
+
+.slider {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 20px;
+  -webkit-transition: 0.3s;
+  transition: 0.3s;
+}
+
+.checkbox:checked ~ .slider {
+  background-color: var(--light);
+}
+
+.slider::before {
+  content: "";
+  position: absolute;
+  top: 7px;
+  left: 8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  -webkit-box-shadow: inset 12px -4px 0px 0px var(--light);
+  box-shadow: inset 12px -4px 0px 0px var(--light);
+  background-color: var(--dark);
+  -webkit-transition: 0.3s;
+  transition: 0.3s;
+}
+
+.checkbox:checked ~ .slider::before {
+  -webkit-transform: translateX(38px);
+  -ms-transform: translateX(38px);
+  transform: translateX(38px);
+  background-color: var(--dark);
+  -webkit-box-shadow: none;
+  box-shadow: none;
+}
+
+/* Boton cerrar sesion: animacion exactamente igual a paneles */
+.settings-pop .Btn {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:40px;
+  height:40px;
+  border:none;
+  border-radius:14px;
+  cursor:pointer;
+  position:relative;
+  overflow: hidden;
+  transition:all .22s ease !important;
+  background:rgba(209,79,93,.92);
+  border:1px solid rgba(209,79,93,.45);
+  text-decoration:none;
+  margin-top:0;
+}
+
+.settings-logout-btn{
+  align-self:flex-end;
+  margin-bottom:1px;
+}
+
+.settings-pop .sign {
+  position:absolute;
+  left:12px;
+  width:16px;
+  height:16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:all .22s ease !important;
+}
+
+.settings-pop .sign svg {
+  width:16px;
+}
+
+.settings-pop .sign svg path {
+  fill:#fff;
+}
+
+.settings-pop .text {
+  position:absolute;
+  left:34px;
+  width:98px;
+  font-size:12px;
+  font-weight:700;
+  color:#fff;
+  opacity:0;
+  transform:translateX(-6px);
+  pointer-events:none;
+  transition:all .22s ease !important;
+  white-space:nowrap;
+}
+
+.settings-pop .Btn:hover{
+  width:152px !important;
+  background:rgba(220,88,102,.96);
+}
+
+.settings-pop .Btn:hover .sign{
+  left:12px !important;
+  width:16px !important;
+}
+
+.settings-pop .Btn:hover .text{
+  opacity:1 !important;
+  transform:translateX(0) !important;
+}
+
+@media (max-width: 940px){
+  .settings-pop .Btn{
+    width:36px;
+    height:36px;
+    border-radius:12px;
+  }
+  .settings-pop .Btn:hover{
+    width:132px;
+  }
+}
+
 /* # FIN AJUSTE POPUP DASHBOARD # */
 /* # AJUSTE DASHBOARD: restauracion completa del modo oscuro global # */
 body.dark-mode{
@@ -1122,6 +1303,18 @@ body.dark-mode .card{
 body.dark-mode .card:hover{
   border-color:rgba(96,165,250,.34);
   box-shadow:0 16px 30px rgba(0,0,0,.38);
+}
+body.dark-mode .card.unread-ticket{
+  border-color:rgba(96,165,250,.76);
+  box-shadow:0 0 0 2px rgba(59,130,246,.30), 0 18px 34px rgba(0,0,0,.46);
+  background:linear-gradient(180deg, rgba(30,58,138,.30), rgba(15,23,41,.92));
+}
+body.dark-mode .card.unread-ticket .ticket-title{
+  color:#dbeafe;
+  font-weight:900;
+}
+body.dark-mode .card.unread-ticket .card-main::before{
+  background:linear-gradient(180deg,#60a5fa,#3b82f6);
 }
 
 body.dark-mode .user-box{
@@ -1324,13 +1517,17 @@ body.dark-mode .status-badge.open{
   border-color:rgba(74,222,128,.56);
 }
 
-body.dark-mode .status-badge.pending{
+body.dark-mode .status-badge.pending,
+body.dark-mode .status-badge.pending_service,
+body.dark-mode .status-badge.pending_client{
   background:rgba(180,83,9,.36);
   color:#fde68a;
   border-color:rgba(251,191,36,.54);
 }
 
-body.dark-mode .status-badge.resolved{
+body.dark-mode .status-badge.resolved,
+body.dark-mode .status-badge.resolved_service,
+body.dark-mode .status-badge.resolved_client{
   background:rgba(67,56,202,.38);
   color:#c4b5fd;
   border-color:rgba(129,140,248,.52);
@@ -1741,7 +1938,7 @@ body.dark-mode .modal .btn-secondary:hover{
 
 .card{
   background: rgba(255,255,255,.85);
-  padding:14px 16px;
+  padding:13px 16px;
   width:100%;
   max-width: 100%;
   border-radius: var(--r-lg);
@@ -1793,7 +1990,7 @@ body.dark-mode .modal .btn-secondary:hover{
   justify-content:flex-start;
   align-items:center;
   gap: 8px;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   padding-right: 132px;
   min-width:0;
 }
@@ -1807,11 +2004,68 @@ body.dark-mode .modal .btn-secondary:hover{
 }
 .ticket-badges-corner{
   position:absolute;
-  top:2px;
+  top:50%;
   right:4px;
   display:inline-flex;
   align-items:center;
+  justify-content:center;
   gap:12px;
+  transform:translateY(calc(-50% - 1px));
+}
+
+.list{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:14px;
+  max-width: calc(100% - 96px);
+}
+.card.unread-ticket{
+  border-color:rgba(37,99,235,.42);
+  box-shadow:0 0 0 2px rgba(37,99,235,.14), 0 18px 30px rgba(15,23,42,.10);
+  background:linear-gradient(180deg, rgba(239,246,255,.92), rgba(255,255,255,.88));
+}
+.card.unread-ticket .ticket-title{
+  font-weight:900;
+  color:#0b2a66;
+}
+.card.unread-ticket .card-main::before{
+  content:"";
+  position:absolute;
+  left:-8px;
+  top:8px;
+  bottom:8px;
+  width:4px;
+  border-radius:999px;
+  background:linear-gradient(180deg,#2563eb,#1d4ed8);
+}
+.ticket-new-message-dot{
+  position:absolute;
+  top:-9px;
+  right:-10px;
+  min-width:19px;
+  height:19px;
+  padding:0 5px;
+  border-radius:999px;
+  border:1px solid #fff;
+  background:#ef4444;
+  color:#fff;
+  font-size:12px;
+  font-weight:900;
+  line-height:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 6px 14px rgba(239,68,68,.35);
+  pointer-events:none;
+  z-index:3;
+}
+.ticket-new-message-dot svg{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  display:block;
+  opacity:.55;
 }
 .ticket-source-mini{
   width:40px;
@@ -1852,6 +2106,244 @@ body.dark-mode .modal .btn-secondary:hover{
   align-items:center;
 }
 
+.ticket-date{
+  font-weight:900;
+  color:#0f172a;
+}
+
+body.dark-mode .ticket-date{
+  color:#eef4ff;
+}
+
+.incidents-radar{
+  margin-top:14px;
+  width:min(280px, 100%);
+  overflow:visible;
+  border:1px solid rgba(34,197,94,.28);
+  background:rgba(5,13,27,.84);
+  border-radius:16px 8px 16px 8px;
+  padding:0;
+  box-shadow:0 18px 38px rgba(2,6,23,.34), inset 0 1px 0 rgba(255,255,255,.05);
+  transition:margin-top .22s ease, box-shadow .18s ease, border-color .18s ease;
+}
+
+.incidents-radar-head{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  min-height:62px;
+  padding:13px 12px 11px;
+  border-bottom:1px solid rgba(34,197,94,.16);
+  background:
+    linear-gradient(90deg, rgba(34,197,94,.13), rgba(15,23,42,0) 58%),
+    rgba(15,23,42,.32);
+  cursor:pointer;
+  transition:border-color .18s ease;
+}
+
+.incidents-radar-brand{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+  padding-right:8px;
+}
+
+.incidents-radar-mark{
+  flex:0 0 auto;
+  width:32px;
+  height:32px;
+  border-radius:9px;
+  display:grid;
+  place-items:center;
+  color:#dcfce7;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.04em;
+  border:1px solid rgba(134,239,172,.34);
+  background:linear-gradient(145deg, rgba(22,163,74,.92), rgba(20,83,45,.82));
+  box-shadow:0 10px 18px rgba(22,163,74,.18);
+}
+
+.incidents-radar-title{
+  margin:0;
+  font-size:13px;
+  line-height:1.15;
+  letter-spacing:.01em;
+  color:#f8fbff;
+  font-weight:900;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.incidents-radar-subtitle{
+  display:block;
+  margin-top:4px;
+  color:#9fb0c9;
+  font-size:11px;
+  line-height:1.1;
+  font-weight:700;
+}
+
+.incidents-radar-count{
+  flex:0 0 auto;
+  font-size:11px;
+  font-weight:900;
+  color:#ecfdf5;
+  border:1px solid rgba(34,197,94,.36);
+  border-radius:999px;
+  padding:5px 8px;
+  background:rgba(20,83,45,.42);
+}
+
+.incidents-radar-notif{
+  position:absolute;
+  top:-8px;
+  left:-8px;
+  min-width:22px;
+  height:22px;
+  padding:0 6px;
+  border-radius:999px;
+  background:#ef4444;
+  color:#fff;
+  font-size:11px;
+  font-weight:900;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  line-height:1;
+  box-shadow:0 8px 18px rgba(239,68,68,.38);
+  border:2px solid #07101f;
+  z-index:2;
+}
+
+.incidents-radar-actions{
+  display:inline-flex;
+  align-items:center;
+  flex:0 0 auto;
+}
+
+.incidents-radar-toggle{
+  width:24px;
+  height:24px;
+  border:0;
+  border-radius:8px;
+  display:grid;
+  place-items:center;
+  background:rgba(34,197,94,.10);
+  color:#86efac;
+  cursor:pointer;
+  transition:background .16s ease, color .16s ease, transform .16s ease;
+}
+
+.incidents-radar-toggle:hover{
+  background:rgba(34,197,94,.18);
+  color:#dcfce7;
+}
+
+.incidents-radar-toggle::before{
+  content:"";
+  width:8px;
+  height:8px;
+  border-right:2px solid currentColor;
+  border-bottom:2px solid currentColor;
+  transform:translateY(-2px) rotate(45deg);
+  transition:transform .2s ease;
+}
+
+.incidents-radar-list{
+  display:flex;
+  flex-direction:column;
+  gap:0;
+  padding:8px 9px 10px;
+  max-height:360px;
+  opacity:1;
+  transform:translateY(0);
+  transform-origin:top;
+  overflow:hidden;
+  transition:max-height .24s ease, opacity .18s ease, padding .24s ease, transform .24s ease;
+}
+
+.incidents-radar.is-collapsed .incidents-radar-head{
+  border-bottom-color:transparent;
+}
+
+.incidents-radar.is-collapsed .incidents-radar-list{
+  max-height:0;
+  opacity:0;
+  padding-top:0;
+  padding-bottom:0;
+  transform:translateY(-10px);
+}
+
+.incidents-radar.is-collapsed .incidents-radar-toggle::before{
+  transform:translateY(2px) rotate(225deg);
+}
+
+.incidents-radar-item{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:4px;
+  padding:10px 10px 10px 11px;
+  border-radius:0;
+  border:0;
+  border-bottom:1px solid rgba(148,163,184,.12);
+  background:transparent;
+  text-decoration:none;
+  position:relative;
+}
+
+.incidents-radar-item:last-child{
+  border-bottom:0;
+}
+
+.incidents-radar-item::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:15px;
+  width:5px;
+  height:5px;
+  border-radius:999px;
+  background:#22c55e;
+  box-shadow:0 0 0 4px rgba(34,197,94,.10);
+}
+
+.incidents-radar-item:hover{
+  background:rgba(34,197,94,.07);
+}
+
+.incidents-radar-item .incidents-radar-kicker{
+  width:max-content;
+  color:#bbf7d0;
+  font-size:9.5px;
+  font-weight:900;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  border:1px solid rgba(34,197,94,.24);
+  border-radius:999px;
+  padding:2px 7px;
+  background:rgba(20,83,45,.30);
+}
+
+.incidents-radar-item strong{
+  display:block;
+  font-size:12px;
+  color:#f8fbff;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.incidents-radar-item span{
+  display:block;
+  font-size:11px;
+  color:#9fb0c9;
+}
+
 .meta-sep{
   opacity:.6;
 }
@@ -1869,8 +2361,8 @@ body.dark-mode .modal .btn-secondary:hover{
 }
 
 .open{ background: var(--open-bg); color: var(--open-fg); border-color: rgba(34,197,94,.22); }
-.pending{ background: var(--pending-bg); color: var(--pending-fg); border-color: rgba(245,158,11,.22); }
-.resolved{ background: var(--resolved-bg); color: var(--resolved-fg); border-color: rgba(99,102,241,.20); }
+.pending, .pending_service, .pending_client{ background: var(--pending-bg); color: var(--pending-fg); border-color: rgba(245,158,11,.22); }
+.resolved, .resolved_service, .resolved_client{ background: var(--resolved-bg); color: var(--resolved-fg); border-color: rgba(99,102,241,.20); }
 
 /* If you ever show these as statuses */
 .spam{ background: var(--spam-bg); color: var(--spam-fg); border-color: rgba(148,163,184,.28); }
@@ -1975,6 +2467,7 @@ body.dark-mode .modal .btn-secondary:hover{
 .group-chat-fab svg{
   width:22px;
   height:22px;
+  transform:scaleX(-1);
 }
 
 .group-chat-count{
@@ -2164,6 +2657,25 @@ body.dark-mode .modal .btn-secondary:hover{
 }
 .live-alert.ticket .live-alert-icon{ background:linear-gradient(135deg,#f97316,#fb923c); }
 .live-alert.msg .live-alert-icon{ background:linear-gradient(135deg,#0ea5e9,#38bdf8); }
+.live-alert.ticket{
+  border-color:rgba(251,146,60,.85);
+  background:linear-gradient(135deg, rgba(124,45,18,.97), rgba(154,52,18,.95));
+  box-shadow:0 20px 44px rgba(124,45,18,.45);
+}
+.live-alert.ticket .live-alert-body strong{
+  color:#fff7ed;
+  font-size:14px;
+}
+.live-alert.ticket .live-alert-body span{
+  color:#ffedd5;
+  font-size:12px;
+  font-weight:700;
+}
+.live-alert.ticket .live-alert-btn{
+  border-color:rgba(255,237,213,.45);
+  background:rgba(124,45,18,.52);
+  color:#fff7ed;
+}
 .live-alert-body strong{
   display:block;
   font-size:13px;
@@ -2411,9 +2923,20 @@ body.dark-mode .modal .btn-secondary:hover{
       <div id="ticketsContent" class="tickets-content">
       <div class="list">
         {% for ticket in tickets %}
-        <div class="card">
+        <div class="card {% if ticket_has_new_message.get(ticket.id) %}unread-ticket{% endif %}">
 
-          <div class="card-main clickable" onclick="location.href='/dashboard/tickets/{{ ticket.id }}'">
+          <div class="card-main clickable" onclick="location.href='/dashboard/tickets/{{ ticket.id }}{% if ticket_unseen_message_id.get(ticket.id) %}?focus_message_id={{ ticket_unseen_message_id.get(ticket.id) }}{% endif %}'">
+            {% if ticket_has_new_message.get(ticket.id) %}
+            <span class="ticket-new-message-dot" title="Mensajes nuevos">
+              <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <circle cx="20" cy="20" r="7" fill="#ff0000">
+                  <animate attributeName="r" values="7;11;7" dur="1.2s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="1;0.45;1" dur="1.2s" repeatCount="indefinite" />
+                </circle>
+              </svg>
+              {{ ticket_unseen_message_count.get(ticket.id, 1) }}
+            </span>
+            {% endif %}
             <div class="ticket-badges-corner">
               {% set source_key = (ticket.source or 'email')|lower %}
               <span class="ticket-source-mini" title="{{ source_key|capitalize }}">
@@ -2446,8 +2969,8 @@ body.dark-mode .modal .btn-secondary:hover{
                   </svg>
                 {% endif %}
               </span>
-              <div class="status-badge {{ ticket.status }} ticket-status-corner">
-                {{ ticket.status }}
+              <div class="status-badge {{ ticket_status_css(ticket.status) }} ticket-status-corner">
+                {{ ticket_status_label(ticket.status) }}
               </div>
             </div>
             <div class="ticket-header">
@@ -2459,7 +2982,7 @@ body.dark-mode .modal .btn-secondary:hover{
             <div class="ticket-meta">
               <span><strong>Cliente:</strong> {{ ticket.requester.display_name if ticket.requester else "Cliente" }}</span>
               <span class="meta-sep">&middot;</span>
-              <span><strong>Prioridad:</strong> {{ ticket.priority }}</span>
+              <span><strong>Prioridad:</strong> {{ {"low":"Baja","medium":"Media","high":"Alta","urgent":"Urgente"}.get(ticket.priority, "No Asignado") }}</span>
               <span class="meta-sep">&middot;</span>
               <span><strong>Asignado:</strong></span>
               <form
@@ -2480,7 +3003,7 @@ body.dark-mode .modal .btn-secondary:hover{
               </form>
 
               <span class="meta-sep">&middot;</span>
-              <span>{{ ticket.created_at.strftime('%d-%m-%Y %H:%M') }}</span>
+              <span class="ticket-date">{{ ticket.created_at.strftime('%d-%m-%Y %H:%M') }}</span>
             </div>
           </div>
 
@@ -2577,13 +3100,72 @@ body.dark-mode .modal .btn-secondary:hover{
       <p class="settings-title">Configuracion</p>
       <div class="settings-item"><div class="meta"><strong>{{ user.name }}</strong><span>Usuario activo</span></div></div>
       <div class="settings-item"><div class="meta"><strong>{{ user.role|capitalize }}</strong><span>Rol</span></div></div>
-      <button type="button" class="settings-link" id="themeToggle">Modo claro</button>
-      <a href="/logout" class="settings-link danger">Cerrar sesion</a>
+      <div class="settings-actions">
+        <div class="settings-theme-block">
+          <span class="settings-theme-label">Modo</span>
+          <div class="toggle-switch settings-theme-switch">
+            <label class="switch-label">
+              <input type="checkbox" class="checkbox" id="themeToggle" aria-label="Modo Claro/Oscuro">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <a href="/logout" class="Btn settings-logout-btn" aria-label="Cerrar sesión">
+          <div class="sign">
+            <svg viewBox="0 0 512 512">
+              <path d="M377.9 105.9L500.7 228.7c7.2 7.2 11.3 17.1 11.3 27.3s-4.1 20.1-11.3 27.3L377.9 406.1c-6.4 6.4-15 9.9-24 9.9c-18.7 0-33.9-15.2-33.9-33.9l0-62.1-128 0c-17.7 0-32-14.3-32-32l0-64c0-17.7 14.3-32 32-32l128 0 0-62.1c0-18.7 15.2-33.9 33.9-33.9c9 0 17.6 3.6 24 9.9zM160 96L96 96c-17.7 0-32 14.3-32 32l0 256c0 17.7 14.3 32 32 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-64 0c-53 0-96-43-96-96L0 128C0 75 43 32 96 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32z"></path>
+            </svg>
+          </div>
+          <div class="text">Cerrar sesión</div>
+        </a>
+      </div>
     </div>
     <!-- # FIN AJUSTE POPUP DASHBOARD # -->
 </div>
 
   <a class="back-chip" href="/panel">Volver</a>
+
+  <aside class="incidents-radar" aria-label="Últimas incidencias pendientes">
+    <div class="incidents-radar-head">
+      <div class="incidents-radar-brand">
+        <span class="incidents-radar-mark">IR</span>
+        <div>
+          <p class="incidents-radar-title">Incidencias Reportadas</p>
+          <span class="incidents-radar-subtitle">Pendientes de revisión</span>
+        </div>
+      </div>
+      <div class="incidents-radar-actions">
+        {% if (pending_incidencias_count or 0) > 0 %}
+          <span class="incidents-radar-notif" title="Pendientes de derivación">{{ pending_incidencias_count or 0 }}</span>
+        {% endif %}
+        <button
+          class="incidents-radar-toggle"
+          type="button"
+          aria-label="Ocultar incidencias reportadas"
+          aria-expanded="true"
+          aria-controls="incidentsRadarList"
+        ></button>
+      </div>
+    </div>
+
+    <div id="incidentsRadarList" class="incidents-radar-list">
+      {% for inc in pending_incidencias %}
+        <a class="incidents-radar-item" href="/soporte">
+          <strong>Sucursal: {{ inc.sucursal }}</strong>
+          <span>Tipo de problema: {{ inc.tipo_problema }}</span>
+          <span>Fecha: {{ inc.fecha }}</span>
+        </a>
+      {% endfor %}
+      {% if not pending_incidencias %}
+        <div class="incidents-radar-item">
+          <span class="incidents-radar-kicker">Incidencias Reportadas</span>
+          <strong>Sin pendientes</strong>
+          <span>Todo al día por ahora.</span>
+        </div>
+      {% endif %}
+    </div>
+  </aside>
 </div>
 
 </div>
@@ -2634,8 +3216,8 @@ body.dark-mode .modal .btn-secondary:hover{
           <div class="filter-chip-group" data-multifilter="scope">
             <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="scope" value="all" {{ 'checked' if 'all' in scope_filters else '' }}><span>Todos ({{ counts['all'] }})</span></label>
             <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="scope" value="open" {{ 'checked' if 'open' in scope_filters else '' }}><span>Open ({{ counts['open'] }})</span></label>
-            <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="scope" value="pending" {{ 'checked' if 'pending' in scope_filters else '' }}><span>Pending ({{ counts['pending'] }})</span></label>
-            <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="scope" value="resolved" {{ 'checked' if 'resolved' in scope_filters else '' }}><span>Resolved ({{ counts['resolved'] }})</span></label>
+            <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="scope" value="pending" {{ 'checked' if 'pending' in scope_filters else '' }}><span>Pendiente ({{ counts['pending'] }})</span></label>
+            <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="scope" value="resolved" {{ 'checked' if 'resolved' in scope_filters else '' }}><span>Cerrado ({{ counts['resolved'] }})</span></label>
             <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="scope" value="spam" {{ 'checked' if 'spam' in scope_filters else '' }}><span>Spam ({{ counts['spam'] }})</span></label>
             <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="scope" value="trash" {{ 'checked' if 'trash' in scope_filters else '' }}><span>Papelera ({{ counts['trash'] }})</span></label>
           </div>
@@ -2655,10 +3237,11 @@ body.dark-mode .modal .btn-secondary:hover{
           <h4 class="filter-section-title">Prioridad</h4>
           <div class="filter-chip-group" data-multifilter="priority">
             <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="priority" value="all" {{ 'checked' if 'all' in priority_filters else '' }}><span>Todos</span></label>
-            <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="priority" value="low" {{ 'checked' if 'low' in priority_filters else '' }}><span>Low</span></label>
-            <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="priority" value="medium" {{ 'checked' if 'medium' in priority_filters else '' }}><span>Medium</span></label>
-            <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="priority" value="high" {{ 'checked' if 'high' in priority_filters else '' }}><span>High</span></label>
-            <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="priority" value="urgent" {{ 'checked' if 'urgent' in priority_filters else '' }}><span>Urgent</span></label>
+            <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="priority" value="unassigned" {{ 'checked' if 'unassigned' in priority_filters else '' }}><span>No Asignado</span></label>
+            <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="priority" value="low" {{ 'checked' if 'low' in priority_filters else '' }}><span>Baja</span></label>
+            <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="priority" value="medium" {{ 'checked' if 'medium' in priority_filters else '' }}><span>Media</span></label>
+            <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="priority" value="high" {{ 'checked' if 'high' in priority_filters else '' }}><span>Alta</span></label>
+            <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="priority" value="urgent" {{ 'checked' if 'urgent' in priority_filters else '' }}><span>Urgente</span></label>
           </div>
         </section>
 
@@ -2732,11 +3315,12 @@ body.dark-mode .modal .btn-secondary:hover{
 
       <div class="field">
         <label>Prioridad</label>
-        <select name="priority">
-          <option value="low">Low</option>
-          <option value="medium" selected>Medium</option>
-          <option value="high">High</option>
-          <option value="urgent">Urgent</option>
+        <select name="priority" required>
+          <option value="" selected disabled>Seleccionar</option>
+          <option value="low">Baja</option>
+          <option value="medium">Media</option>
+          <option value="high">Alta</option>
+          <option value="urgent">Urgente</option>
         </select>
       </div>
 
@@ -2840,18 +3424,27 @@ body.dark-mode .modal .btn-secondary:hover{
   const popup = document.getElementById("settingsPopup");
   const trigger = document.getElementById("settingsTrigger");
   const themeBtn = document.getElementById("themeToggle");
+  const userActions = trigger ? trigger.closest(".user-actions") : null;
   const themeKey = "helpdesk_dashboard_dark_mode";
 
   if (!popup || !trigger || !themeBtn) return;
 
-  function syncThemeButton() {
-    themeBtn.textContent = body.classList.contains("dark-mode") ? "Modo claro" : "Modo oscuro";
+  function syncSettingsLayout() {
+    const isOpen = !popup.hidden;
+    if (userActions) {
+      userActions.classList.toggle("settings-open", isOpen);
+      if (isOpen) {
+        userActions.style.setProperty("--settings-pop-height", `${popup.offsetHeight}px`);
+      } else {
+        userActions.style.removeProperty("--settings-pop-height");
+      }
+    }
   }
 
   function applyTheme(mode, persist = true) {
     const dark = mode === "dark";
     body.classList.toggle("dark-mode", dark);
-    syncThemeButton();
+    themeBtn.checked = dark;
     if (persist) {
       localStorage.setItem(themeKey, dark ? "dark" : "light");
     }
@@ -2862,12 +3455,13 @@ body.dark-mode .modal .btn-secondary:hover{
 
   themeBtn.addEventListener("click", (event) => {
     event.stopPropagation();
-    applyTheme(body.classList.contains("dark-mode") ? "light" : "dark", true);
+    applyTheme(themeBtn.checked ? "dark" : "light", true);
   });
 
   trigger.addEventListener("click", (event) => {
     event.stopPropagation();
     popup.hidden = !popup.hidden;
+    syncSettingsLayout();
   });
 
   popup.addEventListener("click", (event) => {
@@ -2877,15 +3471,62 @@ body.dark-mode .modal .btn-secondary:hover{
   document.addEventListener("click", (event) => {
     if (!popup.hidden && !popup.contains(event.target) && !trigger.contains(event.target)) {
       popup.hidden = true;
+      syncSettingsLayout();
     }
   });
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       popup.hidden = true;
+      syncSettingsLayout();
     }
   });
+
+  window.addEventListener("resize", syncSettingsLayout);
+  syncSettingsLayout();
   // # FIN AJUSTE POPUP DASHBOARD #
+})();
+</script>
+
+<script>
+(function () {
+  const radar = document.querySelector(".incidents-radar");
+  if (!radar) return;
+
+  const head = radar.querySelector(".incidents-radar-head");
+  const toggle = radar.querySelector(".incidents-radar-toggle");
+  if (!toggle) return;
+
+  const storageKey = "helpdesk_incidents_radar_collapsed";
+
+  function setCollapsed(collapsed, persist = true) {
+    radar.classList.toggle("is-collapsed", collapsed);
+    toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    toggle.setAttribute(
+      "aria-label",
+      collapsed ? "Mostrar incidencias reportadas" : "Ocultar incidencias reportadas"
+    );
+    toggle.setAttribute(
+      "title",
+      collapsed ? "Mostrar incidencias reportadas" : "Ocultar incidencias reportadas"
+    );
+    if (persist) {
+      localStorage.setItem(storageKey, collapsed ? "1" : "0");
+    }
+  }
+
+  setCollapsed(localStorage.getItem(storageKey) === "1", false);
+
+  toggle.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setCollapsed(!radar.classList.contains("is-collapsed"), true);
+  });
+
+  if (head) {
+    head.addEventListener("click", () => {
+      setCollapsed(!radar.classList.contains("is-collapsed"), true);
+    });
+  }
 })();
 </script>
 
@@ -2916,7 +3557,7 @@ body.dark-mode .modal .btn-secondary:hover{
     const tone = options.tone === "ticket" ? "ticket" : "msg";
     const actionLabel = String(options.actionLabel || "").trim();
     const action = typeof options.onAction === "function" ? options.onAction : null;
-    const ttl = Number(options.ttl || 7000);
+    const ttl = Number(options.ttl || (tone === "ticket" ? 20000 : 7000));
 
     const card = document.createElement("div");
     card.className = `live-alert ${tone}`;
@@ -2938,7 +3579,8 @@ body.dark-mode .modal .btn-secondary:hover{
     }
 
     stack.prepend(card);
-    const timeoutId = window.setTimeout(() => closeCard(card), Math.max(2500, ttl));
+    const minTtl = tone === "ticket" ? 20000 : 2500;
+    const timeoutId = window.setTimeout(() => closeCard(card), Math.max(minTtl, ttl));
     card.addEventListener("mouseenter", () => window.clearTimeout(timeoutId));
   };
 

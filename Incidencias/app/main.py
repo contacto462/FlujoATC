@@ -239,11 +239,11 @@ def _protocolos_weekly_worker_loop() -> None:
                 if dia_key != ultimo_dia_mantenciones_trimestrales:
                     db = SessionLocal()
                     try:
-                        result = IncidenciasService(db).programar_mantenciones_trimestrales_quintero(
+                        result = IncidenciasService(db).programar_mantenciones_trimestrales_quintero_y_concon(
                             fecha_referencia=now,
                             forzar=True,
                         )
-                        LOGGER.info("Mantenciones trimestrales Quintero: %s", result)
+                        LOGGER.info("Mantenciones trimestrales Quintero/Concon: %s", result)
                     finally:
                         db.close()
                     ultimo_dia_mantenciones_trimestrales = dia_key
@@ -274,14 +274,16 @@ def do_get(
     next_form: str = Query(default="tecnicos", alias="next"),
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
 ):
-    if form == "tabla":
-        form = "servicioTecnico"
-    if form == "STVentas":
-        form = "stVentas"
-    if next_form == "tabla":
-        next_form = "servicioTecnico"
-    if next_form == "STVentas":
-        next_form = "stVentas"
+    form_aliases = {
+        "tabla": "servicioTecnico",
+        "STVentas": "stVentas",
+        "servicioTécnico": "servicioTecnico",
+        "servicioTecnico": "servicioTecnico",
+        "coordinación": "coordinacion",
+        "coordinacion": "coordinacion",
+    }
+    form = form_aliases.get(form, form)
+    next_form = form_aliases.get(next_form, next_form)
     formularios_validos = {
         "login",
         "panelSelector",
@@ -307,8 +309,8 @@ def do_get(
 
     if form not in formularios_validos:
         html = (
-            f"<h2 style='font-family:sans-serif;color:darkred'>âš ï¸ Formulario desconocido: <code>{form}</code></h2>"
-            "<p style='font-family:sans-serif'>Verifica que la URL estÃ© escrita correctamente.</p>"
+            f"<h2 style='font-family:sans-serif;color:darkred'>&#9888; Formulario desconocido: <code>{form}</code></h2>"
+            "<p style='font-family:sans-serif'>Verifica que la URL este escrita correctamente.</p>"
         )
         return HTMLResponse(content=html, status_code=400)
 
@@ -752,6 +754,24 @@ def ejecutar_mantencion_programada_quintero(
     return service.programar_mantenciones_trimestrales_quintero(fecha_referencia=ref, forzar=True, limite=limite)
 
 
+@app.post("/api/mantencion/programada/concon/ejecutar")
+def ejecutar_mantencion_programada_concon(
+    fecha_referencia: str | None = None,
+    limite: int | None = None,
+    service: Annotated[IncidenciasService, Depends(get_service)] = None,
+):
+    ref = None
+    if fecha_referencia:
+        try:
+            ref = datetime.fromisoformat(fecha_referencia)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=400,
+                detail="fecha_referencia debe venir en formato ISO-8601 (ej: 2026-06-01T06:00:00).",
+            ) from exc
+    return service.programar_mantenciones_trimestrales_concon(fecha_referencia=ref, forzar=True, limite=limite)
+
+
 @app.get("/api/mantencion/programada/plantilla")
 def obtener_plantilla_mantencion_programada(
     sucursal: str,
@@ -1131,4 +1151,6 @@ def debug_db(
     except Exception as e:
         out["catalogo_clientes_sample_error"] = str(e)
     return out
+
+
 

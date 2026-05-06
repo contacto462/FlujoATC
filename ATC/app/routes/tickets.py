@@ -21,9 +21,14 @@ router = APIRouter(prefix="/tickets", tags=["tickets"])
 @router.post("/", response_model=TicketOut)
 def create_ticket(data: TicketCreate, db: Session = Depends(get_db)):
 
+    source = (data.source or "").strip().lower()
+    priority = (data.priority or "").strip().lower()
+    if source in {"email", "whatsapp"} and priority not in {"low", "medium", "high", "urgent"}:
+        priority = ""
+
     ticket = Ticket(
         subject=data.subject,
-        priority=data.priority,
+        priority=priority,
         source=data.source,
         requester_id=data.requester_id,
         status="open",

@@ -9,7 +9,7 @@ from datetime import datetime
 class TicketCreate(BaseModel):
     subject: str
     source: str  # "email" | "whatsapp"
-    priority: str = "medium"
+    priority: str = ""
     requester_id: int
     assigned_to_id: int | None = None
 

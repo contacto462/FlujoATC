@@ -145,7 +145,32 @@ MANTENCIONES_TRIMESTRALES_QUINTERO: list[str] = [
     "MQUIN Posta de Salud Loncura",
     "MQUIN Cesfam Quintero",
 ]
+MANTENCIONES_TRIMESTRALES_CONCON: list[str] = [
+    "MC Secplac",
+    "MC Playa Amarilla",
+    "MC OPD",
+    "MC Museo",
+    "MC DIDECO",
+    "MC Turismo y Omil",
+    "MC Edificio Municipal",
+    "MC Carpa (Avanzada Cultural)",
+    "MC Cesfam",
+    "MC Biblioteca Municipal",
+    "MC Juzgado Policía Local",
+    "MC Tránsito",
+    "MC CJAM - Centro de Juventud, Adulto Mayor y Discapacidad",
+    "MC Deporte, Estadio Atlético",
+    "MC Parque La Isla",
+    "MC Jardín Infantil Conconcito",
+    "MC Centro Cultural",
+    "MC DOM",
+    "MC Corrales Municipales",
+]
 MESES_MANTENCION_TRIMESTRAL = {3, 6, 9, 12}
+MANTENCIONES_TRIMESTRALES_POR_COMUNA: dict[str, list[str]] = {
+    "quintero": MANTENCIONES_TRIMESTRALES_QUINTERO,
+    "concon": MANTENCIONES_TRIMESTRALES_CONCON,
+}
 MANTENCIONES_IMAGENES_POR_SUCURSAL: dict[str, list[str]] = {
     "imq consistorial nuevo": [
         "app/static/mantenciones/quilpue/imq_consistorial_nuevo_1.jpg",
@@ -154,12 +179,52 @@ MANTENCIONES_IMAGENES_POR_SUCURSAL: dict[str, list[str]] = {
 }
 SUCURSALES_EXTRA_MANTENCION: list[str] = [
     *MANTENCIONES_TRIMESTRALES_QUINTERO,
+    *MANTENCIONES_TRIMESTRALES_CONCON,
     "Quintero",
     "Concon",
     "Llay Llay",
 ]
 KNOWN_REGISTRO_BLOCKING_QUERY = "ALTER TABLE registro DROP COLUMN IF EXISTS foto_2"
 LOGGER = logging.getLogger(__name__)
+TICKET_STATUS_ABIERTO = "open"
+TICKET_STATUS_PENDIENTE = "pending"
+TICKET_STATUS_PENDIENTE_SERVICIO = "pending_service"
+TICKET_STATUS_PENDIENTE_CLIENTE = "pending_client"
+TICKET_STATUS_RESUELTO = "resolved"
+TICKET_STATUS_RESUELTO_SERVICIO = "resolved_service"
+TICKET_STATUS_RESUELTO_CLIENTE = "resolved_client"
+TICKET_STATUS_CERRADO = "closed"
+TICKET_STATUS_ALIASES = {
+    "open": TICKET_STATUS_ABIERTO,
+    "abierto": TICKET_STATUS_ABIERTO,
+    "pendiente": TICKET_STATUS_PENDIENTE,
+    "pending": TICKET_STATUS_PENDIENTE,
+    "pendiente_servicio": TICKET_STATUS_PENDIENTE_SERVICIO,
+    "pending_service": TICKET_STATUS_PENDIENTE_SERVICIO,
+    "pendiente_cliente": TICKET_STATUS_PENDIENTE_CLIENTE,
+    "pending_client": TICKET_STATUS_PENDIENTE_CLIENTE,
+    "resuelto": TICKET_STATUS_RESUELTO,
+    "resolved": TICKET_STATUS_RESUELTO,
+    "resuelto_servicio": TICKET_STATUS_RESUELTO_SERVICIO,
+    "resuleto_servicio": TICKET_STATUS_RESUELTO_SERVICIO,
+    "resolved_service": TICKET_STATUS_RESUELTO_SERVICIO,
+    "resuelto_cliente": TICKET_STATUS_RESUELTO_CLIENTE,
+    "resolved_client": TICKET_STATUS_RESUELTO_CLIENTE,
+    "cerrado": TICKET_STATUS_CERRADO,
+    "closed": TICKET_STATUS_CERRADO,
+}
+TICKET_STATUSES_PERMITIDOS = {
+    *TICKET_STATUS_ALIASES.keys(),
+    *TICKET_STATUS_ALIASES.values(),
+}
+
+
+def _normalizar_estado_ticket_soporte(estado: str | None) -> str:
+    raw = " ".join(str(estado or "").strip().split())
+    key = unicodedata.normalize("NFD", raw.casefold())
+    key = "".join(ch for ch in key if unicodedata.category(ch) != "Mn")
+    key = key.replace(" ", "_").replace("-", "_")
+    return TICKET_STATUS_ALIASES.get(key, key)
 
 
 def _to_ddmmyyyy(valor: datetime | None) -> str:
@@ -332,7 +397,7 @@ class IncidenciasService:
 
     def _logo_atc_bytes(self) -> bytes | None:
         try:
-            logo_path = Path(__file__).resolve().parents[2] / "ATC" / "static" / "img" / "logo-atc.png"
+            logo_path = Path(__file__).resolve().parents[2] / "ATC" / "static" / "img" / "logo-atc2.jpeg"
             if not logo_path.exists():
                 return None
             return logo_path.read_bytes()
@@ -913,7 +978,204 @@ class IncidenciasService:
                 mayor = max(mayor, n)
         return f"{prefijo}{mayor + 1}"
 
-    
+    def _ticket_soporte_existe(self, conn, schema: str, ticket_id: int | None) -> int | None:
+        if not ticket_id:
+            return None
+        exists = conn.execute(
+            text(f'SELECT id FROM "{schema}"."tickets" WHERE id = :ticket_id'),
+            {"ticket_id": int(ticket_id)},
+        ).scalar()
+        return int(exists) if exists else None
+
+    def _resolver_ticket_id_soporte_desde_registro(self, conn, schema: str, odt: str) -> int | None:
+        odt_limpia = str(odt or "").strip()
+        if not odt_limpia:
+            return None
+
+        for schema_registro in self._schemas_con_tabla("registro"):
+            cols = self._columnas_tabla(schema_registro, "registro")
+            col_odt = self._pick_col(cols, ["odt", "codigo_odt", "codigo", "nro_odt"])
+            col_source_row = self._pick_col(cols, ["source_row", "source_id", "origen_id"])
+            col_source_file = self._pick_col(cols, ["source_file", "source", "origin", "origen"])
+            if not col_odt or not col_source_row:
+                continue
+
+            select_source = f'CAST("{col_source_file}" AS text) AS source_file' if col_source_file else "'' AS source_file"
+            row = self.db.execute(
+                text(
+                    f'''
+                    SELECT CAST("{col_source_row}" AS text) AS source_row,
+                           {select_source}
+                    FROM "{schema_registro}"."registro"
+                    WHERE btrim(CAST("{col_odt}" AS text)) = :odt
+                    LIMIT 1
+                    '''
+                ),
+                {"odt": odt_limpia},
+            ).mappings().first()
+            if not row:
+                continue
+
+            source_file_norm = self._normalizar_texto(row.get("source_file") or "")
+            if col_source_file and source_file_norm not in {"ticket", "tickets", "helpdesk", "soporte"}:
+                continue
+            try:
+                ticket_id = int(str(row.get("source_row") or "").strip())
+            except Exception:
+                continue
+            return self._ticket_soporte_existe(conn, schema, ticket_id)
+
+        return None
+
+    def _resolver_ticket_id_soporte_desde_mensajes(self, conn, schema: str, odt: str) -> int | None:
+        odt_limpia = str(odt or "").strip()
+        if not odt_limpia:
+            return None
+
+        needle = f"%{odt_limpia}%"
+        rows = conn.execute(
+            text(
+                f'''
+                SELECT m.ticket_id, CAST(m.content AS text) AS content
+                FROM "{schema}"."messages" m
+                JOIN "{schema}"."tickets" t ON t.id = m.ticket_id
+                WHERE CAST(m.content AS text) ILIKE :needle
+                ORDER BY m.created_at DESC, m.id DESC
+                LIMIT 50
+                '''
+            ),
+            {"needle": needle},
+        ).mappings().all()
+        patron_odt = re.compile(rf"(?<![A-Za-z0-9]){re.escape(odt_limpia)}(?![A-Za-z0-9])", re.IGNORECASE)
+        for row in rows:
+            if patron_odt.search(str(row.get("content") or "")):
+                try:
+                    return int(row.get("ticket_id"))
+                except Exception:
+                    continue
+        return None
+
+    def _resolver_ticket_id_soporte(self, conn, schema: str, odt: str) -> int | None:
+        # Importante: la ODT es correlativo de Incidencias, no ID de ticket.
+        # Nunca debe mapearse T15 -> ticket #15 por el numero.
+        ticket_id = self._resolver_ticket_id_soporte_desde_registro(conn, schema, odt)
+        if ticket_id:
+            return ticket_id
+        return self._resolver_ticket_id_soporte_desde_mensajes(conn, schema, odt)
+
+    def _insertar_nota_ticket_soporte(self, conn, schema: str, ticket_id: int, contenido: str) -> None:
+        contenido_limpio = str(contenido or "").strip()
+        if not contenido_limpio:
+            return
+        conn.execute(
+            text(
+                f'''
+                INSERT INTO "{schema}"."messages"
+                    (ticket_id, sender_type, channel, content, is_internal_note, created_at)
+                VALUES
+                    (:ticket_id, :sender_type, :channel, :content, :is_internal_note, :created_at)
+                '''
+            ),
+            {
+                "ticket_id": ticket_id,
+                "sender_type": "system",
+                "channel": "internal",
+                "content": contenido_limpio,
+                "is_internal_note": True,
+                "created_at": datetime.now(timezone.utc),
+            },
+        )
+
+    def _actualizar_estado_ticket_soporte(
+        self,
+        odt: str,
+        estado: str,
+        nota_interna: str | None = None,
+    ) -> bool:
+        estado_limpio = _normalizar_estado_ticket_soporte(estado)
+        if estado_limpio not in TICKET_STATUSES_PERMITIDOS:
+            raise ValueError("Estado de ticket no permitido.")
+
+        db_url = str(settings.support_db_url or "").strip()
+        if not db_url:
+            return False
+
+        schema = (settings.support_db_schema or "public").strip() or "public"
+        engine = build_engine(db_url, pool_pre_ping=True)
+        ahora = datetime.utcnow()
+        with engine.begin() as conn:
+            ticket_id = self._resolver_ticket_id_soporte(conn, schema, odt)
+            if ticket_id is None:
+                return False
+
+            result = conn.execute(
+                text(
+                    f'''
+                    UPDATE "{schema}"."tickets"
+                    SET status = CAST(:status AS varchar),
+                        updated_at = :updated_at,
+                        resolved_at = CASE
+                            WHEN CAST(:status AS text) IN (:resuelto, :resuelto_servicio, :resuelto_cliente) THEN COALESCE(resolved_at, :updated_at)
+                            ELSE resolved_at
+                        END,
+                        closed_at = CASE
+                            WHEN CAST(:status AS text) = :cerrado THEN COALESCE(closed_at, :updated_at)
+                            ELSE closed_at
+                        END
+                    WHERE id = :ticket_id
+                    '''
+                ),
+                {
+                    "status": estado_limpio,
+                    "updated_at": ahora,
+                    "resuelto": TICKET_STATUS_RESUELTO,
+                    "resuelto_servicio": TICKET_STATUS_RESUELTO_SERVICIO,
+                    "resuelto_cliente": TICKET_STATUS_RESUELTO_CLIENTE,
+                    "cerrado": TICKET_STATUS_CERRADO,
+                    "ticket_id": ticket_id,
+                },
+            )
+            if nota_interna:
+                try:
+                    self._insertar_nota_ticket_soporte(conn, schema, ticket_id, nota_interna)
+                except Exception:
+                    LOGGER.exception("No se pudo agregar nota interna al ticket soporte para ODT %s.", odt)
+            return int(result.rowcount or 0) > 0
+
+    def _sync_estado_ticket_soporte_silencioso(
+        self,
+        odt: str,
+        estado: str,
+        nota_interna: str | None = None,
+    ) -> None:
+        try:
+            self._actualizar_estado_ticket_soporte(odt, estado, nota_interna=nota_interna)
+        except Exception:
+            LOGGER.exception("No se pudo actualizar estado de ticket soporte para ODT %s.", odt)
+
+    def _build_nota_cierre_ticket_soporte(
+        self,
+        *,
+        odt: str,
+        estado_ticket: str,
+        derivacion: str,
+        observacion_final: str,
+    ) -> str:
+        estado_label = {
+            TICKET_STATUS_RESUELTO_CLIENTE: "Resuelto Cliente",
+            TICKET_STATUS_RESUELTO_SERVICIO: "Resuelto Servicio",
+            TICKET_STATUS_RESUELTO: "Resuelto",
+            TICKET_STATUS_CERRADO: "Cerrado",
+        }.get(_normalizar_estado_ticket_soporte(estado_ticket), estado_ticket)
+        detalle = str(observacion_final or "").strip() or "Sin observacion final registrada."
+        return (
+            "<strong>Actualizacion automatica desde Incidencias</strong><br>"
+            f"ODT: {html_escape(str(odt or '').strip())}<br>"
+            f"Estado: {html_escape(estado_label)}<br>"
+            f"Derivacion/Cierre: {html_escape(str(derivacion or '').strip() or '-')}<br>"
+            f"Resultado final: {html_escape(detalle).replace(chr(10), '<br>')}"
+        )
+
 
     def _proximo_odt_incidencias(self, prefijo: str = "I") -> str:
         return self._proximo_odt(prefijo)
@@ -1739,6 +2001,10 @@ class IncidenciasService:
         if not row.fecha_derivacion_area:
             row.fecha_derivacion_area = ahora
         self.db.commit()
+        if tecnico_limpio:
+            self._sync_estado_ticket_soporte_silencioso(odt_limpia, TICKET_STATUS_PENDIENTE_SERVICIO)
+        else:
+            self._sync_estado_ticket_soporte_silencioso(odt_limpia, TICKET_STATUS_PENDIENTE)
         return True
 
     def editar_incidencia_tabla(
@@ -1800,6 +2066,9 @@ class IncidenciasService:
 
         observacion_soporte_final = ""
         observacion_servicio_final = ""
+        estado_ticket_soporte = ""
+        nota_ticket_soporte = ""
+        correo_derivacion_result: dict[str, Any] | None = None
 
         if derivacion_in:
             row.derivacion = derivacion_in
@@ -1811,11 +2080,25 @@ class IncidenciasService:
                 row.fecha_cierre = ahora_utc
                 if row.fecha_registro:
                     row.dias_ejecucion = (row.fecha_cierre.date() - row.fecha_registro.date()).days
+                estado_ticket_soporte = TICKET_STATUS_RESUELTO_SERVICIO
+                nota_ticket_soporte = self._build_nota_cierre_ticket_soporte(
+                    odt=odt_limpia,
+                    estado_ticket=estado_ticket_soporte,
+                    derivacion=derivacion_in,
+                    observacion_final=observacion_final_in,
+                )
             elif derivacion_in == "Finalizado Sin VT":
                 row.estado = "Terminado"
                 row.fecha_cierre = ahora_utc
                 if row.fecha_registro:
                     row.dias_ejecucion = (row.fecha_cierre.date() - row.fecha_registro.date()).days
+                estado_ticket_soporte = TICKET_STATUS_RESUELTO_SERVICIO
+                nota_ticket_soporte = self._build_nota_cierre_ticket_soporte(
+                    odt=odt_limpia,
+                    estado_ticket=estado_ticket_soporte,
+                    derivacion=derivacion_in,
+                    observacion_final=observacion_final_in,
+                )
             elif derivacion_in == "Repetida":
                 if not repetida_ref_in:
                     match_ref = re.search(r"\b([A-Za-z]\d+)\b", observacion_servicio_in or "")
@@ -1848,9 +2131,23 @@ class IncidenciasService:
                 row.fecha_cierre = ahora_utc
                 if row.fecha_registro:
                     row.dias_ejecucion = (row.fecha_cierre.date() - row.fecha_registro.date()).days
+                estado_ticket_soporte = TICKET_STATUS_RESUELTO_SERVICIO
+                nota_ticket_soporte = self._build_nota_cierre_ticket_soporte(
+                    odt=odt_limpia,
+                    estado_ticket=estado_ticket_soporte,
+                    derivacion=derivacion_in,
+                    observacion_final=observacion_servicio_in,
+                )
             else:
                 row.estado = "Pendiente"
                 row.fecha_cierre = None
+                deriv_norm = self._normalizar_texto(derivacion_in)
+                if deriv_norm in {"cliente", "coordinacion"}:
+                    estado_ticket_soporte = TICKET_STATUS_PENDIENTE_CLIENTE
+                elif "servicio tecnico" in deriv_norm or "soporte tecnico" in deriv_norm:
+                    estado_ticket_soporte = TICKET_STATUS_PENDIENTE_SERVICIO
+                else:
+                    estado_ticket_soporte = TICKET_STATUS_PENDIENTE
 
         if observacion_final_in and derivacion_in != "Finalizado por Soporte":
             row.observacion_final = observacion_final_in
@@ -1889,6 +2186,20 @@ class IncidenciasService:
                 observacion_servicio_final = row.observacion_servicio
 
         self.db.commit()
+        if estado_ticket_soporte:
+            self._sync_estado_ticket_soporte_silencioso(
+                odt_limpia,
+                estado_ticket_soporte,
+                nota_interna=nota_ticket_soporte or None,
+            )
+        if derivacion_in:
+            deriv_norm_correo = self._normalizar_texto(derivacion_in)
+            if deriv_norm_correo in {"cliente", "coordinacion"} or "servicio tecnico" in deriv_norm_correo:
+                correo_derivacion_result = self._enviar_correo_derivacion_automatico_silencioso(
+                    row=row,
+                    derivacion=derivacion_in,
+                    usuario=usuario,
+                )
         return {
             "ok": True,
             "odt": odt_limpia,
@@ -1901,6 +2212,7 @@ class IncidenciasService:
                 or None
             ),
             "observacion_final": str(getattr(row, "observacion_final", "") or "").strip() or None,
+            "correo_derivacion": correo_derivacion_result,
         }
 
     def enviar_multiples_incidencias(self, incidencias: list[IncidenciaNueva]) -> list[str]:
@@ -2132,6 +2444,16 @@ class IncidenciasService:
         if row.fecha_registro:
             row.dias_ejecucion = (row.fecha_cierre.date() - row.fecha_registro.date()).days
         self.db.commit()
+        self._sync_estado_ticket_soporte_silencioso(
+            odt_limpia,
+            TICKET_STATUS_RESUELTO_CLIENTE,
+            nota_interna=self._build_nota_cierre_ticket_soporte(
+                odt=odt_limpia,
+                estado_ticket=TICKET_STATUS_RESUELTO_CLIENTE,
+                derivacion=str(row.derivacion or "Cliente"),
+                observacion_final=row.observacion_final or "",
+            ),
+        )
         return {
             "ok": True,
             "odt": odt_limpia,
@@ -2162,6 +2484,16 @@ class IncidenciasService:
         if row.fecha_registro and row.fecha_cierre:
             row.dias_ejecucion = (row.fecha_cierre.date() - row.fecha_registro.date()).days
         self.db.commit()
+        self._sync_estado_ticket_soporte_silencioso(
+            odt_limpia,
+            TICKET_STATUS_RESUELTO_SERVICIO,
+            nota_interna=self._build_nota_cierre_ticket_soporte(
+                odt=odt_limpia,
+                estado_ticket=TICKET_STATUS_RESUELTO_SERVICIO,
+                derivacion=row.derivacion or "Finalizado Por Encargados",
+                observacion_final=row.observacion_final or "",
+            ),
+        )
         return True
 
     def registrar_finalizacion_rapida(self, odt: str, observacion: str) -> str:
@@ -2183,17 +2515,22 @@ class IncidenciasService:
         row.estado = "Terminado"
         row.derivacion = "Servicio T?cnico"
         row.observacion_final = observacion
-        if observacion:
-            marca = datetime.utcnow().strftime("%d/%m/%Y %H:%M")
-            nota_servicio = f"[CIERRE {marca}] {observacion.strip()}"
-            base_serv = (getattr(row, "observacion_servicio", "") or "").strip()
-            row.observacion_servicio = f"{base_serv}\n{nota_servicio}".strip() if base_serv else nota_servicio
         row.porcentaje_avance = "100%"
         row.fecha_cierre = ahora
         row.prioridad = None
         if row.fecha_registro:
             row.dias_ejecucion = (row.fecha_cierre.date() - row.fecha_registro.date()).days
         self.db.commit()
+        self._sync_estado_ticket_soporte_silencioso(
+            odt_limpia,
+            TICKET_STATUS_RESUELTO_SERVICIO,
+            nota_interna=self._build_nota_cierre_ticket_soporte(
+                odt=odt_limpia,
+                estado_ticket=TICKET_STATUS_RESUELTO_SERVICIO,
+                derivacion=row.derivacion or "Servicio Tecnico",
+                observacion_final=row.observacion_final or observacion or "",
+            ),
+        )
         return "OK"
     def _normalizar_texto(self, valor: Any) -> str:
         txt = str(valor or "").strip().lower()
@@ -2968,19 +3305,32 @@ class IncidenciasService:
         if not row:
             raise ValueError(f"No se encontro la ODT {odt_limpia}")
 
+        obs_cierre = str(observacion or "").strip()
+        cierre_ya_sincronizado = (
+            self._normalizar_texto(getattr(row, "estado", "") or "") == "terminado"
+            and str(getattr(row, "observacion_final", "") or "").strip() == obs_cierre
+        )
+
         if len(fotos) >= 1:
             row.foto_1 = fotos[0]
         if len(fotos) >= 2:
             row.foto_2 = fotos[1]
         if len(fotos) >= 3:
             row.foto_3 = fotos[2]
-        obs_cierre = str(observacion or "").strip()
         if obs_cierre:
-            marca = datetime.utcnow().strftime("%d/%m/%Y %H:%M")
-            nota_servicio = f"[CIERRE {marca}] {obs_cierre}"
-            base_serv = (getattr(row, "observacion_servicio", "") or "").strip()
-            row.observacion_servicio = f"{base_serv}\n{nota_servicio}".strip() if base_serv else nota_servicio
+            row.observacion_final = obs_cierre
         self.db.commit()
+        if not cierre_ya_sincronizado:
+            self._sync_estado_ticket_soporte_silencioso(
+                odt_limpia,
+                TICKET_STATUS_RESUELTO_SERVICIO,
+                nota_interna=self._build_nota_cierre_ticket_soporte(
+                    odt=odt_limpia,
+                    estado_ticket=TICKET_STATUS_RESUELTO_SERVICIO,
+                    derivacion=row.derivacion or "Servicio Tecnico",
+                    observacion_final=row.observacion_final or obs_cierre,
+                ),
+            )
 
         drive_enabled = bool(settings.google_drive_enabled)
         if drive_enabled:
@@ -3439,12 +3789,16 @@ class IncidenciasService:
             "sucursales_imagenes_asignadas": imagenes_asignadas,
         }
 
-    def programar_mantenciones_trimestrales_quintero(
+    def _programar_mantenciones_trimestrales(
         self,
+        comuna_key: str,
+        sucursales_base: list[str],
         fecha_referencia: datetime | None = None,
         forzar: bool = False,
         limite: int | None = None,
     ) -> dict[str, Any]:
+        comuna_normalizada = self._normalizar_sucursal_key(comuna_key)
+        marca_comuna = comuna_normalizada.upper().replace(" ", "-") or "TRIMESTRAL"
         tz = ZoneInfo(settings.timezone or "America/Santiago")
         if fecha_referencia is None:
             ref = datetime.now(tz)
@@ -3458,6 +3812,7 @@ class IncidenciasService:
             return {
                 "status": "skip",
                 "reason": "mes_fuera_de_cierre_trimestral",
+                "comuna": comuna_normalizada,
                 "trimestre": trimestre,
                 "fecha_referencia": ref.isoformat(),
             }
@@ -3465,6 +3820,7 @@ class IncidenciasService:
             return {
                 "status": "skip",
                 "reason": "solo_dia_01",
+                "comuna": comuna_normalizada,
                 "trimestre": trimestre,
                 "fecha_referencia": ref.isoformat(),
             }
@@ -3472,6 +3828,7 @@ class IncidenciasService:
             return {
                 "status": "skip",
                 "reason": "hora_menor_a_06",
+                "comuna": comuna_normalizada,
                 "trimestre": trimestre,
                 "fecha_referencia": ref.isoformat(),
             }
@@ -3479,10 +3836,10 @@ class IncidenciasService:
         mes_key = ref.strftime("%Y-%m")
         primer_mes_trimestre = ((trimestre - 1) * 3) + 1
         meses_trimestre = [primer_mes_trimestre, primer_mes_trimestre + 1, primer_mes_trimestre + 2]
-        sucursales = MANTENCIONES_TRIMESTRALES_QUINTERO
+        sucursales = sucursales_base
         if limite is not None and limite > 0:
             sucursales = sucursales[:limite]
-        marca = f"[AUTO-MANT-QUINTERO {ref.year} T{trimestre}]"
+        marca = f"[AUTO-MANT-{marca_comuna} {ref.year} T{trimestre}]"
         observacion_servicio_auto = "Mantenci\u00f3n Preventiva Completa de la totalidad del servicio"
         creadas: list[str] = []
         omitidas: list[str] = []
@@ -3564,6 +3921,7 @@ class IncidenciasService:
 
         return {
             "status": "ok",
+            "comuna": comuna_normalizada,
             "trimestre": trimestre,
             "fecha_referencia": ref.isoformat(),
             "mes_programacion": mes_key,
@@ -3578,6 +3936,64 @@ class IncidenciasService:
             "sucursales_creadas": creadas,
             "sucursales_omitidas": omitidas,
             "sucursales_imagenes_asignadas": imagenes_asignadas,
+        }
+
+    def programar_mantenciones_trimestrales_quintero(
+        self,
+        fecha_referencia: datetime | None = None,
+        forzar: bool = False,
+        limite: int | None = None,
+    ) -> dict[str, Any]:
+        return self._programar_mantenciones_trimestrales(
+            comuna_key="quintero",
+            sucursales_base=MANTENCIONES_TRIMESTRALES_QUINTERO,
+            fecha_referencia=fecha_referencia,
+            forzar=forzar,
+            limite=limite,
+        )
+
+    def programar_mantenciones_trimestrales_concon(
+        self,
+        fecha_referencia: datetime | None = None,
+        forzar: bool = False,
+        limite: int | None = None,
+    ) -> dict[str, Any]:
+        return self._programar_mantenciones_trimestrales(
+            comuna_key="concon",
+            sucursales_base=MANTENCIONES_TRIMESTRALES_CONCON,
+            fecha_referencia=fecha_referencia,
+            forzar=forzar,
+            limite=limite,
+        )
+
+    def programar_mantenciones_trimestrales_quintero_y_concon(
+        self,
+        fecha_referencia: datetime | None = None,
+        forzar: bool = False,
+        limite: int | None = None,
+    ) -> dict[str, Any]:
+        resultados = {
+            "quintero": self.programar_mantenciones_trimestrales_quintero(
+                fecha_referencia=fecha_referencia,
+                forzar=forzar,
+                limite=limite,
+            ),
+            "concon": self.programar_mantenciones_trimestrales_concon(
+                fecha_referencia=fecha_referencia,
+                forzar=forzar,
+                limite=limite,
+            ),
+        }
+        total_creadas = sum(int(r.get("creadas") or 0) for r in resultados.values())
+        total_omitidas = sum(int(r.get("omitidas") or 0) for r in resultados.values())
+        total_errores = sum(len(r.get("errores") or []) for r in resultados.values())
+        return {
+            "status": "ok" if total_errores == 0 else "partial",
+            "fecha_referencia": next((r.get("fecha_referencia") for r in resultados.values() if r.get("fecha_referencia")), None),
+            "creadas": total_creadas,
+            "omitidas": total_omitidas,
+            "errores": total_errores,
+            "resultados": resultados,
         }
 
     def obtener_clientes_soporte(self) -> list[str]:
@@ -3870,6 +4286,126 @@ class IncidenciasService:
         )
         self.db.commit()
 
+    def _enviar_correo_derivacion_automatico(
+        self,
+        *,
+        row: Registro,
+        derivacion: str,
+        usuario: str,
+    ) -> dict[str, Any]:
+        odt = str(getattr(row, "odt", "") or "").strip()
+        sucursal = str(getattr(row, "cliente", "") or "").strip()
+        problema = str(getattr(row, "problema", "") or "").strip()
+        derivacion_txt = str(derivacion or "").strip()
+        if not odt or not sucursal or not derivacion_txt:
+            return {"ok": False, "emails_enviados": 0, "warning": "Datos incompletos para correo automatico."}
+
+        contactos = self.obtener_contactos_por_sucursal()
+        sucursal_key = next(
+            (k for k in contactos.keys() if self._normalizar_texto(k) == self._normalizar_texto(sucursal)),
+            "",
+        )
+        destinos = contactos.get(sucursal_key) or []
+        emails: list[str] = []
+        vistos: set[str] = set()
+        for contacto in destinos:
+            email = str(contacto.get("email") or "").strip()
+            email_key = email.lower()
+            if email and email_key not in vistos:
+                vistos.add(email_key)
+                emails.append(email)
+
+        if not emails:
+            warning = "No se encontraron contactos con correo para esta sucursal."
+            self.db.add(
+                RegistroCorreoCliente(
+                    odt=odt,
+                    sucursal=sucursal,
+                    observacion=f"[{usuario}] Correo automatico por derivacion a {derivacion_txt}: {warning}",
+                    estado=str(getattr(row, "estado", "") or ""),
+                )
+            )
+            self.db.commit()
+            return {"ok": False, "emails_enviados": 0, "warning": warning}
+
+        obs_base = (
+            str(getattr(row, "observacion_soporte", "") or "").strip()
+            or str(getattr(row, "observacion", "") or "").strip()
+            or "Se informa actualizacion de la incidencia."
+        )
+        observacion = (
+            f"ODT {odt} derivada a {derivacion_txt}. "
+            f"Detalle: {obs_base}"
+        )
+        asunto, cuerpo, cuerpo_html = self._build_correo_incidencia_cliente_html(
+            sucursal=sucursal,
+            problema=problema,
+            observacion=observacion,
+            con_imagenes=False,
+        )
+        asunto = f"ATC | Derivacion a {derivacion_txt} - {sucursal}"
+        logo_atc = self._logo_atc_bytes()
+
+        enviados: set[str] = set()
+        errores: list[str] = []
+        for email in emails:
+            try:
+                self._enviar_correo_automatico(
+                    email,
+                    asunto,
+                    cuerpo,
+                    html_body=cuerpo_html,
+                    logo_bytes=logo_atc,
+                )
+                enviados.add(email.lower())
+            except Exception as exc:
+                errores.append(str(exc))
+
+        for contacto in destinos:
+            email = str(contacto.get("email") or "").strip()
+            if email and email.lower() in enviados:
+                estado_correo = "enviado"
+            elif email:
+                estado_correo = "fallido"
+            else:
+                estado_correo = "sin correo"
+            self.db.add(
+                RegistroCorreoCliente(
+                    odt=odt,
+                    sucursal=sucursal,
+                    observacion=(
+                        f"[{usuario}] Correo automatico por derivacion a {derivacion_txt}. "
+                        f"Contacto: {contacto.get('nombre') or '-'} | Correo: {email or '-'} | "
+                        f"Estado correo: {estado_correo}"
+                    ),
+                    estado=str(getattr(row, "estado", "") or ""),
+                )
+            )
+        self.db.commit()
+        return {
+            "ok": bool(enviados),
+            "emails_enviados": len(enviados),
+            "emails_fallidos": max(0, len(emails) - len(enviados)),
+            "warning": " | ".join(errores[:3]) if errores else "",
+        }
+
+    def _enviar_correo_derivacion_automatico_silencioso(
+        self,
+        *,
+        row: Registro,
+        derivacion: str,
+        usuario: str,
+    ) -> dict[str, Any]:
+        try:
+            return self._enviar_correo_derivacion_automatico(
+                row=row,
+                derivacion=derivacion,
+                usuario=usuario,
+            )
+        except Exception as exc:
+            LOGGER.exception("No se pudo enviar correo automatico de derivacion para ODT %s.", getattr(row, "odt", ""))
+            return {"ok": False, "emails_enviados": 0, "warning": str(exc)}
+
     def _enviar_correo_automatico(
         self,
         to_email: str,
@@ -3912,7 +4448,7 @@ class IncidenciasService:
                     html_part.add_related(
                         logo_bytes,
                         maintype="image",
-                        subtype="png",
+                        subtype="jpeg",
                         cid="<logoatc>",
                     )
                 except Exception:
@@ -4119,46 +4655,85 @@ class IncidenciasService:
             mensaje = "Se ha realizado una modificacion en la configuracion de fecha y/u hora."
 
         detalle_imagenes = "Imagen/es adjunta/s en mail." if con_imagenes else "Sin imagenes adjuntas."
-        subject = f"{titulo} - {sucursal}"
+        subject = f"ATC | Atención requerida: {titulo} - {sucursal}"
         text_body = (
             "Estimados/as,\n\n"
             f"{mensaje}\n\n"
             f"Sucursal: {sucursal}\n"
             f"Observacion: {observacion}\n\n"
-            "Quedamos atentos a sus comentarios y ante cualquier solicitud.\n\n"
+            "Accion sugerida: revisar la informacion enviada y confirmar recepcion o indicar cualquier antecedente adicional.\n\n"
             "Saludos cordiales,\nEquipo Tecnico\nAlguien Te Cuida"
         )
         html_body = f"""\
 <!doctype html>
 <html>
-  <body style="margin:0;background:#f5f6fa;font-family:Segoe UI,Arial,sans-serif;color:#2d3436;">
-    <div style="background:#f5f6fa;padding:40px 0;">
-      <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;padding:30px;box-shadow:0 2px 10px rgba(0,0,0,0.05);">
-        <div style="text-align:center;margin-bottom:20px;">
-          <img src="cid:logoatc" alt="ATC" style="height:55px;width:auto;">
-        </div>
-        <h2 style="color:#405b6b;font-size:18px;margin:20px 0 10px;text-align:center;">
-          {html_escape(titulo)}
-        </h2>
-        <p style="font-size:15px;line-height:1.6;">Estimados/as,</p>
-        <p style="font-size:15px;line-height:1.6;">{html_escape(mensaje)}</p>
-        <p style="font-size:15px;line-height:1.6;"><strong>Sucursal:</strong> {html_escape(sucursal)}</p>
-        <div style="background:#ecf0f1;border-left:4px solid #405b6b;padding:12px 16px;margin:25px 0;font-size:15px;line-height:1.55;">
-          {html_escape(observacion).replace(chr(10), "<br>")}
-          <p style="font-size:14px;color:#555;margin-top:10px;"><em>{html_escape(detalle_imagenes)}</em></p>
-        </div>
-        <p style="margin-top:12px;font-weight:bold;">Quedamos atentos a sus comentarios y ante cualquier solicitud.</p>
-        <p style="margin-top:30px;font-size:15px;">
-          Saludos cordiales,<br>
-          <strong style="color:#405b6b;">Equipo Tecnico</strong><br>
-          Alguien Te Cuida
-        </p>
-        <hr style="border:0;border-top:1px solid #ddd;margin:30px 0;">
-        <p style="font-size:12px;color:#999;text-align:center;">
-          Este mensaje ha sido generado automaticamente por el sistema de Alguien Te Cuida.
-        </p>
-      </div>
-    </div>
+  <body style="margin:0;padding:0;background:#eef3f6;font-family:Segoe UI,Arial,sans-serif;color:#17252f;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#eef3f6;padding:32px 14px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:680px;background:#ffffff;border:1px solid #d8e3ea;border-radius:14px;overflow:hidden;box-shadow:0 14px 34px rgba(15,48,72,0.12);">
+            <tr>
+              <td style="background:#0f3048;padding:14px 24px;color:#ffffff;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">
+                Atención requerida | Alguien Te Cuida
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:24px 28px 14px;text-align:center;">
+                <img src="cid:logoatc" alt="ATC" style="height:54px;width:auto;display:block;margin:0 auto 14px;">
+                <div style="display:inline-block;margin:0 0 12px;padding:6px 12px;border-radius:999px;background:#fff1e6;color:#b94a00;border:1px solid #ffd2ad;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;">
+                  Información importante para revisión
+                </div>
+                <div style="font-size:24px;line-height:1.25;font-weight:800;color:#0f3048;">{html_escape(titulo)}</div>
+                <div style="margin-top:8px;font-size:14px;color:#607483;">Notificacion operacional a cliente</div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 28px 6px;">
+                <div style="background:#fff8f1;border:1px solid #ffd9b5;border-left:6px solid #ff8b33;border-radius:12px;padding:14px 16px;color:#3b2a1c;">
+                  <div style="font-size:13px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#9b4300;margin-bottom:6px;">Acción sugerida</div>
+                  <div style="font-size:15px;line-height:1.55;">Favor revisar esta notificación y confirmar recepción, o responder este correo si existe información adicional que debamos considerar.</div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:12px 28px 28px;">
+                <p style="margin:0 0 14px;font-size:16px;line-height:1.65;color:#243746;">Estimados/as,</p>
+                <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#243746;">{html_escape(mensaje)}</p>
+
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 18px;border:1px solid #dce7ee;border-radius:10px;overflow:hidden;">
+                  <tr>
+                    <td style="padding:12px 14px;background:#f7fafc;color:#607483;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;">Sucursal</td>
+                    <td style="padding:12px 14px;background:#ffffff;color:#17252f;font-size:15px;font-weight:700;text-align:right;">{html_escape(sucursal)}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:12px 14px;background:#f7fafc;color:#607483;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;border-top:1px solid #dce7ee;">Incidencia</td>
+                    <td style="padding:12px 14px;background:#ffffff;color:#17252f;font-size:15px;font-weight:700;text-align:right;border-top:1px solid #dce7ee;">{html_escape(problema or titulo)}</td>
+                  </tr>
+                </table>
+
+                <div style="margin:0 0 18px;background:#f5f8fb;border:1px solid #dbe6ee;border-left:5px solid #ff8b33;border-radius:10px;padding:16px 18px;">
+                  <div style="margin:0 0 8px;color:#0f3048;font-size:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;">Observación</div>
+                  <div style="color:#243746;font-size:16px;line-height:1.65;">{html_escape(observacion).replace(chr(10), "<br>")}</div>
+                  <div style="margin-top:12px;color:#667887;font-size:13px;font-style:italic;">{html_escape(detalle_imagenes)}</div>
+                </div>
+
+                <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#243746;">Quedamos atentos a sus comentarios y ante cualquier solicitud adicional.</p>
+                <p style="margin:0;font-size:16px;line-height:1.65;color:#243746;">
+                  Saludos cordiales,<br>
+                  <strong style="color:#0f3048;">Equipo Tecnico</strong><br>
+                  Alguien Te Cuida
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="border-top:1px solid #e2e8f0;padding:14px 24px;text-align:center;font-size:12px;color:#718293;background:#fafbfd;">
+                Este mensaje ha sido generado automaticamente por el sistema de Alguien Te Cuida.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
   </body>
 </html>"""
         return subject, text_body, html_body
@@ -4171,7 +4746,11 @@ class IncidenciasService:
         if not odt or not sucursal:
             raise ValueError("Debes indicar ODT y sucursal.")
 
-        destinos = [d for d in list(data.destinos or []) if str(d.email or "").strip()]
+        destinos = [
+            d
+            for d in list(data.destinos or [])
+            if str(d.email or "").strip() or str(d.telefono or "").strip()
+        ]
         if not destinos:
             contactos = self.obtener_contactos_por_sucursal()
             sucursal_key = next(
@@ -4181,10 +4760,21 @@ class IncidenciasService:
             destinos = [
                 ContactoDestinoRequest(**c)
                 for c in (contactos.get(sucursal_key) or [])
-                if str(c.get("email") or "").strip()
+                if str(c.get("email") or "").strip() or str(c.get("telefono") or "").strip()
             ]
         if not destinos:
-            raise ValueError("No se encontraron contactos con correo para esta sucursal.")
+            raise ValueError("No se encontraron contactos para esta sucursal.")
+
+        emails_unicos: list[str] = []
+        seen_emails: set[str] = set()
+        for destino in destinos:
+            email = str(destino.email or "").strip()
+            email_key = email.lower()
+            if email and email_key not in seen_emails:
+                seen_emails.add(email_key)
+                emails_unicos.append(email)
+        if not emails_unicos:
+            raise ValueError("Por ahora solo esta habilitado correo. Selecciona al menos un contacto con email.")
 
         registro = self.db.scalar(select(Registro).where(Registro.odt == odt).limit(1))
         problema = str(data.problema or (registro.problema if registro else "") or "").strip()
@@ -4206,9 +4796,9 @@ class IncidenciasService:
         logo_atc = self._logo_atc_bytes()
         emails_enviados: set[str] = set()
         errores: list[str] = []
-        for destino in destinos:
-            email = str(destino.email or "").strip()
-            if not email or email.lower() in emails_enviados:
+        for email in emails_unicos:
+            email_key = email.lower()
+            if email_key in emails_enviados:
                 continue
             try:
                 self._enviar_correo_automatico(
@@ -4219,22 +4809,31 @@ class IncidenciasService:
                     logo_bytes=logo_atc,
                     attachments=imagenes,
                 )
-                emails_enviados.add(email.lower())
+                emails_enviados.add(email_key)
             except Exception as exc:
                 errores.append(str(exc))
 
         usuario = self.get_usuario_actual(str(data.token or ""))
         usuario = usuario if usuario and usuario != "Desconocido" else "Sistema"
         for destino in destinos:
+            nombre = str(destino.nombre or "").strip()
+            telefono = str(destino.telefono or "").strip()
             email = str(destino.email or "").strip()
-            estado_correo = "enviado" if email.lower() in emails_enviados else "fallido"
+            if email and email.lower() in emails_enviados:
+                estado_correo = "enviado"
+            elif email:
+                estado_correo = "fallido"
+            else:
+                estado_correo = "sin correo"
             self.db.add(
                 RegistroCorreoCliente(
                     odt=odt,
                     sucursal=sucursal,
                     observacion=(
                         f"[{usuario}] Envio de incidencia a cliente. Problema: {problema or '-'} | "
+                        f"Contacto: {nombre or '-'} | Telefono: {telefono or '-'} | "
                         f"Correo: {email or '-'} | Estado correo: {estado_correo} | Detalle: {observacion}"
+                        " | WhatsApp: Proximamente"
                     ),
                     estado=str(data.estado or (registro.estado if registro else "") or ""),
                 )
@@ -4247,23 +4846,39 @@ class IncidenciasService:
             "odt": odt,
             "sucursal": sucursal,
             "emails_enviados": len(emails_enviados),
-            "emails_fallidos": max(0, len(destinos) - len(emails_enviados)),
+            "emails_fallidos": max(0, len(emails_unicos) - len(emails_enviados)),
+            "telefonos": sum(1 for d in destinos if str(d.telefono or "").strip()),
+            "whatsapp_pendiente": sum(1 for d in destinos if str(d.telefono or "").strip()),
             "warning": " | ".join(errores[:3]) if errores else "",
         }
 
-    def obtener_cantidad_correos_por_odt(self) -> dict[str, int]:
+    def obtener_resumen_correos_por_odt(self) -> dict[str, dict[str, Any]]:
         stmt = (
-            select(RegistroCorreoCliente.odt, func.count(RegistroCorreoCliente.id))
+            select(
+                RegistroCorreoCliente.odt,
+                func.count(RegistroCorreoCliente.id),
+                func.max(RegistroCorreoCliente.fecha_envio),
+            )
             .group_by(RegistroCorreoCliente.odt)
             .order_by(RegistroCorreoCliente.odt)
         )
-        return {odt: total for odt, total in self.db.execute(stmt).all()}
+        return {
+            odt: {"total": total, "ultimo_envio": ultimo_envio}
+            for odt, total, ultimo_envio in self.db.execute(stmt).all()
+        }
+
+    def obtener_cantidad_correos_por_odt(self) -> dict[str, int]:
+        return {
+            odt: int(info.get("total") or 0)
+            for odt, info in self.obtener_resumen_correos_por_odt().items()
+        }
 
     def obtener_registros_derivaciones(self) -> list[list[Any]]:
-        correos = self.obtener_cantidad_correos_por_odt()
+        correos = self.obtener_resumen_correos_por_odt()
         rows = self.db.scalars(select(Registro).order_by(Registro.id.desc())).all()
         out: list[list[Any]] = []
         for r in rows:
+            correo_info = correos.get(r.odt, {})
             out.append(
                 [
                     r.odt,
@@ -4274,9 +4889,10 @@ class IncidenciasService:
                     r.observacion,
                     r.estado,
                     r.observacion_final,
-                    correos.get(r.odt, 0),
+                    int(correo_info.get("total") or 0),
                     getattr(r, "observacion_soporte", "") or "",
                     getattr(r, "observacion_servicio", "") or "",
+                    _to_ddmmyyyy_hhmm(correo_info.get("ultimo_envio")),
                 ]
             )
         return out

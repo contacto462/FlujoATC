@@ -108,7 +108,6 @@
       width: 100%;
       font-size: 13px;
       font-family: inherit;
-      color: var(--text);
     }
 
     select {
@@ -133,12 +132,12 @@
 
     table {
       width: 100%;
-      min-width: 1320px;
+      min-width: 0;
       margin: 0;
       border-collapse: collapse;
       table-layout: fixed;
       background-color: transparent;
-      font-size: 14px;
+      font-size: 12px;
       border-radius: 18px;
       overflow: hidden;
     }
@@ -148,22 +147,27 @@
       top: 0;
       background: linear-gradient(180deg, var(--head), var(--head-2));
       color: white;
-      font-size: 13px;
+      font-size: 11px;
       text-transform: uppercase;
       text-align: center;
-      padding: 12px 10px;
+      padding: 10px 5px;
       border: 1px solid rgba(255, 255, 255, 0.08);
       z-index: 2;
-      letter-spacing: 0.02em;
+      letter-spacing: 0;
+    }
+
+    thead tr.fila-filtros {
+      height: 44px;
     }
 
     thead tr.fila-filtros td {
       position: sticky;
-      top: 50px;
+      top: 34px;
       background: rgba(11, 24, 29, 0.99);
       z-index: 1;
       border: 1px solid var(--cell-border);
-      padding: 8px 6px;
+      padding: 4px 6px;
+      vertical-align: middle;
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
     }
 
@@ -171,19 +175,20 @@
       width: 100%;
       min-width: 0;
       max-width: none;
-      min-height: 38px;
-      padding: 8px 10px;
+      height: 34px;
+      min-height: 34px;
+      padding: 6px 9px;
       background: #091217;
       border: 1px solid rgba(255, 255, 255, 0.12);
       color: #ffffff;
-      border-radius: 10px;
+      border-radius: 8px;
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
-      font-size: 13px;
+      font-size: 12px;
       color-scheme: dark;
     }
 
     td {
-      padding: 10px 8px;
+      padding: 8px 5px;
       text-align: center;
       border: 1px solid var(--cell-border);
       word-break: break-word;
@@ -200,17 +205,19 @@
       white-space: normal;
     }
 
-    table th:nth-child(1), table td:nth-child(1) { width: 72px; }
-    table th:nth-child(2), table td:nth-child(2) { width: 145px; }
-    table th:nth-child(3), table td:nth-child(3) { width: 170px; }
-    table th:nth-child(4), table td:nth-child(4) { width: 150px; }
+    table th:nth-child(1), table td:nth-child(1) { width: 4%; }
+    table th:nth-child(2), table td:nth-child(2) { width: 7%; }
+    table th:nth-child(3), table td:nth-child(3) { width: 9%; }
+    table th:nth-child(4), table td:nth-child(4) { width: 8%; }
     table td:nth-child(3), table td:nth-child(4) { text-align: left; }
-    table th:nth-child(5), table td:nth-child(5) { width: 120px; }
-    table th:nth-child(6), table td:nth-child(6) { width: 360px; }
-    table th:nth-child(7), table td:nth-child(7) { width: 110px; }
-    table th:nth-child(8), table td:nth-child(8) { width: 92px; }
-    table th:nth-child(9), table td:nth-child(9) { width: 130px; }
-    table th:nth-child(10), table td:nth-child(10) { width: 135px; }
+    table th:nth-child(5), table td:nth-child(5) { width: 6%; }
+    table th:nth-child(6), table td:nth-child(6) { width: 25%; }
+    table th:nth-child(7), table td:nth-child(7) { width: 6%; }
+    table th:nth-child(8), table td:nth-child(8) { width: 8%; }
+    table th:nth-child(9), table td:nth-child(9) { width: 8%; }
+    table th:nth-child(10), table td:nth-child(10) { width: 6%; }
+    table th:nth-child(11), table td:nth-child(11) { width: 6%; }
+    table th:nth-child(12), table td:nth-child(12) { width: 6%; }
 
     .obs-origen-grid {
       display: grid;
@@ -272,8 +279,7 @@
     }
 
     .tabla-scroll {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
+      overflow-x: hidden;
       width: 100%;
       padding: 10px;
       border-radius: 28px;
@@ -328,8 +334,11 @@
 
     .accion-cell button {
       width: 100%;
-      padding: 9px 10px;
-      font-size: 12px;
+      min-height: 36px;
+      padding: 7px 5px;
+      font-size: 11px;
+      line-height: 1.15;
+      white-space: normal;
     }
 
     .mensaje {
@@ -368,6 +377,26 @@
       margin: 0 0 16px;
       color: #2d3b43;
     }
+
+    .modal-card p {
+      color: #344852;
+      line-height: 1.45;
+    }
+
+    .modal-card label {
+      color: #304752;
+      font-weight: 800;
+    }
+
+    .modal-card textarea {
+      background: #ffffff;
+      color: #1e333d;
+      border: 1px solid #cddbe3;
+      min-height: 150px;
+      line-height: 1.5;
+    }
+
+    .modal-card textarea::placeholder { color: #7c909b; }
 
     .finalizar-card {
       max-width: 640px;
@@ -492,23 +521,126 @@
 
     .contactos-lista {
       display: grid;
-      gap: 7px;
-      max-height: 150px;
+      gap: 8px;
+      max-height: 190px;
       overflow: auto;
       margin: 8px 0 12px;
       padding: 9px;
       border: 1px solid #d7e1e7;
-      border-radius: 7px;
+      border-radius: 8px;
       background: #f8fafb;
     }
 
     .contacto-item {
       display: grid;
       grid-template-columns: 18px 1fr;
-      gap: 8px;
+      gap: 10px;
       align-items: start;
+      padding: 9px;
+      border: 1px solid #e0e8ee;
+      border-radius: 8px;
+      background: #fff;
       font-size: 12px;
       color: #344852;
+    }
+
+    .contacto-item input { margin-top: 3px; }
+
+    .contacto-nombre {
+      display: block;
+      margin-bottom: 3px;
+      color: #20343f;
+      font-size: 13px;
+    }
+
+    .contacto-meta {
+      display: block;
+      color: #526a76;
+      line-height: 1.45;
+    }
+
+    .canal-hint {
+      display: inline-flex;
+      align-items: center;
+      margin-top: 6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #eef6ef;
+      color: #2f7048;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .mensaje-preview-phone {
+      max-width: 420px;
+      margin: 0 auto;
+      border: 1px solid #ded7c8;
+      border-radius: 12px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 12px 12px, rgba(52, 80, 55, .08) 0 1px, transparent 1px 22px),
+        #efe7dc;
+      box-shadow: 0 14px 32px rgba(42, 38, 28, .14);
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+
+    .mensaje-preview-body {
+      display: flex;
+      justify-content: flex-end;
+      padding: 10px;
+    }
+
+    .mensaje-preview-bubble {
+      position: relative;
+      max-width: 94%;
+      padding: 5px 5px 18px;
+      border-radius: 7px;
+      background: #d9fdd3;
+      color: #111b21;
+      font-size: 14px;
+      line-height: 1.35;
+      box-shadow: 0 1px 2px rgba(17, 27, 33, .18);
+    }
+
+    .mensaje-preview-bubble::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: -7px;
+      width: 0;
+      height: 0;
+      border-top: 8px solid #d9fdd3;
+      border-right: 8px solid transparent;
+    }
+
+    .mensaje-preview-img-wrap {
+      width: 100%;
+      aspect-ratio: 16 / 8.6;
+      overflow: hidden;
+      border-radius: 4px;
+      margin-bottom: 7px;
+      background: #cfd8d2;
+    }
+
+    .mensaje-preview-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .mensaje-preview-text {
+      white-space: pre-wrap;
+      padding: 0 4px;
+    }
+
+    .mensaje-preview-meta {
+      position: absolute;
+      right: 7px;
+      bottom: 3px;
+      color: #667781;
+      font-size: 11px;
+      line-height: 1;
     }
 
     .modal-actions {
@@ -531,7 +663,7 @@
         justify-content: center;
       }
       .titulo-central { font-size: 24px; white-space: normal; }
-      table { min-width: 900px; }
+      table { min-width: 0; font-size: 12px; }
       .modal-grid { grid-template-columns: 1fr; }
       .finalizar-resumen { grid-template-columns: 1fr; }
     }
@@ -544,7 +676,7 @@
     </div>
     <h1 class="titulo-central">Derivaciones a Cliente y Coordinacion</h1>
     <div class="acciones-top">
-      <a class="btn-link" href="/?form=panelSelector&token={{ token|default('') }}">Volver</a>
+      <a class="btn-link" href="/?form=panelSelectorCoordinacion&token={{ token|default('') }}">Volver</a>
     </div>
   </div>
 
@@ -561,9 +693,11 @@
           <th>Derivacion</th>
           <th>Observacion</th>
           <th>Estado</th>
-          <th>Cant. Correos</th>
-          <th>Finalizar ODT</th>
+          <th>Ultimo correo</th>
+          <th>Ultimo Mensaje</th>
           <th>Enviar correo</th>
+          <th>Enviar Mensaje</th>
+          <th>Finalizar ODT</th>
         </tr>
         <tr class="fila-filtros">
           <td></td>
@@ -589,10 +723,12 @@
           <td></td>
           <td></td>
           <td></td>
+          <td></td>
+          <td></td>
         </tr>
       </thead>
       <tbody id="cuerpoTabla">
-        <tr><td colspan="10">Cargando...</td></tr>
+        <tr><td colspan="12">Cargando...</td></tr>
       </tbody>
     </table>
   </div>
@@ -643,24 +779,27 @@
 
   <div id="modalCorreo" class="modal">
     <div class="modal-card">
-      <h3>Enviar correo</h3>
+      <h3 id="modalTituloComunicacion">Enviar correo</h3>
       <div class="modal-grid">
         <div>
           <p><strong>Sucursal:</strong> <span id="modalSucursal"></span></p>
           <p><strong>Incidencia:</strong> <span id="modalProblema"></span></p>
+          <p id="modalIntroComunicacion">El correo se enviara ahora.</p>
 
-          <label for="modalTexto"><strong>Observacion / Camaras afectadas</strong></label>
-          <textarea id="modalTexto" rows="8" oninput="actualizarPreviewCorreo()"></textarea>
+          <label for="modalTexto"><strong>Observación</strong></label>
+          <textarea id="modalTexto" rows="8" oninput="actualizarPreviewComunicacion()" placeholder="Escribe aqui la observacion que recibira el cliente."></textarea>
 
-          <label style="margin-top:12px;"><strong>Contactos con correo</strong></label>
+          <label id="modalContactosLabel" style="margin-top:12px;"><strong>Contactos con correo</strong></label>
           <div id="modalContactos" class="contactos-lista"></div>
 
-          <label for="modalImagenes" style="margin-top:12px;"><strong>Adjuntar imagenes</strong></label>
-          <input type="file" id="modalImagenes" multiple accept="image/*">
+          <div id="grupoImagenes">
+            <label id="modalImagenesLabel" for="modalImagenes" style="margin-top:12px;"><strong>Adjuntar imagenes</strong></label>
+            <input type="file" id="modalImagenes" multiple accept="image/*" onchange="actualizarPreviewComunicacion()">
+          </div>
 
           <div class="modal-actions">
             <button class="boton-secundario" type="button" onclick="cerrarModal()">Cancelar</button>
-            <button class="boton-finalizar" type="button" id="btnEnviarCorreo" onclick="enviarCorreoConfirmado()">Enviar correo</button>
+            <button class="boton-finalizar" type="button" id="btnEnviarCorreo" onclick="enviarComunicacionConfirmada()">Enviar correo</button>
           </div>
         </div>
 
@@ -676,7 +815,10 @@
     let contactosPorSucursal = {};
     let listaDerivacionesPermitidas = [];
     let datosCorreoTemp = null;
+    let modoComunicacionTemp = "correo";
     let datosFinalizarTemp = null;
+    const imagenMensajeWsp = "/shared-static/img/WSP.jpg";
+    let imagenMensajePreviewUrl = "";
 
     function getSafeValue(fila, index) {
       return fila.length > index ? fila[index] || "" : "";
@@ -804,7 +946,7 @@
         filtrarTabla();
         setMensaje("");
       } catch (err) {
-        document.getElementById("cuerpoTabla").innerHTML = '<tr><td colspan="10">No se pudo cargar la tabla.</td></tr>';
+        document.getElementById("cuerpoTabla").innerHTML = '<tr><td colspan="12">No se pudo cargar la tabla.</td></tr>';
         setMensaje(err.message || "No se pudo cargar la tabla.", false);
       }
     }
@@ -814,7 +956,7 @@
       cuerpo.innerHTML = "";
 
       if (!registros.length) {
-        cuerpo.innerHTML = '<tr><td colspan="10">No hay derivaciones a Cliente o Coordinacion.</td></tr>';
+        cuerpo.innerHTML = '<tr><td colspan="12">No hay derivaciones a Cliente o Coordinacion.</td></tr>';
         return;
       }
 
@@ -829,7 +971,8 @@
           getSafeValue(fila, 4),
           getSafeValue(fila, 5),
           getSafeValue(fila, 6),
-          getSafeValue(fila, 8)
+          getSafeValue(fila, 11) || "-",
+          "-"
         ];
 
         columnas.forEach((valor, index) => {
@@ -846,6 +989,36 @@
           }
           tr.appendChild(td);
         });
+
+        const tdCorreo = document.createElement("td");
+        tdCorreo.className = "accion-cell";
+        const btnCorreo = document.createElement("button");
+        btnCorreo.textContent = "Enviar correo";
+        btnCorreo.className = "boton-guardar";
+        btnCorreo.onclick = () => abrirModalComunicacion("correo", {
+          odt,
+          sucursal: getSafeValue(fila, 2),
+          problema: getSafeValue(fila, 3),
+          observacion: getSafeValue(fila, 5),
+          estado: getSafeValue(fila, 6)
+        });
+        tdCorreo.appendChild(btnCorreo);
+        tr.appendChild(tdCorreo);
+
+        const tdMensaje = document.createElement("td");
+        tdMensaje.className = "accion-cell";
+        const btnMensaje = document.createElement("button");
+        btnMensaje.textContent = "Enviar Mensaje";
+        btnMensaje.className = "boton-guardar";
+        btnMensaje.onclick = () => abrirModalComunicacion("mensaje", {
+          odt,
+          sucursal: getSafeValue(fila, 2),
+          problema: getSafeValue(fila, 3),
+          observacion: getSafeValue(fila, 5),
+          estado: getSafeValue(fila, 6)
+        });
+        tdMensaje.appendChild(btnMensaje);
+        tr.appendChild(tdMensaje);
 
         const tdFinalizar = document.createElement("td");
         tdFinalizar.className = "accion-cell";
@@ -864,22 +1037,6 @@
         }
         tr.appendChild(tdFinalizar);
 
-        const tdCorreo = document.createElement("td");
-        tdCorreo.className = "accion-cell";
-        const btnCorreo = document.createElement("button");
-        btnCorreo.textContent = "Enviar correo";
-        btnCorreo.className = "boton-guardar";
-        btnCorreo.onclick = () => abrirModalCorreo({
-          odt,
-          sucursal: getSafeValue(fila, 2),
-          problema: getSafeValue(fila, 3),
-          observacion: getSafeValue(fila, 5),
-          estado: getSafeValue(fila, 6),
-          correos: Number(getSafeValue(fila, 8) || 0)
-        });
-        tdCorreo.appendChild(btnCorreo);
-        tr.appendChild(tdCorreo);
-
         cuerpo.appendChild(tr);
       });
     }
@@ -891,7 +1048,7 @@
       let visibles = 0;
 
       document.querySelectorAll("#cuerpoTabla tr").forEach((fila) => {
-        if (!fila.children.length || fila.children.length < 10) return;
+        if (!fila.children.length || fila.children.length < 12) return;
         const sucursal = fila.children[2]?.textContent.trim();
         const estado = fila.children[6]?.textContent.trim();
         const problema = fila.children[3]?.textContent.trim();
@@ -1004,7 +1161,7 @@
           body: JSON.stringify({ odt, observacionFinal: observacionFinal || "" })
         });
         tr.children[6].textContent = "Terminado";
-        tr.children[8].innerHTML = "";
+        tr.children[11].innerHTML = "";
         setMensaje(`ODT ${odt} finalizada.`);
         filtrarTabla();
         if (data?.fecha_cierre) cargarTabla();
@@ -1014,36 +1171,71 @@
       }
     }
 
-    function abrirModalCorreo(datos) {
+    function abrirModalComunicacion(modo, datos) {
       datosCorreoTemp = datos;
+      modoComunicacionTemp = modo === "mensaje" ? "mensaje" : "correo";
+      if (imagenMensajePreviewUrl) {
+        URL.revokeObjectURL(imagenMensajePreviewUrl);
+        imagenMensajePreviewUrl = "";
+      }
       document.getElementById("modalSucursal").textContent = datos.sucursal;
       document.getElementById("modalProblema").textContent = datos.problema;
-      document.getElementById("modalTexto").value = datos.observacion || "";
+      document.getElementById("modalTexto").value = "";
       document.getElementById("modalImagenes").value = "";
+      document.getElementById("modalTituloComunicacion").textContent = modoComunicacionTemp === "mensaje" ? "Enviar Mensaje" : "Enviar correo";
+      document.getElementById("modalIntroComunicacion").innerHTML = modoComunicacionTemp === "mensaje"
+        ? 'Previsualizacion del mensaje. Envio por WhatsApp: <strong>Proximamente</strong>.'
+        : 'Previsualizacion del correo que recibira el cliente.';
+      document.getElementById("modalContactosLabel").innerHTML = modoComunicacionTemp === "mensaje"
+        ? "<strong>Contactos con telefono</strong>"
+        : "<strong>Contactos con correo</strong>";
+      document.getElementById("grupoImagenes").style.display = "";
+      document.getElementById("modalImagenesLabel").innerHTML = modoComunicacionTemp === "mensaje"
+        ? "<strong>Imagen del mensaje</strong>"
+        : "<strong>Adjuntar imagenes</strong>";
+      const btn = document.getElementById("btnEnviarCorreo");
+      btn.textContent = modoComunicacionTemp === "mensaje" ? "Proximamente" : "Enviar correo";
+      btn.disabled = modoComunicacionTemp === "mensaje";
       renderContactosModal(datos.sucursal);
       document.getElementById("modalCorreo").style.display = "block";
-      actualizarPreviewCorreo();
+      actualizarPreviewComunicacion();
     }
 
     function renderContactosModal(sucursal) {
       const lista = document.getElementById("modalContactos");
-      const contactos = contactosSucursal(sucursal).filter((c) => String(c.email || "").trim());
+      const contactos = contactosFiltradosPorModo(sucursal);
       if (!contactos.length) {
-        lista.innerHTML = '<div>No se encontraron contactos con correo para esta sucursal.</div>';
+        lista.innerHTML = modoComunicacionTemp === "mensaje"
+          ? '<div>No se encontraron contactos con telefono para esta sucursal.</div>'
+          : '<div>No se encontraron contactos con correo para esta sucursal.</div>';
         return;
       }
       lista.innerHTML = contactos.map((c, idx) => `
         <label class="contacto-item">
           <input type="checkbox" data-contacto-idx="${idx}" checked>
-          <span><strong>${esc(c.nombre || "Contacto")}</strong><br>${esc(c.email || "-")} · ${esc(c.prioridad || "-")}</span>
+          <span>
+            <strong class="contacto-nombre">${esc(c.nombre || "Contacto")}</strong>
+            <span class="contacto-meta">Correo: ${esc(c.email || "-")}</span>
+            <span class="contacto-meta">Telefono: ${esc(c.telefono || "-")}</span>
+            <span class="contacto-meta">Prioridad: ${esc(c.prioridad || "-")}</span>
+            ${modoComunicacionTemp === "mensaje" ? '<span class="canal-hint">WhatsApp: Proximamente</span>' : ""}
+          </span>
         </label>
       `).join("");
       lista.dataset.sucursal = sucursal;
     }
 
+    function contactosFiltradosPorModo(sucursal) {
+      const contactos = contactosSucursal(sucursal);
+      if (modoComunicacionTemp === "mensaje") {
+        return contactos.filter((c) => String(c.telefono || "").trim());
+      }
+      return contactos.filter((c) => String(c.email || "").trim());
+    }
+
     function contactosSeleccionados() {
       const sucursal = document.getElementById("modalContactos").dataset.sucursal || "";
-      const contactos = contactosSucursal(sucursal).filter((c) => String(c.email || "").trim());
+      const contactos = contactosFiltradosPorModo(sucursal);
       return Array.from(document.querySelectorAll("#modalContactos input[data-contacto-idx]:checked"))
         .map((input) => contactos[Number(input.dataset.contactoIdx)])
         .filter(Boolean)
@@ -1058,6 +1250,11 @@
     function cerrarModal() {
       document.getElementById("modalCorreo").style.display = "none";
       datosCorreoTemp = null;
+      modoComunicacionTemp = "correo";
+      if (imagenMensajePreviewUrl) {
+        URL.revokeObjectURL(imagenMensajePreviewUrl);
+        imagenMensajePreviewUrl = "";
+      }
     }
 
     function tituloCorreoPorProblema(problema) {
@@ -1088,28 +1285,109 @@
       return { titulo, mensaje };
     }
 
+    function descripcionIncidenciaMensaje(problema) {
+      const key = normalizarTexto(problema);
+      if (key === "desconexion") return { articulo: "una", texto: "desconexión del sistema" };
+      if (key === "problema de parlante") return { articulo: "un", texto: "problema de parlante" };
+      if (key === "problema de alarma") return { articulo: "un", texto: "problema de alarma" };
+      if (key === "problema de visual") return { articulo: "un", texto: "problema de visualización" };
+      if (key === "hora y/o fecha cambiada") return { articulo: "un", texto: "ajuste de fecha y/u hora" };
+      return { articulo: "una", texto: String(problema || "incidencia").trim().toLowerCase() || "incidencia" };
+    }
+
+    function construirTextoMensajeCliente() {
+      if (!datosCorreoTemp) return "";
+      const texto = document.getElementById("modalTexto").value.trim() || "Completa la observacion antes de enviar.";
+      const cliente = String(datosCorreoTemp.sucursal || "Cliente").trim() || "Cliente";
+      const incidencia = descripcionIncidenciaMensaje(datosCorreoTemp.problema);
+      return `Estimado ${cliente}, le informamos que se nos reportó ${incidencia.articulo} ${incidencia.texto}, ${texto}.`;
+    }
+
+    function obtenerImagenPreviewMensaje() {
+      const input = document.getElementById("modalImagenes");
+      const file = input?.files?.[0];
+      if (!file) return imagenMensajeWsp;
+      if (imagenMensajePreviewUrl) URL.revokeObjectURL(imagenMensajePreviewUrl);
+      imagenMensajePreviewUrl = URL.createObjectURL(file);
+      return imagenMensajePreviewUrl;
+    }
+
+    function horaMensajePreview() {
+      return new Date().toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
+    }
+
+    function actualizarPreviewMensaje() {
+      const mensaje = construirTextoMensajeCliente();
+      const imagenSrc = obtenerImagenPreviewMensaje();
+      document.getElementById("previewCorreo").innerHTML = `
+        <div class="mensaje-preview-phone">
+          <div class="mensaje-preview-body">
+            <div class="mensaje-preview-bubble">
+              <div class="mensaje-preview-img-wrap">
+                <img class="mensaje-preview-img" src="${esc(imagenSrc)}" alt="Imagen del mensaje">
+              </div>
+              <div class="mensaje-preview-text">${esc(mensaje)}</div>
+              <div class="mensaje-preview-meta">${esc(horaMensajePreview())} ✓✓</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function actualizarPreviewComunicacion() {
+      if (modoComunicacionTemp === "mensaje") {
+        actualizarPreviewMensaje();
+        return;
+      }
+      actualizarPreviewCorreo();
+    }
+
     function actualizarPreviewCorreo() {
       if (!datosCorreoTemp) return;
-      const texto = document.getElementById("modalTexto").value || "<em>(sin texto)</em>";
+      const texto = document.getElementById("modalTexto").value || "Completa la observacion antes de enviar.";
       const { titulo, mensaje } = tituloCorreoPorProblema(datosCorreoTemp.problema);
       document.getElementById("previewCorreo").innerHTML = `
-        <div style="background:#f5f6fa;padding:40px 0;font-family:'Segoe UI',sans-serif;color:#2d3436;">
-          <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;padding:30px;box-shadow:0 2px 10px rgba(0,0,0,0.05);">
-            <div style="text-align:center;margin-bottom:20px;">
-              <img src="/shared-static/img/logo-atc.png" style="height:55px;">
+        <div style="background:#eef3f6;padding:24px 10px;font-family:'Segoe UI',Arial,sans-serif;color:#17252f;">
+          <div style="max-width:680px;margin:0 auto;background:#fff;border:1px solid #d8e3ea;border-radius:14px;overflow:hidden;box-shadow:0 14px 34px rgba(15,48,72,0.12);">
+            <div style="background:#0f3048;padding:14px 24px;color:#fff;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">
+              Atención requerida | Alguien Te Cuida
             </div>
-            <h2 style="color:#405b6b;font-size:18px;margin:20px 0 10px;text-align:center;">${esc(titulo)}</h2>
-            <p style="font-size:15px;line-height:1.6;">Estimados/as,</p>
-            <p style="font-size:15px;line-height:1.6;">${esc(mensaje)}</p>
-            <p style="font-size:15px;line-height:1.6;"><strong>Sucursal:</strong> ${esc(datosCorreoTemp.sucursal)}</p>
-            <div style="background:#ecf0f1;border-left:4px solid #405b6b;padding:12px 16px;margin:25px 0;font-size:15px;">
-              ${esc(texto).replace(/\n/g, "<br>")}
-              <p style="font-size:14px;color:#555;margin-top:10px;"><em>Imagen/es adjunta/s en mail.</em></p>
+            <div style="padding:24px 28px 14px;text-align:center;">
+              <img src="/shared-static/img/logo-atc2.jpeg" style="height:54px;width:auto;display:block;margin:0 auto 14px;">
+              <div style="display:inline-block;margin:0 0 12px;padding:6px 12px;border-radius:999px;background:#fff1e6;color:#b94a00;border:1px solid #ffd2ad;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;">
+                Información importante para revisión
+              </div>
+              <div style="font-size:24px;line-height:1.25;font-weight:800;color:#0f3048;">${esc(titulo)}</div>
+              <div style="margin-top:8px;font-size:14px;color:#607483;">Notificacion operacional a cliente</div>
             </div>
-            <p style="margin-top:12px;font-weight:bold;">Quedamos atentos a sus comentarios y ante cualquier solicitud.</p>
-            <p style="margin-top:30px;font-size:15px;">Saludos cordiales,<br><strong style="color:#405b6b;">Equipo Técnico</strong><br>Alguien Te Cuida</p>
-            <hr style="border:0;border-top:1px solid #ddd;margin:30px 0;">
-            <p style="font-size:12px;color:#999;text-align:center;">Este mensaje ha sido generado automáticamente por el sistema de Alguien Te Cuida.</p>
+            <div style="padding:0 28px 6px;">
+              <div style="background:#fff8f1;border:1px solid #ffd9b5;border-left:6px solid #ff8b33;border-radius:12px;padding:14px 16px;color:#3b2a1c;">
+                <div style="font-size:13px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#9b4300;margin-bottom:6px;">Acción sugerida</div>
+                <div style="font-size:15px;line-height:1.55;">Favor revisar esta notificación y confirmar recepción, o responder este correo si existe información adicional que debamos considerar.</div>
+              </div>
+            </div>
+            <div style="padding:12px 28px 28px;">
+              <p style="margin:0 0 14px;font-size:16px;line-height:1.65;color:#243746;">Estimados/as,</p>
+              <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#243746;">${esc(mensaje)}</p>
+              <div style="margin:0 0 18px;border:1px solid #dce7ee;border-radius:10px;overflow:hidden;">
+                <div style="display:flex;justify-content:space-between;gap:12px;padding:12px 14px;background:#f7fafc;color:#607483;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;">
+                  <span>Sucursal</span><span style="color:#17252f;font-size:15px;text-transform:none;letter-spacing:0;">${esc(datosCorreoTemp.sucursal)}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;gap:12px;padding:12px 14px;background:#fff;color:#607483;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;border-top:1px solid #dce7ee;">
+                  <span>Incidencia</span><span style="color:#17252f;font-size:15px;text-transform:none;letter-spacing:0;">${esc(datosCorreoTemp.problema || titulo)}</span>
+                </div>
+              </div>
+              <div style="margin:0 0 18px;background:#f5f8fb;border:1px solid #dbe6ee;border-left:5px solid #ff8b33;border-radius:10px;padding:16px 18px;">
+                <div style="margin:0 0 8px;color:#0f3048;font-size:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;">Observación</div>
+                <div style="color:#243746;font-size:16px;line-height:1.65;">${esc(texto).replace(/\n/g, "<br>")}</div>
+                <div style="margin-top:12px;color:#667887;font-size:13px;font-style:italic;">Imagen/es adjunta/s en mail.</div>
+              </div>
+              <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#243746;">Quedamos atentos a sus comentarios y ante cualquier solicitud adicional.</p>
+              <p style="margin:0;font-size:16px;line-height:1.65;color:#243746;">Saludos cordiales,<br><strong style="color:#0f3048;">Equipo Tecnico</strong><br>Alguien Te Cuida</p>
+            </div>
+            <div style="border-top:1px solid #e2e8f0;padding:14px 24px;text-align:center;font-size:12px;color:#718293;background:#fafbfd;">
+              Este mensaje ha sido generado automaticamente por el sistema de Alguien Te Cuida.
+            </div>
           </div>
         </div>`;
     }
@@ -1127,7 +1405,11 @@
       })));
     }
 
-    async function enviarCorreoConfirmado() {
+    async function enviarComunicacionConfirmada() {
+      if (modoComunicacionTemp === "mensaje") {
+        setMensaje("Envio de mensaje por WhatsApp: Proximamente.", false);
+        return;
+      }
       if (!datosCorreoTemp) return;
       const texto = document.getElementById("modalTexto").value;
       if (!texto.trim()) {
@@ -1137,6 +1419,11 @@
       const destinos = contactosSeleccionados();
       if (!destinos.length) {
         alert("Selecciona al menos un contacto con correo");
+        return;
+      }
+      const emails = destinos.map((d) => String(d.email || "").trim()).filter(Boolean);
+      if (!emails.length) {
+        alert("Selecciona al menos un contacto con email.");
         return;
       }
 
