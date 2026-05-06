@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import ssl
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -70,6 +71,10 @@ class Settings(BaseSettings):
     venta_catalogo_timeout_seconds: int = Field(
         default_factory=lambda: int(os.getenv("VENTA_CATALOGO_TIMEOUT_SECONDS") or "8"),
         description="Timeout para consultar la API externa de regiones/comunas de Venta.",
+    )
+    venta_catalogo_verify_ssl: bool = Field(
+        default_factory=lambda: str(os.getenv("VENTA_CATALOGO_VERIFY_SSL") or "true").strip().lower() in {"1", "true", "yes", "on"},
+        description="Valida el certificado SSL de la API externa de regiones/comunas.",
     )
     smtp_enabled: bool = Field(
         default_factory=lambda: str(os.getenv("SMTP_ENABLED") or "false").strip().lower() in {"1", "true", "yes", "on"},

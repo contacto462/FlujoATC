@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import ssl
 import unicodedata
 from urllib.parse import quote
 from urllib.request import Request, urlopen
@@ -81,7 +82,10 @@ def _fetch_catalog(path: str) -> dict:
     req = Request(url=f"{base_url}{path}", method="GET")
     try:
         timeout = int(settings.venta_catalogo_timeout_seconds or 8)
-        with urlopen(req, timeout=timeout) as resp:
+        ssl_context = None
+        if base_url.startswith("https://") and not settings.venta_catalogo_verify_ssl:
+            ssl_context = ssl._create_unverified_context()
+        with urlopen(req, timeout=timeout, context=ssl_context) as resp:
             body = resp.read().decode("utf-8")
             return json.loads(body)
     except Exception as exc:
