@@ -30,6 +30,11 @@
   <p class="aviso-edicion">Haz doble clic sobre cualquier celda para editarla.</p>
   <div class="table-container"><div id="tabla-container">Cargando datos...</div></div>
   <script>
+    const qsToken = new URLSearchParams(window.location.search).get("token") || "";
+    const withToken = (url) => {
+      const sep = url.includes("?") ? "&" : "?";
+      return qsToken ? `${url}${sep}token=${encodeURIComponent(qsToken)}` : url;
+    };
     function renderTable(payload) {
       const headers = payload.headers || [];
       const rows = payload.rows || [];
@@ -102,7 +107,7 @@
       boton.disabled = true;
       boton.textContent = "Guardando...";
       try {
-        const response = await fetch('/api/venta/clientes/tabla/guardar-fila', {
+        const response = await fetch(withToken('/api/venta/clientes/tabla/guardar-fila'), {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ row_id: rowId, values })
@@ -122,7 +127,7 @@
     }
     async function init() {
       try {
-        const response = await fetch('/api/venta/clientes/tabla');
+        const response = await fetch(withToken('/api/venta/clientes/tabla'));
         if (!response.ok) throw new Error('No se pudo cargar la tabla');
         renderTable(await response.json());
       } catch (error) {
@@ -133,4 +138,3 @@
   </script>
 </body>
 </html>
-

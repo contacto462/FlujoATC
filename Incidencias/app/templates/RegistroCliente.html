@@ -123,6 +123,11 @@
 <input type="hidden" id="ejecutivoVenta">
 
 <script>
+    const qsToken = new URLSearchParams(window.location.search).get("token") || "";
+    const withToken = (url) => {
+        const sep = url.includes("?") ? "&" : "?";
+        return qsToken ? `${url}${sep}token=${encodeURIComponent(qsToken)}` : url;
+    };
     function formatearRUT(rut) {
         if (!rut) return "";
         const limpio = rut.replace(/[^0-9Kk]/g, "").toUpperCase();
@@ -145,14 +150,14 @@
     }
 
     async function cargarUsuarioActual() {
-        const response = await fetch("/api/venta/usuario-actual");
+        const response = await fetch(withToken("/api/venta/usuario-actual"));
         if (!response.ok) throw new Error("No se pudo obtener el usuario actual.");
         const data = await response.json();
         document.getElementById("ejecutivoVenta").value = data.username || "";
     }
 
     async function cargarRegiones() {
-        const response = await fetch("/api/venta/catalogo/regiones");
+        const response = await fetch(withToken("/api/venta/catalogo/regiones"));
         if (!response.ok) throw new Error("No se pudo cargar el catalogo de regiones.");
         const data = await response.json();
 
@@ -167,7 +172,7 @@
     }
 
     async function cargarComunas(region) {
-        const response = await fetch("/api/venta/catalogo/comunas?region=" + encodeURIComponent(region));
+        const response = await fetch(withToken("/api/venta/catalogo/comunas?region=" + encodeURIComponent(region)));
         if (!response.ok) throw new Error("No se pudo cargar el catalogo de comunas.");
         const data = await response.json();
 
@@ -182,7 +187,7 @@
     }
 
     async function verificarRutExiste(rut) {
-        const response = await fetch("/api/venta/clientes/verificar-rut?rut=" + encodeURIComponent(rut));
+        const response = await fetch(withToken("/api/venta/clientes/verificar-rut?rut=" + encodeURIComponent(rut)));
         if (!response.ok) throw new Error("No se pudo verificar el RUT.");
         const data = await response.json();
         return Boolean(data.exists);
@@ -216,7 +221,7 @@
                 emailRepresentante: document.getElementById("emailRepresentante").value.trim()
             };
 
-            const response = await fetch("/api/venta/clientes", {
+            const response = await fetch(withToken("/api/venta/clientes"), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
@@ -261,4 +266,3 @@
 </script>
 </body>
 </html>
-
