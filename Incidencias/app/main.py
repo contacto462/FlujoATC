@@ -157,6 +157,7 @@ def startup() -> None:
     Base.metadata.create_all(bind=engine)
     _ensure_registro_optional_columns()
     _ensure_protocolos_optional_columns()
+    _ensure_bbdd_clientes_optional_columns()
     if not _protocolos_weekly_worker_started:
         _protocolos_weekly_worker_started = True
         threading.Thread(
@@ -204,6 +205,34 @@ def _ensure_protocolos_optional_columns() -> None:
                 conn.execute(text(f'ALTER TABLE protocolos_registro ADD COLUMN "{col_name}" {col_type}'))
     except Exception as exc:
         LOGGER.warning("No fue posible asegurar columnas opcionales en 'protocolos_registro': %s", exc)
+
+
+def _ensure_bbdd_clientes_optional_columns() -> None:
+    optional_columns: dict[str, str] = {
+        "giro": "VARCHAR(255)",
+        "region": "VARCHAR(120)",
+        "comuna": "VARCHAR(120)",
+        "email_facturas": "VARCHAR(255)",
+        "nombre_representante": "VARCHAR(255)",
+        "rut_representante": "VARCHAR(40)",
+        "telefono": "VARCHAR(32)",
+        "email_representante": "VARCHAR(255)",
+        "ejecutivo_email": "VARCHAR(255)",
+        "fecha_creacion": "TIMESTAMP WITH TIME ZONE DEFAULT NOW()",
+    }
+    try:
+        with engine.begin() as conn:
+            inspector = inspect(conn)
+            if not inspector.has_table("bbdd_clientes"):
+                return
+
+            existing_columns = {str(c.get("name", "")).strip() for c in inspector.get_columns("bbdd_clientes")}
+            for col_name, col_type in optional_columns.items():
+                if col_name in existing_columns:
+                    continue
+                conn.execute(text(f'ALTER TABLE bbdd_clientes ADD COLUMN "{col_name}" {col_type}'))
+    except Exception as exc:
+        LOGGER.warning("No fue posible asegurar columnas opcionales en 'bbdd_clientes': %s", exc)
 
 
 def get_service(db: Annotated[Session, Depends(get_db)]) -> IncidenciasService:
