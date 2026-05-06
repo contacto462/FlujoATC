@@ -81,6 +81,12 @@ class Settings(BaseSettings):
     GOOGLE_DOC_TEMPLATE_ID: Optional[str] = None
     GOOGLE_DRIVE_SUPPORT_FOLDER_ID: Optional[str] = "1EO7fPTC6d97BnZfnfUYxRp6e1sFUmJa_"
 
+    # ==============================
+    # VENTA CATALOGO EXTERNO
+    # ==============================
+    VENTA_CATALOGO_BASE_URL: Optional[str] = None
+    VENTA_CATALOGO_TIMEOUT_SECONDS: int = 8
+
 
 # Instancia global
 settings = Settings()
