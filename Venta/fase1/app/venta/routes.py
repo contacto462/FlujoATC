@@ -8,8 +8,15 @@ from sqlalchemy.orm import Session
 from app.core.db import get_db
 from app.models.user import User
 from app.routes.web import get_current_user_web
-from app.venta.schemas import VentaClienteCreateRequest, VentaClienteCreateResponse
-from app.venta.service import create_cliente, fetch_comunas, fetch_regiones, rut_exists
+from app.venta.schemas import VentaClienteCreateRequest, VentaClienteCreateResponse, VentaClienteTableUpdateRequest
+from app.venta.service import (
+    create_cliente,
+    fetch_comunas,
+    fetch_regiones,
+    get_clientes_table,
+    rut_exists,
+    update_cliente_row,
+)
 
 router = APIRouter(tags=["venta"])
 templates = Jinja2Templates(directory="app/templates")
@@ -28,6 +35,17 @@ def venta_clientes_page(
 ):
     return templates.TemplateResponse(
         "RegistroCliente.html",
+        {"request": request, "user": current_user},
+    )
+
+
+@router.get("/venta/bbdd-clientes", response_class=HTMLResponse)
+def venta_bbdd_clientes_page(
+    request: Request,
+    current_user: User = Depends(require_venta_user),
+):
+    return templates.TemplateResponse(
+        "BBDDClientes.html",
         {"request": request, "user": current_user},
     )
 
@@ -72,3 +90,20 @@ def venta_catalogo_comunas(
 ):
     return {"comunas": fetch_comunas(region)}
 
+
+@router.get("/api/venta/clientes/tabla")
+def venta_clientes_tabla(
+    db: Session = Depends(get_db),
+    _: User = Depends(require_venta_user),
+):
+    return get_clientes_table(db)
+
+
+@router.post("/api/venta/clientes/tabla/guardar-fila")
+def venta_clientes_guardar_fila(
+    payload: VentaClienteTableUpdateRequest,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_venta_user),
+):
+    update_cliente_row(db, payload.row_id, payload.values)
+    return {"ok": True}
