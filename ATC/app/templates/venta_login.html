@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>RegistroClientes - Iniciar sesion</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#101414;
+  --bg-2:#171f1f;
+  --surface:rgba(255,255,255,.07);
+  --border:rgba(255,255,255,.14);
+  --text:#eef6f4;
+  --muted:#9fb4af;
+  --primary:#ea7b1f;
+  --primary-2:#c85e09;
+  --primary-soft:rgba(234,123,31,.2);
+  --danger:#f87171;
+  --danger-soft:rgba(248,113,113,.15);
+}
+*{box-sizing:border-box}
+body{
+  margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;
+  font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  color:var(--text);
+  background:
+    radial-gradient(1000px 420px at 15% -10%, rgba(234,123,31,.28), transparent 60%),
+    radial-gradient(900px 500px at 95% 8%, rgba(16,185,129,.16), transparent 60%),
+    linear-gradient(180deg,var(--bg),var(--bg-2));
+}
+.card{
+  width:100%; max-width:400px; padding:34px 30px 28px; border-radius:18px;
+  background:var(--surface); border:1px solid var(--border); backdrop-filter:blur(14px);
+  box-shadow:0 30px 60px rgba(0,0,0,.42);
+}
+h1{margin:0 0 20px; font-size:20px; font-weight:800}
+.meta{font-size:12px; color:var(--muted); margin-bottom:18px}
+label{display:block; font-size:12px; font-weight:600; color:var(--muted); margin:0 0 6px}
+input{
+  width:100%; height:42px; padding:0 12px; margin-bottom:14px; border-radius:12px; border:1px solid var(--border);
+  background:rgba(255,255,255,.06); color:var(--text); font-size:14px;
+}
+input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 4px var(--primary-soft)}
+button{
+  width:100%; height:44px; border:none; border-radius:14px; color:#fff; font-weight:700; cursor:pointer;
+  background:linear-gradient(135deg,var(--primary),var(--primary-2));
+  box-shadow:0 14px 30px rgba(234,123,31,.34);
+}
+.err{
+  margin-top:14px; padding:10px 12px; border-radius:12px; font-size:13px; font-weight:600;
+  color:var(--danger); background:var(--danger-soft); border:1px solid rgba(248,113,113,.35);
+}
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>RegistroClientes</h1>
+    <div class="meta">Acceso al modulo de registro de clientes</div>
+    <form method="post" action="/venta/web/login">
+      <label for="username">Usuario</label>
+      <input id="username" name="username" type="text" required autocomplete="username">
+      <label for="password">Contrasena</label>
+      <input id="password" name="password" type="password" required autocomplete="current-password">
+      <button type="submit">Ingresar</button>
+    </form>
+    {% if error %}
+    <div class="err">{{ error }}</div>
+    {% endif %}
+  </div>
+</body>
+</html>
+
