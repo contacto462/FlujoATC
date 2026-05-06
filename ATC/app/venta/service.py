@@ -81,18 +81,42 @@ def _fetch_catalog(path: str) -> dict:
 
 
 def fetch_regiones() -> list[str]:
-    data = _fetch_catalog("/regiones")
-    regiones = data.get("regiones") if isinstance(data, dict) else None
-    if not isinstance(regiones, list):
-        raise HTTPException(status_code=502, detail="Respuesta invalida del catalogo de regiones.")
-    return [str(item).strip() for item in regiones if str(item).strip()]
+    fallback = [
+        "Arica y Parinacota",
+        "Tarapaca",
+        "Antofagasta",
+        "Atacama",
+        "Coquimbo",
+        "Valparaiso",
+        "Metropolitana de Santiago",
+        "O Higgins",
+        "Maule",
+        "Nuble",
+        "Biobio",
+        "La Araucania",
+        "Los Rios",
+        "Los Lagos",
+        "Aysen",
+        "Magallanes y de la Antartica Chilena",
+    ]
+    try:
+        data = _fetch_catalog("/regiones")
+        regiones = data.get("regiones") if isinstance(data, dict) else None
+        if not isinstance(regiones, list):
+            return fallback
+        cleaned = [str(item).strip() for item in regiones if str(item).strip()]
+        return cleaned or fallback
+    except HTTPException:
+        return fallback
 
 
 def fetch_comunas(region: str) -> list[str]:
     encoded = quote((region or "").strip())
-    data = _fetch_catalog(f"/comunas?region={encoded}")
-    comunas = data.get("comunas") if isinstance(data, dict) else None
-    if not isinstance(comunas, list):
-        raise HTTPException(status_code=502, detail="Respuesta invalida del catalogo de comunas.")
-    return [str(item).strip() for item in comunas if str(item).strip()]
-
+    try:
+        data = _fetch_catalog(f"/comunas?region={encoded}")
+        comunas = data.get("comunas") if isinstance(data, dict) else None
+        if not isinstance(comunas, list):
+            return []
+        return [str(item).strip() for item in comunas if str(item).strip()]
+    except HTTPException:
+        return []
