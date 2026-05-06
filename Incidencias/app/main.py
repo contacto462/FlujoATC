@@ -34,6 +34,8 @@ from app.schemas import (
 )
 from app.services import IncidenciasService
 from app.protocolos_service import ProtocolosService
+from app.venta.routes import router as venta_router
+import app.venta.models  # noqa: F401
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -49,6 +51,7 @@ if ATC_STATIC_DIR.exists():
     app.mount("/shared-static", StaticFiles(directory=str(ATC_STATIC_DIR)), name="shared-static")
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+app.include_router(venta_router)
 
 TIPOS_Y_ESPECIFICACIONES = {
     "GestiÃ³n de Grabaciones y Evidencia": [
