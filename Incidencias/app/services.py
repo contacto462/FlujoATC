@@ -1843,12 +1843,21 @@ class IncidenciasService:
             row.updated_at = datetime.utcnow()
             self.db.commit()
 
-    def _registrar_sync_soporte_nueva(self, odt: str, data: IncidenciaNueva, fecha: datetime) -> None:
+    def _registrar_sync_soporte_nueva(
+        self,
+        odt: str,
+        data: IncidenciaNueva,
+        fecha: datetime,
+        descripcion_registro: str | None = None,
+    ) -> None:
         # AJUSTE SOPORTE REGISTRO SQL #
         if not self._support_sync_enabled():
             return
         try:
             payload = self._build_support_payload(odt, data, fecha)
+            if descripcion_registro is not None:
+                payload["observacion"] = descripcion_registro
+                payload["descripcion"] = descripcion_registro
             row = self._crear_outbox_sync(odt, payload)
             self._sync_outbox_row(row)
         except Exception:
@@ -1928,12 +1937,25 @@ class IncidenciasService:
             raise _build_db_write_error(exc) from exc
         return "Registro guardado en SQL"
 
+    def _firmar_observacion_registro(self, token: str | None, observacion: str, fecha: datetime) -> str:
+        texto = (observacion or "").strip()
+        if not texto:
+            return ""
+        token_limpio = (token or "").strip()
+        usuario = self.get_usuario_actual(token_limpio) if token_limpio else "Usuario no identificado"
+        if not usuario or usuario == "Desconocido":
+            usuario = "Usuario no identificado"
+        tz_name = (settings.timezone or "America/Santiago").strip() or "America/Santiago"
+        fecha_local = fecha.replace(tzinfo=timezone.utc).astimezone(ZoneInfo(tz_name))
+        marca = fecha_local.strftime("%d/%m/%Y %H:%M")
+        return f"[{usuario} - {marca}] {texto}"
 
     def guardar_incidencia_nueva(self, data: IncidenciaNueva) -> str:
         odt = self._proximo_odt("I")
         ahora = datetime.utcnow()
         cliente = (data.cliente or "").strip()
         descripcion = (data.descripcion or "").strip()
+        observacion_registro = self._firmar_observacion_registro(data.token, descripcion, ahora)
 
         reg = Registro(
             odt=odt,
@@ -1941,9 +1963,9 @@ class IncidenciasService:
             puesto=((data.puesto or "").strip() or None),
             cliente=cliente,
             problema=(data.tipo_incidencia or "").strip(),
-            detalle_problema=(descripcion or None),
+            detalle_problema=(observacion_registro or None),
             derivacion="Pendiente",
-            observacion=(descripcion or None),
+            observacion=(observacion_registro or None),
             estado="Pendiente",
             fecha_derivacion_area=ahora,
             direccion=self._direccion_cliente(cliente),
@@ -1957,7 +1979,7 @@ class IncidenciasService:
             self.db.rollback()
             raise _build_db_write_error(exc) from exc
         # AJUSTE SOPORTE REGISTRO SQL #
-        self._registrar_sync_soporte_nueva(odt, data, ahora)
+        self._registrar_sync_soporte_nueva(odt, data, ahora, observacion_registro)
         return odt
 
     def derivar_odt_a_tecnico(
@@ -2416,6 +2438,7 @@ class IncidenciasService:
                 obs_pend,
                 obs_soporte,
                 obs_servicio,
+                str(getattr(r, "observacion_final", "") or "").strip(),
             ])
         return self._filtrar_incidencias_para_tecnico(out, tecnico)
 
@@ -5174,8 +5197,6 @@ class IncidenciasService:
                 }
             )
         return resultado
-
-
 
 
 

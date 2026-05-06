@@ -580,7 +580,7 @@ body{
   overflow:auto;
   display:flex;
   flex-direction:column;
-  gap:10px;
+  gap:12px;
 }
 
 .rightcol{
@@ -624,7 +624,8 @@ body{
 
 .leftcol .panel .panel-h{
   min-height:0;
-  padding:8px 16px;
+  padding:10px 16px;
+  background:linear-gradient(180deg,#fbfcfe 0%,#f4f7fb 100%);
 }
 
 .leftcol .panel .panel-h h3,
@@ -632,17 +633,54 @@ body{
   line-height:1;
 }
 
+.leftcol .panel{
+  border-radius:14px;
+  border-color:rgba(15,23,42,.09);
+  box-shadow:0 10px 28px rgba(15,23,42,.06), 0 2px 6px rgba(15,23,42,.04);
+}
+
+.leftcol .panel:hover{
+  box-shadow:0 14px 32px rgba(15,23,42,.08), 0 3px 8px rgba(15,23,42,.05);
+}
+
 .leftcol .panel .panel-b{
-  padding:6px 16px 10px;
+  padding:10px 16px 14px;
 }
 
 .details-panel .panel-b{
-  padding-top:10px;
-  padding-bottom:14px;
+  padding-top:12px;
+  padding-bottom:16px;
 }
 
 .details-panel{
-  margin-top:-13px;
+  margin-top:-10px;
+}
+
+.details-panel .kv{
+  grid-template-columns:1fr;
+  align-items:start;
+  gap:7px;
+  padding-top:11px;
+  padding-bottom:11px;
+}
+
+.details-panel .kv-k{
+  font-size:10px;
+  letter-spacing:.12em;
+  color:#8da0bf;
+}
+
+.details-panel .kv-v{
+  font-size:14px;
+  line-height:1.45;
+  font-weight:600;
+}
+
+.details-panel .priority-inline{
+  flex-wrap:wrap;
+  row-gap:4px;
+  white-space:normal;
+  column-gap:8px;
 }
 
 @media (min-width: 901px){
@@ -651,13 +689,26 @@ body{
   }
 }
 
-.details-panel .kv{
-  padding-top:8px;
-  padding-bottom:8px;
+.linked-odt-panel{
+  margin-top:-4px;
 }
 
-.linked-odt-panel{
-  margin-top:-6px;
+.linked-odt-panel .panel-b{
+  display:flex;
+  flex-direction:column;
+  gap:12px !important;
+  padding-top:12px;
+  padding-bottom:16px;
+}
+
+.linked-odt-panel .mini{
+  font-size:12.5px;
+  line-height:1.6;
+  color:#64748b;
+  padding:10px 12px;
+  border-radius:10px;
+  background:linear-gradient(180deg,#fbfcfe 0%,#f7f9fc 100%);
+  border:1px solid rgba(15,23,42,.08);
 }
 
 .action-btn{
@@ -2003,10 +2054,10 @@ body.is-inline-image-resizing{
 /* ===== ODT PANEL ===== */
 .odt-row{
   display:grid;
-  grid-template-columns:88px minmax(0, 1fr);
-  align-items:center;
-  gap:8px;
-  padding:6px 0;
+  grid-template-columns:1fr;
+  align-items:start;
+  gap:6px;
+  padding:10px 0;
   border-bottom:1px solid var(--border);
 }
 .odt-row:last-child{ border-bottom:none; }
@@ -2014,41 +2065,119 @@ body.is-inline-image-resizing{
   font-size:10px;
   font-weight:700;
   text-transform:uppercase;
-  letter-spacing:.08em;
+  letter-spacing:.1em;
   color:var(--muted-2);
   line-height:1.1;
 }
 .odt-v{
-  font-size:13px;
+  font-size:14px;
   font-weight:500;
   color:#0f172a;
   word-break:break-word;
+  line-height:1.45;
 }
 .odt-divider{
   border:none;
   border-top:1px solid var(--border);
-  margin:6px 0;
+  margin:10px 0 8px;
 }
 .odt-section-label{
   font-size:10px;
   font-weight:700;
   text-transform:uppercase;
-  letter-spacing:.09em;
+  letter-spacing:.1em;
   color:var(--muted);
-  padding:4px 0 2px;
+  padding:2px 0 6px;
 }
 .odt-section-label.final{
   color:var(--resolved-fg,#4338ca);
 }
+.odt-action-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:2px 0 6px;
+}
+.odt-action-row .odt-section-label{
+  padding:0;
+}
+.odt-view-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:72px;
+  height:34px;
+  padding:0 14px;
+  border-radius:11px;
+  border:1px solid rgba(148,163,184,.30);
+  background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);
+  color:#1e293b;
+  font-size:12px;
+  font-weight:700;
+  cursor:pointer;
+  letter-spacing:.01em;
+  box-shadow:0 1px 2px rgba(15,23,42,.04);
+  transition:all .16s ease;
+}
+.odt-view-btn:hover{
+  background:linear-gradient(180deg,#ffffff 0%,#f1f5f9 100%);
+  border-color:#94a3b8;
+  transform:translateY(-1px);
+  box-shadow:0 6px 16px rgba(15,23,42,.08);
+}
 .odt-textblock{
   background:#f8fafc;
   border:1px solid var(--border);
-  border-radius:8px;
-  padding:9px 11px;
+  border-radius:10px;
+  padding:10px 12px;
   white-space:pre-wrap;
-  line-height:1.55;
-  font-size:12.5px;
+  line-height:1.6;
+  font-size:13px;
   color:#1e293b;
+  overflow-wrap:anywhere;
+}
+.odt-modal-card{
+  max-width:720px;
+}
+.odt-modal-body{
+  padding:16px 18px 18px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.odt-modal-meta{
+  margin:0;
+  font-size:12px;
+  color:var(--muted);
+}
+.odt-modal-content{
+  background:#f8fafc;
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:14px 15px;
+  font-size:13px;
+  color:#1e293b;
+  max-height:min(52vh, 520px);
+  overflow:auto;
+}
+.odt-modal-stack{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.odt-modal-content .odt-row{
+  padding:0 0 10px;
+}
+.odt-modal-content .odt-row:last-child{
+  padding-bottom:0;
+}
+.odt-modal-content .odt-textblock{
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+}
+.odt-hidden-template{
+  display:none;
 }
 
 .requester-sections{
@@ -2251,6 +2380,26 @@ body.is-inline-image-resizing{
   color:#3730a3;
   background:rgba(99,102,241,.14);
   border-color:rgba(99,102,241,.26);
+}
+.locked-note{
+  margin-top:10px;
+  padding:10px 12px;
+  border:1px solid rgba(99,102,241,.18);
+  border-radius:12px;
+  background:rgba(99,102,241,.07);
+  color:#4338ca;
+  font-size:12px;
+  line-height:1.45;
+}
+.action-lock-hint{
+  margin:0 0 2px;
+  padding:10px 12px;
+  border:1px solid rgba(99,102,241,.16);
+  border-radius:12px;
+  background:rgba(99,102,241,.06);
+  color:#4338ca;
+  font-size:12px;
+  line-height:1.45;
 }
 
 .history{
@@ -2587,7 +2736,7 @@ body.is-inline-image-resizing{
           <div class="kv">
             <span class="kv-k">Agente asignado</span>
             <form class="assign-form" method="POST" action="/dashboard/tickets/{{ ticket.id }}/assign">
-              <select name="user_id" onchange="this.form.submit()">
+              <select name="user_id" onchange="if(!this.disabled){this.form.submit()}" {% if ticket_locked %}disabled{% endif %}>
                 <option value="" disabled {% if not ticket.assigned_to_id %}selected{% endif %}>Sin asignar</option>
                 {% for u in assignable_users %}
                   <option value="{{ u.id }}" {% if ticket.assigned_to_id == u.id %}selected{% endif %}>
@@ -2597,6 +2746,10 @@ body.is-inline-image-resizing{
               </select>
             </form>
           </div>
+
+          {% if ticket_locked %}
+            <div class="locked-note">Ticket finalizado. Campos de edición bloqueados.</div>
+          {% endif %}
 
           {% if ticket.custom_fields %}
             <div style="margin-top:14px; border-top:1px solid var(--border); padding-top:14px;">
@@ -2626,74 +2779,87 @@ body.is-inline-image-resizing{
             {% if odt_finalizado %}Finalizado{% else %}{{ linked_odt.get('estado') or 'Pendiente' }}{% endif %}
           </span>
         </div>
-        <div class="panel-b" style="display:flex;flex-direction:column;gap:0;">
-          <div class="odt-row">
-            <span class="odt-k">Número ODT</span>
-            <span class="odt-v">{{ linked_odt.get('odt') or ('#' ~ linked_odt.get('id', '')) }}</span>
+        <div class="panel-b" style="display:flex;flex-direction:column;gap:10px;">
+          <div class="mini" style="line-height:1.45;">La información de la OT vinculada está oculta para mantener este panel compacto.</div>
+          <button
+            type="button"
+            class="odt-view-btn"
+            data-odt-modal-title="ODT vinculada {{ linked_odt.get('odt') or ('#' ~ linked_odt.get('id', '')) }}"
+            data-odt-modal-meta="{{ linked_odt.get('cliente') or ticket.requester.display_name if ticket.requester else 'ODT vinculada' }}"
+            data-odt-modal-target="odt-info-template-{{ linked_odt.get('id') or linked_odt.get('odt') or ticket.id }}"
+            style="align-self:flex-start;"
+          >Ver</button>
+        </div>
+        <div id="odt-info-template-{{ linked_odt.get('id') or linked_odt.get('odt') or ticket.id }}" class="odt-hidden-template">
+          <div class="odt-modal-stack">
+            <div class="odt-row">
+              <span class="odt-k">Número ODT</span>
+              <span class="odt-v">{{ linked_odt.get('odt') or ('#' ~ linked_odt.get('id', '')) }}</span>
+            </div>
+            {% set odt_derivacion = linked_odt.get('derivacion') or '' %}
+            {% if odt_derivacion %}
+            <div class="odt-row">
+              <span class="odt-k">Derivación</span>
+              <span class="odt-v">{{ odt_derivacion }}</span>
+            </div>
+            {% endif %}
+            {% set odt_tecnico = linked_odt.get('tecnicos') or linked_odt.get('tecnico') or '' %}
+            {% if odt_tecnico and odt_tecnico not in ['-', 'Sin asignar'] %}
+            <div class="odt-row">
+              <span class="odt-k">Técnico</span>
+              <span class="odt-v">{{ odt_tecnico }}</span>
+            </div>
+            {% endif %}
+            {% set odt_acomp = linked_odt.get('acompanante') or '' %}
+            {% if odt_acomp and odt_acomp not in ['-', 'Sin asignar'] %}
+            <div class="odt-row">
+              <span class="odt-k">Acompañante</span>
+              <span class="odt-v">{{ odt_acomp }}</span>
+            </div>
+            {% endif %}
+            {% set odt_fecha_deriv = linked_odt.get('fecha_derivacion_area') or linked_odt.get('fecha_derivacion') or linked_odt.get('fecha_registro') or '' %}
+            {% if odt_fecha_deriv %}
+            <div class="odt-row">
+              <span class="odt-k">Derivado</span>
+              <span class="odt-v">{{ odt_fecha_deriv }}</span>
+            </div>
+            {% endif %}
+            {% set odt_obs_soporte = linked_odt.get('observacion_soporte') or '' %}
+            {% if odt_obs_soporte %}
+            <hr class="odt-divider">
+            <div class="odt-section-label">Gestión Soporte</div>
+            <div class="odt-textblock">{{ odt_obs_soporte }}</div>
+            {% endif %}
+            {% if _obs_serv %}
+            <hr class="odt-divider">
+            <div class="odt-section-label">Gestión Servicio Técnico</div>
+            <div class="odt-textblock">{{ _obs_serv }}</div>
+            {% endif %}
+            {% if odt_finalizado %}
+            <hr class="odt-divider">
+            <div class="odt-section-label final">Reporte Final</div>
+            {% set odt_fecha_cierre = linked_odt.get('fecha_cierre') or '' %}
+            {% if odt_fecha_cierre %}
+            <div class="odt-row">
+              <span class="odt-k">Fecha cierre</span>
+              <span class="odt-v">{{ odt_fecha_cierre }}</span>
+            </div>
+            {% endif %}
+            {% set odt_materiales = linked_odt.get('materiales') or '' %}
+            {% if odt_materiales %}
+            <div class="odt-row">
+              <span class="odt-k">Materiales</span>
+              <div class="odt-textblock">{{ odt_materiales }}</div>
+            </div>
+            {% endif %}
+            {% if _obs_final %}
+            <div class="odt-row">
+              <span class="odt-k">Observación final</span>
+              <div class="odt-textblock">{{ _obs_final }}</div>
+            </div>
+            {% endif %}
+            {% endif %}
           </div>
-          {% set odt_derivacion = linked_odt.get('derivacion') or '' %}
-          {% if odt_derivacion %}
-          <div class="odt-row">
-            <span class="odt-k">Derivación</span>
-            <span class="odt-v">{{ odt_derivacion }}</span>
-          </div>
-          {% endif %}
-          {% set odt_tecnico = linked_odt.get('tecnicos') or linked_odt.get('tecnico') or '' %}
-          {% if odt_tecnico and odt_tecnico not in ['-', 'Sin asignar'] %}
-          <div class="odt-row">
-            <span class="odt-k">Técnico</span>
-            <span class="odt-v">{{ odt_tecnico }}</span>
-          </div>
-          {% endif %}
-          {% set odt_acomp = linked_odt.get('acompanante') or '' %}
-          {% if odt_acomp and odt_acomp not in ['-', 'Sin asignar'] %}
-          <div class="odt-row">
-            <span class="odt-k">Acompañante</span>
-            <span class="odt-v">{{ odt_acomp }}</span>
-          </div>
-          {% endif %}
-          {% set odt_fecha_deriv = linked_odt.get('fecha_derivacion_area') or linked_odt.get('fecha_derivacion') or linked_odt.get('fecha_registro') or '' %}
-          {% if odt_fecha_deriv %}
-          <div class="odt-row">
-            <span class="odt-k">Derivado</span>
-            <span class="odt-v">{{ odt_fecha_deriv }}</span>
-          </div>
-          {% endif %}
-          {% set odt_obs_soporte = linked_odt.get('observacion_soporte') or '' %}
-          {% if odt_obs_soporte %}
-          <hr class="odt-divider">
-          <div class="odt-section-label">Gestión Soporte</div>
-          <div class="odt-textblock">{{ odt_obs_soporte }}</div>
-          {% endif %}
-          {% if _obs_serv %}
-          <hr class="odt-divider">
-          <div class="odt-section-label">Gestión Servicio Técnico</div>
-          <div class="odt-textblock">{{ _obs_serv }}</div>
-          {% endif %}
-          {% if odt_finalizado %}
-          <hr class="odt-divider">
-          <div class="odt-section-label final">Reporte Final</div>
-          {% set odt_fecha_cierre = linked_odt.get('fecha_cierre') or '' %}
-          {% if odt_fecha_cierre %}
-          <div class="odt-row">
-            <span class="odt-k">Fecha cierre</span>
-            <span class="odt-v">{{ odt_fecha_cierre }}</span>
-          </div>
-          {% endif %}
-          {% set odt_materiales = linked_odt.get('materiales') or '' %}
-          {% if odt_materiales %}
-          <div class="odt-row">
-            <span class="odt-k">Materiales</span>
-            <span class="odt-v" style="white-space:pre-wrap;">{{ odt_materiales }}</span>
-          </div>
-          {% endif %}
-          {% if _obs_final %}
-          <div style="display:flex;flex-direction:column;gap:6px;padding:8px 0;">
-            <span class="odt-k">Observación final</span>
-            <div class="odt-textblock">{{ _obs_final }}</div>
-          </div>
-          {% endif %}
-          {% endif %}
         </div>
       </div>
       {% endif %}
@@ -2754,7 +2920,7 @@ body.is-inline-image-resizing{
               <div class="composer-workbench-actions">
             {% if requires_reception and not reception_sent %}
               <form class="reception-form" method="POST" action="/dashboard/tickets/{{ ticket.id }}/send-reception">
-                <button class="send reception-action" type="submit">
+                <button class="send reception-action" type="submit" {% if ticket_locked %}disabled{% endif %}>
                   Recepcion de solicitud
                 </button>
               </form>
@@ -2767,7 +2933,7 @@ body.is-inline-image-resizing{
                     title="Agrandar o achicar zona de respuesta"
                     aria-label="Agrandar o achicar zona de respuesta"
                     aria-expanded="false"
-                    {% if requires_reception and not can_reply %}disabled{% endif %}
+                    {% if ticket_locked or (requires_reception and not can_reply) %}disabled{% endif %}
                   >
                     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                       <path d="M16 11h-3V5.41l.79.8a1 1 0 0 0 1.42 0 1 1 0 0 0 0-1.42l-2.5-2.5a1 1 0 0 0-.33-.21 1 1 0 0 0-.76 0 1 1 0 0 0-.33.21l-2.5 2.5a1 1 0 0 0 1.42 1.42l.79-.8V11H8a1 1 0 0 0 0 2h3v5.59l-.79-.8a1 1 0 0 0-1.42 1.42l2.5 2.5a1 1 0 0 0 .33.21.94.94 0 0 0 .76 0 1 1 0 0 0 .33-.21l2.5-2.5a1 1 0 0 0-1.42-1.42l-.79.8V13h3a1 1 0 0 0 0-2" fill="currentColor"/>
@@ -2784,7 +2950,7 @@ body.is-inline-image-resizing{
               enctype="multipart/form-data"
               data-ticket-source="{{ (ticket.source or '').strip().lower() }}"
             >
-              <button id="composeMiniHint" class="compose-mini-hint" type="button" {% if requires_reception and not can_reply %}disabled{% endif %}>
+              <button id="composeMiniHint" class="compose-mini-hint" type="button" {% if ticket_locked or (requires_reception and not can_reply) %}disabled{% endif %}>
                 Respuesta minimizada. Haz clic para expandir y escribir.
               </button>
 
@@ -2794,7 +2960,7 @@ body.is-inline-image-resizing{
               {% set reception_pending = (not priority_pending) and requires_reception and not can_reply %}
               {% if priority_pending or reception_pending or show_send_error %}
                 <div class="reply-alerts">
-                  {% if priority_pending %}
+                    {% if not ticket_locked and priority_pending %}
                     <div class="workflow-alert warning">
                       <div>
                         <strong>Prioridad pendiente</strong>
@@ -2802,7 +2968,7 @@ body.is-inline-image-resizing{
                       </div>
                     </div>
                   {% endif %}
-                  {% if reception_pending %}
+                  {% if not ticket_locked and reception_pending %}
                     <div class="workflow-alert danger">
                       <div>
                         <strong>Recepcion pendiente</strong>
@@ -2826,8 +2992,8 @@ body.is-inline-image-resizing{
                 {% if (ticket.source or "").strip().lower() == "email" %}
                   <div class="gmail-head">
                     <div class="gmail-meta-links">
-                      <button id="toggleCcBtn" class="gmail-meta-link" type="button" {% if requires_reception and not can_reply %}disabled{% endif %}>CC</button>
-                      <button id="toggleBccBtn" class="gmail-meta-link" type="button" {% if requires_reception and not can_reply %}disabled{% endif %}>CCO</button>
+                      <button id="toggleCcBtn" class="gmail-meta-link" type="button" {% if ticket_locked or (requires_reception and not can_reply) %}disabled{% endif %}>CC</button>
+                      <button id="toggleBccBtn" class="gmail-meta-link" type="button" {% if ticket_locked or (requires_reception and not can_reply) %}disabled{% endif %}>CCO</button>
                     </div>
                   </div>
                   <div id="recipientsPanel" class="gmail-meta-fields hidden">
@@ -2838,7 +3004,7 @@ body.is-inline-image-resizing{
                         name="cc"
                         value=""
                         placeholder="copias visibles"
-                        {% if requires_reception and not can_reply %}disabled{% endif %}
+                        {% if ticket_locked or (requires_reception and not can_reply) %}disabled{% endif %}
                       >
                     </label>
                     <label id="bccFieldWrap" class="gmail-meta-field hidden">
@@ -2848,7 +3014,7 @@ body.is-inline-image-resizing{
                         name="bcc"
                         value=""
                         placeholder="copias ocultas"
-                        {% if requires_reception and not can_reply %}disabled{% endif %}
+                        {% if ticket_locked or (requires_reception and not can_reply) %}disabled{% endif %}
                       >
                     </label>
                   </div>
@@ -2857,8 +3023,8 @@ body.is-inline-image-resizing{
                 <div
                   id="replyEditor"
                   class="gmail-editor"
-                  contenteditable="{% if requires_reception and not can_reply %}false{% else %}true{% endif %}"
-                  data-placeholder="{% if requires_reception and not can_reply %}Primero envia 'Recepcion de solicitud'.{% else %}Escribe una respuesta...{% endif %}"
+                  contenteditable="{% if ticket_locked or (requires_reception and not can_reply) %}false{% else %}true{% endif %}"
+                  data-placeholder="{% if ticket_locked %}Ticket finalizado. La respuesta quedo bloqueada.{% elif requires_reception and not can_reply %}Primero envia 'Recepcion de solicitud'.{% else %}Escribe una respuesta...{% endif %}"
                 ></div>
                 <div id="inlineImageResizeToolbar" class="gmail-image-resize-toolbar hidden" role="toolbar" aria-label="Tamano de imagen">
                   <button type="button" class="gmail-image-size-btn" data-image-size="small">Pequena</button>
@@ -2962,7 +3128,7 @@ body.is-inline-image-resizing{
                   </div>
                   {% if (ticket.source or "").strip().lower() == "email" %}
                     <div class="gmail-toolbar-side">
-                      <button id="replyAttachBtn" class="gmail-clip-btn" type="button" title="Adjuntar archivo" aria-label="Adjuntar archivo" {% if requires_reception and not can_reply %}disabled{% endif %}>
+                      <button id="replyAttachBtn" class="gmail-clip-btn" type="button" title="Adjuntar archivo" aria-label="Adjuntar archivo" {% if ticket_locked or (requires_reception and not can_reply) %}disabled{% endif %}>
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" xml:space="preserve" aria-hidden="true">
                           <path d="M16.5 32h-3A6.51 6.51 0 0 1 7 25.5v-21C7 2.019 9.019 0 11.5 0h3C16.981 0 19 2.019 19 4.5v21c0 1.378-1.121 2.5-2.5 2.5h-3a2.503 2.503 0 0 1-2.5-2.5V7h3v18h2V4.5c0-.827-.673-1.5-1.5-1.5h-3c-.827 0-1.5.673-1.5 1.5v21c0 1.93 1.57 3.5 3.5 3.5h3c1.93 0 3.5-1.57 3.5-3.5V7h3v18.5c0 3.584-2.916 6.5-6.5 6.5" style="fill:#111918"/>
                         </svg>
@@ -2973,7 +3139,7 @@ body.is-inline-image-resizing{
                         name="attachments"
                         multiple
                         class="hidden"
-                        {% if requires_reception and not can_reply %}disabled{% endif %}
+                        {% if ticket_locked or (requires_reception and not can_reply) %}disabled{% endif %}
                       >
                     </div>
                   {% endif %}
@@ -2991,7 +3157,7 @@ body.is-inline-image-resizing{
                 <div class="composer-left">
                 </div>
                 <div class="composer-right">
-                  <button class="send cta-reply" type="submit" {% if requires_reception and not can_reply %}disabled{% endif %}>
+                  <button class="send cta-reply" type="submit" {% if ticket_locked or (requires_reception and not can_reply) %}disabled{% endif %}>
                     Enviar respuesta
                   </button>
                 </div>
@@ -3073,12 +3239,16 @@ body.is-inline-image-resizing{
     {% if service_error %}
     <div class="flash-error">{{ service_error }}</div>
     {% endif %}
+    {% if ticket_locked %}
+    <div class="action-lock-hint">Este ticket esta finalizado. La edicion quedo bloqueada para conservar el cierre.</div>
+    {% endif %}
 
     {% if not ticket.is_deleted %}
     <button
       id="openServiceModalBtn"
       type="button"
       class="action-btn action-service cta-moderation"
+      {% if ticket_locked %}disabled{% endif %}
     >
       Derivar Ticket
     </button>
@@ -3123,7 +3293,7 @@ body.is-inline-image-resizing{
     <form method="POST" action="/dashboard/tickets/{{ ticket.id }}/quick-actions">
       <div class="field" style="margin:0 0 12px;">
         <label>Estado</label>
-        <select name="status">
+        <select name="status" {% if ticket_locked %}disabled{% endif %}>
           <option value="open" {% if ticket_status_css(ticket.status)=='open' %}selected{% endif %}>Abierto</option>
           <option value="pending" {% if ticket_status_css(ticket.status)=='pending' %}selected{% endif %}>Pendiente</option>
           <option value="pending_service" {% if ticket_status_css(ticket.status)=='pending_service' %}selected{% endif %}>Pendiente Servicio</option>
@@ -3136,7 +3306,7 @@ body.is-inline-image-resizing{
 
       <div class="field" style="margin:0;">
         <label>Prioridad</label>
-        <select name="priority">
+        <select name="priority" {% if ticket_locked %}disabled{% endif %}>
           {% if not ticket.priority %}
           <option value="" selected>Seleccionar</option>
           {% endif %}
@@ -3147,7 +3317,7 @@ body.is-inline-image-resizing{
         </select>
       </div>
 
-      <button class="send cta-save" style="margin-top:10px;" type="submit">Guardar cambios</button>
+      <button class="send cta-save" style="margin-top:10px;" type="submit" {% if ticket_locked %}disabled{% endif %}>Guardar cambios</button>
     </form>
 
   </div>
@@ -3381,12 +3551,78 @@ body.is-inline-image-resizing{
   </div>
 </div>
 
+<div id="odtInfoModal" class="requester-modal" aria-hidden="true">
+  <div class="requester-modal-card odt-modal-card">
+    <div class="requester-modal-head">
+      <h3 id="odtInfoModalTitle">Detalle ODT</h3>
+      <button id="closeOdtInfoModalBtn" class="tool" type="button" aria-label="Cerrar detalle ODT">&times;</button>
+    </div>
+    <div class="odt-modal-body">
+      <p id="odtInfoModalMeta" class="odt-modal-meta"></p>
+      <div id="odtInfoModalContent" class="odt-modal-content"></div>
+    </div>
+  </div>
+</div>
+
 <div id="imgLightbox" class="img-lightbox" aria-hidden="true">
   <button id="imgLightboxClose" class="img-lightbox-close" type="button" aria-label="Cerrar visor">&times;</button>
   <div class="img-lightbox-content">
     <img id="imgLightboxPreview" src="" alt="Vista previa">
   </div>
 </div>
+
+<script>
+  (function () {
+    const modal = document.getElementById("odtInfoModal");
+    const closeBtn = document.getElementById("closeOdtInfoModalBtn");
+    const titleEl = document.getElementById("odtInfoModalTitle");
+    const metaEl = document.getElementById("odtInfoModalMeta");
+    const contentEl = document.getElementById("odtInfoModalContent");
+    const triggerSelector = ".odt-view-btn";
+
+    if (!modal || !closeBtn || !titleEl || !metaEl || !contentEl) return;
+
+    function openModal(title, meta, content, htmlContent) {
+      titleEl.textContent = title || "Detalle ODT";
+      metaEl.textContent = meta || "";
+      if (htmlContent) {
+        contentEl.innerHTML = htmlContent;
+      } else {
+        contentEl.textContent = content || "";
+      }
+      modal.classList.add("open");
+      modal.setAttribute("aria-hidden", "false");
+    }
+
+    function closeModal() {
+      modal.classList.remove("open");
+      modal.setAttribute("aria-hidden", "true");
+    }
+
+    document.querySelectorAll(triggerSelector).forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const targetId = btn.getAttribute("data-odt-modal-target") || "";
+        const targetEl = targetId ? document.getElementById(targetId) : null;
+        openModal(
+          btn.getAttribute("data-odt-modal-title") || "",
+          btn.getAttribute("data-odt-modal-meta") || "",
+          btn.getAttribute("data-odt-modal-content") || "",
+          targetEl ? targetEl.innerHTML : "",
+        );
+      });
+    });
+
+    closeBtn.addEventListener("click", closeModal);
+    modal.addEventListener("click", (event) => {
+      if (event.target === modal) closeModal();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && modal.classList.contains("open")) {
+        closeModal();
+      }
+    });
+  })();
+</script>
 
 <script>
   (function () {

@@ -3,6 +3,7 @@
 *.db
 __pycache__/
 *.pyc
+auto_git.py
 
 ATC/.env
 ATC/secrets/

@@ -3552,6 +3552,13 @@ def _ticket_stage(ticket: Ticket) -> str:
     return _ticket_status_group(ticket.status)
 
 
+def _ticket_is_locked(ticket: Ticket | None) -> bool:
+    if not ticket:
+        return False
+    status_code = _normalize_ticket_status_code(ticket.status)
+    return status_code in RESOLVED_TICKET_STATUSES or status_code == "closed"
+
+
 def _enforce_status_transition_rules(ticket: Ticket, new_status: str) -> None:
     # Regla de negocio: no permitimos Open -> Resolved directo.
     # Debe pasar por Pending para asegurar contacto previo con cliente.
@@ -3891,6 +3898,7 @@ def ticket_detail(
 
     requires_reception = (ticket.source or "").strip().lower() == "email"
     reception_sent = _has_reception_sent(db, ticket.id) if requires_reception else True
+    ticket_locked = _ticket_is_locked(ticket)
 
     return templates.TemplateResponse(
         "ticket_detail.html",
@@ -3916,6 +3924,7 @@ def ticket_detail(
             "requires_reception": requires_reception,
             "reception_sent": reception_sent,
             "can_reply": reception_sent,
+            "ticket_locked": ticket_locked,
             "focus_message_id": focus_message_id,
             "unseen_reply_message_ids": unseen_reply_message_ids,
             "linked_odt": linked_odt,
@@ -4239,6 +4248,12 @@ def assign_ticket(
 
         return HTMLResponse("Ticket no encontrado", status_code=404)
 
+    if _ticket_is_locked(ticket):
+        return RedirectResponse(
+            url=f"/dashboard/tickets/{ticket_id}?service_error=El+ticket+ya+esta+resuelto+y+no+permite+cambios.",
+            status_code=303,
+        )
+
     assign_ticket_logic(db, ticket, user_id, current_user)
 
     db.commit()
@@ -4282,6 +4297,12 @@ def update_priority(
     if not ticket:
 
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
+
+    if _ticket_is_locked(ticket):
+        return RedirectResponse(
+            url=f"/dashboard/tickets/{ticket_id}?service_error=El+ticket+ya+esta+resuelto+y+no+permite+cambios.",
+            status_code=303,
+        )
 
     # ValidaciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n bÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡sica
 
@@ -4330,6 +4351,12 @@ def update_quick_actions(
     if not ticket:
 
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
+
+    if _ticket_is_locked(ticket):
+        return RedirectResponse(
+            url=f"/dashboard/tickets/{ticket_id}?service_error=El+ticket+ya+esta+resuelto+y+no+permite+cambios.",
+            status_code=303,
+        )
 
     status = _normalize_ticket_status_code(status)
     allowed_status = [
@@ -4401,6 +4428,10 @@ def send_ticket_to_service(
     ticket = db.get(Ticket, ticket_id)
     if not ticket:
         return HTMLResponse("Ticket no encontrado", status_code=404)
+
+    if _ticket_is_locked(ticket):
+        query = urlencode({"service_error": "El ticket ya esta resuelto y no permite cambios."})
+        return RedirectResponse(url=f"/dashboard/tickets/{ticket_id}?{query}", status_code=303)
 
     if ticket.is_deleted:
         query = urlencode({"service_error": "No se puede derivar un ticket en papelera."})
@@ -4579,23 +4610,48 @@ def send_ticket_to_service(
             try:
                 from app.integrations.email_smtp import send_email_reply
 
-                detalle_derivacion = (
-                    f"<p>Informamos que el ticket #{ticket.id} fue derivado a "
-                    f"<strong>{html.escape(derivacion_clean)}</strong>.</p>"
-                    f"<p><strong>ODT:</strong> {html.escape(str(odt_value))}<br>"
-                    f"<strong>Sucursal:</strong> {html.escape(cliente_clean)}<br>"
-                    f"<strong>Incidencia:</strong> {html.escape(problema_clean)}</p>"
+                requester_name = (
+                    ((ticket.requester.name if ticket.requester else "") or "Cliente").strip() or "Cliente"
                 )
-                if observacion_clean:
-                    detalle_derivacion += f"<p><strong>Detalle:</strong> {html.escape(observacion_clean)}</p>"
-                detalle_derivacion += (
-                    "<p>El equipo de Alguien Te Cuida continuará la gestión por este mismo ticket.</p>"
-                )
+                area_label = "Servicio Técnico" if derivacion_clean == "Servicio Técnico" else "Coordinación con cliente"
+                logo_cid = "logo-atc-derivation"
+                detalle_derivacion = f"""
+                <div style="margin:0;padding:24px;background:#f8fafc;">
+                  <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:24px;overflow:hidden;font-family:Arial,sans-serif;color:#0f172a;">
+                    <div style="padding:24px 28px;background:linear-gradient(135deg,#0f172a 0%,#1d4ed8 100%);color:#ffffff;">
+                      <table role="presentation" cellspacing="0" cellpadding="0" width="100%" style="border-collapse:collapse;">
+                        <tr>
+                          <td style="vertical-align:top;padding-right:16px;">
+                            <div style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;opacity:.82;">Soporte ATC</div>
+                            <h1 style="margin:10px 0 0;font-size:27px;line-height:1.2;">Actualización de su solicitud</h1>
+                            <p style="margin:10px 0 0;font-size:15px;line-height:1.6;opacity:.92;">Ticket #{ticket.id}</p>
+                          </td>
+                          <td align="right" style="vertical-align:top;">
+                            <img src="cid:{logo_cid}" alt="ATC" style="display:block;width:110px;max-width:110px;height:auto;">
+                          </td>
+                        </tr>
+                      </table>
+                    </div>
+                    <div style="padding:28px;">
+                      <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">Hola {html.escape(requester_name)},</p>
+                      <p style="margin:0 0 14px;font-size:16px;line-height:1.7;">Le informamos que su solicitud fue derivada al área de <strong>{html.escape(area_label)}</strong> para continuar su gestión.</p>
+                      <p style="margin:0 0 14px;font-size:16px;line-height:1.7;">Nuestro equipo continuará el seguimiento de su caso por este mismo ticket y le mantendremos informado ante cualquier actualización.</p>
+                      <p style="margin:22px 0 0;font-size:15px;line-height:1.7;">Gracias por contactar con el Soporte de Alguien te cuida.</p>
+                    </div>
+                  </div>
+                </div>
+                """
                 send_email_reply(
                     to=requester_email,
                     subject=_build_ticket_email_subject(ticket.subject, ticket.id),
                     body=detalle_derivacion,
                     ticket_id=ticket.id,
+                    inline_images=[
+                        {
+                            "cid": logo_cid,
+                            "path": "static/img/logo-atc.png",
+                        }
+                    ],
                 )
                 db.add(
                     Message(
@@ -4647,6 +4703,10 @@ def send_reception_notice(
     ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
     if not ticket:
         return HTMLResponse("Ticket no encontrado", status_code=404)
+
+    if _ticket_is_locked(ticket):
+        query = urlencode({"send_error": "El ticket ya esta resuelto y no permite cambios."})
+        return RedirectResponse(url=f"/dashboard/tickets/{ticket_id}?{query}", status_code=303)
 
     if (ticket.source or "").strip().lower() != "email":
         query = urlencode({"send_error": "La recepcion de solicitud solo aplica a tickets por email."})
@@ -4708,6 +4768,10 @@ def reply_ticket(
     ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
     if not ticket:
         return HTMLResponse("Ticket no encontrado", status_code=404)
+
+    if _ticket_is_locked(ticket):
+        query = urlencode({"send_error": "El ticket ya esta resuelto y no permite cambios."})
+        return RedirectResponse(url=f"/dashboard/tickets/{ticket_id}?{query}", status_code=303)
 
     content = (content or "").strip()
     uploaded_count = len([f for f in (attachments or []) if f and (f.filename or "").strip()])

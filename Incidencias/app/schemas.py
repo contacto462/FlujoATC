@@ -25,6 +25,7 @@ class IncidenciaNueva(BaseModel):
     tipo_incidencia: str = Field(alias="tipoIncidencia")
     descripcion: str
     estado: str = "Pendiente"
+    token: Optional[str] = ""
 
 
 class FormularioRegistro(BaseModel):
