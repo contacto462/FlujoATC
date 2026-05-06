@@ -318,6 +318,12 @@ def do_get(
         )
         return HTMLResponse(content=html, status_code=400)
 
+    if form == "panelSelectorVenta" and not service.usuario_logueado_por_token(token):
+        return HTMLResponse(
+            content="<script>window.location.href='/venta/login';</script>",
+            status_code=200,
+        )
+
     if form in {
         "panelSelector",
         "panelSelectorServicio",
