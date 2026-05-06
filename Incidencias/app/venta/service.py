@@ -9,7 +9,7 @@ from fastapi import HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
+from app.config import settings
 from app.venta.models import VentaCliente
 from app.venta.schemas import VentaClienteCreateRequest
 

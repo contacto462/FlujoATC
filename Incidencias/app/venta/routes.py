@@ -5,9 +5,9 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from app.core.db import get_db
-from app.models.user import User
-from app.routes.web import get_current_user_web
+from app.database import get_db
+from app.schemas import LoginRequest
+from app.services import IncidenciasService
 from app.venta.schemas import VentaClienteCreateRequest, VentaClienteCreateResponse, VentaClienteTableUpdateRequest
 from app.venta.service import (
     create_cliente,
@@ -22,44 +22,49 @@ router = APIRouter(tags=["venta"])
 templates = Jinja2Templates(directory="app/templates")
 
 
-def require_venta_user(current_user: User = Depends(get_current_user_web)) -> User:
-    if not (current_user.is_admin or current_user.is_agent):
-        raise HTTPException(status_code=403, detail="No tienes permisos para acceder a Venta.")
-    return current_user
+def get_service(db: Session = Depends(get_db)) -> IncidenciasService:
+    return IncidenciasService(db)
+
+
+def require_venta_token(
+    token: str = Query(default="", min_length=1),
+    service: IncidenciasService = Depends(get_service),
+) -> str:
+    if not service.usuario_logueado_por_token(token):
+        raise HTTPException(status_code=401, detail="No autenticado")
+    return token
 
 
 @router.get("/venta/clientes", response_class=HTMLResponse)
 def venta_clientes_page(
     request: Request,
-    current_user: User = Depends(require_venta_user),
+    token: str = Depends(require_venta_token),
 ):
-    return templates.TemplateResponse(
-        "RegistroCliente.html",
-        {"request": request, "user": current_user},
-    )
+    return templates.TemplateResponse("RegistroCliente.html", {"request": request, "token": token})
 
 
 @router.get("/venta/bbdd-clientes", response_class=HTMLResponse)
 def venta_bbdd_clientes_page(
     request: Request,
-    current_user: User = Depends(require_venta_user),
+    token: str = Depends(require_venta_token),
 ):
-    return templates.TemplateResponse(
-        "BBDDClientes.html",
-        {"request": request, "user": current_user},
-    )
+    return templates.TemplateResponse("BBDDClientes.html", {"request": request, "token": token})
 
 
 @router.get("/api/venta/usuario-actual")
-def venta_usuario_actual(current_user: User = Depends(require_venta_user)):
-    return {"name": current_user.name, "username": current_user.username}
+def venta_usuario_actual(
+    token: str = Depends(require_venta_token),
+    service: IncidenciasService = Depends(get_service),
+):
+    usuario = service.get_usuario_actual(token)
+    return {"name": usuario, "username": usuario}
 
 
 @router.get("/api/venta/clientes/verificar-rut")
 def venta_verificar_rut(
     rut: str = Query(..., min_length=3),
     db: Session = Depends(get_db),
-    _: User = Depends(require_venta_user),
+    _: str = Depends(require_venta_token),
 ):
     return {"exists": rut_exists(db, rut)}
 
@@ -68,25 +73,23 @@ def venta_verificar_rut(
 def venta_crear_cliente(
     payload: VentaClienteCreateRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_venta_user),
+    token: str = Depends(require_venta_token),
+    service: IncidenciasService = Depends(get_service),
 ):
-    record = create_cliente(db, payload, ejecutivo_email=current_user.username)
-    return VentaClienteCreateResponse(
-        ok=True,
-        cliente_id=record.id,
-        message="Cliente registrado correctamente.",
-    )
+    usuario = service.get_usuario_actual(token)
+    record = create_cliente(db, payload, ejecutivo_email=usuario)
+    return VentaClienteCreateResponse(ok=True, cliente_id=record.id, message="Cliente registrado correctamente.")
 
 
 @router.get("/api/venta/catalogo/regiones")
-def venta_catalogo_regiones(_: User = Depends(require_venta_user)):
+def venta_catalogo_regiones(_: str = Depends(require_venta_token)):
     return {"regiones": fetch_regiones()}
 
 
 @router.get("/api/venta/catalogo/comunas")
 def venta_catalogo_comunas(
     region: str = Query(..., min_length=2),
-    _: User = Depends(require_venta_user),
+    _: str = Depends(require_venta_token),
 ):
     return {"comunas": fetch_comunas(region)}
 
@@ -94,7 +97,7 @@ def venta_catalogo_comunas(
 @router.get("/api/venta/clientes/tabla")
 def venta_clientes_tabla(
     db: Session = Depends(get_db),
-    _: User = Depends(require_venta_user),
+    _: str = Depends(require_venta_token),
 ):
     return get_clientes_table(db)
 
@@ -103,7 +106,8 @@ def venta_clientes_tabla(
 def venta_clientes_guardar_fila(
     payload: VentaClienteTableUpdateRequest,
     db: Session = Depends(get_db),
-    _: User = Depends(require_venta_user),
+    _: str = Depends(require_venta_token),
 ):
     update_cliente_row(db, payload.row_id, payload.values)
     return {"ok": True}
+
