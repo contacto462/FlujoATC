@@ -161,7 +161,6 @@ def update_cliente_row(db: Session, row_id: int, values: list[str]) -> None:
         if exists:
             raise HTTPException(status_code=409, detail="El RUT ya existe en otro registro.")
 
-    record.rut = new_rut
     record.cliente = (values[2] or "").strip()
     record.direccion = (values[3] or "").strip()
     record.contacto = (values[4] or "").strip()
