@@ -64,11 +64,6 @@ class ClienteBBDD(Base):
     email_representante: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     ejecutivo_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     fecha_creacion: Mapped[Optional[datetime]] = mapped_column(DateTime, server_default=func.now())
-    tecnico_default: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    derivacion_default: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    soporte_default: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    servicio_default: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    problema_default: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
 
 class CatalogoCliente(Base):
