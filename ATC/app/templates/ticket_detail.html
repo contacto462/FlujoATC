@@ -3257,7 +3257,7 @@ body.is-inline-image-resizing{
     <!-- SPAM -->
     {% if not ticket.is_spam and not ticket.is_deleted %}
     <form method="POST" action="/dashboard/tickets/{{ ticket.id }}/spam">
-      <button type="submit" class="action-btn action-warning cta-moderation">
+      <button type="submit" class="action-btn action-warning cta-moderation" {% if ticket_locked %}disabled{% endif %}>
         Marcar como Spam
       </button>
     </form>
@@ -3274,7 +3274,7 @@ body.is-inline-image-resizing{
     <!-- ELIMINAR -->
     {% if user.is_admin and not ticket.is_deleted %}
     <form method="POST" action="/dashboard/tickets/{{ ticket.id }}/delete">
-      <button type="submit" class="action-btn action-danger cta-moderation">
+      <button type="submit" class="action-btn action-danger cta-moderation" {% if ticket_locked %}disabled{% endif %}>
         Mover a Papelera
       </button>
     </form>
