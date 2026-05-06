@@ -797,6 +797,9 @@ class IncidenciasService:
             "tablaprotocolos",
             "envioprotocolossemanales",
             "coordinacion",
+            "panelselectorventa",
+            "registrocliente",
+            "tablacliente",
         }:
             return self._usuarios_login_incidencias()
         if destino_norm in {"panelselectorservicio", "panel_selector_servicio", "stventas"}:
@@ -841,6 +844,9 @@ class IncidenciasService:
                 "panelSelector",
                 "panelSelectorServicio",
                 "panelSelectorCoordinacion",
+                "panelSelectorVenta",
+                "registroCliente",
+                "tablaCliente",
                 "incidencias",
                 "cierreAperturaClientes",
                 "controlProtocolos",
@@ -861,6 +867,9 @@ class IncidenciasService:
             "incidencias",
             "panelSelector",
             "panelSelectorCoordinacion",
+            "panelSelectorVenta",
+            "registroCliente",
+            "tablaCliente",
             "cierreAperturaClientes",
             "controlProtocolos",
             "tablaProtocolos",
@@ -882,6 +891,9 @@ class IncidenciasService:
                 "incidencias",
                 "panelSelector",
                 "panelSelectorCoordinacion",
+                "panelSelectorVenta",
+                "registroCliente",
+                "tablaCliente",
                 "cierreAperturaClientes",
                 "controlProtocolos",
                 "tablaProtocolos",
@@ -893,7 +905,7 @@ class IncidenciasService:
                     scope_name = (
                         "Tabla Servicio Tecnico"
                         if destino_ok in {"servicioTecnico", "panelSelectorServicio", "stVentas"}
-                        else "Operaciones"
+                        else ("Venta" if destino_ok in {"panelSelectorVenta", "registroCliente", "tablaCliente"} else "Operaciones")
                     )
                     return {"success": False, "message": f"Usuario no autorizado para {scope_name}"}
                 nombre_sesion = usuarios_norm[nombre_norm]
@@ -927,6 +939,11 @@ class IncidenciasService:
             return {
                 "success": True,
                 "redirect": f"{app_url}?form=panelSelectorCoordinacion&token={token}&next={destino_ok}",
+            }
+        if destino_ok in {"panelSelectorVenta", "registroCliente", "tablaCliente"}:
+            return {
+                "success": True,
+                "redirect": f"{app_url}/venta/panel-selector?token={token}&next={destino_ok}",
             }
         if destino_ok in {"incidencias", "panelSelector", "cierreAperturaClientes", "controlProtocolos"}:
             return {
@@ -5197,7 +5214,6 @@ class IncidenciasService:
                 }
             )
         return resultado
-
 
 
 

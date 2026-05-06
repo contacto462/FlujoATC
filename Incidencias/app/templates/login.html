@@ -280,6 +280,8 @@
       const badge = document.getElementById("modoBadge");
       if (nextForm === "tecnicos") {
         badge.textContent = "Acceso a tabla técnicos";
+      } else if (["panelSelectorVenta", "registroCliente", "tablaCliente"].includes(nextForm)) {
+        badge.textContent = "Acceso a Venta";
       } else if (["coordinacion", "panelSelectorCoordinacion", "tablaProtocolos", "envioProtocolosSemanales"].includes(nextForm)) {
         badge.textContent = "Acceso Coordinación";
       } else if (["incidencias", "panelSelector", "cierreAperturaClientes", "controlProtocolos"].includes(nextForm)) {
