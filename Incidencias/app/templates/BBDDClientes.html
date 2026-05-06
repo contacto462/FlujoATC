@@ -42,7 +42,7 @@
       let html = '<table><thead><tr>';
       headers.forEach((header, index) => {
         html += `<th>${header}`;
-        if (index === 1 || index === 2 || index === 3) {
+        if (index === 1 || index === 2 || index === 4) {
           html += `<br><input type="text" class="filtro" onkeyup="filtrarTabla()" data-col="${index}" placeholder="Filtrar...">`;
         }
         html += '</th>';

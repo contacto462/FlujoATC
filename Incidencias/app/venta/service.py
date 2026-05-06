@@ -38,12 +38,26 @@ def create_cliente(db: Session, payload: VentaClienteCreateRequest, ejecutivo_em
     if rut_exists(db, rut):
         raise HTTPException(status_code=409, detail="El RUT ya esta registrado.")
 
+    nombre_representante = (payload.nombreRepresentante or "").strip() or None
+    email_facturas = str(payload.emailFacturas).strip()
+    email_representante = str(payload.emailRepresentante).strip() if payload.emailRepresentante else None
+    rut_representante = normalize_rut(payload.rutRepresentante or "") or None
+
     record = ClienteBBDD(
         cliente=payload.razonSocial.strip(),
+        giro=(payload.giro or "").strip() or None,
         direccion=payload.direccion.strip(),
-        contacto=(payload.nombreRepresentante or "").strip() or None,
-        correo=str(payload.emailRepresentante or payload.emailFacturas).strip(),
+        region=(payload.region or "").strip() or None,
+        comuna=(payload.comuna or "").strip() or None,
+        contacto=nombre_representante,
+        correo=email_facturas,
         rut=rut,
+        email_facturas=email_facturas,
+        nombre_representante=nombre_representante,
+        rut_representante=rut_representante,
+        telefono=(payload.telefono or "").strip() or None,
+        email_representante=email_representante,
+        ejecutivo_email=(ejecutivo_email or payload.ejecutivo or "").strip() or None,
     )
     db.add(record)
     db.commit()
@@ -126,9 +140,16 @@ def get_clientes_table(db: Session) -> dict:
         "ID",
         "RUT",
         "Cliente",
+        "Giro",
         "Direccion",
-        "Contacto",
-        "Correo",
+        "Region",
+        "Comuna",
+        "Email Facturas",
+        "Nombre Representante",
+        "RUT Representante",
+        "Telefono",
+        "Email Representante",
+        "Ejecutivo",
     ]
     rows = db.query(ClienteBBDD).order_by(ClienteBBDD.id.asc()).all()
     data_rows: list[list[str]] = []
@@ -137,15 +158,22 @@ def get_clientes_table(db: Session) -> dict:
             str(row.id),
             row.rut or "",
             row.cliente or "",
+            row.giro or "",
             row.direccion or "",
-            row.contacto or "",
-            row.correo or "",
+            row.region or "",
+            row.comuna or "",
+            row.email_facturas or row.correo or "",
+            row.nombre_representante or row.contacto or "",
+            row.rut_representante or "",
+            row.telefono or "",
+            row.email_representante or "",
+            row.ejecutivo_email or "",
         ])
     return {"headers": headers, "rows": data_rows}
 
 
 def update_cliente_row(db: Session, row_id: int, values: list[str]) -> None:
-    if len(values) < 6:
+    if len(values) < 13:
         raise HTTPException(status_code=400, detail="Fila invalida: faltan columnas para actualizar.")
     record = db.query(ClienteBBDD).filter(ClienteBBDD.id == row_id).first()
     if not record:
@@ -161,9 +189,18 @@ def update_cliente_row(db: Session, row_id: int, values: list[str]) -> None:
         if exists:
             raise HTTPException(status_code=409, detail="El RUT ya existe en otro registro.")
 
-    record.cliente = (values[2] or "").strip()
-    record.direccion = (values[3] or "").strip()
-    record.contacto = (values[4] or "").strip()
-    record.correo = (values[5] or "").strip()
     record.rut = new_rut
+    record.cliente = (values[2] or "").strip()
+    record.giro = (values[3] or "").strip() or None
+    record.direccion = (values[4] or "").strip()
+    record.region = (values[5] or "").strip() or None
+    record.comuna = (values[6] or "").strip() or None
+    record.email_facturas = (values[7] or "").strip() or None
+    record.nombre_representante = (values[8] or "").strip() or None
+    record.rut_representante = normalize_rut(values[9]) or None
+    record.telefono = (values[10] or "").strip() or None
+    record.email_representante = (values[11] or "").strip() or None
+    record.ejecutivo_email = (values[12] or "").strip() or None
+    record.contacto = record.nombre_representante
+    record.correo = record.email_facturas
     db.commit()
