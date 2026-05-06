@@ -3,15 +3,20 @@
 CREATE TABLE IF NOT EXISTS bbdd_clientes (
   id BIGSERIAL PRIMARY KEY,
   cliente VARCHAR(255) NOT NULL UNIQUE,
+  giro VARCHAR(255),
   direccion VARCHAR(255),
+  region VARCHAR(120),
+  comuna VARCHAR(120),
   contacto VARCHAR(255),
   correo VARCHAR(255),
   rut VARCHAR(40),
-  tecnico_default VARCHAR(255),
-  derivacion_default VARCHAR(255),
-  soporte_default VARCHAR(255),
-  servicio_default VARCHAR(255),
-  problema_default VARCHAR(255)
+  email_facturas VARCHAR(255),
+  nombre_representante VARCHAR(255),
+  rut_representante VARCHAR(40),
+  telefono VARCHAR(32),
+  email_representante VARCHAR(255),
+  ejecutivo_email VARCHAR(255),
+  fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS catalogo_clientes (

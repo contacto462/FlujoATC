@@ -737,13 +737,6 @@ class IncidenciasService:
         for nombre in self._obtener_tecnicos_helpdesk(solo_activos=True):
             _add(nombre)
 
-        # Fuente principal actual del sistema.
-        try:
-            for v in self.db.scalars(select(ClienteBBDD.tecnico_default)).all():
-                _add(v)
-        except Exception:
-            self.db.rollback()
-
         try:
             for v in self.db.scalars(select(Registro.tecnicos)).all():
                 _add(v)
@@ -2326,10 +2319,10 @@ class IncidenciasService:
         if not row:
             return {}
         return {
-            "derivacion": row.derivacion_default or "",
-            "servicio": row.servicio_default or "",
-            "soporte": row.soporte_default or "",
-            "problema": row.problema_default or "",
+            "derivacion": "",
+            "servicio": "",
+            "soporte": "",
+            "problema": "",
         }
 
     def obtener_datos_sucursal(self, cliente: str) -> dict[str, str]:
@@ -2357,7 +2350,6 @@ class IncidenciasService:
         contactos = sorted({r.contacto for r in rows if r.contacto})
         correos = sorted({r.correo for r in rows if r.correo})
         tecnicos_helpdesk = self._obtener_tecnicos_helpdesk(solo_activos=True)
-        tecnicos_local = sorted({r.tecnico_default for r in rows if r.tecnico_default})
         tecnicos_registro = self._run_registro_query(
             lambda: sorted(
                 {
@@ -2372,13 +2364,19 @@ class IncidenciasService:
         tecnicos = sorted(
             {
                 str(nombre).strip()
-                for nombre in [*(tecnicos_helpdesk or []), *(tecnicos_local or []), *(tecnicos_registro or [])]
+                for nombre in [*(tecnicos_helpdesk or []), *(tecnicos_registro or [])]
                 if str(nombre or "").strip()
             }
         )
-        derivaciones = sorted({r.derivacion_default for r in rows if r.derivacion_default})
-        soportes = sorted({r.soporte_default for r in rows if r.soporte_default})
-        problemas = sorted({r.problema_default for r in rows if r.problema_default})
+        derivaciones: list[str] = []
+        soportes: list[str] = []
+        problemas = [
+            "Desconexion",
+            "Problema de Parlante",
+            "Problema de Alarma",
+            "Hora y/o Fecha Cambiada",
+            "Problema de Visual",
+        ]
         return {
             "sucursales": sucursales,
             "direccion": direccion,
@@ -2392,20 +2390,13 @@ class IncidenciasService:
 
     def obtener_listas_incidencias(self) -> dict[str, list[str]]:
         clientes = self.obtener_catalogo_clientes()
-        problemas = []
-        try:
-            rows = self.db.scalars(select(ClienteBBDD).order_by(ClienteBBDD.cliente.asc())).all()
-            problemas = sorted({r.problema_default for r in rows if r.problema_default})
-        except Exception:
-            # En algunos esquemas PostgreSQL no existe bbdd_clientes.
-            # Mantenemos problemas por defecto para no romper el frontend.
-            problemas = [
-                "DesconexiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n",
-                "Problema de Parlante",
-                "Problema de Alarma",
-                "Hora y/o Fecha Cambiada",
-                "Problema de Visual",
-            ]
+        problemas = [
+            "DesconexiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n",
+            "Problema de Parlante",
+            "Problema de Alarma",
+            "Hora y/o Fecha Cambiada",
+            "Problema de Visual",
+        ]
         return {"clientes": clientes, "problemas": problemas}
 
 
@@ -5214,6 +5205,5 @@ class IncidenciasService:
                 }
             )
         return resultado
-
 
 
