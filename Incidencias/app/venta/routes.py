@@ -43,6 +43,14 @@ def venta_clientes_page(
     return templates.TemplateResponse("RegistroCliente.html", {"request": request, "token": token})
 
 
+@router.get("/venta/login", response_class=HTMLResponse)
+def venta_login_page(request: Request):
+    return templates.TemplateResponse(
+        "login.html",
+        {"request": request, "title": "Venta", "next_form": "panelSelectorVenta"},
+    )
+
+
 @router.get("/venta/panel-selector", response_class=HTMLResponse)
 def venta_panel_selector_page(
     request: Request,
