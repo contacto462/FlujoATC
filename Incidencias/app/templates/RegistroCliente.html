@@ -229,7 +229,17 @@
 
             if (!response.ok) {
                 const err = await response.json().catch(() => ({ detail: "Error al registrar el cliente." }));
-                throw new Error(err.detail || "Error al registrar el cliente.");
+                let message = "Error al registrar el cliente.";
+                if (typeof err?.detail === "string") {
+                    message = err.detail;
+                } else if (Array.isArray(err?.detail) && err.detail.length > 0) {
+                    const first = err.detail[0];
+                    const field = Array.isArray(first?.loc) ? first.loc[first.loc.length - 1] : "";
+                    message = field ? `${field}: ${first?.msg || "valor invalido"}` : (first?.msg || message);
+                } else if (err?.message) {
+                    message = err.message;
+                }
+                throw new Error(message);
             }
 
             alert("Cliente registrado con exito.");

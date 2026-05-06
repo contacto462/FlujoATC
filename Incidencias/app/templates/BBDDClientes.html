@@ -42,7 +42,7 @@
       let html = '<table><thead><tr>';
       headers.forEach((header, index) => {
         html += `<th>${header}`;
-        if (index === 0 || index === 1 || index === 2) {
+        if (index === 1 || index === 2 || index === 3) {
           html += `<br><input type="text" class="filtro" onkeyup="filtrarTabla()" data-col="${index}" placeholder="Filtrar...">`;
         }
         html += '</th>';
@@ -52,7 +52,7 @@
         const rowId = row[0];
         html += `<tr data-fila="${i}" data-rowid="${rowId}">`;
         row.forEach((cell, j) => {
-          if (j === 0 || j === 13) html += `<td data-fila="${i}" data-col="${j}">${cell || ''}</td>`;
+          if (j === 0) html += `<td data-fila="${i}" data-col="${j}">${cell || ''}</td>`;
           else html += `<td data-fila="${i}" data-col="${j}" ondblclick="editarCelda(this)">${cell || ''}</td>`;
         });
         html += `<td><button class="guardar-btn" id="guardar-${i}" onclick="guardarFila(${i}, this)">Guardar</button></td></tr>`;

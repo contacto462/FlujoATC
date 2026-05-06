@@ -41,7 +41,7 @@ def create_cliente(db: Session, payload: VentaClienteCreateRequest, ejecutivo_em
     record = ClienteBBDD(
         cliente=payload.razonSocial.strip(),
         direccion=payload.direccion.strip(),
-        contacto=payload.nombreRepresentante.strip(),
+        contacto=(payload.nombreRepresentante or "").strip() or None,
         correo=str(payload.emailRepresentante or payload.emailFacturas).strip(),
         rut=rut,
     )
@@ -124,32 +124,22 @@ def fetch_comunas(region: str) -> list[str]:
 def get_clientes_table(db: Session) -> dict:
     headers = [
         "ID",
+        "RUT",
         "Cliente",
         "Direccion",
         "Contacto",
         "Correo",
-        "RUT",
-        "Tecnico Default",
-        "Derivacion Default",
-        "Soporte Default",
-        "Servicio Default",
-        "Problema Default",
     ]
     rows = db.query(ClienteBBDD).order_by(ClienteBBDD.id.asc()).all()
     data_rows: list[list[str]] = []
     for row in rows:
         data_rows.append([
             str(row.id),
+            row.rut or "",
             row.cliente or "",
             row.direccion or "",
             row.contacto or "",
             row.correo or "",
-            row.rut or "",
-            row.tecnico_default or "",
-            row.derivacion_default or "",
-            row.soporte_default or "",
-            row.servicio_default or "",
-            row.problema_default or "",
         ])
     return {"headers": headers, "rows": data_rows}
 
@@ -161,7 +151,7 @@ def update_cliente_row(db: Session, row_id: int, values: list[str]) -> None:
     if not record:
         raise HTTPException(status_code=404, detail="Registro no encontrado.")
 
-    new_rut = normalize_rut(values[5])
+    new_rut = normalize_rut(values[1])
     if new_rut.lower() != (record.rut or "").lower():
         exists = (
             db.query(ClienteBBDD.id)
@@ -171,14 +161,10 @@ def update_cliente_row(db: Session, row_id: int, values: list[str]) -> None:
         if exists:
             raise HTTPException(status_code=409, detail="El RUT ya existe en otro registro.")
 
-    record.cliente = (values[1] or "").strip()
-    record.direccion = (values[2] or "").strip()
-    record.contacto = (values[3] or "").strip()
-    record.correo = (values[4] or "").strip()
     record.rut = new_rut
-    record.tecnico_default = (values[6] or "").strip() if len(values) > 6 else record.tecnico_default
-    record.derivacion_default = (values[7] or "").strip() if len(values) > 7 else record.derivacion_default
-    record.soporte_default = (values[8] or "").strip() if len(values) > 8 else record.soporte_default
-    record.servicio_default = (values[9] or "").strip() if len(values) > 9 else record.servicio_default
-    record.problema_default = (values[10] or "").strip() if len(values) > 10 else record.problema_default
+    record.cliente = (values[2] or "").strip()
+    record.direccion = (values[3] or "").strip()
+    record.contacto = (values[4] or "").strip()
+    record.correo = (values[5] or "").strip()
+    record.rut = new_rut
     db.commit()
