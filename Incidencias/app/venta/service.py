@@ -66,73 +66,40 @@ def create_cliente(db: Session, payload: VentaClienteCreateRequest, ejecutivo_em
 
 
 def _fetch_catalog(path: str) -> dict:
-    base_url = (
-        getattr(settings, "venta_catalogo_base_url", "")
-        or getattr(settings, "VENTA_CATALOGO_BASE_URL", "")
-        or ""
-    ).rstrip("/")
+    base_url = (settings.venta_catalogo_base_url or "").rstrip("/")
     if not base_url:
-        raise HTTPException(status_code=503, detail="Catalogo externo no configurado.")
+        raise HTTPException(status_code=503, detail="La API externa de regiones/comunas no esta configurada.")
     req = Request(url=f"{base_url}{path}", method="GET")
     try:
-        timeout = int(
-            getattr(settings, "venta_catalogo_timeout_seconds", 8)
-            or getattr(settings, "VENTA_CATALOGO_TIMEOUT_SECONDS", 8)
-            or 8
-        )
+        timeout = int(settings.venta_catalogo_timeout_seconds or 8)
         with urlopen(req, timeout=timeout) as resp:
             body = resp.read().decode("utf-8")
             return json.loads(body)
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"No fue posible consultar el catalogo externo: {exc}")
+        raise HTTPException(status_code=502, detail=f"No fue posible consultar la API externa de regiones/comunas: {exc}")
 
 
 def fetch_regiones() -> list[str]:
-    fallback = [
-        "Arica y Parinacota",
-        "Tarapaca",
-        "Antofagasta",
-        "Atacama",
-        "Coquimbo",
-        "Valparaiso",
-        "Metropolitana de Santiago",
-        "O Higgins",
-        "Maule",
-        "Nuble",
-        "Biobio",
-        "La Araucania",
-        "Los Rios",
-        "Los Lagos",
-        "Aysen",
-        "Magallanes y de la Antartica Chilena",
-    ]
-    try:
-        data = _fetch_catalog("/regiones")
-        regiones = data.get("regiones") if isinstance(data, dict) else None
-        if not isinstance(regiones, list):
-            return fallback
-        cleaned = [str(item).strip() for item in regiones if str(item).strip()]
-        return cleaned or fallback
-    except HTTPException:
-        return fallback
+    data = _fetch_catalog("/regiones")
+    regiones = data.get("regiones") if isinstance(data, dict) else None
+    if not isinstance(regiones, list):
+        raise HTTPException(status_code=502, detail="La API externa devolvio una respuesta invalida para regiones.")
+    cleaned = [str(item).strip() for item in regiones if str(item).strip()]
+    if not cleaned:
+        raise HTTPException(status_code=502, detail="La API externa no devolvio regiones.")
+    return cleaned
 
 
 def fetch_comunas(region: str) -> list[str]:
-    fallback_by_region = {
-        "Valparaiso": ["Valparaiso", "Vina del Mar", "Concon", "Quilpue", "Villa Alemana", "Quillota", "La Calera", "Los Andes", "San Felipe", "San Antonio"],
-        "Metropolitana de Santiago": ["Santiago", "Providencia", "Las Condes", "Vitacura", "Nunoa", "Maipu", "Puente Alto", "La Florida", "San Bernardo", "Quilicura"],
-        "Biobio": ["Concepcion", "Talcahuano", "Chiguayante", "Hualpen", "Los Angeles", "Coronel", "Lota"],
-    }
     encoded = quote((region or "").strip())
-    try:
-        data = _fetch_catalog(f"/comunas?region={encoded}")
-        comunas = data.get("comunas") if isinstance(data, dict) else None
-        if not isinstance(comunas, list):
-            return fallback_by_region.get((region or "").strip(), [])
-        cleaned = [str(item).strip() for item in comunas if str(item).strip()]
-        return cleaned or fallback_by_region.get((region or "").strip(), [])
-    except HTTPException:
-        return fallback_by_region.get((region or "").strip(), [])
+    data = _fetch_catalog(f"/comunas?region={encoded}")
+    comunas = data.get("comunas") if isinstance(data, dict) else None
+    if not isinstance(comunas, list):
+        raise HTTPException(status_code=502, detail="La API externa devolvio una respuesta invalida para comunas.")
+    cleaned = [str(item).strip() for item in comunas if str(item).strip()]
+    if not cleaned:
+        raise HTTPException(status_code=502, detail=f"La API externa no devolvio comunas para la region '{region}'.")
+    return cleaned
 
 
 def get_clientes_table(db: Session) -> dict:
