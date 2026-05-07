@@ -91,9 +91,30 @@
     }
 
     /* ── SIDEBAR ── */
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 22px 24px 20px;
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      margin-bottom: 6px;
+    }
+    .sidebar-brand img {
+      width: 32px; height: 32px;
+      object-fit: contain;
+      opacity: .9;
+    }
+    .sidebar-brand span {
+      font-size: 13px;
+      font-weight: 800;
+      color: rgba(190,208,214,.8);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
     .sidebar {
       background: var(--navy-1);
-      padding: 24px 0 32px;
+      padding: 0 0 32px;
       display: flex;
       flex-direction: column;
       gap: 2px;
@@ -383,7 +404,7 @@
       <a class="sidebar-item" href="#sec-servicio"><span class="dot"></span>2. Tipo de Servicio</a>
       <a class="sidebar-item" href="#sec-config"><span class="dot"></span>Configuración</a>
       <a class="sidebar-item" href="#sec-detalle"><span class="dot"></span>3. Detalle y Montos</a>
-      <a class="sidebar-item" href="#sec-detalle"><span class="dot"></span>4. Orden de Compra</a>
+      <a class="sidebar-item" href="#sec-oc"><span class="dot"></span>4. Orden de Compra</a>
       <div class="sidebar-label">Documentos</div>
       <a class="sidebar-item" href="#sec-adjuntos"><span class="dot"></span>5. Archivos adjuntos</a>
     </nav>
@@ -531,7 +552,7 @@
         </div>
 
         <!-- Orden de Compra -->
-        <div class="section">
+        <div class="section" id="sec-oc">
           <div class="section-head">
             <span class="section-num">4</span>
             <span class="section-title">Orden de Compra</span>
