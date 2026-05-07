@@ -23,7 +23,7 @@
       --entry: #f8fafc;
       --radius: 9px;
       --radius-lg: 22px;
-      --sidebar-w: 220px;
+      --sidebar-w: 270px;
     }
 
     html { scroll-behavior: smooth; }
@@ -155,7 +155,7 @@
     }
 
     /* ── SECTION ── */
-    .section { margin-bottom: 30px; }
+    .section { margin-bottom: 30px; scroll-margin-top: 24px; }
     .section:last-of-type { margin-bottom: 0; }
 
     .section-head {
@@ -644,6 +644,28 @@ document.addEventListener("DOMContentLoaded", async function () {
   try { await cargarEjecutivosVenta(); actualizarVisibilidad(); }
   catch (error) { alert(error?.message || "No se pudo inicializar el formulario."); }
 });
+
+  (() => {
+    const sectionIds = ["sec-cliente", "sec-servicio", "sec-config", "sec-detalle", "sec-adjuntos"];
+    const navLinks = {};
+    document.querySelectorAll("a.sidebar-item").forEach(a => {
+      const id = (a.getAttribute("href") || "").replace("#", "");
+      if (id) navLinks[id] = a;
+    });
+    function setActive(id) {
+      Object.values(navLinks).forEach(a => a.classList.remove("active"));
+      if (navLinks[id]) navLinks[id].classList.add("active");
+    }
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) setActive(entry.target.id);
+      });
+    }, { threshold: 0.25, rootMargin: "0px 0px -60% 0px" });
+    sectionIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+  })();
 </script>
 </body>
 </html>
