@@ -206,7 +206,14 @@ class ProtocolosService:
         if not txt:
             return ""
 
-        # IA desactivada temporalmente: usar solo formalizacion local.
+        if settings.ia_formalizador_enabled:
+            try:
+                return self._formalizar_observacion_con_ia(txt)
+            except Exception as exc:
+                LOGGER.warning("Falla IA formalizacion: %s", exc)
+                if settings.ia_formalizador_strict:
+                    raise ValueError(f"Error en formalizacion con IA: {exc}") from exc
+
         return self.formalizar_observacion_mejorada(txt)
 
     def _preservar_tokens_operativos(self, text: str) -> tuple[str, dict[str, str]]:

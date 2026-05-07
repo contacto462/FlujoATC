@@ -130,6 +130,20 @@ class Settings(BaseSettings):
         default_factory=lambda: int(os.getenv("OPENAI_TIMEOUT_SEC") or "25"),
     )
 
+    # Claude (Anthropic) para formalizacion de observaciones
+    anthropic_api_key: str = Field(
+        default_factory=lambda: os.getenv("ANTHROPIC_API_KEY") or "",
+        description="API key de Anthropic para correccion de texto con Claude.",
+    )
+    anthropic_model_formalizador: str = Field(
+        default_factory=lambda: os.getenv("ANTHROPIC_MODEL_FORMALIZADOR") or "claude-haiku-4-5",
+        description="Modelo Claude para formalizar observaciones (ej: claude-haiku-4-5, claude-opus-4-7).",
+    )
+    anthropic_timeout_sec: int = Field(
+        default_factory=lambda: int(os.getenv("ANTHROPIC_TIMEOUT_SEC") or "25"),
+        description="Timeout en segundos para llamadas a la API de Anthropic.",
+    )
+
     google_drive_enabled: bool = Field(
         default_factory=lambda: str(os.getenv("GOOGLE_DRIVE_ENABLED") or "false").strip().lower() in {"1", "true", "yes", "on"},
         description="Habilita generacion de PDF e imagenes en Google Drive al cerrar ODT.",
