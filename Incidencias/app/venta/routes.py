@@ -8,12 +8,23 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.schemas import LoginRequest
 from app.services import IncidenciasService
-from app.venta.schemas import VentaClienteCreateRequest, VentaClienteCreateResponse, VentaClienteTableUpdateRequest
+from app.venta.schemas import (
+    VentaClienteCreateRequest,
+    VentaClienteCreateResponse,
+    VentaClienteTableUpdateRequest,
+    VentaSucursalCreateRequest,
+    VentaSucursalCreateResponse,
+)
 from app.venta.service import (
     create_cliente,
+    create_sucursal,
     fetch_comunas,
     fetch_regiones,
+    get_cliente_nombre_by_rut,
     get_clientes_table,
+    get_coordinates_for_address,
+    get_proveedores_electricidad,
+    get_proveedores_internet,
     rut_exists,
     update_cliente_row,
 )
@@ -41,6 +52,14 @@ def venta_clientes_page(
     token: str = Depends(require_venta_token),
 ):
     return templates.TemplateResponse("RegistroCliente.html", {"request": request, "token": token})
+
+
+@router.get("/venta/sucursales", response_class=HTMLResponse)
+def venta_sucursales_page(
+    request: Request,
+    token: str = Depends(require_venta_token),
+):
+    return templates.TemplateResponse("RegistroSucursal.html", {"request": request, "token": token})
 
 
 @router.get("/venta/login", response_class=HTMLResponse)
@@ -90,6 +109,15 @@ def venta_verificar_rut(
     return {"exists": rut_exists(db, rut)}
 
 
+@router.get("/api/venta/clientes/buscar-por-rut")
+def venta_buscar_cliente_por_rut(
+    rut: str = Query(..., min_length=3),
+    db: Session = Depends(get_db),
+    _: str = Depends(require_venta_token),
+):
+    return {"nombre": get_cliente_nombre_by_rut(db, rut)}
+
+
 @router.post("/api/venta/clientes", response_model=VentaClienteCreateResponse)
 def venta_crear_cliente(
     payload: VentaClienteCreateRequest,
@@ -115,6 +143,26 @@ def venta_catalogo_comunas(
     return {"comunas": fetch_comunas(region)}
 
 
+@router.get("/api/venta/proveedores/internet")
+def venta_proveedores_internet(_: str = Depends(require_venta_token)):
+    return {"proveedores": get_proveedores_internet()}
+
+
+@router.get("/api/venta/proveedores/electricidad")
+def venta_proveedores_electricidad(_: str = Depends(require_venta_token)):
+    return {"proveedores": get_proveedores_electricidad()}
+
+
+@router.get("/api/venta/coordenadas")
+def venta_coordenadas(
+    direccion: str = Query(..., min_length=2),
+    comuna: str = Query(..., min_length=2),
+    db: Session = Depends(get_db),
+    _: str = Depends(require_venta_token),
+):
+    return get_coordinates_for_address(db, direccion, comuna)
+
+
 @router.get("/api/venta/clientes/tabla")
 def venta_clientes_tabla(
     db: Session = Depends(get_db),
@@ -131,3 +179,20 @@ def venta_clientes_guardar_fila(
 ):
     update_cliente_row(db, payload.row_id, payload.values)
     return {"ok": True}
+
+
+@router.post("/api/venta/sucursales", response_model=VentaSucursalCreateResponse)
+def venta_crear_sucursal(
+    payload: VentaSucursalCreateRequest,
+    db: Session = Depends(get_db),
+    token: str = Depends(require_venta_token),
+    service: IncidenciasService = Depends(get_service),
+):
+    usuario = service.get_usuario_actual(token)
+    record = create_sucursal(db, payload, usuario_email=usuario)
+    return VentaSucursalCreateResponse(
+        ok=True,
+        sucursal_id=record.id,
+        codigo=record.codigo or "",
+        message="Sucursal registrada correctamente.",
+    )
