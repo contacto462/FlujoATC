@@ -193,6 +193,5 @@ def venta_crear_sucursal(
     return VentaSucursalCreateResponse(
         ok=True,
         sucursal_id=record.id,
-        codigo=record.codigo or "",
         message="Sucursal registrada correctamente.",
     )

@@ -510,7 +510,7 @@
             }
 
             const data = await response.json();
-            alert(`Sucursal registrada con exito. Codigo ${data.codigo || ""}`.trim());
+            alert(`Sucursal registrada con exito. ID ${data.sucursal_id || ""}`.trim());
             window.location.reload();
         } catch (error) {
             alert(error.message || "Error inesperado al registrar.");

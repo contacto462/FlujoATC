@@ -213,12 +213,9 @@ def create_sucursal(db: Session, payload: VentaSucursalCreateRequest, usuario_em
     db.add(record)
     db.flush()
 
-    record.codigo = f"V{record.id}"
-
     for contacto in contactos_validos:
         db.add(SucursalContactoEmergencia(
             sucursal_id=record.id,
-            codigo_sucursal=record.codigo,
             nombre=_clean_text(contacto.nombre),
             rut=normalize_rut(contacto.rut or "") or None,
             telefono=_clean_text(contacto.telefono),
@@ -230,7 +227,6 @@ def create_sucursal(db: Session, payload: VentaSucursalCreateRequest, usuario_em
             continue
         db.add(SucursalPersonaAutorizada(
             sucursal_id=record.id,
-            codigo_sucursal=record.codigo,
             nombre=_clean_text(persona.nombre),
             rut=normalize_rut(persona.rut or "") or None,
             telefono=_clean_text(persona.telefono),
@@ -244,7 +240,6 @@ def create_sucursal(db: Session, payload: VentaSucursalCreateRequest, usuario_em
             continue
         db.add(SucursalGuardia(
             sucursal_id=record.id,
-            codigo_sucursal=record.codigo,
             nombre=_clean_text(guardia.nombre),
             rut=normalize_rut(guardia.rut or "") or None,
             telefono=_clean_text(guardia.telefono),
