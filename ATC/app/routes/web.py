@@ -3827,8 +3827,11 @@ def ticket_detail(
         requester_name_catalog = []
 
     linked_odt: dict | None = None
+    odt_derivacion_tipo: str | None = None
+    correos_enviados: list[dict] = []
+    correos_count: int = 0
     try:
-        # Extraer número de ODT desde las notas de auditoría del ticket.
+        # Extraer número de ODT y tipo de derivación desde las notas de auditoría.
         # El formato de la nota es: "Derivado a {destino}. ODT: {odt}."
         odt_value_linked: str | None = None
         audit_msgs = (
@@ -3841,9 +3844,16 @@ def ticket_detail(
             .all()
         )
         for _msg in audit_msgs:
-            _match = re.search(r"ODT:\s*([\w\-]+)", _msg.content or "")
-            if _match:
-                odt_value_linked = _match.group(1).strip()
+            _content = _msg.content or ""
+            if not odt_value_linked:
+                _m_odt = re.search(r"ODT:\s*([\w\-]+)", _content)
+                if _m_odt:
+                    odt_value_linked = _m_odt.group(1).strip()
+            if not odt_derivacion_tipo:
+                _m_deriv = re.search(r"Derivado a ([^.]+)\.", _content)
+                if _m_deriv:
+                    odt_derivacion_tipo = _m_deriv.group(1).strip()
+            if odt_value_linked and odt_derivacion_tipo:
                 break
 
         if odt_value_linked:
@@ -3854,8 +3864,33 @@ def ticket_detail(
                 ).mappings().first()
                 if odt_row:
                     linked_odt = dict(odt_row)
+
+        if odt_derivacion_tipo:
+            _outgoing = (
+                db.query(Message)
+                .filter(
+                    Message.ticket_id == ticket_id,
+                    Message.channel == "email",
+                    Message.sender_type == "agent",
+                    Message.is_internal_note == False,
+                )
+                .order_by(Message.created_at.asc())
+                .all()
+            )
+            correos_count = len(_outgoing)
+            _requester_addr = (ticket.requester.email if ticket.requester else "") or ""
+            _subject_label = _build_ticket_email_subject(ticket.subject, ticket.id)
+            for _em in _outgoing:
+                correos_enviados.append({
+                    "fecha": _em.created_at,
+                    "destinatario": _requester_addr,
+                    "asunto": _subject_label,
+                })
     except Exception:
         linked_odt = None
+        odt_derivacion_tipo = None
+        correos_enviados = []
+        correos_count = 0
 
     assignable_users = (
         db.query(User)
