@@ -364,7 +364,8 @@ def create_ods(db: Session, payload: VentaODSCreateRequest, usuario_email: str) 
     if not razon_social or not direccion_sucursal:
         raise HTTPException(status_code=400, detail="Debes indicar razon social y direccion de sucursal.")
 
-    prefijo = "S" if "Servicio Técnico" in tipos else "V"
+    tipos_normalizados = {_normalize_text(item) for item in tipos}
+    prefijo = "S" if "servicio tecnico" in tipos_normalizados else "V"
     codigo = _next_ods_code(db, prefijo)
 
     cotizacion_path = _save_ods_file(codigo, payload.cotizacion)
