@@ -3,303 +3,391 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Registrar Cliente</title>
+  <title>Registrar Cliente — ATC</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #f1f5f9;
+      --navy-1: #0b1420;
+      --navy-2: #162538;
+      --navy-3: #1e3248;
+      --orange: #ff7a2b;
+      --orange-2: #ff9448;
+      --orange-dark: #e8691f;
       --surface: #ffffff;
+      --bg: #f0f4f8;
       --border: #e2e8f0;
-      --border-focus: #2563eb;
       --text: #0f172a;
-      --text-muted: #64748b;
-      --text-label: #374151;
-      --primary: #2563eb;
-      --primary-hover: #1d4ed8;
-      --primary-active: #1e40af;
-      --section-bg: #f8fafc;
-      --notice-bg: #eff6ff;
-      --notice-border: #bfdbfe;
-      --notice-text: #1e40af;
-      --radius-sm: 8px;
-      --radius-md: 12px;
-      --radius-lg: 18px;
-      --shadow: 0 1px 3px rgba(15,23,42,.08), 0 4px 16px rgba(15,23,42,.06);
+      --muted: #64748b;
+      --label: #374151;
+      --radius: 9px;
+      --radius-lg: 22px;
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
       background: var(--bg);
-      color: var(--text);
       min-height: 100vh;
       display: flex;
+      align-items: center;
       justify-content: center;
-      align-items: flex-start;
-      padding: 40px 16px;
+      padding: 32px 16px;
     }
 
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow);
+    /* ── SHELL ── */
+    .shell {
+      display: grid;
+      grid-template-columns: 300px 1fr;
       width: 100%;
-      max-width: 540px;
+      max-width: 860px;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgba(0,0,0,.06), 0 20px 60px rgba(0,0,0,.12);
+    }
+
+    /* ── LEFT PANEL ── */
+    .panel-left {
+      background: linear-gradient(160deg, var(--navy-1) 0%, var(--navy-2) 55%, var(--navy-3) 100%);
+      padding: 40px 28px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
       overflow: hidden;
     }
 
-    .card-header {
-      padding: 28px 32px 20px;
-      border-bottom: 1px solid var(--border);
-      background: var(--surface);
+    .panel-left::before {
+      content: '';
+      position: absolute;
+      top: -80px; right: -80px;
+      width: 260px; height: 260px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,122,43,.18) 0%, transparent 70%);
+      pointer-events: none;
     }
 
-    .card-header h1 {
-      font-size: 20px;
+    .panel-left::after {
+      content: '';
+      position: absolute;
+      bottom: -60px; left: -60px;
+      width: 200px; height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(61,115,168,.14) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 36px;
+    }
+
+    .brand-icon {
+      width: 38px; height: 38px;
+      border-radius: 10px;
+      background: rgba(255,122,43,.15);
+      border: 1px solid rgba(255,122,43,.25);
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .brand-icon svg { color: var(--orange); }
+
+    .brand-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #f4f8f9;
+      letter-spacing: .02em;
+    }
+
+    .panel-left h2 {
+      font-size: 22px;
+      font-weight: 800;
+      color: #f4f8f9;
+      line-height: 1.25;
+      letter-spacing: -.03em;
+      margin-bottom: 12px;
+      position: relative;
+    }
+
+    .panel-left p {
+      font-size: 13px;
+      color: #bed0d6;
+      line-height: 1.65;
+      position: relative;
+    }
+
+    .notice-left {
+      margin-top: 28px;
+      padding: 12px 14px;
+      background: rgba(255,122,43,.1);
+      border: 1px solid rgba(255,122,43,.22);
+      border-radius: var(--radius);
+      position: relative;
+    }
+
+    .notice-left p {
+      font-size: 12px;
+      color: #ffc59a;
+      line-height: 1.55;
+    }
+
+    .step-list {
+      margin-top: auto;
+      padding-top: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      position: relative;
+    }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .step-dot {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.14);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: #bed0d6;
+      flex-shrink: 0;
+    }
+
+    .step span {
+      font-size: 12px;
+      color: #bed0d6;
+    }
+
+    /* ── RIGHT PANEL ── */
+    .panel-right {
+      background: var(--surface);
+      padding: 36px 36px 40px;
+      overflow-y: auto;
+      max-height: 92vh;
+    }
+
+    .form-title {
+      font-size: 17px;
       font-weight: 700;
       color: var(--text);
       letter-spacing: -.02em;
-    }
-
-    .card-header p {
-      margin-top: 4px;
-      font-size: 13px;
-      color: var(--text-muted);
-    }
-
-    .card-body {
-      padding: 24px 32px 32px;
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-    }
-
-    .notice {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      background: var(--notice-bg);
-      border: 1px solid var(--notice-border);
-      border-radius: var(--radius-sm);
-      padding: 12px 14px;
       margin-bottom: 24px;
     }
 
-    .notice-icon {
-      flex-shrink: 0;
-      width: 16px;
-      height: 16px;
-      margin-top: 1px;
-      color: var(--primary);
+    /* ── SECTIONS ── */
+    .section {
+      margin-bottom: 28px;
     }
 
-    .notice p {
-      font-size: 12.5px;
-      color: var(--notice-text);
-      line-height: 1.5;
-      font-weight: 500;
-    }
-
-    .form-section {
-      margin-bottom: 20px;
-    }
-
-    .section-label {
-      font-size: 10px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .1em;
-      color: var(--text-muted);
-      margin-bottom: 12px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .field {
+    .section-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       margin-bottom: 14px;
     }
 
-    .field:last-child { margin-bottom: 0; }
-
-    .field label {
-      display: block;
-      font-size: 12.5px;
-      font-weight: 600;
-      color: var(--text-label);
-      margin-bottom: 5px;
+    .section-badge {
+      width: 20px; height: 20px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, var(--orange), var(--orange-2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px;
+      font-weight: 800;
+      color: #fff;
+      flex-shrink: 0;
     }
 
-    .field input,
-    .field select {
+    .section-name {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--muted);
+    }
+
+    /* ── GRID LAYOUTS ── */
+    .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .g-wide { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
+
+    /* ── FIELD ── */
+    .f { display: flex; flex-direction: column; gap: 4px; }
+
+    .f label {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--label);
+    }
+
+    .f input, .f select {
       width: 100%;
-      padding: 9px 12px;
-      font-size: 13.5px;
+      padding: 9px 11px;
+      font-size: 13px;
       font-family: inherit;
       color: var(--text);
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
+      border-radius: var(--radius);
       outline: none;
       transition: border-color .15s, box-shadow .15s;
       appearance: none;
     }
 
-    .field select {
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    .f select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
-      background-position: right 12px center;
-      padding-right: 34px;
+      background-position: right 11px center;
+      padding-right: 32px;
       cursor: pointer;
     }
 
-    .field input:focus,
-    .field select:focus {
-      border-color: var(--border-focus);
-      box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+    .f input:focus, .f select:focus {
+      border-color: var(--orange);
+      box-shadow: 0 0 0 3px rgba(255,122,43,.13);
     }
 
-    .field input::placeholder { color: #94a3b8; }
+    .f input::placeholder { color: #94a3b8; font-size: 12.5px; }
 
-    .grid-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
+    .mt { margin-top: 12px; }
+
+    /* ── DIVIDER ── */
+    hr.div {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0 0 24px;
     }
 
-    .grid-2 .field { margin-bottom: 0; }
-
-    .btn-primary {
+    /* ── SUBMIT ── */
+    .btn-submit {
       width: 100%;
-      padding: 11px 20px;
-      margin-top: 24px;
-      background: var(--primary);
+      padding: 12px;
+      background: linear-gradient(135deg, var(--orange) 0%, var(--orange-2) 100%);
       color: #fff;
       font-size: 14px;
-      font-weight: 600;
+      font-weight: 700;
       font-family: inherit;
       border: none;
-      border-radius: var(--radius-sm);
+      border-radius: var(--radius);
       cursor: pointer;
       letter-spacing: -.01em;
-      transition: background .15s, transform .1s, box-shadow .15s;
-      box-shadow: 0 1px 2px rgba(37,99,235,.2), 0 4px 10px rgba(37,99,235,.15);
+      box-shadow: 0 2px 8px rgba(255,122,43,.3), 0 6px 20px rgba(255,122,43,.18);
+      transition: opacity .15s, transform .12s, box-shadow .15s;
+      margin-top: 8px;
     }
 
-    .btn-primary:hover {
-      background: var(--primary-hover);
-      box-shadow: 0 2px 4px rgba(37,99,235,.25), 0 6px 16px rgba(37,99,235,.2);
+    .btn-submit:hover {
+      opacity: .92;
+      box-shadow: 0 4px 12px rgba(255,122,43,.4), 0 8px 28px rgba(255,122,43,.22);
     }
 
-    .btn-primary:active {
-      background: var(--primary-active);
-      transform: translateY(1px);
-    }
+    .btn-submit:active { transform: translateY(1px); }
+    .btn-submit:disabled { background: #94a3b8; box-shadow: none; cursor: not-allowed; }
 
-    .btn-primary:disabled {
-      background: #94a3b8;
-      cursor: not-allowed;
-      box-shadow: none;
-      transform: none;
-    }
-
-    @media (max-width: 560px) {
-      .card-header, .card-body { padding-left: 20px; padding-right: 20px; }
-      .grid-2 { grid-template-columns: 1fr; }
-      body { padding: 16px 12px; }
+    @media (max-width: 700px) {
+      .shell { grid-template-columns: 1fr; }
+      .panel-left { padding: 28px 24px; }
+      .panel-left .step-list { display: none; }
+      .panel-right { padding: 28px 24px 36px; max-height: none; }
+      .g2, .g3, .g-wide { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
 
-<div class="card">
-  <div class="card-header">
-    <h1>Registrar Cliente</h1>
-    <p>Complete todos los campos para registrar un nuevo cliente.</p>
+<div class="shell">
+  <!-- LEFT -->
+  <div class="panel-left">
+    <div class="brand-mark">
+      <div class="brand-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      </div>
+      <span class="brand-name">ATC · Alguien Te Cuida</span>
+    </div>
+
+    <h2>Registrar nuevo cliente</h2>
+    <p>Completa los datos de la empresa y el representante legal para crear el registro en el sistema.</p>
+
+    <div class="notice-left">
+      <p>Verifica en BBDD Clientes que el RUT no exista antes de registrar para evitar duplicados.</p>
+    </div>
+
+    <div class="step-list">
+      <div class="step"><div class="step-dot">1</div><span>Datos de la empresa</span></div>
+      <div class="step"><div class="step-dot">2</div><span>Región y facturación</span></div>
+      <div class="step"><div class="step-dot">3</div><span>Representante legal</span></div>
+    </div>
   </div>
 
-  <div class="card-body">
-    <div class="notice">
-      <svg class="notice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-      </svg>
-      <p>Antes de registrar, verifica que el cliente no exista para evitar duplicados.</p>
-    </div>
+  <!-- RIGHT -->
+  <div class="panel-right">
+    <div class="form-title">Nuevo Cliente</div>
 
     <form id="formularioClientes">
 
-      <div class="form-section">
-        <div class="section-label">Datos de la Empresa</div>
-
-        <div class="grid-2">
-          <div class="field">
-            <label for="rut">RUT Empresa</label>
-            <input type="text" id="rut" placeholder="12.345.678-9" required>
-          </div>
-          <div class="field">
-            <label for="giro">Giro</label>
-            <input type="text" id="giro" placeholder="Giro comercial" required>
-          </div>
+      <!-- Sección 1: Empresa -->
+      <div class="section">
+        <div class="section-head">
+          <div class="section-badge">1</div>
+          <span class="section-name">Datos de la Empresa</span>
         </div>
 
-        <div class="field" style="margin-top:14px;">
-          <label for="razonSocial">Razón Social</label>
-          <input type="text" id="razonSocial" placeholder="Nombre legal de la empresa" required>
+        <div class="g-wide">
+          <div class="f"><label>RUT Empresa</label><input type="text" id="rut" placeholder="12.345.678-9" required></div>
+          <div class="f"><label>Giro</label><input type="text" id="giro" placeholder="Giro comercial" required></div>
+        </div>
+        <div class="f mt"><label>Razón Social</label><input type="text" id="razonSocial" placeholder="Nombre legal de la empresa" required></div>
+        <div class="f mt"><label>Dirección Empresa (Casa Matriz)</label><input type="text" id="direccion" placeholder="Calle, número, ciudad" required></div>
+      </div>
+
+      <hr class="div">
+
+      <!-- Sección 2: Ubicación y facturación -->
+      <div class="section">
+        <div class="section-head">
+          <div class="section-badge">2</div>
+          <span class="section-name">Región y Facturación</span>
         </div>
 
-        <div class="field" style="margin-top:14px;">
-          <label for="direccion">Dirección Empresa (Casa Matriz)</label>
-          <input type="text" id="direccion" placeholder="Calle, número, ciudad" required>
-        </div>
-
-        <div class="grid-2" style="margin-top:14px;">
-          <div class="field">
-            <label for="region">Región</label>
-            <select id="region" required>
-              <option value="" disabled selected>Seleccionar</option>
-            </select>
+        <div class="g2">
+          <div class="f"><label>Región</label>
+            <select id="region" required><option value="" disabled selected>Seleccionar</option></select>
           </div>
-          <div class="field">
-            <label for="comuna">Comuna</label>
-            <select id="comuna" required>
-              <option value="" disabled selected>Seleccionar</option>
-            </select>
+          <div class="f"><label>Comuna</label>
+            <select id="comuna" required><option value="" disabled selected>Seleccionar</option></select>
           </div>
         </div>
+        <div class="f mt"><label>Email Envío de Facturas</label><input type="email" id="emailFacturas" placeholder="facturacion@empresa.cl" required></div>
+      </div>
 
-        <div class="field" style="margin-top:14px;">
-          <label for="emailFacturas">Email Envío de Facturas</label>
-          <input type="email" id="emailFacturas" placeholder="facturacion@empresa.cl" required>
+      <hr class="div">
+
+      <!-- Sección 3: Representante -->
+      <div class="section">
+        <div class="section-head">
+          <div class="section-badge">3</div>
+          <span class="section-name">Representante Legal</span>
+        </div>
+
+        <div class="g2">
+          <div class="f"><label>Nombre Completo</label><input type="text" id="nombreRepresentante" placeholder="Nombre y apellidos" required></div>
+          <div class="f"><label>RUT Representante</label><input type="text" id="rutRepresentante" placeholder="12.345.678-9" required></div>
+        </div>
+        <div class="g2 mt">
+          <div class="f"><label>Teléfono</label><input type="text" id="telefono" value="+569" required maxlength="13"></div>
+          <div class="f"><label>Email</label><input type="email" id="emailRepresentante" placeholder="correo@empresa.cl" required></div>
         </div>
       </div>
 
-      <div class="form-section">
-        <div class="section-label">Representante Legal</div>
-
-        <div class="grid-2">
-          <div class="field">
-            <label for="nombreRepresentante">Nombre</label>
-            <input type="text" id="nombreRepresentante" placeholder="Nombre completo" required>
-          </div>
-          <div class="field">
-            <label for="rutRepresentante">RUT</label>
-            <input type="text" id="rutRepresentante" placeholder="12.345.678-9" required>
-          </div>
-        </div>
-
-        <div class="grid-2" style="margin-top:14px;">
-          <div class="field">
-            <label for="telefono">Teléfono</label>
-            <input type="text" id="telefono" value="+569" required maxlength="13">
-          </div>
-          <div class="field">
-            <label for="emailRepresentante">Email</label>
-            <input type="email" id="emailRepresentante" placeholder="correo@empresa.cl" required>
-          </div>
-        </div>
-      </div>
-
-      <button id="btnRegistrar" type="button" class="btn-primary">Registrar Cliente</button>
+      <button id="btnRegistrar" type="button" class="btn-submit">Registrar Cliente</button>
     </form>
   </div>
 </div>
@@ -308,96 +396,62 @@
 
 <script>
   const qsToken = new URLSearchParams(window.location.search).get("token") || "";
-  const withToken = (url) => {
-    const sep = url.includes("?") ? "&" : "?";
-    return qsToken ? `${url}${sep}token=${encodeURIComponent(qsToken)}` : url;
-  };
+  const withToken = (url) => { const sep = url.includes("?") ? "&" : "?"; return qsToken ? `${url}${sep}token=${encodeURIComponent(qsToken)}` : url; };
   function formatearRUT(rut) {
     if (!rut) return "";
     const limpio = rut.replace(/[^0-9Kk]/g, "").toUpperCase();
     if (limpio.length < 2) return limpio;
     return limpio.slice(0, -1) + "-" + limpio.slice(-1);
   }
-
   function formatearTelefono() {
     const input = document.getElementById("telefono");
     if (!input.value.startsWith("+569")) input.value = "+569";
     input.value = "+569" + input.value.slice(4).replace(/\D/g, "");
     if (input.value.length > 13) input.value = input.value.slice(0, 13);
   }
-
   function evitarBorrarPrefijo(event) {
     const input = document.getElementById("telefono");
-    if ((event.key === "Backspace" || event.key === "Delete") && input.selectionStart <= 4) {
-      event.preventDefault();
-    }
+    if ((event.key === "Backspace" || event.key === "Delete") && input.selectionStart <= 4) event.preventDefault();
   }
-
   async function cargarUsuarioActual() {
     const response = await fetch(withToken("/api/venta/usuario-actual"));
     if (!response.ok) throw new Error("No se pudo obtener el usuario actual.");
     const data = await response.json();
     document.getElementById("ejecutivoVenta").value = data.username || "";
   }
-
   async function cargarRegiones() {
     const response = await fetch(withToken("/api/venta/catalogo/regiones"));
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({ detail: "No se pudo cargar el catalogo de regiones." }));
-      throw new Error(typeof err?.detail === "string" ? err.detail : "No se pudo cargar el catalogo de regiones.");
-    }
+    if (!response.ok) { const err = await response.json().catch(() => ({})); throw new Error(typeof err?.detail === "string" ? err.detail : "No se pudo cargar regiones."); }
     const data = await response.json();
     const regionSelect = document.getElementById("region");
     regionSelect.innerHTML = '<option value="" disabled selected>Seleccionar</option>';
-    (data.regiones || []).forEach(region => {
-      const option = document.createElement("option");
-      option.value = region;
-      option.textContent = region;
-      regionSelect.appendChild(option);
-    });
+    (data.regiones || []).forEach(r => { const o = document.createElement("option"); o.value = r; o.textContent = r; regionSelect.appendChild(o); });
     regionSelect.disabled = false;
   }
-
   async function cargarComunas(region) {
     const comunaSelect = document.getElementById("comuna");
     comunaSelect.disabled = true;
     comunaSelect.innerHTML = '<option value="" selected>Cargando...</option>';
     const response = await fetch(withToken("/api/venta/catalogo/comunas?region=" + encodeURIComponent(region)));
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({ detail: "No se pudo cargar el catalogo de comunas." }));
-      comunaSelect.disabled = false;
-      comunaSelect.innerHTML = '<option value="" disabled selected>Seleccionar</option>';
-      throw new Error(typeof err?.detail === "string" ? err.detail : "No se pudo cargar el catalogo de comunas.");
-    }
+    if (!response.ok) { const err = await response.json().catch(() => ({})); comunaSelect.disabled = false; comunaSelect.innerHTML = '<option value="" disabled selected>Seleccionar</option>'; throw new Error(typeof err?.detail === "string" ? err.detail : "No se pudo cargar comunas."); }
     const data = await response.json();
     const comunas = data.comunas || [];
     comunaSelect.innerHTML = "";
-    comunas.forEach((comuna, index) => {
-      const option = document.createElement("option");
-      option.value = comuna;
-      option.textContent = comuna;
-      if (index === 0) option.selected = true;
-      comunaSelect.appendChild(option);
-    });
+    comunas.forEach((c, i) => { const o = document.createElement("option"); o.value = c; o.textContent = c; if (i === 0) o.selected = true; comunaSelect.appendChild(o); });
     if (!comunas.length) comunaSelect.innerHTML = '<option value="" disabled selected>Sin comunas disponibles</option>';
     comunaSelect.disabled = false;
   }
-
   async function verificarRutExiste(rut) {
     const response = await fetch(withToken("/api/venta/clientes/verificar-rut?rut=" + encodeURIComponent(rut)));
     if (!response.ok) throw new Error("No se pudo verificar el RUT.");
-    const data = await response.json();
-    return Boolean(data.exists);
+    return Boolean((await response.json()).exists);
   }
-
   async function enviarFormulario() {
     const boton = document.getElementById("btnRegistrar");
-    boton.disabled = true;
-    boton.textContent = "Registrando...";
+    boton.disabled = true; boton.textContent = "Registrando...";
     try {
       const rutFormateado = formatearRUT(document.getElementById("rut").value.trim());
-      const existe = await verificarRutExiste(rutFormateado);
-      if (existe) { alert("Error: El RUT ya esta registrado."); return; }
+      if (await verificarRutExiste(rutFormateado)) { alert("Error: El RUT ya esta registrado."); return; }
       const payload = {
         ejecutivo: document.getElementById("ejecutivoVenta").value,
         rut: rutFormateado,
@@ -412,55 +466,35 @@
         telefono: document.getElementById("telefono").value.trim(),
         emailRepresentante: document.getElementById("emailRepresentante").value.trim()
       };
-      const response = await fetch(withToken("/api/venta/clientes"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
+      const response = await fetch(withToken("/api/venta/clientes"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       if (!response.ok) {
         const err = await response.json().catch(() => ({ detail: "Error al registrar el cliente." }));
         let message = "Error al registrar el cliente.";
-        if (typeof err?.detail === "string") {
-          message = err.detail;
-        } else if (Array.isArray(err?.detail) && err.detail.length > 0) {
-          const first = err.detail[0];
-          const field = Array.isArray(first?.loc) ? first.loc[first.loc.length - 1] : "";
-          message = field ? `${field}: ${first?.msg || "valor invalido"}` : (first?.msg || message);
-        } else if (err?.message) { message = err.message; }
+        if (typeof err?.detail === "string") { message = err.detail; }
+        else if (Array.isArray(err?.detail) && err.detail.length > 0) { const first = err.detail[0]; const field = Array.isArray(first?.loc) ? first.loc[first.loc.length - 1] : ""; message = field ? `${field}: ${first?.msg || "valor invalido"}` : (first?.msg || message); }
+        else if (err?.message) { message = err.message; }
         throw new Error(message);
       }
       alert("Cliente registrado con exito.");
       document.getElementById("formularioClientes").reset();
       document.getElementById("telefono").value = "+569";
-    } catch (error) {
-      alert(error.message || "Error inesperado al registrar.");
-    } finally {
-      boton.disabled = false;
-      boton.textContent = "Registrar Cliente";
-    }
+    } catch (error) { alert(error.message || "Error inesperado al registrar."); }
+    finally { boton.disabled = false; boton.textContent = "Registrar Cliente"; }
   }
-
   document.addEventListener("DOMContentLoaded", async function () {
     const regionSelect = document.getElementById("region");
     const comunaSelect = document.getElementById("comuna");
-    regionSelect.disabled = true;
-    comunaSelect.disabled = true;
+    regionSelect.disabled = true; comunaSelect.disabled = true;
     document.getElementById("rut").addEventListener("input", function () { this.value = formatearRUT(this.value); });
     document.getElementById("rutRepresentante").addEventListener("input", function () { this.value = formatearRUT(this.value); });
     document.getElementById("telefono").addEventListener("input", formatearTelefono);
     document.getElementById("telefono").addEventListener("keydown", evitarBorrarPrefijo);
     document.getElementById("btnRegistrar").addEventListener("click", enviarFormulario);
-    const onRegionSelected = async function () {
-      if (!this.value) return;
-      try { await cargarComunas(this.value); } catch (err) { alert(err.message); }
-    };
+    const onRegionSelected = async function () { if (!this.value) return; try { await cargarComunas(this.value); } catch (err) { alert(err.message); } };
     regionSelect.addEventListener("change", onRegionSelected);
     regionSelect.addEventListener("input", onRegionSelected);
-    try {
-      await Promise.all([cargarUsuarioActual(), cargarRegiones()]);
-    } catch (error) {
-      alert(error.message || "No se pudo inicializar el formulario.");
-    }
+    try { await Promise.all([cargarUsuarioActual(), cargarRegiones()]); }
+    catch (error) { alert(error.message || "No se pudo inicializar el formulario."); }
   });
 </script>
 </body>
