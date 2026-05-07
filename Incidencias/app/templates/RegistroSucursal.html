@@ -270,7 +270,6 @@
 
     async function cargarRegiones() {
         const regionSelect = document.getElementById("region");
-        regionSelect.innerHTML = '<option value="" disabled selected>Cargando regiones...</option>';
         const response = await fetch(withToken("/api/venta/catalogo/regiones"));
         if (!response.ok) {
             const err = await response.json().catch(() => ({ detail: "No se pudo cargar el catalogo de regiones." }));
@@ -284,29 +283,36 @@
             option.textContent = region;
             regionSelect.appendChild(option);
         });
+        regionSelect.disabled = false;
     }
 
     async function cargarComunas(region) {
         const comunaSelect = document.getElementById("comuna");
+        comunaSelect.disabled = true;
         comunaSelect.innerHTML = '<option value="" selected>Cargando comunas...</option>';
         const response = await fetch(withToken("/api/venta/catalogo/comunas?region=" + encodeURIComponent(region)));
         if (!response.ok) {
             const err = await response.json().catch(() => ({ detail: "No se pudo cargar el catalogo de comunas." }));
+            comunaSelect.disabled = false;
             comunaSelect.innerHTML = '<option value="" disabled selected>Seleccione una Comuna</option>';
             throw new Error(typeof err?.detail === "string" ? err.detail : "No se pudo cargar el catalogo de comunas.");
         }
         const data = await response.json();
         const comunas = data.comunas || [];
-        comunaSelect.innerHTML = '<option value="" disabled selected>Seleccione una Comuna</option>';
-        comunas.forEach((comuna) => {
+        comunaSelect.innerHTML = "";
+        comunas.forEach((comuna, index) => {
             const option = document.createElement("option");
             option.value = comuna;
             option.textContent = comuna;
+            if (index === 0) {
+                option.selected = true;
+            }
             comunaSelect.appendChild(option);
         });
         if (!comunas.length) {
             comunaSelect.innerHTML = '<option value="" disabled selected>Sin comunas disponibles</option>';
         }
+        comunaSelect.disabled = false;
     }
 
     async function cargarProveedoresInternet() {
@@ -530,8 +536,8 @@
         const regionSelect = document.getElementById("region");
         const comunaSelect = document.getElementById("comuna");
 
-        regionSelect.innerHTML = '<option value="" disabled selected>Cargando regiones...</option>';
-        comunaSelect.innerHTML = '<option value="" disabled selected>Seleccione una Comuna</option>';
+        regionSelect.disabled = true;
+        comunaSelect.disabled = true;
 
         document.getElementById("rut").addEventListener("input", function () {
             formatearRUTInput(this);
@@ -563,17 +569,9 @@
         document.getElementById("telefono").addEventListener("input", function () {
             formatearTelefono(this);
         });
-        const onRegionSelected = async function () {
-            if (!this.value) return;
-            try {
-                await cargarComunas(this.value);
-            } catch (err) {
-                alert(err.message);
-            }
-        };
-
-        regionSelect.addEventListener("change", onRegionSelected);
-        regionSelect.addEventListener("input", onRegionSelected);
+        regionSelect.addEventListener("change", function () {
+            if (this.value) cargarComunas(this.value).catch(err => alert(err.message));
+        });
         document.getElementById("comuna").addEventListener("change", () => {
             actualizarCoordenadas().catch(() => {});
         });
@@ -587,8 +585,8 @@
         });
 
         try {
+            await cargarRegiones();
             await Promise.all([
-                cargarRegiones(),
                 cargarProveedoresInternet(),
                 cargarProveedoresElectricidad(),
             ]);
