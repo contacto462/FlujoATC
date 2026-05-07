@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class VentaClienteCreateRequest(BaseModel):
@@ -16,6 +16,14 @@ class VentaClienteCreateRequest(BaseModel):
     telefono: str | None = Field(default=None, max_length=32)
     emailRepresentante: EmailStr | None = None
     ejecutivo: str | None = None
+
+    @field_validator("emailRepresentante", mode="before")
+    @classmethod
+    def empty_optional_email_to_none(cls, value):
+        if value is None:
+            return None
+        cleaned = str(value).strip()
+        return cleaned or None
 
 
 class VentaClienteCreateResponse(BaseModel):
@@ -35,6 +43,14 @@ class VentaSucursalContactoEmergenciaRequest(BaseModel):
     telefono: str | None = Field(default=None, max_length=32)
     email: EmailStr | None = None
 
+    @field_validator("email", mode="before")
+    @classmethod
+    def empty_email_to_none(cls, value):
+        if value is None:
+            return None
+        cleaned = str(value).strip()
+        return cleaned or None
+
 
 class VentaSucursalPersonaAutorizadaRequest(BaseModel):
     nombre: str | None = Field(default=None, max_length=255)
@@ -43,6 +59,14 @@ class VentaSucursalPersonaAutorizadaRequest(BaseModel):
     email: EmailStr | None = None
     claveVerde: str | None = Field(default=None, max_length=255)
     claveRoja: str | None = Field(default=None, max_length=255)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def empty_email_to_none(cls, value):
+        if value is None:
+            return None
+        cleaned = str(value).strip()
+        return cleaned or None
 
 
 class VentaSucursalGuardiaRequest(BaseModel):
