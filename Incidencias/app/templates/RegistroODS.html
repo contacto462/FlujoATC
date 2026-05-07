@@ -95,12 +95,12 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 28px 24px 24px;
+      padding: 20px 24px 16px;
       border-bottom: 1px solid rgba(255,255,255,.07);
-      margin-bottom: 6px;
+      margin-bottom: 2px;
     }
     .sidebar-brand img {
-      width: 100px; height: 100px;
+      width: 90px; height: 90px;
       object-fit: contain;
       opacity: .94;
     }
@@ -187,8 +187,6 @@
       align-items: center;
       gap: 12px;
       margin-bottom: 22px;
-      padding-bottom: 14px;
-      border-bottom: 2px solid var(--bg);
     }
 
     .section-title {
@@ -196,6 +194,8 @@
       font-weight: 800;
       color: var(--text);
       letter-spacing: -.03em;
+      border-left: 4px solid var(--orange);
+      padding-left: 14px;
     }
 
     /* ── GRIDS ── */
@@ -369,7 +369,6 @@
     <nav class="sidebar">
       <div class="sidebar-brand">
         <img src="/shared-static/img/logo-atc.png" alt="ATC">
-        <span>ODS</span>
       </div>
       <div class="sidebar-label">Formulario</div>
       <a class="sidebar-item active" href="#sec-cliente"><span class="dot"></span>1. Cliente</a>
