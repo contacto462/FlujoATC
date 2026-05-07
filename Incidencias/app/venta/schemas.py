@@ -154,3 +154,25 @@ class VentaODSCreateResponse(BaseModel):
     ods_id: int
     codigo: str
     message: str
+
+
+class VentaODSUpdateRequest(BaseModel):
+    selectorODS: str = Field(min_length=2, max_length=30)
+    rut: str | None = Field(default=None, max_length=32)
+    razonSocial: str | None = Field(default=None, max_length=255)
+    direccionSucursal: str | None = Field(default=None, max_length=255)
+    nombreSucursal: str | None = Field(default=None, max_length=255)
+    tipoPlan: str | None = Field(default=None, max_length=120)
+    tipoCliente: str | None = Field(default=None, max_length=120)
+    camInstalar: str | None = Field(default=None, max_length=20)
+    camVigilar: str | None = Field(default=None, max_length=20)
+    montoACobrar: str | None = None
+    diasAdicional: str | None = Field(default=None, max_length=120)
+    horario: str | None = Field(default=None, max_length=20)
+    materiales: str | None = None
+    consideraciones: str | None = None
+    observacion: str | None = None
+    tipoServicio: str | None = None
+    cotizacion: VentaODSArchivoRequest | None = None
+    layout: VentaODSArchivoRequest | None = None
+    oc: VentaODSArchivoRequest | None = None
