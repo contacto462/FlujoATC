@@ -2912,24 +2912,18 @@ body.is-inline-image-resizing{
             {% if odt_derivacion_tipo == 'Cliente' and correos_enviados %}
             <hr class="odt-divider">
             <div class="odt-section-label">Correos enviados al cliente</div>
-            <table class="odt-correos-table">
-              <thead>
-                <tr>
-                  <th>Fecha / Hora</th>
-                  <th>Destinatario</th>
-                  <th>Asunto</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for correo in correos_enviados %}
-                <tr>
-                  <td>{{ correo.fecha.strftime('%d-%m-%Y %H:%M') if correo.fecha else '—' }}</td>
-                  <td>{{ correo.destinatario or '—' }}</td>
-                  <td>{{ correo.asunto or '—' }}</td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+            {% for correo in correos_enviados %}
+            <div class="odt-correo-card">
+              <div class="odt-correo-meta">
+                <span><strong>{{ loop.index }}.</strong> {{ correo.fecha.strftime('%d-%m-%Y %H:%M') if correo.fecha else '—' }}</span>
+                <span class="odt-correo-to">Para: {{ correo.destinatario or '—' }}</span>
+              </div>
+              <div class="odt-correo-asunto">{{ correo.asunto or '—' }}</div>
+              {% if correo.contenido %}
+              <div class="odt-correo-body">{{ correo.contenido | safe }}</div>
+              {% endif %}
+            </div>
+            {% endfor %}
             {% endif %}
           </div>
         </div>
