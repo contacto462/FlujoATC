@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Panel Registro Clientes</title>
+<title>Panel Venta</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -67,23 +67,28 @@ h1{margin:12px 0 14px; font-size:44px; line-height:1.02; letter-spacing:-.03em}
     <section class="hero">
       <div class="hero-copy">
         <p style="margin:0;color:#c8d6e8;font-size:13px;font-weight:700">Modulo Venta</p>
-        <h1>Panel Registro Clientes</h1>
-        <p class="lead">Selecciona la vista que quieres usar. Registro y Tabla están separados para evitar cruces de operación.</p>
+        <h1>Panel Venta</h1>
+        <p class="lead">Selecciona la vista que quieres usar. Cada flujo queda separado para no cruzar registros ni operaciones.</p>
         <div class="user-chip">Usuario: {{ tecnico|default('Desconocido') }}</div>
       </div>
       <aside class="hero-side">
         <h2 class="panel-title">Abrir vista</h2>
-        <p class="panel-sub">Ambas vistas usan el mismo token de sesión actual.</p>
+        <p class="panel-sub">Todas las vistas usan el mismo token de sesion actual.</p>
         <div class="grid">
           <a class="option registro" href="/venta/clientes?token={{ token|default('') }}">
             <div class="icon">R</div>
             <strong>Registro Cliente</strong>
-            <p>Alta de clientes y validación de RUT contra SQL.</p>
+            <p>Alta de clientes y validacion de RUT contra SQL.</p>
+          </a>
+          <a class="option registro" href="/venta/sucursales?token={{ token|default('') }}">
+            <div class="icon">S</div>
+            <strong>Registro Sucursal</strong>
+            <p>Alta de sucursales con contactos, autorizados, guardias y coordenadas.</p>
           </a>
           <a class="option tabla" href="/venta/bbdd-clientes?token={{ token|default('') }}">
             <div class="icon">T</div>
             <strong>Tabla Cliente</strong>
-            <p>Edición fila a fila de la BBDD de clientes en SQL.</p>
+            <p>Edicion fila a fila de la BBDD de clientes en SQL.</p>
           </a>
         </div>
       </aside>
@@ -91,4 +96,3 @@ h1{margin:12px 0 14px; font-size:44px; line-height:1.02; letter-spacing:-.03em}
   </main>
 </body>
 </html>
-
