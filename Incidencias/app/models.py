@@ -70,7 +70,6 @@ class SucursalBBDD(Base):
     __tablename__ = "bbdd_sucursales"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    codigo: Mapped[Optional[str]] = mapped_column(String(40), unique=True, index=True, nullable=True)
     rut: Mapped[str] = mapped_column(String(40), index=True)
     nombre_empresa: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     nombre_sucursal: Mapped[str] = mapped_column(String(255), index=True)
@@ -97,7 +96,6 @@ class SucursalContactoEmergencia(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     sucursal_id: Mapped[int] = mapped_column(index=True)
-    codigo_sucursal: Mapped[Optional[str]] = mapped_column(String(40), index=True, nullable=True)
     nombre: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     rut: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
     telefono: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
@@ -109,7 +107,6 @@ class SucursalPersonaAutorizada(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     sucursal_id: Mapped[int] = mapped_column(index=True)
-    codigo_sucursal: Mapped[Optional[str]] = mapped_column(String(40), index=True, nullable=True)
     nombre: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     rut: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
     telefono: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
@@ -123,7 +120,6 @@ class SucursalGuardia(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     sucursal_id: Mapped[int] = mapped_column(index=True)
-    codigo_sucursal: Mapped[Optional[str]] = mapped_column(String(40), index=True, nullable=True)
     nombre: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     rut: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
     telefono: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)

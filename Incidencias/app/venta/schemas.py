@@ -103,5 +103,4 @@ class VentaSucursalCreateRequest(BaseModel):
 class VentaSucursalCreateResponse(BaseModel):
     ok: bool
     sucursal_id: int
-    codigo: str
     message: str
