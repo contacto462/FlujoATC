@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import base64
 import json
 import re
 import ssl
 import unicodedata
+from pathlib import Path
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
@@ -18,9 +20,11 @@ from app.models import (
     SucursalContactoEmergencia,
     SucursalGuardia,
     SucursalPersonaAutorizada,
+    VentaODS,
+    VentaODSArchivo,
 )
 from app.services import IncidenciasService
-from app.venta.schemas import VentaClienteCreateRequest, VentaSucursalCreateRequest
+from app.venta.schemas import VentaClienteCreateRequest, VentaODSArchivoRequest, VentaODSCreateRequest, VentaSucursalCreateRequest
 
 
 PROVEEDORES_INTERNET = [
@@ -48,6 +52,15 @@ PROVEEDORES_ELECTRICIDAD = [
     "Saesa",
     "Otro",
 ]
+
+VENTA_EJECUTIVOS = [
+    "Sebastian Storm",
+    "Teodoro Storm",
+    "Lucas Cortes",
+    "Gianpiero Lubiano",
+]
+
+VENTA_UPLOADS_DIR = Path(__file__).resolve().parents[2] / "uploads" / "venta_ods"
 
 
 def normalize_rut(value: str) -> str:
@@ -97,6 +110,10 @@ def get_proveedores_electricidad() -> list[str]:
     return PROVEEDORES_ELECTRICIDAD[:]
 
 
+def get_ejecutivos_venta() -> list[str]:
+    return VENTA_EJECUTIVOS[:]
+
+
 def get_coordinates_for_address(db: Session, direccion: str, comuna: str) -> dict[str, str]:
     query = ", ".join(part for part in [str(direccion or "").strip(), str(comuna or "").strip(), "Chile"] if part)
     if not query:
@@ -104,6 +121,28 @@ def get_coordinates_for_address(db: Session, direccion: str, comuna: str) -> dic
     service = IncidenciasService(db)
     lat, lng = service._geocodificar_direccion(query)
     return {"lat": lat or "", "lng": lng or ""}
+
+
+def get_ods_data_by_rut(db: Session, rut: str) -> dict[str, list[str] | str]:
+    safe_rut = normalize_rut(rut)
+    if not safe_rut:
+        return {"razonSocial": "", "direcciones": [], "nombresSucursales": []}
+
+    sucursales = (
+        db.query(SucursalBBDD)
+        .filter(func.lower(func.trim(SucursalBBDD.rut)) == safe_rut.lower())
+        .order_by(SucursalBBDD.nombre_sucursal.asc(), SucursalBBDD.direccion_sucursal.asc())
+        .all()
+    )
+    razon_social = get_cliente_nombre_by_rut(db, safe_rut)
+    direcciones = [str(s.direccion_sucursal or "").strip() for s in sucursales if str(s.direccion_sucursal or "").strip()]
+    nombres = [str(s.nombre_sucursal or "").strip() for s in sucursales]
+
+    return {
+        "razonSocial": razon_social,
+        "direcciones": direcciones,
+        "nombresSucursales": nombres,
+    }
 
 
 def create_cliente(db: Session, payload: VentaClienteCreateRequest, ejecutivo_email: str) -> ClienteBBDD:
@@ -245,6 +284,155 @@ def create_sucursal(db: Session, payload: VentaSucursalCreateRequest, usuario_em
             telefono=_clean_text(guardia.telefono),
             horario_desde=_clean_text(guardia.horarioDesde),
             horario_hasta=_clean_text(guardia.horarioHasta),
+        ))
+
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+def _safe_filename(value: str) -> str:
+    cleaned = re.sub(r"[^A-Za-z0-9._ -]", "_", str(value or "").strip())
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(" .")
+    return cleaned or "archivo"
+
+
+def _to_optional_int(value: str | None) -> int | None:
+    cleaned = str(value or "").strip()
+    if not cleaned:
+        return None
+    try:
+        return int(cleaned)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Valor numerico invalido: {cleaned}")
+
+
+def _next_ods_code(db: Session, prefijo: str) -> str:
+    existing_codes = [str(row[0] or "").strip() for row in db.query(VentaODS.codigo).all()]
+    max_number = 0
+    for code in existing_codes:
+        match = re.search(r"(\d+)$", code)
+        if not match:
+            continue
+        max_number = max(max_number, int(match.group(1)))
+    return f"{prefijo}{max_number + 1:04d}"
+
+
+def _decode_base64_payload(data: str | None) -> bytes:
+    raw = str(data or "").strip()
+    if not raw:
+        return b""
+    try:
+        return base64.b64decode(raw)
+    except Exception:
+        try:
+            if "," in raw:
+                return base64.b64decode(raw.split(",", 1)[1])
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"No se pudo decodificar un archivo adjunto: {exc}") from exc
+    return b""
+
+
+def _save_ods_file(codigo: str, payload: VentaODSArchivoRequest | None) -> str | None:
+    if not payload or not str(payload.data or "").strip():
+        return None
+
+    content = _decode_base64_payload(payload.data)
+    if not content:
+        return None
+
+    folder = VENTA_UPLOADS_DIR / _safe_filename(codigo)
+    folder.mkdir(parents=True, exist_ok=True)
+
+    file_name = _safe_filename(payload.nombre or "archivo.bin")
+    path = folder / file_name
+    path.write_bytes(content)
+    return str(path.relative_to(Path(__file__).resolve().parents[2])).replace("\\", "/")
+
+
+def create_ods(db: Session, payload: VentaODSCreateRequest, usuario_email: str) -> VentaODS:
+    tipos = [str(item or "").strip() for item in payload.tipoServicio if str(item or "").strip()]
+    if not tipos:
+        raise HTTPException(status_code=400, detail="Debes seleccionar al menos un tipo de servicio.")
+
+    rut = normalize_rut(payload.rutCliente)
+    if not rut:
+        raise HTTPException(status_code=400, detail="RUT cliente invalido.")
+
+    razon_social = str(payload.razonSocial or "").strip()
+    direccion_sucursal = str(payload.direccionSucursal or "").strip()
+    if not razon_social or not direccion_sucursal:
+        raise HTTPException(status_code=400, detail="Debes indicar razon social y direccion de sucursal.")
+
+    prefijo = "S" if "Servicio Técnico" in tipos else "V"
+    codigo = _next_ods_code(db, prefijo)
+
+    cotizacion_path = _save_ods_file(codigo, payload.cotizacion)
+    odc_path = _save_ods_file(codigo, payload.odc)
+    desglose_path = _save_ods_file(codigo, payload.desglosePrecioArchivo)
+
+    record = VentaODS(
+        codigo=codigo,
+        ejecutivo_venta=str(payload.ejecutivoVenta or "").strip(),
+        creado_por=_clean_text(usuario_email),
+        rut_cliente=rut,
+        razon_social=razon_social,
+        direccion_sucursal=direccion_sucursal,
+        nombre_sucursal=_clean_text(payload.nombreSucursal),
+        tipo_cliente=_clean_text(payload.tipoCliente),
+        tipo_servicio=" | ".join(tipos),
+        tipo_plan=_clean_text(payload.tipoPlan),
+        observacion=_clean_text(payload.observacion),
+        numero_camaras_instalar=_to_optional_int(payload.numeroCamarasInstalar),
+        numero_camaras_desinstalar=_to_optional_int(payload.numeroCamarasDesinstalar),
+        numero_camaras_vigilar=_to_optional_int(payload.numeroCamarasVigilar),
+        dias_grabacion=_to_optional_int(payload.diasGrabacion),
+        dias_monitoreo_desde=_clean_text(payload.diasMonitoreoDesde),
+        dias_monitoreo_hasta=_clean_text(payload.diasMonitoreoHasta),
+        dias_monitoreo_adicional=_clean_text(payload.diasMonitoreoAdicional),
+        horario_monitoreo=_clean_text(payload.horarioMonitoreo),
+        materiales=_clean_text(payload.materiales),
+        consideraciones=_clean_text(payload.consideraciones),
+        agua_bano=_clean_text(payload.aguaBano),
+        requiere_oc=_clean_text(payload.requiereOC),
+        montos_a_cobrar=_clean_text(payload.montosACobrar),
+        cotizacion_path=cotizacion_path,
+        odc_path=odc_path,
+        desglose_path=desglose_path,
+    )
+    db.add(record)
+    db.flush()
+
+    archivos: list[VentaODSArchivoRequest] = []
+    if payload.cotizacion and cotizacion_path:
+        archivos.append(payload.cotizacion)
+    if payload.odc and odc_path:
+        archivos.append(payload.odc)
+    if payload.desglosePrecioArchivo and desglose_path:
+        archivos.append(payload.desglosePrecioArchivo)
+    archivos.extend(payload.contratos or [])
+    archivos.extend(payload.layouts or [])
+
+    for archivo in archivos:
+        ruta = None
+        if archivo is payload.cotizacion:
+            ruta = cotizacion_path
+        elif archivo is payload.odc:
+            ruta = odc_path
+        elif archivo is payload.desglosePrecioArchivo:
+            ruta = desglose_path
+        else:
+            ruta = _save_ods_file(codigo, archivo)
+        if not ruta:
+            continue
+        db.add(VentaODSArchivo(
+            ods_id=record.id,
+            codigo_ods=codigo,
+            tipo_documento=_clean_text(archivo.tipoDocumento),
+            servicio=_clean_text(archivo.servicio),
+            nombre_archivo=_clean_text(archivo.nombre),
+            mime_type=_clean_text(archivo.tipo),
+            ruta_archivo=ruta,
         ))
 
     db.commit()
