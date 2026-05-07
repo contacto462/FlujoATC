@@ -172,24 +172,37 @@
             option.textContent = region;
             regionSelect.appendChild(option);
         });
+        regionSelect.disabled = false;
     }
 
     async function cargarComunas(region) {
+        const comunaSelect = document.getElementById("comuna");
+        comunaSelect.disabled = true;
+        comunaSelect.innerHTML = '<option value="" selected>Cargando comunas...</option>';
+
         const response = await fetch(withToken("/api/venta/catalogo/comunas?region=" + encodeURIComponent(region)));
         if (!response.ok) {
             const err = await response.json().catch(() => ({ detail: "No se pudo cargar el catalogo de comunas." }));
+            comunaSelect.disabled = false;
+            comunaSelect.innerHTML = '<option value="" disabled selected>Seleccione una Comuna</option>';
             throw new Error(typeof err?.detail === "string" ? err.detail : "No se pudo cargar el catalogo de comunas.");
         }
         const data = await response.json();
-
-        const comunaSelect = document.getElementById("comuna");
-        comunaSelect.innerHTML = '<option value="" disabled selected>Seleccione una Comuna</option>';
-        (data.comunas || []).forEach(comuna => {
+        const comunas = data.comunas || [];
+        comunaSelect.innerHTML = "";
+        comunas.forEach((comuna, index) => {
             const option = document.createElement("option");
             option.value = comuna;
             option.textContent = comuna;
+            if (index === 0) {
+                option.selected = true;
+            }
             comunaSelect.appendChild(option);
         });
+        if (!comunas.length) {
+            comunaSelect.innerHTML = '<option value="" disabled selected>Sin comunas disponibles</option>';
+        }
+        comunaSelect.disabled = false;
     }
 
     async function verificarRutExiste(rut) {
@@ -260,6 +273,12 @@
     }
 
     document.addEventListener("DOMContentLoaded", async function () {
+        const regionSelect = document.getElementById("region");
+        const comunaSelect = document.getElementById("comuna");
+
+        regionSelect.disabled = true;
+        comunaSelect.disabled = true;
+
         document.getElementById("rut").addEventListener("input", function () {
             this.value = formatearRUT(this.value);
         });
@@ -269,9 +288,17 @@
         document.getElementById("telefono").addEventListener("input", formatearTelefono);
         document.getElementById("telefono").addEventListener("keydown", evitarBorrarPrefijo);
         document.getElementById("btnRegistrar").addEventListener("click", enviarFormulario);
-        document.getElementById("region").addEventListener("change", function () {
-            if (this.value) cargarComunas(this.value).catch(err => alert(err.message));
-        });
+        const onRegionSelected = async function () {
+            if (!this.value) return;
+            try {
+                await cargarComunas(this.value);
+            } catch (err) {
+                alert(err.message);
+            }
+        };
+
+        regionSelect.addEventListener("change", onRegionSelected);
+        regionSelect.addEventListener("input", onRegionSelected);
 
         try {
             await Promise.all([cargarUsuarioActual(), cargarRegiones()]);
