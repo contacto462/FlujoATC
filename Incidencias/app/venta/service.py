@@ -145,6 +145,219 @@ def get_ods_data_by_rut(db: Session, rut: str) -> dict[str, list[str] | str]:
     }
 
 
+def get_cliente_resumen_by_rut(db: Session, rut: str) -> dict:
+    safe_rut = normalize_rut(rut)
+    cliente = (
+        db.query(ClienteBBDD)
+        .filter(func.lower(func.trim(ClienteBBDD.rut)) == safe_rut.lower())
+        .first()
+    )
+    if not cliente:
+        raise HTTPException(status_code=404, detail="No se encontro un cliente para el RUT ingresado.")
+
+    sucursales = (
+        db.query(SucursalBBDD)
+        .filter(func.lower(func.trim(SucursalBBDD.rut)) == safe_rut.lower())
+        .order_by(SucursalBBDD.nombre_sucursal.asc(), SucursalBBDD.direccion_sucursal.asc())
+        .all()
+    )
+
+    return {
+        "nombreCliente": cliente.cliente or "",
+        "direccionCasaMatriz": cliente.direccion or "",
+        "comunaCasaMatriz": cliente.comuna or "",
+        "nombreRepresentante": cliente.nombre_representante or cliente.contacto or "",
+        "rutRepresentante": cliente.rut_representante or "",
+        "emailRepresentante": cliente.email_representante or "",
+        "sucursales": [
+            {
+                "id": sucursal.id,
+                "nombre": sucursal.nombre_sucursal or "",
+                "direccion": sucursal.direccion_sucursal or "",
+                "label": f"{sucursal.nombre_sucursal or 'Sucursal'} - {sucursal.direccion_sucursal or ''}".strip(" -"),
+            }
+            for sucursal in sucursales
+        ],
+    }
+
+
+def get_cliente_sucursal_resumen(db: Session, rut: str, sucursal_id: int) -> dict:
+    safe_rut = normalize_rut(rut)
+    sucursal = (
+        db.query(SucursalBBDD)
+        .filter(SucursalBBDD.id == sucursal_id, func.lower(func.trim(SucursalBBDD.rut)) == safe_rut.lower())
+        .first()
+    )
+    if not sucursal:
+        raise HTTPException(status_code=404, detail="No se encontro la sucursal seleccionada para ese cliente.")
+
+    ultima_ods = (
+        db.query(VentaODS)
+        .filter(
+            func.lower(func.trim(VentaODS.rut_cliente)) == safe_rut.lower(),
+            func.lower(func.trim(VentaODS.direccion_sucursal)) == str(sucursal.direccion_sucursal or "").strip().lower(),
+        )
+        .order_by(VentaODS.id.desc())
+        .first()
+    )
+
+    contactos = (
+        db.query(SucursalContactoEmergencia)
+        .filter(SucursalContactoEmergencia.sucursal_id == sucursal.id)
+        .order_by(SucursalContactoEmergencia.id.asc())
+        .all()
+    )
+    autorizados = (
+        db.query(SucursalPersonaAutorizada)
+        .filter(SucursalPersonaAutorizada.sucursal_id == sucursal.id)
+        .order_by(SucursalPersonaAutorizada.id.asc())
+        .all()
+    )
+    guardias = (
+        db.query(SucursalGuardia)
+        .filter(SucursalGuardia.sucursal_id == sucursal.id)
+        .order_by(SucursalGuardia.id.asc())
+        .all()
+    )
+
+    return {
+        "comunaSucursal": sucursal.comuna or "",
+        "latitudLongitud": sucursal.latitud_longitud or (
+            f"{sucursal.latitud}, {sucursal.longitud}" if sucursal.latitud and sucursal.longitud else ""
+        ),
+        "referenciaUbicacion": sucursal.referencia_ubicacion or "",
+        "cantidadCamaras": str(ultima_ods.numero_camaras_vigilar or ultima_ods.numero_camaras_instalar or "") if ultima_ods else "",
+        "diasGrabacion": str(ultima_ods.dias_grabacion or "") if ultima_ods else "",
+        "proveedorInternet": sucursal.proveedor_internet or "",
+        "proveedorElectricidad": sucursal.proveedor_electricidad or "",
+        "numeroClienteElectricidad": sucursal.nro_proveedor_electricidad or "",
+        "diasApertura": sucursal.dias_funcionamiento or "",
+        "horarioApertura": sucursal.horario_apertura or "",
+        "horarioCierre": sucursal.horario_cierre or "",
+        "tipoServicio": ultima_ods.tipo_servicio.replace(" | ", ", ") if ultima_ods and ultima_ods.tipo_servicio else "",
+        "tipoPlan": ultima_ods.tipo_plan or "" if ultima_ods else "",
+        "contactosEmergencia": [
+            {
+                "id": item.id,
+                "nombre": item.nombre or "",
+                "rut": item.rut or "",
+                "telefono": item.telefono or "",
+                "email": item.email or "",
+            }
+            for item in contactos
+        ],
+        "personasAutorizadas": [
+            {
+                "id": item.id,
+                "nombre": item.nombre or "",
+                "rut": item.rut or "",
+                "telefono": item.telefono or "",
+                "email": item.email or "",
+                "claveVerde": item.clave_verde or "",
+                "claveRoja": item.clave_roja or "",
+            }
+            for item in autorizados
+        ],
+        "guardias": [
+            {
+                "id": item.id,
+                "nombre": item.nombre or "",
+                "rut": item.rut or "",
+                "telefono": item.telefono or "",
+                "horarioDesde": item.horario_desde or "",
+                "horarioHasta": item.horario_hasta or "",
+            }
+            for item in guardias
+        ],
+    }
+
+
+def add_persona_registro(db: Session, payload) -> None:
+    categoria = str(payload.categoria or "").strip().lower()
+    sucursal = db.query(SucursalBBDD).filter(SucursalBBDD.id == payload.sucursalId).first()
+    if not sucursal:
+        raise HTTPException(status_code=404, detail="Sucursal no encontrada.")
+
+    if categoria == "contacto de emergencia":
+        db.add(SucursalContactoEmergencia(
+            sucursal_id=sucursal.id,
+            nombre=_clean_text(payload.nombre),
+            rut=normalize_rut(payload.rut or "") or None,
+            telefono=_clean_text(payload.telefono),
+            email=_clean_text(str(payload.email) if payload.email else ""),
+        ))
+    elif categoria == "persona autorizada":
+        db.add(SucursalPersonaAutorizada(
+            sucursal_id=sucursal.id,
+            nombre=_clean_text(payload.nombre),
+            rut=normalize_rut(payload.rut or "") or None,
+            telefono=_clean_text(payload.telefono),
+            email=_clean_text(str(payload.email) if payload.email else ""),
+            clave_verde=_clean_text(payload.claveVerde),
+            clave_roja=_clean_text(payload.claveRoja),
+        ))
+    elif categoria == "guardia":
+        db.add(SucursalGuardia(
+            sucursal_id=sucursal.id,
+            nombre=_clean_text(payload.nombre),
+            rut=normalize_rut(payload.rut or "") or None,
+            telefono=_clean_text(payload.telefono),
+            horario_desde=_clean_text(payload.horarioDesde),
+            horario_hasta=_clean_text(payload.horarioHasta),
+        ))
+    else:
+        raise HTTPException(status_code=400, detail="Categoria no reconocida.")
+
+    db.commit()
+
+
+def update_persona_campo(db: Session, payload) -> None:
+    categoria = str(payload.categoria or "").strip().lower()
+    campo = str(payload.campo or "").strip()
+    nuevo_valor = str(payload.nuevoValor or "").strip()
+
+    model = None
+    allowed_fields: dict[str, str] = {}
+    if categoria == "contacto de emergencia":
+        model = SucursalContactoEmergencia
+        allowed_fields = {"nombre": "nombre", "rut": "rut", "telefono": "telefono", "email": "email"}
+    elif categoria == "persona autorizada":
+        model = SucursalPersonaAutorizada
+        allowed_fields = {
+            "nombre": "nombre",
+            "rut": "rut",
+            "telefono": "telefono",
+            "email": "email",
+            "claveVerde": "clave_verde",
+            "claveRoja": "clave_roja",
+        }
+    elif categoria == "guardia":
+        model = SucursalGuardia
+        allowed_fields = {
+            "nombre": "nombre",
+            "rut": "rut",
+            "telefono": "telefono",
+            "horarioDesde": "horario_desde",
+            "horarioHasta": "horario_hasta",
+        }
+    else:
+        raise HTTPException(status_code=400, detail="Categoria no reconocida.")
+
+    record = db.query(model).filter(model.id == payload.registroId).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Registro no encontrado.")
+    if campo not in allowed_fields:
+        raise HTTPException(status_code=400, detail="Campo no permitido.")
+
+    target_field = allowed_fields[campo]
+    if campo == "rut":
+        setattr(record, target_field, normalize_rut(nuevo_valor) or None)
+    else:
+        setattr(record, target_field, _clean_text(nuevo_valor))
+
+    db.commit()
+
+
 def create_cliente(db: Session, payload: VentaClienteCreateRequest, ejecutivo_email: str) -> ClienteBBDD:
     rut = normalize_rut(payload.rut)
     if rut_exists(db, rut):
