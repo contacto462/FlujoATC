@@ -13,6 +13,7 @@ from app.venta.schemas import (
     VentaClienteCreateResponse,
     VentaODSCreateRequest,
     VentaODSCreateResponse,
+    VentaODSUpdateRequest,
     VentaClienteTableUpdateRequest,
     VentaSucursalCreateRequest,
     VentaSucursalCreateResponse,
@@ -27,12 +28,15 @@ from app.venta.service import (
     get_cliente_nombre_by_rut,
     get_clientes_table,
     get_ejecutivos_venta,
+    get_ods_codes,
+    get_ods_detail,
     get_ods_data_by_rut,
     get_sucursales_table,
     get_coordinates_for_address,
     get_proveedores_electricidad,
     get_proveedores_internet,
     rut_exists,
+    update_ods,
     update_cliente_row,
     update_sucursal_row,
 )
@@ -76,6 +80,14 @@ def venta_ods_page(
     token: str = Depends(require_venta_token),
 ):
     return templates.TemplateResponse("RegistroODS.html", {"request": request, "token": token})
+
+
+@router.get("/venta/bbdd-orden-servicio", response_class=HTMLResponse)
+def venta_bbdd_orden_servicio_page(
+    request: Request,
+    token: str = Depends(require_venta_token),
+):
+    return templates.TemplateResponse("BBDDOrdenServicio.html", {"request": request, "token": token})
 
 
 @router.get("/venta/login", response_class=HTMLResponse)
@@ -191,6 +203,23 @@ def venta_ods_datos_por_rut(
     return get_ods_data_by_rut(db, rut)
 
 
+@router.get("/api/venta/ods/lista")
+def venta_ods_lista(
+    db: Session = Depends(get_db),
+    _: str = Depends(require_venta_token),
+):
+    return {"ods": get_ods_codes(db)}
+
+
+@router.get("/api/venta/ods/detalle")
+def venta_ods_detalle(
+    codigo: str = Query(..., min_length=2),
+    db: Session = Depends(get_db),
+    _: str = Depends(require_venta_token),
+):
+    return get_ods_detail(db, codigo)
+
+
 @router.get("/api/venta/coordenadas")
 def venta_coordenadas(
     direccion: str = Query(..., min_length=2),
@@ -268,3 +297,15 @@ def venta_crear_ods(
         codigo=record.codigo,
         message="Orden de servicio registrada correctamente.",
     )
+
+
+@router.post("/api/venta/ods/guardar")
+def venta_guardar_ods(
+    payload: VentaODSUpdateRequest,
+    db: Session = Depends(get_db),
+    token: str = Depends(require_venta_token),
+    service: IncidenciasService = Depends(get_service),
+):
+    usuario = service.get_usuario_actual(token)
+    record = update_ods(db, payload, usuario_email=usuario)
+    return {"ok": True, "codigo": record.codigo}
