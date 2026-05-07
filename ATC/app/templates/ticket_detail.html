@@ -2179,6 +2179,40 @@ body.is-inline-image-resizing{
 .odt-hidden-template{
   display:none;
 }
+.odt-correos-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:12px;
+  margin-top:4px;
+}
+.odt-correos-table th{
+  font-size:10px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:var(--muted-2);
+  padding:4px 6px;
+  text-align:left;
+  border-bottom:1px solid var(--border);
+}
+.odt-correos-table td{
+  padding:5px 6px;
+  border-bottom:1px solid var(--border);
+  color:#1e293b;
+  vertical-align:top;
+  word-break:break-all;
+}
+.odt-correos-table tr:last-child td{ border-bottom:none; }
+.odt-estado-inline{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+}
+.odt-activa-hint{
+  font-size:11px;
+  color:var(--muted);
+  font-style:italic;
+}
 
 .requester-sections{
   display:flex;
@@ -2781,6 +2815,9 @@ body.is-inline-image-resizing{
         </div>
         <div class="panel-b" style="display:flex;flex-direction:column;gap:10px;">
           <div class="mini" style="line-height:1.45;">Para ver la información de la ODT vinculada, haz clic en el botón Ver.</div>
+          {% if odt_derivacion_tipo == 'Cliente' %}
+          <div class="mini" style="color:var(--muted);">Correos enviados al cliente: <strong>{{ correos_count }}</strong></div>
+          {% endif %}
           <button
             type="button"
             class="odt-view-btn"

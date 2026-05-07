@@ -3963,6 +3963,9 @@ def ticket_detail(
             "focus_message_id": focus_message_id,
             "unseen_reply_message_ids": unseen_reply_message_ids,
             "linked_odt": linked_odt,
+            "odt_derivacion_tipo": odt_derivacion_tipo,
+            "correos_enviados": correos_enviados,
+            "correos_count": correos_count,
         },
     )
 
