@@ -2830,6 +2830,19 @@ body.is-inline-image-resizing{
         <div id="odt-info-template-{{ linked_odt.get('id') or linked_odt.get('odt') or ticket.id }}" class="odt-hidden-template">
           <div class="odt-modal-stack">
             <div class="odt-row">
+              <span class="odt-k">Estado ODT</span>
+              <span class="odt-v">
+                <span class="odt-estado-inline">
+                  <span class="badge {% if odt_finalizado %}badge-resolved{% else %}badge-pending{% endif %}" style="font-size:11px;">
+                    {% if odt_finalizado %}Finalizado{% else %}{{ linked_odt.get('estado') or 'Pendiente' }}{% endif %}
+                  </span>
+                  {% if not odt_finalizado %}
+                  <span class="odt-activa-hint">ODT activa</span>
+                  {% endif %}
+                </span>
+              </span>
+            </div>
+            <div class="odt-row">
               <span class="odt-k">Número ODT</span>
               <span class="odt-v">{{ linked_odt.get('odt') or ('#' ~ linked_odt.get('id', '')) }}</span>
             </div>
@@ -2895,6 +2908,28 @@ body.is-inline-image-resizing{
               <div class="odt-textblock">{{ _obs_final }}</div>
             </div>
             {% endif %}
+            {% endif %}
+            {% if odt_derivacion_tipo == 'Cliente' and correos_enviados %}
+            <hr class="odt-divider">
+            <div class="odt-section-label">Correos enviados al cliente</div>
+            <table class="odt-correos-table">
+              <thead>
+                <tr>
+                  <th>Fecha / Hora</th>
+                  <th>Destinatario</th>
+                  <th>Asunto</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for correo in correos_enviados %}
+                <tr>
+                  <td>{{ correo.fecha.strftime('%d-%m-%Y %H:%M') if correo.fecha else '—' }}</td>
+                  <td>{{ correo.destinatario or '—' }}</td>
+                  <td>{{ correo.asunto or '—' }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
             {% endif %}
           </div>
         </div>
