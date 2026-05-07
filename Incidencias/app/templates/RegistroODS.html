@@ -322,13 +322,12 @@
     .btn-submit:disabled { background: #94a3b8; box-shadow: none; cursor: not-allowed; }
 
     @media (max-width: 700px) {
-      .hero { grid-template-columns: 1fr; }
+      .hero { grid-template-columns: 1fr; padding: 20px 20px 16px; }
       .hero-notice { max-width: 100%; }
       .main-layout { grid-template-columns: 1fr; }
       .sidebar { display: none; }
-      .form-content { padding: 24px 22px 36px; max-height: none; }
+      .form-content { padding: 24px 22px 40px; }
       .g2, .g3 { grid-template-columns: 1fr; }
-      .hero { padding: 24px 22px 20px; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
     }
   </style>
 </head>
@@ -351,12 +350,12 @@
     <!-- SIDEBAR -->
     <nav class="sidebar">
       <div class="sidebar-label">Secciones</div>
-      <div class="sidebar-item active"><span class="dot"></span>Cliente</div>
-      <div class="sidebar-item"><span class="dot"></span>Tipo de Servicio</div>
-      <div class="sidebar-item"><span class="dot"></span>Configuración</div>
-      <div class="sidebar-item"><span class="dot"></span>Detalle y Montos</div>
+      <a class="sidebar-item active" href="#sec-cliente"><span class="dot"></span>Cliente</a>
+      <a class="sidebar-item" href="#sec-servicio"><span class="dot"></span>Tipo de Servicio</a>
+      <a class="sidebar-item" href="#sec-config"><span class="dot"></span>Configuración</a>
+      <a class="sidebar-item" href="#sec-detalle"><span class="dot"></span>Detalle y Montos</a>
       <div class="sidebar-label">Documentos</div>
-      <div class="sidebar-item"><span class="dot"></span>Archivos adjuntos</div>
+      <a class="sidebar-item" href="#sec-adjuntos"><span class="dot"></span>Archivos adjuntos</a>
     </nav>
 
     <!-- FORM -->
@@ -364,7 +363,7 @@
       <form id="formularioOrdenServicio">
 
         <!-- Cliente -->
-        <div class="section">
+        <div class="section" id="sec-cliente">
           <div class="section-head">
             <span class="section-pill">Cliente</span>
             <span class="section-title">Identificación y sucursal</span>
