@@ -176,3 +176,32 @@ class VentaODSUpdateRequest(BaseModel):
     cotizacion: VentaODSArchivoRequest | None = None
     layout: VentaODSArchivoRequest | None = None
     oc: VentaODSArchivoRequest | None = None
+
+
+class VentaPersonaRegistroRequest(BaseModel):
+    categoria: str = Field(min_length=3, max_length=80)
+    rutCliente: str = Field(min_length=3, max_length=32)
+    sucursalId: int
+    nombre: str | None = Field(default=None, max_length=255)
+    rut: str | None = Field(default=None, max_length=32)
+    telefono: str | None = Field(default=None, max_length=32)
+    email: EmailStr | None = None
+    claveVerde: str | None = Field(default=None, max_length=255)
+    claveRoja: str | None = Field(default=None, max_length=255)
+    horarioDesde: str | None = Field(default=None, max_length=20)
+    horarioHasta: str | None = Field(default=None, max_length=20)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def empty_email_to_none_persona(cls, value):
+        if value is None:
+            return None
+        cleaned = str(value).strip()
+        return cleaned or None
+
+
+class VentaPersonaCampoUpdateRequest(BaseModel):
+    categoria: str = Field(min_length=3, max_length=80)
+    registroId: int
+    campo: str = Field(min_length=2, max_length=80)
+    nuevoValor: str | None = None
