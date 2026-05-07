@@ -1,581 +1,809 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Solicitud Ordenes de Servicio</title>
-    <style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solicitud Orden de Servicio</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --border-focus: #2563eb;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --text-label: #374151;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --primary-active: #1e40af;
+      --entry-bg: #f8fafc;
+      --notice-bg: #eff6ff;
+      --notice-border: #bfdbfe;
+      --notice-text: #1e40af;
+      --chip-bg: #f8fafc;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+      --shadow: 0 1px 3px rgba(15,23,42,.08), 0 4px 16px rgba(15,23,42,.06);
+    }
+
     body {
-        font-family: Arial, sans-serif;
-        background-color: #F1F1F1;
-        color: #333333;
-        margin: 0;
-        padding: 24px 0;
-        display: flex;
-        justify-content: center;
-        align-items: flex-start;
-        min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 40px 16px;
     }
-    .contenedor {
-        background-color: white;
-        padding: 30px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        width: 90%;
-        max-width: 640px;
-        overflow-y: auto;
-        max-height: 90vh;
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      width: 100%;
+      max-width: 660px;
+      overflow: hidden;
     }
-    h1 {
-        text-align: center;
-        color: #333333;
-        margin-bottom: 30px;
-        font-size: 24px;
-        font-weight: 600;
+
+    .card-header {
+      padding: 28px 32px 20px;
+      border-bottom: 1px solid var(--border);
     }
-    h3 {
-        margin: 18px 0 10px;
-        font-size: 16px;
+
+    .card-header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -.02em;
     }
-    label {
-        display: block;
-        margin-top: 10px;
-        font-weight: 600;
-        color: #555555;
+
+    .card-header p {
+      margin-top: 4px;
+      font-size: 13px;
+      color: var(--text-muted);
     }
-    input, select, textarea {
-        width: 100%;
-        padding: 12px;
-        margin-top: 8px;
-        margin-bottom: 12px;
-        box-sizing: border-box;
-        border: 1px solid #DDDDDD;
-        border-radius: 6px;
-        background-color: #FFFFFF;
-        color: #333333;
+
+    .card-body {
+      padding: 24px 32px 36px;
     }
-    .checkbox-group {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 14px 18px;
+
+    .notice {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: var(--notice-bg);
+      border: 1px solid var(--notice-border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      margin-bottom: 24px;
     }
-    .checkbox-group label {
-        width: auto;
-        margin: 0;
-        font-weight: 500;
-        display: flex;
-        align-items: center;
+
+    .notice-icon { flex-shrink:0; width:16px; height:16px; margin-top:1px; color:var(--primary); }
+
+    .notice p {
+      font-size: 12.5px;
+      color: var(--notice-text);
+      line-height: 1.5;
+      font-weight: 500;
     }
-    .checkbox-group input {
-        margin-right: 8px;
-        width: 18px;
-        height: 18px;
+
+    .form-section { margin-bottom: 24px; }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
     }
-    button {
-        width: 100%;
-        padding: 14px;
-        background-color: #FFA500;
-        color: white;
-        font-size: 16px;
-        font-weight: bold;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        transition: background 0.3s ease;
+
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+
+    .field label {
+      display: block;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-label);
+      margin-bottom: 5px;
     }
-    button:hover { background-color: #FF8C00; }
-    .alerta {
-        background-color: #ffcc00;
-        color: #333;
-        padding: 10px;
-        border-radius: 5px;
-        margin-bottom: 20px;
-        text-align: center;
-        font-size: 14px;
-        font-weight: bold;
+
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      padding: 9px 12px;
+      font-size: 13.5px;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+      appearance: none;
+      resize: vertical;
     }
-    .row-2 {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
+
+    .field textarea { min-height: 72px; line-height: 1.5; }
+
+    .field select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 34px;
+      cursor: pointer;
     }
-    @media (max-width: 680px) {
-        .row-2 { grid-template-columns: 1fr; }
+
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(37,99,235,.12);
     }
-    </style>
+
+    .field input[readonly] {
+      background: var(--entry-bg);
+      color: var(--text-muted);
+      cursor: default;
+    }
+
+    .field input::placeholder,
+    .field textarea::placeholder { color: #94a3b8; }
+
+    .field input[type="file"] {
+      padding: 7px 10px;
+      font-size: 12.5px;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .grid-2 .field { margin-bottom: 0; }
+
+    /* Service type chips */
+    .service-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 4px;
+    }
+
+    .service-chip {
+      position: relative;
+    }
+
+    .service-chip input[type="checkbox"] {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .service-chip label {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 13px;
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: var(--chip-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all .12s;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .service-chip input:checked + label {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+      font-weight: 600;
+      box-shadow: 0 2px 6px rgba(37,99,235,.25);
+    }
+
+    .service-chip label:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    /* Radio toggle */
+    .radio-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .radio-opt {
+      position: relative;
+      flex: 1;
+    }
+
+    .radio-opt input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .radio-opt label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: var(--chip-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all .12s;
+      user-select: none;
+    }
+
+    .radio-opt input:checked + label {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+      font-weight: 600;
+      box-shadow: 0 2px 6px rgba(37,99,235,.2);
+    }
+
+    .radio-opt label:hover { border-color: var(--primary); color: var(--primary); }
+
+    /* Collapsible sections */
+    .conditional-section {
+      margin-top: 14px;
+      padding: 16px;
+      background: var(--entry-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+    }
+
+    .conditional-section .field:last-child { margin-bottom: 0; }
+
+    .section-inner-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 11px 20px;
+      margin-top: 8px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      letter-spacing: -.01em;
+      transition: background .15s, transform .1s, box-shadow .15s;
+      box-shadow: 0 1px 2px rgba(37,99,235,.2), 0 4px 10px rgba(37,99,235,.15);
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      box-shadow: 0 2px 4px rgba(37,99,235,.25), 0 6px 16px rgba(37,99,235,.2);
+    }
+
+    .btn-primary:active { background: var(--primary-active); transform: translateY(1px); }
+
+    .btn-primary:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    @media (max-width: 600px) {
+      .card-header, .card-body { padding-left: 20px; padding-right: 20px; }
+      .grid-2 { grid-template-columns: 1fr; }
+      body { padding: 16px 12px; }
+    }
+  </style>
 </head>
 <body>
-<div class="contenedor">
-    <h1>Solicitud Ordenes de Servicio</h1>
 
-    <div class="alerta">
-        Antes de registrar una orden de servicio, revisa si ya existe para evitar duplicados.
+<div class="card">
+  <div class="card-header">
+    <h1>Solicitud Orden de Servicio</h1>
+    <p>Complete el formulario para registrar una nueva ODS.</p>
+  </div>
+
+  <div class="card-body">
+    <div class="notice">
+      <svg class="notice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <p>Verifica que no exista una orden duplicada antes de registrar.</p>
     </div>
 
     <form id="formularioOrdenServicio">
-        <label for="rutCliente">RUT Empresa</label>
-        <input type="text" id="rutCliente" required placeholder="Ingrese el RUT">
 
-        <label for="razonSocial">Razon Social</label>
-        <input type="text" id="razonSocial" readonly>
-
-        <label for="direccionSucursal">Direccion Sucursal</label>
-        <select id="direccionSucursal">
-            <option value="" disabled selected>Seleccione una sucursal</option>
-        </select>
-
-        <label for="nombreSucursal">Nombre Sucursal</label>
-        <input type="text" id="nombreSucursal" readonly>
-
-        <div class="form-group">
-            <h3>Tipo de Servicio</h3>
-            <div class="checkbox-group" id="tipoServicio">
-                <label><input type="checkbox" name="tipoServicio[]" value="Televigilancia"> Televigilancia</label>
-                <label><input type="checkbox" name="tipoServicio[]" value="Alarma"> Alarma</label>
-                <label><input type="checkbox" name="tipoServicio[]" value="Guardia"> Guardia</label>
-                <label><input type="checkbox" name="tipoServicio[]" value="Instalacion"> Instalacion</label>
-                <label><input type="checkbox" name="tipoServicio[]" value="Upgrade"> Upgrade</label>
-                <label><input type="checkbox" name="tipoServicio[]" value="Downgrade"> Downgrade</label>
-                <label><input type="checkbox" name="tipoServicio[]" value="Servicio Tecnico"> Servicio Tecnico</label>
-                <label><input type="checkbox" id="monitoreoAdicional" name="tipoServicio[]" value="Monitoreo Adicional"> Monitoreo Adicional</label>
-                <label><input type="checkbox" name="tipoServicio[]" value="Desinstalacion"> Desinstalacion</label>
-            </div>
+      <!-- Cliente -->
+      <div class="form-section">
+        <div class="section-label">Cliente</div>
+        <div class="grid-2">
+          <div class="field">
+            <label for="rutCliente">RUT Empresa</label>
+            <input type="text" id="rutCliente" required placeholder="12.345.678-9">
+          </div>
+          <div class="field">
+            <label for="razonSocial">Razón Social</label>
+            <input type="text" id="razonSocial" readonly placeholder="Se completará automáticamente">
+          </div>
         </div>
+        <div class="grid-2" style="margin-top:14px;">
+          <div class="field">
+            <label for="direccionSucursal">Sucursal</label>
+            <select id="direccionSucursal">
+              <option value="" disabled selected>Seleccionar sucursal</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="nombreSucursal">Nombre Sucursal</label>
+            <input type="text" id="nombreSucursal" readonly>
+          </div>
+        </div>
+        <div class="grid-2" style="margin-top:14px;">
+          <div class="field">
+            <label for="tipoCliente">Tipo de Cliente</label>
+            <select id="tipoCliente" required>
+              <option value="" disabled selected>Seleccionar</option>
+              <option value="EMPRESA">Empresa</option>
+              <option value="DOMICILIO">Domicilio</option>
+              <option value="STRIP CENTER">Strip Center</option>
+              <option value="MUNICIPALIDAD">Municipalidad</option>
+              <option value="CONDOMINIO">Condominio</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="ejecutivoVenta">Ejecutivo de Venta</label>
+            <select id="ejecutivoVenta" required>
+              <option value="" disabled selected>Seleccionar</option>
+            </select>
+          </div>
+        </div>
+      </div>
 
-        <div id="monitoreoAdicionalSecciones" style="display:none;">
-            <div class="row-2">
-                <div>
-                    <label for="diasMonitoreoDesde">Dias de Monitoreo Adicional (Desde)</label>
-                    <input type="date" id="diasMonitoreoDesde">
-                </div>
-                <div>
-                    <label for="diasMonitoreoHasta">Dias de Monitoreo Adicional (Hasta)</label>
-                    <input type="date" id="diasMonitoreoHasta">
-                </div>
+      <!-- Tipo de servicio -->
+      <div class="form-section">
+        <div class="section-label">Tipo de Servicio</div>
+        <div class="service-grid" id="tipoServicio">
+          <div class="service-chip"><input type="checkbox" id="srv-tv" name="tipoServicio[]" value="Televigilancia"><label for="srv-tv">Televigilancia</label></div>
+          <div class="service-chip"><input type="checkbox" id="srv-al" name="tipoServicio[]" value="Alarma"><label for="srv-al">Alarma</label></div>
+          <div class="service-chip"><input type="checkbox" id="srv-gu" name="tipoServicio[]" value="Guardia"><label for="srv-gu">Guardia</label></div>
+          <div class="service-chip"><input type="checkbox" id="srv-in" name="tipoServicio[]" value="Instalacion"><label for="srv-in">Instalación</label></div>
+          <div class="service-chip"><input type="checkbox" id="srv-up" name="tipoServicio[]" value="Upgrade"><label for="srv-up">Upgrade</label></div>
+          <div class="service-chip"><input type="checkbox" id="srv-dw" name="tipoServicio[]" value="Downgrade"><label for="srv-dw">Downgrade</label></div>
+          <div class="service-chip"><input type="checkbox" id="srv-st" name="tipoServicio[]" value="Servicio Tecnico"><label for="srv-st">Servicio Técnico</label></div>
+          <div class="service-chip"><input type="checkbox" id="monitoreoAdicional" name="tipoServicio[]" value="Monitoreo Adicional"><label for="monitoreoAdicional">Monitoreo Adicional</label></div>
+          <div class="service-chip"><input type="checkbox" id="srv-de" name="tipoServicio[]" value="Desinstalacion"><label for="srv-de">Desinstalación</label></div>
+        </div>
+      </div>
+
+      <!-- Configuración condicional -->
+      <div id="monitoreoAdicionalSecciones" style="display:none;">
+        <div class="form-section">
+          <div class="section-label">Monitoreo Adicional</div>
+          <div class="grid-2">
+            <div class="field">
+              <label for="diasMonitoreoDesde">Desde</label>
+              <input type="date" id="diasMonitoreoDesde">
             </div>
-
+            <div class="field">
+              <label for="diasMonitoreoHasta">Hasta</label>
+              <input type="date" id="diasMonitoreoHasta">
+            </div>
+          </div>
+          <div class="field" style="margin-top:14px;">
             <label for="horarioMonitoreo">Nuevo Horario de Monitoreo</label>
             <input type="time" id="horarioMonitoreo">
+          </div>
         </div>
+      </div>
 
-        <div id="seccionCamaras" style="display:none;">
-            <div class="row-2">
-                <div>
-                    <label for="numeroCamarasInstalar">Numero de Camaras a instalar</label>
-                    <input type="number" id="numeroCamarasInstalar" min="0" placeholder="Ingrese el numero">
-                </div>
-                <div>
-                    <label for="numeroCamarasVigilar">Numero de Camaras a vigilar</label>
-                    <input type="number" id="numeroCamarasVigilar" min="0" placeholder="Ingrese el numero">
-                </div>
+      <div id="seccionCamaras" style="display:none;">
+        <div class="form-section">
+          <div class="section-label">Cámaras</div>
+          <div class="grid-2">
+            <div class="field">
+              <label for="numeroCamarasInstalar">Cámaras a Instalar</label>
+              <input type="number" id="numeroCamarasInstalar" min="0" placeholder="0">
             </div>
+            <div class="field">
+              <label for="numeroCamarasVigilar">Cámaras a Vigilar</label>
+              <input type="number" id="numeroCamarasVigilar" min="0" placeholder="0">
+            </div>
+          </div>
         </div>
+      </div>
 
-        <div id="seccionDesinstalacion" style="display:none;">
-            <label for="numeroCamarasDesinstalar">Numero de Camaras a Desinstalar</label>
-            <input type="number" id="numeroCamarasDesinstalar" min="0" placeholder="Ingrese el numero">
+      <div id="seccionDesinstalacion" style="display:none;">
+        <div class="form-section">
+          <div class="section-label">Desinstalación</div>
+          <div class="field">
+            <label for="numeroCamarasDesinstalar">Cámaras a Desinstalar</label>
+            <input type="number" id="numeroCamarasDesinstalar" min="0" placeholder="0">
+          </div>
         </div>
+      </div>
 
-        <div id="seccionDiasGrabacion" style="display:none;">
-            <label for="diasGrabacion">Dias de Grabacion</label>
-            <input type="number" id="diasGrabacion" min="1" placeholder="Ingrese los dias">
+      <div id="seccionDiasGrabacion" style="display:none;">
+        <div class="form-section">
+          <div class="section-label">Grabación</div>
+          <div class="field">
+            <label for="diasGrabacion">Días de Grabación</label>
+            <input type="number" id="diasGrabacion" min="1" placeholder="Ej: 30">
+          </div>
         </div>
+      </div>
 
-        <div id="seccionTipoPlan" style="display:none;">
+      <div id="seccionTipoPlan" style="display:none;">
+        <div class="form-section">
+          <div class="section-label">Plan</div>
+          <div class="field">
             <label for="tipoPlan">Tipo de Plan</label>
             <select id="tipoPlan">
-                <option value="" disabled selected>Seleccione un plan</option>
-                <option value="Plan Full">Plan Full</option>
-                <option value="Plan Mixto">Plan Mixto</option>
+              <option value="" disabled selected>Seleccionar plan</option>
+              <option value="Plan Full">Plan Full</option>
+              <option value="Plan Mixto">Plan Mixto</option>
             </select>
+          </div>
         </div>
+      </div>
 
-        <div id="seccionMontosCobrar" style="display:none;">
-            <h3>Montos a Cobrar</h3>
-            <div id="contenedorMontos"></div>
-        </div>
-
-        <div id="seccionDesglosePrecio" style="display:none;">
-            <label for="desgloseArchivo">Adjuntar Desglose de precio por item</label>
-            <input type="file" id="desgloseArchivo" accept=".pdf,.doc,.docx,.xls,.xlsx">
-        </div>
-
-        <label for="tipoCliente">Tipo de Cliente</label>
-        <select id="tipoCliente" required>
-            <option value="" disabled selected>Seleccione un tipo de cliente</option>
-            <option value="EMPRESA">EMPRESA</option>
-            <option value="DOMICILIO">DOMICILIO</option>
-            <option value="STRIP CENTER">STRIP CENTER</option>
-            <option value="MUNICIPALIDAD">MUNICIPALIDAD</option>
-            <option value="CONDOMINIO">CONDOMINIO</option>
-        </select>
-
-        <label for="observacion">Observacion</label>
-        <textarea id="observacion" placeholder="Ingrese observaciones si posee protocolo especial" style="height:60px;"></textarea>
-
-        <div id="seccionAguaBano" style="display:none;">
-            <label for="aguaBano">Instalacion cumple con Agua Potable y Bano</label>
+      <div id="seccionAguaBano" style="display:none;">
+        <div class="form-section">
+          <div class="section-label">Requisitos de Instalación</div>
+          <div class="field">
+            <label for="aguaBano">Instalación cumple con Agua Potable y Baño</label>
             <select id="aguaBano">
-                <option value="" disabled selected>Seleccione una opcion</option>
-                <option value="Si">Si</option>
-                <option value="No">No</option>
+              <option value="" disabled selected>Seleccionar</option>
+              <option value="Si">Sí</option>
+              <option value="No">No</option>
             </select>
+          </div>
         </div>
+      </div>
 
-        <label>Requiere Orden de Compra</label>
-        <div class="checkbox-group" style="margin-bottom:12px;">
-            <label><input type="radio" name="requiereOC" value="Si"> Si</label>
-            <label><input type="radio" name="requiereOC" value="No"> No</label>
+      <!-- Montos -->
+      <div id="seccionMontosCobrar" style="display:none;">
+        <div class="form-section">
+          <div class="section-label">Montos a Cobrar</div>
+          <div id="contenedorMontos"></div>
         </div>
+      </div>
 
-        <label for="ejecutivoVenta">Ejecutivo de Venta</label>
-        <select id="ejecutivoVenta" required>
-            <option value="" disabled selected>Seleccione un ejecutivo</option>
-        </select>
-
-        <div class="row-2">
-            <div>
-                <label for="materiales">Materiales</label>
-                <textarea id="materiales" required placeholder="Copiar y pegar materiales sin montos" style="height:60px;"></textarea>
-            </div>
-            <div>
-                <label for="consideraciones">Consideraciones</label>
-                <textarea id="consideraciones" required placeholder="Copiar y pegar consideraciones" style="height:60px;"></textarea>
-            </div>
+      <!-- Detalle -->
+      <div class="form-section">
+        <div class="section-label">Detalle de la Orden</div>
+        <div class="field">
+          <label for="observacion">Observación</label>
+          <textarea id="observacion" placeholder="Observaciones o protocolo especial"></textarea>
         </div>
+        <div class="grid-2" style="margin-top:14px;">
+          <div class="field">
+            <label for="materiales">Materiales</label>
+            <textarea id="materiales" required placeholder="Copiar y pegar materiales sin montos"></textarea>
+          </div>
+          <div class="field">
+            <label for="consideraciones">Consideraciones</label>
+            <textarea id="consideraciones" required placeholder="Copiar y pegar consideraciones"></textarea>
+          </div>
+        </div>
+      </div>
 
+      <!-- Orden de compra -->
+      <div class="form-section">
+        <div class="section-label">Orden de Compra</div>
+        <div class="field">
+          <div style="font-size:12.5px;font-weight:600;color:var(--text-label);margin-bottom:8px;">¿Requiere Orden de Compra?</div>
+          <div class="radio-group">
+            <div class="radio-opt"><input type="radio" id="oc-si" name="requiereOC" value="Si"><label for="oc-si">Sí</label></div>
+            <div class="radio-opt"><input type="radio" id="oc-no" name="requiereOC" value="No"><label for="oc-no">No</label></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Documentos -->
+      <div id="seccionDesglosePrecio" style="display:none;">
+        <div class="form-section">
+          <div class="section-label">Desglose de Precio</div>
+          <div class="field">
+            <label for="desgloseArchivo">Adjuntar Desglose por Ítem</label>
+            <input type="file" id="desgloseArchivo" accept=".pdf,.doc,.docx,.xls,.xlsx">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="section-label">Documentos</div>
         <div id="contenedorArchivos"></div>
+      </div>
 
-        <button type="button" id="btnRegistrarODS">Registrar Orden de Servicio</button>
+      <button type="button" id="btnRegistrarODS" class="btn-primary">Registrar Orden de Servicio</button>
     </form>
+  </div>
 </div>
 
 <script>
 const qsToken = new URLSearchParams(window.location.search).get("token") || "";
 const withToken = (url) => {
-    const sep = url.includes("?") ? "&" : "?";
-    return qsToken ? `${url}${sep}token=${encodeURIComponent(qsToken)}` : url;
+  const sep = url.includes("?") ? "&" : "?";
+  return qsToken ? `${url}${sep}token=${encodeURIComponent(qsToken)}` : url;
 };
 
 function formatearRUTInput(input) {
-    let rut = String(input.value || "").trim().replace(/[^0-9Kk]/g, "").toUpperCase();
-    if (rut.length < 2) {
-        input.value = rut;
-        return;
-    }
-    input.value = `${rut.slice(0, -1)}-${rut.slice(-1)}`;
+  let rut = String(input.value || "").trim().replace(/[^0-9Kk]/g, "").toUpperCase();
+  if (rut.length < 2) { input.value = rut; return; }
+  input.value = `${rut.slice(0, -1)}-${rut.slice(-1)}`;
 }
 
 function obtenerTiposSeleccionados() {
-    return Array.from(document.querySelectorAll('input[name="tipoServicio[]"]:checked')).map((checkbox) => checkbox.value);
+  return Array.from(document.querySelectorAll('input[name="tipoServicio[]"]:checked')).map((checkbox) => checkbox.value);
 }
 
 function obtenerValor(id) {
-    return document.getElementById(id)?.value.trim() || "";
+  return document.getElementById(id)?.value.trim() || "";
 }
 
 async function cargarEjecutivosVenta() {
-    const response = await fetch(withToken("/api/venta/ods/ejecutivos"));
-    if (!response.ok) throw new Error("No se pudo cargar la lista de ejecutivos.");
-    const data = await response.json();
-    const select = document.getElementById("ejecutivoVenta");
-    select.innerHTML = '<option value="" disabled selected>Seleccione un ejecutivo</option>';
-    (data.ejecutivos || []).forEach((ejecutivo) => {
-        const option = document.createElement("option");
-        option.value = ejecutivo;
-        option.textContent = ejecutivo;
-        select.appendChild(option);
-    });
+  const response = await fetch(withToken("/api/venta/ods/ejecutivos"));
+  if (!response.ok) throw new Error("No se pudo cargar la lista de ejecutivos.");
+  const data = await response.json();
+  const select = document.getElementById("ejecutivoVenta");
+  select.innerHTML = '<option value="" disabled selected>Seleccionar</option>';
+  (data.ejecutivos || []).forEach((ejecutivo) => {
+    const option = document.createElement("option");
+    option.value = ejecutivo; option.textContent = ejecutivo;
+    select.appendChild(option);
+  });
 }
 
 async function cargarDatosDesdeSucursales(rutIngresado) {
-    const response = await fetch(withToken("/api/venta/ods/datos-por-rut?rut=" + encodeURIComponent(rutIngresado)));
-    if (!response.ok) {
-        const err = await response.json().catch(() => ({ detail: "No se pudieron cargar las sucursales del RUT." }));
-        throw new Error(typeof err?.detail === "string" ? err.detail : "No se pudieron cargar las sucursales del RUT.");
-    }
-    const datos = await response.json();
-    document.getElementById("razonSocial").value = datos.razonSocial || "";
-
-    const direccionSelect = document.getElementById("direccionSucursal");
-    direccionSelect.innerHTML = "";
-    const direcciones = datos.direcciones || [];
-    const nombres = datos.nombresSucursales || [];
-
-    if (!direcciones.length) {
-        direccionSelect.innerHTML = "<option value='' selected>Sin sucursales registradas</option>";
-        document.getElementById("nombreSucursal").value = "";
-        return;
-    }
-
-    direcciones.forEach((direccion, index) => {
-        const option = document.createElement("option");
-        option.value = direccion;
-        option.textContent = direccion;
-        option.dataset.nombreSucursal = nombres[index] || "";
-        direccionSelect.appendChild(option);
-    });
-    document.getElementById("nombreSucursal").value = nombres[0] || "";
+  const response = await fetch(withToken("/api/venta/ods/datos-por-rut?rut=" + encodeURIComponent(rutIngresado)));
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ detail: "No se pudieron cargar las sucursales del RUT." }));
+    throw new Error(typeof err?.detail === "string" ? err.detail : "No se pudieron cargar las sucursales del RUT.");
+  }
+  const datos = await response.json();
+  document.getElementById("razonSocial").value = datos.razonSocial || "";
+  const direccionSelect = document.getElementById("direccionSucursal");
+  direccionSelect.innerHTML = "";
+  const direcciones = datos.direcciones || [];
+  const nombres = datos.nombresSucursales || [];
+  if (!direcciones.length) {
+    direccionSelect.innerHTML = "<option value='' selected>Sin sucursales registradas</option>";
+    document.getElementById("nombreSucursal").value = "";
+    return;
+  }
+  direcciones.forEach((direccion, index) => {
+    const option = document.createElement("option");
+    option.value = direccion; option.textContent = direccion;
+    option.dataset.nombreSucursal = nombres[index] || "";
+    direccionSelect.appendChild(option);
+  });
+  document.getElementById("nombreSucursal").value = nombres[0] || "";
 }
 
 function actualizarNombreSucursal() {
-    const direccionSelect = document.getElementById("direccionSucursal");
-    const selectedOption = direccionSelect.options[direccionSelect.selectedIndex];
-    document.getElementById("nombreSucursal").value = selectedOption?.dataset?.nombreSucursal || "";
+  const direccionSelect = document.getElementById("direccionSucursal");
+  const selectedOption = direccionSelect.options[direccionSelect.selectedIndex];
+  document.getElementById("nombreSucursal").value = selectedOption?.dataset?.nombreSucursal || "";
 }
 
 function actualizarVisibilidad() {
-    const seleccionados = obtenerTiposSeleccionados();
-    const activarTecnico = seleccionados.some((servicio) => ["Televigilancia", "Instalacion", "Upgrade", "Downgrade"].includes(servicio));
-
-    document.getElementById("seccionCamaras").style.display = activarTecnico ? "block" : "none";
-    document.getElementById("seccionDiasGrabacion").style.display = activarTecnico ? "block" : "none";
-    document.getElementById("seccionTipoPlan").style.display = activarTecnico ? "block" : "none";
-    document.getElementById("seccionDesinstalacion").style.display = seleccionados.includes("Desinstalacion") ? "block" : "none";
-    document.getElementById("seccionAguaBano").style.display = seleccionados.includes("Instalacion") ? "block" : "none";
-    document.getElementById("seccionDesglosePrecio").style.display = seleccionados.length > 0 ? "block" : "none";
-    document.getElementById("monitoreoAdicionalSecciones").style.display = seleccionados.includes("Monitoreo Adicional") ? "block" : "none";
-
-    actualizarCamposAdjuntar(seleccionados);
-    actualizarMontosPorCobrar(seleccionados);
+  const seleccionados = obtenerTiposSeleccionados();
+  const activarTecnico = seleccionados.some((servicio) => ["Televigilancia", "Instalacion", "Upgrade", "Downgrade"].includes(servicio));
+  document.getElementById("seccionCamaras").style.display = activarTecnico ? "block" : "none";
+  document.getElementById("seccionDiasGrabacion").style.display = activarTecnico ? "block" : "none";
+  document.getElementById("seccionTipoPlan").style.display = activarTecnico ? "block" : "none";
+  document.getElementById("seccionDesinstalacion").style.display = seleccionados.includes("Desinstalacion") ? "block" : "none";
+  document.getElementById("seccionAguaBano").style.display = seleccionados.includes("Instalacion") ? "block" : "none";
+  document.getElementById("seccionDesglosePrecio").style.display = seleccionados.length > 0 ? "block" : "none";
+  document.getElementById("monitoreoAdicionalSecciones").style.display = seleccionados.includes("Monitoreo Adicional") ? "block" : "none";
+  actualizarCamposAdjuntar(seleccionados);
+  actualizarMontosPorCobrar(seleccionados);
 }
 
 function actualizarMontosPorCobrar(servicios) {
-    const seccion = document.getElementById("seccionMontosCobrar");
-    const contenedor = document.getElementById("contenedorMontos");
-    contenedor.innerHTML = "";
-
-    const campos = [];
-    if (servicios.includes("Instalacion")) {
-        campos.push(["monto_instalacion_total", "Valor Instalacion Total"]);
-        campos.push(["monto_servicio_mensual", "Valor Servicio Mensual"]);
-    }
-    if (servicios.some((s) => ["Televigilancia", "Alarma", "Guardia"].includes(s)) && !campos.find((item) => item[0] === "monto_servicio_mensual")) {
-        campos.push(["monto_servicio_mensual", "Valor Servicio Mensual"]);
-    }
-    if (servicios.includes("Servicio Tecnico")) campos.push(["monto_servicio_tecnico", "Valor Servicio Tecnico"]);
-    if (servicios.includes("Desinstalacion")) campos.push(["monto_desinstalacion", "Valor Desinstalacion"]);
-    if (servicios.includes("Upgrade")) campos.push(["monto_upgrade", "Valor Upgrade"]);
-    if (servicios.includes("Downgrade")) campos.push(["monto_downgrade", "Valor Downgrade"]);
-    if (servicios.includes("Monitoreo Adicional")) campos.push(["monto_monitoreo_adicional", "Valor Monitoreo Adicional"]);
-
-    campos.forEach(([id, label]) => {
-        const div = document.createElement("div");
-        div.innerHTML = `
-            <label for="${id}">${label}</label>
-            <input type="text" id="${id}" placeholder="Ej: UF o CLP + IVA">
-        `;
-        contenedor.appendChild(div);
-    });
-
-    seccion.style.display = campos.length ? "block" : "none";
+  const seccion = document.getElementById("seccionMontosCobrar");
+  const contenedor = document.getElementById("contenedorMontos");
+  contenedor.innerHTML = "";
+  const campos = [];
+  if (servicios.includes("Instalacion")) {
+    campos.push(["monto_instalacion_total", "Valor Instalación Total"]);
+    campos.push(["monto_servicio_mensual", "Valor Servicio Mensual"]);
+  }
+  if (servicios.some((s) => ["Televigilancia", "Alarma", "Guardia"].includes(s)) && !campos.find((item) => item[0] === "monto_servicio_mensual")) {
+    campos.push(["monto_servicio_mensual", "Valor Servicio Mensual"]);
+  }
+  if (servicios.includes("Servicio Tecnico")) campos.push(["monto_servicio_tecnico", "Valor Servicio Técnico"]);
+  if (servicios.includes("Desinstalacion")) campos.push(["monto_desinstalacion", "Valor Desinstalación"]);
+  if (servicios.includes("Upgrade")) campos.push(["monto_upgrade", "Valor Upgrade"]);
+  if (servicios.includes("Downgrade")) campos.push(["monto_downgrade", "Valor Downgrade"]);
+  if (servicios.includes("Monitoreo Adicional")) campos.push(["monto_monitoreo_adicional", "Valor Monitoreo Adicional"]);
+  campos.forEach(([id, label]) => {
+    const div = document.createElement("div");
+    div.className = "field";
+    div.innerHTML = `<label for="${id}">${label}</label><input type="text" id="${id}" placeholder="Ej: UF o CLP + IVA">`;
+    contenedor.appendChild(div);
+  });
+  seccion.style.display = campos.length ? "block" : "none";
 }
 
 function actualizarCamposAdjuntar(servicios) {
-    const contenedor = document.getElementById("contenedorArchivos");
-    contenedor.innerHTML = "";
-
-    const divCotizacion = document.createElement("div");
-    divCotizacion.innerHTML = `
-        <label for="cotizacion_general">Adjuntar Cotizacion</label>
-        <input type="file" id="cotizacion_general" class="cotizacion" accept=".pdf,.doc,.docx">
-    `;
-    contenedor.appendChild(divCotizacion);
-
-    const requiereOC = document.querySelector('input[name="requiereOC"]:checked')?.value;
-    if (requiereOC === "Si") {
-        const divOdc = document.createElement("div");
-        divOdc.innerHTML = `
-            <label for="odc_general">Adjuntar Orden de Compra</label>
-            <input type="file" id="odc_general" class="odc" data-servicio="Instalacion" accept=".pdf,.doc,.docx">
-        `;
-        contenedor.appendChild(divOdc);
+  const contenedor = document.getElementById("contenedorArchivos");
+  contenedor.innerHTML = "";
+  const divCotizacion = document.createElement("div");
+  divCotizacion.className = "field";
+  divCotizacion.innerHTML = `<label for="cotizacion_general">Adjuntar Cotización</label><input type="file" id="cotizacion_general" class="cotizacion" accept=".pdf,.doc,.docx">`;
+  contenedor.appendChild(divCotizacion);
+  const requiereOC = document.querySelector('input[name="requiereOC"]:checked')?.value;
+  if (requiereOC === "Si") {
+    const divOdc = document.createElement("div");
+    divOdc.className = "field";
+    divOdc.innerHTML = `<label for="odc_general">Adjuntar Orden de Compra</label><input type="file" id="odc_general" class="odc" data-servicio="Instalacion" accept=".pdf,.doc,.docx">`;
+    contenedor.appendChild(divOdc);
+  }
+  servicios.forEach((servicio) => {
+    if (!["Instalacion", "Servicio Tecnico", "Desinstalacion"].includes(servicio)) {
+      const divContrato = document.createElement("div");
+      divContrato.className = "field";
+      divContrato.innerHTML = `<label for="contrato_${servicio}">Adjuntar Contrato (${servicio})</label><input type="file" id="contrato_${servicio}" class="contrato" data-servicio="${servicio}" accept=".pdf,.doc,.docx">`;
+      contenedor.appendChild(divContrato);
     }
-
-    servicios.forEach((servicio) => {
-        if (!["Instalacion", "Servicio Tecnico", "Desinstalacion"].includes(servicio)) {
-            const divContrato = document.createElement("div");
-            divContrato.innerHTML = `
-                <label for="contrato_${servicio}">Adjuntar Contrato (${servicio})</label>
-                <input type="file" id="contrato_${servicio}" class="contrato" data-servicio="${servicio}" accept=".pdf,.doc,.docx">
-            `;
-            contenedor.appendChild(divContrato);
-        }
-
-        if (servicio === "Instalacion") {
-            const divLayout = document.createElement("div");
-            divLayout.innerHTML = `
-                <label for="layout_${servicio}">Adjuntar Layout (${servicio})</label>
-                <input type="file" id="layout_${servicio}" class="layout" data-servicio="${servicio}" accept="image/*,.pdf">
-            `;
-            contenedor.appendChild(divLayout);
-        }
-    });
+    if (servicio === "Instalacion") {
+      const divLayout = document.createElement("div");
+      divLayout.className = "field";
+      divLayout.innerHTML = `<label for="layout_${servicio}">Adjuntar Layout (${servicio})</label><input type="file" id="layout_${servicio}" class="layout" data-servicio="${servicio}" accept="image/*,.pdf">`;
+      contenedor.appendChild(divLayout);
+    }
+  });
 }
 
 async function procesarArchivoAsync(input, tipoArchivo, servicio) {
-    return new Promise((resolve) => {
-        if (!input || !input.files || !input.files.length) {
-            resolve(null);
-            return;
-        }
-        const file = input.files[0];
-        const reader = new FileReader();
-        reader.onload = function (event) {
-            const base64String = String(event.target?.result || "").split(",")[1] || "";
-            const extension = file.name.includes(".") ? file.name.split(".").pop().toLowerCase() : "bin";
-            const nombreEmpresa = document.getElementById("razonSocial").value.trim() || "Cliente";
-            const nombreArchivo = `${tipoArchivo} - ${servicio} - ${nombreEmpresa}.${extension}`;
-            resolve({
-                nombre: nombreArchivo,
-                tipo: file.type || "application/octet-stream",
-                data: base64String,
-                servicio: servicio,
-                tipoDocumento: tipoArchivo,
-            });
-        };
-        reader.readAsDataURL(file);
-    });
+  return new Promise((resolve) => {
+    if (!input || !input.files || !input.files.length) { resolve(null); return; }
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = function (event) {
+      const base64String = String(event.target?.result || "").split(",")[1] || "";
+      const extension = file.name.includes(".") ? file.name.split(".").pop().toLowerCase() : "bin";
+      const nombreEmpresa = document.getElementById("razonSocial").value.trim() || "Cliente";
+      const nombreArchivo = `${tipoArchivo} - ${servicio} - ${nombreEmpresa}.${extension}`;
+      resolve({ nombre: nombreArchivo, tipo: file.type || "application/octet-stream", data: base64String, servicio: servicio, tipoDocumento: tipoArchivo });
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 async function enviarFormulario() {
-    const boton = document.getElementById("btnRegistrarODS");
-    const textoOriginal = boton.textContent;
-    boton.textContent = "Registrando...";
-    boton.disabled = true;
-
-    try {
-        const tiposSeleccionados = obtenerTiposSeleccionados();
-        if (!tiposSeleccionados.length) {
-            throw new Error("Debes seleccionar al menos un tipo de servicio.");
-        }
-
-        const materiales = obtenerValor("materiales");
-        const consideraciones = obtenerValor("consideraciones");
-        if (!materiales || !consideraciones) {
-            throw new Error("Los campos Materiales y Consideraciones son obligatorios.");
-        }
-
-        const camposMontos = [
-            ["monto_servicio_mensual", "Valor Servicio Mensual"],
-            ["monto_instalacion_total", "Valor Instalacion Total"],
-            ["monto_servicio_tecnico", "Valor Servicio Tecnico"],
-            ["monto_desinstalacion", "Valor Desinstalacion"],
-            ["monto_upgrade", "Valor Upgrade"],
-            ["monto_downgrade", "Valor Downgrade"],
-            ["monto_monitoreo_adicional", "Valor Monitoreo Adicional"],
-        ];
-        const montosACobrar = camposMontos
-            .map(([id, label]) => {
-                const valor = document.getElementById(id)?.value.trim();
-                return valor ? `${label}: ${valor}` : null;
-            })
-            .filter(Boolean)
-            .join("\n");
-
-        const cotizacion = await procesarArchivoAsync(document.getElementById("cotizacion_general"), "Cotizacion", "General");
-        const odc = await procesarArchivoAsync(document.getElementById("odc_general"), "ODC", "Instalacion");
-        const desglosePrecioArchivo = await procesarArchivoAsync(document.getElementById("desgloseArchivo"), "DesglosePrecio", "General");
-
-        const contratos = (await Promise.all(
-            Array.from(document.querySelectorAll(".contrato")).map((input) => procesarArchivoAsync(input, "Contrato", input.dataset.servicio))
-        )).filter(Boolean);
-        const layouts = (await Promise.all(
-            Array.from(document.querySelectorAll(".layout")).map((input) => procesarArchivoAsync(input, "Layout", input.dataset.servicio))
-        )).filter(Boolean);
-
-        const payload = {
-            ejecutivoVenta: obtenerValor("ejecutivoVenta"),
-            rutCliente: obtenerValor("rutCliente"),
-            razonSocial: obtenerValor("razonSocial"),
-            direccionSucursal: obtenerValor("direccionSucursal"),
-            nombreSucursal: obtenerValor("nombreSucursal"),
-            observacion: obtenerValor("observacion"),
-            tipoCliente: obtenerValor("tipoCliente"),
-            tipoServicio: tiposSeleccionados,
-            tipoPlan: obtenerValor("tipoPlan"),
-            numeroCamarasInstalar: obtenerValor("numeroCamarasInstalar"),
-            numeroCamarasDesinstalar: obtenerValor("numeroCamarasDesinstalar"),
-            numeroCamarasVigilar: obtenerValor("numeroCamarasVigilar"),
-            diasGrabacion: obtenerValor("diasGrabacion"),
-            diasMonitoreoDesde: obtenerValor("diasMonitoreoDesde"),
-            diasMonitoreoHasta: obtenerValor("diasMonitoreoHasta"),
-            diasMonitoreoAdicional: [obtenerValor("diasMonitoreoDesde"), obtenerValor("diasMonitoreoHasta")].filter(Boolean).join(" - "),
-            horarioMonitoreo: obtenerValor("horarioMonitoreo"),
-            materiales: materiales,
-            consideraciones: consideraciones,
-            aguaBano: obtenerValor("aguaBano"),
-            requiereOC: document.querySelector('input[name="requiereOC"]:checked')?.value || "",
-            montosACobrar: montosACobrar,
-            cotizacion: cotizacion,
-            odc: odc,
-            contratos: contratos,
-            layouts: layouts,
-            desglosePrecioArchivo: desglosePrecioArchivo
-        };
-
-        const response = await fetch(withToken("/api/venta/ods"), {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-        });
-        if (!response.ok) {
-            const err = await response.json().catch(() => ({ detail: "Error al registrar la orden." }));
-            let message = "Error al registrar la orden.";
-            if (typeof err?.detail === "string") {
-                message = err.detail;
-            } else if (Array.isArray(err?.detail) && err.detail.length > 0) {
-                const first = err.detail[0];
-                const field = Array.isArray(first?.loc) ? first.loc[first.loc.length - 1] : "";
-                message = field ? `${field}: ${first?.msg || "valor invalido"}` : (first?.msg || message);
-            }
-            throw new Error(message);
-        }
-
-        const data = await response.json();
-        alert(`Orden registrada con exito. Codigo: ${data.codigo}`);
-        window.location.reload();
-    } catch (error) {
-        alert(error?.message || "No se pudo registrar la orden.");
-    } finally {
-        boton.textContent = textoOriginal;
-        boton.disabled = false;
+  const boton = document.getElementById("btnRegistrarODS");
+  const textoOriginal = boton.textContent;
+  boton.textContent = "Registrando...";
+  boton.disabled = true;
+  try {
+    const tiposSeleccionados = obtenerTiposSeleccionados();
+    if (!tiposSeleccionados.length) throw new Error("Debes seleccionar al menos un tipo de servicio.");
+    const materiales = obtenerValor("materiales");
+    const consideraciones = obtenerValor("consideraciones");
+    if (!materiales || !consideraciones) throw new Error("Los campos Materiales y Consideraciones son obligatorios.");
+    const camposMontos = [
+      ["monto_servicio_mensual", "Valor Servicio Mensual"],
+      ["monto_instalacion_total", "Valor Instalacion Total"],
+      ["monto_servicio_tecnico", "Valor Servicio Tecnico"],
+      ["monto_desinstalacion", "Valor Desinstalacion"],
+      ["monto_upgrade", "Valor Upgrade"],
+      ["monto_downgrade", "Valor Downgrade"],
+      ["monto_monitoreo_adicional", "Valor Monitoreo Adicional"],
+    ];
+    const montosACobrar = camposMontos.map(([id, label]) => {
+      const valor = document.getElementById(id)?.value.trim();
+      return valor ? `${label}: ${valor}` : null;
+    }).filter(Boolean).join("\n");
+    const cotizacion = await procesarArchivoAsync(document.getElementById("cotizacion_general"), "Cotizacion", "General");
+    const odc = await procesarArchivoAsync(document.getElementById("odc_general"), "ODC", "Instalacion");
+    const desglosePrecioArchivo = await procesarArchivoAsync(document.getElementById("desgloseArchivo"), "DesglosePrecio", "General");
+    const contratos = (await Promise.all(Array.from(document.querySelectorAll(".contrato")).map((input) => procesarArchivoAsync(input, "Contrato", input.dataset.servicio)))).filter(Boolean);
+    const layouts = (await Promise.all(Array.from(document.querySelectorAll(".layout")).map((input) => procesarArchivoAsync(input, "Layout", input.dataset.servicio)))).filter(Boolean);
+    const payload = {
+      ejecutivoVenta: obtenerValor("ejecutivoVenta"),
+      rutCliente: obtenerValor("rutCliente"),
+      razonSocial: obtenerValor("razonSocial"),
+      direccionSucursal: obtenerValor("direccionSucursal"),
+      nombreSucursal: obtenerValor("nombreSucursal"),
+      observacion: obtenerValor("observacion"),
+      tipoCliente: obtenerValor("tipoCliente"),
+      tipoServicio: tiposSeleccionados,
+      tipoPlan: obtenerValor("tipoPlan"),
+      numeroCamarasInstalar: obtenerValor("numeroCamarasInstalar"),
+      numeroCamarasDesinstalar: obtenerValor("numeroCamarasDesinstalar"),
+      numeroCamarasVigilar: obtenerValor("numeroCamarasVigilar"),
+      diasGrabacion: obtenerValor("diasGrabacion"),
+      diasMonitoreoDesde: obtenerValor("diasMonitoreoDesde"),
+      diasMonitoreoHasta: obtenerValor("diasMonitoreoHasta"),
+      diasMonitoreoAdicional: [obtenerValor("diasMonitoreoDesde"), obtenerValor("diasMonitoreoHasta")].filter(Boolean).join(" - "),
+      horarioMonitoreo: obtenerValor("horarioMonitoreo"),
+      materiales, consideraciones,
+      aguaBano: obtenerValor("aguaBano"),
+      requiereOC: document.querySelector('input[name="requiereOC"]:checked')?.value || "",
+      montosACobrar, cotizacion, odc, contratos, layouts, desglosePrecioArchivo
+    };
+    const response = await fetch(withToken("/api/venta/ods"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ detail: "Error al registrar la orden." }));
+      let message = "Error al registrar la orden.";
+      if (typeof err?.detail === "string") { message = err.detail; }
+      else if (Array.isArray(err?.detail) && err.detail.length > 0) {
+        const first = err.detail[0];
+        const field = Array.isArray(first?.loc) ? first.loc[first.loc.length - 1] : "";
+        message = field ? `${field}: ${first?.msg || "valor invalido"}` : (first?.msg || message);
+      }
+      throw new Error(message);
     }
+    const data = await response.json();
+    alert(`Orden registrada con exito. Codigo: ${data.codigo}`);
+    window.location.reload();
+  } catch (error) {
+    alert(error?.message || "No se pudo registrar la orden.");
+  } finally {
+    boton.textContent = textoOriginal;
+    boton.disabled = false;
+  }
 }
 
 document.addEventListener("DOMContentLoaded", async function () {
-    const rutInput = document.getElementById("rutCliente");
-    const direccionSelect = document.getElementById("direccionSucursal");
-
-    rutInput.addEventListener("input", function () {
-        formatearRUTInput(this);
-    });
-
-    rutInput.addEventListener("blur", async function () {
-        const rut = this.value.trim();
-        if (!rut) return;
-        try {
-            await cargarDatosDesdeSucursales(rut);
-        } catch (error) {
-            alert(error?.message || "No se pudieron cargar los datos del cliente.");
-        }
-    });
-
-    direccionSelect.addEventListener("change", actualizarNombreSucursal);
-    document.querySelectorAll('input[name="tipoServicio[]"]').forEach((checkbox) => {
-        checkbox.addEventListener("change", actualizarVisibilidad);
-    });
-    document.querySelectorAll('input[name="requiereOC"]').forEach((radio) => {
-        radio.addEventListener("change", () => actualizarCamposAdjuntar(obtenerTiposSeleccionados()));
-    });
-    document.getElementById("btnRegistrarODS").addEventListener("click", enviarFormulario);
-
-    try {
-        await cargarEjecutivosVenta();
-        actualizarVisibilidad();
-    } catch (error) {
-        alert(error?.message || "No se pudo inicializar el formulario.");
-    }
+  const rutInput = document.getElementById("rutCliente");
+  const direccionSelect = document.getElementById("direccionSucursal");
+  rutInput.addEventListener("input", function () { formatearRUTInput(this); });
+  rutInput.addEventListener("blur", async function () {
+    const rut = this.value.trim();
+    if (!rut) return;
+    try { await cargarDatosDesdeSucursales(rut); }
+    catch (error) { alert(error?.message || "No se pudieron cargar los datos del cliente."); }
+  });
+  direccionSelect.addEventListener("change", actualizarNombreSucursal);
+  document.querySelectorAll('input[name="tipoServicio[]"]').forEach((checkbox) => {
+    checkbox.addEventListener("change", actualizarVisibilidad);
+  });
+  document.querySelectorAll('input[name="requiereOC"]').forEach((radio) => {
+    radio.addEventListener("change", () => actualizarCamposAdjuntar(obtenerTiposSeleccionados()));
+  });
+  document.getElementById("btnRegistrarODS").addEventListener("click", enviarFormulario);
+  try {
+    await cargarEjecutivosVenta();
+    actualizarVisibilidad();
+  } catch (error) {
+    alert(error?.message || "No se pudo inicializar el formulario.");
+  }
 });
 </script>
 </body>
