@@ -350,6 +350,44 @@ def _save_ods_file(codigo: str, payload: VentaODSArchivoRequest | None) -> str |
     return str(path.relative_to(Path(__file__).resolve().parents[2])).replace("\\", "/")
 
 
+def _upsert_ods_archivo(
+    db: Session,
+    ods_id: int,
+    codigo: str,
+    tipo_documento: str,
+    servicio: str | None,
+    payload: VentaODSArchivoRequest | None,
+) -> str | None:
+    ruta = _save_ods_file(codigo, payload)
+    if not ruta:
+        return None
+
+    existing = (
+        db.query(VentaODSArchivo)
+        .filter(
+            VentaODSArchivo.ods_id == ods_id,
+            func.lower(func.trim(VentaODSArchivo.tipo_documento)) == str(tipo_documento).strip().lower(),
+            func.lower(func.trim(func.coalesce(VentaODSArchivo.servicio, ""))) == str(servicio or "").strip().lower(),
+        )
+        .first()
+    )
+    if existing:
+        existing.nombre_archivo = _clean_text(payload.nombre if payload else "")
+        existing.mime_type = _clean_text(payload.tipo if payload else "")
+        existing.ruta_archivo = ruta
+    else:
+        db.add(VentaODSArchivo(
+            ods_id=ods_id,
+            codigo_ods=codigo,
+            tipo_documento=_clean_text(tipo_documento),
+            servicio=_clean_text(servicio),
+            nombre_archivo=_clean_text(payload.nombre if payload else ""),
+            mime_type=_clean_text(payload.tipo if payload else ""),
+            ruta_archivo=ruta,
+        ))
+    return ruta
+
+
 def create_ods(db: Session, payload: VentaODSCreateRequest, usuario_email: str) -> VentaODS:
     tipos = [str(item or "").strip() for item in payload.tipoServicio if str(item or "").strip()]
     if not tipos:
@@ -435,6 +473,113 @@ def create_ods(db: Session, payload: VentaODSCreateRequest, usuario_email: str) 
             mime_type=_clean_text(archivo.tipo),
             ruta_archivo=ruta,
         ))
+
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+def get_ods_codes(db: Session) -> list[str]:
+    rows = db.query(VentaODS.codigo).order_by(VentaODS.codigo.asc()).all()
+    return [str(row[0]).strip() for row in rows if row and row[0]]
+
+
+def get_ods_detail(db: Session, codigo: str) -> dict[str, str]:
+    record = (
+        db.query(VentaODS)
+        .filter(func.lower(func.trim(VentaODS.codigo)) == str(codigo or "").strip().lower())
+        .first()
+    )
+    if not record:
+        raise HTTPException(status_code=404, detail="ODS no encontrada.")
+
+    archivos = db.query(VentaODSArchivo).filter(VentaODSArchivo.ods_id == record.id).all()
+    archivo_por_tipo: dict[tuple[str, str], VentaODSArchivo] = {}
+    for archivo in archivos:
+        key = (
+            str(archivo.tipo_documento or "").strip().lower(),
+            str(archivo.servicio or "").strip().lower(),
+        )
+        archivo_por_tipo[key] = archivo
+
+    cotizacion = record.cotizacion_path or ""
+    layout = ""
+    oc = record.odc_path or ""
+    for archivo in archivos:
+        tipo = str(archivo.tipo_documento or "").strip().lower()
+        if tipo == "layout" and not layout:
+            layout = archivo.ruta_archivo or ""
+
+    return {
+        "rut": record.rut_cliente or "",
+        "razonSocial": record.razon_social or "",
+        "direccionSucursal": record.direccion_sucursal or "",
+        "nombreSucursal": record.nombre_sucursal or "",
+        "observacion": record.observacion or "",
+        "tipoCliente": record.tipo_cliente or "",
+        "tipoServicio": record.tipo_servicio or "",
+        "tipoPlan": record.tipo_plan or "",
+        "camInstalar": str(record.numero_camaras_instalar or ""),
+        "camVigilar": str(record.numero_camaras_vigilar or ""),
+        "montoACobrar": record.montos_a_cobrar or "",
+        "diasAdicional": record.dias_monitoreo_adicional or "",
+        "horario": record.horario_monitoreo or "",
+        "materiales": record.materiales or "",
+        "consideraciones": record.consideraciones or "",
+        "cotizacion": cotizacion,
+        "layout": layout,
+        "oc": oc,
+    }
+
+
+def update_ods(db: Session, payload, usuario_email: str) -> VentaODS:
+    codigo = str(payload.selectorODS or "").strip()
+    record = (
+        db.query(VentaODS)
+        .filter(func.lower(func.trim(VentaODS.codigo)) == codigo.lower())
+        .first()
+    )
+    if not record:
+        raise HTTPException(status_code=404, detail="ODS no encontrada.")
+
+    tipos = [item.strip() for item in str(payload.tipoServicio or "").split(",") if item.strip()]
+
+    record.rut_cliente = normalize_rut(payload.rut or record.rut_cliente)
+    record.razon_social = str(payload.razonSocial or record.razon_social or "").strip()
+    record.direccion_sucursal = str(payload.direccionSucursal or record.direccion_sucursal or "").strip()
+    record.nombre_sucursal = _clean_text(payload.nombreSucursal)
+    record.tipo_plan = _clean_text(payload.tipoPlan)
+    record.tipo_cliente = _clean_text(payload.tipoCliente)
+    record.numero_camaras_instalar = _to_optional_int(payload.camInstalar)
+    record.numero_camaras_vigilar = _to_optional_int(payload.camVigilar)
+    record.montos_a_cobrar = _clean_text(payload.montoACobrar)
+    record.dias_monitoreo_adicional = _clean_text(payload.diasAdicional)
+    record.horario_monitoreo = _clean_text(payload.horario)
+    record.materiales = _clean_text(payload.materiales)
+    record.consideraciones = _clean_text(payload.consideraciones)
+    record.observacion = _clean_text(payload.observacion)
+    record.tipo_servicio = " | ".join(tipos) if tipos else ""
+    record.creado_por = _clean_text(usuario_email) or record.creado_por
+
+    cotizacion_path = _upsert_ods_archivo(db, record.id, record.codigo, "Cotizacion", "General", payload.cotizacion)
+    layout_path = _upsert_ods_archivo(db, record.id, record.codigo, "Layout", "Instalacion", payload.layout)
+    oc_path = _upsert_ods_archivo(db, record.id, record.codigo, "ODC", "Instalacion", payload.oc)
+
+    if cotizacion_path:
+        record.cotizacion_path = cotizacion_path
+    if oc_path:
+        record.odc_path = oc_path
+    if layout_path:
+        existing_layout = (
+            db.query(VentaODSArchivo)
+            .filter(
+                VentaODSArchivo.ods_id == record.id,
+                func.lower(func.trim(VentaODSArchivo.tipo_documento)) == "layout",
+            )
+            .first()
+        )
+        if existing_layout:
+            existing_layout.ruta_archivo = layout_path
 
     db.commit()
     db.refresh(record)
