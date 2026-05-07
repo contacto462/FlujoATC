@@ -23,7 +23,10 @@
       --entry: #f8fafc;
       --radius: 9px;
       --radius-lg: 22px;
+      --sidebar-w: 220px;
     }
+
+    html { scroll-behavior: smooth; }
 
     body {
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -31,21 +34,21 @@
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      padding: 32px 16px;
+      padding: 0;
     }
 
     /* ── OUTER SHELL ── */
     .shell {
       width: 100%;
-      max-width: 900px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
     }
 
     /* ── TOP HERO ── */
     .hero {
       background: linear-gradient(135deg, var(--navy-1) 0%, var(--navy-2) 55%, var(--navy-3) 100%);
-      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-      padding: 28px 36px 24px;
+      padding: 22px 36px 20px;
       position: relative;
       overflow: hidden;
       display: grid;
@@ -81,11 +84,10 @@
     /* ── MAIN LAYOUT: sidebar + content ── */
     .main-layout {
       display: grid;
-      grid-template-columns: 220px 1fr;
+      grid-template-columns: var(--sidebar-w) 1fr;
+      flex: 1;
+      align-items: start;
       background: var(--surface);
-      border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-      overflow: hidden;
-      box-shadow: 0 4px 6px rgba(0,0,0,.06), 0 20px 60px rgba(0,0,0,.1);
     }
 
     /* ── SIDEBAR ── */
@@ -95,6 +97,10 @@
       display: flex;
       flex-direction: column;
       gap: 2px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
     }
 
     .sidebar-label {
@@ -115,9 +121,10 @@
       font-size: 12.5px;
       font-weight: 500;
       color: rgba(190,208,214,.7);
-      cursor: default;
+      cursor: pointer;
       border-left: 2px solid transparent;
       transition: all .12s;
+      text-decoration: none;
     }
 
     .sidebar-item .dot {
@@ -125,6 +132,12 @@
       border-radius: 50%;
       background: rgba(190,208,214,.3);
       flex-shrink: 0;
+      transition: background .12s;
+    }
+
+    .sidebar-item:hover {
+      color: #f4f8f9;
+      background: rgba(255,255,255,.05);
     }
 
     .sidebar-item.active {
@@ -137,9 +150,8 @@
 
     /* ── FORM CONTENT ── */
     .form-content {
-      padding: 30px 32px 40px;
-      overflow-y: auto;
-      max-height: 82vh;
+      padding: 32px 40px 60px;
+      background: var(--surface);
     }
 
     /* ── SECTION ── */
