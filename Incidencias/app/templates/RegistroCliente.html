@@ -14,216 +14,187 @@
       --navy-3: #1e3248;
       --orange: #ff7a2b;
       --orange-2: #ff9448;
-      --orange-dark: #e8691f;
       --surface: #ffffff;
       --bg: #f0f4f8;
       --border: #e2e8f0;
       --text: #0f172a;
       --muted: #64748b;
       --label: #374151;
+      --entry: #f8fafc;
       --radius: 9px;
-      --radius-lg: 22px;
+      --sidebar-w: 270px;
     }
+
+    html { scroll-behavior: smooth; }
 
     body {
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
       background: var(--bg);
       min-height: 100vh;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 32px 16px;
+      flex-direction: column;
+      padding: 0;
     }
 
     /* ── SHELL ── */
     .shell {
-      display: grid;
-      grid-template-columns: 300px 1fr;
       width: 100%;
-      max-width: 860px;
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-      box-shadow: 0 4px 6px rgba(0,0,0,.06), 0 20px 60px rgba(0,0,0,.12);
-    }
-
-    /* ── LEFT PANEL ── */
-    .panel-left {
-      background: linear-gradient(160deg, var(--navy-1) 0%, var(--navy-2) 55%, var(--navy-3) 100%);
-      padding: 40px 28px;
+      flex: 1;
       display: flex;
       flex-direction: column;
-      position: relative;
-      overflow: hidden;
     }
 
-    .panel-left::before {
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(135deg, var(--navy-1) 0%, var(--navy-2) 55%, var(--navy-3) 100%);
+      padding: 22px 36px 20px;
+      position: relative;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .hero::before {
       content: '';
       position: absolute;
-      top: -80px; right: -80px;
+      top: -80px; right: -40px;
       width: 260px; height: 260px;
       border-radius: 50%;
       background: radial-gradient(circle, rgba(255,122,43,.18) 0%, transparent 70%);
       pointer-events: none;
     }
 
-    .panel-left::after {
-      content: '';
-      position: absolute;
-      bottom: -60px; left: -60px;
-      width: 200px; height: 200px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(61,115,168,.14) 0%, transparent 70%);
-      pointer-events: none;
-    }
+    .hero-left h1 { font-size: 20px; font-weight: 800; color: #f4f8f9; letter-spacing: -.03em; }
+    .hero-left p  { font-size: 12.5px; color: #bed0d6; margin-top: 4px; }
 
-    .brand-mark {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 36px;
-    }
-
-    .brand-icon {
-      width: 38px; height: 38px;
-      border-radius: 10px;
-      background: rgba(255,122,43,.15);
-      border: 1px solid rgba(255,122,43,.25);
-      display: flex; align-items: center; justify-content: center;
-    }
-
-    .brand-icon svg { color: var(--orange); }
-
-    .brand-name {
-      font-size: 14px;
-      font-weight: 700;
-      color: #f4f8f9;
-      letter-spacing: .02em;
-    }
-
-    .panel-left h2 {
-      font-size: 22px;
-      font-weight: 800;
-      color: #f4f8f9;
-      line-height: 1.25;
-      letter-spacing: -.03em;
-      margin-bottom: 12px;
-      position: relative;
-    }
-
-    .panel-left p {
-      font-size: 13px;
-      color: #bed0d6;
-      line-height: 1.65;
-      position: relative;
-    }
-
-    .notice-left {
-      margin-top: 28px;
-      padding: 12px 14px;
+    .hero-notice {
       background: rgba(255,122,43,.1);
       border: 1px solid rgba(255,122,43,.22);
       border-radius: var(--radius);
-      position: relative;
+      padding: 10px 14px;
+      max-width: 280px;
+    }
+    .hero-notice p { font-size: 11.5px; color: #ffc59a; line-height: 1.5; }
+
+    /* ── MAIN LAYOUT ── */
+    .main-layout {
+      display: grid;
+      grid-template-columns: var(--sidebar-w) 1fr;
+      flex: 1;
+      align-items: start;
+      background: var(--surface);
     }
 
-    .notice-left p {
-      font-size: 12px;
-      color: #ffc59a;
-      line-height: 1.55;
-    }
-
-    .step-list {
-      margin-top: auto;
-      padding-top: 32px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      position: relative;
-    }
-
-    .step {
+    /* ── SIDEBAR ── */
+    .sidebar-brand {
       display: flex;
       align-items: center;
-      gap: 10px;
+      justify-content: center;
+      padding: 12px 24px 0;
+    }
+    .sidebar-brand img {
+      width: 150px; height: 150px;
+      object-fit: contain;
+      opacity: .94;
     }
 
-    .step-dot {
-      width: 22px; height: 22px;
-      border-radius: 50%;
-      background: rgba(255,255,255,.06);
-      border: 1px solid rgba(255,255,255,.14);
-      display: flex; align-items: center; justify-content: center;
+    .sidebar {
+      background: var(--navy-1);
+      padding: 0 0 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .sidebar-label {
       font-size: 10px;
       font-weight: 700;
-      color: #bed0d6;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      color: rgba(190,208,214,.38);
+      padding: 0 24px 6px;
+      margin-top: 4px;
+    }
+
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 500;
+      color: rgba(190,208,214,.65);
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: all .14s;
+      text-decoration: none;
+      line-height: 1.2;
+    }
+
+    .sidebar-item .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: rgba(190,208,214,.28);
       flex-shrink: 0;
+      transition: background .14s, transform .14s;
     }
 
-    .step span {
-      font-size: 12px;
-      color: #bed0d6;
+    .sidebar-item:hover { color: #f4f8f9; background: rgba(255,255,255,.06); }
+    .sidebar-item:hover .dot { background: rgba(190,208,214,.55); transform: scale(1.2); }
+
+    .sidebar-item.active {
+      color: #f4f8f9;
+      font-weight: 600;
+      border-left-color: var(--orange);
+      background: rgba(255,122,43,.09);
+    }
+    .sidebar-item.active .dot {
+      background: var(--orange);
+      box-shadow: 0 0 6px rgba(255,122,43,.5);
     }
 
-    /* ── RIGHT PANEL ── */
-    .panel-right {
+    /* ── FORM CONTENT ── */
+    .form-content {
+      padding: 32px 40px 60px;
       background: var(--surface);
-      padding: 36px 36px 40px;
-      overflow-y: auto;
-      max-height: 92vh;
     }
 
-    .form-title {
-      font-size: 17px;
-      font-weight: 700;
-      color: var(--text);
-      letter-spacing: -.02em;
-      margin-bottom: 24px;
-    }
-
-    /* ── SECTIONS ── */
-    .section {
-      margin-bottom: 28px;
-    }
+    /* ── SECTION ── */
+    .section { margin-bottom: 52px; scroll-margin-top: 24px; }
+    .section:last-of-type { margin-bottom: 0; }
 
     .section-head {
       display: flex;
       align-items: center;
-      gap: 8px;
-      margin-bottom: 14px;
+      gap: 12px;
+      margin-bottom: 22px;
     }
 
-    .section-badge {
-      width: 20px; height: 20px;
-      border-radius: 6px;
-      background: linear-gradient(135deg, var(--orange), var(--orange-2));
-      display: flex; align-items: center; justify-content: center;
-      font-size: 10px;
+    .section-title {
+      font-size: 20px;
       font-weight: 800;
-      color: #fff;
-      flex-shrink: 0;
+      color: var(--text);
+      letter-spacing: -.03em;
+      border-left: 4px solid var(--orange);
+      padding-left: 14px;
     }
 
-    .section-name {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .1em;
-      color: var(--muted);
-    }
-
-    /* ── GRID LAYOUTS ── */
-    .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    /* ── GRIDS ── */
+    .g2     { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .g3     { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
     .g-wide { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
 
     /* ── FIELD ── */
     .f { display: flex; flex-direction: column; gap: 4px; }
+    .mt { margin-top: 12px; }
 
-    .f label {
-      font-size: 11.5px;
-      font-weight: 600;
-      color: var(--label);
-    }
+    .f label { font-size: 11.5px; font-weight: 600; color: var(--label); }
 
     .f input, .f select {
       width: 100%;
@@ -247,26 +218,13 @@
       cursor: pointer;
     }
 
-    .f input:focus, .f select:focus {
-      border-color: var(--orange);
-      box-shadow: 0 0 0 3px rgba(255,122,43,.13);
-    }
-
+    .f input:focus, .f select:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(255,122,43,.13); }
     .f input::placeholder { color: #94a3b8; font-size: 12.5px; }
-
-    .mt { margin-top: 12px; }
-
-    /* ── DIVIDER ── */
-    hr.div {
-      border: none;
-      border-top: 1px solid var(--border);
-      margin: 0 0 24px;
-    }
 
     /* ── SUBMIT ── */
     .btn-submit {
       width: 100%;
-      padding: 12px;
+      padding: 13px;
       background: linear-gradient(135deg, var(--orange) 0%, var(--orange-2) 100%);
       color: #fff;
       font-size: 14px;
@@ -277,23 +235,19 @@
       cursor: pointer;
       letter-spacing: -.01em;
       box-shadow: 0 2px 8px rgba(255,122,43,.3), 0 6px 20px rgba(255,122,43,.18);
-      transition: opacity .15s, transform .12s, box-shadow .15s;
-      margin-top: 8px;
+      transition: opacity .15s, transform .12s;
+      margin-top: 20px;
     }
-
-    .btn-submit:hover {
-      opacity: .92;
-      box-shadow: 0 4px 12px rgba(255,122,43,.4), 0 8px 28px rgba(255,122,43,.22);
-    }
-
+    .btn-submit:hover { opacity: .92; }
     .btn-submit:active { transform: translateY(1px); }
     .btn-submit:disabled { background: #94a3b8; box-shadow: none; cursor: not-allowed; }
 
     @media (max-width: 700px) {
-      .shell { grid-template-columns: 1fr; }
-      .panel-left { padding: 28px 24px; }
-      .panel-left .step-list { display: none; }
-      .panel-right { padding: 28px 24px 36px; max-height: none; }
+      .hero { grid-template-columns: 1fr; padding: 20px 20px 16px; }
+      .hero-notice { max-width: 100%; }
+      .main-layout { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .form-content { padding: 24px 22px 40px; }
       .g2, .g3, .g-wide { grid-template-columns: 1fr; }
     }
   </style>
@@ -301,94 +255,84 @@
 <body>
 
 <div class="shell">
-  <!-- LEFT -->
-  <div class="panel-left">
-    <div class="brand-mark">
-      <div class="brand-icon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-        </svg>
-      </div>
-      <span class="brand-name">ATC · Alguien Te Cuida</span>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-left">
+      <h1>Registrar Cliente</h1>
+      <p>Alta de empresa y representante legal en el sistema ATC.</p>
     </div>
-
-    <h2>Registrar nuevo cliente</h2>
-    <p>Completa los datos de la empresa y el representante legal para crear el registro en el sistema.</p>
-
-    <div class="notice-left">
+    <div class="hero-notice">
       <p>Verifica en BBDD Clientes que el RUT no exista antes de registrar para evitar duplicados.</p>
-    </div>
-
-    <div class="step-list">
-      <div class="step"><div class="step-dot">1</div><span>Datos de la empresa</span></div>
-      <div class="step"><div class="step-dot">2</div><span>Región y facturación</span></div>
-      <div class="step"><div class="step-dot">3</div><span>Representante legal</span></div>
     </div>
   </div>
 
-  <!-- RIGHT -->
-  <div class="panel-right">
-    <div class="form-title">Nuevo Cliente</div>
+  <!-- MAIN -->
+  <div class="main-layout">
 
-    <form id="formularioClientes">
-
-      <!-- Sección 1: Empresa -->
-      <div class="section">
-        <div class="section-head">
-          <div class="section-badge">1</div>
-          <span class="section-name">Datos de la Empresa</span>
-        </div>
-
-        <div class="g-wide">
-          <div class="f"><label>RUT Empresa</label><input type="text" id="rut" placeholder="12.345.678-9" required></div>
-          <div class="f"><label>Giro</label><input type="text" id="giro" placeholder="Giro comercial" required></div>
-        </div>
-        <div class="f mt"><label>Razón Social</label><input type="text" id="razonSocial" placeholder="Nombre legal de la empresa" required></div>
-        <div class="f mt"><label>Dirección Empresa (Casa Matriz)</label><input type="text" id="direccion" placeholder="Calle, número, ciudad" required></div>
+    <!-- SIDEBAR -->
+    <nav class="sidebar">
+      <div class="sidebar-brand">
+        <img src="/shared-static/img/logo-atc.png" alt="ATC - Alguien Te Cuida">
       </div>
+      <div class="sidebar-label">Formulario</div>
+      <a class="sidebar-item active" href="#sec-empresa"><span class="dot"></span>1. Datos de la Empresa</a>
+      <a class="sidebar-item" href="#sec-region"><span class="dot"></span>2. Región y Facturación</a>
+      <a class="sidebar-item" href="#sec-representante"><span class="dot"></span>3. Representante Legal</a>
+    </nav>
 
-      <hr class="div">
+    <!-- FORM -->
+    <div class="form-content">
+      <form id="formularioClientes">
 
-      <!-- Sección 2: Ubicación y facturación -->
-      <div class="section">
-        <div class="section-head">
-          <div class="section-badge">2</div>
-          <span class="section-name">Región y Facturación</span>
-        </div>
-
-        <div class="g2">
-          <div class="f"><label>Región</label>
-            <select id="region" required><option value="" disabled selected>Seleccionar</option></select>
+        <!-- Sección 1 -->
+        <div class="section" id="sec-empresa">
+          <div class="section-head">
+            <span class="section-title">1. Datos de la Empresa</span>
           </div>
-          <div class="f"><label>Comuna</label>
-            <select id="comuna" required><option value="" disabled selected>Seleccionar</option></select>
+          <div class="g-wide">
+            <div class="f"><label>RUT Empresa</label><input type="text" id="rut" placeholder="12.345.678-9" required></div>
+            <div class="f"><label>Giro</label><input type="text" id="giro" placeholder="Giro comercial" required></div>
+          </div>
+          <div class="f mt"><label>Razón Social</label><input type="text" id="razonSocial" placeholder="Nombre legal de la empresa" required></div>
+          <div class="f mt"><label>Dirección Empresa (Casa Matriz)</label><input type="text" id="direccion" placeholder="Calle, número, ciudad" required></div>
+        </div>
+
+        <!-- Sección 2 -->
+        <div class="section" id="sec-region">
+          <div class="section-head">
+            <span class="section-title">2. Región y Facturación</span>
+          </div>
+          <div class="g2">
+            <div class="f"><label>Región</label>
+              <select id="region" required><option value="" disabled selected>Seleccionar</option></select>
+            </div>
+            <div class="f"><label>Comuna</label>
+              <select id="comuna" required><option value="" disabled selected>Seleccionar</option></select>
+            </div>
+          </div>
+          <div class="f mt"><label>Email Envío de Facturas</label><input type="email" id="emailFacturas" placeholder="facturacion@empresa.cl" required></div>
+        </div>
+
+        <!-- Sección 3 -->
+        <div class="section" id="sec-representante">
+          <div class="section-head">
+            <span class="section-title">3. Representante Legal</span>
+          </div>
+          <div class="g2">
+            <div class="f"><label>Nombre Completo</label><input type="text" id="nombreRepresentante" placeholder="Nombre y apellidos" required></div>
+            <div class="f"><label>RUT Representante</label><input type="text" id="rutRepresentante" placeholder="12.345.678-9" required></div>
+          </div>
+          <div class="g2 mt">
+            <div class="f"><label>Teléfono</label><input type="text" id="telefono" value="+569" required maxlength="13"></div>
+            <div class="f"><label>Email</label><input type="email" id="emailRepresentante" placeholder="correo@empresa.cl" required></div>
           </div>
         </div>
-        <div class="f mt"><label>Email Envío de Facturas</label><input type="email" id="emailFacturas" placeholder="facturacion@empresa.cl" required></div>
-      </div>
 
-      <hr class="div">
+        <button id="btnRegistrar" type="button" class="btn-submit">Registrar Cliente</button>
+      </form>
+    </div>
 
-      <!-- Sección 3: Representante -->
-      <div class="section">
-        <div class="section-head">
-          <div class="section-badge">3</div>
-          <span class="section-name">Representante Legal</span>
-        </div>
-
-        <div class="g2">
-          <div class="f"><label>Nombre Completo</label><input type="text" id="nombreRepresentante" placeholder="Nombre y apellidos" required></div>
-          <div class="f"><label>RUT Representante</label><input type="text" id="rutRepresentante" placeholder="12.345.678-9" required></div>
-        </div>
-        <div class="g2 mt">
-          <div class="f"><label>Teléfono</label><input type="text" id="telefono" value="+569" required maxlength="13"></div>
-          <div class="f"><label>Email</label><input type="email" id="emailRepresentante" placeholder="correo@empresa.cl" required></div>
-        </div>
-      </div>
-
-      <button id="btnRegistrar" type="button" class="btn-submit">Registrar Cliente</button>
-    </form>
   </div>
 </div>
 
@@ -496,6 +440,23 @@
     try { await Promise.all([cargarUsuarioActual(), cargarRegiones()]); }
     catch (error) { alert(error.message || "No se pudo inicializar el formulario."); }
   });
+
+  (() => {
+    const sectionIds = ["sec-empresa", "sec-region", "sec-representante"];
+    const navLinks = {};
+    document.querySelectorAll("a.sidebar-item").forEach(a => {
+      const id = (a.getAttribute("href") || "").replace("#", "");
+      if (id) navLinks[id] = a;
+    });
+    function setActive(id) {
+      Object.values(navLinks).forEach(a => a.classList.remove("active"));
+      if (navLinks[id]) navLinks[id].classList.add("active");
+    }
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => { if (entry.isIntersecting) setActive(entry.target.id); });
+    }, { threshold: 0.25, rootMargin: "0px 0px -60% 0px" });
+    sectionIds.forEach(id => { const el = document.getElementById(id); if (el) observer.observe(el); });
+  })();
 </script>
 </body>
 </html>
