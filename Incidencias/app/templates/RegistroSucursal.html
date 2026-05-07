@@ -270,9 +270,11 @@
 
     async function cargarRegiones() {
         const regionSelect = document.getElementById("region");
+        regionSelect.innerHTML = '<option value="" disabled selected>Cargando regiones...</option>';
         const response = await fetch(withToken("/api/venta/catalogo/regiones"));
         if (!response.ok) {
             const err = await response.json().catch(() => ({ detail: "No se pudo cargar el catalogo de regiones." }));
+            regionSelect.innerHTML = '<option value="" disabled selected>Seleccione una Region</option>';
             throw new Error(typeof err?.detail === "string" ? err.detail : "No se pudo cargar el catalogo de regiones.");
         }
         const data = await response.json();
@@ -283,17 +285,14 @@
             option.textContent = region;
             regionSelect.appendChild(option);
         });
-        regionSelect.disabled = false;
     }
 
     async function cargarComunas(region) {
         const comunaSelect = document.getElementById("comuna");
-        comunaSelect.disabled = true;
         comunaSelect.innerHTML = '<option value="" selected>Cargando comunas...</option>';
         const response = await fetch(withToken("/api/venta/catalogo/comunas?region=" + encodeURIComponent(region)));
         if (!response.ok) {
             const err = await response.json().catch(() => ({ detail: "No se pudo cargar el catalogo de comunas." }));
-            comunaSelect.disabled = false;
             comunaSelect.innerHTML = '<option value="" disabled selected>Seleccione una Comuna</option>';
             throw new Error(typeof err?.detail === "string" ? err.detail : "No se pudo cargar el catalogo de comunas.");
         }
@@ -312,7 +311,6 @@
         if (!comunas.length) {
             comunaSelect.innerHTML = '<option value="" disabled selected>Sin comunas disponibles</option>';
         }
-        comunaSelect.disabled = false;
     }
 
     async function cargarProveedoresInternet() {
@@ -536,8 +534,8 @@
         const regionSelect = document.getElementById("region");
         const comunaSelect = document.getElementById("comuna");
 
-        regionSelect.disabled = true;
-        comunaSelect.disabled = true;
+        regionSelect.innerHTML = '<option value="" disabled selected>Cargando regiones...</option>';
+        comunaSelect.innerHTML = '<option value="" disabled selected>Seleccione una Comuna</option>';
 
         document.getElementById("rut").addEventListener("input", function () {
             formatearRUTInput(this);
