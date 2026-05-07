@@ -533,6 +533,12 @@
     });
 
     document.addEventListener("DOMContentLoaded", async function () {
+        const regionSelect = document.getElementById("region");
+        const comunaSelect = document.getElementById("comuna");
+
+        regionSelect.disabled = true;
+        comunaSelect.disabled = true;
+
         document.getElementById("rut").addEventListener("input", function () {
             formatearRUTInput(this);
         });
@@ -563,9 +569,17 @@
         document.getElementById("telefono").addEventListener("input", function () {
             formatearTelefono(this);
         });
-        document.getElementById("region").addEventListener("change", function () {
-            if (this.value) cargarComunas(this.value).catch(err => alert(err.message));
-        });
+        const onRegionSelected = async function () {
+            if (!this.value) return;
+            try {
+                await cargarComunas(this.value);
+            } catch (err) {
+                alert(err.message);
+            }
+        };
+
+        regionSelect.addEventListener("change", onRegionSelected);
+        regionSelect.addEventListener("input", onRegionSelected);
         document.getElementById("comuna").addEventListener("change", () => {
             actualizarCoordenadas().catch(() => {});
         });
