@@ -564,9 +564,6 @@
                 document.getElementById("latitudLongitud").value = `${lat}, ${this.value.trim()}`;
             }
         });
-        document.getElementById("telefono").addEventListener("input", function () {
-            formatearTelefono(this);
-        });
         regionSelect.addEventListener("change", function () {
             if (this.value) cargarComunas(this.value).catch(err => alert(err.message));
         });
