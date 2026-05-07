@@ -37,6 +37,11 @@ class VentaClienteTableUpdateRequest(BaseModel):
     values: list[str]
 
 
+class VentaSucursalTableUpdateRequest(BaseModel):
+    row_id: int
+    values: list[str]
+
+
 class VentaSucursalContactoEmergenciaRequest(BaseModel):
     nombre: str | None = Field(default=None, max_length=255)
     rut: str | None = Field(default=None, max_length=32)
