@@ -402,7 +402,6 @@
       <div class="sidebar-label">Formulario</div>
       <a class="sidebar-item active" href="#sec-cliente"><span class="dot"></span>1. Cliente</a>
       <a class="sidebar-item" href="#sec-servicio"><span class="dot"></span>2. Tipo de Servicio</a>
-      <a class="sidebar-item" href="#sec-config"><span class="dot"></span>Configuración</a>
       <a class="sidebar-item" href="#sec-detalle"><span class="dot"></span>3. Detalle y Montos</a>
       <a class="sidebar-item" href="#sec-oc"><span class="dot"></span>4. Orden de Compra</a>
       <div class="sidebar-label">Documentos</div>
@@ -702,7 +701,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 });
 
   (() => {
-    const sectionIds = ["sec-cliente", "sec-servicio", "sec-config", "sec-detalle", "sec-adjuntos"];
+    const sectionIds = ["sec-cliente", "sec-servicio", "sec-config", "sec-detalle", "sec-oc", "sec-adjuntos"];
     const navLinks = {};
     document.querySelectorAll("a.sidebar-item").forEach(a => {
       const id = (a.getAttribute("href") || "").replace("#", "");
