@@ -300,19 +300,17 @@
         }
         const data = await response.json();
         const comunas = data.comunas || [];
-        comunaSelect.innerHTML = "";
-        comunas.forEach((comuna, index) => {
+        comunaSelect.innerHTML = '<option value="" disabled selected>Seleccione una Comuna</option>';
+        comunas.forEach((comuna) => {
             const option = document.createElement("option");
             option.value = comuna;
             option.textContent = comuna;
-            if (index === 0) option.selected = true;
             comunaSelect.appendChild(option);
         });
         if (!comunas.length) {
             comunaSelect.innerHTML = '<option value="" disabled selected>Sin comunas disponibles</option>';
         }
         comunaSelect.disabled = false;
-        actualizarCoordenadas().catch(() => {});
     }
 
     async function cargarProveedoresInternet() {
