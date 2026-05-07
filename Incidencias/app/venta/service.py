@@ -252,6 +252,104 @@ def create_sucursal(db: Session, payload: VentaSucursalCreateRequest, usuario_em
     return record
 
 
+def get_sucursales_table(db: Session) -> dict:
+    headers = [
+        "ID",
+        "RUT",
+        "Nombre Empresa",
+        "Nombre Sucursal",
+        "Direccion",
+        "Region",
+        "Comuna",
+        "Referencia Ubicacion",
+        "Proveedor Internet",
+        "Proveedor Electricidad",
+        "Nro Cliente Electricidad",
+        "Horario Apertura",
+        "Horario Cierre",
+        "Dias Funcionamiento",
+        "Latitud - Longitud",
+        "Email Envio Facturas",
+        "Nombre Emergencia",
+    ]
+    rows = db.query(SucursalBBDD).order_by(SucursalBBDD.id.asc()).all()
+    data_rows: list[list[str]] = []
+    for row in rows:
+        primer_contacto = (
+            db.query(SucursalContactoEmergencia)
+            .filter(SucursalContactoEmergencia.sucursal_id == row.id)
+            .order_by(SucursalContactoEmergencia.id.asc())
+            .first()
+        )
+        latlng = row.latitud_longitud or (
+            f"{row.latitud}, {row.longitud}" if row.latitud and row.longitud else ""
+        )
+        data_rows.append([
+            str(row.id),
+            row.rut or "",
+            row.nombre_empresa or "",
+            row.nombre_sucursal or "",
+            row.direccion_sucursal or "",
+            row.region or "",
+            row.comuna or "",
+            row.referencia_ubicacion or "",
+            row.proveedor_internet or "",
+            row.proveedor_electricidad or "",
+            row.nro_proveedor_electricidad or "",
+            row.horario_apertura or "",
+            row.horario_cierre or "",
+            row.dias_funcionamiento or "",
+            latlng or "",
+            row.email_facturas or "",
+            primer_contacto.nombre if primer_contacto and primer_contacto.nombre else "",
+        ])
+    return {"headers": headers, "rows": data_rows}
+
+
+def update_sucursal_row(db: Session, row_id: int, values: list[str]) -> None:
+    if len(values) < 17:
+        raise HTTPException(status_code=400, detail="Fila invalida: faltan columnas para actualizar.")
+
+    record = db.query(SucursalBBDD).filter(SucursalBBDD.id == row_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Sucursal no encontrada.")
+
+    record.nombre_sucursal = (values[3] or "").strip()
+    record.direccion_sucursal = (values[4] or "").strip()
+    record.region = _clean_text(values[5])
+    record.comuna = _clean_text(values[6])
+    record.referencia_ubicacion = _clean_text(values[7])
+    record.proveedor_internet = _clean_text(values[8])
+    record.proveedor_electricidad = _clean_text(values[9])
+    record.nro_proveedor_electricidad = _clean_text(values[10])
+    record.horario_apertura = _clean_text(values[11])
+    record.horario_cierre = _clean_text(values[12])
+    record.dias_funcionamiento = _clean_text(values[13])
+    record.email_facturas = _clean_text(values[15])
+
+    lat, lng, latlng = _split_lat_lng(values[14], None, None)
+    record.latitud = lat
+    record.longitud = lng
+    record.latitud_longitud = latlng
+
+    nombre_emergencia = _clean_text(values[16])
+    primer_contacto = (
+        db.query(SucursalContactoEmergencia)
+        .filter(SucursalContactoEmergencia.sucursal_id == row.id)
+        .order_by(SucursalContactoEmergencia.id.asc())
+        .first()
+    )
+    if primer_contacto:
+        primer_contacto.nombre = nombre_emergencia
+    elif nombre_emergencia:
+        db.add(SucursalContactoEmergencia(
+            sucursal_id=row.id,
+            nombre=nombre_emergencia,
+        ))
+
+    db.commit()
+
+
 def _fetch_catalog(path: str) -> dict:
     base_url = (settings.venta_catalogo_base_url or "https://apis.digital.gob.cl/dpa").rstrip("/")
     if not base_url:
