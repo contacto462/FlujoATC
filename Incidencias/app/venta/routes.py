@@ -14,6 +14,7 @@ from app.venta.schemas import (
     VentaClienteTableUpdateRequest,
     VentaSucursalCreateRequest,
     VentaSucursalCreateResponse,
+    VentaSucursalTableUpdateRequest,
 )
 from app.venta.service import (
     create_cliente,
@@ -22,11 +23,13 @@ from app.venta.service import (
     fetch_regiones,
     get_cliente_nombre_by_rut,
     get_clientes_table,
+    get_sucursales_table,
     get_coordinates_for_address,
     get_proveedores_electricidad,
     get_proveedores_internet,
     rut_exists,
     update_cliente_row,
+    update_sucursal_row,
 )
 
 router = APIRouter(tags=["venta"])
@@ -89,6 +92,14 @@ def venta_bbdd_clientes_page(
     token: str = Depends(require_venta_token),
 ):
     return templates.TemplateResponse("BBDDClientes.html", {"request": request, "token": token})
+
+
+@router.get("/venta/bbdd-sucursales", response_class=HTMLResponse)
+def venta_bbdd_sucursales_page(
+    request: Request,
+    token: str = Depends(require_venta_token),
+):
+    return templates.TemplateResponse("BBCCSucursal.html", {"request": request, "token": token})
 
 
 @router.get("/api/venta/usuario-actual")
@@ -178,6 +189,24 @@ def venta_clientes_guardar_fila(
     _: str = Depends(require_venta_token),
 ):
     update_cliente_row(db, payload.row_id, payload.values)
+    return {"ok": True}
+
+
+@router.get("/api/venta/sucursales/tabla")
+def venta_sucursales_tabla(
+    db: Session = Depends(get_db),
+    _: str = Depends(require_venta_token),
+):
+    return get_sucursales_table(db)
+
+
+@router.post("/api/venta/sucursales/tabla/guardar-fila")
+def venta_sucursales_guardar_fila(
+    payload: VentaSucursalTableUpdateRequest,
+    db: Session = Depends(get_db),
+    _: str = Depends(require_venta_token),
+):
+    update_sucursal_row(db, payload.row_id, payload.values)
     return {"ok": True}
 
 
