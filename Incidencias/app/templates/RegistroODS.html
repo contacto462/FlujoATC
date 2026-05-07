@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solicitud Ordenes de Servicio</title>
+    <style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #F1F1F1;
+        color: #333333;
+        margin: 0;
+        padding: 24px 0;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        min-height: 100vh;
+    }
+    .contenedor {
+        background-color: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        width: 90%;
+        max-width: 640px;
+        overflow-y: auto;
+        max-height: 90vh;
+    }
+    h1 {
+        text-align: center;
+        color: #333333;
+        margin-bottom: 30px;
+        font-size: 24px;
+        font-weight: 600;
+    }
+    h3 {
+        margin: 18px 0 10px;
+        font-size: 16px;
+    }
+    label {
+        display: block;
+        margin-top: 10px;
+        font-weight: 600;
+        color: #555555;
+    }
+    input, select, textarea {
+        width: 100%;
+        padding: 12px;
+        margin-top: 8px;
+        margin-bottom: 12px;
+        box-sizing: border-box;
+        border: 1px solid #DDDDDD;
+        border-radius: 6px;
+        background-color: #FFFFFF;
+        color: #333333;
+    }
+    .checkbox-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px 18px;
+    }
+    .checkbox-group label {
+        width: auto;
+        margin: 0;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+    }
+    .checkbox-group input {
+        margin-right: 8px;
+        width: 18px;
+        height: 18px;
+    }
+    button {
+        width: 100%;
+        padding: 14px;
+        background-color: #FFA500;
+        color: white;
+        font-size: 16px;
+        font-weight: bold;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background 0.3s ease;
+    }
+    button:hover { background-color: #FF8C00; }
+    .alerta {
+        background-color: #ffcc00;
+        color: #333;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+        text-align: center;
+        font-size: 14px;
+        font-weight: bold;
+    }
+    .row-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+    @media (max-width: 680px) {
+        .row-2 { grid-template-columns: 1fr; }
+    }
+    </style>
+</head>
+<body>
+<div class="contenedor">
+    <h1>Solicitud Ordenes de Servicio</h1>
+
+    <div class="alerta">
+        Antes de registrar una orden de servicio, revisa si ya existe para evitar duplicados.
+    </div>
+
+    <form id="formularioOrdenServicio">
+        <label for="rutCliente">RUT Empresa</label>
+        <input type="text" id="rutCliente" required placeholder="Ingrese el RUT">
+
+        <label for="razonSocial">Razon Social</label>
+        <input type="text" id="razonSocial" readonly>
+
+        <label for="direccionSucursal">Direccion Sucursal</label>
+        <select id="direccionSucursal">
+            <option value="" disabled selected>Seleccione una sucursal</option>
+        </select>
+
+        <label for="nombreSucursal">Nombre Sucursal</label>
+        <input type="text" id="nombreSucursal" readonly>
+
+        <div class="form-group">
+            <h3>Tipo de Servicio</h3>
+            <div class="checkbox-group" id="tipoServicio">
+                <label><input type="checkbox" name="tipoServicio[]" value="Televigilancia"> Televigilancia</label>
+                <label><input type="checkbox" name="tipoServicio[]" value="Alarma"> Alarma</label>
+                <label><input type="checkbox" name="tipoServicio[]" value="Guardia"> Guardia</label>
+                <label><input type="checkbox" name="tipoServicio[]" value="Instalacion"> Instalacion</label>
+                <label><input type="checkbox" name="tipoServicio[]" value="Upgrade"> Upgrade</label>
+                <label><input type="checkbox" name="tipoServicio[]" value="Downgrade"> Downgrade</label>
+                <label><input type="checkbox" name="tipoServicio[]" value="Servicio Tecnico"> Servicio Tecnico</label>
+                <label><input type="checkbox" id="monitoreoAdicional" name="tipoServicio[]" value="Monitoreo Adicional"> Monitoreo Adicional</label>
+                <label><input type="checkbox" name="tipoServicio[]" value="Desinstalacion"> Desinstalacion</label>
+            </div>
+        </div>
+
+        <div id="monitoreoAdicionalSecciones" style="display:none;">
+            <div class="row-2">
+                <div>
+                    <label for="diasMonitoreoDesde">Dias de Monitoreo Adicional (Desde)</label>
+                    <input type="date" id="diasMonitoreoDesde">
+                </div>
+                <div>
+                    <label for="diasMonitoreoHasta">Dias de Monitoreo Adicional (Hasta)</label>
+                    <input type="date" id="diasMonitoreoHasta">
+                </div>
+            </div>
+
+            <label for="horarioMonitoreo">Nuevo Horario de Monitoreo</label>
+            <input type="time" id="horarioMonitoreo">
+        </div>
+
+        <div id="seccionCamaras" style="display:none;">
+            <div class="row-2">
+                <div>
+                    <label for="numeroCamarasInstalar">Numero de Camaras a instalar</label>
+                    <input type="number" id="numeroCamarasInstalar" min="0" placeholder="Ingrese el numero">
+                </div>
+                <div>
+                    <label for="numeroCamarasVigilar">Numero de Camaras a vigilar</label>
+                    <input type="number" id="numeroCamarasVigilar" min="0" placeholder="Ingrese el numero">
+                </div>
+            </div>
+        </div>
+
+        <div id="seccionDesinstalacion" style="display:none;">
+            <label for="numeroCamarasDesinstalar">Numero de Camaras a Desinstalar</label>
+            <input type="number" id="numeroCamarasDesinstalar" min="0" placeholder="Ingrese el numero">
+        </div>
+
+        <div id="seccionDiasGrabacion" style="display:none;">
+            <label for="diasGrabacion">Dias de Grabacion</label>
+            <input type="number" id="diasGrabacion" min="1" placeholder="Ingrese los dias">
+        </div>
+
+        <div id="seccionTipoPlan" style="display:none;">
+            <label for="tipoPlan">Tipo de Plan</label>
+            <select id="tipoPlan">
+                <option value="" disabled selected>Seleccione un plan</option>
+                <option value="Plan Full">Plan Full</option>
+                <option value="Plan Mixto">Plan Mixto</option>
+            </select>
+        </div>
+
+        <div id="seccionMontosCobrar" style="display:none;">
+            <h3>Montos a Cobrar</h3>
+            <div id="contenedorMontos"></div>
+        </div>
+
+        <div id="seccionDesglosePrecio" style="display:none;">
+            <label for="desgloseArchivo">Adjuntar Desglose de precio por item</label>
+            <input type="file" id="desgloseArchivo" accept=".pdf,.doc,.docx,.xls,.xlsx">
+        </div>
+
+        <label for="tipoCliente">Tipo de Cliente</label>
+        <select id="tipoCliente" required>
+            <option value="" disabled selected>Seleccione un tipo de cliente</option>
+            <option value="EMPRESA">EMPRESA</option>
+            <option value="DOMICILIO">DOMICILIO</option>
+            <option value="STRIP CENTER">STRIP CENTER</option>
+            <option value="MUNICIPALIDAD">MUNICIPALIDAD</option>
+            <option value="CONDOMINIO">CONDOMINIO</option>
+        </select>
+
+        <label for="observacion">Observacion</label>
+        <textarea id="observacion" placeholder="Ingrese observaciones si posee protocolo especial" style="height:60px;"></textarea>
+
+        <div id="seccionAguaBano" style="display:none;">
+            <label for="aguaBano">Instalacion cumple con Agua Potable y Bano</label>
+            <select id="aguaBano">
+                <option value="" disabled selected>Seleccione una opcion</option>
+                <option value="Si">Si</option>
+                <option value="No">No</option>
+            </select>
+        </div>
+
+        <label>Requiere Orden de Compra</label>
+        <div class="checkbox-group" style="margin-bottom:12px;">
+            <label><input type="radio" name="requiereOC" value="Si"> Si</label>
+            <label><input type="radio" name="requiereOC" value="No"> No</label>
+        </div>
+
+        <label for="ejecutivoVenta">Ejecutivo de Venta</label>
+        <select id="ejecutivoVenta" required>
+            <option value="" disabled selected>Seleccione un ejecutivo</option>
+        </select>
+
+        <div class="row-2">
+            <div>
+                <label for="materiales">Materiales</label>
+                <textarea id="materiales" required placeholder="Copiar y pegar materiales sin montos" style="height:60px;"></textarea>
+            </div>
+            <div>
+                <label for="consideraciones">Consideraciones</label>
+                <textarea id="consideraciones" required placeholder="Copiar y pegar consideraciones" style="height:60px;"></textarea>
+            </div>
+        </div>
+
+        <div id="contenedorArchivos"></div>
+
+        <button type="button" id="btnRegistrarODS">Registrar Orden de Servicio</button>
+    </form>
+</div>
+
+<script>
+const qsToken = new URLSearchParams(window.location.search).get("token") || "";
+const withToken = (url) => {
+    const sep = url.includes("?") ? "&" : "?";
+    return qsToken ? `${url}${sep}token=${encodeURIComponent(qsToken)}` : url;
+};
+
+function formatearRUTInput(input) {
+    let rut = String(input.value || "").trim().replace(/[^0-9Kk]/g, "").toUpperCase();
+    if (rut.length < 2) {
+        input.value = rut;
+        return;
+    }
+    input.value = `${rut.slice(0, -1)}-${rut.slice(-1)}`;
+}
+
+function obtenerTiposSeleccionados() {
+    return Array.from(document.querySelectorAll('input[name="tipoServicio[]"]:checked')).map((checkbox) => checkbox.value);
+}
+
+function obtenerValor(id) {
+    return document.getElementById(id)?.value.trim() || "";
+}
+
+async function cargarEjecutivosVenta() {
+    const response = await fetch(withToken("/api/venta/ods/ejecutivos"));
+    if (!response.ok) throw new Error("No se pudo cargar la lista de ejecutivos.");
+    const data = await response.json();
+    const select = document.getElementById("ejecutivoVenta");
+    select.innerHTML = '<option value="" disabled selected>Seleccione un ejecutivo</option>';
+    (data.ejecutivos || []).forEach((ejecutivo) => {
+        const option = document.createElement("option");
+        option.value = ejecutivo;
+        option.textContent = ejecutivo;
+        select.appendChild(option);
+    });
+}
+
+async function cargarDatosDesdeSucursales(rutIngresado) {
+    const response = await fetch(withToken("/api/venta/ods/datos-por-rut?rut=" + encodeURIComponent(rutIngresado)));
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({ detail: "No se pudieron cargar las sucursales del RUT." }));
+        throw new Error(typeof err?.detail === "string" ? err.detail : "No se pudieron cargar las sucursales del RUT.");
+    }
+    const datos = await response.json();
+    document.getElementById("razonSocial").value = datos.razonSocial || "";
+
+    const direccionSelect = document.getElementById("direccionSucursal");
+    direccionSelect.innerHTML = "";
+    const direcciones = datos.direcciones || [];
+    const nombres = datos.nombresSucursales || [];
+
+    if (!direcciones.length) {
+        direccionSelect.innerHTML = "<option value='' selected>Sin sucursales registradas</option>";
+        document.getElementById("nombreSucursal").value = "";
+        return;
+    }
+
+    direcciones.forEach((direccion, index) => {
+        const option = document.createElement("option");
+        option.value = direccion;
+        option.textContent = direccion;
+        option.dataset.nombreSucursal = nombres[index] || "";
+        direccionSelect.appendChild(option);
+    });
+    document.getElementById("nombreSucursal").value = nombres[0] || "";
+}
+
+function actualizarNombreSucursal() {
+    const direccionSelect = document.getElementById("direccionSucursal");
+    const selectedOption = direccionSelect.options[direccionSelect.selectedIndex];
+    document.getElementById("nombreSucursal").value = selectedOption?.dataset?.nombreSucursal || "";
+}
+
+function actualizarVisibilidad() {
+    const seleccionados = obtenerTiposSeleccionados();
+    const activarTecnico = seleccionados.some((servicio) => ["Televigilancia", "Instalacion", "Upgrade", "Downgrade"].includes(servicio));
+
+    document.getElementById("seccionCamaras").style.display = activarTecnico ? "block" : "none";
+    document.getElementById("seccionDiasGrabacion").style.display = activarTecnico ? "block" : "none";
+    document.getElementById("seccionTipoPlan").style.display = activarTecnico ? "block" : "none";
+    document.getElementById("seccionDesinstalacion").style.display = seleccionados.includes("Desinstalacion") ? "block" : "none";
+    document.getElementById("seccionAguaBano").style.display = seleccionados.includes("Instalacion") ? "block" : "none";
+    document.getElementById("seccionDesglosePrecio").style.display = seleccionados.length > 0 ? "block" : "none";
+    document.getElementById("monitoreoAdicionalSecciones").style.display = seleccionados.includes("Monitoreo Adicional") ? "block" : "none";
+
+    actualizarCamposAdjuntar(seleccionados);
+    actualizarMontosPorCobrar(seleccionados);
+}
+
+function actualizarMontosPorCobrar(servicios) {
+    const seccion = document.getElementById("seccionMontosCobrar");
+    const contenedor = document.getElementById("contenedorMontos");
+    contenedor.innerHTML = "";
+
+    const campos = [];
+    if (servicios.includes("Instalacion")) {
+        campos.push(["monto_instalacion_total", "Valor Instalacion Total"]);
+        campos.push(["monto_servicio_mensual", "Valor Servicio Mensual"]);
+    }
+    if (servicios.some((s) => ["Televigilancia", "Alarma", "Guardia"].includes(s)) && !campos.find((item) => item[0] === "monto_servicio_mensual")) {
+        campos.push(["monto_servicio_mensual", "Valor Servicio Mensual"]);
+    }
+    if (servicios.includes("Servicio Tecnico")) campos.push(["monto_servicio_tecnico", "Valor Servicio Tecnico"]);
+    if (servicios.includes("Desinstalacion")) campos.push(["monto_desinstalacion", "Valor Desinstalacion"]);
+    if (servicios.includes("Upgrade")) campos.push(["monto_upgrade", "Valor Upgrade"]);
+    if (servicios.includes("Downgrade")) campos.push(["monto_downgrade", "Valor Downgrade"]);
+    if (servicios.includes("Monitoreo Adicional")) campos.push(["monto_monitoreo_adicional", "Valor Monitoreo Adicional"]);
+
+    campos.forEach(([id, label]) => {
+        const div = document.createElement("div");
+        div.innerHTML = `
+            <label for="${id}">${label}</label>
+            <input type="text" id="${id}" placeholder="Ej: UF o CLP + IVA">
+        `;
+        contenedor.appendChild(div);
+    });
+
+    seccion.style.display = campos.length ? "block" : "none";
+}
+
+function actualizarCamposAdjuntar(servicios) {
+    const contenedor = document.getElementById("contenedorArchivos");
+    contenedor.innerHTML = "";
+
+    const divCotizacion = document.createElement("div");
+    divCotizacion.innerHTML = `
+        <label for="cotizacion_general">Adjuntar Cotizacion</label>
+        <input type="file" id="cotizacion_general" class="cotizacion" accept=".pdf,.doc,.docx">
+    `;
+    contenedor.appendChild(divCotizacion);
+
+    const requiereOC = document.querySelector('input[name="requiereOC"]:checked')?.value;
+    if (requiereOC === "Si") {
+        const divOdc = document.createElement("div");
+        divOdc.innerHTML = `
+            <label for="odc_general">Adjuntar Orden de Compra</label>
+            <input type="file" id="odc_general" class="odc" data-servicio="Instalacion" accept=".pdf,.doc,.docx">
+        `;
+        contenedor.appendChild(divOdc);
+    }
+
+    servicios.forEach((servicio) => {
+        if (!["Instalacion", "Servicio Tecnico", "Desinstalacion"].includes(servicio)) {
+            const divContrato = document.createElement("div");
+            divContrato.innerHTML = `
+                <label for="contrato_${servicio}">Adjuntar Contrato (${servicio})</label>
+                <input type="file" id="contrato_${servicio}" class="contrato" data-servicio="${servicio}" accept=".pdf,.doc,.docx">
+            `;
+            contenedor.appendChild(divContrato);
+        }
+
+        if (servicio === "Instalacion") {
+            const divLayout = document.createElement("div");
+            divLayout.innerHTML = `
+                <label for="layout_${servicio}">Adjuntar Layout (${servicio})</label>
+                <input type="file" id="layout_${servicio}" class="layout" data-servicio="${servicio}" accept="image/*,.pdf">
+            `;
+            contenedor.appendChild(divLayout);
+        }
+    });
+}
+
+async function procesarArchivoAsync(input, tipoArchivo, servicio) {
+    return new Promise((resolve) => {
+        if (!input || !input.files || !input.files.length) {
+            resolve(null);
+            return;
+        }
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = function (event) {
+            const base64String = String(event.target?.result || "").split(",")[1] || "";
+            const extension = file.name.includes(".") ? file.name.split(".").pop().toLowerCase() : "bin";
+            const nombreEmpresa = document.getElementById("razonSocial").value.trim() || "Cliente";
+            const nombreArchivo = `${tipoArchivo} - ${servicio} - ${nombreEmpresa}.${extension}`;
+            resolve({
+                nombre: nombreArchivo,
+                tipo: file.type || "application/octet-stream",
+                data: base64String,
+                servicio: servicio,
+                tipoDocumento: tipoArchivo,
+            });
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+async function enviarFormulario() {
+    const boton = document.getElementById("btnRegistrarODS");
+    const textoOriginal = boton.textContent;
+    boton.textContent = "Registrando...";
+    boton.disabled = true;
+
+    try {
+        const tiposSeleccionados = obtenerTiposSeleccionados();
+        if (!tiposSeleccionados.length) {
+            throw new Error("Debes seleccionar al menos un tipo de servicio.");
+        }
+
+        const materiales = obtenerValor("materiales");
+        const consideraciones = obtenerValor("consideraciones");
+        if (!materiales || !consideraciones) {
+            throw new Error("Los campos Materiales y Consideraciones son obligatorios.");
+        }
+
+        const camposMontos = [
+            ["monto_servicio_mensual", "Valor Servicio Mensual"],
+            ["monto_instalacion_total", "Valor Instalacion Total"],
+            ["monto_servicio_tecnico", "Valor Servicio Tecnico"],
+            ["monto_desinstalacion", "Valor Desinstalacion"],
+            ["monto_upgrade", "Valor Upgrade"],
+            ["monto_downgrade", "Valor Downgrade"],
+            ["monto_monitoreo_adicional", "Valor Monitoreo Adicional"],
+        ];
+        const montosACobrar = camposMontos
+            .map(([id, label]) => {
+                const valor = document.getElementById(id)?.value.trim();
+                return valor ? `${label}: ${valor}` : null;
+            })
+            .filter(Boolean)
+            .join("\n");
+
+        const cotizacion = await procesarArchivoAsync(document.getElementById("cotizacion_general"), "Cotizacion", "General");
+        const odc = await procesarArchivoAsync(document.getElementById("odc_general"), "ODC", "Instalacion");
+        const desglosePrecioArchivo = await procesarArchivoAsync(document.getElementById("desgloseArchivo"), "DesglosePrecio", "General");
+
+        const contratos = (await Promise.all(
+            Array.from(document.querySelectorAll(".contrato")).map((input) => procesarArchivoAsync(input, "Contrato", input.dataset.servicio))
+        )).filter(Boolean);
+        const layouts = (await Promise.all(
+            Array.from(document.querySelectorAll(".layout")).map((input) => procesarArchivoAsync(input, "Layout", input.dataset.servicio))
+        )).filter(Boolean);
+
+        const payload = {
+            ejecutivoVenta: obtenerValor("ejecutivoVenta"),
+            rutCliente: obtenerValor("rutCliente"),
+            razonSocial: obtenerValor("razonSocial"),
+            direccionSucursal: obtenerValor("direccionSucursal"),
+            nombreSucursal: obtenerValor("nombreSucursal"),
+            observacion: obtenerValor("observacion"),
+            tipoCliente: obtenerValor("tipoCliente"),
+            tipoServicio: tiposSeleccionados,
+            tipoPlan: obtenerValor("tipoPlan"),
+            numeroCamarasInstalar: obtenerValor("numeroCamarasInstalar"),
+            numeroCamarasDesinstalar: obtenerValor("numeroCamarasDesinstalar"),
+            numeroCamarasVigilar: obtenerValor("numeroCamarasVigilar"),
+            diasGrabacion: obtenerValor("diasGrabacion"),
+            diasMonitoreoDesde: obtenerValor("diasMonitoreoDesde"),
+            diasMonitoreoHasta: obtenerValor("diasMonitoreoHasta"),
+            diasMonitoreoAdicional: [obtenerValor("diasMonitoreoDesde"), obtenerValor("diasMonitoreoHasta")].filter(Boolean).join(" - "),
+            horarioMonitoreo: obtenerValor("horarioMonitoreo"),
+            materiales: materiales,
+            consideraciones: consideraciones,
+            aguaBano: obtenerValor("aguaBano"),
+            requiereOC: document.querySelector('input[name="requiereOC"]:checked')?.value || "",
+            montosACobrar: montosACobrar,
+            cotizacion: cotizacion,
+            odc: odc,
+            contratos: contratos,
+            layouts: layouts,
+            desglosePrecioArchivo: desglosePrecioArchivo
+        };
+
+        const response = await fetch(withToken("/api/venta/ods"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({ detail: "Error al registrar la orden." }));
+            let message = "Error al registrar la orden.";
+            if (typeof err?.detail === "string") {
+                message = err.detail;
+            } else if (Array.isArray(err?.detail) && err.detail.length > 0) {
+                const first = err.detail[0];
+                const field = Array.isArray(first?.loc) ? first.loc[first.loc.length - 1] : "";
+                message = field ? `${field}: ${first?.msg || "valor invalido"}` : (first?.msg || message);
+            }
+            throw new Error(message);
+        }
+
+        const data = await response.json();
+        alert(`Orden registrada con exito. Codigo: ${data.codigo}`);
+        window.location.reload();
+    } catch (error) {
+        alert(error?.message || "No se pudo registrar la orden.");
+    } finally {
+        boton.textContent = textoOriginal;
+        boton.disabled = false;
+    }
+}
+
+document.addEventListener("DOMContentLoaded", async function () {
+    const rutInput = document.getElementById("rutCliente");
+    const direccionSelect = document.getElementById("direccionSucursal");
+
+    rutInput.addEventListener("input", function () {
+        formatearRUTInput(this);
+    });
+
+    rutInput.addEventListener("blur", async function () {
+        const rut = this.value.trim();
+        if (!rut) return;
+        try {
+            await cargarDatosDesdeSucursales(rut);
+        } catch (error) {
+            alert(error?.message || "No se pudieron cargar los datos del cliente.");
+        }
+    });
+
+    direccionSelect.addEventListener("change", actualizarNombreSucursal);
+    document.querySelectorAll('input[name="tipoServicio[]"]').forEach((checkbox) => {
+        checkbox.addEventListener("change", actualizarVisibilidad);
+    });
+    document.querySelectorAll('input[name="requiereOC"]').forEach((radio) => {
+        radio.addEventListener("change", () => actualizarCamposAdjuntar(obtenerTiposSeleccionados()));
+    });
+    document.getElementById("btnRegistrarODS").addEventListener("click", enviarFormulario);
+
+    try {
+        await cargarEjecutivosVenta();
+        actualizarVisibilidad();
+    } catch (error) {
+        alert(error?.message || "No se pudo inicializar el formulario.");
+    }
+});
+</script>
+</body>
+</html>
