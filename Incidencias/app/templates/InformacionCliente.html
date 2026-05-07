@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Informacion del Cliente</title>
+ <style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #F4F6F8;
+    padding: 30px;
+    margin: 0;
+  }
+
+  .container {
+    max-width: 1000px;
+    margin: auto;
+    background: #fff;
+    padding: 25px 30px;
+    border-radius: 10px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .header {
+    background-color: #FFA500;
+    color: white;
+    text-align: center;
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 25px;
+  }
+
+  .search-bar {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .search-bar input[type="text"] {
+    flex: 1;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+  }
+
+  .search-bar button {
+    background-color: #FFA500;
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+
+  .search-bar button:hover {
+    background-color: #e69500;
+  }
+
+  .info-section p {
+    font-size: 15px;
+    margin: 5px 0;
+  }
+
+  select {
+    padding: 8px;
+    font-size: 15px;
+    width: 50%;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    margin-top: 10px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+
+  th {
+    background-color: #FFA500;
+    color: white;
+    padding: 10px;
+    text-align: center;
+  }
+
+  td {
+    background-color: #fff;
+    padding: 8px;
+    text-align: center;
+    border-bottom: 1px solid #eee;
+  }
+
+  tr:nth-child(even) td {
+    background-color: #f9f9f9;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="time"] {
+    width: 100%;
+    padding: 6px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+  }
+
+  button {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+
+  button:hover {
+    background-color: #218838;
+  }
+
+  .tables table {
+    margin-top: 30px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  }
+
+  .bloque-tabla {
+    margin-bottom: 40px;
+  }
+
+  .tabla-titulo {
+    color: #111;
+    padding: 10px;
+    text-align: center;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    font-size: 20px;
+  }
+
+  .editable-cell {
+    cursor: text;
+  }
+ </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>Informacion del Cliente</h1>
+    </div>
+
+    <div class="search">
+        <label for="rutCliente">Ingrese el RUT del cliente:</label>
+        <div class="search-bar">
+            <input type="text" id="rutCliente" placeholder="RUT del cliente">
+            <button onclick="buscarCliente()">Buscar</button>
+        </div>
+    </div>
+
+    <div class="info-section">
+        <p><strong>Razon Social:</strong> <span id="nombreCliente"></span></p>
+        <p><strong>Direccion Casa Matriz:</strong> <span id="direccionCasaMatriz"></span></p>
+        <p><strong>Comuna Casa Matriz:</strong> <span id="comunaCasaMatriz"></span></p>
+
+        <p><strong>Representante Legal:</strong></p>
+        <p>Nombre: <span id="nombreRepresentante"></span></p>
+        <p>RUT: <span id="rutRepresentante"></span></p>
+        <p>Email: <span id="emailRepresentante"></span></p>
+
+        <div>
+            <label for="sucursales">Sucursales:</label>
+            <select id="sucursales" onchange="cargarDatosDeEmergencia()">
+                <option value="" disabled selected>Seleccione Sucursal</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="info-section">
+        <p><strong>Comuna de Sucursal:</strong> <span id="comunaSucursal"></span></p>
+        <p><strong>Latitud - Longitud:</strong> <span id="latitudLongitud"></span></p>
+        <p><strong>Referencia Ubicacion:</strong> <span id="referenciaUbicacion"></span></p>
+        <p><strong>Cantidad de Camaras:</strong> <span id="cantidadCamaras"></span></p>
+        <p><strong>Dias de Grabacion:</strong> <span id="diasGrabacion"></span></p>
+        <p><strong>Proveedor de Internet:</strong> <span id="proveedorInternet"></span></p>
+        <p><strong>Proveedor de Electricidad:</strong> <span id="proveedorElectricidad"></span></p>
+        <p><strong>Numero Cliente Electricidad:</strong> <span id="numeroClienteElectricidad"></span></p>
+        <p><strong>Dias de Apertura:</strong> <span id="diasApertura"></span></p>
+        <p><strong>Horario de Apertura:</strong> <span id="horarioApertura"></span></p>
+        <p><strong>Horario de Cierre:</strong> <span id="horarioCierre"></span></p>
+        <p><strong>Tipo de Servicio:</strong> <span id="tipoServicio"></span></p>
+        <p><strong>Tipo de Plan:</strong> <span id="tipoPlan"></span></p>
+    </div>
+
+    <div class="tables">
+        <div class="bloque-tabla">
+            <h2 class="tabla-titulo">Contacto de Emergencia</h2>
+            <table id="contactosEmergenciaTable">
+                <thead>
+                    <tr>
+                        <th>Nombre Emergencia</th>
+                        <th>RUT</th>
+                        <th>Telefono Emergencia</th>
+                        <th>Email</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyEmergencia"></tbody>
+            </table>
+        </div>
+
+        <div class="bloque-tabla">
+            <h2 class="tabla-titulo">Personas Autorizadas</h2>
+            <table id="personasAutorizadasTable">
+                <thead>
+                    <tr>
+                        <th>Nombre Autorizado</th>
+                        <th>RUT</th>
+                        <th>Telefono</th>
+                        <th>Email</th>
+                        <th>Clave Verde</th>
+                        <th>Clave Roja</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyAutorizados"></tbody>
+            </table>
+        </div>
+
+        <div class="bloque-tabla">
+            <h2 class="tabla-titulo">Guardias</h2>
+            <table id="guardiasTable">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>RUT</th>
+                        <th>Telefono</th>
+                        <th>Horario (Desde)</th>
+                        <th>Horario (Hasta)</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyGuardias"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+const qsToken = new URLSearchParams(window.location.search).get("token") || "";
+const withToken = (url) => {
+  const sep = url.includes("?") ? "&" : "?";
+  return qsToken ? `${url}${sep}token=${encodeURIComponent(qsToken)}` : url;
+};
+
+function normalizarRutInput(input) {
+  let rut = String(input.value || "").replace(/[^\dkK]/gi, "").replace(/^0+/, "");
+  if (rut.length > 1) {
+    input.value = `${rut.slice(0, -1)}-${rut.slice(-1)}`;
+  } else {
+    input.value = rut;
+  }
+}
+
+function normalizarTelefonoInput(input) {
+  let tel = String(input.value || "").replace(/[^0-9]/g, "");
+  if (!tel.startsWith("569")) tel = "569" + tel;
+  input.value = "+" + tel.slice(0, 11);
+}
+
+async function buscarCliente() {
+  const rutCliente = document.getElementById("rutCliente").value.trim();
+  if (!rutCliente) {
+    alert("Por favor, ingrese un RUT.");
+    return;
+  }
+
+  const response = await fetch(withToken("/api/venta/clientes/resumen?rut=" + encodeURIComponent(rutCliente)));
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    alert(data.detail || "No se pudo obtener la informacion del cliente.");
+    return;
+  }
+
+  document.getElementById("nombreCliente").innerText = data.nombreCliente || "No encontrado";
+  document.getElementById("direccionCasaMatriz").innerText = data.direccionCasaMatriz || "N/A";
+  document.getElementById("comunaCasaMatriz").innerText = data.comunaCasaMatriz || "N/A";
+  document.getElementById("nombreRepresentante").innerText = data.nombreRepresentante || "N/A";
+  document.getElementById("rutRepresentante").innerText = data.rutRepresentante || "N/A";
+  document.getElementById("emailRepresentante").innerText = data.emailRepresentante || "N/A";
+
+  const sucursalesSelect = document.getElementById("sucursales");
+  sucursalesSelect.innerHTML = "";
+
+  const sucursales = data.sucursales || [];
+  if (sucursales.length > 0) {
+    const firstOption = document.createElement("option");
+    firstOption.value = "";
+    firstOption.textContent = "Seleccione Sucursal";
+    firstOption.disabled = true;
+    sucursalesSelect.appendChild(firstOption);
+
+    sucursales.forEach((sucursal, index) => {
+      const option = document.createElement("option");
+      option.value = String(sucursal.id);
+      option.textContent = sucursal.label || sucursal.direccion || sucursal.nombre || `Sucursal ${sucursal.id}`;
+      if (index === 0) option.selected = true;
+      sucursalesSelect.appendChild(option);
+    });
+    await cargarDatosDeEmergencia();
+  } else {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "No hay sucursales disponibles";
+    sucursalesSelect.appendChild(option);
+  }
+}
+
+async function agregarPersona(categoria) {
+  const rutCliente = document.getElementById("rutCliente").value.trim();
+  const sucursalId = parseInt(document.getElementById("sucursales").value || "0", 10);
+  if (!rutCliente || !sucursalId) {
+    alert("Debe ingresar el RUT del cliente y seleccionar una sucursal.");
+    return;
+  }
+
+  const datos = { categoria, rutCliente, sucursalId };
+
+  if (categoria === "Contacto de Emergencia") {
+    datos.nombre = document.getElementById("emergenciaNombre").value.trim();
+    datos.rut = document.getElementById("emergenciaRUT").value.trim();
+    datos.telefono = document.getElementById("emergenciaTelefono").value.trim();
+    datos.email = document.getElementById("emergenciaEmail").value.trim();
+  } else if (categoria === "Persona Autorizada") {
+    datos.nombre = document.getElementById("autorizadoNombre").value.trim();
+    datos.rut = document.getElementById("autorizadoRUT").value.trim();
+    datos.telefono = document.getElementById("autorizadoTelefono").value.trim();
+    datos.email = document.getElementById("autorizadoEmail").value.trim();
+    datos.claveVerde = document.getElementById("claveVerde").value.trim();
+    datos.claveRoja = document.getElementById("claveRoja").value.trim();
+  } else if (categoria === "Guardia") {
+    datos.nombre = document.getElementById("guardiaNombre").value.trim();
+    datos.rut = document.getElementById("guardiaRUT").value.trim();
+    datos.telefono = document.getElementById("guardiaTelefono").value.trim();
+    datos.horarioDesde = document.getElementById("horarioDesde").value.trim();
+    datos.horarioHasta = document.getElementById("horarioHasta").value.trim();
+  }
+
+  const response = await fetch(withToken("/api/venta/clientes/persona"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(datos),
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    alert(body.detail || "No se pudo agregar el registro.");
+    return;
+  }
+
+  alert("Registro agregado correctamente.");
+  await cargarDatosDeEmergencia();
+}
+
+async function cargarDatosDeEmergencia() {
+  const rutCliente = document.getElementById("rutCliente").value.trim();
+  const sucursalId = parseInt(document.getElementById("sucursales").value || "0", 10);
+
+  if (!rutCliente || !sucursalId) {
+    return;
+  }
+
+  const response = await fetch(withToken(`/api/venta/clientes/resumen-sucursal?rut=${encodeURIComponent(rutCliente)}&sucursal_id=${encodeURIComponent(String(sucursalId))}`));
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    alert(data.detail || "No se pudieron cargar los datos de la sucursal.");
+    return;
+  }
+
+  document.getElementById("comunaSucursal").innerText = data.comunaSucursal || "N/A";
+  document.getElementById("latitudLongitud").innerText = data.latitudLongitud || "N/A";
+  document.getElementById("referenciaUbicacion").innerText = data.referenciaUbicacion || "N/A";
+  document.getElementById("cantidadCamaras").innerText = data.cantidadCamaras || "N/A";
+  document.getElementById("diasGrabacion").innerText = data.diasGrabacion || "N/A";
+  document.getElementById("proveedorInternet").innerText = data.proveedorInternet || "N/A";
+  document.getElementById("proveedorElectricidad").innerText = data.proveedorElectricidad || "N/A";
+  document.getElementById("numeroClienteElectricidad").innerText = data.numeroClienteElectricidad || "N/A";
+  document.getElementById("diasApertura").innerText = data.diasApertura || "N/A";
+  document.getElementById("horarioApertura").innerText = data.horarioApertura || "N/A";
+  document.getElementById("horarioCierre").innerText = data.horarioCierre || "N/A";
+  document.getElementById("tipoServicio").innerText = data.tipoServicio || "N/A";
+  document.getElementById("tipoPlan").innerText = data.tipoPlan || "N/A";
+
+  llenarTabla("contactosEmergenciaTable", data.contactosEmergencia || []);
+  llenarTabla("personasAutorizadasTable", data.personasAutorizadas || []);
+  llenarTabla("guardiasTable", data.guardias || []);
+}
+
+function llenarTabla(tableId, data) {
+  const table = document.getElementById(tableId);
+  const tbody = table.querySelector("tbody");
+  tbody.innerHTML = "";
+
+  data.forEach((item) => {
+    const row = document.createElement("tr");
+    let campos = [];
+    let categoria = "";
+
+    if (tableId === "contactosEmergenciaTable") {
+      categoria = "Contacto de Emergencia";
+      campos = [
+        ["nombre", item.nombre],
+        ["rut", item.rut],
+        ["telefono", item.telefono],
+        ["email", item.email],
+      ];
+    } else if (tableId === "personasAutorizadasTable") {
+      categoria = "Persona Autorizada";
+      campos = [
+        ["nombre", item.nombre],
+        ["rut", item.rut],
+        ["telefono", item.telefono],
+        ["email", item.email],
+        ["claveVerde", item.claveVerde],
+        ["claveRoja", item.claveRoja],
+      ];
+    } else if (tableId === "guardiasTable") {
+      categoria = "Guardia";
+      campos = [
+        ["nombre", item.nombre],
+        ["rut", item.rut],
+        ["telefono", item.telefono],
+        ["horarioDesde", item.horarioDesde],
+        ["horarioHasta", item.horarioHasta],
+      ];
+    }
+
+    campos.forEach(([campo, valor]) => {
+      const td = document.createElement("td");
+      td.textContent = valor || "";
+      td.className = "editable-cell";
+      td.dataset.categoria = categoria;
+      td.dataset.registroId = String(item.id);
+      td.dataset.campo = campo;
+      td.ondblclick = hacerEditable;
+      row.appendChild(td);
+    });
+
+    tbody.appendChild(row);
+  });
+
+  const inputRow = document.createElement("tr");
+  if (tableId === "contactosEmergenciaTable") {
+    inputRow.innerHTML = `
+      <td><input type="text" id="emergenciaNombre" placeholder="Nombre"></td>
+      <td><input type="text" id="emergenciaRUT" placeholder="RUT"></td>
+      <td><input type="text" id="emergenciaTelefono" placeholder="Telefono"></td>
+      <td><input type="email" id="emergenciaEmail" placeholder="Email"></td>
+      <td><button onclick="agregarPersona('Contacto de Emergencia')">+</button></td>`;
+  } else if (tableId === "personasAutorizadasTable") {
+    inputRow.innerHTML = `
+      <td><input type="text" id="autorizadoNombre" placeholder="Nombre"></td>
+      <td><input type="text" id="autorizadoRUT" placeholder="RUT"></td>
+      <td><input type="text" id="autorizadoTelefono" placeholder="Telefono"></td>
+      <td><input type="email" id="autorizadoEmail" placeholder="Email"></td>
+      <td><input type="text" id="claveVerde" placeholder="Clave Verde"></td>
+      <td><input type="text" id="claveRoja" placeholder="Clave Roja"></td>
+      <td><button onclick="agregarPersona('Persona Autorizada')">+</button></td>`;
+  } else if (tableId === "guardiasTable") {
+    inputRow.innerHTML = `
+      <td><input type="text" id="guardiaNombre" placeholder="Nombre"></td>
+      <td><input type="text" id="guardiaRUT" placeholder="RUT"></td>
+      <td><input type="text" id="guardiaTelefono" placeholder="Telefono"></td>
+      <td><input type="time" id="horarioDesde"></td>
+      <td><input type="time" id="horarioHasta"></td>
+      <td><button onclick="agregarPersona('Guardia')">+</button></td>`;
+  }
+
+  tbody.appendChild(inputRow);
+}
+
+function hacerEditable(e) {
+  const td = e.target;
+  const valorOriginal = td.textContent.trim();
+  const input = document.createElement("input");
+  input.type = "text";
+  input.value = valorOriginal;
+  input.style.width = "100%";
+  td.textContent = "";
+  td.appendChild(input);
+  input.focus();
+
+  input.addEventListener("blur", async () => {
+    let nuevoValor = input.value.trim();
+    const campo = td.dataset.campo || "";
+
+    if (campo === "rut") {
+      normalizarRutInput(input);
+      nuevoValor = input.value.trim();
+    }
+    if (campo === "telefono") {
+      normalizarTelefonoInput(input);
+      nuevoValor = input.value.trim();
+    }
+    if (campo === "email") {
+      nuevoValor = nuevoValor.replace(/\s+/g, "");
+    }
+
+    td.textContent = nuevoValor || valorOriginal;
+    if (nuevoValor === valorOriginal) return;
+
+    const response = await fetch(withToken("/api/venta/clientes/persona/editar"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        categoria: td.dataset.categoria,
+        registroId: Number(td.dataset.registroId || "0"),
+        campo: campo,
+        nuevoValor: nuevoValor,
+      }),
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      alert(body.detail || "Error al guardar el cambio.");
+      td.textContent = valorOriginal;
+    }
+  });
+
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") input.blur();
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.body.addEventListener("input", function (e) {
+    const target = e.target;
+    const placeholder = String(target.placeholder || "").toLowerCase();
+    if (placeholder === "rut") {
+      normalizarRutInput(target);
+    }
+    if (placeholder.includes("telefono")) {
+      normalizarTelefonoInput(target);
+    }
+  });
+});
+</script>
+
+</body>
+</html>
