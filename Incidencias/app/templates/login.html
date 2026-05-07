@@ -279,15 +279,15 @@
     function aplicarContextoLogin() {
       const badge = document.getElementById("modoBadge");
       if (nextForm === "tecnicos") {
-        badge.textContent = "Acceso a tabla técnicos";
+        badge.textContent = "Acceso Técnico";
       } else if (["panelSelectorVenta", "registroCliente", "tablaCliente"].includes(nextForm)) {
-        badge.textContent = "Acceso a Venta";
+        badge.textContent = "Acceso Comercial";
       } else if (["coordinacion", "panelSelectorCoordinacion", "tablaProtocolos", "envioProtocolosSemanales"].includes(nextForm)) {
         badge.textContent = "Acceso Coordinación";
       } else if (["incidencias", "panelSelector", "cierreAperturaClientes", "controlProtocolos"].includes(nextForm)) {
         badge.textContent = "Acceso Encargados";
       } else {
-        badge.textContent = "Acceso a Servicio Técnico";
+        badge.textContent = "Acceso Servicio Técnico";
       }
     }
 
