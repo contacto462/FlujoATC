@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tabla de Sucursales</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background-color: #f4f6f9;
+      color: #2c3e50;
+      margin: 0;
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .contenedor {
+      background-color: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+      width: 100%;
+      max-width: 100%;
+      overflow-x: auto;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    h1 {
+      font-size: 26px;
+      font-weight: 600;
+      color: #2c3e50;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    p.aviso-edicion {
+      font-size: 14px;
+      color: #7f8c8d;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+      background-color: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    }
+    thead tr:first-child th {
+      background-color: #2c3e50;
+      color: #ecf0f1;
+      padding: 12px 10px;
+      font-weight: 600;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    thead tr:nth-child(2) th {
+      background-color: #34495e;
+      position: sticky;
+      top: 42px;
+      z-index: 1;
+    }
+    th, td {
+      border: 1px solid #e6e8eb;
+      padding: 10px;
+      text-align: center;
+      vertical-align: middle;
+      word-wrap: break-word;
+    }
+    tr:nth-child(even) { background-color: #fafbfc; }
+    tr:hover { background-color: #eef2f5; }
+    input.filtro {
+      width: 92%;
+      padding: 6px;
+      font-size: 13px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background-color: #fefefe;
+      text-align: center;
+    }
+    input.filtro:focus {
+      border-color: #3498db;
+      background-color: #ffffff;
+      box-shadow: 0 0 6px rgba(52, 152, 219, 0.3);
+      outline: none;
+    }
+    td.editing { background-color: #fff9e6; }
+    td.edited { background-color: #fff3cd !important; }
+    td.guardado { background-color: #d4edda !important; transition: background-color 1s ease-in-out; }
+    .guardar-btn {
+      padding: 6px 12px;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      float: right;
+      display: none;
+      transition: background-color 0.3s;
+    }
+    .guardar-btn:hover { background-color: #2980b9; }
+    .visible { display: inline-block !important; }
+    .mensaje-error { color: #e74c3c; margin-top: 15px; font-weight: 500; }
+  </style>
+</head>
+<body>
+  <div class="contenedor">
+    <h1>BBDD Sucursales</h1>
+    <p class="aviso-edicion">Haz doble clic sobre las celdas editables para modificarlas.</p>
+
+    <table id="tablaSucursales">
+      <thead>
+        <tr id="theadPrincipal"></tr>
+        <tr id="theadFiltros"></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div id="mensajeError" class="mensaje-error"></div>
+  </div>
+
+  <script>
+    const qsToken = new URLSearchParams(window.location.search).get("token") || "";
+    const withToken = (url) => {
+      const sep = url.includes("?") ? "&" : "?";
+      return qsToken ? `${url}${sep}token=${encodeURIComponent(qsToken)}` : url;
+    };
+
+    const filterColumns = [
+      { key: "id", label: "ID", index: 0 },
+      { key: "rut", label: "RUT", index: 1 },
+      { key: "empresa", label: "Nombre Empresa", index: 2 },
+      { key: "sucursal", label: "Nombre Sucursal", index: 3 },
+      { key: "direccion", label: "Direccion", index: 4 },
+    ];
+
+    function construirCabecera(headers) {
+      const main = document.getElementById("theadPrincipal");
+      const filtros = document.getElementById("theadFiltros");
+      main.innerHTML = "";
+      filtros.innerHTML = "";
+
+      headers.forEach((header) => {
+        const th = document.createElement("th");
+        th.textContent = header;
+        main.appendChild(th);
+      });
+      const thAccion = document.createElement("th");
+      thAccion.textContent = "Accion";
+      main.appendChild(thAccion);
+
+      headers.forEach((_, index) => {
+        const th = document.createElement("th");
+        const filterDef = filterColumns.find((item) => item.index === index);
+        if (filterDef) {
+          const input = document.createElement("input");
+          input.type = "text";
+          input.className = "filtro";
+          input.dataset.key = filterDef.key;
+          input.addEventListener("keyup", filtrarTabla);
+          th.appendChild(input);
+        }
+        filtros.appendChild(th);
+      });
+      filtros.appendChild(document.createElement("th"));
+    }
+
+    function cargarTabla(datos) {
+      const tbody = document.querySelector("#tablaSucursales tbody");
+      const mensajeError = document.getElementById("mensajeError");
+
+      tbody.innerHTML = "";
+      mensajeError.textContent = "";
+
+      const headers = datos.headers || [];
+      const rows = datos.rows || [];
+      construirCabecera(headers);
+
+      if (rows.length > 0) {
+        rows.forEach((fila, i) => {
+          const tr = document.createElement("tr");
+          tr.dataset.fila = i;
+          tr.dataset.rowid = fila[0];
+          tr.dataset.id = String(fila[0] || "").toLowerCase();
+          tr.dataset.rut = String(fila[1] || "").toLowerCase();
+          tr.dataset.empresa = String(fila[2] || "").toLowerCase();
+          tr.dataset.sucursal = String(fila[3] || "").toLowerCase();
+          tr.dataset.direccion = String(fila[4] || "").toLowerCase();
+
+          fila.forEach((celda, index) => {
+            const td = document.createElement("td");
+            td.textContent = celda || "";
+            td.dataset.fila = i;
+            td.dataset.col = index;
+            if (index >= 3 && index <= 16) {
+              td.style.cursor = "text";
+              td.ondblclick = () => editarCelda(td);
+            }
+            tr.appendChild(td);
+          });
+
+          const tdBoton = document.createElement("td");
+          const boton = document.createElement("button");
+          boton.className = "guardar-btn";
+          boton.id = `guardar-${i}`;
+          boton.textContent = "Guardar";
+          boton.onclick = () => guardarFila(i, boton);
+          tdBoton.appendChild(boton);
+          tr.appendChild(tdBoton);
+
+          tbody.appendChild(tr);
+        });
+      } else {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.textContent = "No se encontraron datos.";
+        td.colSpan = headers.length + 1;
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+      }
+    }
+
+    function editarCelda(td) {
+      if (td.querySelector("input")) return;
+
+      const valorOriginal = td.textContent;
+      const input = document.createElement("input");
+      input.type = "text";
+      input.value = valorOriginal;
+      td.classList.add("editing");
+      td.innerHTML = "";
+      td.appendChild(input);
+      input.focus();
+
+      let edicionTerminada = false;
+
+      function finalizarEdicion(tecla = "") {
+        if (edicionTerminada) return;
+        edicionTerminada = true;
+
+        const nuevoValor = input.value;
+        td.classList.remove("editing");
+
+        if (tecla === "Escape") {
+          td.innerHTML = valorOriginal;
+          td.classList.remove("edited");
+        } else {
+          td.innerHTML = nuevoValor;
+          if (nuevoValor !== valorOriginal) {
+            td.classList.add("edited");
+            document.getElementById(`guardar-${td.dataset.fila}`).classList.add("visible");
+          } else {
+            td.classList.remove("edited");
+          }
+        }
+      }
+
+      input.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === "Escape") {
+          e.preventDefault();
+          finalizarEdicion(e.key);
+        }
+      });
+
+      input.addEventListener("blur", function () {
+        finalizarEdicion();
+      });
+    }
+
+    async function guardarFila(filaIndex, boton) {
+      const fila = document.querySelectorAll(`td[data-fila="${filaIndex}"]`);
+      const values = [];
+      const editadas = [];
+
+      fila.forEach(td => {
+        values.push(td.textContent);
+        if (td.classList.contains("edited")) {
+          editadas.push(td);
+        }
+      });
+
+      const row = document.querySelector(`tr[data-fila="${filaIndex}"]`);
+      const rowId = Number(row.dataset.rowid);
+
+      boton.disabled = true;
+      boton.textContent = "Guardando...";
+
+      try {
+        const response = await fetch(withToken("/api/venta/sucursales/tabla/guardar-fila"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ row_id: rowId, values })
+        });
+
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({ detail: "No se pudo guardar" }));
+          throw new Error(typeof err.detail === "string" ? err.detail : "No se pudo guardar");
+        }
+
+        editadas.forEach(td => {
+          td.classList.remove("edited");
+          td.classList.add("guardado");
+          setTimeout(() => td.classList.remove("guardado"), 2000);
+        });
+
+        boton.textContent = "Guardado OK";
+        setTimeout(() => {
+          boton.classList.remove("visible");
+          boton.disabled = false;
+          boton.textContent = "Guardar";
+        }, 2000);
+      } catch (error) {
+        document.getElementById("mensajeError").textContent = error.message || "Error al guardar.";
+        boton.disabled = false;
+        boton.textContent = "Guardar";
+      }
+    }
+
+    function filtrarTabla() {
+      const filtros = {};
+      document.querySelectorAll("input.filtro").forEach(input => {
+        filtros[input.dataset.key] = input.value.toLowerCase().trim();
+      });
+
+      document.querySelectorAll("#tablaSucursales tbody tr").forEach(fila => {
+        let mostrar = true;
+        Object.keys(filtros).forEach(key => {
+          const valorFiltro = filtros[key];
+          const valorFila = fila.dataset[key] || "";
+          if (valorFiltro && !valorFila.includes(valorFiltro)) {
+            mostrar = false;
+          }
+        });
+        fila.style.display = mostrar ? "" : "none";
+      });
+    }
+
+    function mostrarError(error) {
+      document.getElementById("mensajeError").textContent = `Error al cargar los datos: ${error.message || error}`;
+    }
+
+    async function init() {
+      try {
+        const response = await fetch(withToken("/api/venta/sucursales/tabla"));
+        if (!response.ok) throw new Error("No se pudo cargar la tabla de sucursales.");
+        const data = await response.json();
+        cargarTabla(data);
+      } catch (error) {
+        mostrarError(error);
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", init);
+  </script>
+</body>
+</html>
