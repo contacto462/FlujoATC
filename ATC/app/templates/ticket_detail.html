@@ -2179,30 +2179,43 @@ body.is-inline-image-resizing{
 .odt-hidden-template{
   display:none;
 }
-.odt-correos-table{
-  width:100%;
-  border-collapse:collapse;
+.odt-correo-card{
+  border:1px solid var(--border);
+  border-radius:10px;
+  overflow:hidden;
+  margin-top:8px;
+}
+.odt-correo-meta{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:7px 10px;
+  background:#f1f5f9;
+  border-bottom:1px solid var(--border);
+  font-size:11px;
+  color:var(--muted);
+  flex-wrap:wrap;
+}
+.odt-correo-to{
+  font-weight:600;
+  color:#475569;
+}
+.odt-correo-asunto{
+  padding:6px 10px;
   font-size:12px;
-  margin-top:4px;
-}
-.odt-correos-table th{
-  font-size:10px;
   font-weight:700;
-  text-transform:uppercase;
-  letter-spacing:.08em;
-  color:var(--muted-2);
-  padding:4px 6px;
-  text-align:left;
-  border-bottom:1px solid var(--border);
-}
-.odt-correos-table td{
-  padding:5px 6px;
-  border-bottom:1px solid var(--border);
   color:#1e293b;
-  vertical-align:top;
-  word-break:break-all;
+  border-bottom:1px solid var(--border);
+  background:#ffffff;
 }
-.odt-correos-table tr:last-child td{ border-bottom:none; }
+.odt-correo-body{
+  padding:10px;
+  background:#ffffff;
+  font-size:12px;
+  max-height:240px;
+  overflow:auto;
+}
 .odt-estado-inline{
   display:inline-flex;
   align-items:center;
