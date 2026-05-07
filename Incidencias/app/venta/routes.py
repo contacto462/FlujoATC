@@ -11,6 +11,8 @@ from app.services import IncidenciasService
 from app.venta.schemas import (
     VentaClienteCreateRequest,
     VentaClienteCreateResponse,
+    VentaODSCreateRequest,
+    VentaODSCreateResponse,
     VentaClienteTableUpdateRequest,
     VentaSucursalCreateRequest,
     VentaSucursalCreateResponse,
@@ -18,11 +20,14 @@ from app.venta.schemas import (
 )
 from app.venta.service import (
     create_cliente,
+    create_ods,
     create_sucursal,
     fetch_comunas,
     fetch_regiones,
     get_cliente_nombre_by_rut,
     get_clientes_table,
+    get_ejecutivos_venta,
+    get_ods_data_by_rut,
     get_sucursales_table,
     get_coordinates_for_address,
     get_proveedores_electricidad,
@@ -63,6 +68,14 @@ def venta_sucursales_page(
     token: str = Depends(require_venta_token),
 ):
     return templates.TemplateResponse("RegistroSucursal.html", {"request": request, "token": token})
+
+
+@router.get("/venta/ods", response_class=HTMLResponse)
+def venta_ods_page(
+    request: Request,
+    token: str = Depends(require_venta_token),
+):
+    return templates.TemplateResponse("RegistroODS.html", {"request": request, "token": token})
 
 
 @router.get("/venta/login", response_class=HTMLResponse)
@@ -164,6 +177,20 @@ def venta_proveedores_electricidad(_: str = Depends(require_venta_token)):
     return {"proveedores": get_proveedores_electricidad()}
 
 
+@router.get("/api/venta/ods/ejecutivos")
+def venta_ods_ejecutivos(_: str = Depends(require_venta_token)):
+    return {"ejecutivos": get_ejecutivos_venta()}
+
+
+@router.get("/api/venta/ods/datos-por-rut")
+def venta_ods_datos_por_rut(
+    rut: str = Query(..., min_length=3),
+    db: Session = Depends(get_db),
+    _: str = Depends(require_venta_token),
+):
+    return get_ods_data_by_rut(db, rut)
+
+
 @router.get("/api/venta/coordenadas")
 def venta_coordenadas(
     direccion: str = Query(..., min_length=2),
@@ -223,4 +250,21 @@ def venta_crear_sucursal(
         ok=True,
         sucursal_id=record.id,
         message="Sucursal registrada correctamente.",
+    )
+
+
+@router.post("/api/venta/ods", response_model=VentaODSCreateResponse)
+def venta_crear_ods(
+    payload: VentaODSCreateRequest,
+    db: Session = Depends(get_db),
+    token: str = Depends(require_venta_token),
+    service: IncidenciasService = Depends(get_service),
+):
+    usuario = service.get_usuario_actual(token)
+    record = create_ods(db, payload, usuario_email=usuario)
+    return VentaODSCreateResponse(
+        ok=True,
+        ods_id=record.id,
+        codigo=record.codigo,
+        message="Orden de servicio registrada correctamente.",
     )
