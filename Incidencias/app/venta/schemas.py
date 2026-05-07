@@ -109,3 +109,48 @@ class VentaSucursalCreateResponse(BaseModel):
     ok: bool
     sucursal_id: int
     message: str
+
+
+class VentaODSArchivoRequest(BaseModel):
+    nombre: str | None = Field(default=None, max_length=255)
+    tipo: str | None = Field(default=None, max_length=120)
+    data: str | None = None
+    servicio: str | None = Field(default=None, max_length=120)
+    tipoDocumento: str | None = Field(default=None, max_length=80)
+
+
+class VentaODSCreateRequest(BaseModel):
+    ejecutivoVenta: str = Field(min_length=2, max_length=255)
+    rutCliente: str = Field(min_length=3, max_length=32)
+    razonSocial: str = Field(min_length=2, max_length=255)
+    direccionSucursal: str = Field(min_length=2, max_length=255)
+    nombreSucursal: str | None = Field(default=None, max_length=255)
+    observacion: str | None = None
+    tipoCliente: str | None = Field(default=None, max_length=120)
+    tipoServicio: list[str] = Field(default_factory=list)
+    tipoPlan: str | None = Field(default=None, max_length=120)
+    numeroCamarasInstalar: str | None = Field(default=None, max_length=20)
+    numeroCamarasDesinstalar: str | None = Field(default=None, max_length=20)
+    numeroCamarasVigilar: str | None = Field(default=None, max_length=20)
+    diasGrabacion: str | None = Field(default=None, max_length=20)
+    diasMonitoreoDesde: str | None = Field(default=None, max_length=20)
+    diasMonitoreoHasta: str | None = Field(default=None, max_length=20)
+    diasMonitoreoAdicional: str | None = Field(default=None, max_length=120)
+    horarioMonitoreo: str | None = Field(default=None, max_length=20)
+    materiales: str | None = None
+    consideraciones: str | None = None
+    aguaBano: str | None = Field(default=None, max_length=30)
+    requiereOC: str | None = Field(default=None, max_length=10)
+    montosACobrar: str | None = None
+    contratos: list[VentaODSArchivoRequest] = Field(default_factory=list)
+    layouts: list[VentaODSArchivoRequest] = Field(default_factory=list)
+    cotizacion: VentaODSArchivoRequest | None = None
+    odc: VentaODSArchivoRequest | None = None
+    desglosePrecioArchivo: VentaODSArchivoRequest | None = None
+
+
+class VentaODSCreateResponse(BaseModel):
+    ok: bool
+    ods_id: int
+    codigo: str
+    message: str
