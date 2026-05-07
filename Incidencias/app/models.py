@@ -66,6 +66,71 @@ class ClienteBBDD(Base):
     fecha_creacion: Mapped[Optional[datetime]] = mapped_column(DateTime, server_default=func.now())
 
 
+class SucursalBBDD(Base):
+    __tablename__ = "bbdd_sucursales"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    codigo: Mapped[Optional[str]] = mapped_column(String(40), unique=True, index=True, nullable=True)
+    rut: Mapped[str] = mapped_column(String(40), index=True)
+    nombre_empresa: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    nombre_sucursal: Mapped[str] = mapped_column(String(255), index=True)
+    direccion_sucursal: Mapped[str] = mapped_column(String(255), index=True)
+    region: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    comuna: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    referencia_ubicacion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    latitud: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    longitud: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    latitud_longitud: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    email_facturas: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    proveedor_internet: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    proveedor_electricidad: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    nro_proveedor_electricidad: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    horario_apertura: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    horario_cierre: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    dias_funcionamiento: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    created_by: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class SucursalContactoEmergencia(Base):
+    __tablename__ = "sucursal_contactos_emergencia"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    sucursal_id: Mapped[int] = mapped_column(index=True)
+    codigo_sucursal: Mapped[Optional[str]] = mapped_column(String(40), index=True, nullable=True)
+    nombre: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    rut: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    telefono: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+
+
+class SucursalPersonaAutorizada(Base):
+    __tablename__ = "sucursal_personas_autorizadas"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    sucursal_id: Mapped[int] = mapped_column(index=True)
+    codigo_sucursal: Mapped[Optional[str]] = mapped_column(String(40), index=True, nullable=True)
+    nombre: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    rut: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    telefono: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    clave_verde: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    clave_roja: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+
+
+class SucursalGuardia(Base):
+    __tablename__ = "sucursal_guardias"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    sucursal_id: Mapped[int] = mapped_column(index=True)
+    codigo_sucursal: Mapped[Optional[str]] = mapped_column(String(40), index=True, nullable=True)
+    nombre: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    rut: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    telefono: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    horario_desde: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    horario_hasta: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+
+
 class CatalogoCliente(Base):
     __tablename__ = "catalogo_clientes"
 
