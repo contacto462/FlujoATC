@@ -127,6 +127,56 @@ class SucursalGuardia(Base):
     horario_hasta: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
 
 
+class VentaODS(Base):
+    __tablename__ = "venta_ods"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    codigo: Mapped[str] = mapped_column(String(30), unique=True, index=True)
+    ejecutivo_venta: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    creado_por: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    rut_cliente: Mapped[str] = mapped_column(String(40), index=True)
+    razon_social: Mapped[str] = mapped_column(String(255), index=True)
+    direccion_sucursal: Mapped[str] = mapped_column(String(255), index=True)
+    nombre_sucursal: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    tipo_cliente: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    tipo_servicio: Mapped[str] = mapped_column(Text)
+    tipo_plan: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    observacion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    numero_camaras_instalar: Mapped[Optional[int]] = mapped_column(nullable=True)
+    numero_camaras_desinstalar: Mapped[Optional[int]] = mapped_column(nullable=True)
+    numero_camaras_vigilar: Mapped[Optional[int]] = mapped_column(nullable=True)
+    dias_grabacion: Mapped[Optional[int]] = mapped_column(nullable=True)
+    dias_monitoreo_desde: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    dias_monitoreo_hasta: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    dias_monitoreo_adicional: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    horario_monitoreo: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    materiales: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    consideraciones: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    agua_bano: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    requiere_oc: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    montos_a_cobrar: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    cotizacion_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    odc_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    desglose_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    estado: Mapped[str] = mapped_column(String(80), default="Registrada", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class VentaODSArchivo(Base):
+    __tablename__ = "venta_ods_archivos"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    ods_id: Mapped[int] = mapped_column(index=True)
+    codigo_ods: Mapped[str] = mapped_column(String(30), index=True)
+    tipo_documento: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
+    servicio: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    nombre_archivo: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    mime_type: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    ruta_archivo: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
 class CatalogoCliente(Base):
     __tablename__ = "catalogo_clientes"
 
