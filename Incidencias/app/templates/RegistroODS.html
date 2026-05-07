@@ -374,13 +374,18 @@
   <div class="main-layout">
     <!-- SIDEBAR -->
     <nav class="sidebar">
-      <div class="sidebar-label">Secciones</div>
-      <a class="sidebar-item active" href="#sec-cliente"><span class="dot"></span>Cliente</a>
-      <a class="sidebar-item" href="#sec-servicio"><span class="dot"></span>Tipo de Servicio</a>
+      <div class="sidebar-brand">
+        <img src="/shared-static/img/logo-atc.png" alt="ATC">
+        <span>ODS</span>
+      </div>
+      <div class="sidebar-label">Formulario</div>
+      <a class="sidebar-item active" href="#sec-cliente"><span class="dot"></span>1. Cliente</a>
+      <a class="sidebar-item" href="#sec-servicio"><span class="dot"></span>2. Tipo de Servicio</a>
       <a class="sidebar-item" href="#sec-config"><span class="dot"></span>Configuración</a>
-      <a class="sidebar-item" href="#sec-detalle"><span class="dot"></span>Detalle y Montos</a>
+      <a class="sidebar-item" href="#sec-detalle"><span class="dot"></span>3. Detalle y Montos</a>
+      <a class="sidebar-item" href="#sec-detalle"><span class="dot"></span>4. Orden de Compra</a>
       <div class="sidebar-label">Documentos</div>
-      <a class="sidebar-item" href="#sec-adjuntos"><span class="dot"></span>Archivos adjuntos</a>
+      <a class="sidebar-item" href="#sec-adjuntos"><span class="dot"></span>5. Archivos adjuntos</a>
     </nav>
 
     <!-- FORM -->
@@ -528,8 +533,9 @@
         <!-- Orden de Compra -->
         <div class="section">
           <div class="section-head">
-            <span class="section-pill">OC</span>
+            <span class="section-num">4</span>
             <span class="section-title">Orden de Compra</span>
+            <span class="section-pill">OC</span>
           </div>
           <div class="f">
             <label>¿Requiere Orden de Compra?</label>
@@ -554,8 +560,9 @@
         <!-- Documentos -->
         <div class="section" id="sec-adjuntos">
           <div class="section-head">
-            <span class="section-pill">Docs</span>
+            <span class="section-num">5</span>
             <span class="section-title">Documentos Adjuntos</span>
+            <span class="section-pill">Docs</span>
           </div>
           <div id="contenedorArchivos" style="display:flex;flex-direction:column;gap:10px;"></div>
         </div>
