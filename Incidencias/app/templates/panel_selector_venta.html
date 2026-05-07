@@ -167,23 +167,15 @@ h1{
 <body>
   <main class="shell">
     <section class="hero">
-      <div class="hero-copy">
-        <div class="brand">
-          <div class="brand-badge">
-            <img src="/shared-static/img/logo-atc.png" alt="ATC - Alguien Te Cuida">
-          </div>
-          <div class="brand-text">
-            <strong>Alguien te Cuida</strong>
-            <span>Centro de operaciónes</span>
-          </div>
+      <p class="eyebrow">Modulo Venta</p>
+      <div class="hero-top">
+        <div>
+          <h1>Panel Venta</h1>
+          <p class="lead">Selecciona la vista que quieres usar. El panel ahora se distribuye en grilla para soportar mejor todas las paginas del flujo sin apilarse hacia abajo.</p>
         </div>
-
-        <p id="welcomeMessage" class="welcome-message" data-full-name="{{ tecnico|default('') }}">¡Hola!</p>
-        <h1>Escoge el módulo con el que quieres trabajar.</h1>
-        <p class="lead">
-          Desde aquí puedes entrar rápidamente al módulo de incidencias, al panel de cierre y apertura
-          de clientes o al control de protocolos.
-        </p>
+        <div class="user-chip">Usuario: {{ tecnico|default('Desconocido') }}</div>
+      </div>
+    </section>
 
     <section class="content">
       <div class="section-head">
