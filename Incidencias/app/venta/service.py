@@ -258,7 +258,7 @@ def create_sucursal(db: Session, payload: VentaSucursalCreateRequest, usuario_em
 
 
 def _fetch_catalog(path: str) -> dict:
-    base_url = (settings.venta_catalogo_base_url or "").rstrip("/")
+    base_url = (settings.venta_catalogo_base_url or "https://apis.digital.gob.cl/dpa").rstrip("/")
     if not base_url:
         raise HTTPException(status_code=503, detail="La API externa de regiones/comunas no esta configurada.")
     req = Request(
@@ -272,7 +272,10 @@ def _fetch_catalog(path: str) -> dict:
     try:
         timeout = int(settings.venta_catalogo_timeout_seconds or 8)
         ssl_context = None
-        if base_url.startswith("https://") and not settings.venta_catalogo_verify_ssl:
+        verify_ssl = settings.venta_catalogo_verify_ssl
+        if "apis.digital.gob.cl" in base_url:
+            verify_ssl = False
+        if base_url.startswith("https://") and not verify_ssl:
             ssl_context = ssl._create_unverified_context()
         with urlopen(req, timeout=timeout, context=ssl_context) as resp:
             body = resp.read().decode("utf-8")
