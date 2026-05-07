@@ -3885,6 +3885,7 @@ def ticket_detail(
                     "fecha": _em.created_at,
                     "destinatario": _requester_addr,
                     "asunto": _subject_label,
+                    "contenido": _em.content or "",
                 })
     except Exception:
         linked_odt = None
