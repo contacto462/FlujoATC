@@ -1199,10 +1199,14 @@
           observaciones: document.getElementById("observaciones").value.trim()
         };
 
-        await api("/api/protocolos/registro", {
+        const data = await api("/api/protocolos/registro", {
           method: "POST",
           body: JSON.stringify(payload)
         });
+
+        if (data && data.observacion_formal) {
+          document.getElementById("observaciones").value = data.observacion_formal;
+        }
 
         setMsg("msgRegistro", "Registro guardado correctamente.");
         resetFormularioRegistro();
