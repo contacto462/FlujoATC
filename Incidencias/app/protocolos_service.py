@@ -312,47 +312,29 @@ class ProtocolosService:
         return ""
 
     def _formalizar_observacion_con_ia(self, observacion: str) -> str:
-        api_key = str(settings.openai_api_key or "").strip()
+        """Corrige ortografia, tildes y redaccion usando Claude (Anthropic SDK)."""
+        import anthropic as _anthropic
+
+        api_key = str(settings.anthropic_api_key or "").strip()
         if not api_key:
-            raise ValueError("Falta OPENAI_API_KEY para formalizacion con IA.")
+            raise ValueError("Falta ANTHROPIC_API_KEY para formalizacion con IA.")
 
-        base_url = str(settings.openai_base_url or "https://api.openai.com/v1").rstrip("/")
-        model = str(settings.openai_model_formalizador or "gpt-4.1-mini").strip() or "gpt-4.1-mini"
-        timeout_sec = max(5, int(settings.openai_timeout_sec or 25))
+        model = str(settings.anthropic_model_formalizador or "claude-haiku-4-5").strip()
+        timeout_sec = float(max(5, int(settings.anthropic_timeout_sec or 25)))
 
-        url = f"{base_url}/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        }
-        body = {
-            "model": model,
-            "temperature": 0.1,
-            "messages": [
-                {"role": "system", "content": PROMPT_FORMALIZAR_OBSERVACION},
+        client = _anthropic.Anthropic(api_key=api_key, timeout=timeout_sec)
+        message = client.messages.create(
+            model=model,
+            max_tokens=1024,
+            system=PROMPT_FORMALIZAR_OBSERVACION,
+            messages=[
                 {"role": "user", "content": str(observacion).strip()},
             ],
-        }
-
-        try:
-            resp = requests.post(url, headers=headers, json=body, timeout=timeout_sec)
-        except requests.RequestException as exc:
-            raise ValueError(f"Error de red llamando a IA: {exc}") from exc
-
-        if resp.status_code >= 400:
-            detail = ""
-            try:
-                data = resp.json()
-                detail = str(data.get("error", {}).get("message") or data)
-            except Exception:
-                detail = (resp.text or "").strip()
-            raise ValueError(f"IA respondio {resp.status_code}: {detail or 'sin detalle'}")
-
-        data = resp.json()
-        out = self._extraer_texto_chat_completion(data)
+        )
+        out = next((b.text for b in message.content if b.type == "text"), "")
         if not out:
-            raise ValueError("La IA no devolvio contenido de texto util.")
-        return out
+            raise ValueError("Claude no devolvio contenido de texto util.")
+        return out.strip()
 
     # =========================
     # Listas para formulario
