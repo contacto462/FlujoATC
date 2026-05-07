@@ -14,6 +14,8 @@ from app.venta.schemas import (
     VentaODSCreateRequest,
     VentaODSCreateResponse,
     VentaODSUpdateRequest,
+    VentaPersonaCampoUpdateRequest,
+    VentaPersonaRegistroRequest,
     VentaClienteTableUpdateRequest,
     VentaSucursalCreateRequest,
     VentaSucursalCreateResponse,
@@ -23,9 +25,12 @@ from app.venta.service import (
     create_cliente,
     create_ods,
     create_sucursal,
+    add_persona_registro,
     fetch_comunas,
     fetch_regiones,
+    get_cliente_resumen_by_rut,
     get_cliente_nombre_by_rut,
+    get_cliente_sucursal_resumen,
     get_clientes_table,
     get_ejecutivos_venta,
     get_ods_codes,
@@ -38,6 +43,7 @@ from app.venta.service import (
     rut_exists,
     update_ods,
     update_cliente_row,
+    update_persona_campo,
     update_sucursal_row,
 )
 
@@ -127,6 +133,22 @@ def venta_bbdd_sucursales_page(
     return templates.TemplateResponse("BBCCSucursal.html", {"request": request, "token": token})
 
 
+@router.get("/venta/informacion-cliente", response_class=HTMLResponse)
+def venta_informacion_cliente_page(
+    request: Request,
+    token: str = Depends(require_venta_token),
+):
+    return templates.TemplateResponse("InformacionCliente.html", {"request": request, "token": token})
+
+
+@router.get("/venta/tabla-comercial", response_class=HTMLResponse)
+def venta_tabla_comercial_page(
+    request: Request,
+    token: str = Depends(require_venta_token),
+):
+    return templates.TemplateResponse("TablaComercial.html", {"request": request, "token": token})
+
+
 @router.get("/api/venta/usuario-actual")
 def venta_usuario_actual(
     token: str = Depends(require_venta_token),
@@ -152,6 +174,25 @@ def venta_buscar_cliente_por_rut(
     _: str = Depends(require_venta_token),
 ):
     return {"nombre": get_cliente_nombre_by_rut(db, rut)}
+
+
+@router.get("/api/venta/clientes/resumen")
+def venta_cliente_resumen(
+    rut: str = Query(..., min_length=3),
+    db: Session = Depends(get_db),
+    _: str = Depends(require_venta_token),
+):
+    return get_cliente_resumen_by_rut(db, rut)
+
+
+@router.get("/api/venta/clientes/resumen-sucursal")
+def venta_cliente_resumen_sucursal(
+    rut: str = Query(..., min_length=3),
+    sucursal_id: int = Query(..., ge=1),
+    db: Session = Depends(get_db),
+    _: str = Depends(require_venta_token),
+):
+    return get_cliente_sucursal_resumen(db, rut, sucursal_id)
 
 
 @router.post("/api/venta/clientes", response_model=VentaClienteCreateResponse)
@@ -263,6 +304,26 @@ def venta_sucursales_guardar_fila(
     _: str = Depends(require_venta_token),
 ):
     update_sucursal_row(db, payload.row_id, payload.values)
+    return {"ok": True}
+
+
+@router.post("/api/venta/clientes/persona")
+def venta_cliente_agregar_persona(
+    payload: VentaPersonaRegistroRequest,
+    db: Session = Depends(get_db),
+    _: str = Depends(require_venta_token),
+):
+    add_persona_registro(db, payload)
+    return {"ok": True}
+
+
+@router.post("/api/venta/clientes/persona/editar")
+def venta_cliente_editar_persona(
+    payload: VentaPersonaCampoUpdateRequest,
+    db: Session = Depends(get_db),
+    _: str = Depends(require_venta_token),
+):
+    update_persona_campo(db, payload)
     return {"ok": True}
 
 
