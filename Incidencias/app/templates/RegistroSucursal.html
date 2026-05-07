@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrar Sucursal</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #F1F1F1;
+            color: #333333;
+            margin: 0;
+            padding: 24px 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+        .contenedor {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 500px;
+            overflow-y: auto;
+            max-height: 90vh;
+        }
+        h1 {
+            text-align: center;
+            color: #333333;
+            margin-bottom: 20px;
+        }
+        h3 {
+            margin: 18px 0 10px;
+            font-size: 15px;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+            color: #333333;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            box-sizing: border-box;
+            border: 1px solid #DDDDDD;
+            border-radius: 5px;
+            background-color: #FFFFFF;
+            color: #333333;
+        }
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 6px;
+        }
+        .checkbox-group label {
+            width: auto;
+            margin: 0;
+            font-weight: normal;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            background-color: #FFA500;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        button:hover { background-color: #FF8C00; }
+        .contacto, .persona, .guardia {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+        .boton-agregar {
+            background-color: #FFA500;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+        }
+        .boton-agregar:hover { background-color: #FF8C00; }
+        .alerta {
+            background-color: #ffcc00;
+            color: #333;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .grid-dos {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        @media (max-width: 640px) {
+            .grid-dos { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="contenedor">
+        <h1>Registrar Sucursal</h1>
+        <div class="alerta">
+            Antes de registrar una sucursal, revisa en BBDD sucursal si ya esta registrada para evitar duplicados.
+        </div>
+
+        <form id="formularioSucursal">
+            <label for="rut">RUT Empresa</label>
+            <input type="text" id="rut" placeholder="Ingrese el RUT" required>
+
+            <label for="nombreEmpresa">Razon Social</label>
+            <input type="text" id="nombreEmpresa" placeholder="Se generara automaticamente" readonly>
+
+            <label for="nombreSucursal">Nombre Sucursal</label>
+            <input type="text" id="nombreSucursal" placeholder="Ingrese el nombre de la sucursal" required>
+
+            <label for="direccionSucursal">Direccion Sucursal</label>
+            <input type="text" id="direccionSucursal" placeholder="Ingrese la direccion" required>
+
+            <div class="grid-dos">
+                <div>
+                    <label for="latitud">Latitud</label>
+                    <input type="text" id="latitud" placeholder="Ej: -33.4569">
+                </div>
+                <div>
+                    <label for="longitud">Longitud</label>
+                    <input type="text" id="longitud" placeholder="Ej: -70.6483">
+                </div>
+            </div>
+
+            <label for="referenciaUbicacion">Referencia Ubicacion</label>
+            <input type="text" id="referenciaUbicacion" placeholder="Ingrese una referencia de ubicacion">
+
+            <label for="region">Region</label>
+            <select id="region" required>
+                <option value="" disabled selected>Seleccione una Region</option>
+            </select>
+
+            <label for="comuna">Comuna</label>
+            <select id="comuna" required>
+                <option value="" disabled selected>Seleccione una Comuna</option>
+            </select>
+
+            <label for="emailFacturas">Email Envio Facturas</label>
+            <input type="email" id="emailFacturas" placeholder="Ingrese el email" required>
+
+            <label for="proveedorInternet">Proveedor Internet</label>
+            <select id="proveedorInternet" required>
+                <option value="" disabled selected>Seleccione un proveedor</option>
+            </select>
+
+            <label for="proveedorElectricidad">Proveedor Electricidad</label>
+            <select id="proveedorElectricidad" required>
+                <option value="" disabled selected>Seleccione un proveedor</option>
+            </select>
+
+            <label for="nroProveedorElectricidad">Nro Cliente Electricidad</label>
+            <input type="text" id="nroProveedorElectricidad" placeholder="Ingrese el numero del cliente de electricidad">
+
+            <h3>Si es una propiedad comercial indicar Dias Funcionamiento</h3>
+            <label for="horarioApertura">Horario Apertura</label>
+            <input type="time" id="horarioApertura" required>
+
+            <label for="horarioCierre">Horario Cierre</label>
+            <input type="time" id="horarioCierre" required>
+
+            <div class="checkbox-group" id="diasFuncionamiento">
+                <label><input type="checkbox" value="Lunes"> Lun</label>
+                <label><input type="checkbox" value="Martes"> Mar</label>
+                <label><input type="checkbox" value="Miercoles"> Mier</label>
+                <label><input type="checkbox" value="Jueves"> Jue</label>
+                <label><input type="checkbox" value="Viernes"> Vier</label>
+                <label><input type="checkbox" value="Sabado"> Sab</label>
+                <label><input type="checkbox" value="Domingo"> Dom</label>
+            </div>
+
+            <div id="contactosEmergencia">
+                <h3>Contactos de Emergencia</h3>
+                <div class="contacto">
+                    <input type="text" name="nombreEmergencia[]" placeholder="Nombre Emergencia">
+                    <input type="text" name="rutEmergencia[]" placeholder="RUT">
+                    <input type="text" name="telefonoEmergencia[]" placeholder="Telefono Emergencia">
+                    <input type="email" name="emailEmergencia[]" placeholder="Email">
+                </div>
+                <button type="button" class="boton-agregar" id="btnAgregarContacto">+ Agregar Contacto</button>
+            </div>
+
+            <div id="personasAutorizadas">
+                <h3>Personas Autorizadas</h3>
+                <div class="persona">
+                    <input type="text" name="nombreAutorizado[]" placeholder="Nombre Autorizado">
+                    <input type="text" name="rutAutorizado[]" placeholder="RUT">
+                    <input type="text" name="telefonoAutorizado[]" placeholder="Telefono Autorizado">
+                    <input type="email" name="emailAutorizado[]" placeholder="Email">
+                    <input type="text" name="claveVerde[]" placeholder="Clave Verde">
+                    <input type="text" name="claveRoja[]" placeholder="Clave Roja">
+                </div>
+                <button type="button" class="boton-agregar" id="btnAgregarPersona">+ Agregar Persona</button>
+            </div>
+
+            <div class="seccion" id="seccionGuardias">
+                <h3>Guardias Presenciales</h3>
+                <div id="guardiasContainer"></div>
+                <button type="button" class="boton-agregar" id="btnAgregarGuardia">+ Agregar Guardia</button>
+            </div>
+
+            <input type="hidden" id="latitudLongitud">
+
+            <button type="button" id="btnRegistrarSucursal">Registrar Sucursal</button>
+        </form>
+    </div>
+
+    <script>
+    const qsToken = new URLSearchParams(window.location.search).get("token") || "";
+    const withToken = (url) => {
+        const sep = url.includes("?") ? "&" : "?";
+        return qsToken ? `${url}${sep}token=${encodeURIComponent(qsToken)}` : url;
+    };
+
+    function formatearRUTInput(input) {
+        let rut = String(input.value || "").trim().replace(/[^0-9Kk]/g, "").toUpperCase();
+        if (rut.length < 2) {
+            input.value = rut;
+            return;
+        }
+        input.value = `${rut.slice(0, -1)}-${rut.slice(-1)}`;
+    }
+
+    function formatearRUTValue(value) {
+        let rut = String(value || "").trim().replace(/[^0-9Kk]/g, "").toUpperCase();
+        if (rut.length < 2) return rut;
+        return `${rut.slice(0, -1)}-${rut.slice(-1)}`;
+    }
+
+    function limpiarRUT(rut) {
+        return formatearRUTValue(rut);
+    }
+
+    function formatearTelefono(input) {
+        if (!input.value.startsWith("+569")) {
+            input.value = "+569";
+        }
+        input.value = "+569" + input.value.slice(4).replace(/\D/g, "");
+        if (input.value.length > 13) {
+            input.value = input.value.slice(0, 13);
+        }
+    }
+
+    function getValue(id) {
+        return document.getElementById(id)?.value.trim() || "";
+    }
+
+    async function cargarRegiones() {
+        const regionSelect = document.getElementById("region");
+        regionSelect.disabled = true;
+        const response = await fetch(withToken("/api/venta/catalogo/regiones"));
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({ detail: "No se pudo cargar el catalogo de regiones." }));
+            throw new Error(typeof err?.detail === "string" ? err.detail : "No se pudo cargar el catalogo de regiones.");
+        }
+        const data = await response.json();
+        regionSelect.innerHTML = '<option value="" disabled selected>Seleccione una Region</option>';
+        (data.regiones || []).forEach(region => {
+            const option = document.createElement("option");
+            option.value = region;
+            option.textContent = region;
+            regionSelect.appendChild(option);
+        });
+        regionSelect.disabled = false;
+    }
+
+    async function cargarComunas(region) {
+        const comunaSelect = document.getElementById("comuna");
+        comunaSelect.disabled = true;
+        comunaSelect.innerHTML = '<option value="" selected>Cargando comunas...</option>';
+        const response = await fetch(withToken("/api/venta/catalogo/comunas?region=" + encodeURIComponent(region)));
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({ detail: "No se pudo cargar el catalogo de comunas." }));
+            comunaSelect.innerHTML = '<option value="" disabled selected>Seleccione una Comuna</option>';
+            comunaSelect.disabled = false;
+            throw new Error(typeof err?.detail === "string" ? err.detail : "No se pudo cargar el catalogo de comunas.");
+        }
+        const data = await response.json();
+        const comunas = data.comunas || [];
+        comunaSelect.innerHTML = "";
+        comunas.forEach((comuna, index) => {
+            const option = document.createElement("option");
+            option.value = comuna;
+            option.textContent = comuna;
+            if (index === 0) option.selected = true;
+            comunaSelect.appendChild(option);
+        });
+        if (!comunas.length) {
+            comunaSelect.innerHTML = '<option value="" disabled selected>Sin comunas disponibles</option>';
+        }
+        comunaSelect.disabled = false;
+        actualizarCoordenadas().catch(() => {});
+    }
+
+    async function cargarProveedoresInternet() {
+        const response = await fetch(withToken("/api/venta/proveedores/internet"));
+        if (!response.ok) throw new Error("No se pudo cargar proveedores de internet.");
+        const data = await response.json();
+        const select = document.getElementById("proveedorInternet");
+        select.innerHTML = '<option value="" disabled selected>Seleccione un proveedor</option>';
+        (data.proveedores || []).forEach(prov => {
+            const option = document.createElement("option");
+            option.value = prov;
+            option.textContent = prov;
+            select.appendChild(option);
+        });
+    }
+
+    async function cargarProveedoresElectricidad() {
+        const response = await fetch(withToken("/api/venta/proveedores/electricidad"));
+        if (!response.ok) throw new Error("No se pudo cargar proveedores de electricidad.");
+        const data = await response.json();
+        const select = document.getElementById("proveedorElectricidad");
+        select.innerHTML = '<option value="" disabled selected>Seleccione un proveedor</option>';
+        (data.proveedores || []).forEach(prov => {
+            const option = document.createElement("option");
+            option.value = prov;
+            option.textContent = prov;
+            select.appendChild(option);
+        });
+    }
+
+    async function buscarClientePorRut(rut) {
+        const response = await fetch(withToken("/api/venta/clientes/buscar-por-rut?rut=" + encodeURIComponent(rut)));
+        if (!response.ok) throw new Error("No se pudo buscar la razon social.");
+        const data = await response.json();
+        return data.nombre || "";
+    }
+
+    async function actualizarCoordenadas() {
+        const lat = getValue("latitud");
+        const lng = getValue("longitud");
+        if (lat && lng) {
+            document.getElementById("latitudLongitud").value = `${lat}, ${lng}`;
+            return;
+        }
+
+        const direccion = getValue("direccionSucursal");
+        const comuna = getValue("comuna");
+        if (!direccion || !comuna) return;
+
+        const response = await fetch(withToken("/api/venta/coordenadas?direccion=" + encodeURIComponent(direccion) + "&comuna=" + encodeURIComponent(comuna)));
+        if (!response.ok) return;
+        const data = await response.json();
+        const latResp = String(data.lat || "").trim();
+        const lngResp = String(data.lng || "").trim();
+        if (latResp && lngResp) {
+            document.getElementById("latitudLongitud").value = `${latResp}, ${lngResp}`;
+            if (!lat) document.getElementById("latitud").value = latResp;
+            if (!lng) document.getElementById("longitud").value = lngResp;
+        }
+    }
+
+    function agregarContactoEmergencia() {
+        const container = document.getElementById("contactosEmergencia");
+        const div = document.createElement("div");
+        div.className = "contacto";
+        div.innerHTML = `
+            <input type="text" name="nombreEmergencia[]" placeholder="Nombre Emergencia">
+            <input type="text" name="rutEmergencia[]" placeholder="RUT">
+            <input type="text" name="telefonoEmergencia[]" placeholder="Telefono Emergencia">
+            <input type="email" name="emailEmergencia[]" placeholder="Email">
+        `;
+        container.insertBefore(div, document.getElementById("btnAgregarContacto"));
+        const telefono = div.querySelector('input[name="telefonoEmergencia[]"]');
+        telefono.value = "+569";
+    }
+
+    function agregarPersonaAutorizada() {
+        const container = document.getElementById("personasAutorizadas");
+        const div = document.createElement("div");
+        div.className = "persona";
+        div.innerHTML = `
+            <input type="text" name="nombreAutorizado[]" placeholder="Nombre Autorizado">
+            <input type="text" name="rutAutorizado[]" placeholder="RUT">
+            <input type="text" name="telefonoAutorizado[]" placeholder="Telefono Autorizado">
+            <input type="email" name="emailAutorizado[]" placeholder="Email">
+            <input type="text" name="claveVerde[]" placeholder="Clave Verde">
+            <input type="text" name="claveRoja[]" placeholder="Clave Roja">
+        `;
+        container.insertBefore(div, document.getElementById("btnAgregarPersona"));
+        const telefono = div.querySelector('input[name="telefonoAutorizado[]"]');
+        telefono.value = "+569";
+    }
+
+    function agregarGuardia() {
+        const container = document.getElementById("guardiasContainer");
+        const div = document.createElement("div");
+        div.className = "guardia";
+        div.innerHTML = `
+            <input type="text" name="nombreGuardia[]" placeholder="Nombre">
+            <input type="text" name="rutGuardia[]" placeholder="RUT">
+            <input type="text" name="telefonoGuardia[]" placeholder="Telefono">
+            <input type="time" name="horarioGuardiasDesde[]">
+            <input type="time" name="horarioGuardiasHasta[]">
+        `;
+        container.appendChild(div);
+        const telefono = div.querySelector('input[name="telefonoGuardia[]"]');
+        telefono.value = "+569";
+    }
+
+    function mapContactos(selector, config) {
+        return Array.from(document.querySelectorAll(selector)).map(div => {
+            const payload = {};
+            Object.entries(config).forEach(([key, css]) => {
+                const input = div.querySelector(css);
+                payload[key] = input ? input.value.trim() : "";
+            });
+            return payload;
+        });
+    }
+
+    async function enviarFormulario() {
+        const boton = document.getElementById("btnRegistrarSucursal");
+        boton.disabled = true;
+        boton.innerText = "Registrando...";
+
+        try {
+            const diasFuncionamiento = Array.from(document.querySelectorAll('#diasFuncionamiento input:checked')).map(c => c.value).join(", ");
+            const guardias = mapContactos('#guardiasContainer .guardia', {
+                nombre: 'input[name="nombreGuardia[]"]',
+                rut: 'input[name="rutGuardia[]"]',
+                telefono: 'input[name="telefonoGuardia[]"]',
+                horarioDesde: 'input[name="horarioGuardiasDesde[]"]',
+                horarioHasta: 'input[name="horarioGuardiasHasta[]"]',
+            });
+            const contactosEmergencia = mapContactos('#contactosEmergencia .contacto', {
+                nombre: 'input[name="nombreEmergencia[]"]',
+                rut: 'input[name="rutEmergencia[]"]',
+                telefono: 'input[name="telefonoEmergencia[]"]',
+                email: 'input[name="emailEmergencia[]"]',
+            });
+            const personasAutorizadas = mapContactos('#personasAutorizadas .persona', {
+                nombre: 'input[name="nombreAutorizado[]"]',
+                rut: 'input[name="rutAutorizado[]"]',
+                telefono: 'input[name="telefonoAutorizado[]"]',
+                email: 'input[name="emailAutorizado[]"]',
+                claveVerde: 'input[name="claveVerde[]"]',
+                claveRoja: 'input[name="claveRoja[]"]',
+            });
+
+            const tieneContactoCompleto = contactosEmergencia.some(c => c.nombre && c.rut && c.telefono && c.email);
+            if (!tieneContactoCompleto) {
+                throw new Error("Debes completar al menos un contacto de emergencia con todos sus datos.");
+            }
+
+            const lat = getValue("latitud");
+            const lng = getValue("longitud");
+            const latitudLongitud = lat && lng ? `${lat}, ${lng}` : getValue("latitudLongitud");
+
+            const payload = {
+                rut: limpiarRUT(getValue("rut")),
+                nombreEmpresa: getValue("nombreEmpresa"),
+                nombreSucursal: getValue("nombreSucursal"),
+                direccionSucursal: getValue("direccionSucursal"),
+                latitud: lat,
+                longitud: lng,
+                region: getValue("region"),
+                comuna: getValue("comuna"),
+                referenciaUbicacion: getValue("referenciaUbicacion"),
+                proveedorInternet: getValue("proveedorInternet"),
+                proveedorElectricidad: getValue("proveedorElectricidad"),
+                nroProveedorElectricidad: getValue("nroProveedorElectricidad"),
+                horarioApertura: getValue("horarioApertura"),
+                horarioCierre: getValue("horarioCierre"),
+                diasFuncionamiento,
+                latitudLongitud,
+                emailFacturas: getValue("emailFacturas"),
+                contactosEmergencia,
+                personasAutorizadas,
+                guardias
+            };
+
+            const response = await fetch(withToken("/api/venta/sucursales"), {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const err = await response.json().catch(() => ({ detail: "Error al registrar la sucursal." }));
+                if (typeof err?.detail === "string") throw new Error(err.detail);
+                if (Array.isArray(err?.detail) && err.detail.length > 0) {
+                    const first = err.detail[0];
+                    const field = Array.isArray(first?.loc) ? first.loc[first.loc.length - 1] : "";
+                    throw new Error(field ? `${field}: ${first?.msg || "valor invalido"}` : (first?.msg || "Error al registrar la sucursal."));
+                }
+                throw new Error(err?.message || "Error al registrar la sucursal.");
+            }
+
+            const data = await response.json();
+            alert(`Sucursal registrada con exito. Codigo ${data.codigo || ""}`.trim());
+            window.location.reload();
+        } catch (error) {
+            alert(error.message || "Error inesperado al registrar.");
+        } finally {
+            boton.disabled = false;
+            boton.innerText = "Registrar Sucursal";
+        }
+    }
+
+    document.addEventListener("input", function (event) {
+        const name = event.target.getAttribute("name");
+        if (["rutEmergencia[]", "rutAutorizado[]", "rutGuardia[]"].includes(name)) {
+            formatearRUTInput(event.target);
+        }
+        if (["telefonoEmergencia[]", "telefonoAutorizado[]", "telefonoGuardia[]"].includes(name)) {
+            formatearTelefono(event.target);
+        }
+    });
+
+    document.addEventListener("DOMContentLoaded", async function () {
+        document.getElementById("rut").addEventListener("input", function () {
+            formatearRUTInput(this);
+        });
+        document.getElementById("rut").addEventListener("blur", async function () {
+            const rut = this.value.trim();
+            if (!rut) return;
+            try {
+                document.getElementById("nombreEmpresa").value = await buscarClientePorRut(rut);
+            } catch (error) {
+                alert(error.message || "No se pudo buscar la razon social.");
+            }
+        });
+        document.getElementById("direccionSucursal").addEventListener("blur", () => {
+            actualizarCoordenadas().catch(() => {});
+        });
+        document.getElementById("latitud").addEventListener("input", function () {
+            const lng = getValue("longitud");
+            if (this.value.trim() && lng) {
+                document.getElementById("latitudLongitud").value = `${this.value.trim()}, ${lng}`;
+            }
+        });
+        document.getElementById("longitud").addEventListener("input", function () {
+            const lat = getValue("latitud");
+            if (lat && this.value.trim()) {
+                document.getElementById("latitudLongitud").value = `${lat}, ${this.value.trim()}`;
+            }
+        });
+        document.getElementById("telefono").addEventListener("input", function () {
+            formatearTelefono(this);
+        });
+        document.getElementById("region").addEventListener("change", function () {
+            if (this.value) cargarComunas(this.value).catch(err => alert(err.message));
+        });
+        document.getElementById("comuna").addEventListener("change", () => {
+            actualizarCoordenadas().catch(() => {});
+        });
+        document.getElementById("btnAgregarContacto").addEventListener("click", agregarContactoEmergencia);
+        document.getElementById("btnAgregarPersona").addEventListener("click", agregarPersonaAutorizada);
+        document.getElementById("btnAgregarGuardia").addEventListener("click", agregarGuardia);
+        document.getElementById("btnRegistrarSucursal").addEventListener("click", enviarFormulario);
+
+        document.querySelectorAll('input[name="telefonoEmergencia[]"], input[name="telefonoAutorizado[]"], input[name="telefonoGuardia[]"]').forEach(input => {
+            input.value = "+569";
+        });
+
+        try {
+            await Promise.all([
+                cargarRegiones(),
+                cargarProveedoresInternet(),
+                cargarProveedoresElectricidad(),
+            ]);
+        } catch (error) {
+            alert(error.message || "No se pudo inicializar el formulario.");
+        }
+    });
+    </script>
+</body>
+</html>
