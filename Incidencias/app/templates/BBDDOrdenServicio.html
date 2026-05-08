@@ -493,16 +493,37 @@
         </div>
 
         <div class="fields-grid">
+          <!-- DATOS DEL CLIENTE -->
           <div class="section-sep" style="margin-top:0"><span class="section-sep-dot"></span>Datos del Cliente</div>
-
           <div class="field"><label>RUT</label><input type="text" id="rut"></div>
           <div class="field"><label>Razón Social</label><input type="text" id="razonSocial"></div>
           <div class="field"><label>Nombre Sucursal</label><input type="text" id="nombreSucursal"></div>
           <div class="field"><label>Dirección Sucursal</label><input type="text" id="direccionSucursal"></div>
 
-          <div class="section-sep"><span class="section-sep-dot"></span>Datos Comerciales</div>
+          <!-- TIPO DE SERVICIO -->
+          <div class="section-sep"><span class="section-sep-dot"></span>Tipo de Servicio</div>
+          <div class="field" style="grid-column:span 2">
+            <button class="btn-toggle" onclick="toggleServicio()" type="button">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              Seleccionar servicios
+            </button>
+            <div id="servicios-wrapper" class="checkbox-grid">
+              <label><input type="checkbox" value="Televigilancia" onchange="actualizarVisibilidadBBDD()"> Televigilancia</label>
+              <label><input type="checkbox" value="Alarma" onchange="actualizarVisibilidadBBDD()"> Alarma</label>
+              <label><input type="checkbox" value="Guardia" onchange="actualizarVisibilidadBBDD()"> Guardia</label>
+              <label><input type="checkbox" value="Instalacion" onchange="actualizarVisibilidadBBDD()"> Instalación</label>
+              <label><input type="checkbox" value="Upgrade" onchange="actualizarVisibilidadBBDD()"> Upgrade</label>
+              <label><input type="checkbox" value="Downgrade" onchange="actualizarVisibilidadBBDD()"> Downgrade</label>
+              <label><input type="checkbox" value="Servicio Tecnico" onchange="actualizarVisibilidadBBDD()"> Servicio Técnico</label>
+              <label><input type="checkbox" value="Monitoreo Adicional" onchange="actualizarVisibilidadBBDD()"> Monitoreo Adicional</label>
+              <label><input type="checkbox" value="Desinstalacion" onchange="actualizarVisibilidadBBDD()"> Desinstalación</label>
+            </div>
+          </div>
 
-          <div class="field">
+          <!-- DATOS COMERCIALES (condicionales) -->
+          <div class="section-sep" id="sep-comercial" style="display:none"><span class="section-sep-dot"></span>Datos Comerciales</div>
+
+          <div class="field" id="sec-tipo-plan" style="display:none">
             <label>Tipo Plan</label>
             <select id="tipoPlan">
               <option value="">Seleccione...</option>
@@ -521,35 +542,33 @@
               <option>CONDOMINIO</option>
             </select>
           </div>
-          <div class="field"><label>Monto a Cobrar</label><input type="text" id="montoACobrar"></div>
-          <div class="field" style="grid-column:span 2">
-            <label>Tipo Servicio</label>
-            <button class="btn-toggle" onclick="toggleServicio()" type="button">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-              Seleccionar
-            </button>
-            <div id="servicios-wrapper" class="checkbox-grid">
-              <label><input type="checkbox" value="Televigilancia"> Televigilancia</label>
-              <label><input type="checkbox" value="Alarma"> Alarma</label>
-              <label><input type="checkbox" value="Guardia"> Guardia</label>
-              <label><input type="checkbox" value="Instalacion"> Instalación</label>
-              <label><input type="checkbox" value="Upgrade"> Upgrade</label>
-              <label><input type="checkbox" value="Downgrade"> Downgrade</label>
-              <label><input type="checkbox" value="Servicio Tecnico"> Servicio Técnico</label>
-              <label><input type="checkbox" value="Monitoreo Adicional"> Monitoreo Adicional</label>
-              <label><input type="checkbox" value="Desinstalacion"> Desinstalación</label>
-            </div>
+          <div class="field" id="sec-agua-bano" style="display:none">
+            <label>Agua Potable y Baño</label>
+            <select id="aguaBano">
+              <option value="">Seleccione...</option>
+              <option value="Si">Sí</option>
+              <option value="No">No</option>
+            </select>
           </div>
 
-          <div class="section-sep"><span class="section-sep-dot"></span>Parámetros de Servicio</div>
+          <!-- CÁMARAS (condicional) -->
+          <div class="section-sep" id="sep-camaras" style="display:none"><span class="section-sep-dot"></span>Cámaras</div>
+          <div class="field" id="sec-cam-instalar" style="display:none"><label>N° Cámaras a Instalar</label><input type="number" id="camInstalar" min="0"></div>
+          <div class="field" id="sec-cam-vigilar" style="display:none"><label>N° Cámaras a Vigilar</label><input type="number" id="camVigilar" min="0"></div>
+          <div class="field" id="sec-cam-desins" style="display:none"><label>N° Cámaras a Desinstalar</label><input type="number" id="camDesinstalar" min="0"></div>
 
-          <div class="field"><label>N° Cámaras a Instalar</label><input type="number" id="camInstalar" min="0"></div>
-          <div class="field"><label>N° Cámaras a Vigilar</label><input type="number" id="camVigilar" min="0"></div>
-          <div class="field"><label>Horario Nuevo Monitoreo</label><input type="text" id="horario"></div>
-          <div class="field"><label>Días Monitoreo Adicional</label><input type="text" id="diasAdicional"></div>
+          <!-- MONITOREO ADICIONAL (condicional) -->
+          <div class="section-sep" id="sep-monitoreo" style="display:none"><span class="section-sep-dot"></span>Monitoreo Adicional</div>
+          <div class="field" id="sec-monitoreo-desde" style="display:none"><label>Desde</label><input type="date" id="diasMonitoreoDesde"></div>
+          <div class="field" id="sec-monitoreo-hasta" style="display:none"><label>Hasta</label><input type="date" id="diasMonitoreoHasta"></div>
+          <div class="field" id="sec-monitoreo-horario" style="display:none"><label>Nuevo Horario</label><input type="time" id="horario"></div>
 
+          <!-- VALORES A COBRAR (condicional) -->
+          <div class="section-sep" id="sep-montos" style="display:none"><span class="section-sep-dot"></span>Valores a Cobrar</div>
+          <div id="contenedor-montos" style="display:contents"></div>
+
+          <!-- INFORMACIÓN ADICIONAL -->
           <div class="section-sep"><span class="section-sep-dot"></span>Información Adicional</div>
-
           <div class="field">
             <label>Materiales</label>
             <button class="btn-toggle" id="btn-materiales" onclick="toggleField('materiales','btn-materiales')" type="button">
@@ -587,20 +606,15 @@
             </button>
           </div>
 
+          <!-- ARCHIVOS ADJUNTOS -->
           <div class="section-sep"><span class="section-sep-dot"></span>Archivos Adjuntos</div>
-
           <div class="field">
             <label>Cotización</label>
             <div class="file-picker">
               <input type="file" id="cotizacion" accept=".pdf,.doc,.docx" onchange="updateFilePicker(this,'cotizacion-name')">
               <div class="file-picker-btn">
-                <div class="file-picker-icon">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                </div>
-                <div class="file-picker-text">
-                  <div class="file-picker-name" id="cotizacion-name">Seleccionar archivo</div>
-                  <div class="file-picker-hint">PDF, DOC, DOCX</div>
-                </div>
+                <div class="file-picker-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+                <div class="file-picker-text"><div class="file-picker-name" id="cotizacion-name">Seleccionar archivo</div><div class="file-picker-hint">PDF, DOC, DOCX</div></div>
               </div>
             </div>
           </div>
@@ -609,13 +623,8 @@
             <div class="file-picker">
               <input type="file" id="layout" accept="image/*,.pdf" onchange="updateFilePicker(this,'layout-name')">
               <div class="file-picker-btn">
-                <div class="file-picker-icon">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                </div>
-                <div class="file-picker-text">
-                  <div class="file-picker-name" id="layout-name">Seleccionar archivo</div>
-                  <div class="file-picker-hint">Imagen o PDF</div>
-                </div>
+                <div class="file-picker-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
+                <div class="file-picker-text"><div class="file-picker-name" id="layout-name">Seleccionar archivo</div><div class="file-picker-hint">Imagen o PDF</div></div>
               </div>
             </div>
           </div>
@@ -624,13 +633,8 @@
             <div class="file-picker">
               <input type="file" id="oc" accept=".pdf,.doc,.docx" onchange="updateFilePicker(this,'oc-name')">
               <div class="file-picker-btn">
-                <div class="file-picker-icon">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                </div>
-                <div class="file-picker-text">
-                  <div class="file-picker-name" id="oc-name">Seleccionar archivo</div>
-                  <div class="file-picker-hint">PDF, DOC, DOCX</div>
-                </div>
+                <div class="file-picker-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+                <div class="file-picker-text"><div class="file-picker-name" id="oc-name">Seleccionar archivo</div><div class="file-picker-hint">PDF, DOC, DOCX</div></div>
               </div>
             </div>
           </div>
