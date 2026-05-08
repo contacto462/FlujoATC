@@ -247,6 +247,7 @@ def _protocolos_weekly_worker_loop() -> None:
     tz = ZoneInfo(settings.timezone or "America/Santiago")
     ultimo_dia_protocolo = ""
     ultimo_dia_mantenciones = ""
+    ultimo_dia_mantenciones_mensuales = ""
     ultimo_dia_mantenciones_trimestrales = ""
     while True:
         try:
@@ -264,6 +265,20 @@ def _protocolos_weekly_worker_loop() -> None:
                     finally:
                         db.close()
                     ultimo_dia_mantenciones = dia_key
+
+            if now.day == 1 and now.hour >= 6:
+                dia_key = now.strftime("%Y-%m-%d")
+                if dia_key != ultimo_dia_mantenciones_mensuales:
+                    db = SessionLocal()
+                    try:
+                        result = IncidenciasService(db).programar_mantenciones_mensuales_llay_llay(
+                            fecha_referencia=now,
+                            forzar=True,
+                        )
+                        LOGGER.info("Mantenciones mensuales Llay Llay: %s", result)
+                    finally:
+                        db.close()
+                    ultimo_dia_mantenciones_mensuales = dia_key
 
             if now.day == 1 and now.month in {3, 6, 9, 12} and now.hour >= 6:
                 dia_key = now.strftime("%Y-%m-%d")
@@ -1193,6 +1208,5 @@ def debug_db(
     except Exception as e:
         out["catalogo_clientes_sample_error"] = str(e)
     return out
-
 
 
