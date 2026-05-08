@@ -475,6 +475,31 @@
       renderDetail(index);
     }
 
+    /* ── FIELD TYPE MAP (by column index) ── */
+    // 0=ID 1=RUT 2=Cliente 3=Giro 4=Direccion 5=Region 6=Comuna
+    // 7=EmailFacturas 8=NombreRepresentante 9=RUTRepresentante 10=Telefono 11=EmailRepresentante 12=Ejecutivo
+    const CLIENT_FIELD_TYPES = {
+      5: 'select-region',
+      6: 'select-comuna',
+      7: 'email',
+      11: 'email',
+    };
+
+    function buildFieldInput(index, j, header, value) {
+      const ft = CLIENT_FIELD_TYPES[j] || 'text';
+      const id = `field-${index}-${j}`;
+      const base = `id="${id}" data-original="${escAttr(value)}" data-col="${j}"`;
+      if (ft === 'select-region' || ft === 'select-comuna') {
+        const onChange = ft === 'select-region'
+          ? `onchange="markChanged(this);onRegionChange(${index})"` : `onchange="markChanged(this)"`;
+        return `<select ${base} ${onChange}><option value="${escAttr(value)}">${escHTML(value)||'Cargando...'}</option></select>`;
+      }
+      if (ft === 'email') {
+        return `<input type="email" ${base} value="${escAttr(value)}" oninput="markChanged(this)">`;
+      }
+      return `<input type="text" ${base} value="${escAttr(value)}" oninput="markChanged(this)">`;
+    }
+
     /* ── RENDER DETAIL ── */
     function renderDetail(index) {
       const row = allRows[index];
@@ -485,15 +510,11 @@
 
       let fieldsHTML = '<div class="fields-grid">';
       allHeaders.forEach((header, j) => {
-        if (j === 0) return; // skip ID (read-only, shown as badge)
+        if (j === 0) return;
         fieldsHTML += `
           <div class="field">
             <label>${escHTML(header)}</label>
-            <input type="text"
-                   id="field-${index}-${j}"
-                   data-original="${escAttr(row[j] || '')}"
-                   value="${escAttr(row[j] || '')}"
-                   oninput="markChanged(this)">
+            ${buildFieldInput(index, j, header, String(row[j] || ''))}
           </div>`;
       });
       fieldsHTML += '</div>';
@@ -510,6 +531,55 @@
         </div>
         ${fieldsHTML}
       `;
+
+      // async load selects
+      const regionJ = 5, comunaJ = 6;
+      loadRegionesSelect(`field-${index}-${regionJ}`, String(row[regionJ]||''), index, comunaJ, String(row[comunaJ]||''));
+    }
+
+    /* ── REGION / COMUNA LOADERS ── */
+    async function loadRegionesSelect(selId, currentRegion, index, comunaJ, currentComuna) {
+      const sel = document.getElementById(selId);
+      if (!sel) return;
+      try {
+        const res = await fetch(withToken('/api/venta/catalogo/regiones'));
+        const data = await res.json();
+        const opts = (data.regiones || []).map(r =>
+          `<option value="${escAttr(r)}"${r===currentRegion?' selected':''}>${escHTML(r)}</option>`
+        ).join('');
+        sel.innerHTML = `<option value="">Seleccionar región</option>${opts}`;
+        if (currentRegion) sel.value = currentRegion;
+        sel.dataset.original = currentRegion;
+        sel.classList.toggle('changed', sel.value !== currentRegion);
+      } catch { sel.innerHTML = `<option value="${escAttr(currentRegion)}">${escHTML(currentRegion)||'Error'}</option>`; }
+      // now load comunas
+      if (currentRegion) loadComunasSelect(`field-${index}-${comunaJ}`, currentRegion, currentComuna);
+    }
+
+    async function loadComunasSelect(selId, region, currentComuna) {
+      const sel = document.getElementById(selId);
+      if (!sel) return;
+      sel.innerHTML = '<option value="">Cargando...</option>';
+      if (!region) { sel.innerHTML = '<option value="">Selecciona región primero</option>'; return; }
+      try {
+        const res = await fetch(withToken(`/api/venta/catalogo/comunas?region=${encodeURIComponent(region)}`));
+        const data = await res.json();
+        const opts = (data.comunas || []).map(c =>
+          `<option value="${escAttr(c)}"${c===currentComuna?' selected':''}>${escHTML(c)}</option>`
+        ).join('');
+        sel.innerHTML = `<option value="">Seleccionar comuna</option>${opts}`;
+        if (currentComuna) sel.value = currentComuna;
+        sel.dataset.original = currentComuna;
+      } catch { sel.innerHTML = `<option value="${escAttr(currentComuna)}">${escHTML(currentComuna)||'Error'}</option>`; }
+    }
+
+    function onRegionChange(index) {
+      const regionSel = document.getElementById(`field-${index}-5`);
+      const comunaSel = document.getElementById(`field-${index}-6`);
+      if (!regionSel || !comunaSel) return;
+      const region = regionSel.value;
+      comunaSel.dataset.original = comunaSel.dataset.original || '';
+      loadComunasSelect(`field-${index}-6`, region, '');
     }
 
     function markChanged(input) {
