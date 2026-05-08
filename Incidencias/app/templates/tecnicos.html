@@ -1017,6 +1017,65 @@
     let actualizacionAutomaticaTimer = null;
     const AUTO_REFRESH_MS = 30000;
     const tecnicoFiltrado = (typeof tecnicoActual !== "undefined" ? String(tecnicoActual || "") : "").trim().toLowerCase();
+    const CAUSAS_CIERRE = {
+      ATC: [
+        ["instalacion_deficiente", "Instalacion deficiente"],
+        ["configuracion_incorrecta", "Configuracion incorrecta"],
+        ["material_instalado_defectuoso", "Material instalado defectuoso"],
+        ["mantenimiento_insuficiente", "Mantenimiento insuficiente"],
+        ["diagnostico_previo_incompleto", "Diagnostico previo incompleto"],
+        ["otro", "Otro"],
+      ],
+      Cliente: [
+        ["manipulacion_cliente", "Manipulacion del cliente"],
+        ["problema_electrico_cliente", "Problema electrico del cliente"],
+        ["red_internet_cliente", "Red/internet del cliente"],
+        ["infraestructura_cliente", "Infraestructura del cliente"],
+        ["dano_terceros", "Dano de terceros"],
+        ["otro", "Otro"],
+      ],
+    };
+    const ACCIONES_CIERRE = [
+      ["reconexion", "Reconexion"],
+      ["reconfiguracion", "Reconfiguracion"],
+      ["reemplazo_material", "Reemplazo de material"],
+      ["ajuste_fisico", "Ajuste fisico"],
+      ["limpieza", "Limpieza"],
+      ["cambio_cableado", "Cambio de cableado"],
+      ["cambio_fuente", "Cambio de fuente"],
+      ["validacion_sin_intervencion", "Validacion sin intervencion"],
+      ["otro", "Otro"],
+    ];
+    const RESULTADOS_CIERRE = [
+      ["operativo", "Operativo"],
+      ["operativo_con_observacion", "Operativo con observacion"],
+      ["requiere_seguimiento", "Requiere seguimiento"],
+      ["requiere_cotizacion_visita_adicional", "Requiere cotizacion/visita adicional"],
+    ];
+    const PRUEBAS_CIERRE = [
+      ["camaras_ok", "Camaras OK"],
+      ["grabacion_ok", "Grabacion OK"],
+      ["audio_ok", "Audio OK"],
+      ["red_ok", "Red OK"],
+      ["energia_ok", "Energia OK"],
+    ];
+    const MATERIALES_CIERRE = [
+      ["cable_utp", "Cable UTP", "metro"],
+      ["conector_rj45", "Conector RJ45", "unidad"],
+      ["balun", "Balun", "unidad"],
+      ["fuente_12v", "Fuente 12V", "unidad"],
+      ["transformador", "Transformador", "unidad"],
+      ["camara", "Camara", "unidad"],
+      ["nvr_dvr", "NVR/DVR", "unidad"],
+      ["disco_duro", "Disco duro", "unidad"],
+      ["switch_poe", "Switch/PoE", "unidad"],
+      ["microfono", "Microfono", "unidad"],
+      ["parlante", "Parlante", "unidad"],
+      ["canaleta", "Canaleta", "metro"],
+      ["caja_estanca", "Caja estanca", "unidad"],
+      ["tornilleria_fijaciones", "Tornilleria/fijaciones", "set"],
+      ["otro", "Otro", "unidad"],
+    ];
 
     function escapeHTML(str) {
       return String(str || "").replace(/[&<>\"']/g, (m) => ({
