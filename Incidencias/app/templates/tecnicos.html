@@ -1010,6 +1010,8 @@
     let odtModalEnProceso = "";
     let cierreActualEsMantencion = false;
     const RUTA_ORIGEN_BASE = "1 Oriente 1180, Viña del Mar, Chile";
+    const MANTENCION_MAX_IMAGENES_CIERRE = 80;
+    const MANTENCION_MAX_BYTES_IMAGEN = 10 * 1024 * 1024;
     let registrosTecnicoFull = [];
     let rutaActualOptima = [];
     let rutaGoogleActual = "";
@@ -1094,6 +1096,31 @@
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
         .trim();
+    }
+
+    function esMantencionPreventiva(valor) {
+      return normalizarTexto(valor) === "mantencion preventiva";
+    }
+
+    function registroTecnicoPorOdt(odt) {
+      const odtLimpia = String(odt || "").trim();
+      return (registrosTecnicoFull || []).find((item) => String(item?.odt || "").trim() === odtLimpia) || null;
+    }
+
+    function configurarFotosCierre(esMantencion) {
+      const contenedor = document.getElementById("contenedorFotos");
+      const help = document.getElementById("fotosCierreHelp");
+      const btnAgregar = document.getElementById("btnAgregarFoto");
+      if (!contenedor) return;
+      if (esMantencion) {
+        contenedor.innerHTML = '<input type="file" class="fotoAdjuntar" accept="image/*" multiple required />';
+        if (help) help.textContent = `Mantencion preventiva: adjunta entre 1 y ${MANTENCION_MAX_IMAGENES_CIERRE} imagenes. Maximo 10 MB por imagen.`;
+        if (btnAgregar) btnAgregar.style.display = "none";
+      } else {
+        contenedor.innerHTML = '<input type="file" class="fotoAdjuntar" accept="image/*" required />';
+        if (help) help.textContent = "Debes adjuntar al menos una foto y maximo dos.";
+        if (btnAgregar) btnAgregar.style.display = "";
+      }
     }
 
     function esElementoDeEdicion(elemento) {
