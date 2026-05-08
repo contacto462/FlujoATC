@@ -166,6 +166,9 @@ MANTENCIONES_TRIMESTRALES_CONCON: list[str] = [
     "MC DOM",
     "MC Corrales Municipales",
 ]
+MANTENCIONES_MENSUALES_LLAY_LLAY: list[str] = [
+    "Cesfam Llay Llay",
+]
 MESES_MANTENCION_TRIMESTRAL = {3, 6, 9, 12}
 MANTENCIONES_TRIMESTRALES_POR_COMUNA: dict[str, list[str]] = {
     "quintero": MANTENCIONES_TRIMESTRALES_QUINTERO,
@@ -180,6 +183,7 @@ MANTENCIONES_IMAGENES_POR_SUCURSAL: dict[str, list[str]] = {
 SUCURSALES_EXTRA_MANTENCION: list[str] = [
     *MANTENCIONES_TRIMESTRALES_QUINTERO,
     *MANTENCIONES_TRIMESTRALES_CONCON,
+    *MANTENCIONES_MENSUALES_LLAY_LLAY,
     "Quintero",
     "Concon",
     "Llay Llay",
@@ -4027,6 +4031,127 @@ class IncidenciasService:
             "resultados": resultados,
         }
 
+    def programar_mantenciones_mensuales_llay_llay(
+        self,
+        fecha_referencia: datetime | None = None,
+        forzar: bool = False,
+    ) -> dict[str, Any]:
+        tz = ZoneInfo(settings.timezone or "America/Santiago")
+        if fecha_referencia is None:
+            ref = datetime.now(tz)
+        elif fecha_referencia.tzinfo is None:
+            ref = fecha_referencia.replace(tzinfo=tz)
+        else:
+            ref = fecha_referencia.astimezone(tz)
+
+        if not forzar and ref.day != 1:
+            return {
+                "status": "skip",
+                "reason": "solo_dia_01",
+                "fecha_referencia": ref.isoformat(),
+            }
+        if not forzar and ref.hour < 6:
+            return {
+                "status": "skip",
+                "reason": "hora_menor_a_06",
+                "fecha_referencia": ref.isoformat(),
+            }
+
+        mes_key = ref.strftime("%Y-%m")
+        marca = f"[AUTO-MANT-LLAY-LLAY {mes_key}]"
+        observacion_servicio_auto = "Mantención Preventiva Completa de la totalidad del servicio"
+        creadas: list[str] = []
+        omitidas: list[str] = []
+        imagenes_asignadas: list[str] = []
+        errores: list[dict[str, str]] = []
+
+        for sucursal in MANTENCIONES_MENSUALES_LLAY_LLAY:
+            ya_existe = (
+                self.db.scalar(
+                    select(func.count())
+                    .select_from(Registro)
+                    .where(
+                        Registro.cliente == sucursal,
+                        Registro.problema == "Mantencion Preventiva",
+                        Registro.observacion_servicio == observacion_servicio_auto,
+                        func.extract("year", Registro.fecha_registro) == ref.year,
+                        func.extract("month", Registro.fecha_registro) == ref.month,
+                    )
+                )
+                or 0
+            )
+            if ya_existe:
+                omitidas.append(sucursal)
+                odt_existente = (
+                    self.db.scalar(
+                        select(Registro.odt)
+                        .where(
+                            Registro.cliente == sucursal,
+                            Registro.problema == "Mantencion Preventiva",
+                        )
+                        .order_by(Registro.id.desc())
+                    )
+                    or ""
+                )
+                if odt_existente:
+                    try:
+                        if self._asignar_imagenes_programadas_a_odt(str(odt_existente), sucursal):
+                            if sucursal not in imagenes_asignadas:
+                                imagenes_asignadas.append(sucursal)
+                    except Exception:
+                        self.db.rollback()
+                continue
+
+            try:
+                self.guardar_mantencion_correctiva(
+                    {
+                        "sucursal": sucursal,
+                        "problema": "Mantencion Preventiva",
+                        "observacion": "",
+                        "observacion_servicio": observacion_servicio_auto,
+                        "estado": "Pendiente",
+                        "tecnico": "",
+                        "acompanante": "",
+                        "prioridad": "",
+                    }
+                )
+                odt_creada = (
+                    self.db.scalar(
+                        select(Registro.odt)
+                        .where(
+                            Registro.cliente == sucursal,
+                            Registro.problema == "Mantencion Preventiva",
+                        )
+                        .order_by(Registro.id.desc())
+                    )
+                    or ""
+                )
+                if odt_creada:
+                    try:
+                        if self._asignar_imagenes_programadas_a_odt(str(odt_creada), sucursal):
+                            if sucursal not in imagenes_asignadas:
+                                imagenes_asignadas.append(sucursal)
+                    except Exception:
+                        self.db.rollback()
+                creadas.append(sucursal)
+            except Exception as exc:
+                self.db.rollback()
+                errores.append({"sucursal": sucursal, "error": str(exc)})
+
+        return {
+            "status": "ok" if not errores else "partial",
+            "fecha_referencia": ref.isoformat(),
+            "mes_programacion": mes_key,
+            "marca": marca,
+            "creadas": len(creadas),
+            "omitidas": len(omitidas),
+            "imagenes_asignadas": len(imagenes_asignadas),
+            "errores": errores,
+            "sucursales_creadas": creadas,
+            "sucursales_omitidas": omitidas,
+            "sucursales_imagenes_asignadas": imagenes_asignadas,
+        }
+
     def obtener_clientes_soporte(self) -> list[str]:
         clientes_base = self.obtener_catalogo_clientes()
         if clientes_base:
@@ -5205,5 +5330,4 @@ class IncidenciasService:
                 }
             )
         return resultado
-
 
