@@ -2885,37 +2885,19 @@ class IncidenciasService:
     def _subir_imagenes_cierre_mantencion_worker(
         odt: str,
         staged_files: list[str],
-        root_folder_id: str,
+        observacion: str,
     ) -> None:
         db = SessionLocal()
         try:
             service = IncidenciasService(db)
-            start_index = 1
-            last_result: dict[str, Any] = {}
-            for file_path in staged_files:
-                path = Path(file_path)
-                if not path.exists() or not path.is_file():
-                    continue
-                mime_type = mimetypes.guess_type(path.name)[0] or "image/jpeg"
-                payload = {
-                    "filename": path.name,
-                    "mime_type": mime_type,
-                    "bytes": path.read_bytes(),
-                }
-                last_result = upload_support_images_for_odt(
-                    odt=odt,
-                    image_payloads=[payload],
-                    root_folder_id=root_folder_id,
-                    start_index=start_index,
-                )
-                start_index += 1
-
-            folder_id = str(last_result.get("folder_id") or "").strip()
-            folder_url = str(last_result.get("folder_url") or "").strip()
-            if folder_id or folder_url:
+            fuentes = [p for p in staged_files if Path(p).exists() and Path(p).is_file()]
+            result = service._generar_drive_para_cierre(odt, observacion, fuentes)
+            folder_id = str(result.get("folder_id") or "").strip()
+            if folder_id:
+                folder_url = f"https://drive.google.com/drive/folders/{folder_id}"
                 service._guardar_drive_cierre_folder(odt, folder_id, folder_url)
         except Exception:
-            LOGGER.exception("Fallo la subida masiva de imagenes de cierre de mantencion para ODT %s.", odt)
+            LOGGER.exception("Fallo la subida de imagenes y generacion de informe de mantencion para ODT %s.", odt)
         finally:
             db.close()
 
