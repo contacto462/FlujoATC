@@ -997,18 +997,21 @@
 
     async function calcularRutaOptima(registros) {
       const elegibles = (Array.isArray(registros) ? registros : []).filter((r) => {
-        const estado = estadoCanonico(r?.estado || "");
         const direccion = String(r?.direccion || "").trim();
-        return direccion && estado !== "Terminado";
+        return direccion;
       });
       if (!elegibles.length) {
         return { orden: [], geocodificadas: 0, omitidas: 0 };
       }
 
       const puntos = [];
+      const sinGeo = [];
       for (const registro of elegibles) {
         const coords = await geocodificarDireccionCliente(registro.direccion);
-        if (!coords?.latitud || !coords?.longitud) continue;
+        if (!coords?.latitud || !coords?.longitud) {
+          sinGeo.push({ ...registro, latitud: "", longitud: "" });
+          continue;
+        }
         puntos.push({
           ...registro,
           latitud: coords.latitud,
@@ -1017,7 +1020,7 @@
       }
 
       if (!puntos.length) {
-        return { orden: [], geocodificadas: 0, omitidas: elegibles.length };
+        return { orden: sinGeo, geocodificadas: 0, omitidas: sinGeo.length };
       }
 
       const pendientes = puntos.slice();
@@ -1051,67 +1054,30 @@
       }
 
       return {
-        orden,
+        orden: [...orden, ...sinGeo],
         geocodificadas: puntos.length,
-        omitidas: Math.max(0, elegibles.length - puntos.length),
+        omitidas: sinGeo.length,
       };
     }
 
     function renderRutaOptima(resultado) {
-      const lista = document.getElementById("rutaLista");
-      const status = document.getElementById("rutaStatus");
-      const metricParadas = document.getElementById("rutaMetricParadas");
-      const metricGeo = document.getElementById("rutaMetricGeo");
-      const metricEstado = document.getElementById("rutaMetricEstado");
       const btnGoogle = document.getElementById("btnRutaGoogle");
       const btnWaze = document.getElementById("btnRutaWaze");
 
       rutaActualOptima = Array.isArray(resultado?.orden) ? resultado.orden : [];
-      metricParadas.textContent = String(rutaActualOptima.length);
-      metricGeo.textContent = String(resultado?.geocodificadas || 0);
 
       if (!rutaActualOptima.length) {
-        metricEstado.textContent = "Sin ruta";
-        status.textContent = "No hay ODT activas con dirección suficiente para armar una ruta.";
-        lista.innerHTML = "";
         btnGoogle.disabled = true;
         btnWaze.disabled = true;
         return;
       }
 
-      metricEstado.textContent = "Lista";
-      const omitidas = Number(resultado?.omitidas || 0);
-      status.textContent = omitidas > 0
-        ? `Ruta sugerida generada. ${omitidas} parada(s) quedaron fuera por falta de geolocalización.`
-        : "Ruta sugerida generada según cercanía desde la base.";
-
       btnGoogle.disabled = false;
       btnWaze.disabled = false;
-
-      lista.innerHTML = rutaActualOptima.map((item, idx) => `
-        <div class="ruta-item">
-          <div class="ruta-item-stop">${idx + 1}</div>
-          <div class="ruta-item-main">
-            <div class="ruta-item-top">
-              <span class="ruta-item-odt">${escapeHTML(item.odt || "")}</span>
-              <span class="ruta-item-cliente">${escapeHTML(item.cliente || "")}</span>
-            </div>
-            <div class="ruta-item-dir">${escapeHTML(item.direccion || "")}</div>
-          </div>
-          <div class="ruta-item-actions">
-            <button type="button" class="btn-secundario" onclick="abrirParadaGoogle(${idx})">Google Maps</button>
-            <button type="button" class="btn-secundario" onclick="abrirParadaWaze(${idx})">Waze</button>
-          </div>
-        </div>
-      `).join("");
     }
 
     async function recalcularRutaVisible() {
-      const status = document.getElementById("rutaStatus");
-      if (status) status.textContent = "Calculando ruta óptima...";
-      const filtro = document.getElementById("filtroEstado")?.value || "Todos";
-      const visibles = registrosTecnicoFull.filter((r) => filtro === "Todos" || estadoCanonico(r.estado) === filtro);
-      const resultado = await calcularRutaOptima(visibles);
+      const resultado = await calcularRutaOptima(registrosTecnicoFull);
       renderRutaOptima(resultado);
     }
 
