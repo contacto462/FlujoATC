@@ -850,6 +850,9 @@
     let rutaActualOptima = [];
     let rutaGoogleActual = "";
     let rutaWazeActual = "";
+    let actualizacionAutomaticaEnCurso = false;
+    let actualizacionAutomaticaTimer = null;
+    const AUTO_REFRESH_MS = 30000;
     const tecnicoFiltrado = (typeof tecnicoActual !== "undefined" ? String(tecnicoActual || "") : "").trim().toLowerCase();
 
     function escapeHTML(str) {
@@ -868,6 +871,50 @@
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
         .trim();
+    }
+
+    function esElementoDeEdicion(elemento) {
+      if (!elemento) return false;
+      const tag = String(elemento.tagName || "").toLowerCase();
+      return (
+        tag === "input" ||
+        tag === "textarea" ||
+        tag === "select" ||
+        elemento.isContentEditable === true
+      );
+    }
+
+    function hayModalVisible() {
+      return ["modalFinalizar", "modalProgreso", "modalEnProceso"].some((id) => {
+        const modal = document.getElementById(id);
+        return modal && window.getComputedStyle(modal).display !== "none";
+      });
+    }
+
+    function hayFormularioConDatosTemporales() {
+      const observacion = document.getElementById("observacion");
+      const avance = document.getElementById("gradoAvance");
+      const observacionEnProceso = document.getElementById("observacionEnProceso");
+      const fotos = Array.from(document.querySelectorAll(".fotoAdjuntar"));
+      return Boolean(
+        String(observacion?.value || "").trim() ||
+        String(avance?.value || "").trim() ||
+        String(observacionEnProceso?.value || "").trim() ||
+        fotos.some((input) => input.files && input.files.length > 0)
+      );
+    }
+
+    function hayDetalleOdtAbierto() {
+      return Boolean(document.querySelector(".fila-infoSucursal"));
+    }
+
+    function debePausarActualizacionAutomatica() {
+      return (
+        hayModalVisible() ||
+        hayFormularioConDatosTemporales() ||
+        hayDetalleOdtAbierto() ||
+        esElementoDeEdicion(document.activeElement)
+      );
     }
 
     function normalizarDireccion(str) {
