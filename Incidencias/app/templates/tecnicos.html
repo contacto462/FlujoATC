@@ -1026,6 +1026,163 @@
       return vacio;
     }
 
+    async function calcularRutaOptima(registros) {
+      const elegibles = (Array.isArray(registros) ? registros : []).filter((r) => {
+        const estado = estadoCanonico(r?.estado || "");
+        const direccion = String(r?.direccion || "").trim();
+        return direccion && estado !== "Terminado";
+      });
+      if (!elegibles.length) {
+        return { orden: [], geocodificadas: 0, omitidas: 0 };
+      }
+
+      const puntos = [];
+      for (const registro of elegibles) {
+        const coords = await geocodificarDireccionCliente(registro.direccion);
+        if (!coords?.latitud || !coords?.longitud) continue;
+        puntos.push({
+          ...registro,
+          latitud: coords.latitud,
+          longitud: coords.longitud,
+        });
+      }
+
+      if (!puntos.length) {
+        return { orden: [], geocodificadas: 0, omitidas: elegibles.length };
+      }
+
+      const pendientes = puntos.slice();
+      const orden = [];
+      let actual = { ...rutaBaseCoords };
+
+      const distancia2 = (a, b) => {
+        const latA = Number(a.latitud);
+        const lngA = Number(a.longitud);
+        const latB = Number(b.latitud);
+        const lngB = Number(b.longitud);
+        if (![latA, lngA, latB, lngB].every(Number.isFinite)) return Number.POSITIVE_INFINITY;
+        const dLat = latA - latB;
+        const dLng = lngA - lngB;
+        return dLat * dLat + dLng * dLng;
+      };
+
+      while (pendientes.length) {
+        let mejorIdx = 0;
+        let mejorDist = Number.POSITIVE_INFINITY;
+        pendientes.forEach((item, idx) => {
+          const dist = distancia2(actual, item);
+          if (dist < mejorDist) {
+            mejorDist = dist;
+            mejorIdx = idx;
+          }
+        });
+        const [siguiente] = pendientes.splice(mejorIdx, 1);
+        orden.push(siguiente);
+        actual = siguiente;
+      }
+
+      return {
+        orden,
+        geocodificadas: puntos.length,
+        omitidas: Math.max(0, elegibles.length - puntos.length),
+      };
+    }
+
+    function renderRutaOptima(resultado) {
+      const lista = document.getElementById("rutaLista");
+      const status = document.getElementById("rutaStatus");
+      const metricParadas = document.getElementById("rutaMetricParadas");
+      const metricGeo = document.getElementById("rutaMetricGeo");
+      const metricEstado = document.getElementById("rutaMetricEstado");
+      const btnGoogle = document.getElementById("btnRutaGoogle");
+      const btnWaze = document.getElementById("btnRutaWaze");
+
+      rutaActualOptima = Array.isArray(resultado?.orden) ? resultado.orden : [];
+      metricParadas.textContent = String(rutaActualOptima.length);
+      metricGeo.textContent = String(resultado?.geocodificadas || 0);
+
+      if (!rutaActualOptima.length) {
+        metricEstado.textContent = "Sin ruta";
+        status.textContent = "No hay ODT activas con dirección suficiente para armar una ruta.";
+        lista.innerHTML = "";
+        btnGoogle.disabled = true;
+        btnWaze.disabled = true;
+        return;
+      }
+
+      metricEstado.textContent = "Lista";
+      const omitidas = Number(resultado?.omitidas || 0);
+      status.textContent = omitidas > 0
+        ? `Ruta sugerida generada. ${omitidas} parada(s) quedaron fuera por falta de geolocalización.`
+        : "Ruta sugerida generada según cercanía desde la base.";
+
+      btnGoogle.disabled = false;
+      btnWaze.disabled = false;
+
+      lista.innerHTML = rutaActualOptima.map((item, idx) => `
+        <div class="ruta-item">
+          <div class="ruta-item-stop">${idx + 1}</div>
+          <div class="ruta-item-main">
+            <div class="ruta-item-top">
+              <span class="ruta-item-odt">${escapeHTML(item.odt || "")}</span>
+              <span class="ruta-item-cliente">${escapeHTML(item.cliente || "")}</span>
+            </div>
+            <div class="ruta-item-dir">${escapeHTML(item.direccion || "")}</div>
+          </div>
+          <div class="ruta-item-actions">
+            <button type="button" class="btn-secundario" onclick="abrirParadaGoogle(${idx})">Google Maps</button>
+            <button type="button" class="btn-secundario" onclick="abrirParadaWaze(${idx})">Waze</button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    async function recalcularRutaVisible() {
+      const status = document.getElementById("rutaStatus");
+      if (status) status.textContent = "Calculando ruta óptima...";
+      const filtro = document.getElementById("filtroEstado")?.value || "Todos";
+      const visibles = registrosTecnicoFull.filter((r) => filtro === "Todos" || estadoCanonico(r.estado) === filtro);
+      const resultado = await calcularRutaOptima(visibles);
+      renderRutaOptima(resultado);
+    }
+
+    function abrirRutaGoogleMaps() {
+      const url = construirGoogleMapsRuta(rutaActualOptima);
+      if (!url) {
+        alert("No hay ruta disponible para abrir en Google Maps.");
+        return;
+      }
+      window.open(url, "_blank");
+    }
+
+    function abrirRutaWaze() {
+      const url = construirWazeRuta(rutaActualOptima);
+      if (!url) {
+        alert("No hay una próxima parada disponible para abrir en Waze.");
+        return;
+      }
+      window.open(url, "_blank");
+    }
+
+    function abrirParadaGoogle(index) {
+      const item = rutaActualOptima[index];
+      if (!item) return;
+      const url = construirLinksNavegacionPorDireccion(item.direccion || "", item.cliente || "").google;
+      if (url) window.open(url, "_blank");
+    }
+
+    function abrirParadaWaze(index) {
+      const item = rutaActualOptima[index];
+      if (!item) return;
+      let url = "";
+      if (item.latitud && item.longitud) {
+        url = `https://waze.com/ul?ll=${encodeURIComponent(`${item.latitud},${item.longitud}`)}&navigate=yes`;
+      } else {
+        url = construirLinksNavegacionPorDireccion(item.direccion || "", item.cliente || "").waze;
+      }
+      if (url) window.open(url, "_blank");
+    }
+
     function estadoCanonico(estado) {
       const e = normalizarTexto(estado);
       if (!e) return "Pendiente";
