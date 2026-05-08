@@ -430,6 +430,54 @@
       renderDetail(index);
     }
 
+    /* ── FIELD TYPE MAP ── */
+    // 0=ID 1=RUT* 2=NombreEmpresa* 3=NombreSucursal 4=Direccion 5=Region 6=Comuna
+    // 7=ReferenciaUbicacion 8=ProveedorInternet 9=ProveedorElectricidad 10=NroClienteElectricidad
+    // 11=HorarioApertura 12=HorarioCierre 13=DiasFuncionamiento 14=LatitudLongitud
+    // 15=EmailEnvioFacturas 16=NombreEmergencia
+    // * = readonly (not updated by API)
+    const SUCU_READONLY = new Set([0, 1, 2]);
+    const SUCU_FIELD_TYPES = {
+      5:  'select-region',
+      6:  'select-comuna',
+      8:  'select-internet',
+      9:  'select-electricidad',
+      11: 'time',
+      12: 'time',
+      13: 'dias',
+      15: 'email',
+    };
+    const DIAS_SEMANA = ["Lunes","Martes","Miercoles","Jueves","Viernes","Sabado","Domingo"];
+
+    function buildSucuField(index, j, header, val) {
+      const id = `field-${index}-${j}`;
+      const base = `id="${id}" data-original="${escHtml(val)}" data-col="${j}"`;
+      const ft = SUCU_FIELD_TYPES[j];
+
+      if (SUCU_READONLY.has(j)) {
+        return `<input type="text" ${base} value="${escHtml(val)}" readonly>`;
+      }
+      if (ft === 'select-region' || ft === 'select-comuna' || ft === 'select-internet' || ft === 'select-electricidad') {
+        const onChange = ft === 'select-region'
+          ? `onchange="markChangedEl(this);onSucuRegionChange(${index})"` : `onchange="markChangedEl(this)"`;
+        return `<select ${base} ${onChange}><option value="${escHtml(val)}">${escHtml(val)||'Cargando...'}</option></select>`;
+      }
+      if (ft === 'time') {
+        return `<input type="time" ${base} value="${escHtml(val)}" oninput="markChangedEl(this)">`;
+      }
+      if (ft === 'dias') {
+        const checked = val.split(',').map(d => d.trim());
+        const boxes = DIAS_SEMANA.map(d =>
+          `<label class="dia-label"><input type="checkbox" value="${d}" ${checked.includes(d)?'checked':''} onchange="markDiasChanged(${index})"> ${d}</label>`
+        ).join('');
+        return `<div id="${id}" class="dias-wrap" data-original="${escHtml(val)}">${boxes}</div>`;
+      }
+      if (ft === 'email') {
+        return `<input type="email" ${base} value="${escHtml(val)}" oninput="markChangedEl(this)">`;
+      }
+      return `<input type="text" ${base} value="${escHtml(val)}" oninput="markChangedEl(this)">`;
+    }
+
     /* ── RENDER DETAIL ── */
     function renderDetail(index) {
       const row = allRows[index];
@@ -443,19 +491,11 @@
 
       const fields = allHeaders.map((header, j) => {
         const val = row[j] !== null && row[j] !== undefined ? String(row[j]) : "";
-        const isReadonly = j === 0;
         return `
           <div class="form-field">
-            <label>${header}</label>
-            <input
-              id="field-${index}-${j}"
-              type="text"
-              value="${escHtml(val)}"
-              ${isReadonly ? "readonly" : ""}
-              data-original="${escHtml(val)}"
-            >
-          </div>
-        `;
+            <label>${escHtml(header)}</label>
+            ${buildSucuField(index, j, header, val)}
+          </div>`;
       }).join("");
 
       content.innerHTML = `
@@ -472,19 +512,87 @@
         <div class="form-grid">${fields}</div>
       `;
 
-      allHeaders.forEach((_, j) => {
-        if (j === 0) return;
-        const input = document.getElementById(`field-${index}-${j}`);
-        if (input) input.addEventListener("input", () => markChanged(input));
-      });
+      // async load selects
+      const regionVal = String(row[5]||''), comunaVal = String(row[6]||'');
+      loadSucuRegiones(`field-${index}-5`, regionVal, index, comunaVal);
+      loadSucuProveedores(`field-${index}-8`, '/api/venta/proveedores/internet', 'proveedores', String(row[8]||''));
+      loadSucuProveedores(`field-${index}-9`, '/api/venta/proveedores/electricidad', 'proveedores', String(row[9]||''));
     }
 
-    function markChanged(input) {
-      input.classList.toggle("changed", input.value !== input.dataset.original);
+    function markChangedEl(el) {
+      el.classList.toggle("changed", el.value !== el.dataset.original);
+    }
+
+    function markDiasChanged(index) {
+      const wrap = document.getElementById(`field-${index}-13`);
+      if (!wrap) return;
+      const current = Array.from(wrap.querySelectorAll('input:checked')).map(cb => cb.value).join(', ');
+      wrap.classList.toggle("changed", current !== wrap.dataset.original);
+    }
+
+    function getDiasValue(index) {
+      const wrap = document.getElementById(`field-${index}-13`);
+      if (!wrap) return '';
+      return Array.from(wrap.querySelectorAll('input:checked')).map(cb => cb.value).join(', ');
     }
 
     function escHtml(s) {
       return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+
+    /* ── CATALOG LOADERS ── */
+    async function loadSucuRegiones(selId, currentRegion, index, currentComuna) {
+      const sel = document.getElementById(selId);
+      if (!sel) return;
+      try {
+        const res = await fetch(withToken('/api/venta/catalogo/regiones'));
+        const data = await res.json();
+        const opts = (data.regiones || []).map(r =>
+          `<option value="${escHtml(r)}"${r===currentRegion?' selected':''}>${escHtml(r)}</option>`
+        ).join('');
+        sel.innerHTML = `<option value="">Seleccionar región</option>${opts}`;
+        if (currentRegion) sel.value = currentRegion;
+        sel.dataset.original = currentRegion;
+      } catch { sel.innerHTML = `<option value="${escHtml(currentRegion)}">${escHtml(currentRegion)||'Error'}</option>`; }
+      if (currentRegion) loadSucuComunas(`field-${index}-6`, currentRegion, currentComuna);
+    }
+
+    async function loadSucuComunas(selId, region, currentComuna) {
+      const sel = document.getElementById(selId);
+      if (!sel) return;
+      sel.innerHTML = '<option value="">Cargando...</option>';
+      if (!region) { sel.innerHTML = '<option value="">Selecciona región primero</option>'; return; }
+      try {
+        const res = await fetch(withToken(`/api/venta/catalogo/comunas?region=${encodeURIComponent(region)}`));
+        const data = await res.json();
+        const opts = (data.comunas || []).map(c =>
+          `<option value="${escHtml(c)}"${c===currentComuna?' selected':''}>${escHtml(c)}</option>`
+        ).join('');
+        sel.innerHTML = `<option value="">Seleccionar comuna</option>${opts}`;
+        if (currentComuna) sel.value = currentComuna;
+        sel.dataset.original = currentComuna;
+      } catch { sel.innerHTML = `<option value="${escHtml(currentComuna)}">${escHtml(currentComuna)||'Error'}</option>`; }
+    }
+
+    function onSucuRegionChange(index) {
+      const regionSel = document.getElementById(`field-${index}-5`);
+      if (!regionSel) return;
+      loadSucuComunas(`field-${index}-6`, regionSel.value, '');
+    }
+
+    async function loadSucuProveedores(selId, endpoint, key, currentVal) {
+      const sel = document.getElementById(selId);
+      if (!sel) return;
+      try {
+        const res = await fetch(withToken(endpoint));
+        const data = await res.json();
+        const opts = (data[key] || []).map(p =>
+          `<option value="${escHtml(p)}"${p===currentVal?' selected':''}>${escHtml(p)}</option>`
+        ).join('');
+        sel.innerHTML = `<option value="">Seleccionar</option>${opts}`;
+        if (currentVal) sel.value = currentVal;
+        sel.dataset.original = currentVal;
+      } catch { sel.innerHTML = `<option value="${escHtml(currentVal)}">${escHtml(currentVal)||'Error'}</option>`; }
     }
 
     /* ── SAVE ── */
@@ -493,10 +601,14 @@
       const rowId = Number(row[0]);
       const values = [String(rowId)];
 
-      allHeaders.forEach((_, j) => {
+      allHeaders.forEach((header, j) => {
         if (j === 0) return;
-        const input = document.getElementById(`field-${index}-${j}`);
-        values.push(input ? input.value : String(row[j] || ""));
+        if (SUCU_FIELD_TYPES[j] === 'dias') {
+          values.push(getDiasValue(index));
+        } else {
+          const el = document.getElementById(`field-${index}-${j}`);
+          values.push(el ? el.value : String(row[j] || ""));
+        }
       });
 
       const btn = document.getElementById("btnSave");
@@ -518,17 +630,17 @@
         /* update local data */
         allHeaders.forEach((_, j) => {
           if (j === 0) return;
-          const input = document.getElementById(`field-${index}-${j}`);
-          if (input) {
-            allRows[index][j] = input.value;
-            input.dataset.original = input.value;
-            input.classList.remove("changed");
+          if (SUCU_FIELD_TYPES[j] === 'dias') {
+            const wrap = document.getElementById(`field-${index}-13`);
+            if (wrap) { allRows[index][j] = getDiasValue(index); wrap.dataset.original = wrap.dataset.original; }
+          } else {
+            const el = document.getElementById(`field-${index}-${j}`);
+            if (el) { allRows[index][j] = el.value; el.dataset.original = el.value; el.classList.remove("changed"); }
           }
         });
 
         showToast("Cambios guardados correctamente", "ok");
 
-        /* refresh sidebar label */
         const updatedItem = document.querySelector(`.sidebar-item[data-index="${index}"]`);
         if (updatedItem) {
           updatedItem.querySelector(".item-name").textContent = String(allRows[index][3] || "—");
