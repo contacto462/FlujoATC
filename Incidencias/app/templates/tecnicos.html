@@ -1185,19 +1185,62 @@
     }
 
     function configurarFotosCierre(esMantencion) {
-      const contenedor = document.getElementById("contenedorFotos");
+      selectedFiles = [];
+      renderFotoThumbs();
+      const label = document.getElementById("fotoUploadLabel");
       const help = document.getElementById("fotosCierreHelp");
-      const btnAgregar = document.getElementById("btnAgregarFoto");
-      if (!contenedor) return;
       if (esMantencion) {
-        contenedor.innerHTML = '<input type="file" class="fotoAdjuntar" accept="image/*" multiple required />';
-        if (help) help.textContent = `Mantencion preventiva: adjunta entre 1 y ${MANTENCION_MAX_IMAGENES_CIERRE} imagenes. Maximo 10 MB por imagen.`;
-        if (btnAgregar) btnAgregar.style.display = "none";
+        if (label) label.textContent = `Seleccionar fotos (máx. ${MANTENCION_MAX_IMAGENES_CIERRE})`;
+        if (help) help.textContent = `Mantención preventiva: adjunta entre 1 y ${MANTENCION_MAX_IMAGENES_CIERRE} imágenes. Máximo 10 MB por imagen.`;
       } else {
-        contenedor.innerHTML = '<input type="file" class="fotoAdjuntar" accept="image/*" required />';
-        if (help) help.textContent = "Debes adjuntar al menos una foto y maximo dos.";
-        if (btnAgregar) btnAgregar.style.display = "";
+        if (label) label.textContent = "Seleccionar fotos (máx. 2)";
+        if (help) help.textContent = "Debes adjuntar al menos una foto y máximo dos.";
       }
+    }
+
+    function renderFotoThumbs() {
+      const grid = document.getElementById("fotoThumbGrid");
+      if (!grid) return;
+      grid.innerHTML = "";
+      selectedFiles.forEach((file, idx) => {
+        const url = URL.createObjectURL(file);
+        const wrap = document.createElement("div");
+        wrap.className = "foto-thumb";
+        const img = document.createElement("img");
+        img.src = url;
+        img.alt = `foto ${idx + 1}`;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "foto-thumb-del";
+        btn.textContent = "×";
+        btn.addEventListener("click", () => eliminarFoto(idx));
+        wrap.appendChild(img);
+        wrap.appendChild(btn);
+        grid.appendChild(wrap);
+      });
+    }
+
+    function eliminarFoto(idx) {
+      selectedFiles.splice(idx, 1);
+      renderFotoThumbs();
+    }
+
+    function onFotoInputChange(input) {
+      const maxFotos = cierreActualEsMantencion ? MANTENCION_MAX_IMAGENES_CIERRE : 2;
+      const nuevos = Array.from(input.files || []);
+      const disponibles = maxFotos - selectedFiles.length;
+      if (disponibles <= 0) {
+        alert(`Ya alcanzaste el máximo de ${maxFotos} foto${maxFotos !== 1 ? "s" : ""}.`);
+        input.value = "";
+        return;
+      }
+      const agregadas = nuevos.slice(0, disponibles);
+      if (nuevos.length > disponibles) {
+        alert(`Solo se pueden agregar ${disponibles} foto${disponibles !== 1 ? "s" : ""} más. Se tomaron las primeras ${disponibles}.`);
+      }
+      selectedFiles = selectedFiles.concat(agregadas);
+      input.value = "";
+      renderFotoThumbs();
     }
 
     function esElementoDeEdicion(elemento) {
@@ -1344,6 +1387,8 @@
       document.getElementById("materialesSinUso")?.addEventListener("change", (event) => {
         setMaterialesSinUsoActivo(event.target.checked);
       });
+      const fotoInput = document.getElementById("fotoInputCierre");
+      if (fotoInput) fotoInput.addEventListener("change", () => onFotoInputChange(fotoInput));
     }
 
     function resetFormularioCierre() {
