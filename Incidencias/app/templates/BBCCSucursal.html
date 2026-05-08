@@ -3,125 +3,278 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tabla de Sucursales</title>
+  <title>BBDD Sucursales — ATC</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    body {
-      font-family: "Segoe UI", sans-serif;
-      background-color: #f4f6f9;
-      color: #2c3e50;
-      margin: 0;
-      padding: 30px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy-1: #0b1420;
+      --navy-2: #162538;
+      --navy-3: #1e3248;
+      --orange: #ff7a2b;
+      --orange-2: #ff9448;
+      --bg: #f0f4f8;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
     }
-    .contenedor {
-      background-color: white;
-      padding: 30px;
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      color: var(--text);
+    }
+
+    /* ── HEADER ── */
+    .page-header {
+      background: linear-gradient(135deg, var(--navy-1) 0%, var(--navy-2) 60%, var(--navy-3) 100%);
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      box-shadow: 0 2px 16px rgba(0,0,0,.22);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-brand img {
+      height: 40px;
+      width: auto;
+      object-fit: contain;
+    }
+
+    .header-brand-text strong {
+      display: block;
+      font-size: 15px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -.02em;
+    }
+
+    .header-brand-text span {
+      font-size: 12px;
+      color: rgba(255,255,255,.55);
+    }
+
+    .btn-back {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
       border-radius: 10px;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-      width: 100%;
-      max-width: 100%;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.14);
+      color: rgba(255,255,255,.82);
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: background .18s;
+      white-space: nowrap;
+    }
+
+    .btn-back:hover { background: rgba(255,255,255,.14); }
+
+    /* ── CONTENT ── */
+    .page-content {
+      padding: 28px 28px 56px;
+    }
+
+    .section-bar {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+
+    .section-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+    }
+
+    .section-hint {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    /* ── TABLE CARD ── */
+    .table-card {
+      background: var(--surface);
+      border-radius: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06), 0 8px 28px rgba(0,0,0,.08);
+      overflow: hidden;
+    }
+
+    .table-scroll {
       overflow-x: auto;
-      max-height: 80vh;
+      max-height: calc(100vh - 220px);
       overflow-y: auto;
     }
-    h1 {
-      font-size: 26px;
-      font-weight: 600;
-      color: #2c3e50;
-      margin-bottom: 10px;
-      text-align: center;
-    }
-    p.aviso-edicion {
-      font-size: 14px;
-      color: #7f8c8d;
-      text-align: center;
-      margin-bottom: 20px;
-    }
+
+    /* ── TABLE ── */
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 13.5px;
-      background-color: white;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+      font-size: 13px;
     }
+
+    /* Main header row */
     thead tr:first-child th {
-      background-color: #2c3e50;
-      color: #ecf0f1;
-      padding: 12px 10px;
+      background: linear-gradient(135deg, var(--navy-1) 0%, var(--navy-2) 100%);
+      color: #fff;
+      padding: 13px 12px;
       font-weight: 600;
-      text-align: center;
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      white-space: nowrap;
       position: sticky;
       top: 0;
-      z-index: 2;
+      z-index: 5;
+      border-right: 1px solid rgba(255,255,255,.06);
+      text-align: center;
     }
+
+    thead tr:first-child th:last-child { border-right: none; }
+
+    /* Filter row */
     thead tr:nth-child(2) th {
-      background-color: #34495e;
+      background: var(--navy-2);
+      padding: 6px 8px;
       position: sticky;
-      top: 42px;
-      z-index: 1;
+      top: 43px;
+      z-index: 4;
+      border-bottom: 2px solid rgba(255,255,255,.08);
     }
-    th, td {
-      border: 1px solid #e6e8eb;
-      padding: 10px;
-      text-align: center;
-      vertical-align: middle;
-      word-wrap: break-word;
-    }
-    tr:nth-child(even) { background-color: #fafbfc; }
-    tr:hover { background-color: #eef2f5; }
+
     input.filtro {
-      width: 92%;
-      padding: 6px;
-      font-size: 13px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      background-color: #fefefe;
+      width: 100%;
+      padding: 5px 8px;
+      font-size: 12px;
+      font-family: inherit;
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 6px;
+      background: rgba(255,255,255,.1);
+      color: #fff;
       text-align: center;
     }
-    input.filtro:focus {
-      border-color: #3498db;
-      background-color: #ffffff;
-      box-shadow: 0 0 6px rgba(52, 152, 219, 0.3);
-      outline: none;
+
+    input.filtro::placeholder { color: rgba(255,255,255,.4); }
+    input.filtro:focus { outline: none; border-color: var(--orange); background: rgba(255,255,255,.16); }
+
+    tbody tr:nth-child(even) td { background: #f8fafc; }
+    tbody tr:hover td { background: #eff6ff !important; }
+
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      border-right: 1px solid #f1f5f9;
+      color: var(--text);
+      vertical-align: middle;
+      text-align: center;
+      word-break: break-word;
     }
-    td.editing { background-color: #fff9e6; }
-    td.edited { background-color: #fff3cd !important; }
-    td.guardado { background-color: #d4edda !important; transition: background-color 1s ease-in-out; }
+
+    td:last-child { border-right: none; }
+
+    /* ── CELL STATES ── */
+    td.editing { background: #fef9c3 !important; cursor: text; }
+    td.edited   { background: #fef3c7 !important; outline: 1px solid #f59e0b; }
+    td.guardado { background: #dcfce7 !important; transition: background .7s ease; }
+
+    /* ── SAVE BUTTON ── */
     .guardar-btn {
-      padding: 6px 12px;
-      background-color: #3498db;
-      color: white;
+      padding: 5px 13px;
+      background: var(--orange);
+      color: #fff;
       border: none;
-      border-radius: 4px;
+      border-radius: 8px;
       cursor: pointer;
-      font-size: 13px;
-      float: right;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: inherit;
       display: none;
-      transition: background-color 0.3s;
+      transition: background .18s, transform .12s;
+      white-space: nowrap;
     }
-    .guardar-btn:hover { background-color: #2980b9; }
+
+    .guardar-btn:hover { background: var(--orange-2); transform: translateY(-1px); }
+    .guardar-btn:disabled { background: var(--muted); cursor: not-allowed; transform: none; }
     .visible { display: inline-block !important; }
-    .mensaje-error { color: #e74c3c; margin-top: 15px; font-weight: 500; }
+
+    /* ── ERROR / STATE ── */
+    .mensaje-error {
+      padding: 12px 20px;
+      color: #dc2626;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .estado-carga {
+      padding: 56px 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    @media (max-width: 768px) {
+      .page-header { padding: 12px 16px; }
+      .page-content { padding: 16px 14px 40px; }
+    }
   </style>
 </head>
 <body>
-  <div class="contenedor">
-    <h1>BBDD Sucursales</h1>
-    <p class="aviso-edicion">Haz doble clic sobre las celdas editables para modificarlas.</p>
 
-    <table id="tablaSucursales">
-      <thead>
-        <tr id="theadPrincipal"></tr>
-        <tr id="theadFiltros"></tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-    <div id="mensajeError" class="mensaje-error"></div>
-  </div>
+  <header class="page-header">
+    <div class="header-brand">
+      <img src="/shared-static/img/logo-atc.png" alt="ATC - Alguien Te Cuida">
+      <div class="header-brand-text">
+        <strong>Alguien Te Cuida</strong>
+        <span>Base de Datos — Sucursales</span>
+      </div>
+    </div>
+    <a id="btnVolver" href="#" class="btn-back">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Volver al panel
+    </a>
+  </header>
+
+  <main class="page-content">
+    <div class="section-bar">
+      <div>
+        <h1 class="section-title">BBDD Sucursales</h1>
+        <p class="section-hint">Haz doble clic sobre las celdas editables para modificarlas. Usa los filtros para encontrar registros rápidamente.</p>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-scroll">
+        <table id="tablaSucursales">
+          <thead>
+            <tr id="theadPrincipal"></tr>
+            <tr id="theadFiltros"></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div id="mensajeError" class="mensaje-error"></div>
+    </div>
+  </main>
 
   <script>
     const qsToken = new URLSearchParams(window.location.search).get("token") || "";
@@ -129,6 +282,7 @@
       const sep = url.includes("?") ? "&" : "?";
       return qsToken ? `${url}${sep}token=${encodeURIComponent(qsToken)}` : url;
     };
+    document.getElementById("btnVolver").href = withToken("/venta/panel-selector");
 
     const filterColumns = [
       { key: "id", label: "ID", index: 0 },
@@ -161,6 +315,7 @@
           input.type = "text";
           input.className = "filtro";
           input.dataset.key = filterDef.key;
+          input.placeholder = "Filtrar...";
           input.addEventListener("keyup", filtrarTabla);
           th.appendChild(input);
         }
@@ -219,6 +374,7 @@
         const td = document.createElement("td");
         td.textContent = "No se encontraron datos.";
         td.colSpan = headers.length + 1;
+        td.style.cssText = "text-align:center;padding:40px;color:#64748b;";
         tr.appendChild(td);
         tbody.appendChild(tr);
       }
@@ -231,6 +387,7 @@
       const input = document.createElement("input");
       input.type = "text";
       input.value = valorOriginal;
+      input.style.cssText = 'width:100%;padding:4px 6px;border:1.5px solid #ff7a2b;border-radius:5px;font-size:13px;font-family:inherit;background:#fff;outline:none;text-align:inherit;';
       td.classList.add("editing");
       td.innerHTML = "";
       td.appendChild(input);
@@ -307,7 +464,7 @@
           setTimeout(() => td.classList.remove("guardado"), 2000);
         });
 
-        boton.textContent = "Guardado OK";
+        boton.textContent = "Guardado ✓";
         setTimeout(() => {
           boton.classList.remove("visible");
           boton.disabled = false;
