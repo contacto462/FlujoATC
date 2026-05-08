@@ -898,77 +898,44 @@
       };
     }
 
-    function construirGoogleMapsRuta(paradas) {
-      const stops = Array.isArray(paradas) ? paradas.filter((p) => p?.direccion) : [];
-      if (!stops.length) return "";
-      const origin = RUTA_ORIGEN_BASE;
-      const destination = stops[stops.length - 1].direccion;
-      const waypoints = stops.slice(0, -1).map((p) => p.direccion).filter(Boolean).join("|");
-      let url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=driving`;
-      if (waypoints) {
-        url += `&waypoints=${encodeURIComponent(waypoints)}`;
-      }
-      return url;
-    }
-
-    function construirWazeRuta(paradas) {
-      const primera = Array.isArray(paradas) ? paradas[0] : null;
-      if (!primera) return "";
-      if (primera.latitud && primera.longitud) {
-        return `https://waze.com/ul?ll=${encodeURIComponent(`${primera.latitud},${primera.longitud}`)}&navigate=yes`;
-      }
-      const query = [primera.direccion || "", primera.cliente || "", "Chile"].filter(Boolean).join(", ");
-      return query ? `https://waze.com/ul?q=${encodeURIComponent(query)}&navigate=yes` : "";
-    }
-
-    function calcularRutaOptima(registros) {
-      const elegibles = (Array.isArray(registros) ? registros : []).filter((r) => {
-        const direccion = String(r?.direccion || "").trim();
-        const estado = estadoCanonico(r?.estado || "");
-        return direccion && estado === "En Proceso";
-      });
-      return {
-        orden: elegibles,
-      };
-    }
-
     function renderRutaOptima(resultado) {
       const btnGoogle = document.getElementById("btnRutaGoogle");
       const btnWaze = document.getElementById("btnRutaWaze");
 
-      rutaActualOptima = Array.isArray(resultado?.orden) ? resultado.orden : [];
+      rutaActualOptima = Array.isArray(resultado?.paradas) ? resultado.paradas : [];
+      rutaGoogleActual = String(resultado?.google_maps_url || "").trim();
+      rutaWazeActual = String(resultado?.waze_url || "").trim();
 
-      if (!rutaActualOptima.length) {
+      if (!rutaActualOptima.length || !rutaGoogleActual) {
         btnGoogle.disabled = true;
-        btnWaze.disabled = true;
+        btnWaze.disabled = !rutaWazeActual;
         return;
       }
 
       btnGoogle.disabled = false;
-      btnWaze.disabled = false;
+      btnWaze.disabled = !rutaWazeActual;
     }
 
-    function recalcularRutaVisible() {
-      const resultado = calcularRutaOptima(registrosTecnicoFull);
+    async function recalcularRutaVisible() {
+      const tecnicoQ = tecnicoActual ? `?tecnico=${encodeURIComponent(tecnicoActual)}` : "";
+      const resultado = await api(`/api/tecnicos/ruta-optima${tecnicoQ}`);
       renderRutaOptima(resultado);
     }
 
     function abrirRutaGoogleMaps() {
-      const url = construirGoogleMapsRuta(rutaActualOptima);
-      if (!url) {
+      if (!rutaGoogleActual) {
         alert("No hay ruta disponible para abrir en Google Maps.");
         return;
       }
-      window.open(url, "_blank");
+      window.open(rutaGoogleActual, "_blank");
     }
 
     function abrirRutaWaze() {
-      const url = construirWazeRuta(rutaActualOptima);
-      if (!url) {
+      if (!rutaWazeActual) {
         alert("No hay una ruta disponible para abrir en Waze.");
         return;
       }
-      window.open(url, "_blank");
+      window.open(rutaWazeActual, "_blank");
     }
 
     function estadoCanonico(estado) {
