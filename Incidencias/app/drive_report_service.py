@@ -697,6 +697,7 @@ def upload_support_images_for_odt(
     return {
         "folder_id": folder_id,
         "folder_name": folder_name,
+        "folder_url": f"https://drive.google.com/drive/folders/{folder_id}",
         "uploaded_images_count": len(uploaded_images),
         "imagenes": [img.get("public_uri", "") for img in uploaded_images if img.get("public_uri")],
     }

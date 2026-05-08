@@ -272,6 +272,10 @@ def _is_lock_timeout_error(exc: Exception) -> bool:
 
 
 class IncidenciasService:
+    MANTENCION_CIERRE_MAX_IMAGENES = 80
+    MANTENCION_CIERRE_MAX_BYTES = 10 * 1024 * 1024
+    MANTENCION_CIERRE_UPLOADS_DIR = Path(__file__).resolve().parents[1] / "uploads" / "cierres_mantencion"
+
     CAUSAS_CIERRE: dict[str, set[str]] = {
         "ATC": {
             "instalacion_deficiente",
