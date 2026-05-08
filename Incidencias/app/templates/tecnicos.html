@@ -848,6 +848,8 @@
     const RUTA_ORIGEN_BASE = "1 Oriente 1180, Viña del Mar, Chile";
     let registrosTecnicoFull = [];
     let rutaActualOptima = [];
+    let rutaGoogleActual = "";
+    let rutaWazeActual = "";
     const tecnicoFiltrado = (typeof tecnicoActual !== "undefined" ? String(tecnicoActual || "") : "").trim().toLowerCase();
 
     function escapeHTML(str) {
