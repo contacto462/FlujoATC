@@ -2956,7 +2956,7 @@ class IncidenciasService:
             requiere_seguimiento=requiere_seguimiento,
         )
 
-        root_folder_id = str(settings.google_drive_support_folder_id or settings.google_drive_root_folder_id or "").strip()
+        root_folder_id = str(settings.google_drive_root_folder_id or "").strip()
         drive_enabled = bool(settings.google_drive_enabled and root_folder_id)
         if drive_enabled:
             worker = threading.Thread(
