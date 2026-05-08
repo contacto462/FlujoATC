@@ -731,6 +731,78 @@ def finalizar_incidencia_completo(
     return {"result": result}
 
 
+@app.post("/api/incidencias/cierre-mantencion")
+async def cerrar_mantencion_con_imagenes(
+    odt: str = Form(...),
+    token: str = Form(""),
+    diagnostico: str = Form(...),
+    files: list[UploadFile] = File(default=[]),
+    service: IncidenciasService = Depends(get_service),
+):
+    odt_limpia = str(odt or "").strip()
+    try:
+        data = json.loads(diagnostico or "{}")
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=400, detail="Diagnostico de cierre invalido.") from exc
+
+    uploads = [upload for upload in (files or []) if upload and upload.filename]
+    if not uploads:
+        raise HTTPException(status_code=400, detail="Debes adjuntar al menos una imagen para cerrar una mantencion.")
+    if len(uploads) > service.MANTENCION_CIERRE_MAX_IMAGENES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Solo puedes adjuntar hasta {service.MANTENCION_CIERRE_MAX_IMAGENES} imagenes.",
+        )
+
+    try:
+        service.validar_odt_mantencion_preventiva(odt_limpia)
+        staging_dir = service.crear_staging_cierre_mantencion(odt_limpia)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    staged_files = []
+    for idx, upload in enumerate(uploads, start=1):
+        mime_type = str(upload.content_type or "").lower()
+        if not mime_type.startswith("image/"):
+            raise HTTPException(status_code=400, detail=f"{upload.filename or 'archivo'} no es una imagen valida.")
+
+        target = staging_dir / service.nombre_staging_cierre_mantencion(idx, upload.filename or "", mime_type)
+        total = 0
+        with target.open("wb") as fh:
+            while True:
+                chunk = await upload.read(1024 * 1024)
+                if not chunk:
+                    break
+                total += len(chunk)
+                if total > service.MANTENCION_CIERRE_MAX_BYTES:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"{upload.filename or 'archivo'} supera el limite de 10 MB.",
+                    )
+                fh.write(chunk)
+        if total <= 0:
+            raise HTTPException(status_code=400, detail=f"{upload.filename or 'archivo'} esta vacio.")
+        staged_files.append(target)
+
+    try:
+        return service.cerrar_mantencion_con_imagenes_staging(
+            odt=odt_limpia,
+            staged_files=staged_files,
+            observacion=str(data.get("observacion") or ""),
+            responsable_cierre=str(data.get("responsableCierre") or ""),
+            causa_cierre=str(data.get("causaCierre") or ""),
+            accion_cierre=str(data.get("accionCierre") or ""),
+            resultado_cierre=str(data.get("resultadoCierre") or ""),
+            pruebas_cierre=data.get("pruebasCierre") or [],
+            materiales=data.get("materiales") or [],
+            materiales_sin_uso=bool(data.get("materialesSinUso")),
+            requiere_seguimiento=bool(data.get("requiereSeguimiento")),
+            token=token,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @app.post("/api/incidencias/en-proceso")
 def guardar_incidencia_en_proceso(
     payload: EnProcesoRequest,

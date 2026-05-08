@@ -2835,6 +2835,151 @@ class IncidenciasService:
         resumen = self._resumen_diagnostico_cierre(diagnostico)
         return f"{observacion_txt}\n\nDiagnostico estructurado: {resumen}".strip()
 
+    def validar_odt_mantencion_preventiva(self, odt: str) -> Registro:
+        odt_limpia = str(odt or "").strip()
+        if not odt_limpia:
+            raise ValueError("ODT invalida.")
+        row = self.db.scalar(select(Registro).where(Registro.odt == odt_limpia))
+        if not row:
+            raise ValueError(f"No se encontro la ODT {odt_limpia}.")
+        if not self._es_registro_mantencion_preventiva(row):
+            raise ValueError("La carga masiva de imagenes aplica solo a Mantencion Preventiva.")
+        return row
+
+    def crear_staging_cierre_mantencion(self, odt: str) -> Path:
+        odt_limpia = re.sub(r"[^A-Za-z0-9_-]+", "_", str(odt or "").strip()) or "sin_odt"
+        batch_id = datetime.utcnow().strftime("%Y%m%d_%H%M%S_") + uuid.uuid4().hex[:8]
+        target = self.MANTENCION_CIERRE_UPLOADS_DIR / odt_limpia / batch_id
+        target.mkdir(parents=True, exist_ok=True)
+        return target
+
+    @staticmethod
+    def nombre_staging_cierre_mantencion(index: int, filename: str, mime_type: str = "") -> str:
+        raw_name = str(filename or "").strip()
+        _, guessed_ext = mimetypes.guess_type(raw_name)
+        ext = Path(raw_name).suffix.lower()
+        if not ext:
+            if "png" in str(mime_type or "").lower():
+                ext = ".png"
+            elif "webp" in str(mime_type or "").lower():
+                ext = ".webp"
+            else:
+                ext = ".jpg"
+        ext = re.sub(r"[^.a-z0-9]+", "", ext)[:12] or ".jpg"
+        return f"Imagen {max(1, int(index))}{ext}"
+
+    def _guardar_drive_cierre_folder(self, odt: str, folder_id: str = "", folder_url: str = "") -> None:
+        odt_limpia = str(odt or "").strip()
+        if not odt_limpia:
+            return
+        row = self.db.scalar(select(Registro).where(Registro.odt == odt_limpia))
+        if not row:
+            return
+        if folder_id:
+            row.drive_cierre_folder_id = str(folder_id or "").strip()
+        if folder_url:
+            row.drive_cierre_folder_url = str(folder_url or "").strip()
+        self.db.commit()
+
+    @staticmethod
+    def _subir_imagenes_cierre_mantencion_worker(
+        odt: str,
+        staged_files: list[str],
+        root_folder_id: str,
+    ) -> None:
+        db = SessionLocal()
+        try:
+            service = IncidenciasService(db)
+            start_index = 1
+            last_result: dict[str, Any] = {}
+            for file_path in staged_files:
+                path = Path(file_path)
+                if not path.exists() or not path.is_file():
+                    continue
+                mime_type = mimetypes.guess_type(path.name)[0] or "image/jpeg"
+                payload = {
+                    "filename": path.name,
+                    "mime_type": mime_type,
+                    "bytes": path.read_bytes(),
+                }
+                last_result = upload_support_images_for_odt(
+                    odt=odt,
+                    image_payloads=[payload],
+                    root_folder_id=root_folder_id,
+                    start_index=start_index,
+                )
+                start_index += 1
+
+            folder_id = str(last_result.get("folder_id") or "").strip()
+            folder_url = str(last_result.get("folder_url") or "").strip()
+            if folder_id or folder_url:
+                service._guardar_drive_cierre_folder(odt, folder_id, folder_url)
+        except Exception:
+            LOGGER.exception("Fallo la subida masiva de imagenes de cierre de mantencion para ODT %s.", odt)
+        finally:
+            db.close()
+
+    def cerrar_mantencion_con_imagenes_staging(
+        self,
+        odt: str,
+        staged_files: list[Path],
+        observacion: str,
+        *,
+        responsable_cierre: str,
+        causa_cierre: str,
+        accion_cierre: str,
+        resultado_cierre: str,
+        pruebas_cierre: list[Any] | None = None,
+        materiales: list[Any] | None = None,
+        materiales_sin_uso: bool = False,
+        requiere_seguimiento: bool = False,
+        token: str = "",
+    ) -> dict[str, Any]:
+        odt_limpia = str(odt or "").strip()
+        row = self.validar_odt_mantencion_preventiva(odt_limpia)
+        staged_clean = [Path(p) for p in staged_files or [] if Path(p).exists() and Path(p).is_file()]
+        if not staged_clean:
+            raise ValueError("Debes adjuntar al menos una imagen para cerrar una mantencion.")
+        if len(staged_clean) > self.MANTENCION_CIERRE_MAX_IMAGENES:
+            raise ValueError(f"Solo puedes adjuntar hasta {self.MANTENCION_CIERRE_MAX_IMAGENES} imagenes.")
+
+        result = self.registrar_finalizacion_rapida(
+            odt_limpia,
+            observacion,
+            responsable_cierre=responsable_cierre,
+            causa_cierre=causa_cierre,
+            accion_cierre=accion_cierre,
+            resultado_cierre=resultado_cierre,
+            pruebas_cierre=pruebas_cierre,
+            materiales=materiales,
+            materiales_sin_uso=materiales_sin_uso,
+            requiere_seguimiento=requiere_seguimiento,
+        )
+
+        root_folder_id = str(settings.google_drive_support_folder_id or settings.google_drive_root_folder_id or "").strip()
+        drive_enabled = bool(settings.google_drive_enabled and root_folder_id)
+        if drive_enabled:
+            worker = threading.Thread(
+                target=self._subir_imagenes_cierre_mantencion_worker,
+                args=(odt_limpia, [str(p) for p in staged_clean], root_folder_id),
+                daemon=True,
+                name=f"mantencion-cierre-img-{odt_limpia}",
+            )
+            worker.start()
+
+        return {
+            "result": result,
+            "odt": odt_limpia,
+            "imagenes_recibidas": len(staged_clean),
+            "drive_enabled": drive_enabled,
+            "drive_queued": drive_enabled,
+            "message": (
+                "ODT cerrada. Las imagenes se estan subiendo a Drive en segundo plano."
+                if drive_enabled
+                else "ODT cerrada. Imagenes guardadas en staging local; Drive no esta habilitado."
+            ),
+        }
+
     def cerrar_incidencia(self, odt: str, fecha_cierre: datetime) -> bool:
         odt_limpia = (odt or "").strip()
         row = self.db.scalar(select(Registro).where(Registro.odt == odt_limpia))
