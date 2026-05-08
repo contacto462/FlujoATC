@@ -249,13 +249,17 @@
     }
     .field select { cursor: pointer; }
 
-    /* ── TEXTAREA single-line look ── */
-    .field textarea.short {
-      min-height: unset !important;
-      height: 40px;
-      resize: none;
-      line-height: 1.4;
-      overflow: hidden;
+    /* ── single-line input style shared with textarea ── */
+    .field input.short {
+      width: 100%; padding: 9px 12px;
+      font-size: 13.5px; font-family: inherit;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      background: #fff; color: var(--text);
+      transition: border-color .18s, box-shadow .18s;
+    }
+    .field input.short:focus {
+      outline: none; border-color: var(--orange);
+      box-shadow: 0 0 0 3px rgba(255,122,43,.1);
     }
 
     /* ── TOGGLE BUTTON ── */
