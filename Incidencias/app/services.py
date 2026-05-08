@@ -2897,7 +2897,7 @@ class IncidenciasService:
         row_imgs = self.db.scalar(select(IncidenciaImagenTabla).where(IncidenciaImagenTabla.odt == odt))
         payload = json.dumps(imagenes[:3], ensure_ascii=False)
         if row_imgs:
-            row_imgs.sucursal = row_imgs.sucursal or sucursal or None
+            row_imgs.sucursal = sucursal or row_imgs.sucursal or None
             row_imgs.imagenes = payload
             row_imgs.created_by = usuario
             row_imgs.updated_at = datetime.utcnow()
@@ -2910,6 +2910,27 @@ class IncidenciasService:
                     created_by=usuario,
                 )
             )
+
+    def _reset_unified_images_if_odt_reused(self, odt: str, sucursal: str) -> bool:
+        odt_limpia = str(odt or "").strip()
+        sucursal_limpia = str(sucursal or "").strip()
+        if not odt_limpia:
+            return False
+
+        row_imgs = self.db.scalar(select(IncidenciaImagenTabla).where(IncidenciaImagenTabla.odt == odt_limpia))
+        if not row_imgs:
+            return False
+
+        sucursal_actual = str(row_imgs.sucursal or "").strip()
+        if self._normalizar_sucursal_key(sucursal_actual) == self._normalizar_sucursal_key(sucursal_limpia):
+            return False
+
+        row_imgs.sucursal = sucursal_limpia or None
+        row_imgs.imagenes = "[]"
+        row_imgs.created_by = "reset_odt_reutilizada"
+        row_imgs.updated_at = datetime.utcnow()
+        self.db.commit()
+        return True
 
     def obtener_imagenes_tabla(self, odt: str) -> list[str]:
         odt_limpia = (odt or "").strip()
@@ -3415,6 +3436,7 @@ class IncidenciasService:
         )
         self.db.add(reg)
         self.db.commit()
+        self._reset_unified_images_if_odt_reused(odt, sucursal)
         return "OK"
 
     @staticmethod
