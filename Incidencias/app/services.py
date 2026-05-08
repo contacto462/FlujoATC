@@ -2777,7 +2777,10 @@ class IncidenciasService:
             raise ValueError("Hay una prueba realizada no valida.")
 
         materiales_norm = self._normalizar_materiales_cierre(materiales, materiales_sin_uso)
-        requiere_seg = bool(requiere_seguimiento or resultado == "requiere_seguimiento")
+        requiere_seg = bool(
+            requiere_seguimiento
+            or resultado in {"requiere_seguimiento", "requiere_cotizacion_visita_adicional"}
+        )
 
         return {
             "responsable_cierre": responsable,
