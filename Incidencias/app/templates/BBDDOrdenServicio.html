@@ -283,21 +283,21 @@
     .checkbox-grid {
       display: none;
       grid-template-columns: repeat(3, 1fr);
-      gap: 8px 12px; margin-top: 10px; padding: 14px 16px;
-      background: #fafbfc; border-radius: 12px;
+      gap: 2px 8px; margin-top: 8px; padding: 8px 10px;
+      background: #fafbfc; border-radius: 10px;
       border: 1.5px solid var(--border);
     }
     .checkbox-grid label {
-      font-size: 13px; font-weight: 500; color: var(--text);
+      font-size: 12.5px; font-weight: 500; color: var(--text);
       text-transform: none; letter-spacing: 0;
-      display: flex; align-items: center; gap: 9px; cursor: pointer;
-      padding: 6px 8px; border-radius: 8px; transition: background .14s;
+      display: flex; align-items: center; gap: 7px; cursor: pointer;
+      padding: 4px 6px; border-radius: 6px; transition: background .14s;
     }
     .checkbox-grid label:hover { background: #f1f5f9; }
     .checkbox-grid input[type="checkbox"] {
       appearance: none; -webkit-appearance: none;
-      width: 17px; height: 17px; flex-shrink: 0;
-      border: 2px solid #cbd5e1; border-radius: 5px;
+      width: 15px; height: 15px; flex-shrink: 0;
+      border: 2px solid #cbd5e1; border-radius: 4px;
       background: #fff; cursor: pointer;
       transition: border-color .15s, background .15s;
       position: relative;
@@ -308,7 +308,7 @@
     .checkbox-grid input[type="checkbox"]:checked::after {
       content: '';
       position: absolute; left: 50%; top: 45%;
-      width: 5px; height: 9px;
+      width: 4px; height: 8px;
       border: 2px solid #fff; border-top: none; border-left: none;
       transform: translate(-50%, -50%) rotate(45deg);
     }
