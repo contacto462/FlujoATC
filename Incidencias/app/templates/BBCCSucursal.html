@@ -19,222 +19,276 @@
       --border: #e2e8f0;
       --text: #0f172a;
       --muted: #64748b;
+      --label: #374151;
     }
+
+    html, body { height: 100%; }
 
     body {
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
       background: var(--bg);
-      min-height: 100vh;
       color: var(--text);
+      display: flex;
+      flex-direction: column;
     }
 
     /* ── HEADER ── */
     .page-header {
+      flex-shrink: 0;
       background: linear-gradient(135deg, var(--navy-1) 0%, var(--navy-2) 60%, var(--navy-3) 100%);
-      padding: 14px 28px;
+      padding: 13px 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 16px;
       box-shadow: 0 2px 16px rgba(0,0,0,.22);
-      position: sticky;
-      top: 0;
-      z-index: 100;
+      z-index: 50;
     }
 
-    .header-brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .header-brand img {
-      height: 40px;
-      width: auto;
-      object-fit: contain;
-    }
-
-    .header-brand-text strong {
-      display: block;
-      font-size: 15px;
-      font-weight: 800;
-      color: #fff;
-      letter-spacing: -.02em;
-    }
-
-    .header-brand-text span {
-      font-size: 12px;
-      color: rgba(255,255,255,.55);
-    }
+    .header-brand { display: flex; align-items: center; gap: 12px; }
+    .header-brand img { height: 38px; width: auto; object-fit: contain; }
+    .header-brand-text strong { display: block; font-size: 14px; font-weight: 800; color: #fff; letter-spacing: -.02em; }
+    .header-brand-text span { font-size: 12px; color: rgba(255,255,255,.55); }
 
     .btn-back {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 14px;
-      border-radius: 10px;
-      background: rgba(255,255,255,.08);
-      border: 1px solid rgba(255,255,255,.14);
-      color: rgba(255,255,255,.82);
-      font-size: 13px;
-      font-weight: 700;
-      text-decoration: none;
-      transition: background .18s;
-      white-space: nowrap;
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 14px; border-radius: 10px;
+      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14);
+      color: rgba(255,255,255,.82); font-size: 13px; font-weight: 700;
+      text-decoration: none; transition: background .18s; white-space: nowrap;
     }
-
     .btn-back:hover { background: rgba(255,255,255,.14); }
 
-    /* ── CONTENT ── */
-    .page-content {
-      padding: 28px 28px 56px;
-    }
-
-    .section-bar {
+    /* ── LAYOUT ── */
+    .workspace {
+      flex: 1;
       display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 18px;
-      flex-wrap: wrap;
-    }
-
-    .section-title {
-      font-size: 22px;
-      font-weight: 800;
-      color: var(--text);
-      letter-spacing: -.02em;
-    }
-
-    .section-hint {
-      font-size: 13px;
-      color: var(--muted);
-      margin-top: 3px;
-    }
-
-    /* ── TABLE CARD ── */
-    .table-card {
-      background: var(--surface);
-      border-radius: 16px;
-      box-shadow: 0 1px 4px rgba(0,0,0,.06), 0 8px 28px rgba(0,0,0,.08);
       overflow: hidden;
     }
 
-    .table-scroll {
-      overflow-x: auto;
-      max-height: calc(100vh - 220px);
-      overflow-y: auto;
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 320px;
+      flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
 
-    /* ── TABLE ── */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
-
-    /* Main header row */
-    thead tr:first-child th {
-      background: linear-gradient(135deg, var(--navy-1) 0%, var(--navy-2) 100%);
-      color: #fff;
-      padding: 13px 12px;
-      font-weight: 600;
-      font-size: 11.5px;
-      text-transform: uppercase;
-      letter-spacing: .05em;
-      white-space: nowrap;
-      position: sticky;
-      top: 0;
-      z-index: 5;
-      border-right: 1px solid rgba(255,255,255,.06);
-      text-align: center;
-    }
-
-    thead tr:first-child th:last-child { border-right: none; }
-
-    /* Filter row */
-    thead tr:nth-child(2) th {
-      background: var(--navy-2);
-      padding: 6px 8px;
-      position: sticky;
-      top: 43px;
-      z-index: 4;
-      border-bottom: 2px solid rgba(255,255,255,.08);
-    }
-
-    input.filtro {
-      width: 100%;
-      padding: 5px 8px;
-      font-size: 12px;
-      font-family: inherit;
-      border: 1px solid rgba(255,255,255,.2);
-      border-radius: 6px;
-      background: rgba(255,255,255,.1);
-      color: #fff;
-      text-align: center;
-    }
-
-    input.filtro::placeholder { color: rgba(255,255,255,.4); }
-    input.filtro:focus { outline: none; border-color: var(--orange); background: rgba(255,255,255,.16); }
-
-    tbody tr:nth-child(even) td { background: #f8fafc; }
-    tbody tr:hover td { background: #eff6ff !important; }
-
-    td {
-      padding: 10px 12px;
+    .sidebar-header {
+      padding: 16px;
       border-bottom: 1px solid var(--border);
-      border-right: 1px solid #f1f5f9;
-      color: var(--text);
-      vertical-align: middle;
-      text-align: center;
-      word-break: break-word;
+      flex-shrink: 0;
     }
 
-    td:last-child { border-right: none; }
-
-    /* ── CELL STATES ── */
-    td.editing { background: #fef9c3 !important; cursor: text; }
-    td.edited   { background: #fef3c7 !important; outline: 1px solid #f59e0b; }
-    td.guardado { background: #dcfce7 !important; transition: background .7s ease; }
-
-    /* ── SAVE BUTTON ── */
-    .guardar-btn {
-      padding: 5px 13px;
-      background: var(--orange);
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 12px;
+    .sidebar-title {
+      font-size: 13px;
       font-weight: 700;
-      font-family: inherit;
-      display: none;
-      transition: background .18s, transform .12s;
-      white-space: nowrap;
+      color: var(--label);
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
     }
 
-    .guardar-btn:hover { background: var(--orange-2); transform: translateY(-1px); }
-    .guardar-btn:disabled { background: var(--muted); cursor: not-allowed; transform: none; }
-    .visible { display: inline-block !important; }
+    .search-input {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--bg);
+      transition: border-color .18s;
+      outline: none;
+    }
+    .search-input:focus { border-color: var(--orange); }
 
-    /* ── ERROR / STATE ── */
-    .mensaje-error {
-      padding: 12px 20px;
-      color: #dc2626;
+    .sidebar-count {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+
+    .sidebar-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    .sidebar-item {
+      padding: 11px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background .14s;
+      margin-bottom: 2px;
+    }
+    .sidebar-item:hover { background: #f1f5f9; }
+    .sidebar-item.active {
+      background: linear-gradient(135deg, var(--navy-1), var(--navy-2));
+      color: #fff;
+    }
+
+    .item-name {
       font-size: 13px;
       font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    .estado-carga {
-      padding: 56px 24px;
+    .item-sub {
+      font-size: 11px;
+      margin-top: 2px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .sidebar-item.active .item-sub { color: rgba(255,255,255,.6); }
+
+    .sidebar-empty {
+      padding: 40px 16px;
       text-align: center;
       color: var(--muted);
-      font-size: 14px;
+      font-size: 13px;
     }
 
-    @media (max-width: 768px) {
-      .page-header { padding: 12px 16px; }
-      .page-content { padding: 16px 14px 40px; }
+    /* ── DETAIL PANEL ── */
+    .detail-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .detail-empty {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      gap: 12px;
+    }
+
+    .detail-empty svg { opacity: .25; }
+    .detail-empty p { font-size: 14px; }
+
+    .detail-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 32px 40px;
+    }
+
+    .detail-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .detail-title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -.02em;
+      color: var(--text);
+    }
+
+    .detail-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .btn-save {
+      display: flex; align-items: center; gap: 7px;
+      padding: 10px 20px; border-radius: 10px;
+      background: var(--orange); border: none;
+      color: #fff; font-size: 13px; font-weight: 700;
+      font-family: inherit; cursor: pointer;
+      transition: background .18s, transform .12s, opacity .18s;
+      white-space: nowrap;
+    }
+    .btn-save:hover { background: var(--orange-2); transform: translateY(-1px); }
+    .btn-save:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    /* ── FORM GRID ── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .form-field label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--label);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    .form-field input {
+      padding: 9px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 9px;
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--text);
+      background: #fff;
+      transition: border-color .18s;
+      outline: none;
+    }
+    .form-field input:focus { border-color: var(--orange); }
+    .form-field input.changed { border-color: #f59e0b; background: #fffbeb; }
+    .form-field input[readonly] {
+      background: var(--bg);
+      color: var(--muted);
+      cursor: default;
+    }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed; bottom: 28px; right: 28px;
+      padding: 12px 20px; border-radius: 12px;
+      font-size: 13px; font-weight: 600;
+      color: #fff; z-index: 200;
+      transform: translateY(20px); opacity: 0;
+      transition: transform .25s, opacity .25s;
+      pointer-events: none;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.ok { background: #16a34a; }
+    .toast.err { background: #dc2626; }
+
+    /* ── LOADING ── */
+    .loading-state {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 14px;
+      gap: 10px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2.5px solid var(--border);
+      border-top-color: var(--orange);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
     }
   </style>
 </head>
@@ -254,27 +308,14 @@
     </a>
   </header>
 
-  <main class="page-content">
-    <div class="section-bar">
-      <div>
-        <h1 class="section-title">BBDD Sucursales</h1>
-        <p class="section-hint">Haz doble clic sobre las celdas editables para modificarlas. Usa los filtros para encontrar registros rápidamente.</p>
-      </div>
+  <div class="workspace" id="workspace">
+    <div class="loading-state" id="loadingState">
+      <div class="spinner"></div>
+      Cargando sucursales…
     </div>
+  </div>
 
-    <div class="table-card">
-      <div class="table-scroll">
-        <table id="tablaSucursales">
-          <thead>
-            <tr id="theadPrincipal"></tr>
-            <tr id="theadFiltros"></tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <div id="mensajeError" class="mensaje-error"></div>
-    </div>
-  </main>
+  <div class="toast" id="toast"></div>
 
   <script>
     const qsToken = new URLSearchParams(window.location.search).get("token") || "";
@@ -284,230 +325,224 @@
     };
     document.getElementById("btnVolver").href = withToken("/venta/panel-selector");
 
-    const filterColumns = [
-      { key: "id", label: "ID", index: 0 },
-      { key: "rut", label: "RUT", index: 1 },
-      { key: "empresa", label: "Nombre Empresa", index: 2 },
-      { key: "sucursal", label: "Nombre Sucursal", index: 3 },
-      { key: "direccion", label: "Direccion", index: 4 },
-    ];
+    let allHeaders = [];
+    let allRows = [];
+    let activeRowIndex = null;
 
-    function construirCabecera(headers) {
-      const main = document.getElementById("theadPrincipal");
-      const filtros = document.getElementById("theadFiltros");
-      main.innerHTML = "";
-      filtros.innerHTML = "";
-
-      headers.forEach((header) => {
-        const th = document.createElement("th");
-        th.textContent = header;
-        main.appendChild(th);
-      });
-      const thAccion = document.createElement("th");
-      thAccion.textContent = "Accion";
-      main.appendChild(thAccion);
-
-      headers.forEach((_, index) => {
-        const th = document.createElement("th");
-        const filterDef = filterColumns.find((item) => item.index === index);
-        if (filterDef) {
-          const input = document.createElement("input");
-          input.type = "text";
-          input.className = "filtro";
-          input.dataset.key = filterDef.key;
-          input.placeholder = "Filtrar...";
-          input.addEventListener("keyup", filtrarTabla);
-          th.appendChild(input);
-        }
-        filtros.appendChild(th);
-      });
-      filtros.appendChild(document.createElement("th"));
+    /* ── TOAST ── */
+    let toastTimer = null;
+    function showToast(msg, type = "ok") {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.className = `toast ${type} show`;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => { t.classList.remove("show"); }, 3000);
     }
 
-    function cargarTabla(datos) {
-      const tbody = document.querySelector("#tablaSucursales tbody");
-      const mensajeError = document.getElementById("mensajeError");
-
-      tbody.innerHTML = "";
-      mensajeError.textContent = "";
-
-      const headers = datos.headers || [];
-      const rows = datos.rows || [];
-      construirCabecera(headers);
-
-      if (rows.length > 0) {
-        rows.forEach((fila, i) => {
-          const tr = document.createElement("tr");
-          tr.dataset.fila = i;
-          tr.dataset.rowid = fila[0];
-          tr.dataset.id = String(fila[0] || "").toLowerCase();
-          tr.dataset.rut = String(fila[1] || "").toLowerCase();
-          tr.dataset.empresa = String(fila[2] || "").toLowerCase();
-          tr.dataset.sucursal = String(fila[3] || "").toLowerCase();
-          tr.dataset.direccion = String(fila[4] || "").toLowerCase();
-
-          fila.forEach((celda, index) => {
-            const td = document.createElement("td");
-            td.textContent = celda || "";
-            td.dataset.fila = i;
-            td.dataset.col = index;
-            if (index >= 3 && index <= 16) {
-              td.style.cursor = "text";
-              td.ondblclick = () => editarCelda(td);
-            }
-            tr.appendChild(td);
-          });
-
-          const tdBoton = document.createElement("td");
-          const boton = document.createElement("button");
-          boton.className = "guardar-btn";
-          boton.id = `guardar-${i}`;
-          boton.textContent = "Guardar";
-          boton.onclick = () => guardarFila(i, boton);
-          tdBoton.appendChild(boton);
-          tr.appendChild(tdBoton);
-
-          tbody.appendChild(tr);
-        });
-      } else {
-        const tr = document.createElement("tr");
-        const td = document.createElement("td");
-        td.textContent = "No se encontraron datos.";
-        td.colSpan = headers.length + 1;
-        td.style.cssText = "text-align:center;padding:40px;color:#64748b;";
-        tr.appendChild(td);
-        tbody.appendChild(tr);
+    /* ── INIT ── */
+    async function init() {
+      try {
+        const res = await fetch(withToken("/api/venta/sucursales/tabla"));
+        if (!res.ok) throw new Error("No se pudo cargar la tabla de sucursales.");
+        const data = await res.json();
+        allHeaders = data.headers || [];
+        allRows = data.rows || [];
+        buildUI();
+      } catch (e) {
+        document.getElementById("workspace").innerHTML =
+          `<div class="loading-state" style="color:#dc2626">${e.message}</div>`;
       }
     }
 
-    function editarCelda(td) {
-      if (td.querySelector("input")) return;
+    /* ── BUILD UI ── */
+    function buildUI() {
+      const ws = document.getElementById("workspace");
+      ws.innerHTML = `
+        <aside class="sidebar">
+          <div class="sidebar-header">
+            <div class="sidebar-title">Sucursales</div>
+            <input class="search-input" id="searchInput" type="text" placeholder="Buscar por empresa, sucursal, RUT…" autocomplete="off">
+            <div class="sidebar-count" id="sidebarCount"></div>
+          </div>
+          <div class="sidebar-list" id="sidebarList"></div>
+        </aside>
+        <div class="detail-panel" id="detailPanel">
+          <div class="detail-empty" id="detailEmpty">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            <p>Selecciona una sucursal para editarla</p>
+          </div>
+          <div class="detail-content" id="detailContent" style="display:none"></div>
+        </div>
+      `;
+      document.getElementById("searchInput").addEventListener("input", filtrarLista);
+      renderList(allRows);
+    }
 
-      const valorOriginal = td.textContent;
-      const input = document.createElement("input");
-      input.type = "text";
-      input.value = valorOriginal;
-      input.style.cssText = 'width:100%;padding:4px 6px;border:1.5px solid #ff7a2b;border-radius:5px;font-size:13px;font-family:inherit;background:#fff;outline:none;text-align:inherit;';
-      td.classList.add("editing");
-      td.innerHTML = "";
-      td.appendChild(input);
-      input.focus();
+    /* ── RENDER LIST ── */
+    function renderList(rows) {
+      const list = document.getElementById("sidebarList");
+      const count = document.getElementById("sidebarCount");
+      list.innerHTML = "";
 
-      let edicionTerminada = false;
-
-      function finalizarEdicion(tecla = "") {
-        if (edicionTerminada) return;
-        edicionTerminada = true;
-
-        const nuevoValor = input.value;
-        td.classList.remove("editing");
-
-        if (tecla === "Escape") {
-          td.innerHTML = valorOriginal;
-          td.classList.remove("edited");
-        } else {
-          td.innerHTML = nuevoValor;
-          if (nuevoValor !== valorOriginal) {
-            td.classList.add("edited");
-            document.getElementById(`guardar-${td.dataset.fila}`).classList.add("visible");
-          } else {
-            td.classList.remove("edited");
-          }
-        }
+      if (!rows.length) {
+        list.innerHTML = '<div class="sidebar-empty">Sin resultados</div>';
+        count.textContent = "";
+        return;
       }
 
-      input.addEventListener("keydown", function (e) {
-        if (e.key === "Enter" || e.key === "Escape") {
-          e.preventDefault();
-          finalizarEdicion(e.key);
-        }
-      });
+      count.textContent = `${rows.length} sucursal${rows.length !== 1 ? "es" : ""}`;
 
-      input.addEventListener("blur", function () {
-        finalizarEdicion();
+      rows.forEach((row) => {
+        const originalIndex = allRows.indexOf(row);
+        /* headers: [id, rut_empresa, nombre_empresa, nombre_sucursal, direccion, ...] */
+        const empresa = String(row[2] || "—");
+        const sucursal = String(row[3] || "—");
+        const rut = String(row[1] || "");
+
+        const item = document.createElement("div");
+        item.className = "sidebar-item" + (originalIndex === activeRowIndex ? " active" : "");
+        item.dataset.index = originalIndex;
+        item.innerHTML = `
+          <div class="item-name">${sucursal}</div>
+          <div class="item-sub">${empresa}${rut ? " · " + rut : ""}</div>
+        `;
+        item.addEventListener("click", () => selectSucursal(originalIndex));
+        list.appendChild(item);
       });
     }
 
-    async function guardarFila(filaIndex, boton) {
-      const fila = document.querySelectorAll(`td[data-fila="${filaIndex}"]`);
-      const values = [];
-      const editadas = [];
+    /* ── FILTER ── */
+    function filtrarLista() {
+      const q = document.getElementById("searchInput").value.toLowerCase().trim();
+      if (!q) { renderList(allRows); return; }
+      const filtered = allRows.filter(row => {
+        return [1, 2, 3, 4].some(i => String(row[i] || "").toLowerCase().includes(q));
+      });
+      renderList(filtered);
+    }
 
-      fila.forEach(td => {
-        values.push(td.textContent);
-        if (td.classList.contains("edited")) {
-          editadas.push(td);
-        }
+    /* ── SELECT ── */
+    function selectSucursal(index) {
+      activeRowIndex = index;
+      document.querySelectorAll(".sidebar-item").forEach(el => {
+        el.classList.toggle("active", Number(el.dataset.index) === index);
+      });
+      renderDetail(index);
+    }
+
+    /* ── RENDER DETAIL ── */
+    function renderDetail(index) {
+      const row = allRows[index];
+      const empty = document.getElementById("detailEmpty");
+      const content = document.getElementById("detailContent");
+      empty.style.display = "none";
+      content.style.display = "block";
+
+      const sucursalName = String(row[3] || "Sucursal");
+      const empresaName = String(row[2] || "");
+
+      const fields = allHeaders.map((header, j) => {
+        const val = row[j] !== null && row[j] !== undefined ? String(row[j]) : "";
+        const isReadonly = j === 0;
+        return `
+          <div class="form-field">
+            <label>${header}</label>
+            <input
+              id="field-${index}-${j}"
+              type="text"
+              value="${escHtml(val)}"
+              ${isReadonly ? "readonly" : ""}
+              data-original="${escHtml(val)}"
+            >
+          </div>
+        `;
+      }).join("");
+
+      content.innerHTML = `
+        <div class="detail-topbar">
+          <div>
+            <div class="detail-title">${escHtml(sucursalName)}</div>
+            <div class="detail-sub">${escHtml(empresaName)}</div>
+          </div>
+          <button class="btn-save" id="btnSave" onclick="guardarSucursal(${index})">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Guardar cambios
+          </button>
+        </div>
+        <div class="form-grid">${fields}</div>
+      `;
+
+      allHeaders.forEach((_, j) => {
+        if (j === 0) return;
+        const input = document.getElementById(`field-${index}-${j}`);
+        if (input) input.addEventListener("input", () => markChanged(input));
+      });
+    }
+
+    function markChanged(input) {
+      input.classList.toggle("changed", input.value !== input.dataset.original);
+    }
+
+    function escHtml(s) {
+      return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+
+    /* ── SAVE ── */
+    async function guardarSucursal(index) {
+      const row = allRows[index];
+      const rowId = Number(row[0]);
+      const values = [String(rowId)];
+
+      allHeaders.forEach((_, j) => {
+        if (j === 0) return;
+        const input = document.getElementById(`field-${index}-${j}`);
+        values.push(input ? input.value : String(row[j] || ""));
       });
 
-      const row = document.querySelector(`tr[data-fila="${filaIndex}"]`);
-      const rowId = Number(row.dataset.rowid);
-
-      boton.disabled = true;
-      boton.textContent = "Guardando...";
+      const btn = document.getElementById("btnSave");
+      btn.disabled = true;
+      btn.textContent = "Guardando…";
 
       try {
-        const response = await fetch(withToken("/api/venta/sucursales/tabla/guardar-fila"), {
+        const res = await fetch(withToken("/api/venta/sucursales/tabla/guardar-fila"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ row_id: rowId, values })
         });
 
-        if (!response.ok) {
-          const err = await response.json().catch(() => ({ detail: "No se pudo guardar" }));
-          throw new Error(typeof err.detail === "string" ? err.detail : "No se pudo guardar");
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: "Error al guardar" }));
+          throw new Error(typeof err.detail === "string" ? err.detail : "Error al guardar");
         }
 
-        editadas.forEach(td => {
-          td.classList.remove("edited");
-          td.classList.add("guardado");
-          setTimeout(() => td.classList.remove("guardado"), 2000);
-        });
-
-        boton.textContent = "Guardado ✓";
-        setTimeout(() => {
-          boton.classList.remove("visible");
-          boton.disabled = false;
-          boton.textContent = "Guardar";
-        }, 2000);
-      } catch (error) {
-        document.getElementById("mensajeError").textContent = error.message || "Error al guardar.";
-        boton.disabled = false;
-        boton.textContent = "Guardar";
-      }
-    }
-
-    function filtrarTabla() {
-      const filtros = {};
-      document.querySelectorAll("input.filtro").forEach(input => {
-        filtros[input.dataset.key] = input.value.toLowerCase().trim();
-      });
-
-      document.querySelectorAll("#tablaSucursales tbody tr").forEach(fila => {
-        let mostrar = true;
-        Object.keys(filtros).forEach(key => {
-          const valorFiltro = filtros[key];
-          const valorFila = fila.dataset[key] || "";
-          if (valorFiltro && !valorFila.includes(valorFiltro)) {
-            mostrar = false;
+        /* update local data */
+        allHeaders.forEach((_, j) => {
+          if (j === 0) return;
+          const input = document.getElementById(`field-${index}-${j}`);
+          if (input) {
+            allRows[index][j] = input.value;
+            input.dataset.original = input.value;
+            input.classList.remove("changed");
           }
         });
-        fila.style.display = mostrar ? "" : "none";
-      });
-    }
 
-    function mostrarError(error) {
-      document.getElementById("mensajeError").textContent = `Error al cargar los datos: ${error.message || error}`;
-    }
+        showToast("Cambios guardados correctamente", "ok");
 
-    async function init() {
-      try {
-        const response = await fetch(withToken("/api/venta/sucursales/tabla"));
-        if (!response.ok) throw new Error("No se pudo cargar la tabla de sucursales.");
-        const data = await response.json();
-        cargarTabla(data);
-      } catch (error) {
-        mostrarError(error);
+        /* refresh sidebar label */
+        const updatedItem = document.querySelector(`.sidebar-item[data-index="${index}"]`);
+        if (updatedItem) {
+          updatedItem.querySelector(".item-name").textContent = String(allRows[index][3] || "—");
+          updatedItem.querySelector(".item-sub").textContent =
+            String(allRows[index][2] || "—") + (allRows[index][1] ? " · " + allRows[index][1] : "");
+        }
+      } catch (e) {
+        showToast(e.message || "Error al guardar", "err");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Guardar cambios
+        `;
       }
     }
 
