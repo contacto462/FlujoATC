@@ -2077,7 +2077,6 @@
 
     async function guardarYFinalizar() {
       const btnGuardar = document.querySelector("#modalFinalizar button:last-of-type");
-      const inputsArchivos = document.querySelectorAll(".fotoAdjuntar");
       const cierreError = document.getElementById("cierreError");
       const modal = document.getElementById("modalProgreso");
       const estado = document.getElementById("mensajeEstado");
@@ -2087,8 +2086,8 @@
 
       const fotosBase64 = [];
       let leidos = 0;
-      let totalArchivos = 0;
-      const archivosSeleccionados = [];
+      const archivosSeleccionados = [...selectedFiles];
+      const totalArchivos = archivosSeleccionados.length;
 
       if (!odtCierre) {
         alert("No hay ODT activa para finalizar.");
@@ -2103,11 +2102,6 @@
         cierreError.textContent = err.message || "Completa los datos de cierre.";
         return;
       }
-
-      inputsArchivos.forEach((input) => {
-        totalArchivos += input.files.length;
-        Array.from(input.files || []).forEach((file) => archivosSeleccionados.push(file));
-      });
 
       if (totalArchivos < 1) {
         cierreError.textContent = "Debes adjuntar al menos UNA foto para cerrar la ODT.";
@@ -2179,17 +2173,16 @@
         estado.textContent = "Procesando fotos...";
 
         await new Promise((resolve, reject) => {
-          inputsArchivos.forEach((input) => {
-            Array.from(input.files).forEach((archivo) => {
-              const reader = new FileReader();
-              reader.onload = (event) => {
-                fotosBase64.push(event.target.result);
-                leidos += 1;
-                if (leidos === totalArchivos) resolve();
-              };
-              reader.onerror = () => reject(new Error("No se pudo leer una imagen"));
-              reader.readAsDataURL(archivo);
-            });
+          if (archivosSeleccionados.length === 0) { resolve(); return; }
+          archivosSeleccionados.forEach((archivo) => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              fotosBase64.push(event.target.result);
+              leidos += 1;
+              if (leidos === totalArchivos) resolve();
+            };
+            reader.onerror = () => reject(new Error("No se pudo leer una imagen"));
+            reader.readAsDataURL(archivo);
           });
         });
 
