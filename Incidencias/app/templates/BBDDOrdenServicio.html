@@ -450,132 +450,114 @@
           <button class="btn-save guardar" id="btnSave" onclick="guardarCambiosODS()" type="button">Guardar cambios</button>
         </div>
 
-        <!-- DATOS DEL CLIENTE -->
-        <div class="card">
-          <div class="card-title"><span class="card-title-dot"></span>Datos del Cliente</div>
-          <div class="fields-grid">
-            <div class="field"><label>RUT</label><textarea id="rut" style="min-height:42px;"></textarea></div>
-            <div class="field"><label>Razón Social</label><textarea id="razonSocial" style="min-height:42px;"></textarea></div>
-            <div class="field"><label>Nombre Sucursal</label><textarea id="nombreSucursal" style="min-height:42px;"></textarea></div>
-            <div class="field"><label>Dirección Sucursal</label><textarea id="direccionSucursal" style="min-height:42px;"></textarea></div>
-          </div>
-        </div>
+        <div class="fields-grid">
+          <div class="section-sep" style="margin-top:0"><span class="section-sep-dot"></span>Datos del Cliente</div>
 
-        <!-- DATOS COMERCIALES -->
-        <div class="card">
-          <div class="card-title"><span class="card-title-dot"></span>Datos Comerciales</div>
-          <div class="fields-grid">
-            <div class="field">
-              <label>Tipo Plan</label>
-              <select id="tipoPlan">
-                <option value="">Seleccione...</option>
-                <option>Plan Full</option>
-                <option>Plan Mixto</option>
-              </select>
-            </div>
-            <div class="field">
-              <label>Tipo Cliente</label>
-              <select id="tipoCliente">
-                <option value="">Seleccione...</option>
-                <option>EMPRESA</option>
-                <option>DOMICILIO</option>
-                <option>STRIP CENTER</option>
-                <option>MUNICIPALIDAD</option>
-                <option>CONDOMINIO</option>
-              </select>
-            </div>
-            <div class="field"><label>Monto a Cobrar</label><textarea id="montoACobrar" style="min-height:42px;"></textarea></div>
-            <div class="field">
-              <label>Tipo Servicio</label>
-              <button class="btn-toggle" onclick="toggleServicio()" type="button">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-                Seleccionar
-              </button>
-              <div id="servicios-wrapper" class="checkbox-grid">
-                <label><input type="checkbox" value="Televigilancia"> Televigilancia</label>
-                <label><input type="checkbox" value="Alarma"> Alarma</label>
-                <label><input type="checkbox" value="Guardia"> Guardia</label>
-                <label><input type="checkbox" value="Instalacion"> Instalación</label>
-                <label><input type="checkbox" value="Upgrade"> Upgrade</label>
-                <label><input type="checkbox" value="Downgrade"> Downgrade</label>
-                <label><input type="checkbox" value="Servicio Tecnico"> Servicio Técnico</label>
-                <label><input type="checkbox" value="Monitoreo Adicional"> Monitoreo Adicional</label>
-                <label><input type="checkbox" value="Desinstalacion"> Desinstalación</label>
-              </div>
+          <div class="field"><label>RUT</label><textarea id="rut" style="min-height:42px;"></textarea></div>
+          <div class="field"><label>Razón Social</label><textarea id="razonSocial" style="min-height:42px;"></textarea></div>
+          <div class="field"><label>Nombre Sucursal</label><textarea id="nombreSucursal" style="min-height:42px;"></textarea></div>
+          <div class="field"><label>Dirección Sucursal</label><textarea id="direccionSucursal" style="min-height:42px;"></textarea></div>
+
+          <div class="section-sep"><span class="section-sep-dot"></span>Datos Comerciales</div>
+
+          <div class="field">
+            <label>Tipo Plan</label>
+            <select id="tipoPlan">
+              <option value="">Seleccione...</option>
+              <option>Plan Full</option>
+              <option>Plan Mixto</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Tipo Cliente</label>
+            <select id="tipoCliente">
+              <option value="">Seleccione...</option>
+              <option>EMPRESA</option>
+              <option>DOMICILIO</option>
+              <option>STRIP CENTER</option>
+              <option>MUNICIPALIDAD</option>
+              <option>CONDOMINIO</option>
+            </select>
+          </div>
+          <div class="field"><label>Monto a Cobrar</label><textarea id="montoACobrar" style="min-height:42px;"></textarea></div>
+          <div class="field">
+            <label>Tipo Servicio</label>
+            <button class="btn-toggle" onclick="toggleServicio()" type="button">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              Seleccionar
+            </button>
+            <div id="servicios-wrapper" class="checkbox-grid">
+              <label><input type="checkbox" value="Televigilancia"> Televigilancia</label>
+              <label><input type="checkbox" value="Alarma"> Alarma</label>
+              <label><input type="checkbox" value="Guardia"> Guardia</label>
+              <label><input type="checkbox" value="Instalacion"> Instalación</label>
+              <label><input type="checkbox" value="Upgrade"> Upgrade</label>
+              <label><input type="checkbox" value="Downgrade"> Downgrade</label>
+              <label><input type="checkbox" value="Servicio Tecnico"> Servicio Técnico</label>
+              <label><input type="checkbox" value="Monitoreo Adicional"> Monitoreo Adicional</label>
+              <label><input type="checkbox" value="Desinstalacion"> Desinstalación</label>
             </div>
           </div>
-        </div>
 
-        <!-- PARÁMETROS DE SERVICIO -->
-        <div class="card">
-          <div class="card-title"><span class="card-title-dot"></span>Parámetros de Servicio</div>
-          <div class="fields-grid">
-            <div class="field"><label>N° Cámaras a Instalar</label><textarea id="camInstalar" style="min-height:42px;"></textarea></div>
-            <div class="field"><label>N° Cámaras a Vigilar</label><textarea id="camVigilar" style="min-height:42px;"></textarea></div>
-            <div class="field"><label>Horario Nuevo Monitoreo</label><textarea id="horario" style="min-height:42px;"></textarea></div>
-            <div class="field"><label>Días Monitoreo Adicional</label><textarea id="diasAdicional" style="min-height:42px;"></textarea></div>
+          <div class="section-sep"><span class="section-sep-dot"></span>Parámetros de Servicio</div>
+
+          <div class="field"><label>N° Cámaras a Instalar</label><textarea id="camInstalar" style="min-height:42px;"></textarea></div>
+          <div class="field"><label>N° Cámaras a Vigilar</label><textarea id="camVigilar" style="min-height:42px;"></textarea></div>
+          <div class="field"><label>Horario Nuevo Monitoreo</label><textarea id="horario" style="min-height:42px;"></textarea></div>
+          <div class="field"><label>Días Monitoreo Adicional</label><textarea id="diasAdicional" style="min-height:42px;"></textarea></div>
+
+          <div class="section-sep"><span class="section-sep-dot"></span>Información Adicional</div>
+
+          <div class="field">
+            <label>Materiales</label>
+            <button class="btn-toggle" id="btn-materiales" onclick="toggleField('materiales','btn-materiales')" type="button">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              Ver Materiales
+            </button>
+            <textarea id="materiales" style="display:none;"></textarea>
+            <button class="btn-toggle btn-toggle-hide" id="anular-btn-materiales" style="display:none;" onclick="toggleField('materiales','btn-materiales')" type="button">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+              Ocultar
+            </button>
           </div>
-        </div>
-
-        <!-- INFORMACIÓN ADICIONAL -->
-        <div class="card">
-          <div class="card-title"><span class="card-title-dot"></span>Información Adicional</div>
-          <div class="fields-grid">
-            <div class="field">
-              <label>Materiales</label>
-              <button class="btn-toggle" id="btn-materiales" onclick="toggleField('materiales','btn-materiales')" type="button">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-                Ver Materiales
-              </button>
-              <textarea id="materiales" style="display:none;"></textarea>
-              <button class="btn-toggle btn-toggle-hide" id="anular-btn-materiales" style="display:none;" onclick="toggleField('materiales','btn-materiales')" type="button">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
-                Ocultar
-              </button>
-            </div>
-            <div class="field">
-              <label>Consideraciones</label>
-              <button class="btn-toggle" id="btn-consideraciones" onclick="toggleField('consideraciones','btn-consideraciones')" type="button">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-                Ver Consideraciones
-              </button>
-              <textarea id="consideraciones" style="display:none;"></textarea>
-              <button class="btn-toggle btn-toggle-hide" id="anular-btn-consideraciones" style="display:none;" onclick="toggleField('consideraciones','btn-consideraciones')" type="button">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
-                Ocultar
-              </button>
-            </div>
-            <div class="field">
-              <label>Observación</label>
-              <button class="btn-toggle" id="btn-observacion" onclick="toggleField('observacion','btn-observacion')" type="button">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-                Ver Observación
-              </button>
-              <textarea id="observacion" style="display:none;"></textarea>
-              <button class="btn-toggle btn-toggle-hide" id="anular-btn-observacion" style="display:none;" onclick="toggleField('observacion','btn-observacion')" type="button">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
-                Ocultar
-              </button>
-            </div>
+          <div class="field">
+            <label>Consideraciones</label>
+            <button class="btn-toggle" id="btn-consideraciones" onclick="toggleField('consideraciones','btn-consideraciones')" type="button">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              Ver Consideraciones
+            </button>
+            <textarea id="consideraciones" style="display:none;"></textarea>
+            <button class="btn-toggle btn-toggle-hide" id="anular-btn-consideraciones" style="display:none;" onclick="toggleField('consideraciones','btn-consideraciones')" type="button">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+              Ocultar
+            </button>
           </div>
-        </div>
+          <div class="field">
+            <label>Observación</label>
+            <button class="btn-toggle" id="btn-observacion" onclick="toggleField('observacion','btn-observacion')" type="button">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              Ver Observación
+            </button>
+            <textarea id="observacion" style="display:none;"></textarea>
+            <button class="btn-toggle btn-toggle-hide" id="anular-btn-observacion" style="display:none;" onclick="toggleField('observacion','btn-observacion')" type="button">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+              Ocultar
+            </button>
+          </div>
 
-        <!-- ARCHIVOS -->
-        <div class="card">
-          <div class="card-title"><span class="card-title-dot"></span>Archivos Adjuntos</div>
-          <div class="file-upload-row">
-            <div class="file-upload-field">
-              <label>Cotización</label>
-              <input type="file" id="cotizacion" accept=".pdf,.doc,.docx">
-            </div>
-            <div class="file-upload-field">
-              <label>Layout</label>
-              <input type="file" id="layout" accept="image/*,.pdf">
-            </div>
-            <div class="file-upload-field">
-              <label>Orden de Compra (OC)</label>
-              <input type="file" id="oc" accept=".pdf,.doc,.docx">
-            </div>
+          <div class="section-sep"><span class="section-sep-dot"></span>Archivos Adjuntos</div>
+
+          <div class="field">
+            <label>Cotización</label>
+            <input type="file" id="cotizacion" accept=".pdf,.doc,.docx">
+          </div>
+          <div class="field">
+            <label>Layout</label>
+            <input type="file" id="layout" accept="image/*,.pdf">
+          </div>
+          <div class="field">
+            <label>Orden de Compra (OC)</label>
+            <input type="file" id="oc" accept=".pdf,.doc,.docx">
           </div>
         </div>
       `;
