@@ -1268,12 +1268,11 @@
       const observacion = document.getElementById("observacion");
       const avance = document.getElementById("gradoAvance");
       const observacionEnProceso = document.getElementById("observacionEnProceso");
-      const fotos = Array.from(document.querySelectorAll(".fotoAdjuntar"));
       return Boolean(
         String(observacion?.value || "").trim() ||
         String(avance?.value || "").trim() ||
         String(observacionEnProceso?.value || "").trim() ||
-        fotos.some((input) => input.files && input.files.length > 0)
+        selectedFiles.length > 0
       );
     }
 
@@ -1814,25 +1813,7 @@
       });
     }
 
-    function agregarOtroArchivo() {
-      if (cierreActualEsMantencion) return;
-      const contenedorFotos = document.getElementById("contenedorFotos");
-      const inputsActuales = contenedorFotos.querySelectorAll(".fotoAdjuntar");
-
-      if (inputsActuales.length >= 2) {
-        alert("Solo se pueden adjuntar hasta 2 fotos.");
-        return;
-      }
-
-      const nuevoArchivo = document.createElement("input");
-      nuevoArchivo.type = "file";
-      nuevoArchivo.accept = "image/*";
-      nuevoArchivo.classList.add("fotoAdjuntar");
-      nuevoArchivo.required = true;
-      contenedorFotos.appendChild(nuevoArchivo);
-    }
-
-    function toggleInfoSucursal(filaActiva, cliente, observacion = "", estado = "", odt = "") {
+function toggleInfoSucursal(filaActiva, cliente, observacion = "", estado = "", odt = "") {
       if (!filaActiva) return;
       const siguiente = filaActiva.nextElementSibling;
       const odtActual = String(odt || "").trim();
