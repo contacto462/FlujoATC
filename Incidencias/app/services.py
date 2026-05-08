@@ -2452,6 +2452,127 @@ class IncidenciasService:
             ])
         return self._filtrar_incidencias_para_tecnico(out, tecnico)
 
+    def obtener_ruta_optima_tecnico(
+        self,
+        tecnico: str | None = None,
+        origen: str = "1 Oriente 1180, Viña del Mar, Chile",
+    ) -> dict[str, Any]:
+        registros = self.obtener_incidencias_por_puesto(tecnico)
+
+        def _coords_validas(lat: str, lng: str) -> bool:
+            try:
+                lat_f = float(str(lat or "").replace(",", "."))
+                lng_f = float(str(lng or "").replace(",", "."))
+                return -90 <= lat_f <= 90 and -180 <= lng_f <= 180
+            except Exception:
+                return False
+
+        def _distancia2(a_lat: str, a_lng: str, b_lat: str, b_lng: str) -> float:
+            a1 = float(str(a_lat).replace(",", "."))
+            a2 = float(str(a_lng).replace(",", "."))
+            b1 = float(str(b_lat).replace(",", "."))
+            b2 = float(str(b_lng).replace(",", "."))
+            return ((a1 - b1) ** 2) + ((a2 - b2) ** 2)
+
+        def _coords_para_direccion(direccion: str) -> tuple[str, str]:
+            lat_bd, lng_bd = self._coordenadas_por_direccion_bd(direccion)
+            if _coords_validas(lat_bd, lng_bd):
+                return lat_bd, lng_bd
+
+            lat_geo, lng_geo = self._geocodificar_direccion(direccion)
+            if _coords_validas(lat_geo, lng_geo):
+                return lat_geo, lng_geo
+
+            lat_apx, lng_apx = self._coordenadas_aproximadas_por_direccion(direccion)
+            if _coords_validas(lat_apx, lng_apx):
+                return lat_apx, lng_apx
+            return "", ""
+
+        origen_lat, origen_lng = _coords_para_direccion(origen)
+        if not _coords_validas(origen_lat, origen_lng):
+            origen_lat, origen_lng = "-33.024569", "-71.551831"
+
+        paradas = []
+        for fila in registros:
+            direccion = str(fila[13] if len(fila) > 13 else "").strip()
+            estado = str(fila[8] if len(fila) > 8 else "").strip()
+            if not direccion or self._normalizar_texto(estado) != "en proceso":
+                continue
+
+            latitud, longitud = _coords_para_direccion(direccion)
+            paradas.append(
+                {
+                    "odt": str(fila[0] if len(fila) > 0 else "").strip(),
+                    "fecha": str(fila[1] if len(fila) > 1 else "").strip(),
+                    "cliente": str(fila[3] if len(fila) > 3 else "").strip(),
+                    "servicio": str(fila[4] if len(fila) > 4 else "").strip(),
+                    "estado": estado,
+                    "prioridad": str(fila[12] if len(fila) > 12 else "").strip(),
+                    "direccion": direccion,
+                    "latitud": latitud,
+                    "longitud": longitud,
+                }
+            )
+
+        geocodificadas = [p for p in paradas if _coords_validas(p["latitud"], p["longitud"])]
+        no_geocodificadas = [p for p in paradas if not _coords_validas(p["latitud"], p["longitud"])]
+
+        orden: list[dict[str, Any]] = []
+        pendientes = geocodificadas[:]
+        actual_lat, actual_lng = origen_lat, origen_lng
+        while pendientes:
+            mejor_idx = 0
+            mejor_dist = float("inf")
+            for idx, parada in enumerate(pendientes):
+                dist = _distancia2(actual_lat, actual_lng, parada["latitud"], parada["longitud"])
+                if dist < mejor_dist:
+                    mejor_dist = dist
+                    mejor_idx = idx
+            siguiente = pendientes.pop(mejor_idx)
+            orden.append(siguiente)
+            actual_lat, actual_lng = siguiente["latitud"], siguiente["longitud"]
+
+        orden.extend(no_geocodificadas)
+
+        direcciones = [str(p.get("direccion") or "").strip() for p in orden if str(p.get("direccion") or "").strip()]
+        google_url = ""
+        if direcciones:
+            destino = direcciones[-1]
+            waypoints = "|".join(direcciones[:-1])
+            google_url = (
+                "https://www.google.com/maps/dir/?api=1"
+                f"&origin={quote_plus(origen)}"
+                f"&destination={quote_plus(destino)}"
+                "&travelmode=driving"
+            )
+            if waypoints:
+                google_url += f"&waypoints={quote_plus(waypoints)}"
+
+        waze_url = ""
+        if orden:
+            primera = orden[0]
+            if _coords_validas(primera["latitud"], primera["longitud"]):
+                waze_url = (
+                    "https://waze.com/ul"
+                    f"?ll={quote_plus(f'{primera['latitud']},{primera['longitud']}')}"
+                    "&navigate=yes"
+                )
+            elif primera.get("direccion"):
+                query = ", ".join(
+                    part for part in [str(primera.get("direccion") or "").strip(), str(primera.get("cliente") or "").strip(), "Chile"] if part
+                )
+                waze_url = f"https://waze.com/ul?q={quote_plus(query)}&navigate=yes"
+
+        return {
+            "origen": origen,
+            "total_odts": len(orden),
+            "geocodificadas": len(geocodificadas),
+            "sin_geocodificar": len(no_geocodificadas),
+            "paradas": orden,
+            "google_maps_url": google_url,
+            "waze_url": waze_url,
+        }
+
     def obtener_incidencias_derivadas_cliente(self) -> list[list[Any]]:
         rows = self.obtener_incidencias_por_puesto()
         derivaciones_coord = {"cliente", "coordinacion"}
