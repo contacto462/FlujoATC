@@ -877,6 +877,10 @@
     let odtModalFinalizar = "";
     let odtModalEnProceso = "";
     const geocodeCache = new Map();
+    const RUTA_ORIGEN_BASE = "1 Oriente 1180, Viña del Mar, Chile";
+    const rutaBaseCoords = { latitud: "-33.024569", longitud: "-71.551831" };
+    let registrosTecnicoFull = [];
+    let rutaActualOptima = [];
     const tecnicoFiltrado = (typeof tecnicoActual !== "undefined" ? String(tecnicoActual || "") : "").trim().toLowerCase();
 
     function escapeHTML(str) {
@@ -923,6 +927,29 @@
         google: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`,
         waze: `https://waze.com/ul?q=${encodeURIComponent(query)}&navigate=yes`,
       };
+    }
+
+    function construirGoogleMapsRuta(paradas) {
+      const stops = Array.isArray(paradas) ? paradas.filter((p) => p?.direccion) : [];
+      if (!stops.length) return "";
+      const origin = RUTA_ORIGEN_BASE;
+      const destination = stops[stops.length - 1].direccion;
+      const waypoints = stops.slice(0, -1).map((p) => p.direccion).filter(Boolean).join("|");
+      let url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=driving`;
+      if (waypoints) {
+        url += `&waypoints=${encodeURIComponent(waypoints)}`;
+      }
+      return url;
+    }
+
+    function construirWazeRuta(paradas) {
+      const primera = Array.isArray(paradas) ? paradas[0] : null;
+      if (!primera) return "";
+      if (primera.latitud && primera.longitud) {
+        return `https://waze.com/ul?ll=${encodeURIComponent(`${primera.latitud},${primera.longitud}`)}&navigate=yes`;
+      }
+      const query = [primera.direccion || "", primera.cliente || "", "Chile"].filter(Boolean).join(", ");
+      return query ? `https://waze.com/ul?q=${encodeURIComponent(query)}&navigate=yes` : "";
     }
 
     async function geocodificarDireccionCliente(direccion) {
