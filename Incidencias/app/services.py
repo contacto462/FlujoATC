@@ -2562,9 +2562,6 @@ class IncidenciasService:
             )
             if query:
                 waze_url = f"https://www.waze.com/ul?q={quote_plus(query)}&navigate=yes"
-                if _coords_validas(primera["latitud"], primera["longitud"]):
-                    ll_value = f"{primera['latitud']},{primera['longitud']}"
-                    waze_url += f"&ll={quote_plus(ll_value)}"
             elif _coords_validas(primera["latitud"], primera["longitud"]):
                 ll_value = f"{primera['latitud']},{primera['longitud']}"
                 waze_url = f"https://www.waze.com/ul?ll={quote_plus(ll_value)}&navigate=yes"
