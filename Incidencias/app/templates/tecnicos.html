@@ -920,7 +920,11 @@
     }
 
     function calcularRutaOptima(registros) {
-      const elegibles = (Array.isArray(registros) ? registros : []).filter((r) => String(r?.direccion || "").trim());
+      const elegibles = (Array.isArray(registros) ? registros : []).filter((r) => {
+        const direccion = String(r?.direccion || "").trim();
+        const estado = estadoCanonico(r?.estado || "");
+        return direccion && estado === "En Proceso";
+      });
       return {
         orden: elegibles,
       };
@@ -1136,7 +1140,7 @@
         }));
       cargarRegistrosEnTabla(todos);
       cantidadRegistrosActual = todos.length;
-      await recalcularRutaVisible();
+      recalcularRutaVisible();
     }
 
     window.onload = async function () {
