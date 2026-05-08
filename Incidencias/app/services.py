@@ -2938,12 +2938,11 @@ class IncidenciasService:
             requiere_seguimiento=requiere_seguimiento,
         )
 
-        root_folder_id = str(settings.google_drive_root_folder_id or "").strip()
-        drive_enabled = bool(settings.google_drive_enabled and root_folder_id)
+        drive_enabled = bool(settings.google_drive_enabled and str(settings.google_drive_root_folder_id or "").strip())
         if drive_enabled:
             worker = threading.Thread(
                 target=self._subir_imagenes_cierre_mantencion_worker,
-                args=(odt_limpia, [str(p) for p in staged_clean], root_folder_id),
+                args=(odt_limpia, [str(p) for p in staged_clean], observacion),
                 daemon=True,
                 name=f"mantencion-cierre-img-{odt_limpia}",
             )
