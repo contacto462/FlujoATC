@@ -1304,7 +1304,7 @@
         pruebasCierre,
         materiales,
         materialesSinUso,
-        requiereSeguimiento: resultadoCierre === "requiere_seguimiento",
+        requiereSeguimiento: ["requiere_seguimiento", "requiere_cotizacion_visita_adicional"].includes(resultadoCierre),
       };
     }
 
