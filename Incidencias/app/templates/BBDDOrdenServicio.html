@@ -657,18 +657,123 @@
 
     /* ── POPULATE FORM ── */
     function poblarFormulario(datos) {
-      const campos = [
+      const camposSimples = [
         "rut","razonSocial","direccionSucursal","nombreSucursal",
-        "tipoPlan","tipoCliente","camInstalar","camVigilar",
-        "montoACobrar","diasAdicional","horario",
-        "materiales","consideraciones","observacion"
+        "tipoCliente","camInstalar","camVigilar","camDesinstalar",
+        "diasAdicional","horario","diasMonitoreoDesde","diasMonitoreoHasta",
+        "tipoPlan","aguaBano","materiales","consideraciones","observacion"
       ];
-      campos.forEach((id) => {
+      camposSimples.forEach((id) => {
         const el = document.getElementById(id);
         if (el) el.value = datos[id] || "";
       });
+
+      // Set service checkboxes
+      const serviciosSeleccionados = (datos.tipoServicio || "").split("|").map(s => s.trim());
       document.querySelectorAll('#servicios-wrapper input[type="checkbox"]')
-        .forEach((cb) => cb.checked = (datos.tipoServicio || "").split("|").map(s => s.trim()).includes(cb.value));
+        .forEach((cb) => { cb.checked = serviciosSeleccionados.includes(cb.value); });
+
+      // Show checkbox grid if any services selected
+      if (serviciosSeleccionados.some(s => s)) {
+        document.getElementById("servicios-wrapper").style.display = "grid";
+      }
+
+      // Update conditional visibility
+      actualizarVisibilidadBBDD();
+
+      // Parse stored montoACobrar string into individual fields
+      const montoStr = datos.montoACobrar || "";
+      if (montoStr) {
+        montoStr.split("\n").forEach(line => {
+          const colonIdx = line.indexOf(":");
+          if (colonIdx < 0) return;
+          const label = line.slice(0, colonIdx).trim();
+          const val = line.slice(colonIdx + 1).trim();
+          const id = MONTO_LABEL_TO_ID[label];
+          if (id) {
+            const el = document.getElementById(id);
+            if (el) el.value = val;
+          }
+        });
+      }
+    }
+
+    /* ── MONTO LABEL MAP ── */
+    const MONTO_LABEL_TO_ID = {
+      "Valor Servicio Mensual":    "monto_servicio_mensual",
+      "Valor Instalacion Total":   "monto_instalacion_total",
+      "Valor Instalación Total":   "monto_instalacion_total",
+      "Valor Servicio Tecnico":    "monto_servicio_tecnico",
+      "Valor Servicio Técnico":    "monto_servicio_tecnico",
+      "Valor Desinstalacion":      "monto_desinstalacion",
+      "Valor Desinstalación":      "monto_desinstalacion",
+      "Valor Upgrade":             "monto_upgrade",
+      "Valor Downgrade":           "monto_downgrade",
+      "Valor Monitoreo Adicional": "monto_monitoreo_adicional",
+    };
+
+    /* ── VISIBILITY LOGIC (mirrors RegistroODS) ── */
+    function actualizarVisibilidadBBDD() {
+      const sel = Array.from(
+        document.querySelectorAll('#servicios-wrapper input[type="checkbox"]:checked')
+      ).map(cb => cb.value);
+
+      const tecnico = sel.some(s => ["Televigilancia","Instalacion","Upgrade","Downgrade"].includes(s));
+      const monitoreo = sel.includes("Monitoreo Adicional");
+      const desins = sel.includes("Desinstalacion");
+      const instalacion = sel.includes("Instalacion");
+      const hayServicios = sel.length > 0;
+
+      show("sep-comercial",       tecnico || instalacion);
+      show("sec-tipo-plan",       tecnico);
+      show("sec-agua-bano",       instalacion);
+      show("sep-camaras",         tecnico || desins);
+      show("sec-cam-instalar",    tecnico);
+      show("sec-cam-vigilar",     tecnico);
+      show("sec-cam-desins",      desins);
+      show("sep-monitoreo",       monitoreo);
+      show("sec-monitoreo-desde", monitoreo);
+      show("sec-monitoreo-hasta", monitoreo);
+      show("sec-monitoreo-horario", monitoreo);
+      show("sep-montos",          hayServicios);
+
+      actualizarMontosBBDD(sel);
+    }
+
+    function show(id, visible) {
+      const el = document.getElementById(id);
+      if (el) el.style.display = visible ? "" : "none";
+    }
+
+    function actualizarMontosBBDD(servicios) {
+      const contenedor = document.getElementById("contenedor-montos");
+      if (!contenedor) return;
+
+      const campos = [];
+      if (servicios.includes("Instalacion")) {
+        campos.push(["monto_instalacion_total", "Valor Instalación Total"]);
+        campos.push(["monto_servicio_mensual",  "Valor Servicio Mensual"]);
+      }
+      if (servicios.some(s => ["Televigilancia","Alarma","Guardia"].includes(s)) && !campos.find(c => c[0] === "monto_servicio_mensual"))
+        campos.push(["monto_servicio_mensual", "Valor Servicio Mensual"]);
+      if (servicios.includes("Servicio Tecnico"))    campos.push(["monto_servicio_tecnico",    "Valor Servicio Técnico"]);
+      if (servicios.includes("Desinstalacion"))      campos.push(["monto_desinstalacion",      "Valor Desinstalación"]);
+      if (servicios.includes("Upgrade"))             campos.push(["monto_upgrade",             "Valor Upgrade"]);
+      if (servicios.includes("Downgrade"))           campos.push(["monto_downgrade",           "Valor Downgrade"]);
+      if (servicios.includes("Monitoreo Adicional")) campos.push(["monto_monitoreo_adicional", "Valor Monitoreo Adicional"]);
+
+      // preserve existing values
+      const prevValues = {};
+      contenedor.querySelectorAll("input[data-monto]").forEach(el => {
+        prevValues[el.id] = el.value;
+      });
+
+      contenedor.innerHTML = campos.map(([id, label]) =>
+        `<div class="field">
+          <label>${label}</label>
+          <input type="text" id="${id}" data-monto="1" placeholder="Ej: UF o CLP + IVA" value="${escAttr(prevValues[id]||'')}">
+        </div>`
+      ).join('');
     }
 
     /* ── FILE TO BASE64 ── */
