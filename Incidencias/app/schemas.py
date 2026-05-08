@@ -50,12 +50,28 @@ class FormularioRegistro(BaseModel):
 class CerrarIncidenciaRequest(BaseModel):
     odt: str
     observacion: str
+    responsable_cierre: str = Field(alias="responsableCierre")
+    causa_cierre: str = Field(alias="causaCierre")
+    accion_cierre: str = Field(alias="accionCierre")
+    resultado_cierre: str = Field(alias="resultadoCierre")
+    pruebas_cierre: list[str] = Field(default_factory=list, alias="pruebasCierre")
+    materiales: list[dict] = Field(default_factory=list)
+    materiales_sin_uso: bool = Field(default=False, alias="materialesSinUso")
+    requiere_seguimiento: bool = Field(default=False, alias="requiereSeguimiento")
 
 
 class FinalizarIncidenciaRequest(BaseModel):
     odt: str
     observacion: str
     fotos_base64: list[str] = Field(default_factory=list, alias="fotosBase64")
+    responsable_cierre: str = Field(alias="responsableCierre")
+    causa_cierre: str = Field(alias="causaCierre")
+    accion_cierre: str = Field(alias="accionCierre")
+    resultado_cierre: str = Field(alias="resultadoCierre")
+    pruebas_cierre: list[str] = Field(default_factory=list, alias="pruebasCierre")
+    materiales: list[dict] = Field(default_factory=list)
+    materiales_sin_uso: bool = Field(default=False, alias="materialesSinUso")
+    requiere_seguimiento: bool = Field(default=False, alias="requiereSeguimiento")
 
 
 class EnProcesoRequest(BaseModel):

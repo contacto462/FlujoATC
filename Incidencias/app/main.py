@@ -172,6 +172,13 @@ def _ensure_registro_optional_columns() -> None:
         "detalle_problema": "TEXT",
         "observacion_soporte": "TEXT",
         "observacion_servicio": "TEXT",
+        "materiales": "TEXT",
+        "responsable_cierre": "VARCHAR(40)",
+        "causa_cierre": "VARCHAR(120)",
+        "accion_cierre": "VARCHAR(120)",
+        "resultado_cierre": "VARCHAR(120)",
+        "pruebas_cierre": "TEXT",
+        "requiere_seguimiento": "BOOLEAN",
     }
     try:
         with engine.begin() as conn:
@@ -1219,4 +1226,3 @@ def debug_db(
     except Exception as e:
         out["catalogo_clientes_sample_error"] = str(e)
     return out
-
