@@ -884,14 +884,17 @@
       );
     }
 
-    function hayModalVisible() {
-      return ["modalFinalizar", "modalProgreso", "modalEnProceso"].some((id) => {
+    function estaVisible(id) {
         const modal = document.getElementById(id);
         return modal && window.getComputedStyle(modal).display !== "none";
-      });
+    }
+
+    function hayModalVisible() {
+      return ["modalFinalizar", "modalProgreso", "modalEnProceso"].some((id) => estaVisible(id));
     }
 
     function hayFormularioConDatosTemporales() {
+      if (!estaVisible("modalFinalizar") && !estaVisible("modalEnProceso")) return false;
       const observacion = document.getElementById("observacion");
       const avance = document.getElementById("gradoAvance");
       const observacionEnProceso = document.getElementById("observacionEnProceso");
@@ -1715,15 +1718,25 @@
     }
 
     function iniciarActualizacionAutomatica() {
-      setInterval(async () => {
-        const ok = await validarSesionActiva();
-        if (!ok) return;
+      if (actualizacionAutomaticaTimer) {
+        clearInterval(actualizacionAutomaticaTimer);
+      }
+
+      actualizacionAutomaticaTimer = setInterval(async () => {
+        if (actualizacionAutomaticaEnCurso || debePausarActualizacionAutomatica()) return;
+
+        actualizacionAutomaticaEnCurso = true;
         try {
+          const ok = await validarSesionActiva();
+          if (!ok) return;
+          if (debePausarActualizacionAutomatica()) return;
           await cargarTablaPrincipal();
         } catch (_) {
           // Silencioso para no interrumpir a tecnico.
+        } finally {
+          actualizacionAutomaticaEnCurso = false;
         }
-      }, 30000);
+      }, AUTO_REFRESH_MS);
     }
 
     document.addEventListener("click", (event) => {
