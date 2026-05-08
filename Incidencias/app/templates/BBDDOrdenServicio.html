@@ -308,10 +308,10 @@
     }
     .checkbox-grid input[type="checkbox"]:checked::after {
       content: '';
-      position: absolute; left: 3px; top: 1px;
-      width: 7px; height: 11px;
+      position: absolute; left: 50%; top: 45%;
+      width: 5px; height: 9px;
       border: 2px solid #fff; border-top: none; border-left: none;
-      transform: rotate(45deg);
+      transform: translate(-50%, -50%) rotate(45deg);
     }
 
     /* ── FILE PICKER ── */
@@ -495,10 +495,10 @@
         <div class="fields-grid">
           <div class="section-sep" style="margin-top:0"><span class="section-sep-dot"></span>Datos del Cliente</div>
 
-          <div class="field"><label>RUT</label><textarea id="rut" class="short"></textarea></div>
-          <div class="field"><label>Razón Social</label><textarea id="razonSocial" class="short"></textarea></div>
-          <div class="field"><label>Nombre Sucursal</label><textarea id="nombreSucursal" class="short"></textarea></div>
-          <div class="field"><label>Dirección Sucursal</label><textarea id="direccionSucursal" class="short"></textarea></div>
+          <div class="field"><label>RUT</label><input type="text" id="rut"></div>
+          <div class="field"><label>Razón Social</label><input type="text" id="razonSocial"></div>
+          <div class="field"><label>Nombre Sucursal</label><input type="text" id="nombreSucursal"></div>
+          <div class="field"><label>Dirección Sucursal</label><input type="text" id="direccionSucursal"></div>
 
           <div class="section-sep"><span class="section-sep-dot"></span>Datos Comerciales</div>
 
@@ -521,8 +521,8 @@
               <option>CONDOMINIO</option>
             </select>
           </div>
-          <div class="field"><label>Monto a Cobrar</label><textarea id="montoACobrar" class="short"></textarea></div>
-          <div class="field">
+          <div class="field"><label>Monto a Cobrar</label><input type="text" id="montoACobrar"></div>
+          <div class="field" style="grid-column:1/-1">
             <label>Tipo Servicio</label>
             <button class="btn-toggle" onclick="toggleServicio()" type="button">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
