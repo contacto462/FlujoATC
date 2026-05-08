@@ -1142,6 +1142,172 @@
       );
     }
 
+    function llenarSelectOpciones(select, opciones, placeholder = "Seleccionar...") {
+      if (!select) return;
+      select.innerHTML = `<option value="">${escapeHTML(placeholder)}</option>`;
+      opciones.forEach(([value, label]) => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = label;
+        select.appendChild(option);
+      });
+    }
+
+    function actualizarCausasCierre() {
+      const responsable = document.getElementById("responsableCierre")?.value || "";
+      const causa = document.getElementById("causaCierre");
+      if (!causa) return;
+      if (!responsable || !CAUSAS_CIERRE[responsable]) {
+        causa.disabled = true;
+        llenarSelectOpciones(causa, [], "Selecciona responsable primero");
+        return;
+      }
+      causa.disabled = false;
+      llenarSelectOpciones(causa, CAUSAS_CIERRE[responsable], "Seleccionar causa...");
+    }
+
+    function renderPruebasCierre() {
+      const cont = document.getElementById("pruebasCierre");
+      if (!cont) return;
+      cont.innerHTML = "";
+      PRUEBAS_CIERRE.forEach(([value, label]) => {
+        const item = document.createElement("label");
+        item.className = "cierre-check";
+        item.innerHTML = `<input type="checkbox" value="${escapeHTML(value)}" /> <span>${escapeHTML(label)}</span>`;
+        cont.appendChild(item);
+      });
+    }
+
+    function renderMaterialesCierre() {
+      const cont = document.getElementById("materialesCierre");
+      if (!cont) return;
+      cont.innerHTML = "";
+      MATERIALES_CIERRE.forEach(([codigo, nombre, unidad]) => {
+        const row = document.createElement("div");
+        row.className = "material-row";
+        row.dataset.codigo = codigo;
+        row.dataset.nombre = nombre;
+        row.innerHTML = `
+          <label class="material-name">
+            <input type="checkbox" class="material-check" value="${escapeHTML(codigo)}" />
+            <span>${escapeHTML(nombre)}</span>
+          </label>
+          <input type="number" class="material-cantidad" min="0" step="0.01" placeholder="Cant." disabled />
+          <select class="material-unidad" disabled>
+            <option value="${escapeHTML(unidad)}">${escapeHTML(unidad)}</option>
+            <option value="unidad">unidad</option>
+            <option value="metro">metro</option>
+            <option value="set">set</option>
+          </select>
+        `;
+        const check = row.querySelector(".material-check");
+        const cantidad = row.querySelector(".material-cantidad");
+        const unidadSel = row.querySelector(".material-unidad");
+        check.addEventListener("change", () => {
+          cantidad.disabled = !check.checked;
+          unidadSel.disabled = !check.checked;
+          if (!check.checked) cantidad.value = "";
+          if (check.checked && !cantidad.value) cantidad.value = "1";
+        });
+        cont.appendChild(row);
+      });
+    }
+
+    function setMaterialesSinUsoActivo(activo) {
+      document.querySelectorAll("#materialesCierre .material-row").forEach((row) => {
+        const check = row.querySelector(".material-check");
+        const cantidad = row.querySelector(".material-cantidad");
+        const unidad = row.querySelector(".material-unidad");
+        if (!check || !cantidad || !unidad) return;
+        check.disabled = activo;
+        if (activo) {
+          check.checked = false;
+          cantidad.value = "";
+          cantidad.disabled = true;
+          unidad.disabled = true;
+        }
+      });
+    }
+
+    function inicializarFormularioCierre() {
+      llenarSelectOpciones(document.getElementById("accionCierre"), ACCIONES_CIERRE, "Seleccionar accion...");
+      llenarSelectOpciones(document.getElementById("resultadoCierre"), RESULTADOS_CIERRE, "Seleccionar resultado...");
+      actualizarCausasCierre();
+      renderPruebasCierre();
+      renderMaterialesCierre();
+      document.getElementById("responsableCierre")?.addEventListener("change", actualizarCausasCierre);
+      document.getElementById("materialesSinUso")?.addEventListener("change", (event) => {
+        setMaterialesSinUsoActivo(event.target.checked);
+      });
+    }
+
+    function resetFormularioCierre() {
+      document.getElementById("responsableCierre").value = "";
+      actualizarCausasCierre();
+      document.getElementById("accionCierre").value = "";
+      document.getElementById("resultadoCierre").value = "";
+      document.getElementById("observacion").value = "";
+      document.getElementById("cierreError").textContent = "";
+      document.querySelectorAll("#pruebasCierre input[type='checkbox']").forEach((input) => {
+        input.checked = false;
+      });
+      const sinUso = document.getElementById("materialesSinUso");
+      sinUso.checked = false;
+      setMaterialesSinUsoActivo(false);
+      document.querySelectorAll("#materialesCierre .material-row").forEach((row) => {
+        row.querySelector(".material-check").checked = false;
+        row.querySelector(".material-cantidad").value = "";
+        row.querySelector(".material-cantidad").disabled = true;
+        row.querySelector(".material-unidad").disabled = true;
+      });
+      document.getElementById("contenedorFotos").innerHTML = '<input type="file" class="fotoAdjuntar" required />';
+    }
+
+    function collectDiagnosticoCierre() {
+      const responsableCierre = document.getElementById("responsableCierre").value;
+      const causaCierre = document.getElementById("causaCierre").value;
+      const accionCierre = document.getElementById("accionCierre").value;
+      const resultadoCierre = document.getElementById("resultadoCierre").value;
+      const observacion = document.getElementById("observacion").value.trim();
+      const pruebasCierre = Array.from(document.querySelectorAll("#pruebasCierre input:checked")).map((input) => input.value);
+      const materialesSinUso = document.getElementById("materialesSinUso").checked;
+      const materiales = [];
+
+      document.querySelectorAll("#materialesCierre .material-row").forEach((row) => {
+        const check = row.querySelector(".material-check");
+        if (!check?.checked) return;
+        materiales.push({
+          codigo: check.value,
+          nombre: row.dataset.nombre || check.value,
+          cantidad: row.querySelector(".material-cantidad").value,
+          unidad: row.querySelector(".material-unidad").value,
+        });
+      });
+
+      if (!responsableCierre) throw new Error("Selecciona si el problema fue responsabilidad de ATC o Cliente.");
+      if (!causaCierre) throw new Error("Selecciona la causa raiz.");
+      if (!accionCierre) throw new Error("Selecciona la accion realizada.");
+      if (!resultadoCierre) throw new Error("Selecciona el resultado final.");
+      if (!pruebasCierre.length) throw new Error("Selecciona al menos una prueba realizada.");
+      if (!materialesSinUso && !materiales.length) throw new Error("Agrega materiales o marca que no se usaron materiales.");
+      if (materiales.some((m) => !m.cantidad || Number(m.cantidad) <= 0)) {
+        throw new Error("Cada material seleccionado debe tener cantidad mayor a 0.");
+      }
+      if (!observacion) throw new Error("Ingresa una observacion final breve.");
+
+      return {
+        observacion,
+        responsableCierre,
+        causaCierre,
+        accionCierre,
+        resultadoCierre,
+        pruebasCierre,
+        materiales,
+        materialesSinUso,
+        requiereSeguimiento: resultadoCierre === "requiere_seguimiento",
+      };
+    }
+
     function normalizarDireccion(str) {
       return normalizarTexto(str).replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
     }
