@@ -1329,8 +1329,32 @@
       const tecnicoQ = tecnicoActual ? `?tecnico=${encodeURIComponent(tecnicoActual)}` : "";
       const incidencias = await api(`/api/incidencias/puesto${tecnicoQ}`);
       const todos = toRegistrosTecnico(incidencias);
+      registrosTecnicoFull = (Array.isArray(incidencias) ? incidencias : [])
+        .filter((fila) => {
+          const derivacion = normalizarTexto(fila?.[5] || "");
+          const estado = estadoCanonico(fila?.[8] || "");
+          const esTerminado =
+            estado === "Terminado" ||
+            derivacion.includes("finalizado") ||
+            derivacion.includes("terminado") ||
+            derivacion.includes("repetida");
+          if (!derivacion.includes("servicio tecnico") && !esTerminado) return false;
+          if (!tecnicoFiltrado) return true;
+          const asignados = normalizarTexto(`${fila?.[7] || ""} ${fila?.[10] || ""} ${fila?.[6] || ""}`);
+          return asignados.includes(tecnicoFiltrado);
+        })
+        .map((fila) => ({
+          odt: fila?.[0] || "",
+          fecha: fila?.[1] || "",
+          cliente: fila?.[3] || "",
+          servicio: fila?.[4] || "",
+          estado: estadoCanonico(fila?.[8] || ""),
+          prioridad: fila?.[12] || "",
+          direccion: fila?.[13] || "",
+        }));
       cargarRegistrosEnTabla(todos);
       cantidadRegistrosActual = todos.length;
+      await recalcularRutaVisible();
     }
 
     window.onload = async function () {
@@ -1437,6 +1461,7 @@
         const textoEstado = estadoCanonico(fila.children[5]?.textContent?.trim());
         fila.style.display = (filtro === "Todos" || textoEstado === filtro) ? "" : "none";
       });
+      recalcularRutaVisible().catch(() => {});
     }
 
     function agregarOtroArchivo() {
