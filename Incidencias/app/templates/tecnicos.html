@@ -1966,6 +1966,7 @@
       const fotosBase64 = [];
       let leidos = 0;
       let totalArchivos = 0;
+      const archivosSeleccionados = [];
 
       if (!odtCierre) {
         alert("No hay ODT activa para finalizar.");
@@ -1983,6 +1984,7 @@
 
       inputsArchivos.forEach((input) => {
         totalArchivos += input.files.length;
+        Array.from(input.files || []).forEach((file) => archivosSeleccionados.push(file));
       });
 
       if (totalArchivos < 1) {
@@ -1990,8 +1992,25 @@
         return;
       }
 
-      if (totalArchivos > 2) {
+      if (cierreActualEsMantencion && totalArchivos > MANTENCION_MAX_IMAGENES_CIERRE) {
+        cierreError.textContent = `Solo puedes adjuntar hasta ${MANTENCION_MAX_IMAGENES_CIERRE} imagenes para mantencion.`;
+        return;
+      }
+
+      if (!cierreActualEsMantencion && totalArchivos > 2) {
         cierreError.textContent = "Solo se permiten HASTA DOS fotos para cerrar la ODT.";
+        return;
+      }
+
+      const archivoInvalido = archivosSeleccionados.find((file) => !String(file.type || "").toLowerCase().startsWith("image/"));
+      if (archivoInvalido) {
+        cierreError.textContent = `${archivoInvalido.name || "Un archivo"} no es una imagen valida.`;
+        return;
+      }
+
+      const archivoPesado = archivosSeleccionados.find((file) => Number(file.size || 0) > MANTENCION_MAX_BYTES_IMAGEN);
+      if (archivoPesado) {
+        cierreError.textContent = `${archivoPesado.name || "Una imagen"} supera el limite de 10 MB.`;
         return;
       }
 
@@ -2001,6 +2020,35 @@
       estado.textContent = "Enviando solicitud...";
 
       try {
+        if (cierreActualEsMantencion) {
+          const formData = new FormData();
+          formData.append("odt", odtCierre);
+          formData.append("token", tokenSesion || "");
+          formData.append("diagnostico", JSON.stringify(diagnostico));
+          archivosSeleccionados.forEach((file) => formData.append("files", file, file.name || "imagen.jpg"));
+
+          const res = await fetch("/api/incidencias/cierre-mantencion", {
+            method: "POST",
+            body: formData,
+          });
+          const contentType = res.headers.get("content-type") || "";
+          const payload = contentType.includes("application/json") ? await res.json() : await res.text();
+          if (!res.ok) {
+            const detail = typeof payload === "string" ? payload : payload?.detail || JSON.stringify(payload);
+            throw new Error(detail || `HTTP ${res.status}`);
+          }
+
+          estado.textContent = payload?.message || "ODT cerrada. Las imagenes se estan subiendo a Drive en segundo plano.";
+          btnGuardar.textContent = "Guardar y Finalizar";
+          btnGuardar.disabled = false;
+          cerrarModalFinalizar();
+          setTimeout(async () => {
+            modal.style.display = "none";
+            await cargarTablaPrincipal();
+          }, 900);
+          return;
+        }
+
         await api("/api/incidencias/cerrar", {
           method: "POST",
           body: JSON.stringify({ odt: odtCierre, ...diagnostico }),
