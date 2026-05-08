@@ -763,40 +763,9 @@
       <option value="Pendiente">Pendiente</option>
       <option value="Terminado">Terminado</option>
     </select>
+    <button type="button" class="btn-secundario" id="btnRutaGoogle" onclick="abrirRutaGoogleMaps()" disabled>Ver Ruta en Google Maps</button>
+    <button type="button" class="btn-secundario" id="btnRutaWaze" onclick="abrirRutaWaze()" disabled>Ver Ruta en Waze</button>
     <button type="button" class="btn-secundario" onclick="abrirBandejaRendiciones()">Rendiciones</button>
-  </div>
-
-  <div class="ruta-panel">
-    <div class="ruta-head">
-      <div>
-        <h3 class="ruta-title">Ruta del día</h3>
-        <p class="ruta-subtitle">Salida base: 1 Oriente 1180, Viña del Mar. Orden sugerido para tus ODT visibles y activas.</p>
-      </div>
-      <div class="ruta-actions">
-        <button type="button" class="btn-secundario" id="btnRutaGoogle" onclick="abrirRutaGoogleMaps()" disabled>Ver ruta en Google Maps</button>
-        <button type="button" class="btn-secundario" id="btnRutaWaze" onclick="abrirRutaWaze()" disabled>Ir a próxima parada en Waze</button>
-      </div>
-    </div>
-    <div id="rutaStatus" class="ruta-status">Calculando ruta...</div>
-    <div class="ruta-resumen">
-      <div class="ruta-metric">
-        <span class="ruta-metric-label">Origen</span>
-        <span class="ruta-metric-value">1 Oriente 1180</span>
-      </div>
-      <div class="ruta-metric">
-        <span class="ruta-metric-label">Paradas</span>
-        <span class="ruta-metric-value" id="rutaMetricParadas">0</span>
-      </div>
-      <div class="ruta-metric">
-        <span class="ruta-metric-label">Geocodificadas</span>
-        <span class="ruta-metric-value" id="rutaMetricGeo">0</span>
-      </div>
-      <div class="ruta-metric">
-        <span class="ruta-metric-label">Estado</span>
-        <span class="ruta-metric-value" id="rutaMetricEstado">Sin ruta</span>
-      </div>
-    </div>
-    <div id="rutaLista" class="ruta-lista"></div>
   </div>
 
   <div id="registroForm" class="tabla-shell">
