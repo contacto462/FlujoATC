@@ -3292,7 +3292,10 @@ class IncidenciasService:
     def _es_registro_mantencion_preventiva(row_odt: Registro | None) -> bool:
         if not row_odt:
             return False
-        return str(getattr(row_odt, "problema", "") or "").strip().lower() == "mantencion preventiva"
+        txt = str(getattr(row_odt, "problema", "") or "").strip().lower()
+        txt = unicodedata.normalize("NFD", txt)
+        txt = "".join(c for c in txt if unicodedata.category(c) != "Mn")
+        return txt == "mantencion preventiva"
 
     def obtener_imagenes_tabla(self, odt: str) -> list[str]:
         odt_limpia = (odt or "").strip()
