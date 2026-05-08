@@ -3,38 +3,257 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BBDD Clientes</title>
+  <title>BBDD Clientes — ATC</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#f8f9fc; margin:0; color:#333; }
-    h2 { text-align:center; margin:40px 0 10px; font-size:30px; color:#2c3e50; font-weight:600; }
-    p.aviso-edicion { text-align:center; color:#7f8c8d; font-size:13px; margin-bottom:20px; }
-    .table-container { width:100%; padding:0 30px 40px; box-sizing:border-box; max-height:75vh; overflow-y:auto; }
-    table { width:100%; border-collapse:collapse; background:#fff; box-shadow:0 4px 12px rgba(0,0,0,.05); border-radius:6px; overflow:hidden; }
-    thead { background:#2c3e50; color:#fff; }
-    thead th { position:sticky; top:0; background:#2c3e50; z-index:2; font-weight:500; font-size:14px; }
-    th, td { padding:12px 16px; border-bottom:1px solid #e0e0e0; font-size:14px; text-align:left; }
-    tr:nth-child(even) { background:#f6f8fa; }
-    tr:hover td { background:#eef2f5; }
-    td.editing { background:#fff8dc; }
-    td.edited { background:#fcf8e3 !important; }
-    td.guardado { background:#d4edda !important; transition: background-color .6s ease-in-out; }
-    .guardar-btn { padding:6px 12px; background:#1abc9c; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:13px; float:right; display:none; }
-    .guardar-btn:hover { background:#16a085; }
-    .visible { display:inline-block !important; }
-    input.filtro { width:95%; padding:6px 8px; font-size:12px; margin-top:6px; border:1px solid #ccc; border-radius:4px; }
-    input[type="text"]:focus { outline:none; border-color:#1abc9c; box-shadow:0 0 5px rgba(26,188,156,.3); }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy-1: #0b1420;
+      --navy-2: #162538;
+      --navy-3: #1e3248;
+      --orange: #ff7a2b;
+      --orange-2: #ff9448;
+      --bg: #f0f4f8;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      color: var(--text);
+    }
+
+    /* ── HEADER ── */
+    .page-header {
+      background: linear-gradient(135deg, var(--navy-1) 0%, var(--navy-2) 60%, var(--navy-3) 100%);
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      box-shadow: 0 2px 16px rgba(0,0,0,.22);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-brand img {
+      height: 40px;
+      width: auto;
+      object-fit: contain;
+    }
+
+    .header-brand-text strong {
+      display: block;
+      font-size: 15px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -.02em;
+    }
+
+    .header-brand-text span {
+      font-size: 12px;
+      color: rgba(255,255,255,.55);
+    }
+
+    .btn-back {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 10px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.14);
+      color: rgba(255,255,255,.82);
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: background .18s;
+      white-space: nowrap;
+    }
+
+    .btn-back:hover { background: rgba(255,255,255,.14); }
+
+    /* ── CONTENT ── */
+    .page-content {
+      padding: 28px 28px 56px;
+    }
+
+    .section-bar {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+
+    .section-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+    }
+
+    .section-hint {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    /* ── TABLE CARD ── */
+    .table-card {
+      background: var(--surface);
+      border-radius: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06), 0 8px 28px rgba(0,0,0,.08);
+      overflow: hidden;
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+      max-height: calc(100vh - 220px);
+      overflow-y: auto;
+    }
+
+    /* ── TABLE ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+
+    thead th {
+      background: linear-gradient(135deg, var(--navy-1) 0%, var(--navy-2) 100%);
+      color: #fff;
+      padding: 13px 14px;
+      font-weight: 600;
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      border-right: 1px solid rgba(255,255,255,.06);
+    }
+
+    thead th:last-child { border-right: none; }
+
+    tbody tr:nth-child(even) td { background: #f8fafc; }
+    tbody tr:hover td { background: #eff6ff !important; }
+
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      vertical-align: middle;
+    }
+
+    /* ── CELL STATES ── */
+    td.editing { background: #fef9c3 !important; }
+    td.edited   { background: #fef3c7 !important; outline: 1px solid #f59e0b; }
+    td.guardado { background: #dcfce7 !important; transition: background .7s ease; }
+
+    /* ── FILTER INPUT (inside thead) ── */
+    input.filtro {
+      width: 100%;
+      margin-top: 6px;
+      padding: 5px 8px;
+      font-size: 12px;
+      font-family: inherit;
+      border: 1px solid rgba(255,255,255,.22);
+      border-radius: 6px;
+      background: rgba(255,255,255,.1);
+      color: #fff;
+    }
+
+    input.filtro::placeholder { color: rgba(255,255,255,.45); }
+    input.filtro:focus { outline: none; border-color: var(--orange); background: rgba(255,255,255,.16); }
+
+    /* ── SAVE BUTTON ── */
+    .guardar-btn {
+      padding: 5px 13px;
+      background: var(--orange);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: inherit;
+      display: none;
+      transition: background .18s, transform .12s;
+      white-space: nowrap;
+    }
+
+    .guardar-btn:hover { background: var(--orange-2); transform: translateY(-1px); }
+    .guardar-btn:disabled { background: var(--muted); cursor: not-allowed; transform: none; }
+    .visible { display: inline-block !important; }
+
+    /* ── STATE ── */
+    .estado-carga {
+      padding: 56px 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    @media (max-width: 768px) {
+      .page-header { padding: 12px 16px; }
+      .page-content { padding: 16px 14px 40px; }
+    }
   </style>
 </head>
 <body>
-  <h2>BBDD Clientes</h2>
-  <p class="aviso-edicion">Haz doble clic sobre cualquier celda para editarla.</p>
-  <div class="table-container"><div id="tabla-container">Cargando datos...</div></div>
+
+  <header class="page-header">
+    <div class="header-brand">
+      <img src="/shared-static/img/logo-atc.png" alt="ATC - Alguien Te Cuida">
+      <div class="header-brand-text">
+        <strong>Alguien Te Cuida</strong>
+        <span>Base de Datos — Clientes</span>
+      </div>
+    </div>
+    <a id="btnVolver" href="#" class="btn-back">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Volver al panel
+    </a>
+  </header>
+
+  <main class="page-content">
+    <div class="section-bar">
+      <div>
+        <h1 class="section-title">BBDD Clientes</h1>
+        <p class="section-hint">Haz doble clic sobre cualquier celda para editarla. Los filtros se aplican en tiempo real.</p>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-scroll">
+        <div id="tabla-container"><div class="estado-carga">Cargando datos...</div></div>
+      </div>
+    </div>
+  </main>
+
   <script>
     const qsToken = new URLSearchParams(window.location.search).get("token") || "";
     const withToken = (url) => {
       const sep = url.includes("?") ? "&" : "?";
       return qsToken ? `${url}${sep}token=${encodeURIComponent(qsToken)}` : url;
     };
+    document.getElementById("btnVolver").href = withToken("/venta/panel-selector");
+
     function renderTable(payload) {
       const headers = payload.headers || [];
       const rows = payload.rows || [];
@@ -60,6 +279,7 @@
       html += '</tbody></table>';
       container.innerHTML = html;
     }
+
     function filtrarTabla() {
       const filtros = document.querySelectorAll('input.filtro');
       document.querySelectorAll('tbody tr').forEach(tr => {
@@ -73,12 +293,14 @@
         tr.style.display = mostrar ? '' : 'none';
       });
     }
+
     function editarCelda(td) {
       if (td.querySelector('input')) return;
       const original = td.textContent;
       const input = document.createElement('input');
       input.type = 'text';
       input.value = original;
+      input.style.cssText = 'width:100%;padding:4px 6px;border:1.5px solid #ff7a2b;border-radius:5px;font-size:13px;font-family:inherit;background:#fff;outline:none;';
       td.classList.add('editing');
       td.innerHTML = '';
       td.appendChild(input);
@@ -97,6 +319,7 @@
       input.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); finish(e.key); } });
       input.addEventListener('blur', () => finish());
     }
+
     async function guardarFila(filaIndex, boton) {
       const row = document.querySelector(`tr[data-fila="${filaIndex}"]`);
       const rowId = Number(row.dataset.rowid);
@@ -117,7 +340,7 @@
           throw new Error(typeof err.detail === 'string' ? err.detail : 'No se pudo guardar');
         }
         edited.forEach(td => { td.classList.remove('edited'); td.classList.add('guardado'); setTimeout(() => td.classList.remove('guardado'), 2000); });
-        boton.textContent = "Guardado OK";
+        boton.textContent = "Guardado ✓";
         setTimeout(() => { boton.classList.remove('visible'); boton.disabled = false; boton.textContent = "Guardar"; }, 1500);
       } catch (error) {
         alert(error.message || 'Error al guardar fila');
@@ -125,13 +348,14 @@
         boton.textContent = "Guardar";
       }
     }
+
     async function init() {
       try {
         const response = await fetch(withToken('/api/venta/clientes/tabla'));
         if (!response.ok) throw new Error('No se pudo cargar la tabla');
         renderTable(await response.json());
       } catch (error) {
-        document.getElementById('tabla-container').textContent = error.message || 'Error cargando datos.';
+        document.getElementById('tabla-container').innerHTML = `<div class="estado-carga">${error.message || 'Error cargando datos.'}</div>`;
       }
     }
     init();
