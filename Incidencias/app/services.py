@@ -2552,9 +2552,10 @@ class IncidenciasService:
         if orden:
             primera = orden[0]
             if _coords_validas(primera["latitud"], primera["longitud"]):
+                ll_value = f"{primera['latitud']},{primera['longitud']}"
                 waze_url = (
                     "https://waze.com/ul"
-                    f"?ll={quote_plus(f'{primera['latitud']},{primera['longitud']}')}"
+                    f"?ll={quote_plus(ll_value)}"
                     "&navigate=yes"
                 )
             elif primera.get("direccion"):

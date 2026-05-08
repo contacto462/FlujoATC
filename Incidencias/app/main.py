@@ -554,6 +554,17 @@ def obtener_incidencias_por_puesto(
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
+@app.get("/api/tecnicos/ruta-optima")
+def obtener_ruta_optima_tecnico(
+    service: Annotated[IncidenciasService, Depends(get_service)],
+    tecnico: str = "",
+):
+    try:
+        return service.obtener_ruta_optima_tecnico(tecnico=tecnico)
+    except ValueError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
 @app.get("/api/incidencias/coordinacion")
 def obtener_incidencias_coordinacion(
     service: Annotated[IncidenciasService, Depends(get_service)],
@@ -1208,5 +1219,4 @@ def debug_db(
     except Exception as e:
         out["catalogo_clientes_sample_error"] = str(e)
     return out
-
 
