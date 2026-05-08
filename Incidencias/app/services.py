@@ -186,7 +186,6 @@ SUCURSALES_EXTRA_MANTENCION: list[str] = [
     *MANTENCIONES_MENSUALES_LLAY_LLAY,
     "Quintero",
     "Concon",
-    "Llay Llay",
 ]
 KNOWN_REGISTRO_BLOCKING_QUERY = "ALTER TABLE registro DROP COLUMN IF EXISTS foto_2"
 LOGGER = logging.getLogger(__name__)
@@ -5330,4 +5329,3 @@ class IncidenciasService:
                 }
             )
         return resultado
-
