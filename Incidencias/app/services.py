@@ -2684,6 +2684,145 @@ class IncidenciasService:
         self.db.commit()
         return {"ok": True, "odt": odt_limpia, "observacion_final": row.observacion_final or ""}
 
+    def _normalizar_codigo_cierre(self, valor: Any) -> str:
+        return (
+            self._normalizar_texto(valor)
+            .replace("/", "_")
+            .replace("-", "_")
+            .replace(" ", "_")
+        )
+
+    def _normalizar_responsable_cierre(self, valor: Any) -> str:
+        responsable = self._normalizar_texto(valor)
+        if responsable == "atc":
+            return "ATC"
+        if responsable == "cliente":
+            return "Cliente"
+        raise ValueError("Debes seleccionar si el problema fue responsabilidad de ATC o del Cliente.")
+
+    def _normalizar_materiales_cierre(
+        self,
+        materiales: list[Any] | None,
+        materiales_sin_uso: bool = False,
+    ) -> list[dict[str, Any]]:
+        if materiales_sin_uso:
+            return []
+
+        normalizados: list[dict[str, Any]] = []
+        for item in materiales or []:
+            if not isinstance(item, dict):
+                continue
+            codigo = self._normalizar_codigo_cierre(item.get("codigo"))
+            nombre = str(item.get("nombre") or "").strip()
+            unidad = str(item.get("unidad") or "unidad").strip() or "unidad"
+            cantidad_raw = item.get("cantidad")
+            try:
+                cantidad = float(str(cantidad_raw).replace(",", "."))
+            except (TypeError, ValueError):
+                cantidad = 0
+            if not codigo and not nombre and cantidad <= 0:
+                continue
+            if codigo not in self.MATERIALES_CIERRE:
+                raise ValueError("Hay un material no valido en el cierre.")
+            if codigo == "otro" and not nombre:
+                raise ValueError("Indica el nombre del material marcado como Otro.")
+            if cantidad <= 0:
+                raise ValueError("La cantidad de cada material debe ser mayor a 0.")
+            normalizados.append(
+                {
+                    "codigo": codigo,
+                    "nombre": nombre or codigo,
+                    "cantidad": int(cantidad) if cantidad.is_integer() else cantidad,
+                    "unidad": unidad,
+                }
+            )
+
+        if not normalizados:
+            raise ValueError("Agrega al menos un material o marca que no se usaron materiales.")
+        return normalizados
+
+    def _normalizar_diagnostico_cierre(
+        self,
+        *,
+        responsable_cierre: Any,
+        causa_cierre: Any,
+        accion_cierre: Any,
+        resultado_cierre: Any,
+        pruebas_cierre: list[Any] | None,
+        materiales: list[Any] | None,
+        materiales_sin_uso: bool = False,
+        requiere_seguimiento: bool = False,
+    ) -> dict[str, Any]:
+        responsable = self._normalizar_responsable_cierre(responsable_cierre)
+        causa = self._normalizar_codigo_cierre(causa_cierre)
+        accion = self._normalizar_codigo_cierre(accion_cierre)
+        resultado = self._normalizar_codigo_cierre(resultado_cierre)
+        pruebas = sorted(
+            {
+                self._normalizar_codigo_cierre(p)
+                for p in (pruebas_cierre or [])
+                if self._normalizar_codigo_cierre(p)
+            }
+        )
+
+        if causa not in self.CAUSAS_CIERRE[responsable]:
+            raise ValueError("Selecciona una causa valida para el responsable elegido.")
+        if accion not in self.ACCIONES_CIERRE:
+            raise ValueError("Selecciona una accion realizada valida.")
+        if resultado not in self.RESULTADOS_CIERRE:
+            raise ValueError("Selecciona un resultado final valido.")
+        if not pruebas:
+            raise ValueError("Selecciona al menos una prueba realizada.")
+        if any(p not in self.PRUEBAS_CIERRE for p in pruebas):
+            raise ValueError("Hay una prueba realizada no valida.")
+
+        materiales_norm = self._normalizar_materiales_cierre(materiales, materiales_sin_uso)
+        requiere_seg = bool(requiere_seguimiento or resultado == "requiere_seguimiento")
+
+        return {
+            "responsable_cierre": responsable,
+            "causa_cierre": causa,
+            "accion_cierre": accion,
+            "resultado_cierre": resultado,
+            "pruebas_cierre": pruebas,
+            "materiales": materiales_norm,
+            "materiales_sin_uso": bool(materiales_sin_uso),
+            "requiere_seguimiento": requiere_seg,
+        }
+
+    def _aplicar_diagnostico_cierre(self, row: Registro, diagnostico: dict[str, Any]) -> None:
+        row.responsable_cierre = diagnostico["responsable_cierre"]
+        row.causa_cierre = diagnostico["causa_cierre"]
+        row.accion_cierre = diagnostico["accion_cierre"]
+        row.resultado_cierre = diagnostico["resultado_cierre"]
+        row.pruebas_cierre = json.dumps(diagnostico["pruebas_cierre"], ensure_ascii=False)
+        row.materiales = json.dumps(
+            {
+                "sin_uso": diagnostico["materiales_sin_uso"],
+                "items": diagnostico["materiales"],
+            },
+            ensure_ascii=False,
+        )
+        row.requiere_seguimiento = diagnostico["requiere_seguimiento"]
+
+    def _resumen_diagnostico_cierre(self, diagnostico: dict[str, Any]) -> str:
+        materiales = diagnostico.get("materiales") or []
+        if diagnostico.get("materiales_sin_uso"):
+            materiales_txt = "Sin materiales"
+        else:
+            materiales_txt = ", ".join(
+                f"{m.get('nombre') or m.get('codigo')} x{m.get('cantidad')} {m.get('unidad') or ''}".strip()
+                for m in materiales
+            )
+        return (
+            f"Responsable: {diagnostico.get('responsable_cierre')}; "
+            f"Causa: {diagnostico.get('causa_cierre')}; "
+            f"Accion: {diagnostico.get('accion_cierre')}; "
+            f"Resultado: {diagnostico.get('resultado_cierre')}; "
+            f"Pruebas: {', '.join(diagnostico.get('pruebas_cierre') or [])}; "
+            f"Materiales: {materiales_txt or 'Sin materiales'}"
+        )
+
     def cerrar_incidencia(self, odt: str, fecha_cierre: datetime) -> bool:
         odt_limpia = (odt or "").strip()
         row = self.db.scalar(select(Registro).where(Registro.odt == odt_limpia))
