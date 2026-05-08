@@ -1288,7 +1288,7 @@
         row.querySelector(".material-cantidad").disabled = true;
         row.querySelector(".material-unidad").disabled = true;
       });
-      document.getElementById("contenedorFotos").innerHTML = '<input type="file" class="fotoAdjuntar" required />';
+      configurarFotosCierre(cierreActualEsMantencion);
     }
 
     function collectDiagnosticoCierre() {
@@ -1693,6 +1693,7 @@
     }
 
     function agregarOtroArchivo() {
+      if (cierreActualEsMantencion) return;
       const contenedorFotos = document.getElementById("contenedorFotos");
       const inputsActuales = contenedorFotos.querySelectorAll(".fotoAdjuntar");
 
@@ -1703,6 +1704,7 @@
 
       const nuevoArchivo = document.createElement("input");
       nuevoArchivo.type = "file";
+      nuevoArchivo.accept = "image/*";
       nuevoArchivo.classList.add("fotoAdjuntar");
       nuevoArchivo.required = true;
       contenedorFotos.appendChild(nuevoArchivo);
@@ -1927,6 +1929,8 @@
         return;
       }
       odtModalFinalizar = odtSeleccionada;
+      const registro = registroTecnicoPorOdt(odtSeleccionada);
+      cierreActualEsMantencion = esMantencionPreventiva(registro?.servicio || "");
       const modal = document.getElementById("modalFinalizar");
       if (modal) {
         resetFormularioCierre();
@@ -1945,6 +1949,7 @@
       const label = document.getElementById("modalFinalizarOdt");
       if (label) label.textContent = "";
       odtModalFinalizar = "";
+      cierreActualEsMantencion = false;
       resetFormularioCierre();
     }
 
