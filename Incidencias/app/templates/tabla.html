@@ -1166,7 +1166,6 @@
 
       <div class="acciones-form">
         <button type="button" onclick="cerrarModalImagenesTabla()">Cancelar</button>
-        <button type="button" id="btnGuardarPlantillaMantencion" onclick="guardarPlantillaMantencionDesdeModal()">Guardar plantilla sucursal</button>
         <button type="button" class="btn-odt" id="btnSubirImagenesTabla" onclick="subirImagenesTabla()">Subir</button>
       </div>
     </div>
@@ -2744,46 +2743,6 @@
       } finally {
         imagenesTablaSubiendo = false;
         renderImagenesTablaLista();
-      }
-    }
-
-    async function guardarPlantillaMantencionDesdeModal() {
-      const odt = String(imagenesTablaOdtActual || "").trim();
-      if (!odt) {
-        setMensaje("ODT invalida para guardar plantilla.", false);
-        return;
-      }
-      const registro = getRegistroPorOdt(odt);
-      const sucursal = String(registro?.cliente || "").trim();
-      if (!sucursal) {
-        setMensaje("No se pudo detectar la sucursal de esta ODT.", false);
-        return;
-      }
-
-      const btn = document.getElementById("btnGuardarPlantillaMantencion");
-      const textoOriginal = btn?.textContent || "Guardar plantilla sucursal";
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = "Guardando...";
-      }
-
-      try {
-        const payload = await api("/api/mantencion/programada/plantilla-desde-odt", {
-          method: "POST",
-          body: JSON.stringify({
-            sucursal,
-            odt_origen: odt
-          })
-        });
-        const total = Number(payload?.total_imagenes || 0);
-        setMensaje(`Plantilla guardada para ${sucursal}. Imagenes: ${total}.`);
-      } catch (err) {
-        setMensaje(`Error guardando plantilla de sucursal: ${err.message}`, false);
-      } finally {
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = textoOriginal;
-        }
       }
     }
 
