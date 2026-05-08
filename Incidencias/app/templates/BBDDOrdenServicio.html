@@ -738,6 +738,19 @@
       div.style.display = div.style.display === "grid" ? "none" : "grid";
     }
 
+    /* ── FILE PICKER LABEL ── */
+    function updateFilePicker(input, labelId) {
+      const label = document.getElementById(labelId);
+      if (!label) return;
+      if (input.files && input.files.length) {
+        label.textContent = input.files[0].name;
+        label.style.color = "var(--orange)";
+      } else {
+        label.textContent = "Seleccionar archivo";
+        label.style.color = "";
+      }
+    }
+
     function escHTML(str) {
       return String(str || '').replace(/[&<>"']/g, c =>
         ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])
