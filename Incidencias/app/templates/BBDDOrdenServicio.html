@@ -799,14 +799,23 @@
         const datos = { selectorODS: activeODS };
         const campos = [
           "rut","razonSocial","direccionSucursal","nombreSucursal",
-          "tipoPlan","tipoCliente","camInstalar","camVigilar",
-          "montoACobrar","diasAdicional","horario",
+          "tipoPlan","aguaBano","tipoCliente","camInstalar","camVigilar","camDesinstalar",
+          "diasMonitoreoDesde","diasMonitoreoHasta","diasAdicional","horario",
           "materiales","consideraciones","observacion"
         ];
         campos.forEach((id) => datos[id] = document.getElementById(id)?.value || "");
         datos.tipoServicio = Array.from(
           document.querySelectorAll('#servicios-wrapper input[type="checkbox"]:checked')
         ).map(cb => cb.value).join(", ");
+
+        // Build montoACobrar from dynamic monto fields
+        const montoLines = Array.from(document.querySelectorAll('#contenedor-montos input[data-monto]'))
+          .map(el => {
+            const label = el.previousElementSibling?.textContent?.trim();
+            const val = el.value.trim();
+            return (label && val) ? `${label}: ${val}` : null;
+          }).filter(Boolean);
+        datos.montoACobrar = montoLines.join("\n");
 
         const cotizacion = await archivoABase64(document.getElementById("cotizacion"));
         const layout = await archivoABase64(document.getElementById("layout"));
