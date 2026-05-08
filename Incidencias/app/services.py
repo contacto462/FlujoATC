@@ -2932,10 +2932,34 @@ class IncidenciasService:
         self.db.commit()
         return True
 
+    @staticmethod
+    def _es_registro_mantencion_preventiva(row_odt: Registro | None) -> bool:
+        if not row_odt:
+            return False
+        return str(getattr(row_odt, "problema", "") or "").strip().lower() == "mantencion preventiva"
+
     def obtener_imagenes_tabla(self, odt: str) -> list[str]:
         odt_limpia = (odt or "").strip()
         if not odt_limpia:
             return []
+        row_odt = self.db.scalar(select(Registro).where(Registro.odt == odt_limpia))
+        if self._es_registro_mantencion_preventiva(row_odt):
+            sucursal_real = str(getattr(row_odt, "cliente", "") or "").strip()
+            imagenes_sucursal = self._imagenes_programadas_para_sucursal(sucursal_real)
+            imagenes_publicas = [
+                str(url or "").strip()
+                for url in (imagenes_sucursal or [])
+                if self._es_url_publica_imagen(str(url or "").strip())
+            ][:3]
+            self._upsert_unified_images(
+                odt=odt_limpia,
+                sucursal=sucursal_real,
+                usuario="sync_mantencion_por_sucursal",
+                imagenes=imagenes_publicas,
+            )
+            self.db.commit()
+            return imagenes_publicas
+
         row = self.db.scalar(select(IncidenciaImagenTabla).where(IncidenciaImagenTabla.odt == odt_limpia))
         unified_images = self._parse_image_list(row.imagenes if row else "[]")
         drive_images = list_support_images_for_odt(
@@ -3031,6 +3055,8 @@ class IncidenciasService:
 
         sucursal_value = str(row_odt.cliente or "").strip()
         self._upsert_unified_images(odt_limpia, sucursal_value, usuario, merged_images)
+        if self._es_registro_mantencion_preventiva(row_odt) and sucursal_value:
+            self.guardar_plantilla_imagenes_mantencion(sucursal=sucursal_value, imagenes=merged_images)
 
         self.db.commit()
         return {
