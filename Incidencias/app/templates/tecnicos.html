@@ -845,9 +845,7 @@
     let reopenedEstado = "";
     let odtModalFinalizar = "";
     let odtModalEnProceso = "";
-    const geocodeCache = new Map();
     const RUTA_ORIGEN_BASE = "1 Oriente 1180, Viña del Mar, Chile";
-    const rutaBaseCoords = { latitud: "-33.024569", longitud: "-71.551831" };
     let registrosTecnicoFull = [];
     let rutaActualOptima = [];
     const tecnicoFiltrado = (typeof tecnicoActual !== "undefined" ? String(tecnicoActual || "") : "").trim().toLowerCase();
@@ -921,142 +919,10 @@
       return query ? `https://waze.com/ul?q=${encodeURIComponent(query)}&navigate=yes` : "";
     }
 
-    async function geocodificarDireccionCliente(direccion) {
-      const dir = String(direccion || "").trim();
-      const key = normalizarDireccion(dir);
-      if (!key) return { latitud: "", longitud: "" };
-      if (geocodeCache.has(key)) return geocodeCache.get(key);
-
-      const numeroRef = extraerNumeroDireccion(dir);
-      const consultas = [dir];
-      if (!normalizarTexto(dir).includes("chile")) consultas.push(`${dir}, Chile`);
-
-      const scoreCandidato = (displayName, numeroCandidato) => {
-        const dNorm = normalizarDireccion(displayName);
-        const tRef = new Set(key.split(" ").filter(Boolean));
-        const tCan = new Set(dNorm.split(" ").filter(Boolean));
-        let inter = 0;
-        tRef.forEach((t) => { if (tCan.has(t)) inter += 1; });
-        let score = inter;
-        if (dNorm.includes(key) || key.includes(dNorm)) score += 3;
-        if (numeroRef && numeroCandidato && String(numeroRef) === String(numeroCandidato)) score += 8;
-        if (numeroRef && numeroCandidato && String(numeroRef) !== String(numeroCandidato)) score -= 6;
-        return score;
-      };
-
-      const fetchJSON = async (url) => {
-        const res = await fetch(url, { headers: { "Accept": "application/json" } });
-        if (!res.ok) return null;
-        return res.json();
-      };
-
-      for (const q of consultas) {
-        // 1) Nominatim - mejor para direccion exacta con numero.
-        try {
-          const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=jsonv2&addressdetails=1&limit=5&countrycodes=cl`;
-          const payload = await fetchJSON(url);
-          if (Array.isArray(payload) && payload.length) {
-            let best = null;
-            let bestScore = -999;
-            payload.forEach((item) => {
-              const coords = parseCoords(item?.lat, item?.lon);
-              if (!coords) return;
-              const house = item?.address?.house_number || "";
-              const score = scoreCandidato(item?.display_name || "", house);
-              if (score > bestScore) {
-                bestScore = score;
-                best = coords;
-              }
-            });
-            if (best && bestScore >= 4) {
-              geocodeCache.set(key, best);
-              return best;
-            }
-          }
-        } catch (_) {}
-
-        // 2) maps.co
-        try {
-          const url = `https://geocode.maps.co/search?q=${encodeURIComponent(q)}`;
-          const payload = await fetchJSON(url);
-          if (Array.isArray(payload) && payload.length) {
-            const first = payload[0] || {};
-            const coords = parseCoords(first?.lat, first?.lon);
-            if (coords) {
-              geocodeCache.set(key, coords);
-              return coords;
-            }
-          }
-        } catch (_) {}
-      }
-
-      const vacio = { latitud: "", longitud: "" };
-      geocodeCache.set(key, vacio);
-      return vacio;
-    }
-
-    async function calcularRutaOptima(registros) {
-      const elegibles = (Array.isArray(registros) ? registros : []).filter((r) => {
-        const direccion = String(r?.direccion || "").trim();
-        return direccion;
-      });
-      if (!elegibles.length) {
-        return { orden: [], geocodificadas: 0, omitidas: 0 };
-      }
-
-      const puntos = [];
-      const sinGeo = [];
-      for (const registro of elegibles) {
-        const coords = await geocodificarDireccionCliente(registro.direccion);
-        if (!coords?.latitud || !coords?.longitud) {
-          sinGeo.push({ ...registro, latitud: "", longitud: "" });
-          continue;
-        }
-        puntos.push({
-          ...registro,
-          latitud: coords.latitud,
-          longitud: coords.longitud,
-        });
-      }
-
-      if (!puntos.length) {
-        return { orden: sinGeo, geocodificadas: 0, omitidas: sinGeo.length };
-      }
-
-      const pendientes = puntos.slice();
-      const orden = [];
-      let actual = { ...rutaBaseCoords };
-
-      const distancia2 = (a, b) => {
-        const latA = Number(a.latitud);
-        const lngA = Number(a.longitud);
-        const latB = Number(b.latitud);
-        const lngB = Number(b.longitud);
-        if (![latA, lngA, latB, lngB].every(Number.isFinite)) return Number.POSITIVE_INFINITY;
-        const dLat = latA - latB;
-        const dLng = lngA - lngB;
-        return dLat * dLat + dLng * dLng;
-      };
-
-      while (pendientes.length) {
-        let mejorIdx = 0;
-        let mejorDist = Number.POSITIVE_INFINITY;
-        pendientes.forEach((item, idx) => {
-          const dist = distancia2(actual, item);
-          if (dist < mejorDist) {
-            mejorDist = dist;
-            mejorIdx = idx;
-          }
-        });
-        const [siguiente] = pendientes.splice(mejorIdx, 1);
-        orden.push(siguiente);
-        actual = siguiente;
-      }
-
+    function calcularRutaOptima(registros) {
+      const elegibles = (Array.isArray(registros) ? registros : []).filter((r) => String(r?.direccion || "").trim());
       return {
-        orden: [...orden, ...sinGeo],
-        geocodificadas: puntos.length,
-        omitidas: sinGeo.length,
+        orden: elegibles,
       };
     }
 
@@ -1076,8 +942,8 @@
       btnWaze.disabled = false;
     }
 
-    async function recalcularRutaVisible() {
-      const resultado = await calcularRutaOptima(registrosTecnicoFull);
+    function recalcularRutaVisible() {
+      const resultado = calcularRutaOptima(registrosTecnicoFull);
       renderRutaOptima(resultado);
     }
 
@@ -1093,29 +959,10 @@
     function abrirRutaWaze() {
       const url = construirWazeRuta(rutaActualOptima);
       if (!url) {
-        alert("No hay una próxima parada disponible para abrir en Waze.");
+        alert("No hay una ruta disponible para abrir en Waze.");
         return;
       }
       window.open(url, "_blank");
-    }
-
-    function abrirParadaGoogle(index) {
-      const item = rutaActualOptima[index];
-      if (!item) return;
-      const url = construirLinksNavegacionPorDireccion(item.direccion || "", item.cliente || "").google;
-      if (url) window.open(url, "_blank");
-    }
-
-    function abrirParadaWaze(index) {
-      const item = rutaActualOptima[index];
-      if (!item) return;
-      let url = "";
-      if (item.latitud && item.longitud) {
-        url = `https://waze.com/ul?ll=${encodeURIComponent(`${item.latitud},${item.longitud}`)}&navigate=yes`;
-      } else {
-        url = construirLinksNavegacionPorDireccion(item.direccion || "", item.cliente || "").waze;
-      }
-      if (url) window.open(url, "_blank");
     }
 
     function estadoCanonico(estado) {
@@ -1396,7 +1243,6 @@
         const textoEstado = estadoCanonico(fila.children[5]?.textContent?.trim());
         fila.style.display = (filtro === "Todos" || textoEstado === filtro) ? "" : "none";
       });
-      recalcularRutaVisible().catch(() => {});
     }
 
     function agregarOtroArchivo() {
