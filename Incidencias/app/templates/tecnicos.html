@@ -118,6 +118,7 @@
     }
 
     .toolbar-panel,
+    .ruta-panel,
     .tabla-shell {
       max-width: 1220px;
       margin: 0 auto 22px;
@@ -134,6 +135,142 @@
       gap: 14px;
       padding: 16px 18px;
       flex-wrap: wrap;
+    }
+
+    .ruta-panel {
+      padding: 18px 20px;
+    }
+
+    .ruta-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .ruta-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .ruta-subtitle {
+      margin: 6px 0 0;
+      color: var(--text-soft);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .ruta-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .ruta-status {
+      color: var(--text-soft);
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+
+    .ruta-resumen {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .ruta-metric {
+      border-radius: 14px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .ruta-metric-label {
+      display: block;
+      font-size: 12px;
+      color: var(--text-soft);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .ruta-metric-value {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .ruta-lista {
+      display: grid;
+      gap: 10px;
+    }
+
+    .ruta-item {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(7, 18, 22, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .ruta-item-stop {
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--orange-3) 0%, var(--orange-2) 100%);
+      color: white;
+    }
+
+    .ruta-item-main {
+      min-width: 0;
+    }
+
+    .ruta-item-top {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 3px;
+    }
+
+    .ruta-item-odt {
+      font-size: 12px;
+      font-weight: 800;
+      color: #ffd1b0;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .ruta-item-cliente {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+      line-height: 1.35;
+    }
+
+    .ruta-item-dir {
+      font-size: 13px;
+      color: var(--text-soft);
+      line-height: 1.45;
+    }
+
+    .ruta-item-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
 
     .toolbar-panel label {

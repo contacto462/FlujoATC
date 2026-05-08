@@ -3055,8 +3055,6 @@ class IncidenciasService:
 
         sucursal_value = str(row_odt.cliente or "").strip()
         self._upsert_unified_images(odt_limpia, sucursal_value, usuario, merged_images)
-        if self._es_registro_mantencion_preventiva(row_odt) and sucursal_value:
-            self.guardar_plantilla_imagenes_mantencion(sucursal=sucursal_value, imagenes=merged_images)
 
         self.db.commit()
         return {
