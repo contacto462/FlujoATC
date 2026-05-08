@@ -535,6 +535,7 @@
 <script>
   const qsToken = new URLSearchParams(window.location.search).get("token") || "";
   const withToken = (url) => { const sep = url.includes("?") ? "&" : "?"; return qsToken ? `${url}${sep}token=${encodeURIComponent(qsToken)}` : url; };
+  document.getElementById("btnVolver").href = withToken("/venta/panel-selector");
   function formatearRUTInput(input) { let rut = String(input.value || "").trim().replace(/[^0-9Kk]/g, "").toUpperCase(); if (rut.length < 2) { input.value = rut; return; } input.value = `${rut.slice(0, -1)}-${rut.slice(-1)}`; }
   function formatearRUTValue(value) { let rut = String(value || "").trim().replace(/[^0-9Kk]/g, "").toUpperCase(); if (rut.length < 2) return rut; return `${rut.slice(0, -1)}-${rut.slice(-1)}`; }
   function limpiarRUT(rut) { return formatearRUTValue(rut); }
