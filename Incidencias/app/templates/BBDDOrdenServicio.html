@@ -199,24 +199,17 @@
     .btn-save:disabled { background: #94a3b8; box-shadow: none; cursor: not-allowed; transform: none; }
     .guardar { }
 
-    /* ── FORM CARDS ── */
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 20px 22px;
-      margin-bottom: 18px;
-      box-shadow: 0 1px 4px rgba(0,0,0,.04);
-    }
-
-    .card-title {
+    /* ── SECTION DIVIDER ── */
+    .section-sep {
       font-size: 11px; font-weight: 700; color: var(--muted);
       text-transform: uppercase; letter-spacing: .06em;
-      margin-bottom: 16px; padding-bottom: 10px;
+      margin: 28px 0 14px;
+      padding-bottom: 8px;
       border-bottom: 1px solid var(--border);
       display: flex; align-items: center; gap: 7px;
+      grid-column: 1 / -1;
     }
-    .card-title-dot {
+    .section-sep-dot {
       width: 7px; height: 7px; border-radius: 50%;
       background: var(--orange); flex-shrink: 0;
     }
