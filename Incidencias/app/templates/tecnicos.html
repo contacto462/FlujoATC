@@ -1030,12 +1030,12 @@
 
         <div class="cierre-field cierre-field-full">
           <label>Fotos de cierre</label>
-          <div id="contenedorFotos">
-            <input type="file" class="fotoAdjuntar" accept="image/*" required />
-          </div>
-          <div style="margin-top:8px;">
-            <button type="button" id="btnAgregarFoto" class="btn-secundario" onclick="agregarOtroArchivo()">+ Agregar otra foto</button>
-          </div>
+          <input type="file" id="fotoInputCierre" accept="image/*" multiple style="display:none" />
+          <button type="button" class="foto-upload-btn" onclick="document.getElementById('fotoInputCierre').click()">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <span id="fotoUploadLabel">Seleccionar fotos</span>
+          </button>
+          <div id="fotoThumbGrid" class="foto-thumb-grid"></div>
           <p id="fotosCierreHelp" class="cierre-help">Debes adjuntar al menos una foto y maximo dos.</p>
         </div>
       </div>
@@ -1077,6 +1077,7 @@
     const tokenSesion = {{ token|tojson }};
     let currentODT = "";
     let listasGlobales = {};
+    let selectedFiles = [];
     let clienteActivo = null;
     let cantidadRegistrosActual = 0;
     let odtToReopen = "";
