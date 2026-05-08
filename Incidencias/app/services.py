@@ -2846,16 +2846,38 @@ class IncidenciasService:
         )
         return True
 
-    def registrar_finalizacion_rapida(self, odt: str, observacion: str) -> str:
+    def registrar_finalizacion_rapida(
+        self,
+        odt: str,
+        observacion: str,
+        *,
+        responsable_cierre: str,
+        causa_cierre: str,
+        accion_cierre: str,
+        resultado_cierre: str,
+        pruebas_cierre: list[Any] | None = None,
+        materiales: list[Any] | None = None,
+        materiales_sin_uso: bool = False,
+        requiere_seguimiento: bool = False,
+    ) -> str:
         odt_limpia = (odt or "").strip()
         if not odt_limpia:
             raise ValueError("ODT invalida")
 
-        es_venta = odt_limpia.upper().startswith(("V", "S"))
-    def registrar_finalizacion_rapida(self, odt: str, observacion: str) -> str:
-        odt_limpia = (odt or "").strip()
-        if not odt_limpia:
-            raise ValueError("ODT invalida")
+        obs_cierre = str(observacion or "").strip()
+        if not obs_cierre:
+            raise ValueError("Debes ingresar una observacion final breve.")
+
+        diagnostico = self._normalizar_diagnostico_cierre(
+            responsable_cierre=responsable_cierre,
+            causa_cierre=causa_cierre,
+            accion_cierre=accion_cierre,
+            resultado_cierre=resultado_cierre,
+            pruebas_cierre=pruebas_cierre,
+            materiales=materiales,
+            materiales_sin_uso=materiales_sin_uso,
+            requiere_seguimiento=requiere_seguimiento,
+        )
 
         ahora = datetime.utcnow()
         row = self.db.scalar(select(Registro).where(Registro.odt == odt_limpia))
@@ -2864,7 +2886,8 @@ class IncidenciasService:
 
         row.estado = "Terminado"
         row.derivacion = "Servicio T?cnico"
-        row.observacion_final = observacion
+        row.observacion_final = obs_cierre
+        self._aplicar_diagnostico_cierre(row, diagnostico)
         row.porcentaje_avance = "100%"
         row.fecha_cierre = ahora
         row.prioridad = None
@@ -2878,10 +2901,14 @@ class IncidenciasService:
                 odt=odt_limpia,
                 estado_ticket=TICKET_STATUS_RESUELTO_SERVICIO,
                 derivacion=row.derivacion or "Servicio Tecnico",
-                observacion_final=row.observacion_final or observacion or "",
+                observacion_final=(
+                    f"{row.observacion_final or obs_cierre}\n"
+                    f"{self._resumen_diagnostico_cierre(diagnostico)}"
+                ).strip(),
             ),
         )
         return "OK"
+
     def _normalizar_texto(self, valor: Any) -> str:
         txt = str(valor or "").strip().lower()
         txt = unicodedata.normalize("NFD", txt)
