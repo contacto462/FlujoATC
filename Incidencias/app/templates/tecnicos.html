@@ -512,6 +512,112 @@
       gap: 10px;
     }
 
+    #modalFinalizar {
+      align-items: flex-start;
+      overflow-y: auto;
+    }
+
+    #modalFinalizar .modal-card {
+      max-width: 920px;
+      max-height: calc(100vh - 44px);
+      overflow-y: auto;
+    }
+
+    .cierre-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px 14px;
+    }
+
+    .cierre-field-full {
+      grid-column: 1 / -1;
+    }
+
+    .cierre-field label,
+    .cierre-field legend {
+      display: block;
+      color: var(--text-main);
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .cierre-fieldset {
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-radius: 16px;
+      padding: 12px;
+      margin: 0;
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .cierre-checks {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .cierre-check,
+    .material-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-soft);
+      font-size: 13px;
+    }
+
+    .cierre-check input,
+    .material-row input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+    }
+
+    .materiales-lista {
+      display: grid;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .material-row {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) 92px 120px;
+      align-items: center;
+      padding: 8px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .material-row input,
+    .material-row select {
+      margin-top: 0;
+    }
+
+    .material-name {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .material-name span {
+      overflow-wrap: anywhere;
+    }
+
+    .cierre-help {
+      margin: 6px 0 0;
+      color: var(--text-soft);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .cierre-error {
+      margin: 10px 0 0;
+      min-height: 18px;
+      color: var(--danger);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
     .infoSucursal {
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid rgba(255, 255, 255, 0.08);
@@ -676,6 +782,12 @@
 
       .ruta-resumen {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .cierre-grid,
+      .cierre-checks,
+      .material-row {
+        grid-template-columns: 1fr;
       }
     }
 
