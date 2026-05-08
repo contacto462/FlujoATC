@@ -385,6 +385,7 @@
 <script>
   const qsToken = new URLSearchParams(window.location.search).get("token") || "";
   const withToken = (url) => { const sep = url.includes("?") ? "&" : "?"; return qsToken ? `${url}${sep}token=${encodeURIComponent(qsToken)}` : url; };
+  document.getElementById("btnVolver").href = withToken("/venta/panel-selector");
   function formatearRUT(rut) {
     if (!rut) return "";
     const limpio = rut.replace(/[^0-9Kk]/g, "").toUpperCase();
