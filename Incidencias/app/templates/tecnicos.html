@@ -1325,6 +1325,13 @@
       return { latitud: lat.toFixed(6), longitud: lng.toFixed(6) };
     }
 
+    async function geocodificarDireccionCliente(direccion) {
+      const texto = String(direccion || "");
+      const match = texto.match(/(-?\d{1,2}(?:[.,]\d+)?)[,\s]+(-?\d{1,3}(?:[.,]\d+)?)/);
+      if (!match) return {};
+      return parseCoords(match[1], match[2]) || {};
+    }
+
     function construirLinksNavegacionPorDireccion(direccion, cliente = "") {
       const dir = String(direccion || "").trim();
       const cli = String(cliente || "").trim();
