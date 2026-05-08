@@ -272,6 +272,60 @@ def _is_lock_timeout_error(exc: Exception) -> bool:
 
 
 class IncidenciasService:
+    CAUSAS_CIERRE: dict[str, set[str]] = {
+        "ATC": {
+            "instalacion_deficiente",
+            "configuracion_incorrecta",
+            "material_instalado_defectuoso",
+            "mantenimiento_insuficiente",
+            "diagnostico_previo_incompleto",
+            "otro",
+        },
+        "Cliente": {
+            "manipulacion_cliente",
+            "problema_electrico_cliente",
+            "red_internet_cliente",
+            "infraestructura_cliente",
+            "dano_terceros",
+            "otro",
+        },
+    }
+    ACCIONES_CIERRE = {
+        "reconexion",
+        "reconfiguracion",
+        "reemplazo_material",
+        "ajuste_fisico",
+        "limpieza",
+        "cambio_cableado",
+        "cambio_fuente",
+        "validacion_sin_intervencion",
+        "otro",
+    }
+    RESULTADOS_CIERRE = {
+        "operativo",
+        "operativo_con_observacion",
+        "requiere_seguimiento",
+        "requiere_cotizacion_visita_adicional",
+    }
+    PRUEBAS_CIERRE = {"camaras_ok", "grabacion_ok", "audio_ok", "red_ok", "energia_ok"}
+    MATERIALES_CIERRE = {
+        "cable_utp",
+        "conector_rj45",
+        "balun",
+        "fuente_12v",
+        "transformador",
+        "camara",
+        "nvr_dvr",
+        "disco_duro",
+        "switch_poe",
+        "microfono",
+        "parlante",
+        "canaleta",
+        "caja_estanca",
+        "tornilleria_fijaciones",
+        "otro",
+    }
+
     def __init__(self, db: Session):
         self.db = db
         self._direcciones_csv_cache: dict[str, str] | None = None

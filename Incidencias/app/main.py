@@ -683,7 +683,21 @@ def cerrar_incidencia(
     payload: CerrarIncidenciaRequest,
     service: Annotated[IncidenciasService, Depends(get_service)],
 ):
-    ok = service.registrar_finalizacion_rapida(payload.odt, payload.observacion)
+    try:
+        ok = service.registrar_finalizacion_rapida(
+            payload.odt,
+            payload.observacion,
+            responsable_cierre=payload.responsable_cierre,
+            causa_cierre=payload.causa_cierre,
+            accion_cierre=payload.accion_cierre,
+            resultado_cierre=payload.resultado_cierre,
+            pruebas_cierre=payload.pruebas_cierre,
+            materiales=payload.materiales,
+            materiales_sin_uso=payload.materiales_sin_uso,
+            requiere_seguimiento=payload.requiere_seguimiento,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"result": ok}
 
 
@@ -697,6 +711,14 @@ def finalizar_incidencia_completo(
             payload.odt,
             payload.fotos_base64,
             payload.observacion,
+            responsable_cierre=payload.responsable_cierre,
+            causa_cierre=payload.causa_cierre,
+            accion_cierre=payload.accion_cierre,
+            resultado_cierre=payload.resultado_cierre,
+            pruebas_cierre=payload.pruebas_cierre,
+            materiales=payload.materiales,
+            materiales_sin_uso=payload.materiales_sin_uso,
+            requiere_seguimiento=payload.requiere_seguimiento,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
