@@ -2551,18 +2551,23 @@ class IncidenciasService:
         waze_url = ""
         if orden:
             primera = orden[0]
-            if _coords_validas(primera["latitud"], primera["longitud"]):
+            query = ", ".join(
+                part
+                for part in [
+                    str(primera.get("direccion") or "").strip(),
+                    str(primera.get("cliente") or "").strip(),
+                    "Chile",
+                ]
+                if part
+            )
+            if query:
+                waze_url = f"https://www.waze.com/ul?q={quote_plus(query)}&navigate=yes"
+                if _coords_validas(primera["latitud"], primera["longitud"]):
+                    ll_value = f"{primera['latitud']},{primera['longitud']}"
+                    waze_url += f"&ll={quote_plus(ll_value)}"
+            elif _coords_validas(primera["latitud"], primera["longitud"]):
                 ll_value = f"{primera['latitud']},{primera['longitud']}"
-                waze_url = (
-                    "https://waze.com/ul"
-                    f"?ll={quote_plus(ll_value)}"
-                    "&navigate=yes"
-                )
-            elif primera.get("direccion"):
-                query = ", ".join(
-                    part for part in [str(primera.get("direccion") or "").strip(), str(primera.get("cliente") or "").strip(), "Chile"] if part
-                )
-                waze_url = f"https://waze.com/ul?q={quote_plus(query)}&navigate=yes"
+                waze_url = f"https://www.waze.com/ul?ll={quote_plus(ll_value)}&navigate=yes"
 
         return {
             "origen": origen,
