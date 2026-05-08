@@ -1553,6 +1553,7 @@
     window.onload = async function () {
       const cargaInicial = document.getElementById("pantallaCargaInicial");
       const mensajeCarga = document.getElementById("mensajeCarga");
+      inicializarFormularioCierre();
 
       const sesionOk = await validarSesionActiva();
       if (!sesionOk) return;
@@ -1893,6 +1894,7 @@
       odtModalFinalizar = odtSeleccionada;
       const modal = document.getElementById("modalFinalizar");
       if (modal) {
+        resetFormularioCierre();
         modal.dataset.odt = odtSeleccionada;
         const label = document.getElementById("modalFinalizarOdt");
         if (label) label.textContent = `ODT a finalizar: ${odtSeleccionada}`;
@@ -1908,12 +1910,13 @@
       const label = document.getElementById("modalFinalizarOdt");
       if (label) label.textContent = "";
       odtModalFinalizar = "";
+      resetFormularioCierre();
     }
 
     async function guardarYFinalizar() {
       const btnGuardar = document.querySelector("#modalFinalizar button:last-of-type");
       const inputsArchivos = document.querySelectorAll(".fotoAdjuntar");
-      const observacion = document.getElementById("observacion").value.trim();
+      const cierreError = document.getElementById("cierreError");
       const modal = document.getElementById("modalProgreso");
       const estado = document.getElementById("mensajeEstado");
       const odtCierre = String(
@@ -1929,22 +1932,26 @@
         return;
       }
 
+      let diagnostico;
+      try {
+        diagnostico = collectDiagnosticoCierre();
+        cierreError.textContent = "";
+      } catch (err) {
+        cierreError.textContent = err.message || "Completa los datos de cierre.";
+        return;
+      }
+
       inputsArchivos.forEach((input) => {
         totalArchivos += input.files.length;
       });
 
       if (totalArchivos < 1) {
-        alert("Debes adjuntar al menos UNA foto para cerrar la ODT.");
+        cierreError.textContent = "Debes adjuntar al menos UNA foto para cerrar la ODT.";
         return;
       }
 
       if (totalArchivos > 2) {
-        alert("Solo se permiten HASTA DOS fotos para cerrar la ODT.");
-        return;
-      }
-
-      if (!observacion) {
-        alert("Debes ingresar una observacion.");
+        cierreError.textContent = "Solo se permiten HASTA DOS fotos para cerrar la ODT.";
         return;
       }
 
@@ -1956,7 +1963,7 @@
       try {
         await api("/api/incidencias/cerrar", {
           method: "POST",
-          body: JSON.stringify({ odt: odtCierre, observacion }),
+          body: JSON.stringify({ odt: odtCierre, ...diagnostico }),
         });
 
         estado.textContent = "Procesando fotos...";
@@ -1979,7 +1986,7 @@
         estado.textContent = "Guardando imagenes...";
         const cierreResp = await api("/api/incidencias/finalizar-completo", {
           method: "POST",
-          body: JSON.stringify({ odt: odtCierre, observacion, fotosBase64 }),
+          body: JSON.stringify({ odt: odtCierre, ...diagnostico, fotosBase64 }),
         });
 
         if (cierreResp?.drive_enabled && cierreResp?.drive_ok === false) {
@@ -1995,8 +2002,6 @@
         btnGuardar.textContent = "Guardar y Finalizar";
         btnGuardar.disabled = false;
         cerrarModalFinalizar();
-        document.getElementById("observacion").value = "";
-        document.getElementById("contenedorFotos").innerHTML = '<input type="file" class="fotoAdjuntar" required />';
 
         setTimeout(async () => {
           modal.style.display = "none";
