@@ -19,199 +19,334 @@
       --border: #e2e8f0;
       --text: #0f172a;
       --muted: #64748b;
+      --label: #374151;
     }
+
+    html, body { height: 100%; }
 
     body {
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
       background: var(--bg);
-      min-height: 100vh;
       color: var(--text);
+      display: flex;
+      flex-direction: column;
     }
 
     /* ── HEADER ── */
     .page-header {
+      flex-shrink: 0;
       background: linear-gradient(135deg, var(--navy-1) 0%, var(--navy-2) 60%, var(--navy-3) 100%);
-      padding: 14px 28px;
+      padding: 13px 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 16px;
       box-shadow: 0 2px 16px rgba(0,0,0,.22);
-      position: sticky;
-      top: 0;
-      z-index: 100;
+      z-index: 50;
     }
 
-    .header-brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .header-brand img {
-      height: 40px;
-      width: auto;
-      object-fit: contain;
-    }
-
-    .header-brand-text strong {
-      display: block;
-      font-size: 15px;
-      font-weight: 800;
-      color: #fff;
-      letter-spacing: -.02em;
-    }
-
-    .header-brand-text span {
-      font-size: 12px;
-      color: rgba(255,255,255,.55);
-    }
+    .header-brand { display: flex; align-items: center; gap: 12px; }
+    .header-brand img { height: 38px; width: auto; object-fit: contain; }
+    .header-brand-text strong { display: block; font-size: 14px; font-weight: 800; color: #fff; }
+    .header-brand-text span { font-size: 11px; color: rgba(255,255,255,.55); }
 
     .btn-back {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 14px;
-      border-radius: 10px;
-      background: rgba(255,255,255,.08);
-      border: 1px solid rgba(255,255,255,.14);
-      color: rgba(255,255,255,.82);
-      font-size: 13px;
-      font-weight: 700;
-      text-decoration: none;
-      transition: background .18s;
-      white-space: nowrap;
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 13px; border-radius: 10px;
+      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14);
+      color: rgba(255,255,255,.82); font-size: 13px; font-weight: 700;
+      text-decoration: none; transition: background .18s; white-space: nowrap;
     }
-
     .btn-back:hover { background: rgba(255,255,255,.14); }
 
-    /* ── CONTENT ── */
-    .page-content {
-      padding: 28px 28px 56px;
-    }
-
-    .section-bar {
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 18px;
-      flex-wrap: wrap;
-    }
-
-    .section-title {
-      font-size: 22px;
-      font-weight: 800;
-      color: var(--text);
-      letter-spacing: -.02em;
-    }
-
-    .section-hint {
-      font-size: 13px;
-      color: var(--muted);
-      margin-top: 3px;
-    }
-
-    /* ── TABLE CARD ── */
-    .table-card {
-      background: var(--surface);
-      border-radius: 16px;
-      box-shadow: 0 1px 4px rgba(0,0,0,.06), 0 8px 28px rgba(0,0,0,.08);
+    /* ── LAYOUT ── */
+    .workspace {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 320px 1fr;
       overflow: hidden;
     }
 
-    .table-scroll {
-      overflow-x: auto;
-      max-height: calc(100vh - 220px);
-      overflow-y: auto;
+    /* ── SIDEBAR (list) ── */
+    .sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
 
-    /* ── TABLE ── */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13.5px;
-    }
-
-    thead th {
-      background: linear-gradient(135deg, var(--navy-1) 0%, var(--navy-2) 100%);
-      color: #fff;
-      padding: 13px 14px;
-      font-weight: 600;
-      font-size: 11.5px;
-      text-transform: uppercase;
-      letter-spacing: .05em;
-      white-space: nowrap;
-      position: sticky;
-      top: 0;
-      z-index: 5;
-      border-right: 1px solid rgba(255,255,255,.06);
-    }
-
-    thead th:last-child { border-right: none; }
-
-    tbody tr:nth-child(even) td { background: #f8fafc; }
-    tbody tr:hover td { background: #eff6ff !important; }
-
-    td {
-      padding: 10px 14px;
+    .sidebar-top {
+      flex-shrink: 0;
+      padding: 16px 14px 12px;
       border-bottom: 1px solid var(--border);
-      color: var(--text);
-      vertical-align: middle;
+      background: var(--surface);
     }
 
-    /* ── CELL STATES ── */
-    td.editing { background: #fef9c3 !important; }
-    td.edited   { background: #fef3c7 !important; outline: 1px solid #f59e0b; }
-    td.guardado { background: #dcfce7 !important; transition: background .7s ease; }
-
-    /* ── FILTER INPUT (inside thead) ── */
-    input.filtro {
-      width: 100%;
-      margin-top: 6px;
-      padding: 5px 8px;
-      font-size: 12px;
-      font-family: inherit;
-      border: 1px solid rgba(255,255,255,.22);
-      border-radius: 6px;
-      background: rgba(255,255,255,.1);
-      color: #fff;
-    }
-
-    input.filtro::placeholder { color: rgba(255,255,255,.45); }
-    input.filtro:focus { outline: none; border-color: var(--orange); background: rgba(255,255,255,.16); }
-
-    /* ── SAVE BUTTON ── */
-    .guardar-btn {
-      padding: 5px 13px;
-      background: var(--orange);
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 12px;
+    .sidebar-top-title {
+      font-size: 11px;
       font-weight: 700;
-      font-family: inherit;
-      display: none;
-      transition: background .18s, transform .12s;
-      white-space: nowrap;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 10px;
     }
 
-    .guardar-btn:hover { background: var(--orange-2); transform: translateY(-1px); }
-    .guardar-btn:disabled { background: var(--muted); cursor: not-allowed; transform: none; }
-    .visible { display: inline-block !important; }
+    .search-wrap {
+      position: relative;
+    }
 
-    /* ── STATE ── */
-    .estado-carga {
-      padding: 56px 24px;
+    .search-wrap svg {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      pointer-events: none;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 9px 12px 9px 34px;
+      font-size: 13px;
+      font-family: inherit;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg);
+      color: var(--text);
+      transition: border-color .18s, box-shadow .18s;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--orange);
+      box-shadow: 0 0 0 3px rgba(255,122,43,.1);
+      background: #fff;
+    }
+
+    .sidebar-count {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 8px;
+      text-align: right;
+    }
+
+    .client-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 8px;
+    }
+
+    .client-list::-webkit-scrollbar { width: 4px; }
+    .client-list::-webkit-scrollbar-track { background: transparent; }
+    .client-list::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+
+    .client-item {
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background .14s;
+      border: 1.5px solid transparent;
+      margin-bottom: 3px;
+    }
+
+    .client-item:hover { background: #f1f5f9; }
+
+    .client-item.active {
+      background: #fff5ef;
+      border-color: rgba(255,122,43,.35);
+    }
+
+    .client-item-name {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.3;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .client-item.active .client-item-name { color: var(--orange); }
+
+    .client-item-sub {
+      font-size: 11.5px;
+      color: var(--muted);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .list-empty {
+      padding: 40px 16px;
       text-align: center;
       color: var(--muted);
-      font-size: 14px;
+      font-size: 13px;
     }
 
-    @media (max-width: 768px) {
-      .page-header { padding: 12px 16px; }
-      .page-content { padding: 16px 14px 40px; }
+    /* ── DETAIL PANEL ── */
+    .detail-panel {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .detail-panel-inner {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 32px 48px;
+    }
+
+    .detail-panel-inner::-webkit-scrollbar { width: 5px; }
+    .detail-panel-inner::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+
+    /* Empty state */
+    .empty-state {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      color: var(--muted);
+      text-align: center;
+      padding: 40px;
+    }
+
+    .empty-state-icon {
+      width: 64px; height: 64px;
+      border-radius: 18px;
+      background: #f1f5f9;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .empty-state h3 { font-size: 17px; font-weight: 700; color: var(--text); }
+    .empty-state p { font-size: 13px; max-width: 280px; line-height: 1.5; }
+
+    /* Detail header */
+    .detail-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .detail-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+    }
+
+    .detail-id-badge {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--muted);
+      background: #f1f5f9;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px 10px;
+      margin-top: 4px;
+      display: inline-block;
+    }
+
+    .btn-save {
+      padding: 10px 22px;
+      background: linear-gradient(135deg, var(--orange) 0%, var(--orange-2) 100%);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 13.5px;
+      font-weight: 800;
+      font-family: inherit;
+      cursor: pointer;
+      transition: opacity .18s, transform .12s, box-shadow .18s;
+      box-shadow: 0 4px 14px rgba(255,122,43,.28);
+      white-space: nowrap;
+    }
+
+    .btn-save:hover { opacity: .9; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(255,122,43,.36); }
+    .btn-save:disabled { background: #94a3b8; box-shadow: none; cursor: not-allowed; transform: none; }
+
+    /* Fields */
+    .fields-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px 20px;
+    }
+
+    .field { display: flex; flex-direction: column; }
+
+    .field label {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--label);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin-bottom: 6px;
+    }
+
+    .field input {
+      width: 100%;
+      padding: 9px 12px;
+      font-size: 13.5px;
+      font-family: inherit;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--text);
+      transition: border-color .18s, box-shadow .18s;
+    }
+
+    .field input:focus {
+      outline: none;
+      border-color: var(--orange);
+      box-shadow: 0 0 0 3px rgba(255,122,43,.1);
+    }
+
+    .field input.changed {
+      border-color: #f59e0b;
+      background: #fffbeb;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #fff;
+      box-shadow: 0 8px 24px rgba(0,0,0,.18);
+      transform: translateY(80px);
+      opacity: 0;
+      transition: transform .28s cubic-bezier(.34,1.56,.64,1), opacity .24s;
+      z-index: 999;
+      pointer-events: none;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { background: #16a34a; }
+    .toast.error   { background: #dc2626; }
+
+    /* Skeleton loader */
+    .skeleton {
+      background: linear-gradient(90deg, #f1f5f9 25%, #e8edf2 50%, #f1f5f9 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 8px;
+      height: 44px;
+    }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+    @media (max-width: 900px) {
+      .workspace { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+      .sidebar { border-right: none; border-bottom: 1px solid var(--border); max-height: 280px; }
+      .detail-panel-inner { padding: 20px 18px 40px; }
     }
   </style>
 </head>
@@ -219,7 +354,7 @@
 
   <header class="page-header">
     <div class="header-brand">
-      <img src="/shared-static/img/logo-atc.png" alt="ATC - Alguien Te Cuida">
+      <img src="/shared-static/img/logo-atc.png" alt="ATC">
       <div class="header-brand-text">
         <strong>Alguien Te Cuida</strong>
         <span>Base de Datos — Clientes</span>
@@ -231,20 +366,38 @@
     </a>
   </header>
 
-  <main class="page-content">
-    <div class="section-bar">
-      <div>
-        <h1 class="section-title">BBDD Clientes</h1>
-        <p class="section-hint">Haz doble clic sobre cualquier celda para editarla. Los filtros se aplican en tiempo real.</p>
-      </div>
-    </div>
+  <div class="workspace">
 
-    <div class="table-card">
-      <div class="table-scroll">
-        <div id="tabla-container"><div class="estado-carga">Cargando datos...</div></div>
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-top">
+        <p class="sidebar-top-title">Clientes</p>
+        <div class="search-wrap">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="searchInput" class="search-input" type="text" placeholder="Buscar por nombre, RUT..." oninput="filtrarLista()">
+        </div>
+        <p class="sidebar-count" id="sidebarCount"></p>
       </div>
-    </div>
-  </main>
+      <div class="client-list" id="clientList">
+        <div class="list-empty">Cargando...</div>
+      </div>
+    </aside>
+
+    <!-- DETAIL -->
+    <section class="detail-panel">
+      <div class="detail-panel-inner" id="detailPanel">
+        <div class="empty-state">
+          <div class="empty-state-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <h3>Selecciona un cliente</h3>
+          <p>Elige un cliente de la lista para ver y editar sus datos.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="toast" id="toast"></div>
 
   <script>
     const qsToken = new URLSearchParams(window.location.search).get("token") || "";
@@ -254,110 +407,180 @@
     };
     document.getElementById("btnVolver").href = withToken("/venta/panel-selector");
 
-    function renderTable(payload) {
-      const headers = payload.headers || [];
-      const rows = payload.rows || [];
-      const container = document.getElementById('tabla-container');
-      let html = '<table><thead><tr>';
-      headers.forEach((header, index) => {
-        html += `<th>${header}`;
-        if (index === 1 || index === 2 || index === 4) {
-          html += `<br><input type="text" class="filtro" onkeyup="filtrarTabla()" data-col="${index}" placeholder="Filtrar...">`;
-        }
-        html += '</th>';
-      });
-      html += '<th>Accion</th></tr></thead><tbody>';
-      rows.forEach((row, i) => {
-        const rowId = row[0];
-        html += `<tr data-fila="${i}" data-rowid="${rowId}">`;
-        row.forEach((cell, j) => {
-          if (j === 0) html += `<td data-fila="${i}" data-col="${j}">${cell || ''}</td>`;
-          else html += `<td data-fila="${i}" data-col="${j}" ondblclick="editarCelda(this)">${cell || ''}</td>`;
-        });
-        html += `<td><button class="guardar-btn" id="guardar-${i}" onclick="guardarFila(${i}, this)">Guardar</button></td></tr>`;
-      });
-      html += '</tbody></table>';
-      container.innerHTML = html;
+    let allHeaders = [];
+    let allRows = [];
+    let activeRowIndex = null;
+
+    /* ── TOAST ── */
+    function showToast(msg, type = "success") {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.className = `toast ${type} show`;
+      setTimeout(() => { t.classList.remove("show"); }, 3000);
     }
 
-    function filtrarTabla() {
-      const filtros = document.querySelectorAll('input.filtro');
-      document.querySelectorAll('tbody tr').forEach(tr => {
-        let mostrar = true;
-        filtros.forEach(f => {
-          const col = f.dataset.col;
-          const value = f.value.trim().toLowerCase();
-          const td = tr.querySelector(`td[data-col="${col}"]`);
-          if (td && !td.textContent.trim().toLowerCase().includes(value)) mostrar = false;
-        });
-        tr.style.display = mostrar ? '' : 'none';
-      });
-    }
-
-    function editarCelda(td) {
-      if (td.querySelector('input')) return;
-      const original = td.textContent;
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.value = original;
-      input.style.cssText = 'width:100%;padding:4px 6px;border:1.5px solid #ff7a2b;border-radius:5px;font-size:13px;font-family:inherit;background:#fff;outline:none;';
-      td.classList.add('editing');
-      td.innerHTML = '';
-      td.appendChild(input);
-      input.focus();
-      let done = false;
-      function finish(key = '') {
-        if (done) return;
-        done = true;
-        const next = input.value;
-        td.classList.remove('editing');
-        if (key === 'Escape') { td.innerHTML = original; td.classList.remove('edited'); return; }
-        td.innerHTML = next;
-        if (next !== original) { td.classList.add('edited'); document.getElementById(`guardar-${td.dataset.fila}`).classList.add('visible'); }
-        else td.classList.remove('edited');
-      }
-      input.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); finish(e.key); } });
-      input.addEventListener('blur', () => finish());
-    }
-
-    async function guardarFila(filaIndex, boton) {
-      const row = document.querySelector(`tr[data-fila="${filaIndex}"]`);
-      const rowId = Number(row.dataset.rowid);
-      const celdas = row.querySelectorAll(`td[data-fila="${filaIndex}"]`);
-      const values = [];
-      const edited = [];
-      celdas.forEach(td => { values.push(td.textContent); if (td.classList.contains('edited')) edited.push(td); });
-      boton.disabled = true;
-      boton.textContent = "Guardando...";
+    /* ── LOAD DATA ── */
+    async function init() {
       try {
-        const response = await fetch(withToken('/api/venta/clientes/tabla/guardar-fila'), {
+        const res = await fetch(withToken('/api/venta/clientes/tabla'));
+        if (!res.ok) throw new Error('No se pudo cargar la tabla');
+        const payload = await res.json();
+        allHeaders = payload.headers || [];
+        allRows = payload.rows || [];
+        renderList(allRows);
+      } catch (err) {
+        document.getElementById("clientList").innerHTML =
+          `<div class="list-empty">${err.message || 'Error cargando datos.'}</div>`;
+      }
+    }
+
+    /* ── RENDER LIST ── */
+    function renderList(rows) {
+      const container = document.getElementById("clientList");
+      const count = document.getElementById("sidebarCount");
+      if (!rows.length) {
+        container.innerHTML = '<div class="list-empty">Sin resultados</div>';
+        count.textContent = "";
+        return;
+      }
+      count.textContent = `${rows.length} registro${rows.length !== 1 ? 's' : ''}`;
+      container.innerHTML = rows.map((row, i) => {
+        const globalIndex = allRows.indexOf(row);
+        const name = row[2] || row[1] || `Registro ${row[0]}`;
+        const sub  = row[1] || "";
+        return `<div class="client-item${activeRowIndex === globalIndex ? ' active' : ''}"
+                     data-index="${globalIndex}"
+                     onclick="selectClient(${globalIndex})">
+          <div class="client-item-name">${escHTML(name)}</div>
+          ${sub ? `<div class="client-item-sub">${escHTML(sub)}</div>` : ''}
+        </div>`;
+      }).join('');
+    }
+
+    /* ── FILTER LIST ── */
+    function filtrarLista() {
+      const q = document.getElementById("searchInput").value.trim().toLowerCase();
+      if (!q) { renderList(allRows); return; }
+      const filtered = allRows.filter(row =>
+        row.some(cell => String(cell || '').toLowerCase().includes(q))
+      );
+      renderList(filtered);
+    }
+
+    /* ── SELECT CLIENT ── */
+    function selectClient(index) {
+      activeRowIndex = index;
+      // Re-render list to update active state
+      filtrarLista();
+      renderDetail(index);
+    }
+
+    /* ── RENDER DETAIL ── */
+    function renderDetail(index) {
+      const row = allRows[index];
+      const panel = document.getElementById("detailPanel");
+
+      const name = row[2] || row[1] || `Registro ${row[0]}`;
+      const rowId = row[0];
+
+      let fieldsHTML = '<div class="fields-grid">';
+      allHeaders.forEach((header, j) => {
+        if (j === 0) return; // skip ID (read-only, shown as badge)
+        fieldsHTML += `
+          <div class="field">
+            <label>${escHTML(header)}</label>
+            <input type="text"
+                   id="field-${index}-${j}"
+                   data-original="${escAttr(row[j] || '')}"
+                   value="${escAttr(row[j] || '')}"
+                   oninput="markChanged(this)">
+          </div>`;
+      });
+      fieldsHTML += '</div>';
+
+      panel.innerHTML = `
+        <div class="detail-header">
+          <div>
+            <div class="detail-title">${escHTML(name)}</div>
+            <span class="detail-id-badge">ID ${escHTML(String(rowId))}</span>
+          </div>
+          <button class="btn-save" id="btnSave" onclick="guardarCliente(${index})" type="button">
+            Guardar cambios
+          </button>
+        </div>
+        ${fieldsHTML}
+      `;
+    }
+
+    function markChanged(input) {
+      if (input.value !== input.dataset.original) {
+        input.classList.add('changed');
+      } else {
+        input.classList.remove('changed');
+      }
+    }
+
+    /* ── SAVE ── */
+    async function guardarCliente(index) {
+      const row = allRows[index];
+      const rowId = Number(row[0]);
+      const btn = document.getElementById("btnSave");
+
+      // Collect current values (ID first, then editable fields)
+      const values = [String(rowId)];
+      allHeaders.forEach((_, j) => {
+        if (j === 0) return;
+        const input = document.getElementById(`field-${index}-${j}`);
+        values.push(input ? input.value : String(row[j] || ''));
+      });
+
+      btn.disabled = true;
+      btn.textContent = "Guardando...";
+
+      try {
+        const res = await fetch(withToken('/api/venta/clientes/tabla/guardar-fila'), {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ row_id: rowId, values })
         });
-        if (!response.ok) {
-          const err = await response.json().catch(() => ({detail:'No se pudo guardar'}));
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({detail: 'No se pudo guardar'}));
           throw new Error(typeof err.detail === 'string' ? err.detail : 'No se pudo guardar');
         }
-        edited.forEach(td => { td.classList.remove('edited'); td.classList.add('guardado'); setTimeout(() => td.classList.remove('guardado'), 2000); });
-        boton.textContent = "Guardado ✓";
-        setTimeout(() => { boton.classList.remove('visible'); boton.disabled = false; boton.textContent = "Guardar"; }, 1500);
+
+        // Update local data and reset changed state
+        allRows[index] = values;
+        allHeaders.forEach((_, j) => {
+          if (j === 0) return;
+          const input = document.getElementById(`field-${index}-${j}`);
+          if (input) {
+            input.dataset.original = input.value;
+            input.classList.remove('changed');
+          }
+        });
+
+        showToast("Guardado correctamente ✓", "success");
+        btn.textContent = "Guardar cambios";
+        btn.disabled = false;
+
+        // Refresh list item name
+        filtrarLista();
       } catch (error) {
-        alert(error.message || 'Error al guardar fila');
-        boton.disabled = false;
-        boton.textContent = "Guardar";
+        showToast(error.message || 'Error al guardar', 'error');
+        btn.disabled = false;
+        btn.textContent = "Guardar cambios";
       }
     }
 
-    async function init() {
-      try {
-        const response = await fetch(withToken('/api/venta/clientes/tabla'));
-        if (!response.ok) throw new Error('No se pudo cargar la tabla');
-        renderTable(await response.json());
-      } catch (error) {
-        document.getElementById('tabla-container').innerHTML = `<div class="estado-carga">${error.message || 'Error cargando datos.'}</div>`;
-      }
+    function escHTML(str) {
+      return String(str || '').replace(/[&<>"']/g, c =>
+        ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])
+      );
     }
+    function escAttr(str) {
+      return String(str || '').replace(/"/g, '&quot;');
+    }
+
     init();
   </script>
 </body>
