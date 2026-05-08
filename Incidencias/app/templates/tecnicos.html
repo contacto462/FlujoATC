@@ -907,16 +907,67 @@
   <div id="modalFinalizar">
     <div id="modalContent" class="modal-card">
       <button type="button" class="modal-close-btn" aria-label="Cerrar modal finalizar" onclick="cerrarModalFinalizar()">&times;</button>
-      <h3>Por favor, adjunta una Foto y agrega una Observacion</h3>
+      <h3>Cierre tecnico estructurado</h3>
       <p id="modalFinalizarOdt" style="margin:0 0 12px;color:var(--text-soft);font-weight:700;"></p>
-      <div id="contenedorFotos">
-        <input type="file" class="fotoAdjuntar" required />
+      <div class="cierre-grid">
+        <div class="cierre-field">
+          <label for="responsableCierre">Responsable del problema</label>
+          <select id="responsableCierre" required>
+            <option value="">Seleccionar...</option>
+            <option value="ATC">ATC</option>
+            <option value="Cliente">Cliente</option>
+          </select>
+        </div>
+        <div class="cierre-field">
+          <label for="causaCierre">Causa raiz</label>
+          <select id="causaCierre" required disabled>
+            <option value="">Selecciona responsable primero</option>
+          </select>
+        </div>
+        <div class="cierre-field">
+          <label for="accionCierre">Accion realizada</label>
+          <select id="accionCierre" required></select>
+        </div>
+        <div class="cierre-field">
+          <label for="resultadoCierre">Resultado final</label>
+          <select id="resultadoCierre" required></select>
+        </div>
+
+        <fieldset class="cierre-fieldset cierre-field-full">
+          <legend>Pruebas realizadas</legend>
+          <div id="pruebasCierre" class="cierre-checks"></div>
+        </fieldset>
+
+        <fieldset class="cierre-fieldset cierre-field-full">
+          <legend>Materiales usados</legend>
+          <label class="cierre-check">
+            <input type="checkbox" id="materialesSinUso" />
+            <span>No se usaron materiales</span>
+          </label>
+          <div id="materialesCierre" class="materiales-lista"></div>
+        </fieldset>
+
+        <div class="cierre-field cierre-field-full">
+          <label for="observacion">Observacion final breve</label>
+          <textarea id="observacion" placeholder="Describe el contexto que deba quedar para lectura humana..." required></textarea>
+        </div>
+
+        <div class="cierre-field cierre-field-full">
+          <label>Fotos de cierre</label>
+          <div id="contenedorFotos">
+            <input type="file" class="fotoAdjuntar" required />
+          </div>
+          <div style="margin-top:8px;">
+            <button type="button" class="btn-secundario" onclick="agregarOtroArchivo()">+ Agregar otra foto</button>
+          </div>
+          <p class="cierre-help">Debes adjuntar al menos una foto y maximo dos.</p>
+        </div>
       </div>
-      <div style="margin-top:8px;">
-        <button type="button" class="btn-secundario" onclick="agregarOtroArchivo()">+ Agregar otra foto</button>
+      <div id="cierreError" class="cierre-error"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secundario" onclick="cerrarModalFinalizar()">Cancelar</button>
+        <button type="button" class="btn-primario" onclick="guardarYFinalizar()">Guardar y Finalizar</button>
       </div>
-      <textarea id="observacion" placeholder="Escribe una observacion..." required></textarea>
-      <button type="button" class="btn-primario" onclick="guardarYFinalizar()">Guardar y Finalizar</button>
     </div>
   </div>
 
