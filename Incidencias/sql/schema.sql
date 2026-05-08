@@ -59,6 +59,8 @@ CREATE TABLE IF NOT EXISTS registro (
   foto_1 TEXT,
   foto_2 TEXT,
   foto_3 TEXT,
+  drive_cierre_folder_id VARCHAR(255),
+  drive_cierre_folder_url TEXT,
   pdf_url TEXT,
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP NOT NULL DEFAULT NOW()

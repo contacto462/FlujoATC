@@ -1,6 +1,7 @@
 ﻿from __future__ import annotations
 
 from datetime import datetime
+import json
 import threading
 import time
 import logging
@@ -179,6 +180,8 @@ def _ensure_registro_optional_columns() -> None:
         "resultado_cierre": "VARCHAR(120)",
         "pruebas_cierre": "TEXT",
         "requiere_seguimiento": "BOOLEAN",
+        "drive_cierre_folder_id": "VARCHAR(255)",
+        "drive_cierre_folder_url": "TEXT",
     }
     try:
         with engine.begin() as conn:
