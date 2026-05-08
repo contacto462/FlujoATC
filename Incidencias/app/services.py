@@ -2823,6 +2823,11 @@ class IncidenciasService:
             f"Materiales: {materiales_txt or 'Sin materiales'}"
         )
 
+    def _observacion_drive_cierre(self, observacion: str, diagnostico: dict[str, Any]) -> str:
+        observacion_txt = str(observacion or "").strip()
+        resumen = self._resumen_diagnostico_cierre(diagnostico)
+        return f"{observacion_txt}\n\nDiagnostico estructurado: {resumen}".strip()
+
     def cerrar_incidencia(self, odt: str, fecha_cierre: datetime) -> bool:
         odt_limpia = (odt or "").strip()
         row = self.db.scalar(select(Registro).where(Registro.odt == odt_limpia))
