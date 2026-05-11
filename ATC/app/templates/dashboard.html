@@ -1295,26 +1295,27 @@ body.dark-mode .main{
 }
 
 body.dark-mode .card{
-  background:rgba(15,23,41,.90);
-  border-color:rgba(148,163,184,.22);
-  box-shadow:0 10px 24px rgba(0,0,0,.30);
+  background: transparent;
+  border-color: rgba(148,163,184,.14);
+  box-shadow: none;
 }
 
 body.dark-mode .card:hover{
-  border-color:rgba(96,165,250,.34);
-  box-shadow:0 16px 30px rgba(0,0,0,.38);
+  background: rgba(148,163,184,.04);
+  border-color: rgba(148,163,184,.14);
 }
+
 body.dark-mode .card.unread-ticket{
-  border-color:rgba(96,165,250,.76);
-  box-shadow:0 0 0 2px rgba(59,130,246,.30), 0 18px 34px rgba(0,0,0,.46);
-  background:linear-gradient(180deg, rgba(30,58,138,.30), rgba(15,23,41,.92));
+  background: rgba(37,99,235,.08);
+  border-bottom-color: rgba(96,165,250,.22);
+  border-left-color: #60a5fa;
 }
 body.dark-mode .card.unread-ticket .ticket-title{
   color:#dbeafe;
   font-weight:900;
 }
 body.dark-mode .card.unread-ticket .card-main::before{
-  background:linear-gradient(180deg,#60a5fa,#3b82f6);
+  display: none;
 }
 
 body.dark-mode .user-box{
@@ -2023,9 +2024,10 @@ body.dark-mode .modal .btn-secondary:hover{
   max-width: calc(100% - 96px);
 }
 .card.unread-ticket{
-  border-color:rgba(37,99,235,.42);
-  box-shadow:0 0 0 2px rgba(37,99,235,.14), 0 18px 30px rgba(15,23,42,.10);
-  background:linear-gradient(180deg, rgba(239,246,255,.92), rgba(255,255,255,.88));
+  background: rgba(37,99,235,.04);
+  border-bottom-color: rgba(37,99,235,.18);
+  padding-left: 10px;
+  border-left: 3px solid #2563eb;
 }
 .card.unread-ticket .ticket-title{
   font-weight:900;
