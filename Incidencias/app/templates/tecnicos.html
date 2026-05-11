@@ -1867,7 +1867,7 @@
 
     function siguientePaso() {
       if (!validarPasoActual()) return;
-      if (cierreStepActual < CIERRE_TOTAL_PASOS) irAPaso(cierreStepActual + 1);
+      if (cierreStepActual < cierreStepMap.length) irAPaso(cierreStepActual + 1);
     }
 
     function anteriorPaso() {
@@ -1895,14 +1895,16 @@
         });
       });
 
-      if (!responsableCierre) throw new Error("Selecciona si el problema fue responsabilidad de ATC o Cliente.");
-      if (!causaCierre) throw new Error("Selecciona la causa raiz.");
-      if (!accionCierre) throw new Error("Selecciona la accion realizada.");
-      if (!resultadoCierre) throw new Error("Selecciona el resultado final.");
-      if (!pruebasCierre.length) throw new Error("Selecciona al menos una prueba realizada.");
-      if (!materialesSinUso && !materiales.length) throw new Error("Agrega materiales o marca que no se usaron materiales.");
-      if (materiales.some((m) => !m.cantidad || Number(m.cantidad) <= 0)) {
-        throw new Error("Cada material seleccionado debe tener cantidad mayor a 0.");
+      if (!cierreActualEsMantencion) {
+        if (!responsableCierre) throw new Error("Selecciona si el problema fue responsabilidad de ATC o Cliente.");
+        if (!causaCierre) throw new Error("Selecciona la causa raiz.");
+        if (!accionCierre) throw new Error("Selecciona la accion realizada.");
+        if (!resultadoCierre) throw new Error("Selecciona el resultado final.");
+        if (!pruebasCierre.length) throw new Error("Selecciona al menos una prueba realizada.");
+        if (!materialesSinUso && !materiales.length) throw new Error("Agrega materiales o marca que no se usaron materiales.");
+        if (materiales.some((m) => !m.cantidad || Number(m.cantidad) <= 0)) {
+          throw new Error("Cada material seleccionado debe tener cantidad mayor a 0.");
+        }
       }
       if (!observacion) throw new Error("Ingresa una observacion final breve.");
 
