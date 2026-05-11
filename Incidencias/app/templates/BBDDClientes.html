@@ -489,6 +489,10 @@
       const ft = CLIENT_FIELD_TYPES[j] || 'text';
       const id = `field-${index}-${j}`;
       const base = `id="${id}" data-original="${escAttr(value)}" data-col="${j}"`;
+      // Column 12 is "Ejecutivo" (Creado por) - always readonly
+      if (j === 12) {
+        return `<input type="text" ${base} value="${escAttr(value)}" readonly>`;
+      }
       if (ft === 'select-region' || ft === 'select-comuna') {
         const onChange = ft === 'select-region'
           ? `onchange="markChanged(this);onRegionChange(${index})"` : `onchange="markChanged(this)"`;
