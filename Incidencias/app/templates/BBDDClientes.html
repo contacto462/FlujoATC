@@ -515,9 +515,11 @@
       let fieldsHTML = '<div class="fields-grid">';
       allHeaders.forEach((header, j) => {
         if (j === 0) return;
+        // Show "Creado por" instead of "Ejecutivo"
+        const displayHeader = (j === 12 && header === 'Ejecutivo') ? 'Creado por' : header;
         fieldsHTML += `
           <div class="field">
-            <label>${escHTML(header)}</label>
+            <label>${escHTML(displayHeader)}</label>
             ${buildFieldInput(index, j, header, String(row[j] || ''))}
           </div>`;
       });

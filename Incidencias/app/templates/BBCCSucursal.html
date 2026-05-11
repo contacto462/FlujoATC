@@ -492,7 +492,8 @@
       const base = `id="${id}" data-original="${escHtml(val)}" data-col="${j}"`;
       const ft = SUCU_FIELD_TYPES[j];
 
-      if (SUCU_READONLY.has(j)) {
+      // "Ejecutivo" header is always readonly
+      if (header === 'Ejecutivo' || SUCU_READONLY.has(j)) {
         return `<input type="text" ${base} value="${escHtml(val)}" readonly>`;
       }
       if (ft === 'select-region' || ft === 'select-comuna' || ft === 'select-internet' || ft === 'select-electricidad') {
