@@ -1303,6 +1303,9 @@
     let odtModalFinalizar = "";
     let odtModalEnProceso = "";
     let cierreActualEsMantencion = false;
+    let cierreStepActual = 1;
+    const CIERRE_TOTAL_PASOS = 6;
+    const CIERRE_PASO_LABELS = ["Diagnóstico", "Acción", "Pruebas", "Materiales", "Observación", "Fotos"];
     const RUTA_ORIGEN_BASE = "1 Oriente 1180, Viña del Mar, Chile";
     const MANTENCION_MAX_IMAGENES_CIERRE = 80;
     const MANTENCION_MAX_BYTES_IMAGEN = 10 * 1024 * 1024;
@@ -1723,6 +1726,88 @@
         row.querySelector(".material-unidad").disabled = true;
       });
       configurarFotosCierre(cierreActualEsMantencion);
+      irAPaso(1);
+    }
+
+    function renderWizardProgress(paso) {
+      const progress = document.getElementById("wizardProgress");
+      const label = document.getElementById("wizardStepLabel");
+      if (!progress) return;
+      let html = "";
+      for (let i = 1; i <= CIERRE_TOTAL_PASOS; i++) {
+        if (i > 1) html += `<div class="wizard-step-line${i <= paso ? " done" : ""}"></div>`;
+        const cls = i === paso ? "active" : i < paso ? "done" : "";
+        const inner = i < paso ? "✓" : i;
+        html += `<div class="wizard-step-dot ${cls}" title="${CIERRE_PASO_LABELS[i-1]}">${inner}</div>`;
+      }
+      progress.innerHTML = html;
+      if (label) label.innerHTML = `<strong>${CIERRE_PASO_LABELS[paso - 1]}</strong> <span class="wizard-step-sublabel">— Paso ${paso} de ${CIERRE_TOTAL_PASOS}</span>`;
+    }
+
+    function irAPaso(paso) {
+      cierreStepActual = paso;
+      document.querySelectorAll(".cierre-step").forEach((el) => {
+        el.classList.toggle("active", Number(el.dataset.step) === paso);
+      });
+      renderWizardProgress(paso);
+      document.getElementById("cierreError").textContent = "";
+
+      const btnAtras = document.getElementById("btnWizardAtras");
+      const btnSig = document.getElementById("btnWizardSiguiente");
+      if (btnAtras) btnAtras.style.visibility = paso === 1 ? "hidden" : "visible";
+      if (btnSig) {
+        if (paso === CIERRE_TOTAL_PASOS) {
+          btnSig.textContent = "Guardar y Finalizar";
+          btnSig.onclick = guardarYFinalizar;
+        } else {
+          btnSig.textContent = "Siguiente →";
+          btnSig.onclick = siguientePaso;
+        }
+      }
+    }
+
+    function validarPasoActual() {
+      const err = document.getElementById("cierreError");
+      switch (cierreStepActual) {
+        case 1:
+          if (!document.getElementById("responsableCierre").value) { err.textContent = "Selecciona el responsable del problema."; return false; }
+          if (!document.getElementById("causaCierre").value)        { err.textContent = "Selecciona la causa raiz."; return false; }
+          break;
+        case 2:
+          if (!document.getElementById("accionCierre").value)    { err.textContent = "Selecciona la accion realizada."; return false; }
+          if (!document.getElementById("resultadoCierre").value) { err.textContent = "Selecciona el resultado final."; return false; }
+          break;
+        case 3:
+          if (!document.querySelectorAll("#pruebasCierre input:checked").length) { err.textContent = "Selecciona al menos una prueba realizada."; return false; }
+          break;
+        case 4: {
+          const sinUso = document.getElementById("materialesSinUso").checked;
+          const conMat = document.querySelectorAll("#materialesCierre .material-check:checked").length > 0;
+          if (!sinUso && !conMat) { err.textContent = "Agrega materiales o marca que no se usaron materiales."; return false; }
+          const invalido = Array.from(document.querySelectorAll("#materialesCierre .material-row")).some((row) => {
+            const check = row.querySelector(".material-check");
+            if (!check?.checked) return false;
+            const cant = Number(row.querySelector(".material-cantidad")?.value || 0);
+            return cant <= 0;
+          });
+          if (invalido) { err.textContent = "Cada material seleccionado debe tener cantidad mayor a 0."; return false; }
+          break;
+        }
+        case 5:
+          if (!document.getElementById("observacion").value.trim()) { err.textContent = "Ingresa una observacion final breve."; return false; }
+          break;
+      }
+      err.textContent = "";
+      return true;
+    }
+
+    function siguientePaso() {
+      if (!validarPasoActual()) return;
+      if (cierreStepActual < CIERRE_TOTAL_PASOS) irAPaso(cierreStepActual + 1);
+    }
+
+    function anteriorPaso() {
+      if (cierreStepActual > 1) irAPaso(cierreStepActual - 1);
     }
 
     function collectDiagnosticoCierre() {
