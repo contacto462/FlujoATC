@@ -53,6 +53,24 @@ if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 app.include_router(venta_router)
 
+
+@app.exception_handler(HTTPException)
+async def global_http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse | RedirectResponse:
+    if exc.status_code == 401 and not request.url.path.startswith("/api/"):
+        path = request.url.path
+        if path.startswith("/venta"):
+            login_url = "/venta/login"
+        elif path.startswith("/servicio"):
+            login_url = "/?form=login&next=panelSelectorServicio"
+        else:
+            login_url = "/?form=login"
+        return RedirectResponse(url=login_url, status_code=302)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+        headers=dict(exc.headers) if exc.headers else None,
+    )
+
 TIPOS_Y_ESPECIFICACIONES = {
     "GestiÃ³n de Grabaciones y Evidencia": [
         "Solicitud / envÃ­o de grabaciones",
