@@ -177,6 +177,12 @@ class VentaODSUpdateRequest(BaseModel):
     oc: VentaODSArchivoRequest | None = None
 
 
+class VentaAdminEstadoRequest(BaseModel):
+    codigo: str = Field(min_length=2, max_length=30)
+    campo: str = Field(min_length=2, max_length=80)
+    valor: bool
+
+
 class VentaPersonaRegistroRequest(BaseModel):
     categoria: str = Field(min_length=3, max_length=80)
     rutCliente: str = Field(min_length=3, max_length=32)

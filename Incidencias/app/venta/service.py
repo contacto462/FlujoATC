@@ -5,6 +5,7 @@ import json
 import re
 import ssl
 import unicodedata
+from datetime import datetime
 from pathlib import Path
 from urllib.parse import quote
 from urllib.request import Request, urlopen
@@ -15,6 +16,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models import (
+    AdministracionODT,
     ClienteBBDD,
     SucursalBBDD,
     SucursalContactoEmergencia,
