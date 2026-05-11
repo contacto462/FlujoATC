@@ -1433,15 +1433,21 @@ def servicio_kpis_data(db: Annotated[Session, Depends(get_db)]):
             "odt": r.odt,
             "fecha_registro": r.fecha_registro.isoformat() if r.fecha_registro else None,
             "fecha_cierre": r.fecha_cierre.isoformat() if r.fecha_cierre else None,
+            "fecha_derivacion_tecnico": r.fecha_derivacion_tecnico.isoformat() if r.fecha_derivacion_tecnico else None,
             "cliente": r.cliente or "",
             "problema": r.problema or "",
             "estado": r.estado or "",
             "tecnicos": r.tecnicos or "",
+            "acompanante": r.acompanante or "",
             "dias_ejecucion": r.dias_ejecucion,
             "responsable_cierre": r.responsable_cierre or "",
             "causa_cierre": r.causa_cierre or "",
+            "accion_cierre": r.accion_cierre or "",
             "resultado_cierre": r.resultado_cierre or "",
+            "pruebas_cierre": r.pruebas_cierre or "",
+            "materiales": r.materiales or "",
             "requiere_seguimiento": bool(r.requiere_seguimiento),
+            "observacion_final": r.observacion_final or "",
         }
         for r in registros
     ]
