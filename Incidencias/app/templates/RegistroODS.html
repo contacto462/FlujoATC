@@ -646,7 +646,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   document.querySelectorAll('input[name="tipoServicio[]"]').forEach(c => c.addEventListener("change", actualizarVisibilidad));
   document.querySelectorAll('input[name="requiereOC"]').forEach(r => r.addEventListener("change", () => actualizarCamposAdjuntar(obtenerTiposSeleccionados())));
   document.getElementById("btnRegistrarODS").addEventListener("click", enviarFormulario);
-  try { await cargarEjecutivosVenta(); actualizarVisibilidad(); }
+  try { actualizarVisibilidad(); }
   catch (error) { alert(error?.message || "No se pudo inicializar el formulario."); }
 });
 
