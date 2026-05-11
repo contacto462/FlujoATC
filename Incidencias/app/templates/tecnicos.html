@@ -1176,10 +1176,16 @@
   <div id="modalFinalizar">
     <div id="modalContent" class="modal-card">
       <button type="button" class="modal-close-btn" aria-label="Cerrar modal finalizar" onclick="cerrarModalFinalizar()">&times;</button>
-      <h3>Cierre tecnico estructurado</h3>
-      <p id="modalFinalizarOdt" style="margin:0 0 12px;color:var(--text-soft);font-weight:700;"></p>
-      <div class="cierre-grid">
-        <div class="cierre-field">
+      <h3>Cierre técnico</h3>
+      <p id="modalFinalizarOdt" style="margin:0 0 14px;color:var(--text-soft);font-weight:700;font-size:13px;"></p>
+
+      <!-- Indicador de pasos -->
+      <div class="wizard-progress" id="wizardProgress"></div>
+      <div class="wizard-step-label" id="wizardStepLabel"></div>
+
+      <!-- Paso 1: Diagnóstico -->
+      <div class="cierre-step" data-step="1">
+        <div class="cierre-field" style="margin-bottom:14px;">
           <label for="responsableCierre">Responsable del problema</label>
           <select id="responsableCierre" required>
             <option value="">Seleccionar...</option>
@@ -1193,7 +1199,11 @@
             <option value="">Selecciona responsable primero</option>
           </select>
         </div>
-        <div class="cierre-field">
+      </div>
+
+      <!-- Paso 2: Acción -->
+      <div class="cierre-step" data-step="2">
+        <div class="cierre-field" style="margin-bottom:14px;">
           <label for="accionCierre">Accion realizada</label>
           <select id="accionCierre" required></select>
         </div>
@@ -1201,27 +1211,39 @@
           <label for="resultadoCierre">Resultado final</label>
           <select id="resultadoCierre" required></select>
         </div>
+      </div>
 
-        <fieldset class="cierre-fieldset cierre-field-full">
+      <!-- Paso 3: Pruebas -->
+      <div class="cierre-step" data-step="3">
+        <fieldset class="cierre-fieldset" style="width:100%;">
           <legend>Pruebas realizadas</legend>
           <div id="pruebasCierre" class="cierre-checks"></div>
         </fieldset>
+      </div>
 
-        <fieldset class="cierre-fieldset cierre-field-full">
+      <!-- Paso 4: Materiales -->
+      <div class="cierre-step" data-step="4">
+        <fieldset class="cierre-fieldset" style="width:100%;">
           <legend>Materiales usados</legend>
-          <label class="cierre-check">
+          <label class="cierre-check" style="margin-bottom:10px;">
             <input type="checkbox" id="materialesSinUso" />
             <span>No se usaron materiales</span>
           </label>
           <div id="materialesCierre" class="materiales-lista"></div>
         </fieldset>
+      </div>
 
-        <div class="cierre-field cierre-field-full">
+      <!-- Paso 5: Observación -->
+      <div class="cierre-step" data-step="5">
+        <div class="cierre-field">
           <label for="observacion">Observacion final breve</label>
-          <textarea id="observacion" placeholder="Describe el contexto que deba quedar para lectura humana..." required></textarea>
+          <textarea id="observacion" placeholder="Describe el contexto que deba quedar para lectura humana..." required style="min-height:120px;"></textarea>
         </div>
+      </div>
 
-        <div class="cierre-field cierre-field-full">
+      <!-- Paso 6: Fotos -->
+      <div class="cierre-step" data-step="6">
+        <div class="cierre-field">
           <label>Fotos de cierre</label>
           <input type="file" id="fotoInputCierre" accept="image/*" multiple style="display:none" />
           <button type="button" class="foto-upload-btn" onclick="document.getElementById('fotoInputCierre').click()">
@@ -1232,10 +1254,12 @@
           <p id="fotosCierreHelp" class="cierre-help">Debes adjuntar al menos una foto y maximo dos.</p>
         </div>
       </div>
+
       <div id="cierreError" class="cierre-error"></div>
-      <div class="modal-actions">
-        <button type="button" class="btn-secundario" onclick="cerrarModalFinalizar()">Cancelar</button>
-        <button type="button" class="btn-primario" onclick="guardarYFinalizar()">Guardar y Finalizar</button>
+
+      <div class="wizard-nav">
+        <button type="button" class="btn-secundario" id="btnWizardAtras" onclick="anteriorPaso()">← Atrás</button>
+        <button type="button" class="btn-primario" id="btnWizardSiguiente" onclick="siguientePaso()">Siguiente →</button>
       </div>
     </div>
   </div>
