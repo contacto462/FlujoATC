@@ -157,6 +157,7 @@ def startup() -> None:
     global _protocolos_weekly_worker_started
     Base.metadata.create_all(bind=engine)
     _ensure_registro_optional_columns()
+    _ensure_administracion_odt_optional_columns()
     _ensure_protocolos_optional_columns()
     _ensure_bbdd_clientes_optional_columns()
     if not _protocolos_weekly_worker_started:
@@ -196,6 +197,36 @@ def _ensure_registro_optional_columns() -> None:
                 conn.execute(text(f'ALTER TABLE registro ADD COLUMN "{col_name}" {col_type}'))
     except Exception as exc:
         LOGGER.warning("No fue posible asegurar columnas opcionales en 'registro': %s", exc)
+
+
+def _ensure_administracion_odt_optional_columns() -> None:
+    optional_columns: dict[str, str] = {
+        "recepcion_info": "BOOLEAN NOT NULL DEFAULT FALSE",
+        "fecha_recepcion_info": "TIMESTAMP",
+        "registro_alpha3": "BOOLEAN NOT NULL DEFAULT FALSE",
+        "fecha_registro_alpha3": "TIMESTAMP",
+        "registro_intranet": "BOOLEAN NOT NULL DEFAULT FALSE",
+        "fecha_registro_intranet": "TIMESTAMP",
+        "envio_solicitud_instalacion": "BOOLEAN NOT NULL DEFAULT FALSE",
+        "fecha_envio_solicitud_instalacion": "TIMESTAMP",
+        "envio_datos_facturacion": "BOOLEAN NOT NULL DEFAULT FALSE",
+        "fecha_envio_datos_facturacion": "TIMESTAMP",
+        "envio_carta_bienvenida": "BOOLEAN NOT NULL DEFAULT FALSE",
+        "fecha_envio_carta_bienvenida": "TIMESTAMP",
+    }
+    try:
+        with engine.begin() as conn:
+            inspector = inspect(conn)
+            if not inspector.has_table("administracion_odt"):
+                return
+
+            existing_columns = {str(c.get("name", "")).strip() for c in inspector.get_columns("administracion_odt")}
+            for col_name, col_type in optional_columns.items():
+                if col_name in existing_columns:
+                    continue
+                conn.execute(text(f'ALTER TABLE administracion_odt ADD COLUMN "{col_name}" {col_type}'))
+    except Exception as exc:
+        LOGGER.warning("No fue posible asegurar columnas opcionales en 'administracion_odt': %s", exc)
 
 
 def _ensure_protocolos_optional_columns() -> None:
