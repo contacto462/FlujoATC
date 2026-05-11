@@ -266,6 +266,30 @@ class FinanzasODT(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
 
+class ServicioTecnicoVentaODT(Base):
+    __tablename__ = "servicio_tecnico_ventas_odt"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    odt: Mapped[str] = mapped_column(String(30), unique=True, index=True)
+
+    recepcion_solicitud_instalacion: Mapped[bool] = mapped_column(default=False)
+    fecha_recepcion_solicitud_instalacion: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    llamar_cliente: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    solicitud_materiales: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    fecha_inicio_instalacion: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    fecha_fin_instalacion: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    tecnico_a_cargo: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    acompanante: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+
+    instalacion_finalizada: Mapped[bool] = mapped_column(default=False)
+    fecha_instalacion_finalizada: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    finalizado: Mapped[bool] = mapped_column(default=False)
+    fecha_cierre: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
 class ContactoEmergencia(Base):
     __tablename__ = "contactos_emergencia"
 
