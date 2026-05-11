@@ -904,6 +904,8 @@ class IncidenciasService:
                 "panelSelectorVenta",
                 "panelSelectorAdministracion",
                 "tablaAdministracion",
+                "panelSelectorFinanzas",
+                "tablaFinanzas",
                 "registroCliente",
                 "tablaCliente",
                 "incidencias",
@@ -929,6 +931,8 @@ class IncidenciasService:
             "panelSelectorVenta",
             "panelSelectorAdministracion",
             "tablaAdministracion",
+            "panelSelectorFinanzas",
+            "tablaFinanzas",
             "registroCliente",
             "tablaCliente",
             "cierreAperturaClientes",
@@ -955,6 +959,8 @@ class IncidenciasService:
                 "panelSelectorVenta",
                 "panelSelectorAdministracion",
                 "tablaAdministracion",
+                "panelSelectorFinanzas",
+                "tablaFinanzas",
                 "registroCliente",
                 "tablaCliente",
                 "cierreAperturaClientes",
@@ -971,7 +977,11 @@ class IncidenciasService:
                         else (
                             "Administracion"
                             if destino_ok in {"panelSelectorAdministracion", "tablaAdministracion"}
-                            else ("Venta" if destino_ok in {"panelSelectorVenta", "registroCliente", "tablaCliente"} else "Operaciones")
+                            else (
+                                "Finanzas"
+                                if destino_ok in {"panelSelectorFinanzas", "tablaFinanzas"}
+                                else ("Venta" if destino_ok in {"panelSelectorVenta", "registroCliente", "tablaCliente"} else "Operaciones")
+                            )
                         )
                     )
                     return {"success": False, "message": f"Usuario no autorizado para {scope_name}"}
