@@ -104,7 +104,15 @@ def venta_administracion_page(
     request: Request,
     token: str = Depends(require_venta_token),
 ):
-    return templates.TemplateResponse("administracion_ods.html", {"request": request, "token": token})
+    return templates.TemplateResponse("panel_selector_administracion.html", {"request": request, "token": token})
+
+
+@router.get("/venta/administracion/tabla", response_class=HTMLResponse)
+def venta_tabla_administracion_page(
+    request: Request,
+    token: str = Depends(require_venta_token),
+):
+    return templates.TemplateResponse("TablaAdministracion.html", {"request": request, "token": token})
 
 
 @router.get("/venta/login", response_class=HTMLResponse)
