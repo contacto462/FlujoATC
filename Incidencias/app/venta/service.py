@@ -18,6 +18,7 @@ from app.config import settings
 from app.models import (
     AdministracionODT,
     ClienteBBDD,
+    FinanzasODT,
     SucursalBBDD,
     SucursalContactoEmergencia,
     SucursalGuardia,
@@ -745,6 +746,15 @@ ADMIN_ESTADO_FIELDS: dict[str, tuple[str, str | None]] = {
     "finalizado": ("finalizado", "fecha_cierre"),
 }
 
+FINANZAS_ESTADO_FIELDS: dict[str, tuple[str, str | None]] = {
+    "recepcion_datos_facturacion": ("recepcion_datos_facturacion", "fecha_recepcion_datos_facturacion"),
+    "creacion_clientes_piriod": ("creacion_clientes_piriod", "fecha_creacion_clientes_piriod"),
+    "creacion_clientes_bd": ("creacion_clientes_bd", "fecha_creacion_clientes_bd"),
+    "facturacion_instalacion": ("facturacion_instalacion", "fecha_facturacion_instalacion"),
+    "facturacion_servicio": ("facturacion_servicio", "fecha_facturacion_servicio"),
+    "finalizado": ("finalizado", "fecha_cierre"),
+}
+
 
 def _get_or_create_admin_row(db: Session, codigo: str) -> AdministracionODT:
     codigo_limpio = str(codigo or "").strip()
@@ -756,6 +766,21 @@ def _get_or_create_admin_row(db: Session, codigo: str) -> AdministracionODT:
     if row:
         return row
     row = AdministracionODT(odt=codigo_limpio)
+    db.add(row)
+    db.flush()
+    return row
+
+
+def _get_or_create_finanzas_row(db: Session, codigo: str) -> FinanzasODT:
+    codigo_limpio = str(codigo or "").strip()
+    row = (
+        db.query(FinanzasODT)
+        .filter(func.lower(func.trim(FinanzasODT.odt)) == codigo_limpio.lower())
+        .first()
+    )
+    if row:
+        return row
+    row = FinanzasODT(odt=codigo_limpio)
     db.add(row)
     db.flush()
     return row
@@ -855,6 +880,94 @@ def update_admin_ods_estado(db: Session, codigo: str, campo: str, valor: bool) -
         "timestamp": _fmt_date(now) if valor else "",
         "notificacion": "pendiente_configuracion" if campo_limpio in {"recepcion_info", "envio_solicitud_instalacion"} and valor else "",
     }
+
+
+def get_finanzas_ods_rows(db: Session) -> dict[str, object]:
+    rows = (
+        db.query(VentaODS, FinanzasODT)
+        .outerjoin(FinanzasODT, func.lower(func.trim(FinanzasODT.odt)) == func.lower(func.trim(VentaODS.codigo)))
+        .order_by(VentaODS.created_at.desc(), VentaODS.id.desc())
+        .all()
+    )
+    out: list[dict[str, object]] = []
+    total_anuladas = 0
+    for ods, fin in rows:
+        estado_ods = str(ods.estado or "").strip()
+        anulada = estado_ods.lower() == "anulada"
+        if anulada:
+            total_anuladas += 1
+        carpeta = ods.cotizacion_path or ods.odc_path or ods.desglose_path or ""
+        out.append(
+            {
+                "codigo": ods.codigo or "",
+                "fecha": _fmt_date(ods.created_at),
+                "ejecutivo": ods.creado_por or "",
+                "rutCliente": ods.rut_cliente or "",
+                "razonSocial": ods.razon_social or "",
+                "direccionSucursal": ods.direccion_sucursal or "",
+                "tipoServicio": ods.tipo_servicio or "",
+                "tipoPlan": ods.tipo_plan or "",
+                "carpeta": carpeta,
+                "fechaInicioServicio": getattr(fin, "fecha_inicio_servicio", "") if fin else "",
+                "estados": {
+                    "recepcion_datos_facturacion": _is_true(getattr(fin, "recepcion_datos_facturacion", False)),
+                    "creacion_clientes_piriod": _is_true(getattr(fin, "creacion_clientes_piriod", False)),
+                    "creacion_clientes_bd": _is_true(getattr(fin, "creacion_clientes_bd", False)),
+                    "facturacion_instalacion": _is_true(getattr(fin, "facturacion_instalacion", False)),
+                    "facturacion_servicio": _is_true(getattr(fin, "facturacion_servicio", False)),
+                    "finalizado": _is_true(getattr(fin, "finalizado", False)),
+                },
+                "anulada": anulada,
+            }
+        )
+    return {"rows": out, "totalAnuladas": total_anuladas}
+
+
+def get_finanzas_ods_detail(db: Session, codigo: str) -> dict[str, str]:
+    detail = get_ods_detail(db, codigo)
+    comuna = ""
+    direccion = detail.get("direccionSucursal") or ""
+    if direccion:
+        suc = (
+            db.query(SucursalBBDD)
+            .filter(func.lower(func.trim(SucursalBBDD.direccion)) == direccion.strip().lower())
+            .first()
+        )
+        comuna = getattr(suc, "comuna", "") or ""
+    return {
+        "comuna": comuna,
+        "numeroCamaras": detail.get("camInstalar") or "",
+        "camarasVigilar": detail.get("camVigilar") or "",
+        "montosACobrar": detail.get("montosACobrar") or "",
+        "observacion": detail.get("observacion") or "",
+        "requiereOC": detail.get("requiereOC") or "",
+    }
+
+
+def update_finanzas_ods_estado(db: Session, codigo: str, campo: str, valor: bool) -> dict[str, object]:
+    codigo_limpio = str(codigo or "").strip()
+    campo_limpio = str(campo or "").strip()
+    if campo_limpio not in FINANZAS_ESTADO_FIELDS:
+        raise HTTPException(status_code=400, detail="Campo finanzas invalido.")
+
+    ods = (
+        db.query(VentaODS)
+        .filter(func.lower(func.trim(VentaODS.codigo)) == codigo_limpio.lower())
+        .first()
+    )
+    if not ods:
+        raise HTTPException(status_code=404, detail="ODS no encontrada.")
+    if str(ods.estado or "").strip().lower() == "anulada":
+        raise HTTPException(status_code=400, detail="La ODS esta anulada.")
+
+    row = _get_or_create_finanzas_row(db, codigo_limpio)
+    bool_field, date_field = FINANZAS_ESTADO_FIELDS[campo_limpio]
+    now = datetime.utcnow()
+    setattr(row, bool_field, bool(valor))
+    if date_field:
+        setattr(row, date_field, now if valor else None)
+    db.commit()
+    return {"ok": True, "codigo": codigo_limpio, "campo": campo_limpio, "valor": bool(valor), "estado": "Completado" if valor else "Pendiente", "timestamp": _fmt_date(now) if valor else ""}
 
 
 def update_ods(db: Session, payload, usuario_email: str) -> VentaODS:
