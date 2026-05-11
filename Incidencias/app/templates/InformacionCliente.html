@@ -3,250 +3,529 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Informacion del Cliente</title>
- <style>
-  body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #F4F6F8;
-    padding: 30px;
-    margin: 0;
-  }
+  <title>Información del Cliente — ATC</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  .container {
-    max-width: 1000px;
-    margin: auto;
-    background: #fff;
-    padding: 25px 30px;
-    border-radius: 10px;
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
-  }
+    :root {
+      --navy-1: #0b1420;
+      --navy-2: #162538;
+      --navy-3: #1e3248;
+      --orange: #ff7a2b;
+      --orange-2: #ff9448;
+      --bg: #f0f4f8;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --label: #374151;
+      --radius: 10px;
+    }
 
-  .header {
-    background-color: #FFA500;
-    color: white;
-    text-align: center;
-    padding: 15px;
-    border-radius: 6px;
-    margin-bottom: 25px;
-  }
+    html, body { height: 100%; }
 
-  .search-bar {
-    display: flex;
-    gap: 10px;
-    margin-top: 10px;
-  }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
 
-  .search-bar input[type="text"] {
-    flex: 1;
-    padding: 10px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    font-size: 16px;
-  }
+    /* ── HEADER ── */
+    .page-header {
+      flex-shrink: 0;
+      background: linear-gradient(135deg, var(--navy-1) 0%, var(--navy-2) 60%, var(--navy-3) 100%);
+      padding: 13px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      box-shadow: 0 2px 16px rgba(0,0,0,.22);
+      z-index: 50;
+    }
 
-  .search-bar button {
-    background-color: #FFA500;
-    border: none;
-    color: white;
-    padding: 10px 20px;
-    font-size: 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-  }
+    .header-brand { display: flex; align-items: center; gap: 12px; }
+    .header-brand img { height: 38px; width: auto; object-fit: contain; }
+    .header-brand-text strong { display: block; font-size: 14px; font-weight: 800; color: #fff; }
+    .header-brand-text span { font-size: 11px; color: rgba(255,255,255,.55); }
 
-  .search-bar button:hover {
-    background-color: #e69500;
-  }
+    .btn-back {
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 13px; border-radius: 10px;
+      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14);
+      color: rgba(255,255,255,.82); font-size: 13px; font-weight: 700;
+      text-decoration: none; transition: background .18s; white-space: nowrap;
+      cursor: pointer;
+    }
+    .btn-back:hover { background: rgba(255,255,255,.14); }
 
-  .info-section p {
-    font-size: 15px;
-    margin: 5px 0;
-  }
+    /* ── MAIN ── */
+    .main {
+      flex: 1;
+      padding: 28px 24px 48px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      max-width: 1100px;
+      width: 100%;
+      margin: 0 auto;
+    }
 
-  select {
-    padding: 8px;
-    font-size: 15px;
-    width: 50%;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    margin-top: 10px;
-  }
+    /* ── SEARCH BAR ── */
+    .search-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.05);
+    }
 
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-  }
+    .search-card .field-wrap { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+    .search-card label { font-size: 12px; font-weight: 600; color: var(--label); text-transform: uppercase; letter-spacing: .04em; }
 
-  th {
-    background-color: #FFA500;
-    color: white;
-    padding: 10px;
-    text-align: center;
-  }
+    .search-input {
+      padding: 10px 14px;
+      font-size: 14px;
+      font-family: inherit;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      transition: border-color .18s, box-shadow .18s;
+      width: 100%;
+    }
+    .search-input:focus { outline: none; border-color: var(--orange); box-shadow: 0 0 0 3px rgba(255,122,43,.1); background: #fff; }
 
-  td {
-    background-color: #fff;
-    padding: 8px;
-    text-align: center;
-    border-bottom: 1px solid #eee;
-  }
+    .btn-buscar {
+      padding: 10px 22px;
+      background: var(--orange);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .18s;
+    }
+    .btn-buscar:hover { background: var(--orange-2); }
 
-  tr:nth-child(even) td {
-    background-color: #f9f9f9;
-  }
+    /* ── SECTION CARD ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 1px 4px rgba(0,0,0,.05);
+      overflow: hidden;
+    }
 
-  input[type="text"],
-  input[type="email"],
-  input[type="time"] {
-    width: 100%;
-    padding: 6px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-    box-sizing: border-box;
-  }
+    .card-header {
+      padding: 13px 20px;
+      background: linear-gradient(135deg, var(--navy-1) 0%, var(--navy-2) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
 
-  button {
-    background-color: #28a745;
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-  }
+    .card-header h2 {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
 
-  button:hover {
-    background-color: #218838;
-  }
+    .card-header .badge-orange {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--orange);
+      background: rgba(255,122,43,.12);
+      border: 1px solid rgba(255,122,43,.25);
+      border-radius: 20px;
+      padding: 2px 10px;
+    }
 
-  .tables table {
-    margin-top: 30px;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-  }
+    .card-body { padding: 20px; }
 
-  .bloque-tabla {
-    margin-bottom: 40px;
-  }
+    /* ── INFO GRID ── */
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
 
-  .tabla-titulo {
-    color: #111;
-    padding: 10px;
-    text-align: center;
-    border-radius: 6px;
-    margin-bottom: 10px;
-    font-size: 20px;
-  }
+    .info-field { display: flex; flex-direction: column; gap: 3px; }
+    .info-field .lbl {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    .info-field .val {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      word-break: break-word;
+    }
 
-  .editable-cell {
-    cursor: text;
-  }
- </style>
+    .divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+
+    /* ── SELECT SUCURSAL ── */
+    .select-sucursal {
+      padding: 9px 12px;
+      font-size: 13px;
+      font-family: inherit;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      width: 100%;
+      max-width: 380px;
+      transition: border-color .18s;
+      cursor: pointer;
+    }
+    .select-sucursal:focus { outline: none; border-color: var(--orange); box-shadow: 0 0 0 3px rgba(255,122,43,.1); }
+
+    /* ── TABLES ── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    thead tr { background: #f8fafc; }
+    thead th {
+      padding: 10px 12px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      border-bottom: 1.5px solid var(--border);
+      white-space: nowrap;
+    }
+
+    tbody td {
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      vertical-align: middle;
+    }
+
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: #f8fafc; }
+
+    .editable-cell { cursor: text; }
+    .editable-cell:hover { background: #fff5ef !important; }
+
+    tbody td input[type="text"],
+    tbody td input[type="email"],
+    tbody td input[type="time"] {
+      width: 100%;
+      padding: 5px 8px;
+      font-size: 13px;
+      font-family: inherit;
+      border: 1.5px solid var(--orange);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      outline: none;
+    }
+
+    /* ── ADD ROW ── */
+    .add-row td {
+      background: #f8fafc;
+      border-top: 1.5px dashed var(--border);
+      padding: 8px 10px;
+    }
+
+    .add-row input {
+      width: 100%;
+      padding: 7px 10px;
+      font-size: 12px;
+      font-family: inherit;
+      border: 1.5px solid var(--border);
+      border-radius: 7px;
+      background: #fff;
+      color: var(--text);
+      transition: border-color .18s;
+    }
+    .add-row input:focus { outline: none; border-color: var(--orange); }
+
+    .btn-add {
+      padding: 7px 14px;
+      background: var(--orange);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: inherit;
+      border: none;
+      border-radius: 7px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .18s;
+    }
+    .btn-add:hover { background: var(--orange-2); }
+
+    /* ── SUCURSAL SECTION SELECT ── */
+    .sucursal-bar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .sucursal-bar label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--label);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      white-space: nowrap;
+    }
+
+    /* ── PLACEHOLDER STATE ── */
+    .placeholder-msg {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .placeholder-msg strong { display: block; font-size: 22px; margin-bottom: 8px; color: #d1d5db; }
+
+    @media (max-width: 640px) {
+      .main { padding: 16px 12px 40px; }
+      .info-grid { grid-template-columns: 1fr 1fr; }
+      .search-card { flex-wrap: wrap; }
+    }
+  </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="header">
-        <h1>Informacion del Cliente</h1>
+<!-- HEADER -->
+<header class="page-header">
+  <div class="header-brand">
+    <img src="/static/logo.png" alt="ATC" onerror="this.style.display='none'">
+    <div class="header-brand-text">
+      <strong>ATC Seguridad</strong>
+      <span>Información del Cliente</span>
     </div>
+  </div>
+  <a class="btn-back" onclick="history.back()">
+    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+    Volver
+  </a>
+</header>
 
-    <div class="search">
-        <label for="rutCliente">Ingrese el RUT del cliente:</label>
-        <div class="search-bar">
-            <input type="text" id="rutCliente" placeholder="RUT del cliente">
-            <button onclick="buscarCliente()">Buscar</button>
-        </div>
+<!-- MAIN -->
+<div class="main">
+
+  <!-- SEARCH -->
+  <div class="search-card">
+    <div class="field-wrap">
+      <label for="rutCliente">RUT del Cliente</label>
+      <input class="search-input" type="text" id="rutCliente" placeholder="Ej: 12345678-9" autocomplete="off">
     </div>
+    <button class="btn-buscar" onclick="buscarCliente()">Buscar</button>
+  </div>
 
-    <div class="info-section">
-        <p><strong>Razon Social:</strong> <span id="nombreCliente"></span></p>
-        <p><strong>Direccion Casa Matriz:</strong> <span id="direccionCasaMatriz"></span></p>
-        <p><strong>Comuna Casa Matriz:</strong> <span id="comunaCasaMatriz"></span></p>
-
-        <p><strong>Representante Legal:</strong></p>
-        <p>Nombre: <span id="nombreRepresentante"></span></p>
-        <p>RUT: <span id="rutRepresentante"></span></p>
-        <p>Email: <span id="emailRepresentante"></span></p>
-
-        <div>
-            <label for="sucursales">Sucursales:</label>
-            <select id="sucursales" onchange="cargarDatosDeEmergencia()">
-                <option value="" disabled selected>Seleccione Sucursal</option>
-            </select>
-        </div>
+  <!-- DATOS CLIENTE -->
+  <div class="card" id="cardCliente" style="display:none">
+    <div class="card-header">
+      <h2>Datos del Cliente</h2>
+      <span class="badge-orange" id="badgeNombreCliente"></span>
     </div>
+    <div class="card-body">
+      <div class="info-grid">
+        <div class="info-field">
+          <span class="lbl">Razón Social</span>
+          <span class="val" id="nombreCliente">—</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Dirección Casa Matriz</span>
+          <span class="val" id="direccionCasaMatriz">—</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Comuna Casa Matriz</span>
+          <span class="val" id="comunaCasaMatriz">—</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Representante Legal</span>
+          <span class="val" id="nombreRepresentante">—</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">RUT Representante</span>
+          <span class="val" id="rutRepresentante">—</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Email Representante</span>
+          <span class="val" id="emailRepresentante">—</span>
+        </div>
+      </div>
 
-    <div class="info-section">
-        <p><strong>Comuna de Sucursal:</strong> <span id="comunaSucursal"></span></p>
-        <p><strong>Latitud - Longitud:</strong> <span id="latitudLongitud"></span></p>
-        <p><strong>Referencia Ubicacion:</strong> <span id="referenciaUbicacion"></span></p>
-        <p><strong>Cantidad de Camaras:</strong> <span id="cantidadCamaras"></span></p>
-        <p><strong>Dias de Grabacion:</strong> <span id="diasGrabacion"></span></p>
-        <p><strong>Proveedor de Internet:</strong> <span id="proveedorInternet"></span></p>
-        <p><strong>Proveedor de Electricidad:</strong> <span id="proveedorElectricidad"></span></p>
-        <p><strong>Numero Cliente Electricidad:</strong> <span id="numeroClienteElectricidad"></span></p>
-        <p><strong>Dias de Apertura:</strong> <span id="diasApertura"></span></p>
-        <p><strong>Horario de Apertura:</strong> <span id="horarioApertura"></span></p>
-        <p><strong>Horario de Cierre:</strong> <span id="horarioCierre"></span></p>
-        <p><strong>Tipo de Servicio:</strong> <span id="tipoServicio"></span></p>
-        <p><strong>Tipo de Plan:</strong> <span id="tipoPlan"></span></p>
+      <hr class="divider">
+
+      <div class="sucursal-bar">
+        <label for="sucursales">Sucursal:</label>
+        <select class="select-sucursal" id="sucursales" onchange="cargarDatosDeEmergencia()">
+          <option value="" disabled selected>Seleccione Sucursal</option>
+        </select>
+      </div>
     </div>
+  </div>
 
-    <div class="tables">
-        <div class="bloque-tabla">
-            <h2 class="tabla-titulo">Contacto de Emergencia</h2>
-            <table id="contactosEmergenciaTable">
-                <thead>
-                    <tr>
-                        <th>Nombre Emergencia</th>
-                        <th>RUT</th>
-                        <th>Telefono Emergencia</th>
-                        <th>Email</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody id="tbodyEmergencia"></tbody>
-            </table>
-        </div>
-
-        <div class="bloque-tabla">
-            <h2 class="tabla-titulo">Personas Autorizadas</h2>
-            <table id="personasAutorizadasTable">
-                <thead>
-                    <tr>
-                        <th>Nombre Autorizado</th>
-                        <th>RUT</th>
-                        <th>Telefono</th>
-                        <th>Email</th>
-                        <th>Clave Verde</th>
-                        <th>Clave Roja</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody id="tbodyAutorizados"></tbody>
-            </table>
-        </div>
-
-        <div class="bloque-tabla">
-            <h2 class="tabla-titulo">Guardias</h2>
-            <table id="guardiasTable">
-                <thead>
-                    <tr>
-                        <th>Nombre</th>
-                        <th>RUT</th>
-                        <th>Telefono</th>
-                        <th>Horario (Desde)</th>
-                        <th>Horario (Hasta)</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody id="tbodyGuardias"></tbody>
-            </table>
-        </div>
+  <!-- DATOS SUCURSAL -->
+  <div class="card" id="cardSucursal" style="display:none">
+    <div class="card-header">
+      <h2>Datos de la Sucursal</h2>
     </div>
+    <div class="card-body">
+      <div class="info-grid">
+        <div class="info-field">
+          <span class="lbl">Comuna</span>
+          <span class="val" id="comunaSucursal">—</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Latitud / Longitud</span>
+          <span class="val" id="latitudLongitud">—</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Referencia Ubicación</span>
+          <span class="val" id="referenciaUbicacion">—</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Cantidad de Cámaras</span>
+          <span class="val" id="cantidadCamaras">—</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Días de Grabación</span>
+          <span class="val" id="diasGrabacion">—</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Proveedor Internet</span>
+          <span class="val" id="proveedorInternet">—</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Proveedor Electricidad</span>
+          <span class="val" id="proveedorElectricidad">—</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">N° Cliente Electricidad</span>
+          <span class="val" id="numeroClienteElectricidad">—</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Días de Apertura</span>
+          <span class="val" id="diasApertura">—</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Horario Apertura</span>
+          <span class="val" id="horarioApertura">—</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Horario Cierre</span>
+          <span class="val" id="horarioCierre">—</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Tipo de Servicio</span>
+          <span class="val" id="tipoServicio">—</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Tipo de Plan</span>
+          <span class="val" id="tipoPlan">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTACTOS DE EMERGENCIA -->
+  <div class="card" id="cardEmergencia" style="display:none">
+    <div class="card-header">
+      <h2>Contacto de Emergencia</h2>
+    </div>
+    <div class="card-body" style="padding:0">
+      <div class="table-wrap">
+        <table id="contactosEmergenciaTable">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>RUT</th>
+              <th>Teléfono</th>
+              <th>Email</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tbodyEmergencia"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PERSONAS AUTORIZADAS -->
+  <div class="card" id="cardAutorizados" style="display:none">
+    <div class="card-header">
+      <h2>Personas Autorizadas</h2>
+    </div>
+    <div class="card-body" style="padding:0">
+      <div class="table-wrap">
+        <table id="personasAutorizadasTable">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>RUT</th>
+              <th>Teléfono</th>
+              <th>Email</th>
+              <th>Clave Verde</th>
+              <th>Clave Roja</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tbodyAutorizados"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- GUARDIAS -->
+  <div class="card" id="cardGuardias" style="display:none">
+    <div class="card-header">
+      <h2>Guardias</h2>
+    </div>
+    <div class="card-body" style="padding:0">
+      <div class="table-wrap">
+        <table id="guardiasTable">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>RUT</th>
+              <th>Teléfono</th>
+              <th>Horario Desde</th>
+              <th>Horario Hasta</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tbodyGuardias"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PLACEHOLDER -->
+  <div class="placeholder-msg" id="placeholderMsg">
+    <strong>🔍</strong>
+    Ingresa el RUT del cliente y presiona <em>Buscar</em> para ver su información.
+  </div>
+
 </div>
 
 <script>
@@ -271,26 +550,32 @@ function normalizarTelefonoInput(input) {
   input.value = "+" + tel.slice(0, 11);
 }
 
+function mostrarCards(visible) {
+  ["cardCliente", "cardSucursal", "cardEmergencia", "cardAutorizados", "cardGuardias"].forEach(id => {
+    document.getElementById(id).style.display = visible ? "" : "none";
+  });
+  document.getElementById("placeholderMsg").style.display = visible ? "none" : "";
+}
+
 async function buscarCliente() {
   const rutCliente = document.getElementById("rutCliente").value.trim();
-  if (!rutCliente) {
-    alert("Por favor, ingrese un RUT.");
-    return;
-  }
+  if (!rutCliente) { alert("Por favor, ingrese un RUT."); return; }
 
   const response = await fetch(withToken("/api/venta/clientes/resumen?rut=" + encodeURIComponent(rutCliente)));
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    alert(data.detail || "No se pudo obtener la informacion del cliente.");
+    alert(data.detail || "No se pudo obtener la información del cliente.");
     return;
   }
 
-  document.getElementById("nombreCliente").innerText = data.nombreCliente || "No encontrado";
-  document.getElementById("direccionCasaMatriz").innerText = data.direccionCasaMatriz || "N/A";
-  document.getElementById("comunaCasaMatriz").innerText = data.comunaCasaMatriz || "N/A";
-  document.getElementById("nombreRepresentante").innerText = data.nombreRepresentante || "N/A";
-  document.getElementById("rutRepresentante").innerText = data.rutRepresentante || "N/A";
-  document.getElementById("emailRepresentante").innerText = data.emailRepresentante || "N/A";
+  const nombre = data.nombreCliente || "Sin nombre";
+  document.getElementById("nombreCliente").textContent = nombre;
+  document.getElementById("badgeNombreCliente").textContent = nombre;
+  document.getElementById("direccionCasaMatriz").textContent = data.direccionCasaMatriz || "N/A";
+  document.getElementById("comunaCasaMatriz").textContent = data.comunaCasaMatriz || "N/A";
+  document.getElementById("nombreRepresentante").textContent = data.nombreRepresentante || "N/A";
+  document.getElementById("rutRepresentante").textContent = data.rutRepresentante || "N/A";
+  document.getElementById("emailRepresentante").textContent = data.emailRepresentante || "N/A";
 
   const sucursalesSelect = document.getElementById("sucursales");
   sucursalesSelect.innerHTML = "";
@@ -298,37 +583,35 @@ async function buscarCliente() {
   const sucursales = data.sucursales || [];
   if (sucursales.length > 0) {
     const firstOption = document.createElement("option");
-    firstOption.value = "";
-    firstOption.textContent = "Seleccione Sucursal";
-    firstOption.disabled = true;
+    firstOption.value = ""; firstOption.textContent = "Seleccione Sucursal"; firstOption.disabled = true;
     sucursalesSelect.appendChild(firstOption);
-
-    sucursales.forEach((sucursal, index) => {
-      const option = document.createElement("option");
-      option.value = String(sucursal.id);
-      option.textContent = sucursal.label || sucursal.direccion || sucursal.nombre || `Sucursal ${sucursal.id}`;
-      if (index === 0) option.selected = true;
-      sucursalesSelect.appendChild(option);
+    sucursales.forEach((suc, idx) => {
+      const opt = document.createElement("option");
+      opt.value = String(suc.id);
+      opt.textContent = suc.label || suc.direccion || suc.nombre || `Sucursal ${suc.id}`;
+      if (idx === 0) opt.selected = true;
+      sucursalesSelect.appendChild(opt);
     });
+    mostrarCards(true);
     await cargarDatosDeEmergencia();
   } else {
-    const option = document.createElement("option");
-    option.value = "";
-    option.textContent = "No hay sucursales disponibles";
-    sucursalesSelect.appendChild(option);
+    const opt = document.createElement("option");
+    opt.value = ""; opt.textContent = "No hay sucursales disponibles";
+    sucursalesSelect.appendChild(opt);
+    mostrarCards(true);
+    document.getElementById("cardSucursal").style.display = "none";
+    document.getElementById("cardEmergencia").style.display = "none";
+    document.getElementById("cardAutorizados").style.display = "none";
+    document.getElementById("cardGuardias").style.display = "none";
   }
 }
 
 async function agregarPersona(categoria) {
   const rutCliente = document.getElementById("rutCliente").value.trim();
   const sucursalId = parseInt(document.getElementById("sucursales").value || "0", 10);
-  if (!rutCliente || !sucursalId) {
-    alert("Debe ingresar el RUT del cliente y seleccionar una sucursal.");
-    return;
-  }
+  if (!rutCliente || !sucursalId) { alert("Debe ingresar el RUT del cliente y seleccionar una sucursal."); return; }
 
   const datos = { categoria, rutCliente, sucursalId };
-
   if (categoria === "Contacto de Emergencia") {
     datos.nombre = document.getElementById("emergenciaNombre").value.trim();
     datos.rut = document.getElementById("emergenciaRUT").value.trim();
@@ -355,43 +638,37 @@ async function agregarPersona(categoria) {
     body: JSON.stringify(datos),
   });
   const body = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    alert(body.detail || "No se pudo agregar el registro.");
-    return;
-  }
-
-  alert("Registro agregado correctamente.");
+  if (!response.ok) { alert(body.detail || "No se pudo agregar el registro."); return; }
   await cargarDatosDeEmergencia();
 }
 
 async function cargarDatosDeEmergencia() {
   const rutCliente = document.getElementById("rutCliente").value.trim();
   const sucursalId = parseInt(document.getElementById("sucursales").value || "0", 10);
-
-  if (!rutCliente || !sucursalId) {
-    return;
-  }
+  if (!rutCliente || !sucursalId) return;
 
   const response = await fetch(withToken(`/api/venta/clientes/resumen-sucursal?rut=${encodeURIComponent(rutCliente)}&sucursal_id=${encodeURIComponent(String(sucursalId))}`));
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    alert(data.detail || "No se pudieron cargar los datos de la sucursal.");
-    return;
-  }
+  if (!response.ok) { alert(data.detail || "No se pudieron cargar los datos de la sucursal."); return; }
 
-  document.getElementById("comunaSucursal").innerText = data.comunaSucursal || "N/A";
-  document.getElementById("latitudLongitud").innerText = data.latitudLongitud || "N/A";
-  document.getElementById("referenciaUbicacion").innerText = data.referenciaUbicacion || "N/A";
-  document.getElementById("cantidadCamaras").innerText = data.cantidadCamaras || "N/A";
-  document.getElementById("diasGrabacion").innerText = data.diasGrabacion || "N/A";
-  document.getElementById("proveedorInternet").innerText = data.proveedorInternet || "N/A";
-  document.getElementById("proveedorElectricidad").innerText = data.proveedorElectricidad || "N/A";
-  document.getElementById("numeroClienteElectricidad").innerText = data.numeroClienteElectricidad || "N/A";
-  document.getElementById("diasApertura").innerText = data.diasApertura || "N/A";
-  document.getElementById("horarioApertura").innerText = data.horarioApertura || "N/A";
-  document.getElementById("horarioCierre").innerText = data.horarioCierre || "N/A";
-  document.getElementById("tipoServicio").innerText = data.tipoServicio || "N/A";
-  document.getElementById("tipoPlan").innerText = data.tipoPlan || "N/A";
+  document.getElementById("comunaSucursal").textContent = data.comunaSucursal || "N/A";
+  document.getElementById("latitudLongitud").textContent = data.latitudLongitud || "N/A";
+  document.getElementById("referenciaUbicacion").textContent = data.referenciaUbicacion || "N/A";
+  document.getElementById("cantidadCamaras").textContent = data.cantidadCamaras || "N/A";
+  document.getElementById("diasGrabacion").textContent = data.diasGrabacion || "N/A";
+  document.getElementById("proveedorInternet").textContent = data.proveedorInternet || "N/A";
+  document.getElementById("proveedorElectricidad").textContent = data.proveedorElectricidad || "N/A";
+  document.getElementById("numeroClienteElectricidad").textContent = data.numeroClienteElectricidad || "N/A";
+  document.getElementById("diasApertura").textContent = data.diasApertura || "N/A";
+  document.getElementById("horarioApertura").textContent = data.horarioApertura || "N/A";
+  document.getElementById("horarioCierre").textContent = data.horarioCierre || "N/A";
+  document.getElementById("tipoServicio").textContent = data.tipoServicio || "N/A";
+  document.getElementById("tipoPlan").textContent = data.tipoPlan || "N/A";
+
+  document.getElementById("cardSucursal").style.display = "";
+  document.getElementById("cardEmergencia").style.display = "";
+  document.getElementById("cardAutorizados").style.display = "";
+  document.getElementById("cardGuardias").style.display = "";
 
   llenarTabla("contactosEmergenciaTable", data.contactosEmergencia || []);
   llenarTabla("personasAutorizadasTable", data.personasAutorizadas || []);
@@ -405,36 +682,17 @@ function llenarTabla(tableId, data) {
 
   data.forEach((item) => {
     const row = document.createElement("tr");
-    let campos = [];
-    let categoria = "";
+    let campos = [], categoria = "";
 
     if (tableId === "contactosEmergenciaTable") {
       categoria = "Contacto de Emergencia";
-      campos = [
-        ["nombre", item.nombre],
-        ["rut", item.rut],
-        ["telefono", item.telefono],
-        ["email", item.email],
-      ];
+      campos = [["nombre", item.nombre], ["rut", item.rut], ["telefono", item.telefono], ["email", item.email]];
     } else if (tableId === "personasAutorizadasTable") {
       categoria = "Persona Autorizada";
-      campos = [
-        ["nombre", item.nombre],
-        ["rut", item.rut],
-        ["telefono", item.telefono],
-        ["email", item.email],
-        ["claveVerde", item.claveVerde],
-        ["claveRoja", item.claveRoja],
-      ];
+      campos = [["nombre", item.nombre], ["rut", item.rut], ["telefono", item.telefono], ["email", item.email], ["claveVerde", item.claveVerde], ["claveRoja", item.claveRoja]];
     } else if (tableId === "guardiasTable") {
       categoria = "Guardia";
-      campos = [
-        ["nombre", item.nombre],
-        ["rut", item.rut],
-        ["telefono", item.telefono],
-        ["horarioDesde", item.horarioDesde],
-        ["horarioHasta", item.horarioHasta],
-      ];
+      campos = [["nombre", item.nombre], ["rut", item.rut], ["telefono", item.telefono], ["horarioDesde", item.horarioDesde], ["horarioHasta", item.horarioHasta]];
     }
 
     campos.forEach(([campo, valor]) => {
@@ -448,36 +706,38 @@ function llenarTabla(tableId, data) {
       row.appendChild(td);
     });
 
+    const tdEmpty = document.createElement("td");
+    row.appendChild(tdEmpty);
     tbody.appendChild(row);
   });
 
   const inputRow = document.createElement("tr");
+  inputRow.className = "add-row";
   if (tableId === "contactosEmergenciaTable") {
     inputRow.innerHTML = `
       <td><input type="text" id="emergenciaNombre" placeholder="Nombre"></td>
       <td><input type="text" id="emergenciaRUT" placeholder="RUT"></td>
-      <td><input type="text" id="emergenciaTelefono" placeholder="Telefono"></td>
+      <td><input type="text" id="emergenciaTelefono" placeholder="Teléfono"></td>
       <td><input type="email" id="emergenciaEmail" placeholder="Email"></td>
-      <td><button onclick="agregarPersona('Contacto de Emergencia')">+</button></td>`;
+      <td><button class="btn-add" onclick="agregarPersona('Contacto de Emergencia')">+ Agregar</button></td>`;
   } else if (tableId === "personasAutorizadasTable") {
     inputRow.innerHTML = `
       <td><input type="text" id="autorizadoNombre" placeholder="Nombre"></td>
       <td><input type="text" id="autorizadoRUT" placeholder="RUT"></td>
-      <td><input type="text" id="autorizadoTelefono" placeholder="Telefono"></td>
+      <td><input type="text" id="autorizadoTelefono" placeholder="Teléfono"></td>
       <td><input type="email" id="autorizadoEmail" placeholder="Email"></td>
       <td><input type="text" id="claveVerde" placeholder="Clave Verde"></td>
       <td><input type="text" id="claveRoja" placeholder="Clave Roja"></td>
-      <td><button onclick="agregarPersona('Persona Autorizada')">+</button></td>`;
+      <td><button class="btn-add" onclick="agregarPersona('Persona Autorizada')">+ Agregar</button></td>`;
   } else if (tableId === "guardiasTable") {
     inputRow.innerHTML = `
       <td><input type="text" id="guardiaNombre" placeholder="Nombre"></td>
       <td><input type="text" id="guardiaRUT" placeholder="RUT"></td>
-      <td><input type="text" id="guardiaTelefono" placeholder="Telefono"></td>
+      <td><input type="text" id="guardiaTelefono" placeholder="Teléfono"></td>
       <td><input type="time" id="horarioDesde"></td>
       <td><input type="time" id="horarioHasta"></td>
-      <td><button onclick="agregarPersona('Guardia')">+</button></td>`;
+      <td><button class="btn-add" onclick="agregarPersona('Guardia')">+ Agregar</button></td>`;
   }
-
   tbody.appendChild(inputRow);
 }
 
@@ -487,7 +747,6 @@ function hacerEditable(e) {
   const input = document.createElement("input");
   input.type = "text";
   input.value = valorOriginal;
-  input.style.width = "100%";
   td.textContent = "";
   td.appendChild(input);
   input.focus();
@@ -495,54 +754,32 @@ function hacerEditable(e) {
   input.addEventListener("blur", async () => {
     let nuevoValor = input.value.trim();
     const campo = td.dataset.campo || "";
-
-    if (campo === "rut") {
-      normalizarRutInput(input);
-      nuevoValor = input.value.trim();
-    }
-    if (campo === "telefono") {
-      normalizarTelefonoInput(input);
-      nuevoValor = input.value.trim();
-    }
-    if (campo === "email") {
-      nuevoValor = nuevoValor.replace(/\s+/g, "");
-    }
-
+    if (campo === "rut") { normalizarRutInput(input); nuevoValor = input.value.trim(); }
+    if (campo === "telefono") { normalizarTelefonoInput(input); nuevoValor = input.value.trim(); }
+    if (campo === "email") nuevoValor = nuevoValor.replace(/\s+/g, "");
     td.textContent = nuevoValor || valorOriginal;
     if (nuevoValor === valorOriginal) return;
-
     const response = await fetch(withToken("/api/venta/clientes/persona/editar"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        categoria: td.dataset.categoria,
-        registroId: Number(td.dataset.registroId || "0"),
-        campo: campo,
-        nuevoValor: nuevoValor,
-      }),
+      body: JSON.stringify({ categoria: td.dataset.categoria, registroId: Number(td.dataset.registroId || "0"), campo, nuevoValor }),
     });
     const body = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      alert(body.detail || "Error al guardar el cambio.");
-      td.textContent = valorOriginal;
-    }
+    if (!response.ok) { alert(body.detail || "Error al guardar el cambio."); td.textContent = valorOriginal; }
   });
 
-  input.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") input.blur();
-  });
+  input.addEventListener("keydown", (ev) => { if (ev.key === "Enter") input.blur(); });
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  document.body.addEventListener("input", function (e) {
-    const target = e.target;
-    const placeholder = String(target.placeholder || "").toLowerCase();
-    if (placeholder === "rut") {
-      normalizarRutInput(target);
-    }
-    if (placeholder.includes("telefono")) {
-      normalizarTelefonoInput(target);
-    }
+  document.getElementById("rutCliente").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") buscarCliente();
+  });
+  document.body.addEventListener("input", (e) => {
+    const t = e.target;
+    const ph = String(t.placeholder || "").toLowerCase();
+    if (ph === "rut") normalizarRutInput(t);
+    if (ph.includes("teléfono") || ph.includes("telefono")) normalizarTelefonoInput(t);
   });
 });
 </script>
