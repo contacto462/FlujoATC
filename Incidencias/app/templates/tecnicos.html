@@ -1393,7 +1393,103 @@
     }
 
     function hayDetalleOdtAbierto() {
-      return Boolean(document.querySelector(".fila-infoSucursal"));
+      return Boolean(document.querySelector(".odt-card-detail[style*='block']"));
+    }
+
+    function toggleInfoSucursalCard(card, cliente, observacion, estado, odt) {
+      const detail = card.querySelector(".odt-card-detail");
+      if (!detail) return;
+      if (detail.style.display !== "none" && currentODT === odt) {
+        detail.style.display = "none";
+        odtToReopen = ""; clienteToReopen = ""; currentODT = ""; clienteActivo = null;
+        return;
+      }
+      document.querySelectorAll(".odt-card-detail").forEach((d) => { d.style.display = "none"; });
+      mostrarInfoSucursalCard(card, cliente, observacion, estado, odt);
+    }
+
+    async function mostrarInfoSucursalCard(card, cliente, observacion = "", estado = "", odt = "") {
+      const detail = card.querySelector(".odt-card-detail");
+      if (!detail) return;
+      currentODT = odt; clienteActivo = cliente;
+      odtToReopen = odt; clienteToReopen = cliente; reopenedEstado = estado;
+      detail.style.display = "block";
+      detail.innerHTML = '<div style="text-align:center;padding:20px;"><div class="loader"></div></div>';
+      try {
+        const [detalleSucursal, incidencias, imagenesTablaResp] = await Promise.all([
+          api(`/api/sucursal/detalle?odt=${encodeURIComponent(odt)}`),
+          api(`/api/sucursal/incidencias?cliente=${encodeURIComponent(cliente)}`),
+          api(`/api/incidencias/imagenes-tabla?odt=${encodeURIComponent(odt)}`),
+        ]);
+        const imagenes = Array.isArray(imagenesTablaResp?.imagenes) ? imagenesTablaResp.imagenes : [];
+        const sucursalData = { ...(detalleSucursal || {}) };
+        if ((!sucursalData.latitud || !sucursalData.longitud) && sucursalData.direccion) {
+          const geo = await geocodificarDireccionCliente(sucursalData.direccion);
+          if (geo.latitud && geo.longitud) { sucursalData.latitud = geo.latitud; sucursalData.longitud = geo.longitud; }
+        }
+        let html = '<div class="infoSucursal fade-in">';
+        const detalleHtml = detalleCompletoHTML(observacion);
+        if (detalleHtml) html += '<h4>Detalle Completo ODT</h4>' + `<div class="odt-detalle-completo">${detalleHtml}</div>`;
+        html += '<h4>Detalles de la Sucursal</h4>';
+        html += `<p><strong>Direccion:</strong> ${escapeHTML(sucursalData?.direccion || "No disponible")}</p>`;
+        const contacto = [sucursalData?.contacto || "", sucursalData?.telefono || ""].filter(Boolean).join(" - ");
+        html += `<p><strong>Contacto:</strong> ${escapeHTML(contacto || "No disponible")}</p>`;
+        html += `<p><strong>Correo:</strong> ${escapeHTML(sucursalData?.correo || "No disponible")}</p>`;
+        if (sucursalData?.latitud && sucursalData?.longitud) {
+          html += `<p><strong>Navegacion:</strong><br><a href="https://www.google.com/maps?q=${encodeURIComponent(sucursalData.latitud)},${encodeURIComponent(sucursalData.longitud)}" target="_blank">Google Maps</a> | <a href="https://waze.com/ul?ll=${encodeURIComponent(sucursalData.latitud)},${encodeURIComponent(sucursalData.longitud)}&navigate=yes" target="_blank">Waze</a></p>`;
+        } else {
+          const links = construirLinksNavegacionPorDireccion(sucursalData?.direccion || "", cliente);
+          if (links.google) html += `<p><strong>Navegacion:</strong><br><a href="${escapeHTML(links.google)}" target="_blank">Google Maps</a> | <a href="${escapeHTML(links.waze)}" target="_blank">Waze</a></p>`;
+        }
+        if (sucursalData?.layout) html += `<p><strong>Layout:</strong> <a href="${escapeHTML(sucursalData.layout)}" target="_blank">Ver Layout</a></p>`;
+        html += '<h4 class="hdr-incidencias">Historial de Incidencias</h4>';
+        html += '<div class="historial-incidencias" style="display:none;">';
+        const incVis = 5;
+        const incFilt = (Array.isArray(incidencias) ? incidencias : []).filter((inc) => {
+          const t = normalizarTexto(inc?.problema || "");
+          return !t.includes("mantencion") && !t.includes("mantención");
+        });
+        if (!incFilt.length) {
+          html += '<p class="info-vacio">No hay incidencias relevantes</p>';
+        } else {
+          html += `<ul class="lista-incidencias" data-total="${incFilt.length}">`;
+          incFilt.forEach((inc, idx) => {
+            const vis = idx >= incFilt.length - incVis ? "block" : "none";
+            html += `<li class="inc-item" style="display:${vis};">` +
+              `<div class="inc-row"><span class="inc-fecha">Fecha: ${escapeHTML(inc?.fecha || "Sin fecha")}</span>` +
+              (inc?.problema ? `<span class="inc-problema">- ${escapeHTML(inc.problema)}</span>` : "") + "</div>" +
+              `<div class="inc-obs">${escapeHTML(inc?.texto || "")}</div></li>`;
+          });
+          html += "</ul>";
+          if (incFilt.length > incVis) html += '<div style="text-align:center;margin-top:10px;"><button class="btn-ver-mas" onclick="verMasIncidencias(this)">Ver mas</button></div>';
+        }
+        html += "</div>";
+        if (imagenes.length > 0) {
+          html += '<div style="margin-top:15px;"><p><strong>Imagenes Incidencia</strong></p><div class="imagenes-lista">';
+          imagenes.forEach((url, idx) => { html += `<div class="imagen-item"><a href="${escapeHTML(url)}" target="_blank">Imagen ${idx + 1}</a></div>`; });
+          html += "</div></div>";
+        }
+        html += '<div class="action-buttons">' +
+          '<button id="btnEnProcesoSucursal" type="button">Pendiente</button>' +
+          '<button id="btnFinalizarSucursal" class="btn-primario" type="button">Finalizar</button>' +
+          '<button id="btnRendicionSucursal" type="button">Rendicion Gastos</button>' +
+          '</div></div>';
+        detail.innerHTML = html;
+        const odtAcc = String(odt || "").trim();
+        detail.querySelector("#btnEnProcesoSucursal")?.addEventListener("click", () => marcarEnProceso(odtAcc));
+        detail.querySelector("#btnFinalizarSucursal")?.addEventListener("click", () => abrirModalFinalizar(odtAcc));
+        detail.querySelector("#btnRendicionSucursal")?.addEventListener("click", () => abrirFormularioRendicionPorODT(odtAcc));
+        detail.querySelector(".hdr-incidencias")?.addEventListener("click", () => {
+          const cont = detail.querySelector(".historial-incidencias");
+          if (cont) cont.style.display = cont.style.display === "none" ? "block" : "none";
+        });
+        if (estadoCanonico(estado) === "Terminado") {
+          const btnFin = detail.querySelector("#btnFinalizarSucursal");
+          if (btnFin) { btnFin.textContent = "Finalizado"; btnFin.disabled = true; btnFin.style.backgroundColor = "#2ecc71"; btnFin.style.cursor = "not-allowed"; }
+        }
+      } catch (err) {
+        detail.innerHTML = `<div class="infoSucursal info-error">Error: ${escapeHTML(err.message)}</div>`;
+      }
     }
 
     function debePausarActualizacionAutomatica() {
