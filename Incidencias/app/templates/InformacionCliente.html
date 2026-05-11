@@ -174,7 +174,7 @@
       word-break: break-word;
     }
 
-    .divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 10px 0 8px; }
 
     /* ── SELECT SUCURSAL ── */
     .select-sucursal {
@@ -341,7 +341,7 @@
   <div class="card" id="cardCliente" style="display:none">
     <div class="card-header">
       <h2>Datos del Cliente</h2>
-      <span class="badge-orange" id="badgeNombreCliente"></span>
+      <span class="badge-nombre" id="badgeNombreCliente"></span>
     </div>
     <div class="card-body">
       <div class="info-grid">
@@ -585,7 +585,7 @@ async function buscarCliente() {
     sucursales.forEach((suc, idx) => {
       const opt = document.createElement("option");
       opt.value = String(suc.id);
-      opt.textContent = suc.label || suc.direccion || suc.nombre || `Sucursal ${suc.id}`;
+      opt.textContent = suc.nombre || suc.label || suc.direccion || `Sucursal ${suc.id}`;
       if (idx === 0) opt.selected = true;
       sucursalesSelect.appendChild(opt);
     });
