@@ -1054,6 +1054,83 @@
       border-top: 1px solid rgba(255, 255, 255, .06);
       background: rgba(0, 0, 0, .12);
     }
+
+    /* ── WIZARD STEPS ── */
+    .wizard-progress {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin: 0 0 20px;
+      flex-wrap: nowrap;
+      overflow: hidden;
+    }
+
+    .wizard-step-dot {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      font-size: 11px;
+      font-weight: 800;
+      background: rgba(255, 255, 255, .08);
+      color: var(--text-soft);
+      border: 1.5px solid rgba(255, 255, 255, .12);
+      flex-shrink: 0;
+      transition: all .2s;
+    }
+
+    .wizard-step-dot.active {
+      background: var(--orange-1);
+      color: #fff;
+      border-color: var(--orange-1);
+      box-shadow: 0 0 0 3px rgba(255, 110, 35, .22);
+    }
+
+    .wizard-step-dot.done {
+      background: rgba(52, 211, 153, .18);
+      color: #34d399;
+      border-color: #34d399;
+    }
+
+    .wizard-step-line {
+      flex: 1;
+      height: 2px;
+      background: rgba(255, 255, 255, .08);
+      border-radius: 2px;
+      max-width: 24px;
+    }
+
+    .wizard-step-line.done {
+      background: rgba(52, 211, 153, .45);
+    }
+
+    .wizard-step-label {
+      text-align: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 18px;
+    }
+
+    .wizard-step-sublabel {
+      font-size: 11px;
+      color: var(--text-soft);
+      font-weight: 400;
+    }
+
+    .cierre-step { display: none; }
+    .cierre-step.active { display: block; }
+
+    .wizard-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-top: 18px;
+    }
   </style>
 </head>
 <body>
@@ -2066,201 +2143,6 @@
       });
     }
 
-function toggleInfoSucursal(filaActiva, cliente, observacion = "", estado = "", odt = "") {
-      if (!filaActiva) return;
-      const siguiente = filaActiva.nextElementSibling;
-      const odtActual = String(odt || "").trim();
-      if (
-        siguiente &&
-        siguiente.classList.contains("fila-infoSucursal") &&
-        String(siguiente.dataset.odt || "").trim() === odtActual
-      ) {
-        siguiente.remove();
-        odtToReopen = "";
-        clienteToReopen = "";
-        reopenedEstado = "";
-        if (currentODT === odtActual) {
-          currentODT = "";
-          clienteActivo = null;
-        }
-        return;
-      }
-      mostrarInfoSucursal(cliente, observacion, estado, "", odt);
-    }
-
-    async function mostrarInfoSucursal(cliente, observacion = "", estado = "", fechaCierre = "", odt = "") {
-      const filas = document.querySelectorAll("#registrosExistentes tr");
-      document.querySelectorAll(".fila-infoSucursal").forEach((div) => div.remove());
-
-      let filaActiva = null;
-      filas.forEach((fila) => {
-        const odtTexto = fila.children[0]?.textContent?.trim();
-        if (odtTexto === odt) filaActiva = fila;
-      });
-      if (!filaActiva) return;
-
-      currentODT = odt;
-      clienteActivo = cliente;
-      odtToReopen = String(odt || "").trim();
-      clienteToReopen = String(cliente || "").trim();
-      reopenedEstado = String(estado || "").trim();
-
-      const loadingRow = document.createElement("tr");
-      loadingRow.className = "fila-infoSucursal";
-      const loadingTd = document.createElement("td");
-      loadingTd.colSpan = 7;
-      loadingTd.innerHTML =
-        '<div class="infoSucursal infoSucursal-cargando" style="display:flex;flex-direction:column;justify-content:center;align-items:center;width:100%;font-style:italic;">' +
-          '<div class="loader" style="margin-bottom:10px;"></div>' +
-          '<div>Cargando detalles de la sucursal...</div>' +
-        '</div>';
-      loadingRow.appendChild(loadingTd);
-      filaActiva.insertAdjacentElement("afterend", loadingRow);
-
-      try {
-        const [detalleSucursal, incidencias, imagenesTablaResp] = await Promise.all([
-          api(`/api/sucursal/detalle?odt=${encodeURIComponent(odt)}`),
-          api(`/api/sucursal/incidencias?cliente=${encodeURIComponent(cliente)}`),
-          api(`/api/incidencias/imagenes-tabla?odt=${encodeURIComponent(odt)}`),
-        ]);
-        const imagenes = Array.isArray(imagenesTablaResp?.imagenes)
-          ? imagenesTablaResp.imagenes
-          : [];
-        const sucursalData = { ...(detalleSucursal || {}) };
-
-        if ((!sucursalData.latitud || !sucursalData.longitud) && sucursalData.direccion) {
-          const geocliente = await geocodificarDireccionCliente(sucursalData.direccion);
-          if (geocliente.latitud && geocliente.longitud) {
-            sucursalData.latitud = geocliente.latitud;
-            sucursalData.longitud = geocliente.longitud;
-          }
-        }
-
-        const infoBox = document.createElement("tr");
-        infoBox.className = "fila-infoSucursal";
-        infoBox.dataset.odt = String(odt || "").trim();
-
-        const td = document.createElement("td");
-        td.colSpan = 7;
-
-        let html = "";
-        html += '<div class="infoSucursal fade-in">';
-        const detalleHtml = detalleCompletoHTML(observacion);
-        if (detalleHtml) {
-          html += '<h4>Detalle Completo ODT</h4>';
-          html += `<div class="odt-detalle-completo">${detalleHtml}</div>`;
-        }
-        html += '<h4>Detalles de la Sucursal</h4>';
-        html += `<p><strong>Direccion:</strong> ${escapeHTML(sucursalData?.direccion || "No disponible")}</p>`;
-        const contactoDetalle = [sucursalData?.contacto || "", sucursalData?.telefono || ""].filter(Boolean).join(" - ");
-        html += `<p><strong>Contacto:</strong> ${escapeHTML(contactoDetalle || "No disponible")}</p>`;
-        html += `<p><strong>Correo:</strong> ${escapeHTML(sucursalData?.correo || "No disponible")}</p>`;
-
-        if (sucursalData?.latitud && sucursalData?.longitud) {
-          html += `<p><strong>Latitud y Longitud:</strong> ${escapeHTML(sucursalData.latitud)}, ${escapeHTML(sucursalData.longitud)}<br>` +
-                  `<a href="https://www.google.com/maps?q=${encodeURIComponent(sucursalData.latitud)},${encodeURIComponent(sucursalData.longitud)}" target="_blank">Ver en Google Maps</a> | ` +
-                  `<a href="https://waze.com/ul?ll=${encodeURIComponent(sucursalData.latitud)},${encodeURIComponent(sucursalData.longitud)}&navigate=yes" target="_blank">Ir con Waze</a></p>`;
-        } else {
-          const linksDir = construirLinksNavegacionPorDireccion(sucursalData?.direccion || "", cliente);
-          if (linksDir.google || linksDir.waze) {
-            html += `<p><strong>Latitud y Longitud:</strong> No disponible<br>` +
-                    `<a href="${escapeHTML(linksDir.google)}" target="_blank">Buscar dirección en Google Maps</a> | ` +
-                    `<a href="${escapeHTML(linksDir.waze)}" target="_blank">Buscar dirección en Waze</a></p>`;
-          } else {
-            html += "<p><strong>Latitud y Longitud:</strong> No disponible</p>";
-          }
-        }
-
-        if (sucursalData?.layout) {
-          html += `<p><strong>Layout:</strong> <a href="${escapeHTML(sucursalData.layout)}" target="_blank">Ver Layout</a></p>`;
-        } else {
-          html += "<p><strong>Layout:</strong> No disponible</p>";
-        }
-
-        html += '<h4 class="hdr-incidencias">Historial de Incidencias</h4>';
-        html += '<div class="historial-incidencias" style="display:none;">';
-
-        const incidenciasVisibles = 5;
-        const incidenciasFiltradas = (Array.isArray(incidencias) ? incidencias : []).filter((inc) => {
-          const tipo = normalizarTexto(inc?.problema || "");
-          return !tipo.includes("mantencion") && !tipo.includes("mantención");
-        });
-
-        if (!incidenciasFiltradas.length) {
-          html += '<p class="info-vacio">No hay incidencias relevantes</p>';
-        } else {
-          html += `<ul class="lista-incidencias" data-total="${incidenciasFiltradas.length}">`;
-
-          incidenciasFiltradas.forEach((inc, index) => {
-            const visible = index >= incidenciasFiltradas.length - incidenciasVisibles ? "block" : "none";
-            const fecha = inc?.fecha || "Sin fecha";
-            const problema = inc?.problema || "";
-            const obs = inc?.texto || "";
-
-            html += `<li class="inc-item" style="display:${visible};">` +
-                    '<div class="inc-row">' +
-                    `<span class="inc-fecha">Fecha: ${escapeHTML(fecha)}</span>` +
-                    (problema ? `<span class="inc-problema">- ${escapeHTML(problema)}</span>` : "") +
-                    "</div>" +
-                    `<div class="inc-obs">${escapeHTML(obs)}</div>` +
-                    "</li>";
-          });
-
-          html += "</ul>";
-          if (incidenciasFiltradas.length > incidenciasVisibles) {
-            html += '<div style="text-align:center;margin-top:10px;"><button class="btn-ver-mas" onclick="verMasIncidencias(this)">Ver mas</button></div>';
-          }
-        }
-
-        html += "</div>";
-
-        if (Array.isArray(imagenes) && imagenes.length > 0) {
-          html += '<div style="margin-top:15px;">';
-          html += '<p><strong>Imagenes Incidencia</strong></p>';
-          html += '<div class="imagenes-lista">';
-          imagenes.forEach((url, idx) => {
-            html += `<div class="imagen-item"><a href="${escapeHTML(url)}" target="_blank">Imagen ${idx + 1}</a></div>`;
-          });
-          html += "</div></div>";
-        }
-        html += '<div class="action-buttons">' +
-                '<button id="btnEnProcesoSucursal" type="button">Pendiente</button>' +
-                '<button id="btnFinalizarSucursal" class="btn-primario" type="button">Finalizar</button>' +
-                '<button id="btnRendicionSucursal" type="button">Rendicion Gastos</button>' +
-                '</div>';
-        html += "</div>";
-
-        td.innerHTML = html;
-        infoBox.appendChild(td);
-        loadingRow.replaceWith(infoBox);
-
-        const odtAccion = String(odt || "").trim();
-        const btnEnProceso = infoBox.querySelector("#btnEnProcesoSucursal");
-        const btnFinalizar = infoBox.querySelector("#btnFinalizarSucursal");
-        const btnRendicion = infoBox.querySelector("#btnRendicionSucursal");
-        if (btnEnProceso) btnEnProceso.addEventListener("click", () => marcarEnProceso(odtAccion));
-        if (btnFinalizar) btnFinalizar.addEventListener("click", () => abrirModalFinalizar(odtAccion));
-        if (btnRendicion) btnRendicion.addEventListener("click", () => abrirFormularioRendicionPorODT(odtAccion));
-
-        const header = infoBox.querySelector(".hdr-incidencias");
-        if (header) {
-          header.addEventListener("click", () => {
-            const cont = header.nextElementSibling;
-            if (!cont) return;
-            cont.style.display = (cont.style.display === "none" || cont.style.display === "") ? "block" : "none";
-          });
-        }
-
-        if (estadoCanonico(estado) === "Terminado" && btnFinalizar) {
-          btnFinalizar.textContent = "Finalizado";
-          btnFinalizar.disabled = true;
-          btnFinalizar.style.backgroundColor = "#2ecc71";
-          btnFinalizar.style.cursor = "not-allowed";
-        }
-      } catch (err) {
-        loadingTd.innerHTML = `<div class="infoSucursal info-error">Error cargando detalles: ${escapeHTML(err.message)}</div>`;
-      }
-    }
 
     function verMasIncidencias(btn) {
       const contenedor = btn.closest(".infoSucursal");
