@@ -238,6 +238,34 @@ class AdministracionODT(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
 
+class FinanzasODT(Base):
+    __tablename__ = "finanzas_odt"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    odt: Mapped[str] = mapped_column(String(30), unique=True, index=True)
+    fecha_inicio_servicio: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+
+    recepcion_datos_facturacion: Mapped[bool] = mapped_column(default=False)
+    fecha_recepcion_datos_facturacion: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    creacion_clientes_piriod: Mapped[bool] = mapped_column(default=False)
+    fecha_creacion_clientes_piriod: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    creacion_clientes_bd: Mapped[bool] = mapped_column(default=False)
+    fecha_creacion_clientes_bd: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    facturacion_instalacion: Mapped[bool] = mapped_column(default=False)
+    fecha_facturacion_instalacion: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    facturacion_servicio: Mapped[bool] = mapped_column(default=False)
+    fecha_facturacion_servicio: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    finalizado: Mapped[bool] = mapped_column(default=False)
+    fecha_cierre: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
 class ContactoEmergencia(Base):
     __tablename__ = "contactos_emergencia"
 
