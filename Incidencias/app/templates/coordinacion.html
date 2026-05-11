@@ -1209,6 +1209,19 @@
       datosFinalizarTemp = null;
     }
 
+    function abrirModalVerObs({ odt, sucursal, problema, observacionFinal }) {
+      document.getElementById("verObsOdt").textContent = odt || "—";
+      document.getElementById("verObsSucursal").textContent = sucursal || "—";
+      document.getElementById("verObsProblema").textContent = problema || "—";
+      document.getElementById("verObsTexto").textContent = observacionFinal?.trim() || "(sin observación registrada)";
+      document.getElementById("verObsSubtitle").textContent = `ODT ${odt} — finalizada`;
+      document.getElementById("modalVerObs").style.display = "block";
+    }
+
+    function cerrarModalVerObs() {
+      document.getElementById("modalVerObs").style.display = "none";
+    }
+
     function actualizarContadorObsCierre() {
       const texto = document.getElementById("finalizarObservacion").value || "";
       document.getElementById("finalizarContador").textContent = `${texto.length}/700`;
@@ -1546,8 +1559,10 @@
     window.addEventListener("click", (e) => {
       const modalCorreo = document.getElementById("modalCorreo");
       const modalFinalizar = document.getElementById("modalFinalizar");
+      const modalVerObs = document.getElementById("modalVerObs");
       if (e.target === modalCorreo) cerrarModal();
       if (e.target === modalFinalizar) cerrarModalFinalizar();
+      if (e.target === modalVerObs) cerrarModalVerObs();
     });
 
     cargarTabla();
