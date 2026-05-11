@@ -1001,6 +1001,139 @@ def update_finanzas_ods_estado(db: Session, codigo: str, campo: str, valor: bool
     return {"ok": True, "codigo": codigo_limpio, "campo": campo_limpio, "valor": bool(valor), "estado": "Completado" if valor else "Pendiente", "timestamp": _fmt_date(now) if valor else ""}
 
 
+def get_servicio_tecnico_ventas_rows(db: Session) -> list[dict[str, object]]:
+    rows = (
+        db.query(VentaODS, ServicioTecnicoVentaODT)
+        .outerjoin(
+            ServicioTecnicoVentaODT,
+            func.lower(func.trim(ServicioTecnicoVentaODT.odt)) == func.lower(func.trim(VentaODS.codigo)),
+        )
+        .order_by(VentaODS.created_at.desc(), VentaODS.id.desc())
+        .all()
+    )
+    out: list[dict[str, object]] = []
+    for ods, st in rows:
+        tipo_servicio = str(ods.tipo_servicio or "")
+        if "servicio tecnico" not in tipo_servicio.lower() and "servicio técnico" not in tipo_servicio.lower():
+            continue
+        anulada = str(ods.estado or "").strip().lower() == "anulada"
+        out.append(
+            {
+                "codigo": ods.codigo or "",
+                "fecha": _fmt_date(ods.created_at),
+                "ejecutivo": ods.creado_por or "",
+                "rutCliente": ods.rut_cliente or "",
+                "razonSocial": ods.razon_social or "",
+                "direccionSucursal": ods.direccion_sucursal or "",
+                "tipoServicio": ods.tipo_servicio or "",
+                "materialesBase": ods.materiales or "",
+                "odt": ods.codigo or "",
+                "anulada": anulada,
+                "estados": {
+                    "recepcion_solicitud_instalacion": _is_true(getattr(st, "recepcion_solicitud_instalacion", False)),
+                    "instalacion_finalizada": _is_true(getattr(st, "instalacion_finalizada", False)),
+                    "finalizado": _is_true(getattr(st, "finalizado", False)),
+                },
+                "valores": {
+                    "llamar_cliente": getattr(st, "llamar_cliente", "") if st else "",
+                    "solicitud_materiales": getattr(st, "solicitud_materiales", "") if st else "",
+                    "fecha_inicio_instalacion": getattr(st, "fecha_inicio_instalacion", "") if st else "",
+                    "fecha_fin_instalacion": getattr(st, "fecha_fin_instalacion", "") if st else "",
+                    "tecnico_a_cargo": getattr(st, "tecnico_a_cargo", "") if st else "",
+                    "acompanante": getattr(st, "acompanante", "") if st else "",
+                },
+            }
+        )
+    return out
+
+
+def get_servicio_tecnico_ventas_detail(db: Session, codigo: str) -> dict[str, str]:
+    detail = get_ods_detail(db, codigo)
+    return {
+        "sucursal": detail.get("nombreSucursal") or detail.get("razonSocial") or "",
+        "direccion": detail.get("direccionSucursal") or "",
+        "observacion": detail.get("observacion") or "",
+        "consideraciones": detail.get("consideraciones") or "",
+        "camaras": detail.get("camInstalar") or detail.get("camVigilar") or "",
+        "dias": detail.get("diasAdicional") or "",
+        "layout": detail.get("layout") or "",
+        "materiales": detail.get("materiales") or "",
+    }
+
+
+def get_servicio_tecnico_ventas_contacto(db: Session, direccion: str) -> dict[str, str]:
+    direccion_limpia = str(direccion or "").strip()
+    if not direccion_limpia:
+        return {}
+    sucursal = (
+        db.query(SucursalBBDD)
+        .filter(func.lower(func.trim(SucursalBBDD.direccion_sucursal)) == direccion_limpia.lower())
+        .first()
+    )
+    if not sucursal:
+        return {}
+    contacto = (
+        db.query(SucursalContactoEmergencia)
+        .filter(SucursalContactoEmergencia.sucursal_id == sucursal.id)
+        .order_by(SucursalContactoEmergencia.id.asc())
+        .first()
+    )
+    if not contacto:
+        return {}
+    return {
+        "nombre": contacto.nombre or "",
+        "telefono": contacto.telefono or "",
+        "correo": contacto.email or "",
+    }
+
+
+def update_servicio_tecnico_ventas_estado(db: Session, codigo: str, campo: str, valor: bool) -> dict[str, object]:
+    codigo_limpio = str(codigo or "").strip()
+    campo_limpio = str(campo or "").strip()
+    if campo_limpio not in SERVICIO_TECNICO_VENTAS_ESTADO_FIELDS:
+        raise HTTPException(status_code=400, detail="Campo de servicio tecnico invalido.")
+    ods = (
+        db.query(VentaODS)
+        .filter(func.lower(func.trim(VentaODS.codigo)) == codigo_limpio.lower())
+        .first()
+    )
+    if not ods:
+        raise HTTPException(status_code=404, detail="ODS no encontrada.")
+    if str(ods.estado or "").strip().lower() == "anulada":
+        raise HTTPException(status_code=400, detail="La ODS esta anulada.")
+
+    row = _get_or_create_servicio_tecnico_venta_row(db, codigo_limpio)
+    bool_field, date_field = SERVICIO_TECNICO_VENTAS_ESTADO_FIELDS[campo_limpio]
+    now = datetime.utcnow()
+    setattr(row, bool_field, bool(valor))
+    if date_field:
+        setattr(row, date_field, now if valor else None)
+    db.commit()
+    return {"ok": True, "codigo": codigo_limpio, "campo": campo_limpio, "valor": bool(valor), "timestamp": _fmt_date(now) if valor else ""}
+
+
+def update_servicio_tecnico_ventas_valor(db: Session, codigo: str, campo: str, valor: str | None) -> dict[str, object]:
+    codigo_limpio = str(codigo or "").strip()
+    campo_limpio = str(campo or "").strip()
+    if campo_limpio not in SERVICIO_TECNICO_VENTAS_VALOR_FIELDS:
+        raise HTTPException(status_code=400, detail="Campo de servicio tecnico invalido.")
+    ods = (
+        db.query(VentaODS)
+        .filter(func.lower(func.trim(VentaODS.codigo)) == codigo_limpio.lower())
+        .first()
+    )
+    if not ods:
+        raise HTTPException(status_code=404, detail="ODS no encontrada.")
+    if str(ods.estado or "").strip().lower() == "anulada":
+        raise HTTPException(status_code=400, detail="La ODS esta anulada.")
+
+    row = _get_or_create_servicio_tecnico_venta_row(db, codigo_limpio)
+    valor_limpio = str(valor or "").strip()
+    setattr(row, campo_limpio, valor_limpio)
+    db.commit()
+    return {"ok": True, "codigo": codigo_limpio, "campo": campo_limpio, "valor": valor_limpio}
+
+
 def update_ods(db: Session, payload, usuario_email: str) -> VentaODS:
     codigo = str(payload.selectorODS or "").strip()
     record = (
