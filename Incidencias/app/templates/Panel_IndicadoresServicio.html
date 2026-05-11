@@ -863,17 +863,22 @@ function renderTablaSeguimiento(data) {
 
   const hoy = new Date();
   tbody.innerHTML = items.map(r => {
-    const diasAbierto = r.fecha_registro ? Math.floor((hoy - new Date(r.fecha_registro)) / 86400000) : '—';
+    const diasAbierto = r.fecha_registro ? Math.floor((hoy - new Date(r.fecha_registro)) / 86400000) : null;
     const estadoTag = r.estado === 'Pendiente' ? 'tag-pendiente' : 'tag-proceso';
+    const diasCell = diasAbierto !== null
+      ? (diasAbierto > 5 ? `<span class="tag tag-riesgo">${diasAbierto}d</span>` : `${diasAbierto}d`)
+      : '—';
+    const ultimaAccion = r.accion_cierre ? formatLabel(r.accion_cierre) : (r.observacion_final ? r.observacion_final.slice(0, 40) + '…' : '—');
     return `<tr>
       <td style="font-weight:700;color:var(--orange)">${esc(r.odt)}</td>
       <td style="font-weight:600">${esc(r.cliente)}</td>
       <td style="color:var(--muted)">${esc(r.problema || '—')}</td>
       <td><span class="tag ${estadoTag}">${esc(r.estado)}</span></td>
       <td>${esc(r.tecnicos || '—')}</td>
-      <td>${typeof diasAbierto === 'number' && diasAbierto > 5 ? `<span class="tag tag-riesgo">${diasAbierto}d</span>` : diasAbierto + 'd'}</td>
+      <td style="color:var(--muted);font-size:11.5px">${esc(ultimaAccion)}</td>
+      <td>${diasCell}</td>
     </tr>`;
-  }).join('') || '<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:20px">Sin ODTs con seguimiento pendiente</td></tr>';
+  }).join('') || '<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:20px">Sin ODTs con seguimiento pendiente</td></tr>';
 }
 
 /* ── UTILS ── */
