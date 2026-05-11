@@ -17,6 +17,7 @@ from app.venta.schemas import (
     VentaPersonaCampoUpdateRequest,
     VentaPersonaRegistroRequest,
     VentaClienteTableUpdateRequest,
+    VentaAdminEstadoRequest,
     VentaSucursalCreateRequest,
     VentaSucursalCreateResponse,
     VentaSucursalTableUpdateRequest,
@@ -34,6 +35,8 @@ from app.venta.service import (
     get_clientes_table,
     get_ods_codes,
     get_ods_detail,
+    get_admin_ods_detail,
+    get_admin_ods_rows,
     get_ods_data_by_rut,
     get_sucursales_table,
     get_coordinates_for_address,
@@ -41,6 +44,7 @@ from app.venta.service import (
     get_proveedores_internet,
     rut_exists,
     update_ods,
+    update_admin_ods_estado,
     update_cliente_row,
     update_persona_campo,
     update_sucursal_row,
@@ -93,6 +97,14 @@ def venta_bbdd_orden_servicio_page(
     token: str = Depends(require_venta_token),
 ):
     return templates.TemplateResponse("BBDDOrdenServicio.html", {"request": request, "token": token})
+
+
+@router.get("/venta/administracion", response_class=HTMLResponse)
+def venta_administracion_page(
+    request: Request,
+    token: str = Depends(require_venta_token),
+):
+    return templates.TemplateResponse("administracion_ods.html", {"request": request, "token": token})
 
 
 @router.get("/venta/login", response_class=HTMLResponse)
@@ -364,3 +376,29 @@ def venta_guardar_ods(
     usuario = service.get_usuario_actual(token)
     record = update_ods(db, payload, usuario_email=usuario)
     return {"ok": True, "codigo": record.codigo}
+
+
+@router.get("/api/venta/admin-ods")
+def venta_admin_ods_listar(
+    db: Session = Depends(get_db),
+    token: str = Depends(require_venta_token),
+):
+    return {"rows": get_admin_ods_rows(db)}
+
+
+@router.get("/api/venta/admin-ods/{codigo}/detalle")
+def venta_admin_ods_detalle(
+    codigo: str,
+    db: Session = Depends(get_db),
+    token: str = Depends(require_venta_token),
+):
+    return get_admin_ods_detail(db, codigo)
+
+
+@router.post("/api/venta/admin-ods/estado")
+def venta_admin_ods_estado(
+    payload: VentaAdminEstadoRequest,
+    db: Session = Depends(get_db),
+    token: str = Depends(require_venta_token),
+):
+    return update_admin_ods_estado(db, payload.codigo, payload.campo, payload.valor)
