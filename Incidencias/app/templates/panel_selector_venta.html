@@ -7,19 +7,20 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg-1:#0b1420;
-  --bg-2:#162538;
-  --bg-3:#21384f;
+  /* Paleta alineada con login.html */
+  --bg-1:#0a1c20;
+  --bg-2:#10272d;
+  --bg-3:#17363d;
   --surface:rgba(255,255,255,.06);
   --surface-2:rgba(255,255,255,.04);
-  --border:rgba(255,255,255,.12);
+  --border:rgba(255, 255, 255, 0.10);
   --text:#f4f8f9;
-  --muted:#bed0d6;
-  --primary:#ff7a2b;
-  --primary-2:#ff9448;
+  --muted:#c0cfd4;
+  --primary:#ff6e23;
+  --primary-2:#ff8b33;
   --blue:#3d73a8;
   --blue-2:#2f5c87;
-  --shadow:0 30px 60px rgba(0,0,0,.38);
+  --shadow:0 30px 70px rgba(0,0,0,.32);
 }
 
 *{box-sizing:border-box}
@@ -30,10 +31,33 @@ body{
   font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
   color:var(--text);
   background:
-    radial-gradient(circle at 18% 18%,rgba(255,255,255,.05),transparent 24%),
-    radial-gradient(circle at 82% 12%,rgba(255,125,53,.10),transparent 20%),
+    radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.05), transparent 24%),
+    radial-gradient(circle at 78% 12%, rgba(255, 125, 53, 0.08), transparent 18%),
     linear-gradient(145deg,var(--bg-1) 0%,var(--bg-2) 42%,var(--bg-3) 100%);
   padding:20px;
+  overflow:hidden;
+}
+
+body::before,
+body::after{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+}
+
+body::before{
+  background:
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size:64px 64px;
+  mask-image:linear-gradient(to bottom, rgba(0,0,0,0.55), transparent 82%);
+}
+
+body::after{
+  background:
+    radial-gradient(circle at 30% 65%, rgba(255, 255, 255, 0.03), transparent 28%),
+    radial-gradient(circle at 76% 78%, rgba(255, 122, 43, 0.10), transparent 18%);
 }
 
 .shell{
@@ -390,4 +414,3 @@ h1{
   </script>
 </body>
 </html>
-
