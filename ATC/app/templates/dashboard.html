@@ -1295,27 +1295,26 @@ body.dark-mode .main{
 }
 
 body.dark-mode .card{
-  background: transparent;
-  border-color: rgba(148,163,184,.14);
-  box-shadow: none;
+  background:rgba(15,23,41,.90);
+  border-color:rgba(148,163,184,.22);
+  box-shadow:0 10px 24px rgba(0,0,0,.30);
 }
 
 body.dark-mode .card:hover{
-  background: rgba(148,163,184,.04);
-  border-color: rgba(148,163,184,.14);
+  border-color:rgba(96,165,250,.34);
+  box-shadow:0 16px 30px rgba(0,0,0,.38);
 }
-
 body.dark-mode .card.unread-ticket{
-  background: rgba(37,99,235,.08);
-  border-bottom-color: rgba(96,165,250,.22);
-  border-left-color: #60a5fa;
+  border-color:rgba(96,165,250,.76);
+  box-shadow:0 0 0 2px rgba(59,130,246,.30), 0 18px 34px rgba(0,0,0,.46);
+  background:linear-gradient(180deg, rgba(30,58,138,.30), rgba(15,23,41,.92));
 }
 body.dark-mode .card.unread-ticket .ticket-title{
   color:#dbeafe;
   font-weight:900;
 }
 body.dark-mode .card.unread-ticket .card-main::before{
-  display: none;
+  background:linear-gradient(180deg,#60a5fa,#3b82f6);
 }
 
 body.dark-mode .user-box{
@@ -1938,27 +1937,24 @@ body.dark-mode .modal .btn-secondary:hover{
 }
 
 .card{
-  background: transparent;
-  padding: 14px 6px 14px 14px;
+  background: rgba(255,255,255,.85);
+  padding:13px 16px;
   width:100%;
   max-width: 100%;
-  border-radius: 0;
-  border: none;
-  border-bottom: 1px solid var(--border);
-  box-shadow: none;
-  transition: background .15s ease;
+  border-radius: var(--r-lg);
+  border:1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
   display:flex;
   gap: 14px;
   align-items:stretch;
-  position: relative;
-}
-
-.card:first-child{
-  border-top: 1px solid var(--border);
+  backdrop-filter: blur(10px);
 }
 
 .card:hover{
-  background: rgba(15,23,42,.025);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+  border-color: var(--border-strong);
 }
 
 .card-main{
@@ -2024,17 +2020,23 @@ body.dark-mode .modal .btn-secondary:hover{
   max-width: calc(100% - 96px);
 }
 .card.unread-ticket{
-  background: rgba(37,99,235,.04);
-  border-bottom-color: rgba(37,99,235,.18);
-  padding-left: 10px;
-  border-left: 3px solid #2563eb;
+  border-color:rgba(37,99,235,.42);
+  box-shadow:0 0 0 2px rgba(37,99,235,.14), 0 18px 30px rgba(15,23,42,.10);
+  background:linear-gradient(180deg, rgba(239,246,255,.92), rgba(255,255,255,.88));
 }
 .card.unread-ticket .ticket-title{
   font-weight:900;
   color:#0b2a66;
 }
 .card.unread-ticket .card-main::before{
-  display: none;
+  content:"";
+  position:absolute;
+  left:-8px;
+  top:8px;
+  bottom:8px;
+  width:4px;
+  border-radius:999px;
+  background:linear-gradient(180deg,#2563eb,#1d4ed8);
 }
 .ticket-new-message-dot{
   position:absolute;
