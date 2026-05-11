@@ -139,6 +139,43 @@ def venta_administracion_login_page(request: Request):
     )
 
 
+@router.get("/venta/finanzas", response_class=HTMLResponse)
+def venta_finanzas_page(
+    request: Request,
+    token: str = Query(default=""),
+    service: IncidenciasService = Depends(get_service),
+):
+    if not service.usuario_logueado_por_token(token):
+        return templates.TemplateResponse(
+            "login.html",
+            {"request": request, "title": "Finanzas", "next_form": "panelSelectorFinanzas"},
+        )
+    tecnico = service.get_usuario_actual(token)
+    return templates.TemplateResponse("panel_selector_finanzas.html", {"request": request, "token": token, "tecnico": tecnico})
+
+
+@router.get("/venta/finanzas/tabla", response_class=HTMLResponse)
+def venta_tabla_finanzas_page(
+    request: Request,
+    token: str = Query(default=""),
+    service: IncidenciasService = Depends(get_service),
+):
+    if not service.usuario_logueado_por_token(token):
+        return templates.TemplateResponse(
+            "login.html",
+            {"request": request, "title": "Finanzas", "next_form": "panelSelectorFinanzas"},
+        )
+    return templates.TemplateResponse("TablaFinanzas.html", {"request": request, "token": token})
+
+
+@router.get("/venta/finanzas/login", response_class=HTMLResponse)
+def venta_finanzas_login_page(request: Request):
+    return templates.TemplateResponse(
+        "login.html",
+        {"request": request, "title": "Finanzas", "next_form": "panelSelectorFinanzas"},
+    )
+
+
 @router.get("/venta/login", response_class=HTMLResponse)
 def venta_login_page(request: Request):
     return templates.TemplateResponse(
@@ -434,3 +471,29 @@ def venta_admin_ods_estado(
     token: str = Depends(require_venta_token),
 ):
     return update_admin_ods_estado(db, payload.codigo, payload.campo, payload.valor)
+
+
+@router.get("/api/venta/finanzas-ods")
+def venta_finanzas_ods_listar(
+    db: Session = Depends(get_db),
+    token: str = Depends(require_venta_token),
+):
+    return get_finanzas_ods_rows(db)
+
+
+@router.get("/api/venta/finanzas-ods/{codigo}/detalle")
+def venta_finanzas_ods_detalle(
+    codigo: str,
+    db: Session = Depends(get_db),
+    token: str = Depends(require_venta_token),
+):
+    return get_finanzas_ods_detail(db, codigo)
+
+
+@router.post("/api/venta/finanzas-ods/estado")
+def venta_finanzas_ods_estado(
+    payload: VentaFinanzasEstadoRequest,
+    db: Session = Depends(get_db),
+    token: str = Depends(require_venta_token),
+):
+    return update_finanzas_ods_estado(db, payload.codigo, payload.campo, payload.valor)
