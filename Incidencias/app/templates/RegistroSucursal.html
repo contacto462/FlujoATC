@@ -399,8 +399,6 @@
           <div class="section-head">
             <span class="section-title">1. Identificación del Cliente</span>
           </div>
-          <div class="f"><label>Creado por</label><input type="text" id="creadoPor" readonly></div>
-          <input type="hidden" id="ejecutivoVenta">
           <div class="g2">
             <div class="f"><label>RUT Empresa</label><input type="text" id="rut" placeholder="12.345.678-9" required></div>
             <div class="f"><label>Razón Social</label><input type="text" id="nombreEmpresa" placeholder="Se completará automáticamente" readonly></div>
@@ -610,13 +608,6 @@
     container.appendChild(card);
   }
   function mapContactos(selector, config) { return Array.from(document.querySelectorAll(selector)).map(div => { const payload = {}; Object.entries(config).forEach(([key, css]) => { const input = div.querySelector(css); payload[key] = input ? input.value.trim() : ""; }); return payload; }); }
-  async function cargarUsuarioActual() {
-    const response = await fetch(withToken("/api/venta/usuario-actual"));
-    if (!response.ok) throw new Error("No se pudo obtener el usuario actual.");
-    const data = await response.json();
-    document.getElementById("creadoPor").value = data.username || "";
-    document.getElementById("ejecutivoVenta").value = data.username || "";
-  }
   async function enviarFormulario() {
     const boton = document.getElementById("btnRegistrarSucursal"); boton.disabled = true; boton.innerText = "Registrando...";
     try {
@@ -627,7 +618,7 @@
       if (!contactosEmergencia.some(c => c.nombre && c.rut && c.telefono && c.email)) throw new Error("Debes completar al menos un contacto de emergencia con todos sus datos.");
       const lat = getValue("latitud"); const lng = getValue("longitud");
       const latitudLongitud = lat && lng ? `${lat}, ${lng}` : getValue("latitudLongitud");
-      const payload = { ejecutivo: getValue("ejecutivoVenta"), rut: limpiarRUT(getValue("rut")), nombreEmpresa: getValue("nombreEmpresa"), nombreSucursal: getValue("nombreSucursal"), direccionSucursal: getValue("direccionSucursal"), latitud: lat, longitud: lng, region: getValue("region"), comuna: getValue("comuna"), referenciaUbicacion: getValue("referenciaUbicacion"), proveedorInternet: getValue("proveedorInternet"), proveedorElectricidad: getValue("proveedorElectricidad"), nroProveedorElectricidad: getValue("nroProveedorElectricidad"), horarioApertura: getValue("horarioApertura"), horarioCierre: getValue("horarioCierre"), diasFuncionamiento, latitudLongitud, emailFacturas: getValue("emailFacturas"), contactosEmergencia, personasAutorizadas, guardias };
+      const payload = { rut: limpiarRUT(getValue("rut")), nombreEmpresa: getValue("nombreEmpresa"), nombreSucursal: getValue("nombreSucursal"), direccionSucursal: getValue("direccionSucursal"), latitud: lat, longitud: lng, region: getValue("region"), comuna: getValue("comuna"), referenciaUbicacion: getValue("referenciaUbicacion"), proveedorInternet: getValue("proveedorInternet"), proveedorElectricidad: getValue("proveedorElectricidad"), nroProveedorElectricidad: getValue("nroProveedorElectricidad"), horarioApertura: getValue("horarioApertura"), horarioCierre: getValue("horarioCierre"), diasFuncionamiento, latitudLongitud, emailFacturas: getValue("emailFacturas"), contactosEmergencia, personasAutorizadas, guardias };
       const response = await fetch(withToken("/api/venta/sucursales"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       if (!response.ok) { const err = await response.json().catch(() => ({ detail: "Error al registrar la sucursal." })); if (typeof err?.detail === "string") throw new Error(err.detail); if (Array.isArray(err?.detail) && err.detail.length > 0) { const first = err.detail[0]; const field = Array.isArray(first?.loc) ? first.loc[first.loc.length - 1] : ""; throw new Error(field ? `${field}: ${first?.msg || "valor invalido"}` : (first?.msg || "Error al registrar la sucursal.")); } throw new Error(err?.message || "Error al registrar la sucursal."); }
       const data = await response.json();
@@ -657,7 +648,7 @@
     document.getElementById("btnAgregarGuardia").addEventListener("click", agregarGuardia);
     document.getElementById("btnRegistrarSucursal").addEventListener("click", enviarFormulario);
     document.querySelectorAll('input[name="telefonoEmergencia[]"], input[name="telefonoAutorizado[]"]').forEach(input => { input.value = "+569"; });
-    try { await Promise.all([cargarUsuarioActual(), cargarRegiones(), cargarProveedoresInternet(), cargarProveedoresElectricidad()]); }
+    try { await cargarRegiones(); await Promise.all([cargarProveedoresInternet(), cargarProveedoresElectricidad()]); }
     catch (error) { alert(error.message || "No se pudo inicializar el formulario."); }
   });
 

@@ -401,7 +401,6 @@
             <div class="f" style="grid-column:1/3;"><label>Dirección Sucursal</label><select id="direccionSucursal"><option value="" disabled selected>Seleccionar sucursal</option></select></div>
             <div class="f"><label>Nombre Sucursal</label><input type="text" id="nombreSucursal" readonly></div>
           </div>
-          <div class="f"><label>Creado por</label><input type="text" id="creadoPor" readonly></div>
           <div class="g2 mt">
             <div class="f"><label>Tipo de Cliente</label>
               <select id="tipoCliente" required>
@@ -561,12 +560,6 @@ document.getElementById("btnVolver").href = withToken("/venta/panel-selector");
 function formatearRUTInput(input) { let rut = String(input.value || "").trim().replace(/[^0-9Kk]/g, "").toUpperCase(); if (rut.length < 2) { input.value = rut; return; } input.value = `${rut.slice(0, -1)}-${rut.slice(-1)}`; }
 function obtenerTiposSeleccionados() { return Array.from(document.querySelectorAll('input[name="tipoServicio[]"]:checked')).map(c => c.value); }
 function obtenerValor(id) { return document.getElementById(id)?.value.trim() || ""; }
-async function cargarUsuarioActual() {
-  const response = await fetch(withToken("/api/venta/usuario-actual"));
-  if (!response.ok) throw new Error("No se pudo obtener el usuario actual.");
-  const data = await response.json();
-  document.getElementById("creadoPor").value = data.username || "";
-}
 async function cargarEjecutivosVenta() {
   const response = await fetch(withToken("/api/venta/ods/ejecutivos"));
   if (!response.ok) throw new Error("No se pudo cargar la lista de ejecutivos.");
@@ -664,7 +657,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   document.querySelectorAll('input[name="tipoServicio[]"]').forEach(c => c.addEventListener("change", actualizarVisibilidad));
   document.querySelectorAll('input[name="requiereOC"]').forEach(r => r.addEventListener("change", () => actualizarCamposAdjuntar(obtenerTiposSeleccionados())));
   document.getElementById("btnRegistrarODS").addEventListener("click", enviarFormulario);
-  try { await Promise.all([cargarUsuarioActual(), cargarEjecutivosVenta()]); actualizarVisibilidad(); }
+  try { await cargarEjecutivosVenta(); actualizarVisibilidad(); }
   catch (error) { alert(error?.message || "No se pudo inicializar el formulario."); }
 });
 
