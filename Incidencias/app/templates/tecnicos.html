@@ -1805,20 +1805,21 @@
       if (label) label.innerHTML = `<strong>${labels[wizardPaso - 1]}</strong> <span class="wizard-step-sublabel">— Paso ${wizardPaso} de ${total}</span>`;
     }
 
-    function irAPaso(paso) {
-      cierreStepActual = paso;
+    function irAPaso(wizardPaso) {
+      cierreStepActual = wizardPaso;
+      const actualStep = cierreStepMap[wizardPaso - 1];
       document.querySelectorAll(".cierre-step").forEach((el) => {
-        el.classList.toggle("active", Number(el.dataset.step) === paso);
+        el.classList.toggle("active", Number(el.dataset.step) === actualStep);
       });
-      renderWizardProgress(paso);
+      renderWizardProgress(wizardPaso);
       document.getElementById("cierreError").textContent = "";
 
       const btnAtras = document.getElementById("btnWizardAtras");
       const btnSig = document.getElementById("btnWizardSiguiente");
-      if (btnAtras) btnAtras.style.visibility = paso === 1 ? "hidden" : "visible";
+      if (btnAtras) btnAtras.style.visibility = wizardPaso === 1 ? "hidden" : "visible";
       if (btnSig) {
         const lbl = document.getElementById("lblWizardSiguiente");
-        if (paso === CIERRE_TOTAL_PASOS) {
+        if (wizardPaso === cierreStepMap.length) {
           if (lbl) lbl.textContent = "Guardar";
           btnSig.onclick = guardarYFinalizar;
         } else {
@@ -1830,7 +1831,8 @@
 
     function validarPasoActual() {
       const err = document.getElementById("cierreError");
-      switch (cierreStepActual) {
+      const actualStep = cierreStepMap[cierreStepActual - 1];
+      switch (actualStep) {
         case 1:
           if (!document.getElementById("responsableCierre").value) { err.textContent = "Selecciona el responsable del problema."; return false; }
           if (!document.getElementById("causaCierre").value)        { err.textContent = "Selecciona la causa raiz."; return false; }
