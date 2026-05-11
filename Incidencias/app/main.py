@@ -1427,6 +1427,7 @@ def servicio_indicadores_page(request: Request):
 @app.get("/api/servicio/kpis-data")
 def servicio_kpis_data(db: Annotated[Session, Depends(get_db)]):
     from sqlalchemy import select as sa_select
+    from app.models import Registro
     registros = db.scalars(sa_select(Registro).order_by(Registro.fecha_registro.desc())).all()
     return [
         {
