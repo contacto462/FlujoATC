@@ -300,35 +300,35 @@
       font-size: 14px;
     }
 
-    .loader { display: flex; align-items: center; justify-content: center; margin-bottom: 18px; }
+    .loader { display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
     .loaderMiniContainer {
       display: flex; align-items: center; justify-content: center;
-      position: relative; width: 130px; height: fit-content;
+      position: relative; width: 70px; height: fit-content;
     }
     .barContainer {
       width: 100%; height: fit-content;
       display: flex; flex-direction: column;
       align-items: flex-start; justify-content: center;
-      gap: 10px;
+      gap: 5px;
     }
     .bar {
-      width: 100%; height: 8px;
-      background: linear-gradient(to right, rgb(161,94,255), rgb(217,190,255), rgb(161,94,255));
+      width: 100%; height: 4px;
+      background: linear-gradient(to right, rgba(255,255,255,.6), rgba(255,255,255,.95), rgba(255,255,255,.6));
       background-size: 200% 100%; border-radius: 10px;
       animation: bar ease-in-out 3s infinite alternate-reverse;
     }
     @keyframes bar { 0% { background-position: left; } 100% { background-position: right; } }
     .bar2 { width: 50%; }
     .svgIcon {
-      position: absolute; left: -25px; margin-top: 18px; z-index: 2; width: 70%;
+      position: absolute; left: -13px; margin-top: 10px; z-index: 2; width: 70%;
       animation: search ease-in-out 3s infinite alternate-reverse;
     }
     @keyframes search {
       0%   { transform: translateX(0%) rotate(70deg); }
-      100% { transform: translateX(100px) rotate(10deg); }
+      100% { transform: translateX(54px) rotate(10deg); }
     }
-    .svgIcon circle, .svgIcon line { stroke: rgb(162,55,255); }
-    .svgIcon circle { fill: rgba(98,65,142,.238); }
+    .svgIcon circle, .svgIcon line { stroke: rgba(255,255,255,.85); }
+    .svgIcon circle { fill: rgba(255,255,255,.12); }
 
     @media (max-width: 640px) {
       .main { padding: 16px 12px 40px; }
@@ -548,7 +548,18 @@
 
   <!-- PLACEHOLDER -->
   <div class="placeholder-msg" id="placeholderMsg">
-    <strong>🔍</strong>
+    <div class="loader">
+      <div class="loaderMiniContainer">
+        <div class="barContainer">
+          <div class="bar"></div>
+          <div class="bar bar2"></div>
+        </div>
+        <svg class="svgIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </div>
+    </div>
     Ingresa el RUT del cliente y presiona <em>Buscar</em> para ver su información.
   </div>
 
