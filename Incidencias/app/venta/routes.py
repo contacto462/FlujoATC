@@ -102,17 +102,37 @@ def venta_bbdd_orden_servicio_page(
 @router.get("/venta/administracion", response_class=HTMLResponse)
 def venta_administracion_page(
     request: Request,
-    token: str = Depends(require_venta_token),
+    token: str = Query(default=""),
+    service: IncidenciasService = Depends(get_service),
 ):
+    if not service.usuario_logueado_por_token(token):
+        return templates.TemplateResponse(
+            "login.html",
+            {"request": request, "title": "Administracion", "next_form": "panelSelectorAdministracion"},
+        )
     return templates.TemplateResponse("panel_selector_administracion.html", {"request": request, "token": token})
 
 
 @router.get("/venta/administracion/tabla", response_class=HTMLResponse)
 def venta_tabla_administracion_page(
     request: Request,
-    token: str = Depends(require_venta_token),
+    token: str = Query(default=""),
+    service: IncidenciasService = Depends(get_service),
 ):
+    if not service.usuario_logueado_por_token(token):
+        return templates.TemplateResponse(
+            "login.html",
+            {"request": request, "title": "Administracion", "next_form": "panelSelectorAdministracion"},
+        )
     return templates.TemplateResponse("TablaAdministracion.html", {"request": request, "token": token})
+
+
+@router.get("/venta/administracion/login", response_class=HTMLResponse)
+def venta_administracion_login_page(request: Request):
+    return templates.TemplateResponse(
+        "login.html",
+        {"request": request, "title": "Administracion", "next_form": "panelSelectorAdministracion"},
+    )
 
 
 @router.get("/venta/login", response_class=HTMLResponse)
