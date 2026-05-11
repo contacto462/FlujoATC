@@ -530,9 +530,11 @@
 
       const fields = allHeaders.map((header, j) => {
         const val = row[j] !== null && row[j] !== undefined ? String(row[j]) : "";
+        // Show "Creado por" instead of "Ejecutivo"
+        const displayHeader = (header === 'Ejecutivo') ? 'Creado por' : header;
         return `
           <div class="form-field">
-            <label>${escHtml(header)}</label>
+            <label>${escHtml(displayHeader)}</label>
             ${buildSucuField(index, j, header, val)}
           </div>`;
       }).join("");
