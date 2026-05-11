@@ -328,6 +328,8 @@
           <span class="section-name">Datos de la Empresa</span>
         </div>
 
+        <div class="f"><label>Creado por</label><input type="text" id="creadoPor" readonly></div>
+        <input type="hidden" id="ejecutivoVenta">
         <div class="g-wide">
           <div class="f"><label>RUT Empresa</label><input type="text" id="rut" placeholder="12.345.678-9" required></div>
           <div class="f"><label>Giro</label><input type="text" id="giro" placeholder="Giro comercial" required></div>
@@ -406,6 +408,7 @@
     const response = await fetch(withToken("/api/venta/usuario-actual"));
     if (!response.ok) throw new Error("No se pudo obtener el usuario actual.");
     const data = await response.json();
+    document.getElementById("creadoPor").value = data.username || "";
     document.getElementById("ejecutivoVenta").value = data.username || "";
   }
   async function cargarRegiones() {
