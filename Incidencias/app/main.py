@@ -1417,3 +1417,31 @@ def debug_db(
     except Exception as e:
         out["catalogo_clientes_sample_error"] = str(e)
     return out
+
+
+@app.get("/servicio/indicadores", response_class=HTMLResponse)
+def servicio_indicadores_page(request: Request):
+    return templates.TemplateResponse("Panel_IndicadoresServicio.html", {"request": request})
+
+
+@app.get("/api/servicio/kpis-data")
+def servicio_kpis_data(db: Annotated[Session, Depends(get_db)]):
+    from sqlalchemy import select as sa_select
+    registros = db.scalars(sa_select(Registro).order_by(Registro.fecha_registro.desc())).all()
+    return [
+        {
+            "odt": r.odt,
+            "fecha_registro": r.fecha_registro.isoformat() if r.fecha_registro else None,
+            "fecha_cierre": r.fecha_cierre.isoformat() if r.fecha_cierre else None,
+            "cliente": r.cliente or "",
+            "problema": r.problema or "",
+            "estado": r.estado or "",
+            "tecnicos": r.tecnicos or "",
+            "dias_ejecucion": r.dias_ejecucion,
+            "responsable_cierre": r.responsable_cierre or "",
+            "causa_cierre": r.causa_cierre or "",
+            "resultado_cierre": r.resultado_cierre or "",
+            "requiere_seguimiento": bool(r.requiere_seguimiento),
+        }
+        for r in registros
+    ]
