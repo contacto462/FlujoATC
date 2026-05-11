@@ -853,6 +853,8 @@ class IncidenciasService:
             "panelselectorventa",
             "panelselectoradministracion",
             "tablaadministracion",
+            "panelselectorfinanzas",
+            "tablafinanzas",
             "registrocliente",
             "tablacliente",
         }:
