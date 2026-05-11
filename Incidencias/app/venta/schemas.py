@@ -120,7 +120,6 @@ class VentaODSArchivoRequest(BaseModel):
 
 
 class VentaODSCreateRequest(BaseModel):
-    ejecutivoVenta: str = Field(min_length=2, max_length=255)
     rutCliente: str = Field(min_length=3, max_length=32)
     razonSocial: str = Field(min_length=2, max_length=255)
     direccionSucursal: str = Field(min_length=2, max_length=255)
