@@ -19,6 +19,8 @@ from app.venta.schemas import (
     VentaClienteTableUpdateRequest,
     VentaAdminEstadoRequest,
     VentaFinanzasEstadoRequest,
+    VentaServicioTecnicoEstadoRequest,
+    VentaServicioTecnicoValorRequest,
     VentaSucursalCreateRequest,
     VentaSucursalCreateResponse,
     VentaSucursalTableUpdateRequest,
@@ -40,6 +42,9 @@ from app.venta.service import (
     get_admin_ods_rows,
     get_finanzas_ods_detail,
     get_finanzas_ods_rows,
+    get_servicio_tecnico_ventas_contacto,
+    get_servicio_tecnico_ventas_detail,
+    get_servicio_tecnico_ventas_rows,
     get_ods_data_by_rut,
     get_sucursales_table,
     get_coordinates_for_address,
@@ -49,6 +54,8 @@ from app.venta.service import (
     update_ods,
     update_admin_ods_estado,
     update_finanzas_ods_estado,
+    update_servicio_tecnico_ventas_estado,
+    update_servicio_tecnico_ventas_valor,
     update_cliente_row,
     update_persona_campo,
     update_sucursal_row,
@@ -497,3 +504,47 @@ def venta_finanzas_ods_estado(
     token: str = Depends(require_venta_token),
 ):
     return update_finanzas_ods_estado(db, payload.codigo, payload.campo, payload.valor)
+
+
+@router.get("/api/venta/servicio-tecnico-ods")
+def venta_servicio_tecnico_ods_listar(
+    db: Session = Depends(get_db),
+    token: str = Depends(require_venta_token),
+):
+    return {"rows": get_servicio_tecnico_ventas_rows(db)}
+
+
+@router.get("/api/venta/servicio-tecnico-ods/{codigo}/detalle")
+def venta_servicio_tecnico_ods_detalle(
+    codigo: str,
+    db: Session = Depends(get_db),
+    token: str = Depends(require_venta_token),
+):
+    return get_servicio_tecnico_ventas_detail(db, codigo)
+
+
+@router.get("/api/venta/servicio-tecnico-ods/contacto")
+def venta_servicio_tecnico_ods_contacto(
+    direccion: str = Query(default=""),
+    db: Session = Depends(get_db),
+    token: str = Depends(require_venta_token),
+):
+    return get_servicio_tecnico_ventas_contacto(db, direccion)
+
+
+@router.post("/api/venta/servicio-tecnico-ods/estado")
+def venta_servicio_tecnico_ods_estado(
+    payload: VentaServicioTecnicoEstadoRequest,
+    db: Session = Depends(get_db),
+    token: str = Depends(require_venta_token),
+):
+    return update_servicio_tecnico_ventas_estado(db, payload.codigo, payload.campo, payload.valor)
+
+
+@router.post("/api/venta/servicio-tecnico-ods/valor")
+def venta_servicio_tecnico_ods_valor(
+    payload: VentaServicioTecnicoValorRequest,
+    db: Session = Depends(get_db),
+    token: str = Depends(require_venta_token),
+):
+    return update_servicio_tecnico_ventas_valor(db, payload.codigo, payload.campo, payload.valor)
