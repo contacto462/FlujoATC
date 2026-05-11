@@ -1258,7 +1258,16 @@
       <div id="cierreError" class="cierre-error"></div>
 
       <div class="wizard-nav">
-        <button type="button" class="btn-secundario" id="btnWizardAtras" onclick="anteriorPaso()">← Atrás</button>
+        <button type="button" id="btnWizardAtras" onclick="anteriorPaso()"
+          style="background:#fff;width:148px;height:48px;border-radius:16px;border:none;cursor:pointer;position:relative;font-size:15px;font-weight:700;color:#000;flex-shrink:0;">
+          <div style="background:#4ade80;border-radius:12px;height:40px;width:25%;display:flex;align-items:center;justify-content:center;position:absolute;left:4px;top:4px;z-index:10;transition:width .5s;" class="atras-slider">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" height="20px" width="20px">
+              <path d="M224 480h640a32 32 0 1 1 0 64H224a32 32 0 0 1 0-64z" fill="#000"></path>
+              <path d="m237.248 512 265.408 265.344a32 32 0 0 1-45.312 45.312l-288-288a32 32 0 0 1 0-45.312l288-288a32 32 0 1 1 45.312 45.312L237.248 512z" fill="#000"></path>
+            </svg>
+          </div>
+          <span style="position:relative;z-index:1;padding-left:8px;">Go Back</span>
+        </button>
         <button type="button" class="btn-primario" id="btnWizardSiguiente" onclick="siguientePaso()">Siguiente →</button>
       </div>
     </div>
