@@ -289,7 +289,8 @@
       margin-bottom: 6px;
     }
 
-    .field input {
+    .field input,
+    .field select {
       width: 100%;
       padding: 9px 12px;
       font-size: 13.5px;
@@ -299,15 +300,18 @@
       background: #fff;
       color: var(--text);
       transition: border-color .18s, box-shadow .18s;
+      appearance: auto;
     }
 
-    .field input:focus {
+    .field input:focus,
+    .field select:focus {
       outline: none;
       border-color: var(--orange);
       box-shadow: 0 0 0 3px rgba(255,122,43,.1);
     }
 
-    .field input.changed {
+    .field input.changed,
+    .field select.changed {
       border-color: #f59e0b;
       background: #fffbeb;
     }
