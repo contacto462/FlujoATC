@@ -1950,7 +1950,8 @@
 
       // If there was an open detail, re-open it after the table refresh
       if (odtToReopen && clienteToReopen) {
-        await mostrarInfoSucursal(clienteToReopen, '', reopenedEstado, '', odtToReopen);
+        const card = document.querySelector(`.odt-card[data-odt="${CSS.escape(odtToReopen)}"]`);
+        if (card) await mostrarInfoSucursalCard(card, clienteToReopen, "", reopenedEstado, odtToReopen);
       }
 
       iniciarActualizacionAutomatica();
