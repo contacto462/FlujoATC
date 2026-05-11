@@ -728,22 +728,24 @@ body.sidebar-collapsed .sidebar-rail-toggle{
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  min-height:42px;
-  padding:0 16px;
-  border-radius:14px;
-  border:1px solid rgba(148,163,184,.34);
-  background:linear-gradient(180deg, rgba(255,255,255,.96), rgba(246,250,255,.93));
-  color:#0f172a;
+  padding:7px 14px;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:transparent;
+  color:var(--muted);
   text-decoration:none;
-  font-weight:700;
-  box-shadow:0 10px 22px rgba(15,23,42,.08);
-  transition:.18s ease;
+  font-size:13px;
+  font-weight:600;
+  box-shadow:none;
+  transition:color .15s ease, background .15s ease, border-color .15s ease;
 }
 
 .back-chip:hover{
-  transform:translateY(-1px);
-  border-color:rgba(37,99,235,.28);
-  box-shadow:0 14px 26px rgba(15,23,42,.12);
+  transform:none;
+  color:var(--text);
+  background:rgba(15,23,42,.05);
+  border-color:var(--border-strong);
+  box-shadow:none;
 }
 
 .filter-trigger{
@@ -1323,22 +1325,27 @@ body.dark-mode .card.unread-ticket .card-main::before{
 }
 
 body.dark-mode .user-box{
-  background:linear-gradient(180deg, rgba(15,23,41,.96), rgba(18,28,48,.94));
-  border-color:rgba(148,163,184,.24);
-  box-shadow:0 12px 26px rgba(0,0,0,.28);
+  background:transparent;
+  border:none;
+  box-shadow:none;
 }
 
 body.dark-mode .back-chip{
-  background:linear-gradient(180deg, rgba(15,23,41,.96), rgba(18,28,48,.94));
-  border-color:rgba(148,163,184,.24);
+  background:transparent;
+  border-color:rgba(148,163,184,.22);
+  color:rgba(255,255,255,.60);
+}
+body.dark-mode .back-chip:hover{
   color:#e6edf8;
+  background:rgba(255,255,255,.06);
+  border-color:rgba(148,163,184,.36);
 }
 
 body.dark-mode .searchbox,
 body.dark-mode .filter-toggle{
-  background:rgba(15,23,41,.92);
-  border-color:rgba(148,163,184,.22);
-  box-shadow:0 8px 22px rgba(0,0,0,.24);
+  background:transparent;
+  border:none;
+  box-shadow:none;
 }
 
 body.dark-mode .searchbox input{
