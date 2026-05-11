@@ -1360,8 +1360,9 @@
     let odtModalEnProceso = "";
     let cierreActualEsMantencion = false;
     let cierreStepActual = 1;
-    const CIERRE_TOTAL_PASOS = 6;
-    const CIERRE_PASO_LABELS = ["Diagnóstico", "Acción", "Pruebas", "Materiales", "Observación", "Fotos"];
+    let cierreStepMap = [1, 2, 3, 4, 5, 6];
+    const CIERRE_PASO_LABELS_FULL = ["Diagnóstico", "Acción", "Pruebas", "Materiales", "Observación", "Fotos"];
+    const CIERRE_PASO_LABELS_MANT = ["Observación", "Fotos"];
     const RUTA_ORIGEN_BASE = "1 Oriente 1180, Viña del Mar, Chile";
     const MANTENCION_MAX_IMAGENES_CIERRE = 80;
     const MANTENCION_MAX_BYTES_IMAGEN = 10 * 1024 * 1024;
