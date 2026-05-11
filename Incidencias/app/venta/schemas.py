@@ -189,6 +189,18 @@ class VentaFinanzasEstadoRequest(BaseModel):
     valor: bool
 
 
+class VentaServicioTecnicoEstadoRequest(BaseModel):
+    codigo: str = Field(min_length=2, max_length=30)
+    campo: str = Field(min_length=2, max_length=80)
+    valor: bool
+
+
+class VentaServicioTecnicoValorRequest(BaseModel):
+    codigo: str = Field(min_length=2, max_length=30)
+    campo: str = Field(min_length=2, max_length=80)
+    valor: str | None = Field(default="", max_length=4000)
+
+
 class VentaPersonaRegistroRequest(BaseModel):
     categoria: str = Field(min_length=3, max_length=80)
     rutCliente: str = Field(min_length=3, max_length=32)

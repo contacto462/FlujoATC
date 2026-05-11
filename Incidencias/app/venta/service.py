@@ -19,6 +19,7 @@ from app.models import (
     AdministracionODT,
     ClienteBBDD,
     FinanzasODT,
+    ServicioTecnicoVentaODT,
     SucursalBBDD,
     SucursalContactoEmergencia,
     SucursalGuardia,
@@ -755,6 +756,21 @@ FINANZAS_ESTADO_FIELDS: dict[str, tuple[str, str | None]] = {
     "finalizado": ("finalizado", "fecha_cierre"),
 }
 
+SERVICIO_TECNICO_VENTAS_ESTADO_FIELDS: dict[str, tuple[str, str | None]] = {
+    "recepcion_solicitud_instalacion": ("recepcion_solicitud_instalacion", "fecha_recepcion_solicitud_instalacion"),
+    "instalacion_finalizada": ("instalacion_finalizada", "fecha_instalacion_finalizada"),
+    "finalizado": ("finalizado", "fecha_cierre"),
+}
+
+SERVICIO_TECNICO_VENTAS_VALOR_FIELDS = {
+    "llamar_cliente",
+    "solicitud_materiales",
+    "fecha_inicio_instalacion",
+    "fecha_fin_instalacion",
+    "tecnico_a_cargo",
+    "acompanante",
+}
+
 
 def _get_or_create_admin_row(db: Session, codigo: str) -> AdministracionODT:
     codigo_limpio = str(codigo or "").strip()
@@ -781,6 +797,21 @@ def _get_or_create_finanzas_row(db: Session, codigo: str) -> FinanzasODT:
     if row:
         return row
     row = FinanzasODT(odt=codigo_limpio)
+    db.add(row)
+    db.flush()
+    return row
+
+
+def _get_or_create_servicio_tecnico_venta_row(db: Session, codigo: str) -> ServicioTecnicoVentaODT:
+    codigo_limpio = str(codigo or "").strip()
+    row = (
+        db.query(ServicioTecnicoVentaODT)
+        .filter(func.lower(func.trim(ServicioTecnicoVentaODT.odt)) == codigo_limpio.lower())
+        .first()
+    )
+    if row:
+        return row
+    row = ServicioTecnicoVentaODT(odt=codigo_limpio)
     db.add(row)
     db.flush()
     return row
