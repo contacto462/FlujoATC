@@ -1088,24 +1088,8 @@
     <button type="button" class="btn-secundario" onclick="abrirBandejaRendiciones()">Rendiciones</button>
   </div>
 
-  <div id="registroForm" class="tabla-shell">
-    <div class="tabla-scroll">
-      <table id="tablaRegistro">
-        <thead>
-          <tr>
-            <th>ODT</th>
-            <th>Fecha</th>
-            <th>Cliente</th>
-            <th>Servicio</th>
-            <th>Detalle del Servicio</th>
-            <th>Estado</th>
-            <th>Prioridad</th>
-          </tr>
-        </thead>
-        <tbody id="registrosExistentes"></tbody>
-      </table>
-    </div>
-
+  <div class="odt-sections-wrap">
+    <div id="odtSections"></div>
     <datalist id="listaClientes"></datalist>
     <datalist id="listaProblemas"></datalist>
     <datalist id="listaEstados"></datalist>
@@ -1877,71 +1861,111 @@
     };
 
     function cargarRegistrosEnTabla(registros) {
-      const contenedor = document.getElementById("registrosExistentes");
+      const contenedor = document.getElementById("odtSections");
       contenedor.innerHTML = "";
 
       const registrosFiltrados = (Array.isArray(registros) ? registros : []).filter((fila) => {
-        const codigoODT = String(fila?.[0] || "");
-        return /^[MVIST]/i.test(codigoODT);
+        return /^[MVIST]/i.test(String(fila?.[0] || ""));
       });
 
       registrosFiltrados.sort((a, b) => {
-        const prioA = parseInt(a?.[6], 10);
-        const prioB = parseInt(b?.[6], 10);
-        const pa = Number.isFinite(prioA) ? prioA : 999;
-        const pb = Number.isFinite(prioB) ? prioB : 999;
+        const pa = Number.isFinite(parseInt(a?.[6], 10)) ? parseInt(a[6], 10) : 999;
+        const pb = Number.isFinite(parseInt(b?.[6], 10)) ? parseInt(b[6], 10) : 999;
         return pa - pb;
       });
 
-      const encabezados = ["ODT", "Fecha", "Cliente", "Servicio", "Detalle", "Estado", "Prioridad"];
-
+      const ORDER = ["En Proceso", "Pendiente", "Terminado"];
+      const grupos = { "En Proceso": [], "Pendiente": [], "Terminado": [] };
       registrosFiltrados.forEach((fila) => {
-        const tr = document.createElement("tr");
-        const nuevoOrden = [fila?.[0] || "", fila?.[1] || "", fila?.[2] || "", fila?.[3] || "", fila?.[4] || "", fila?.[5] || "", fila?.[6] || ""];
-
-        nuevoOrden.forEach((valor, i) => {
-          const td = document.createElement("td");
-          td.setAttribute("data-label", encabezados[i]);
-
-          if (i === 0) {
-            const odtLink = document.createElement("span");
-            odtLink.textContent = valor;
-            odtLink.className = "cliente-link";
-
-            const clienteRelacionado = nuevoOrden[2];
-            const estado = nuevoOrden[5];
-
-            const detalleOdt = nuevoOrden[4] || "";
-            odtLink.onclick = () => toggleInfoSucursal(tr, clienteRelacionado, detalleOdt, estado, valor);
-            td.appendChild(odtLink);
-          } else {
-            if (i === 4) {
-              const resumen = resumenDetalleTabla(valor);
-              td.innerHTML = `<div class="detalle-resumen">${escapeHTML(resumen)}</div>`;
-              td.title = String(valor || "");
-            } else {
-              td.textContent = valor;
-            }
-            if (i === 4) {
-              td.style.textAlign = "left";
-            }
-          }
-
-          tr.appendChild(td);
-        });
-
-        contenedor.appendChild(tr);
+        const est = estadoCanonico(fila?.[5] || "");
+        (grupos[est] || grupos["Pendiente"]).push(fila);
       });
 
+      ORDER.forEach((status) => {
+        const items = grupos[status] || [];
+        if (!items.length) return;
+
+        const badgeClass = status === "En Proceso" ? "badge-proceso" : status === "Terminado" ? "badge-terminado" : "badge-pendiente";
+        const startOpen = status !== "Terminado";
+
+        const section = document.createElement("div");
+        section.className = "odt-section";
+        section.dataset.status = status;
+
+        const hdr = document.createElement("div");
+        hdr.className = "odt-section-hdr";
+        hdr.onclick = () => toggleSeccion(hdr);
+        hdr.innerHTML = `
+          <span class="odt-section-label">${escapeHTML(status)}</span>
+          <span class="odt-section-count">${items.length}</span>
+          <svg class="odt-section-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            style="${startOpen ? "" : "transform:rotate(-90deg)"}"><polyline points="6 9 12 15 18 9"/></svg>
+        `;
+
+        const body = document.createElement("div");
+        body.className = "odt-section-body";
+        if (!startOpen) body.style.display = "none";
+
+        items.forEach((fila) => {
+          const odt = String(fila?.[0] || "");
+          const cliente = String(fila?.[2] || "");
+          const servicio = String(fila?.[3] || "");
+          const fecha = String(fila?.[1] || "");
+          const estadoFila = estadoCanonico(fila?.[5] || "");
+          const prio = String(fila?.[6] || "");
+          const detalleTxt = String(fila?.[4] || "");
+
+          const card = document.createElement("div");
+          card.className = "odt-card";
+          card.dataset.odt = odt;
+          card.dataset.estado = estadoFila;
+
+          const main = document.createElement("div");
+          main.className = "odt-card-main";
+          main.innerHTML = `
+            <div class="odt-card-row">
+              <span class="odt-card-odt">${escapeHTML(odt)}</span>
+              <span class="odt-badge ${badgeClass}">${escapeHTML(estadoFila)}</span>
+            </div>
+            <div class="odt-card-cliente">${escapeHTML(cliente)}</div>
+            <div class="odt-card-meta">
+              <span>${escapeHTML(servicio)}</span>
+              <span>${escapeHTML(fecha)}</span>
+            </div>
+            ${prio ? `<div class="odt-card-prioridad">Prioridad: ${escapeHTML(prio)}</div>` : ""}
+          `;
+          main.onclick = () => toggleInfoSucursalCard(card, cliente, detalleTxt, estadoFila, odt);
+
+          const detail = document.createElement("div");
+          detail.className = "odt-card-detail";
+          detail.style.display = "none";
+
+          card.appendChild(main);
+          card.appendChild(detail);
+          body.appendChild(card);
+        });
+
+        section.appendChild(hdr);
+        section.appendChild(body);
+        contenedor.appendChild(section);
+      });
+
+      cantidadRegistrosActual = registrosFiltrados.length;
       filtrarPorEstado();
+    }
+
+    function toggleSeccion(hdr) {
+      const body = hdr.nextElementSibling;
+      const chevron = hdr.querySelector(".odt-section-chevron");
+      const isOpen = body.style.display !== "none";
+      body.style.display = isOpen ? "none" : "";
+      if (chevron) chevron.style.transform = isOpen ? "rotate(-90deg)" : "";
     }
 
     function filtrarPorEstado() {
       const filtro = document.getElementById("filtroEstado").value;
-      const filas = document.querySelectorAll("#registrosExistentes tr");
-      filas.forEach((fila) => {
-        const textoEstado = estadoCanonico(fila.children[5]?.textContent?.trim());
-        fila.style.display = (filtro === "Todos" || textoEstado === filtro) ? "" : "none";
+      document.querySelectorAll(".odt-section").forEach((section) => {
+        section.style.display = (filtro === "Todos" || section.dataset.status === filtro) ? "" : "none";
       });
     }
 
