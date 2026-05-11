@@ -605,6 +605,12 @@ function renderKPIs(data) {
   const conDias = data.filter(r => r.estado === 'Terminado' && r.dias_ejecucion != null && r.dias_ejecucion >= 0);
   const tiempoPromedio = conDias.length > 0 ? (conDias.reduce((s, r) => s + r.dias_ejecucion, 0) / conDias.length).toFixed(1) : null;
 
+  // SLA: desde fecha_derivacion_tecnico hasta fecha_cierre
+  const conSla = data.filter(r => r.estado === 'Terminado' && r.fecha_derivacion_tecnico && r.fecha_cierre);
+  const slaPromedio = conSla.length > 0
+    ? (conSla.reduce((s, r) => s + (new Date(r.fecha_cierre) - new Date(r.fecha_derivacion_tecnico)) / 86400000, 0) / conSla.length).toFixed(1)
+    : null;
+
   const conSeguimiento = data.filter(r => r.requiere_seguimiento && r.estado !== 'Terminado').length;
 
   setText('kpiTotal', total);
@@ -617,6 +623,7 @@ function renderKPIs(data) {
   setText('kpiTerminadasSub', `${total > 0 ? Math.round(terminadas/total*100) : 0}% tasa de cierre`);
   setText('kpiTasaResolucion', tasaResolucion !== null ? tasaResolucion + '%' : '—');
   setText('kpiTiempoProm', tiempoPromedio !== null ? tiempoPromedio + 'd' : '—');
+  setText('kpiSla', slaPromedio !== null ? slaPromedio + 'd' : '—');
   setText('kpiSeguimiento', conSeguimiento);
 }
 
@@ -714,16 +721,43 @@ function renderChartResultados(data) {
 }
 
 function renderChartTecnicos(data) {
-  const terminadas = data.filter(r => r.estado === 'Terminado' && r.tecnicos);
+  const terminadas = data.filter(r => r.estado === 'Terminado');
   const freq = {};
   terminadas.forEach(r => {
+    // contar titular
     (r.tecnicos || '').split(/[,;]/).forEach(t => {
+      const name = t.trim();
+      if (name) freq[name] = (freq[name] || 0) + 1;
+    });
+    // contar acompañante
+    (r.acompanante || '').split(/[,;]/).forEach(t => {
       const name = t.trim();
       if (name) freq[name] = (freq[name] || 0) + 1;
     });
   });
   const items = Object.entries(freq).sort((a,b) => b[1]-a[1]).map(([label, count]) => ({label, count}));
   renderHBars('chartTecnicos', items, ['#3b82f6','#8b5cf6','#22c55e','#f59e0b','#ff7a2b','#14b8a6','#ec4899','#64748b']);
+}
+
+function renderChartAcciones(data) {
+  const terminadas = data.filter(r => r.estado === 'Terminado' && r.accion_cierre);
+  const freq = countBy(terminadas, r => formatLabel(r.accion_cierre));
+  renderHBars('chartAcciones', freq, ['#3b82f6','#8b5cf6','#22c55e','#f59e0b','#ff7a2b','#14b8a6','#ef4444','#64748b']);
+}
+
+function renderChartPruebas(data) {
+  const terminadas = data.filter(r => r.estado === 'Terminado' && r.pruebas_cierre);
+  const freq = {};
+  terminadas.forEach(r => {
+    let pruebas = [];
+    try { pruebas = JSON.parse(r.pruebas_cierre); } catch { pruebas = []; }
+    (Array.isArray(pruebas) ? pruebas : []).forEach(p => {
+      const label = formatLabel(String(p || ''));
+      if (label) freq[label] = (freq[label] || 0) + 1;
+    });
+  });
+  const items = Object.entries(freq).sort((a,b) => b[1]-a[1]).map(([label, count]) => ({label, count}));
+  renderHBars('chartPruebas', items, ['#14b8a6','#3b82f6','#22c55e','#8b5cf6','#f59e0b','#ff7a2b','#ef4444','#64748b']);
 }
 
 /* ── DONUT RESPONSABILIDAD ── */
