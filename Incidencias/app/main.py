@@ -425,6 +425,8 @@ def do_get(
     form_aliases = {
         "tabla": "servicioTecnico",
         "STVentas": "stVentas",
+        "TablaServicioTecnico": "stVentas",
+        "tablaServicioTecnico": "stVentas",
         "servicioTécnico": "servicioTecnico",
         "servicioTecnico": "servicioTecnico",
         "coordinación": "coordinacion",
@@ -519,7 +521,7 @@ def do_get(
         "panelSelectorCoordinacion": "panel_selector_coordinacion.html",
         "panelSelectorVenta": "panel_selector_venta.html",
         "servicioTecnico": "tabla.html",
-        "stVentas": "STVentas.html",
+        "stVentas": "TablaServicioTecnico.html",
         "incidencias": "incidencias.html",
         "cierreAperturaClientes": "cierre_apertura_clientes.html",
         "controlProtocolos": "control_protocolos.html",
