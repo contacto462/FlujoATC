@@ -158,6 +158,7 @@ def startup() -> None:
     Base.metadata.create_all(bind=engine)
     _ensure_registro_optional_columns()
     _ensure_administracion_odt_optional_columns()
+    _ensure_finanzas_odt_optional_columns()
     _ensure_protocolos_optional_columns()
     _ensure_bbdd_clientes_optional_columns()
     if not _protocolos_weekly_worker_started:
@@ -227,6 +228,35 @@ def _ensure_administracion_odt_optional_columns() -> None:
                 conn.execute(text(f'ALTER TABLE administracion_odt ADD COLUMN "{col_name}" {col_type}'))
     except Exception as exc:
         LOGGER.warning("No fue posible asegurar columnas opcionales en 'administracion_odt': %s", exc)
+
+
+def _ensure_finanzas_odt_optional_columns() -> None:
+    optional_columns: dict[str, str] = {
+        "fecha_inicio_servicio": "VARCHAR(40)",
+        "recepcion_datos_facturacion": "BOOLEAN NOT NULL DEFAULT FALSE",
+        "fecha_recepcion_datos_facturacion": "TIMESTAMP",
+        "creacion_clientes_piriod": "BOOLEAN NOT NULL DEFAULT FALSE",
+        "fecha_creacion_clientes_piriod": "TIMESTAMP",
+        "creacion_clientes_bd": "BOOLEAN NOT NULL DEFAULT FALSE",
+        "fecha_creacion_clientes_bd": "TIMESTAMP",
+        "facturacion_instalacion": "BOOLEAN NOT NULL DEFAULT FALSE",
+        "fecha_facturacion_instalacion": "TIMESTAMP",
+        "facturacion_servicio": "BOOLEAN NOT NULL DEFAULT FALSE",
+        "fecha_facturacion_servicio": "TIMESTAMP",
+    }
+    try:
+        with engine.begin() as conn:
+            inspector = inspect(conn)
+            if not inspector.has_table("finanzas_odt"):
+                return
+
+            existing_columns = {str(c.get("name", "")).strip() for c in inspector.get_columns("finanzas_odt")}
+            for col_name, col_type in optional_columns.items():
+                if col_name in existing_columns:
+                    continue
+                conn.execute(text(f'ALTER TABLE finanzas_odt ADD COLUMN "{col_name}" {col_type}'))
+    except Exception as exc:
+        LOGGER.warning("No fue posible asegurar columnas opcionales en 'finanzas_odt': %s", exc)
 
 
 def _ensure_protocolos_optional_columns() -> None:

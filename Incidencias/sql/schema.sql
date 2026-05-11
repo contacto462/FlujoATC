@@ -109,11 +109,30 @@ CREATE TABLE IF NOT EXISTS administracion_odt (
   finalizado BOOLEAN NOT NULL DEFAULT FALSE,
   fecha_cierre TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
+  );
 
-CREATE TABLE IF NOT EXISTS contactos_emergencia (
-  id BIGSERIAL PRIMARY KEY,
-  sucursal VARCHAR(255) NOT NULL,
+  CREATE TABLE IF NOT EXISTS finanzas_odt (
+    id BIGSERIAL PRIMARY KEY,
+    odt VARCHAR(30) NOT NULL UNIQUE,
+    fecha_inicio_servicio VARCHAR(40),
+    recepcion_datos_facturacion BOOLEAN NOT NULL DEFAULT FALSE,
+    fecha_recepcion_datos_facturacion TIMESTAMP,
+    creacion_clientes_piriod BOOLEAN NOT NULL DEFAULT FALSE,
+    fecha_creacion_clientes_piriod TIMESTAMP,
+    creacion_clientes_bd BOOLEAN NOT NULL DEFAULT FALSE,
+    fecha_creacion_clientes_bd TIMESTAMP,
+    facturacion_instalacion BOOLEAN NOT NULL DEFAULT FALSE,
+    fecha_facturacion_instalacion TIMESTAMP,
+    facturacion_servicio BOOLEAN NOT NULL DEFAULT FALSE,
+    fecha_facturacion_servicio TIMESTAMP,
+    finalizado BOOLEAN NOT NULL DEFAULT FALSE,
+    fecha_cierre TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+  );
+  
+  CREATE TABLE IF NOT EXISTS contactos_emergencia (
+    id BIGSERIAL PRIMARY KEY,
+    sucursal VARCHAR(255) NOT NULL,
   nombre VARCHAR(255),
   celular VARCHAR(80),
   email VARCHAR(255),
