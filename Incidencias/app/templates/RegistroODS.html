@@ -412,9 +412,6 @@
                 <option value="CONDOMINIO">Condominio</option>
               </select>
             </div>
-            <div class="f"><label>Ejecutivo de Venta</label>
-              <select id="ejecutivoVenta" required><option value="" disabled selected>Seleccionar</option></select>
-            </div>
           </div>
         </div>
 
@@ -560,14 +557,6 @@ document.getElementById("btnVolver").href = withToken("/venta/panel-selector");
 function formatearRUTInput(input) { let rut = String(input.value || "").trim().replace(/[^0-9Kk]/g, "").toUpperCase(); if (rut.length < 2) { input.value = rut; return; } input.value = `${rut.slice(0, -1)}-${rut.slice(-1)}`; }
 function obtenerTiposSeleccionados() { return Array.from(document.querySelectorAll('input[name="tipoServicio[]"]:checked')).map(c => c.value); }
 function obtenerValor(id) { return document.getElementById(id)?.value.trim() || ""; }
-async function cargarEjecutivosVenta() {
-  const response = await fetch(withToken("/api/venta/ods/ejecutivos"));
-  if (!response.ok) throw new Error("No se pudo cargar la lista de ejecutivos.");
-  const data = await response.json();
-  const select = document.getElementById("ejecutivoVenta");
-  select.innerHTML = '<option value="" disabled selected>Seleccionar</option>';
-  (data.ejecutivos || []).forEach(e => { const o = document.createElement("option"); o.value = e; o.textContent = e; select.appendChild(o); });
-}
 async function cargarDatosDesdeSucursales(rutIngresado) {
   const response = await fetch(withToken("/api/venta/ods/datos-por-rut?rut=" + encodeURIComponent(rutIngresado)));
   if (!response.ok) { const err = await response.json().catch(() => ({})); throw new Error(typeof err?.detail === "string" ? err.detail : "No se pudieron cargar las sucursales del RUT."); }
