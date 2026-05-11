@@ -32,7 +32,6 @@ from app.venta.service import (
     get_cliente_nombre_by_rut,
     get_cliente_sucursal_resumen,
     get_clientes_table,
-    get_ejecutivos_venta,
     get_ods_codes,
     get_ods_detail,
     get_ods_data_by_rut,

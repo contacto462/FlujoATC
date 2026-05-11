@@ -140,7 +140,6 @@ class VentaODS(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     codigo: Mapped[str] = mapped_column(String(30), unique=True, index=True)
-    ejecutivo_venta: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     creado_por: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     rut_cliente: Mapped[str] = mapped_column(String(40), index=True)
     razon_social: Mapped[str] = mapped_column(String(255), index=True)

@@ -625,7 +625,6 @@ def create_ods(db: Session, payload: VentaODSCreateRequest, usuario_email: str) 
 
     record = VentaODS(
         codigo=codigo,
-        ejecutivo_venta=str(payload.ejecutivoVenta or "").strip(),
         creado_por=_clean_text(usuario_email),
         rut_cliente=rut,
         razon_social=razon_social,
