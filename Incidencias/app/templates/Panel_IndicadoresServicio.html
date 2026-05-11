@@ -374,16 +374,21 @@
 
   <!-- KPI ROW 2: calidad -->
   <p class="section-label">Calidad de cierre</p>
-  <div class="kpi-row kpi-row-3">
+  <div class="kpi-row kpi-row-4">
     <div class="kpi-card" style="--kpi-color: var(--green)">
-      <span class="kpi-label">Tasa de resolución (sin reincidencia)</span>
+      <span class="kpi-label">Tasa de resolución</span>
       <span class="kpi-value" id="kpiTasaResolucion">—</span>
-      <span class="kpi-sub">De las ODTs terminadas, sin seguimiento pendiente</span>
+      <span class="kpi-sub">ODTs terminadas sin seguimiento / total terminadas con diagnóstico</span>
     </div>
     <div class="kpi-card" style="--kpi-color: var(--blue)">
       <span class="kpi-label">Tiempo promedio de cierre</span>
       <span class="kpi-value" id="kpiTiempoProm">—</span>
       <span class="kpi-sub">Días promedio desde apertura hasta cierre (ODTs terminadas)</span>
+    </div>
+    <div class="kpi-card" style="--kpi-color: var(--purple)">
+      <span class="kpi-label">SLA técnico (derivación → cierre)</span>
+      <span class="kpi-value" id="kpiSla">—</span>
+      <span class="kpi-sub">Días promedio desde asignación al técnico hasta cierre</span>
     </div>
     <div class="kpi-card" style="--kpi-color: var(--red)">
       <span class="kpi-label">Con seguimiento pendiente</span>
