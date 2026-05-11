@@ -1027,6 +1027,11 @@ class IncidenciasService:
                 "success": True,
                 "redirect": f"{app_url}/venta/administracion?token={token}&next={destino_ok}",
             }
+        if destino_ok in {"panelSelectorFinanzas", "tablaFinanzas"}:
+            return {
+                "success": True,
+                "redirect": f"{app_url}/venta/finanzas?token={token}&next={destino_ok}",
+            }
         if destino_ok in {"incidencias", "panelSelector", "cierreAperturaClientes", "controlProtocolos"}:
             return {
                 "success": True,
