@@ -129,6 +129,24 @@ CREATE TABLE IF NOT EXISTS administracion_odt (
     fecha_cierre TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
   );
+
+  CREATE TABLE IF NOT EXISTS servicio_tecnico_ventas_odt (
+    id BIGSERIAL PRIMARY KEY,
+    odt VARCHAR(30) NOT NULL UNIQUE,
+    recepcion_solicitud_instalacion BOOLEAN NOT NULL DEFAULT FALSE,
+    fecha_recepcion_solicitud_instalacion TIMESTAMP,
+    llamar_cliente TEXT,
+    solicitud_materiales TEXT,
+    fecha_inicio_instalacion VARCHAR(40),
+    fecha_fin_instalacion VARCHAR(40),
+    tecnico_a_cargo VARCHAR(255),
+    acompanante VARCHAR(255),
+    instalacion_finalizada BOOLEAN NOT NULL DEFAULT FALSE,
+    fecha_instalacion_finalizada TIMESTAMP,
+    finalizado BOOLEAN NOT NULL DEFAULT FALSE,
+    fecha_cierre TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+  );
   
   CREATE TABLE IF NOT EXISTS contactos_emergencia (
     id BIGSERIAL PRIMARY KEY,

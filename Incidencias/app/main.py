@@ -159,6 +159,7 @@ def startup() -> None:
     _ensure_registro_optional_columns()
     _ensure_administracion_odt_optional_columns()
     _ensure_finanzas_odt_optional_columns()
+    _ensure_servicio_tecnico_ventas_optional_columns()
     _ensure_protocolos_optional_columns()
     _ensure_bbdd_clientes_optional_columns()
     if not _protocolos_weekly_worker_started:
@@ -257,6 +258,36 @@ def _ensure_finanzas_odt_optional_columns() -> None:
                 conn.execute(text(f'ALTER TABLE finanzas_odt ADD COLUMN "{col_name}" {col_type}'))
     except Exception as exc:
         LOGGER.warning("No fue posible asegurar columnas opcionales en 'finanzas_odt': %s", exc)
+
+
+def _ensure_servicio_tecnico_ventas_optional_columns() -> None:
+    optional_columns: dict[str, str] = {
+        "recepcion_solicitud_instalacion": "BOOLEAN NOT NULL DEFAULT FALSE",
+        "fecha_recepcion_solicitud_instalacion": "TIMESTAMP",
+        "llamar_cliente": "TEXT",
+        "solicitud_materiales": "TEXT",
+        "fecha_inicio_instalacion": "VARCHAR(40)",
+        "fecha_fin_instalacion": "VARCHAR(40)",
+        "tecnico_a_cargo": "VARCHAR(255)",
+        "acompanante": "VARCHAR(255)",
+        "instalacion_finalizada": "BOOLEAN NOT NULL DEFAULT FALSE",
+        "fecha_instalacion_finalizada": "TIMESTAMP",
+        "finalizado": "BOOLEAN NOT NULL DEFAULT FALSE",
+        "fecha_cierre": "TIMESTAMP",
+    }
+    try:
+        with engine.begin() as conn:
+            inspector = inspect(conn)
+            if not inspector.has_table("servicio_tecnico_ventas_odt"):
+                return
+
+            existing_columns = {str(c.get("name", "")).strip() for c in inspector.get_columns("servicio_tecnico_ventas_odt")}
+            for col_name, col_type in optional_columns.items():
+                if col_name in existing_columns:
+                    continue
+                conn.execute(text(f'ALTER TABLE servicio_tecnico_ventas_odt ADD COLUMN "{col_name}" {col_type}'))
+    except Exception as exc:
+        LOGGER.warning("No fue posible asegurar columnas opcionales en 'servicio_tecnico_ventas_odt': %s", exc)
 
 
 def _ensure_protocolos_optional_columns() -> None:
