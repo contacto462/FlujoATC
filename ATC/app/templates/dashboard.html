@@ -974,22 +974,22 @@ body.sidebar-collapsed .sidebar-rail-toggle{
 
 .settings-trigger{
   margin-left:auto;
-  width:38px;
-  height:38px;
-  border-radius:12px;
-  border:1px solid rgba(148,163,184,.30);
-  background:rgba(255,255,255,.66);
-  color:#334155;
+  width:32px;
+  height:32px;
+  border-radius:8px;
+  border:none;
+  background:transparent;
+  color:var(--muted);
   display:grid;
   place-items:center;
   cursor:pointer;
-  transition:.16s ease;
+  transition:color .15s ease, background .15s ease;
 }
 
 .settings-trigger:hover{
-  background:#fff;
-  border-color:rgba(37,99,235,.36);
-  color:#1d4ed8;
+  background:rgba(15,23,42,.07);
+  border:none;
+  color:var(--text);
 }
 
 .settings-trigger svg{
@@ -1479,17 +1479,17 @@ body.dark-mode .btn-secondary:hover{
 
 /* # AJUSTE DASHBOARD: filtro superior y asignado en modo oscuro # */
 body.dark-mode .filter-trigger{
-  background:linear-gradient(180deg, rgba(15,23,41,.96), rgba(18,28,48,.94));
-  border-color:rgba(148,163,184,.24);
-  color:#dbe7f8;
-  box-shadow:0 14px 28px rgba(2,6,23,.28);
+  background:transparent;
+  border:none;
+  color:rgba(255,255,255,.45);
+  box-shadow:none;
 }
 
 body.dark-mode .filter-trigger:hover{
-  background:linear-gradient(180deg, rgba(20,31,54,.98), rgba(22,34,58,.96));
-  border-color:rgba(96,165,250,.34);
-  color:#eff6ff;
-  box-shadow:0 18px 34px rgba(2,6,23,.34);
+  background:rgba(255,255,255,.07);
+  border:none;
+  color:#e6edf8;
+  box-shadow:none;
 }
 
 body.dark-mode .assign-box select,
