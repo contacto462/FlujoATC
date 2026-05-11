@@ -53,13 +53,6 @@ PROVEEDORES_ELECTRICIDAD = [
     "Otro",
 ]
 
-VENTA_EJECUTIVOS = [
-    "Sebastian Storm",
-    "Teodoro Storm",
-    "Lucas Cortes",
-    "Gianpiero Lubiano",
-]
-
 VENTA_UPLOADS_DIR = Path(__file__).resolve().parents[2] / "uploads" / "venta_ods"
 
 

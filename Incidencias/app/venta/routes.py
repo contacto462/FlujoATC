@@ -229,11 +229,6 @@ def venta_proveedores_electricidad(_: str = Depends(require_venta_token)):
     return {"proveedores": get_proveedores_electricidad()}
 
 
-@router.get("/api/venta/ods/ejecutivos")
-def venta_ods_ejecutivos(_: str = Depends(require_venta_token)):
-    return {"ejecutivos": get_ejecutivos_venta()}
-
-
 @router.get("/api/venta/ods/datos-por-rut")
 def venta_ods_datos_por_rut(
     rut: str = Query(..., min_length=3),
