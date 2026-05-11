@@ -856,6 +856,35 @@
     </div>
   </div>
 
+  <div id="modalVerObs" class="modal">
+    <div class="modal-card ver-obs-modal-card">
+      <div class="ver-obs-header">
+        <h3>Observación de cierre</h3>
+        <p id="verObsSubtitle">ODT finalizada</p>
+      </div>
+      <div class="ver-obs-body">
+        <div class="ver-obs-meta">
+          <div class="ver-obs-meta-item">
+            <span>ODT</span>
+            <strong id="verObsOdt">—</strong>
+          </div>
+          <div class="ver-obs-meta-item">
+            <span>Sucursal</span>
+            <strong id="verObsSucursal">—</strong>
+          </div>
+          <div class="ver-obs-meta-item">
+            <span>Problema</span>
+            <strong id="verObsProblema">—</strong>
+          </div>
+        </div>
+        <div class="ver-obs-texto" id="verObsTexto">—</div>
+        <div class="modal-actions">
+          <button class="boton-secundario" type="button" onclick="cerrarModalVerObs()">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     let registros = [];
     let contactosPorSucursal = {};
@@ -1080,6 +1109,17 @@
             tr
           });
           tdFinalizar.appendChild(boton);
+        } else {
+          const botonVer = document.createElement("button");
+          botonVer.textContent = "Ver";
+          botonVer.className = "boton-ver-obs";
+          botonVer.onclick = () => abrirModalVerObs({
+            odt,
+            sucursal: getSafeValue(fila, 2),
+            problema: getSafeValue(fila, 3),
+            observacionFinal: getSafeValue(fila, 7)
+          });
+          tdFinalizar.appendChild(botonVer);
         }
         tr.appendChild(tdFinalizar);
 
