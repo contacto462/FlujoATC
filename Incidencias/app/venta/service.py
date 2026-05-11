@@ -103,10 +103,6 @@ def get_proveedores_electricidad() -> list[str]:
     return PROVEEDORES_ELECTRICIDAD[:]
 
 
-def get_ejecutivos_venta() -> list[str]:
-    return VENTA_EJECUTIVOS[:]
-
-
 def get_coordinates_for_address(db: Session, direccion: str, comuna: str) -> dict[str, str]:
     query = ", ".join(part for part in [str(direccion or "").strip(), str(comuna or "").strip(), "Chile"] if part)
     if not query:
