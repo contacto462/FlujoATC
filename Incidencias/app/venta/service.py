@@ -735,6 +735,128 @@ def get_ods_detail(db: Session, codigo: str) -> dict[str, str]:
     }
 
 
+ADMIN_ESTADO_FIELDS: dict[str, tuple[str, str | None]] = {
+    "recepcion_info": ("recepcion_info", "fecha_recepcion_info"),
+    "registro_alpha3": ("registro_alpha3", "fecha_registro_alpha3"),
+    "registro_intranet": ("registro_intranet", "fecha_registro_intranet"),
+    "envio_solicitud_instalacion": ("envio_solicitud_instalacion", "fecha_envio_solicitud_instalacion"),
+    "envio_datos_facturacion": ("envio_datos_facturacion", "fecha_envio_datos_facturacion"),
+    "envio_carta_bienvenida": ("envio_carta_bienvenida", "fecha_envio_carta_bienvenida"),
+    "finalizado": ("finalizado", "fecha_cierre"),
+}
+
+
+def _get_or_create_admin_row(db: Session, codigo: str) -> AdministracionODT:
+    codigo_limpio = str(codigo or "").strip()
+    row = (
+        db.query(AdministracionODT)
+        .filter(func.lower(func.trim(AdministracionODT.odt)) == codigo_limpio.lower())
+        .first()
+    )
+    if row:
+        return row
+    row = AdministracionODT(odt=codigo_limpio)
+    db.add(row)
+    db.flush()
+    return row
+
+
+def _fmt_date(value) -> str:
+    if not value:
+        return ""
+    if isinstance(value, datetime):
+        return value.strftime("%d/%m/%Y %H:%M")
+    return str(value)
+
+
+def _is_true(value) -> bool:
+    return bool(value)
+
+
+def get_admin_ods_rows(db: Session) -> list[dict[str, object]]:
+    rows = (
+        db.query(VentaODS, AdministracionODT)
+        .outerjoin(AdministracionODT, func.lower(func.trim(AdministracionODT.odt)) == func.lower(func.trim(VentaODS.codigo)))
+        .order_by(VentaODS.created_at.desc(), VentaODS.id.desc())
+        .all()
+    )
+    out: list[dict[str, object]] = []
+    for ods, adm in rows:
+        estado_ods = str(ods.estado or "").strip()
+        anulada = estado_ods.lower() == "anulada"
+        carpeta = ods.cotizacion_path or ods.odc_path or ods.desglose_path or ""
+        out.append(
+            {
+                "codigo": ods.codigo or "",
+                "fecha": _fmt_date(ods.created_at),
+                "ejecutivo": ods.creado_por or "",
+                "rutCliente": ods.rut_cliente or "",
+                "razonSocial": ods.razon_social or "",
+                "direccionSucursal": ods.direccion_sucursal or "",
+                "tipoServicio": ods.tipo_servicio or "",
+                "tipoPlan": ods.tipo_plan or "",
+                "carpeta": carpeta,
+                "estados": {
+                    "recepcion_info": _is_true(getattr(adm, "recepcion_info", False)),
+                    "registro_alpha3": _is_true(getattr(adm, "registro_alpha3", False)),
+                    "registro_intranet": _is_true(getattr(adm, "registro_intranet", False)),
+                    "envio_solicitud_instalacion": _is_true(getattr(adm, "envio_solicitud_instalacion", False)),
+                    "envio_datos_facturacion": _is_true(getattr(adm, "envio_datos_facturacion", False)),
+                    "envio_carta_bienvenida": _is_true(getattr(adm, "envio_carta_bienvenida", False)),
+                    "finalizado": _is_true(getattr(adm, "finalizado", False)),
+                },
+                "anulada": anulada,
+            }
+        )
+    return out
+
+
+def get_admin_ods_detail(db: Session, codigo: str) -> dict[str, str]:
+    detail = get_ods_detail(db, codigo)
+    return {
+        "sucursal": detail.get("nombreSucursal") or detail.get("razonSocial") or "",
+        "direccion": detail.get("direccionSucursal") or "",
+        "observacion": detail.get("observacion") or "",
+        "consideraciones": detail.get("consideraciones") or "",
+        "camaras": detail.get("camInstalar") or detail.get("camVigilar") or "",
+        "dias": detail.get("diasAdicional") or "",
+    }
+
+
+def update_admin_ods_estado(db: Session, codigo: str, campo: str, valor: bool) -> dict[str, object]:
+    codigo_limpio = str(codigo or "").strip()
+    campo_limpio = str(campo or "").strip()
+    if campo_limpio not in ADMIN_ESTADO_FIELDS:
+        raise HTTPException(status_code=400, detail="Campo administrativo invalido.")
+
+    ods = (
+        db.query(VentaODS)
+        .filter(func.lower(func.trim(VentaODS.codigo)) == codigo_limpio.lower())
+        .first()
+    )
+    if not ods:
+        raise HTTPException(status_code=404, detail="ODS no encontrada.")
+    if str(ods.estado or "").strip().lower() == "anulada":
+        raise HTTPException(status_code=400, detail="La ODS esta anulada.")
+
+    row = _get_or_create_admin_row(db, codigo_limpio)
+    bool_field, date_field = ADMIN_ESTADO_FIELDS[campo_limpio]
+    now = datetime.utcnow()
+    setattr(row, bool_field, bool(valor))
+    if date_field:
+        setattr(row, date_field, now if valor else None)
+    db.commit()
+    return {
+        "ok": True,
+        "codigo": codigo_limpio,
+        "campo": campo_limpio,
+        "valor": bool(valor),
+        "estado": "Completado" if valor else "Pendiente",
+        "timestamp": _fmt_date(now) if valor else "",
+        "notificacion": "pendiente_configuracion" if campo_limpio in {"recepcion_info", "envio_solicitud_instalacion"} and valor else "",
+    }
+
+
 def update_ods(db: Session, payload, usuario_email: str) -> VentaODS:
     codigo = str(payload.selectorODS or "").strip()
     record = (
