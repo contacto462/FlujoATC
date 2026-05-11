@@ -7,211 +7,183 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root{
-      --bg-1:#08161a;
-      --bg-2:#10252c;
-      --bg-3:#17363d;
-      --surface:rgba(255,255,255,.06);
-      --surface-2:rgba(255,255,255,.04);
-      --border:rgba(255,255,255,.11);
-      --text:#f4f8f9;
-      --muted:#bed0d6;
-      --orange:#ff6e23;
-      --orange-2:#ff8b33;
-      --teal:#1f9c83;
-      --ok-bg:rgba(37,196,131,.14);
-      --ok-color:#83ffc4;
-      --ok-border:rgba(37,196,131,.28);
-      --bad-bg:rgba(255,116,116,.13);
-      --bad-color:#ffb3b3;
-      --bad-border:rgba(255,116,116,.24);
-      --radius:20px;
-      --shadow:0 24px 56px rgba(0,0,0,.32);
+      --bg-1:#08161a; --bg-2:#10252c; --bg-3:#17363d;
+      --border:rgba(255,255,255,.10);
+      --text:#f4f8f9; --muted:#b0c8cf;
+      --orange:#ff6e23; --orange-2:#ff8b33;
+      --ok:#25c483; --bad:#ff6b6b;
+      --radius:18px;
     }
     *{box-sizing:border-box;margin:0;padding:0}
-    html,body{height:100%}
+    html,body{min-height:100%}
     body{
-      font-family:'Inter',system-ui,-apple-system,Segoe UI,Arial,sans-serif;
+      font-family:'Inter',system-ui,Arial,sans-serif;
       color:var(--text);
       background:
-        radial-gradient(circle at 16% 10%,rgba(255,255,255,.04),transparent 22%),
-        radial-gradient(circle at 84% 8%,rgba(255,118,43,.09),transparent 20%),
-        linear-gradient(145deg,var(--bg-1) 0%,var(--bg-2) 44%,var(--bg-3) 100%);
-      min-height:100%;
-      padding:28px 24px 40px;
+        radial-gradient(circle at 15% 10%,rgba(255,118,43,.09),transparent 26%),
+        linear-gradient(145deg,var(--bg-1) 0%,var(--bg-2) 48%,var(--bg-3) 100%);
+      padding:24px 20px 40px;
     }
-    .shell{width:min(1440px,100%);margin:0 auto}
+    .shell{width:min(1480px,100%);margin:0 auto}
 
-    /* ── header ── */
-    .page-header{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:20px;
-      margin-bottom:28px;
-      flex-wrap:wrap;
+    /* header */
+    .page-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap}
+    .hd-left{display:flex;align-items:center;gap:14px}
+    .hd-icon{
+      width:46px;height:46px;border-radius:14px;flex-shrink:0;
+      background:linear-gradient(135deg,#2f5b72,#1e3d4e);
+      display:grid;place-items:center;font-size:18px;font-weight:800;
+      box-shadow:0 8px 18px rgba(0,0,0,.28);
     }
-    .page-header-left{display:flex;align-items:center;gap:16px}
-    .header-icon{
-      width:52px;height:52px;border-radius:16px;
-      background:linear-gradient(135deg,#2f5b72,#24495c);
-      display:grid;place-items:center;font-size:22px;font-weight:800;
-      flex-shrink:0;box-shadow:0 10px 22px rgba(0,0,0,.22);
-    }
-    .page-header h1{font-size:26px;font-weight:800;letter-spacing:-.025em}
-    .page-header p{color:var(--muted);font-size:14px;margin-top:3px}
-    .nav-btns{display:flex;gap:10px;flex-wrap:wrap}
+    .hd-title{font-size:22px;font-weight:800;letter-spacing:-.02em}
+    .hd-sub{font-size:13px;color:var(--muted);margin-top:2px}
+    .nav-btns{display:flex;gap:8px}
     .btn{
-      display:inline-flex;align-items:center;gap:8px;
-      padding:9px 16px;border-radius:12px;font-size:13px;font-weight:700;
-      border:1px solid var(--border);background:var(--surface-2);
-      color:var(--text);cursor:pointer;text-decoration:none;transition:all .18s ease;
+      display:inline-flex;align-items:center;gap:6px;
+      padding:8px 14px;border-radius:10px;font-size:13px;font-weight:700;
+      border:1px solid var(--border);background:rgba(255,255,255,.05);
+      color:var(--text);cursor:pointer;text-decoration:none;
+      transition:background .15s,border-color .15s;
     }
-    .btn:hover{background:rgba(255,255,255,.085);border-color:rgba(255,255,255,.2)}
-    .btn-primary{
-      background:linear-gradient(135deg,var(--orange),var(--orange-2));
-      border-color:rgba(255,118,43,.5);color:#fff;
-    }
+    .btn:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.18)}
+    .btn-primary{background:linear-gradient(135deg,var(--orange),var(--orange-2));border-color:rgba(255,118,43,.4);color:#fff}
     .btn-primary:hover{filter:brightness(1.08)}
 
-    /* ── card ── */
+    /* filter card */
     .card{
       border:1px solid var(--border);border-radius:var(--radius);
-      background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.03));
-      box-shadow:var(--shadow);padding:20px;margin-bottom:16px;
+      background:linear-gradient(180deg,rgba(255,255,255,.065),rgba(255,255,255,.03));
+      padding:18px 20px;margin-bottom:14px;
     }
-
-    /* ── filters ── */
-    .filters{
-      display:grid;
-      grid-template-columns:1.2fr 1.2fr .85fr .72fr .72fr auto;
-      gap:14px;align-items:end;
-    }
-    .field-group label{
-      display:block;font-size:12px;font-weight:700;color:var(--muted);
-      text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;
-    }
+    .filters{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+    .fg{display:flex;flex-direction:column;gap:6px;flex:1;min-width:120px}
+    .fg.narrow{flex:0 0 110px}
+    .fg.date{flex:0 0 130px}
+    label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
     input,select{
-      width:100%;height:40px;padding:0 12px;
-      border:1px solid rgba(255,255,255,.13);border-radius:11px;
-      background:#0b1a1f;color:var(--text);font-size:13px;font-family:inherit;
-      outline:none;transition:border-color .18s,box-shadow .18s;
-      appearance:auto;
+      height:38px;padding:0 11px;border-radius:9px;
+      border:1px solid rgba(255,255,255,.12);background:#0b1a1f;
+      color:var(--text);font-size:13px;font-family:inherit;outline:none;
+      transition:border-color .15s,box-shadow .15s;width:100%;
     }
-    input::placeholder{color:rgba(255,255,255,.3)}
-    input:focus,select:focus{
-      border-color:rgba(255,118,43,.6);
-      box-shadow:0 0 0 3px rgba(255,118,43,.11);
+    input::placeholder{color:rgba(255,255,255,.28)}
+    input:focus,select:focus{border-color:rgba(255,118,43,.55);box-shadow:0 0 0 3px rgba(255,118,43,.1)}
+
+    /* meta */
+    .meta{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .count{font-size:13px;font-weight:600;color:var(--muted)}
+    .count b{color:var(--text)}
+    .status{font-size:12px;font-weight:600;min-height:18px}
+    .ok-text{color:#6debb0}.err{color:#ff9b9b}.neutral{color:var(--muted)}
+
+    /* table */
+    .tbl-wrap{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+    table{
+      width:100%;border-collapse:collapse;
+      table-layout:fixed;
     }
 
-    /* ── meta bar ── */
-    .meta-bar{
-      display:flex;align-items:center;justify-content:space-between;
-      gap:14px;flex-wrap:wrap;
-    }
-    .meta-bar .count{font-size:13px;font-weight:700;color:var(--muted)}
-    .meta-bar .count span{color:var(--text)}
-    .status-msg{font-size:13px;font-weight:600;min-height:20px}
-    .err{color:#ffb3b3}.ok-text{color:#83ffc4}.neutral{color:var(--muted)}
+    /* column widths — total ~100% */
+    col.c-id    {width:44px}
+    col.c-fecha {width:118px}
+    col.c-cli   {width:13%}
+    col.c-suc   {width:11%}
+    col.c-tipo  {width:76px}
+    col.c-puesto{width:52px}
+    col.c-oper  {width:11%}
+    col.c-bool  {width:44px}   /* ×9 = 396px */
+    col.c-obs   {width:58px}
 
-    /* ── table ── */
-    .table-scroll{overflow:auto;border-radius:16px;border:1px solid var(--border)}
-    table{width:100%;min-width:1200px;border-collapse:collapse}
     thead th{
-      position:sticky;top:0;z-index:2;
-      background:#0f2028;
-      padding:10px 12px;font-size:11px;font-weight:700;
-      color:var(--muted);text-transform:uppercase;letter-spacing:.06em;
-      border-bottom:1px solid var(--border);white-space:nowrap;
+      background:#0f2028;padding:9px 8px;
+      font-size:10px;font-weight:700;color:var(--muted);
+      text-transform:uppercase;letter-spacing:.06em;
+      border-bottom:1px solid var(--border);
+      white-space:nowrap;text-align:center;
     }
+    thead th.left{text-align:left;padding-left:12px}
+
     tbody td{
-      padding:10px 12px;font-size:13px;
-      border-bottom:1px solid rgba(255,255,255,.06);
-      vertical-align:middle;color:var(--text);
+      padding:9px 8px;font-size:12.5px;
+      border-bottom:1px solid rgba(255,255,255,.055);
+      vertical-align:middle;text-align:center;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
     }
+    tbody td.left{text-align:left;padding-left:12px}
     tbody tr:last-child td{border-bottom:none}
     tbody tr:hover td{background:rgba(255,255,255,.03)}
 
-    /* ── pill ── */
-    .pill{
-      display:inline-flex;align-items:center;justify-content:center;
-      padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;
-      white-space:nowrap;
-    }
-    .pill.ok{background:var(--ok-bg);color:var(--ok-color);border:1px solid var(--ok-border)}
-    .pill.bad{background:var(--bad-bg);color:var(--bad-color);border:1px solid var(--bad-border)}
-    .pill.neutral{background:rgba(255,255,255,.07);color:var(--muted);border:1px solid rgba(255,255,255,.1)}
+    /* boolean indicators */
+    .bi{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;font-size:13px}
+    .bi.yes{background:rgba(37,196,131,.15);color:#6debb0}
+    .bi.no {background:rgba(255,107,107,.13);color:#ffb0b0}
+    .bi.nd {color:rgba(255,255,255,.18);font-size:11px}
 
-    /* ── obs btn ── */
+    /* id / date muted */
+    .id-val{font-size:11px;font-weight:600;color:rgba(255,255,255,.35)}
+    .date-val{font-size:12px;color:var(--muted);white-space:nowrap}
+
+    /* tipo badge */
+    .tipo-badge{
+      display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;
+    }
+    .tipo-badge.prev{background:rgba(31,156,131,.18);color:#7ee8d2;border:1px solid rgba(31,156,131,.3)}
+    .tipo-badge.intr{background:rgba(255,110,35,.16);color:#ffb57c;border:1px solid rgba(255,110,35,.28)}
+
+    /* obs button */
     .obs-btn{
-      display:inline-flex;align-items:center;gap:5px;
-      padding:4px 10px;border-radius:8px;font-size:12px;font-weight:700;
-      border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.055);
-      color:var(--text);cursor:pointer;transition:all .15s ease;white-space:nowrap;
+      display:inline-flex;align-items:center;gap:4px;
+      padding:3px 9px;border-radius:7px;font-size:11px;font-weight:700;
+      border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);
+      color:var(--text);cursor:pointer;transition:all .14s;white-space:nowrap;
     }
     .obs-btn:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.22)}
-    .obs-empty{color:rgba(255,255,255,.25);font-size:12px}
+    .nd-text{color:rgba(255,255,255,.2);font-size:12px}
 
-    .id-cell{color:var(--muted);font-size:12px;font-weight:600}
-    .date-cell{white-space:nowrap;font-size:12px;color:var(--muted)}
-    .text-cell{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .empty td{padding:28px 12px;text-align:center;color:var(--muted);font-size:13px;font-weight:600}
 
-    /* ── modal ── */
-    .modal-backdrop{
-      display:none;position:fixed;inset:0;z-index:100;
-      background:rgba(0,0,0,.62);backdrop-filter:blur(6px);
-      align-items:center;justify-content:center;padding:20px;
+    /* modal */
+    .backdrop{
+      display:none;position:fixed;inset:0;z-index:200;
+      background:rgba(0,0,0,.65);backdrop-filter:blur(8px);
+      align-items:center;justify-content:center;padding:16px;
     }
-    .modal-backdrop.open{display:flex}
+    .backdrop.open{display:flex}
     .modal{
-      background:linear-gradient(160deg,#122028,#0d1c22);
+      background:linear-gradient(150deg,#122028,#0d1b22);
       border:1px solid var(--border);border-radius:var(--radius);
-      box-shadow:0 40px 80px rgba(0,0,0,.5);
-      width:min(560px,100%);padding:28px;position:relative;
+      box-shadow:0 40px 80px rgba(0,0,0,.55);
+      width:min(520px,100%);padding:26px;
     }
-    .modal h3{font-size:16px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:10px}
-    .modal h3 .modal-badge{
-      padding:3px 10px;border-radius:8px;font-size:12px;
-      background:rgba(47,91,114,.4);border:1px solid rgba(47,91,114,.6);color:#b5d8e8;
+    .modal-head{
+      display:flex;align-items:center;gap:10px;margin-bottom:14px;
     }
+    .modal-head h3{font-size:15px;font-weight:800;flex:1}
+    .modal-meta{font-size:12px;color:var(--muted);font-weight:600}
     .modal-body{
-      font-size:14px;line-height:1.7;color:#d5e5ea;
-      background:rgba(0,0,0,.22);border-radius:12px;
-      padding:16px;border:1px solid rgba(255,255,255,.08);
-      max-height:340px;overflow-y:auto;white-space:pre-wrap;word-break:break-word;
+      font-size:13.5px;line-height:1.7;color:#cde0e6;
+      background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.08);
+      border-radius:10px;padding:14px;
+      max-height:320px;overflow-y:auto;white-space:pre-wrap;word-break:break-word;
     }
     .modal-close{
-      margin-top:18px;width:100%;padding:10px;border-radius:11px;
-      background:rgba(255,255,255,.07);border:1px solid var(--border);
+      margin-top:16px;width:100%;padding:9px;border-radius:9px;
+      background:rgba(255,255,255,.06);border:1px solid var(--border);
       color:var(--text);font-weight:700;font-size:13px;cursor:pointer;
-      transition:all .15s ease;font-family:inherit;
+      font-family:inherit;transition:background .14s;
     }
-    .modal-close:hover{background:rgba(255,255,255,.12)}
-
-    /* ── empty / loading ── */
-    .empty-row td{
-      padding:32px 16px;text-align:center;
-      color:var(--muted);font-size:14px;font-weight:600;
-    }
-
-    @media(max-width:900px){
-      body{padding:16px 14px 32px}
-      .filters{grid-template-columns:1fr}
-      .page-header{flex-direction:column;align-items:flex-start}
-      .nav-btns{width:100%}
-      .nav-btns .btn{flex:1;justify-content:center}
-    }
+    .modal-close:hover{background:rgba(255,255,255,.11)}
   </style>
 </head>
 <body>
 <main class="shell">
 
-  <!-- header -->
   <header class="page-header">
-    <div class="page-header-left">
-      <div class="header-icon">P</div>
+    <div class="hd-left">
+      <div class="hd-icon">P</div>
       <div>
-        <h1>Tabla Protocolos</h1>
-        <p>Consulta de registros preventivos e intrusivos</p>
+        <div class="hd-title">Tabla Protocolos</div>
+        <div class="hd-sub">Registros preventivos e intrusivos</div>
       </div>
     </div>
     <nav class="nav-btns">
@@ -220,18 +192,17 @@
     </nav>
   </header>
 
-  <!-- filters -->
   <div class="card">
     <div class="filters">
-      <div class="field-group">
+      <div class="fg">
         <label for="cliente">Cliente</label>
-        <input id="cliente" placeholder="Todos los clientes" />
+        <input id="cliente" placeholder="Todos" />
       </div>
-      <div class="field-group">
+      <div class="fg">
         <label for="sucursal">Sucursal</label>
-        <input id="sucursal" placeholder="Todas las sucursales" />
+        <input id="sucursal" placeholder="Todas" />
       </div>
-      <div class="field-group">
+      <div class="fg narrow">
         <label for="tipo">Tipo</label>
         <select id="tipo">
           <option value="">Todos</option>
@@ -239,164 +210,167 @@
           <option>Intrusivo</option>
         </select>
       </div>
-      <div class="field-group">
+      <div class="fg date">
         <label for="desde">Desde</label>
         <input id="desde" type="date" />
       </div>
-      <div class="field-group">
+      <div class="fg date">
         <label for="hasta">Hasta</label>
         <input id="hasta" type="date" />
       </div>
-      <button class="btn btn-primary" type="button" onclick="cargar()">Aplicar</button>
+      <button class="btn btn-primary" onclick="cargar()">Aplicar</button>
     </div>
   </div>
 
-  <!-- meta bar -->
-  <div class="card" style="padding:14px 20px">
-    <div class="meta-bar">
-      <div class="count">Mostrando <span id="total">0</span> registros</div>
-      <div style="display:flex;align-items:center;gap:14px">
-        <span id="msg" class="status-msg neutral"></span>
-        <button class="btn" type="button" onclick="limpiar()">Limpiar filtros</button>
+  <div class="card" style="padding:12px 20px">
+    <div class="meta">
+      <div class="count">Mostrando <b id="total">0</b> registros</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span id="msg" class="status neutral"></span>
+        <button class="btn" onclick="limpiar()">Limpiar</button>
       </div>
     </div>
   </div>
 
-  <!-- table -->
-  <div class="table-scroll">
+  <div class="tbl-wrap">
     <table>
+      <colgroup>
+        <col class="c-id">
+        <col class="c-fecha">
+        <col class="c-cli">
+        <col class="c-suc">
+        <col class="c-tipo">
+        <col class="c-puesto">
+        <col class="c-oper">
+        <col class="c-bool"><col class="c-bool"><col class="c-bool">
+        <col class="c-bool"><col class="c-bool"><col class="c-bool">
+        <col class="c-bool"><col class="c-bool"><col class="c-bool">
+        <col class="c-obs">
+      </colgroup>
       <thead>
         <tr>
-          <th>ID</th>
-          <th>Fecha</th>
-          <th>Cliente</th>
-          <th>Sucursal</th>
+          <th class="left">ID</th>
+          <th class="left">Fecha</th>
+          <th class="left">Cliente</th>
+          <th class="left">Sucursal</th>
           <th>Tipo</th>
           <th>Puesto</th>
-          <th>Operador</th>
-          <th>Detectado</th>
-          <th>Efectivo</th>
-          <th>Sirena</th>
-          <th>Voz</th>
-          <th>Carab.</th>
-          <th>Alpha3</th>
-          <th>Informado</th>
-          <th>Bitácora</th>
-          <th>Exitoso</th>
-          <th>Observaciones</th>
+          <th class="left">Operador</th>
+          <th title="Detectado">Det.</th>
+          <th title="Efectivo">Efec.</th>
+          <th title="Sirena">Sir.</th>
+          <th title="Voz">Voz</th>
+          <th title="Carabineros">Car.</th>
+          <th title="Alpha3">Alp.</th>
+          <th title="Informado">Inf.</th>
+          <th title="Bitácora">Bit.</th>
+          <th title="Exitoso">Exit.</th>
+          <th>Obs.</th>
         </tr>
       </thead>
       <tbody id="tbody">
-        <tr class="empty-row"><td colspan="17">Cargando registros...</td></tr>
+        <tr class="empty"><td colspan="17">Cargando...</td></tr>
       </tbody>
     </table>
   </div>
 
 </main>
 
-<!-- modal observaciones -->
-<div class="modal-backdrop" id="modalBackdrop" onclick="closeModal(event)">
+<!-- modal -->
+<div class="backdrop" id="backdrop" onclick="bgClose(event)">
   <div class="modal">
-    <h3>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-      Observaciones
-      <span class="modal-badge" id="modalBadge"></span>
-    </h3>
-    <div class="modal-body" id="modalBody"></div>
-    <button class="modal-close" onclick="document.getElementById('modalBackdrop').classList.remove('open')">Cerrar</button>
+    <div class="modal-head">
+      <h3>Observaciones</h3>
+      <span class="modal-meta" id="mMeta"></span>
+    </div>
+    <div class="modal-body" id="mBody"></div>
+    <button class="modal-close" onclick="document.getElementById('backdrop').classList.remove('open')">Cerrar</button>
   </div>
 </div>
 
 <script>
-  const $ = (id) => document.getElementById(id);
-  const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (m) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+  const $ = id => document.getElementById(id);
+  const esc = v => String(v ?? "").replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
 
-  function pill(value) {
-    const v = String(value ?? "").trim().toUpperCase();
-    if (!v || v === "-") return `<span class="pill neutral">—</span>`;
-    if (v === "SI") return `<span class="pill ok">Sí</span>`;
-    if (v === "NO") return `<span class="pill bad">No</span>`;
-    return `<span class="pill neutral">${esc(v)}</span>`;
+  const obsStore = {};
+
+  function bi(val) {
+    const v = String(val ?? "").trim().toUpperCase();
+    if (v === "SI") return `<span class="bi yes" title="Sí">✓</span>`;
+    if (v === "NO") return `<span class="bi no"  title="No">✕</span>`;
+    return `<span class="bi nd">—</span>`;
   }
 
-  function obsCell(texto, id, cliente) {
-    if (!texto || !texto.trim()) return `<span class="obs-empty">—</span>`;
-    return `<button class="obs-btn" onclick="openModal(${id},'${esc(cliente)}')">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-      Ver
-    </button>`;
+  function tipoBadge(v) {
+    const s = String(v || "").trim();
+    if (!s) return "—";
+    const cls = s.toLowerCase().startsWith("prev") ? "prev" : "intr";
+    return `<span class="tipo-badge ${cls}">${esc(s)}</span>`;
   }
 
-  const _obsMap = {};
+  function obsBtn(text, id, cliente) {
+    if (!text?.trim()) return `<span class="nd-text">—</span>`;
+    return `<button class="obs-btn" onclick="openModal(${id},'${esc(cliente).replace(/'/g,"\\'")}')">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>Ver</button>`;
+  }
 
   function openModal(id, cliente) {
-    $("modalBody").textContent = _obsMap[id] || "(sin texto)";
-    $("modalBadge").textContent = cliente;
-    $("modalBackdrop").classList.add("open");
+    $("mBody").textContent = obsStore[id] || "";
+    $("mMeta").textContent = cliente;
+    $("backdrop").classList.add("open");
   }
-
-  function closeModal(e) {
-    if (e.target === $("modalBackdrop")) $("modalBackdrop").classList.remove("open");
-  }
-
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") $("modalBackdrop").classList.remove("open");
-  });
+  function bgClose(e) { if (e.target === $("backdrop")) $("backdrop").classList.remove("open"); }
+  document.addEventListener("keydown", e => { if (e.key === "Escape") $("backdrop").classList.remove("open"); });
 
   function params() {
     const qs = new URLSearchParams();
-    const cliente = $("cliente").value.trim();
-    const sucursal = $("sucursal").value.trim();
-    const tipo = $("tipo").value.trim();
-    const desde = $("desde").value;
-    const hasta = $("hasta").value;
-    if (cliente) qs.set("cliente", cliente);
-    if (sucursal) qs.set("sucursal", sucursal);
-    if (tipo) qs.set("tipo_protocolo", tipo);
-    if (desde) qs.set("fecha_desde", desde);
-    if (hasta) qs.set("fecha_hasta", hasta);
-    qs.set("limit", "1000");
+    const v = id => $(id).value.trim();
+    if (v("cliente"))  qs.set("cliente", v("cliente"));
+    if (v("sucursal")) qs.set("sucursal", v("sucursal"));
+    if (v("tipo"))     qs.set("tipo_protocolo", v("tipo"));
+    if (v("desde"))    qs.set("fecha_desde", v("desde"));
+    if (v("hasta"))    qs.set("fecha_hasta", v("hasta"));
+    qs.set("limit","1000");
     return qs.toString();
   }
 
   async function cargar() {
     setMsg("Cargando...", "neutral");
     try {
-      const res = await fetch(`/api/protocolos/registros?${params()}`);
+      const res  = await fetch(`/api/protocolos/registros?${params()}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data?.detail || "Error al cargar.");
       const rows = Array.isArray(data) ? data : [];
       $("total").textContent = rows.length;
+      Object.keys(obsStore).forEach(k => delete obsStore[k]);
+      rows.forEach(r => { if (r.observaciones) obsStore[r.id] = r.observaciones; });
 
-      Object.keys(_obsMap).forEach(k => delete _obsMap[k]);
-      rows.forEach(r => { if (r.observaciones) _obsMap[r.id] = r.observaciones; });
+      $("tbody").innerHTML = rows.length
+        ? rows.map(r => `<tr>
+            <td class="left"><span class="id-val">${esc(r.id)}</span></td>
+            <td class="left"><span class="date-val">${esc(r.fecha)}</span></td>
+            <td class="left" title="${esc(r.cliente)}">${esc(r.cliente)}</td>
+            <td class="left" title="${esc(r.sucursal)}">${esc(r.sucursal)}</td>
+            <td>${tipoBadge(r.tipo_protocolo)}</td>
+            <td style="color:var(--muted);font-weight:600">${esc(r.puesto)}</td>
+            <td class="left" title="${esc(r.operador)}">${esc(r.operador)}</td>
+            <td>${bi(r.detectado)}</td>
+            <td>${bi(r.efectivo)}</td>
+            <td>${bi(r.sirena)}</td>
+            <td>${bi(r.voz)}</td>
+            <td>${bi(r.carabineros)}</td>
+            <td>${bi(r.alpha3)}</td>
+            <td>${bi(r.informado)}</td>
+            <td>${bi(r.bitacora)}</td>
+            <td>${bi(r.protocolo_exitoso)}</td>
+            <td>${obsBtn(r.observaciones, r.id, r.cliente)}</td>
+          </tr>`).join("")
+        : `<tr class="empty"><td colspan="17">Sin resultados.</td></tr>`;
 
-      $("tbody").innerHTML = rows.length ? rows.map((r) => `
-        <tr>
-          <td class="id-cell">${esc(r.id)}</td>
-          <td class="date-cell">${esc(r.fecha)}</td>
-          <td class="text-cell" title="${esc(r.cliente)}">${esc(r.cliente)}</td>
-          <td class="text-cell" title="${esc(r.sucursal)}">${esc(r.sucursal)}</td>
-          <td>${esc(r.tipo_protocolo)}</td>
-          <td>${esc(r.puesto)}</td>
-          <td>${esc(r.operador)}</td>
-          <td>${pill(r.detectado)}</td>
-          <td>${pill(r.efectivo)}</td>
-          <td>${pill(r.sirena)}</td>
-          <td>${pill(r.voz)}</td>
-          <td>${pill(r.carabineros)}</td>
-          <td>${pill(r.alpha3)}</td>
-          <td>${pill(r.informado)}</td>
-          <td>${pill(r.bitacora)}</td>
-          <td>${pill(r.protocolo_exitoso)}</td>
-          <td>${obsCell(r.observaciones, r.id, r.cliente)}</td>
-        </tr>`).join("") :
-        `<tr class="empty-row"><td colspan="17">Sin registros para los filtros seleccionados.</td></tr>`;
-
-      setMsg("Tabla actualizada.", "ok-text");
+      setMsg("Actualizado.", "ok-text");
     } catch (err) {
-      $("tbody").innerHTML = `<tr class="empty-row"><td colspan="17">No se pudo cargar la información.</td></tr>`;
-      setMsg(err.message || "Error inesperado.", "err");
+      $("tbody").innerHTML = `<tr class="empty"><td colspan="17">No se pudo cargar la información.</td></tr>`;
+      setMsg(err.message, "err");
     }
   }
 
@@ -406,10 +380,8 @@
     cargar();
   }
 
-  function setMsg(text, cls) {
-    const el = $("msg");
-    el.textContent = text;
-    el.className = "status-msg " + cls;
+  function setMsg(t, cls) {
+    const el = $("msg"); el.textContent = t; el.className = "status " + cls;
   }
 
   cargar();
