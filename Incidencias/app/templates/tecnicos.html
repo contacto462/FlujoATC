@@ -1783,22 +1783,26 @@
         row.querySelector(".material-unidad").disabled = true;
       });
       configurarFotosCierre(cierreActualEsMantencion);
+      cierreStepMap = cierreActualEsMantencion ? [5, 6] : [1, 2, 3, 4, 5, 6];
+      cierreStepActual = 1;
       irAPaso(1);
     }
 
-    function renderWizardProgress(paso) {
+    function renderWizardProgress(wizardPaso) {
       const progress = document.getElementById("wizardProgress");
       const label = document.getElementById("wizardStepLabel");
       if (!progress) return;
+      const labels = cierreActualEsMantencion ? CIERRE_PASO_LABELS_MANT : CIERRE_PASO_LABELS_FULL;
+      const total = cierreStepMap.length;
       let html = "";
-      for (let i = 1; i <= CIERRE_TOTAL_PASOS; i++) {
-        if (i > 1) html += `<div class="wizard-step-line${i <= paso ? " done" : ""}"></div>`;
-        const cls = i === paso ? "active" : i < paso ? "done" : "";
-        const inner = i < paso ? "✓" : i;
-        html += `<div class="wizard-step-dot ${cls}" title="${CIERRE_PASO_LABELS[i-1]}">${inner}</div>`;
+      for (let i = 1; i <= total; i++) {
+        if (i > 1) html += `<div class="wizard-step-line${i <= wizardPaso ? " done" : ""}"></div>`;
+        const cls = i === wizardPaso ? "active" : i < wizardPaso ? "done" : "";
+        const inner = i < wizardPaso ? "✓" : i;
+        html += `<div class="wizard-step-dot ${cls}" title="${labels[i-1]}">${inner}</div>`;
       }
       progress.innerHTML = html;
-      if (label) label.innerHTML = `<strong>${CIERRE_PASO_LABELS[paso - 1]}</strong> <span class="wizard-step-sublabel">— Paso ${paso} de ${CIERRE_TOTAL_PASOS}</span>`;
+      if (label) label.innerHTML = `<strong>${labels[wizardPaso - 1]}</strong> <span class="wizard-step-sublabel">— Paso ${wizardPaso} de ${total}</span>`;
     }
 
     function irAPaso(paso) {
