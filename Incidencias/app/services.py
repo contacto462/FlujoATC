@@ -5227,6 +5227,8 @@ class IncidenciasService:
         if not host or not port or not from_email:
             raise ValueError("SMTP incompleto. Configura SMTP_HOST, SMTP_PORT y SMTP_FROM_EMAIL (o SMTP_USERNAME).")
 
+        bcc_emails: list[str] = cfg.get("bcc_emails") or []
+
         msg = EmailMessage()
         msg["Subject"] = subject
         if from_name:
@@ -5234,6 +5236,8 @@ class IncidenciasService:
         else:
             msg["From"] = from_email
         msg["To"] = to_email
+        if bcc_emails:
+            msg["Bcc"] = ", ".join(bcc_emails)
         msg.set_content(body)
         if html_body:
             msg.add_alternative(html_body, subtype="html")
@@ -5279,6 +5283,64 @@ class IncidenciasService:
                     smtp.send_message(msg)
         except Exception as exc:
             raise ValueError(f"No se pudo enviar correo automatico a {to_email}: {exc}") from exc
+
+        # Envio por segunda cuenta SMTP si esta habilitada
+        cfg2 = self._smtp2_runtime_config()
+        if cfg2.get("enabled"):
+            host2 = str(cfg2["host"] or "").strip()
+            port2 = int(cfg2["port"] or 0)
+            username2 = str(cfg2["username"] or "").strip()
+            password2 = str(cfg2["password"] or "")
+            from_email2 = str(cfg2["from_email"] or "").strip()
+            from_name2 = str(cfg2["from_name"] or "").strip()
+            use_tls2 = bool(cfg2["use_tls"])
+            use_ssl2 = bool(cfg2["use_ssl"])
+            timeout2 = int(cfg2["timeout"] or 20)
+            if host2 and port2 and from_email2:
+                msg2 = EmailMessage()
+                msg2["Subject"] = subject
+                msg2["From"] = f"{from_name2} <{from_email2}>" if from_name2 else from_email2
+                msg2["To"] = to_email
+                if bcc_emails:
+                    msg2["Bcc"] = ", ".join(bcc_emails)
+                msg2.set_content(body)
+                if html_body:
+                    msg2.add_alternative(html_body, subtype="html")
+                    if logo_bytes:
+                        try:
+                            html_part2 = msg2.get_payload()[-1]
+                            html_part2.add_related(logo_bytes, maintype="image", subtype="jpeg", cid="<logoatc>")
+                        except Exception:
+                            pass
+                for item in attachments or []:
+                    try:
+                        nombre = str(item.get("nombre") or "adjunto").strip() or "adjunto"
+                        tipo = str(item.get("tipo") or "application/octet-stream").strip()
+                        contenido = item.get("contenido") or b""
+                        if isinstance(contenido, str):
+                            import base64
+                            contenido = base64.b64decode(contenido)
+                        maintype2, subtype2 = (tipo.split("/", 1) + ["octet-stream"])[:2] if "/" in tipo else ("application", "octet-stream")
+                        msg2.add_attachment(contenido, maintype=maintype2, subtype=subtype2, filename=nombre)
+                    except Exception:
+                        continue
+                try:
+                    if use_ssl2:
+                        with smtplib.SMTP_SSL(host2, port2, timeout=timeout2) as smtp2:
+                            if username2:
+                                smtp2.login(username2, password2)
+                            smtp2.send_message(msg2)
+                    else:
+                        with smtplib.SMTP(host2, port2, timeout=timeout2) as smtp2:
+                            smtp2.ehlo()
+                            if use_tls2:
+                                smtp2.starttls()
+                                smtp2.ehlo()
+                            if username2:
+                                smtp2.login(username2, password2)
+                            smtp2.send_message(msg2)
+                except Exception:
+                    pass  # Fallo silencioso en cuenta secundaria para no bloquear el flujo
 
     def registrar_envio_informacion_contacto(
         self, data: EnviarInformacionContactoRequest
