@@ -743,7 +743,7 @@ body.sidebar-collapsed .sidebar-rail-toggle{
   transition:all .3s cubic-bezier(.215,.61,.355,1);
 }
 .nuevo-ticket-btn:hover{
-  box-shadow:0 0 30px rgba(248,155,41,.45),0 0 30px rgba(255,15,123,.45);
+  box-shadow:0 0 30px rgba(37,99,235,.45),0 0 20px rgba(29,78,216,.35);
 }
 .nuevo-ticket-btn:hover::before,
 .nuevo-ticket-btn:hover::after{
@@ -754,7 +754,63 @@ body.sidebar-collapsed .sidebar-rail-toggle{
 }
 .nuevo-ticket-btn:active{
   scale:.96;
-  box-shadow:0 0 10px rgba(248,155,41,.4),0 0 10px rgba(255,15,123,.4);
+  box-shadow:0 0 10px rgba(37,99,235,.4),0 0 10px rgba(29,78,216,.4);
+}
+
+/* ── Buscar animated button ── */
+.buscar-wrap{
+  --color: var(--primary);
+  position:relative;
+  z-index:1;
+  display:inline-flex;
+  flex-shrink:0;
+}
+.buscar-wrap::before{
+  content:'';
+  position:absolute;
+  width:28px;height:28px;
+  background:transparent;
+  top:-6px;left:-6px;
+  z-index:-1;
+  border-top:2px solid var(--color);
+  border-left:2px solid var(--color);
+  transition:.4s cubic-bezier(.215,.61,.355,1);
+  pointer-events:none;
+}
+.buscar-wrap::after{
+  content:'';
+  position:absolute;
+  width:28px;height:28px;
+  background:transparent;
+  bottom:-6px;right:-6px;
+  z-index:-1;
+  border-right:2px solid var(--color);
+  border-bottom:2px solid var(--color);
+  transition:.4s cubic-bezier(.215,.61,.355,1);
+  pointer-events:none;
+}
+.buscar-wrap:hover::before,
+.buscar-wrap:hover::after{
+  width:100%;height:100%;
+}
+.buscar-wrap .buscar-btn{
+  padding:0 20px;
+  height:38px;
+  font-size:13px;
+  font-weight:700;
+  font-family:inherit;
+  background:var(--primary);
+  color:#fff;
+  border:none;
+  cursor:pointer;
+  letter-spacing:.02em;
+  transition:background .2s ease, box-shadow .2s ease;
+}
+.buscar-wrap:hover .buscar-btn{
+  box-shadow:0 0 18px rgba(37,99,235,.35);
+}
+.buscar-wrap .buscar-btn:active{
+  scale:.97;
 }
 
 .user-box{
