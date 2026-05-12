@@ -178,8 +178,8 @@ body.sidebar-collapsed .sidebar-rail-toggle{
 }
 
 .brand .logo{
-  width:44px;
-  height:44px;
+  width:72px;
+  height:72px;
   object-fit:contain;
   display:block;
 }
@@ -3113,23 +3113,7 @@ body.dark-mode .ticket-date{
               <span class="meta-sep">&middot;</span>
               <span><strong>Prioridad:</strong> {{ {"low":"Baja","medium":"Media","high":"Alta","urgent":"Urgente"}.get(ticket.priority, "No Asignada") }}</span>
               <span class="meta-sep">&middot;</span>
-              <span><strong>Asignado:</strong></span>
-              <form
-                class="assign-inline-form"
-                method="POST"
-                action="/dashboard/tickets/{{ ticket.id }}/assign"
-                onclick="event.stopPropagation()"
-                onmousedown="event.stopPropagation()"
-              >
-                <select name="user_id" onchange="this.form.submit()">
-                  <option value="">Sin asignar</option>
-                  {% for u in users %}
-                    <option value="{{ u.id }}" {% if ticket.assigned_to_id == u.id %}selected{% endif %}>
-                      {{ u.name }}
-                    </option>
-                  {% endfor %}
-                </select>
-              </form>
+              <span><strong>Asignado:</strong> {{ ticket.assigned_to.name if ticket.assigned_to else 'Sin asignar' }}</span>
 
               <span class="meta-sep">&middot;</span>
               <span class="ticket-date">{{ ticket.created_at.strftime('%d-%m-%Y %H:%M') }}</span>
