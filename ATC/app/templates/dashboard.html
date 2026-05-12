@@ -170,27 +170,18 @@ body.sidebar-collapsed .sidebar-rail-toggle{
 
 .brand{
   display:flex;
-  align-items:center;
-  gap:10px;
-  padding: 6px 8px 10px;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:6px;
+  padding: 10px 8px 10px;
   margin-bottom: 2px;
 }
 
 .brand .logo{
-  width:36px;
-  height:36px;
-  border-radius:12px;
-  background: rgba(255,255,255,.10);
-  display:grid;
-  place-items:center;
-  box-shadow: 0 10px 24px rgba(0,0,0,.25);
-  border: 1px solid rgba(255,255,255,.10);
-}
-
-.brand .logo svg{
-  width:18px;
-  height:18px;
-  opacity:.95;
+  width:44px;
+  height:44px;
+  object-fit:contain;
+  display:block;
 }
 
 .brand h2{
@@ -2936,14 +2927,7 @@ body.dark-mode .ticket-date{
   <!-- ================= SIDEBAR ================= -->
   <div class="sidebar">
     <div class="brand">
-      <div class="logo" aria-hidden="true">
-        <!-- Simple icon -->
-        <svg viewBox="0 0 24 24" fill="none">
-          <path d="M7 10h10M7 14h6" stroke="white" stroke-width="2" stroke-linecap="round"/>
-          <path d="M6 4h12a2 2 0 0 1 2 2v9a4 4 0 0 1-4 4H9l-5 3v-3a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"
-                stroke="white" stroke-opacity=".9" stroke-width="2" stroke-linejoin="round"/>
-        </svg>
-      </div>
+      <img class="logo" src="/static/img/logo-atc.png" alt="ATC">
       <div>
         <h2>Alguien Te Cuida</h2>
         <div class="sub">Panel de soporte</div>
@@ -3723,7 +3707,8 @@ body.dark-mode .ticket-date{
       </div>
     `;
 
-    card.querySelector(".la-dismiss").addEventListener("click", () => closeCard(card));
+    const dismissBtn = card.querySelector(".la-dismiss");
+    if (dismissBtn) dismissBtn.addEventListener("click", () => closeCard(card));
 
     if (actionLabel && action) {
       const btn = card.querySelector(".la-action");
@@ -4177,7 +4162,7 @@ initDashboardPagerJump();
 
 <script>
 (function () {
-  const POLL_MS = 20000;
+  const POLL_MS = 8000;
   let liveTimer = null;
   let syncing = false;
 

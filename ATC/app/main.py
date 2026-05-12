@@ -238,23 +238,37 @@ def health():
 # =========================
 # EMAIL AUTO-IMPORT LOOP
 # =========================
+def _poll_imap(imap_host=None, imap_port=None, imap_user=None, imap_password=None, imap_folder=None):
+    """Abre su propia sesión de BD, pollea un buzón y la cierra. Fallos no afectan otros buzones."""
+    db = SessionLocal()
+    try:
+        fetch_emails_and_create_tickets(
+            db,
+            limit=100,
+            imap_host=imap_host,
+            imap_port=imap_port,
+            imap_user=imap_user,
+            imap_password=imap_password,
+            imap_folder=imap_folder,
+        )
+    finally:
+        db.close()
+
+
 def email_loop():
     """
     Worker que revisa el inbox de ambas cuentas IMAP
     y crea tickets automáticamente.
     """
     while True:
-        db = SessionLocal()
         try:
-            fetch_emails_and_create_tickets(db, limit=100)
+            _poll_imap()
         except Exception as e:
             print("❌ Error IMAP1:", e)
 
         try:
             if settings.IMAP2_HOST and settings.IMAP2_USER and settings.IMAP2_PASSWORD:
-                fetch_emails_and_create_tickets(
-                    db,
-                    limit=100,
+                _poll_imap(
                     imap_host=settings.IMAP2_HOST,
                     imap_port=settings.IMAP2_PORT,
                     imap_user=settings.IMAP2_USER,
@@ -263,8 +277,6 @@ def email_loop():
                 )
         except Exception as e:
             print("❌ Error IMAP2:", e)
-        finally:
-            db.close()
 
         time.sleep(5)
 

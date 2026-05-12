@@ -1207,7 +1207,7 @@ def dashboard(
         safe_page = total_pages
 
     tickets = (
-        query.order_by(Ticket.created_at.desc())
+        query.order_by(Ticket.id.desc())
         .offset((safe_page - 1) * page_size)
         .limit(page_size)
         .all()

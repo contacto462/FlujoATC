@@ -503,8 +503,26 @@ def fetch_emails_and_create_tickets(
         return {"count": 0}
 
     mailbox_key = _mailbox_key(user, folder)
+    is_new_mailbox = db.get(EmailSyncState, mailbox_key) is None
     sync_state = _get_or_create_sync_state(db, mailbox_key)
     uid_validity = _parse_uid_validity(mail)
+
+    # Primera conexión a este buzón: saltar historial, arrancar desde ahora
+    if is_new_mailbox:
+        _, uidnext_data = mail.status(folder, "(UIDNEXT)")
+        try:
+            raw = uidnext_data[0].decode() if isinstance(uidnext_data[0], bytes) else str(uidnext_data[0])
+            import re as _re
+            m = _re.search(r"UIDNEXT\s+(\d+)", raw)
+            uidnext = int(m.group(1)) if m else 1
+        except Exception:
+            uidnext = 1
+        sync_state.last_uid = max(uidnext - 1, 0)
+        if uid_validity:
+            sync_state.uid_validity = uid_validity
+        db.commit()
+        mail.logout()
+        return {"count": 0, "skipped_initial_sync": True}
 
     if uid_validity and sync_state.uid_validity and sync_state.uid_validity != uid_validity:
         sync_state.last_uid = 0
