@@ -694,13 +694,14 @@ body.sidebar-collapsed .sidebar-rail-toggle{
   color:#e8e8e8;
   padding:15px 30px;
   width:calc(100% - 8px);
-  height:52px;
-  margin:6px 4px;
+  height:50px;
+  margin:12px 4px 8px;
   font-weight:700;
   font-size:14px;
   cursor:pointer;
   border:none;
   overflow:hidden;
+  border-radius:14px;
   background:linear-gradient(-45deg,var(--primary) 0%,var(--primary-2) 100%);
   transition:all .3s cubic-bezier(.215,.61,.355,1);
   letter-spacing:.02em;
@@ -829,7 +830,7 @@ body.sidebar-collapsed .sidebar-rail-toggle{
   align-items:flex-end;
   justify-content:flex-end;
   gap:10px;
-  margin-right:-75px;
+  margin-right:0;
 }
 
 .user-actions.settings-open .incidents-radar{
@@ -2061,12 +2062,13 @@ body.dark-mode .modal .btn-secondary:hover{
 }
 
 .card{
-  background: rgba(255,255,255,.85);
-  padding:13px 16px;
+  background: rgba(255,255,255,.88);
+  padding:15px 18px;
   width:100%;
   max-width: 100%;
   border-radius: var(--r-lg);
   border:1px solid var(--border);
+  border-left: 3px solid rgba(37,99,235,.18);
   box-shadow: var(--shadow-sm);
   transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
   display:flex;
