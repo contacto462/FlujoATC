@@ -259,16 +259,17 @@ def _normalize_email_address(value: str | None) -> str:
 def _support_mailboxes() -> set[str]:
     mailboxes = {
         _normalize_email_address(settings.IMAP_USER),
+        _normalize_email_address(settings.IMAP2_USER),
         _normalize_email_address(settings.SMTP_USER),
         _normalize_email_address(settings.SMTP_FROM),
     }
     return {item for item in mailboxes if item}
 
 
-def _mailbox_key() -> str:
-    user = _normalize_email_address(settings.IMAP_USER)
-    folder = (settings.IMAP_FOLDER or "INBOX").strip()
-    return f"{user}:{folder}"
+def _mailbox_key(user: str | None = None, folder: str | None = None) -> str:
+    u = _normalize_email_address(user or settings.IMAP_USER)
+    f = (folder or settings.IMAP_FOLDER or "INBOX").strip()
+    return f"{u}:{f}"
 
 
 def _parse_uid_validity(mail: imaplib.IMAP4_SSL) -> str | None:
