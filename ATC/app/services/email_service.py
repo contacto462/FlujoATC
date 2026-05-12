@@ -478,16 +478,31 @@ def _resolve_ticket(
     return ticket, False
 
 
-def fetch_emails_and_create_tickets(db: Session, limit: int = 100) -> dict:
-    mail = imaplib.IMAP4_SSL(settings.IMAP_HOST, settings.IMAP_PORT)
-    mail.login(settings.IMAP_USER, settings.IMAP_PASSWORD)
+def fetch_emails_and_create_tickets(
+    db: Session,
+    limit: int = 100,
+    *,
+    imap_host: str | None = None,
+    imap_port: int | None = None,
+    imap_user: str | None = None,
+    imap_password: str | None = None,
+    imap_folder: str | None = None,
+) -> dict:
+    host     = imap_host     or settings.IMAP_HOST
+    port     = imap_port     or settings.IMAP_PORT
+    user     = imap_user     or settings.IMAP_USER
+    password = imap_password or settings.IMAP_PASSWORD
+    folder   = imap_folder   or settings.IMAP_FOLDER
 
-    status, _ = mail.select(settings.IMAP_FOLDER)
+    mail = imaplib.IMAP4_SSL(host, port)
+    mail.login(user, password)
+
+    status, _ = mail.select(folder)
     if status != "OK":
         mail.logout()
         return {"count": 0}
 
-    mailbox_key = _mailbox_key()
+    mailbox_key = _mailbox_key(user, folder)
     sync_state = _get_or_create_sync_state(db, mailbox_key)
     uid_validity = _parse_uid_validity(mail)
 

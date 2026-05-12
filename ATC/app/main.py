@@ -240,7 +240,7 @@ def health():
 # =========================
 def email_loop():
     """
-    Worker que revisa el inbox
+    Worker que revisa el inbox de ambas cuentas IMAP
     y crea tickets automáticamente.
     """
     while True:
@@ -248,11 +248,24 @@ def email_loop():
         try:
             fetch_emails_and_create_tickets(db, limit=100)
         except Exception as e:
-            print("❌ Error importando emails:", e)
+            print("❌ Error IMAP1:", e)
+
+        try:
+            if settings.IMAP2_HOST and settings.IMAP2_USER and settings.IMAP2_PASSWORD:
+                fetch_emails_and_create_tickets(
+                    db,
+                    limit=100,
+                    imap_host=settings.IMAP2_HOST,
+                    imap_port=settings.IMAP2_PORT,
+                    imap_user=settings.IMAP2_USER,
+                    imap_password=settings.IMAP2_PASSWORD,
+                    imap_folder=settings.IMAP2_FOLDER,
+                )
+        except Exception as e:
+            print("❌ Error IMAP2:", e)
         finally:
             db.close()
 
-        # ⏱ Polling corto, pero sin castigar el servidor IMAP.
         time.sleep(5)
 
 
