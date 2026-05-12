@@ -2141,23 +2141,23 @@ body.dark-mode .modal .btn-secondary:hover{
   max-width: calc(100% - 96px);
 }
 .card.unread-ticket{
-  border-color:rgba(37,99,235,.42);
-  box-shadow:0 0 0 2px rgba(37,99,235,.14), 0 18px 30px rgba(15,23,42,.10);
-  background:linear-gradient(180deg, rgba(239,246,255,.92), rgba(255,255,255,.88));
+  border-color:rgba(37,99,235,.24);
+  box-shadow:0 10px 22px rgba(15,23,42,.08);
+  background:rgba(255,255,255,.92);
 }
 .card.unread-ticket .ticket-title{
   font-weight:900;
-  color:#0b2a66;
+  color:#10244a;
 }
 .card.unread-ticket .card-main::before{
   content:"";
   position:absolute;
-  left:-8px;
-  top:8px;
-  bottom:8px;
-  width:4px;
+  left:-7px;
+  top:9px;
+  bottom:9px;
+  width:3px;
   border-radius:999px;
-  background:linear-gradient(180deg,#2563eb,#1d4ed8);
+  background:#2563eb;
 }
 .ticket-new-message-dot{
   position:absolute;
@@ -2743,8 +2743,8 @@ body.dark-mode .ticket-date{
 
 .live-alert-stack{
   position:fixed;
-  top:18px;
-  right:18px;
+  top:30px;
+  right:28px;
   z-index:1500;
   display:flex;
   flex-direction:column;
@@ -2756,18 +2756,18 @@ body.dark-mode .ticket-date{
   width:fit-content;
   min-width:260px;
   max-width:340px;
-  background-color:#f2f3f7;
+  background:#3b82f6;
   border-radius:0.75em;
   cursor:default;
   transition:ease .2s;
-  box-shadow:1em 1em 1em #d8dae0b1, -0.75em -0.75em 1em #ffffff;
-  border:1.5px solid #f2f3f7;
+  box-shadow:0 18px 34px rgba(37,99,235,.34), 0 8px 18px rgba(59,130,246,.22);
+  border:1.5px solid rgba(147,197,253,.62);
   pointer-events:auto;
   animation:liveAlertIn .22s ease-out;
 }
 .live-alert:hover{
-  background-color:#d3ddf1;
-  border:1.5px solid var(--primary);
+  background:#2563eb;
+  border:1.5px solid rgba(191,219,254,.88);
 }
 .live-alert .la-container{
   margin:1.25em 2em 1.375em 1.375em;
@@ -2793,16 +2793,16 @@ body.dark-mode .ticket-date{
   display:flex;
   flex-direction:column;
   gap:0.25em;
-  color:#333;
+  color:#dbeafe;
 }
 .live-alert .la-text strong{
   font-weight:600;
   font-size:14px;
-  color:#000;
+  color:#fff;
 }
 .live-alert .la-text span{
   font-size:13px;
-  color:#777;
+  color:#dbeafe;
 }
 .live-alert .la-actions{
   display:flex;
@@ -2815,7 +2815,7 @@ body.dark-mode .ticket-date{
   border:none;
   font-size:13px;
   font-weight:400;
-  color:#666;
+  color:#dbeafe;
   cursor:pointer;
   padding:0;
   font-family:inherit;
@@ -2825,7 +2825,7 @@ body.dark-mode .ticket-date{
   border:none;
   font-size:13px;
   font-weight:600;
-  color:var(--primary);
+  color:#fff;
   cursor:pointer;
   padding:0;
   font-family:inherit;
@@ -2838,6 +2838,28 @@ body.dark-mode .ticket-date{
   opacity:0;
   transform:translateY(-6px) scale(.97);
   transition:all .18s ease;
+}
+body.dark-mode .live-alert{
+  background:#f8fafc;
+  border-color:#e5e7eb;
+  box-shadow:0 18px 36px rgba(148,163,184,.20), 0 8px 22px rgba(100,116,139,.28);
+}
+body.dark-mode .live-alert:hover{
+  background:#eef2f7;
+  border-color:rgba(96,165,250,.55);
+}
+body.dark-mode .live-alert .la-text{
+  color:#334155;
+}
+body.dark-mode .live-alert .la-text strong{
+  color:#0f172a;
+}
+body.dark-mode .live-alert .la-text span,
+body.dark-mode .live-alert .la-dismiss{
+  color:#64748b;
+}
+body.dark-mode .live-alert .la-action{
+  color:#2563eb;
 }
 @keyframes liveAlertIn{
   from{ opacity:0; transform:translateY(-10px) scale(.97); }
