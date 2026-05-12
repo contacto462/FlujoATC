@@ -107,6 +107,43 @@ class Settings(BaseSettings):
     smtp_timeout_sec: int = Field(
         default_factory=lambda: int(os.getenv("SMTP_TIMEOUT_SEC") or "20"),
     )
+    smtp_bcc_emails: str = Field(
+        default_factory=lambda: os.getenv("SMTP_BCC_EMAILS") or "",
+        description="Correos separados por coma que reciben BCC en cada envio automatico.",
+    )
+
+    # Segunda cuenta SMTP (soporte@alguientecuida.cl)
+    smtp2_enabled: bool = Field(
+        default_factory=lambda: str(os.getenv("SMTP2_ENABLED") or "false").strip().lower() in {"1", "true", "yes", "on"},
+        description="Habilita segundo emisor SMTP.",
+    )
+    smtp2_host: str = Field(
+        default_factory=lambda: os.getenv("SMTP2_HOST") or "",
+    )
+    smtp2_port: int = Field(
+        default_factory=lambda: int(os.getenv("SMTP2_PORT") or "587"),
+    )
+    smtp2_username: str = Field(
+        default_factory=lambda: os.getenv("SMTP2_USERNAME") or "",
+    )
+    smtp2_password: str = Field(
+        default_factory=lambda: os.getenv("SMTP2_PASSWORD") or "",
+    )
+    smtp2_from_email: str = Field(
+        default_factory=lambda: os.getenv("SMTP2_FROM_EMAIL") or "",
+    )
+    smtp2_from_name: str = Field(
+        default_factory=lambda: os.getenv("SMTP2_FROM_NAME") or "ATC Incidencias",
+    )
+    smtp2_use_tls: bool = Field(
+        default_factory=lambda: str(os.getenv("SMTP2_USE_TLS") or "true").strip().lower() in {"1", "true", "yes", "on"},
+    )
+    smtp2_use_ssl: bool = Field(
+        default_factory=lambda: str(os.getenv("SMTP2_USE_SSL") or "false").strip().lower() in {"1", "true", "yes", "on"},
+    )
+    smtp2_timeout_sec: int = Field(
+        default_factory=lambda: int(os.getenv("SMTP2_TIMEOUT_SEC") or "20"),
+    )
 
     # IA para formalizacion de observaciones
     ia_formalizador_enabled: bool = Field(
