@@ -2755,85 +2755,100 @@ body.dark-mode .ticket-date{
   z-index:1500;
   display:flex;
   flex-direction:column;
-  gap:10px;
+  gap:12px;
   pointer-events:none;
 }
+/* ── Uiverse card notification ── */
 .live-alert{
-  min-width:280px;
-  max-width:380px;
-  display:grid;
-  grid-template-columns:28px 1fr auto;
-  gap:10px;
-  align-items:start;
-  padding:12px 12px 12px 10px;
-  border-radius:14px;
-  border:1px solid rgba(148,163,184,.28);
-  background:rgba(15,23,42,.94);
-  color:#e2e8f0;
-  box-shadow:0 16px 34px rgba(2,6,23,.32);
-  backdrop-filter:blur(6px);
+  width:fit-content;
+  min-width:260px;
+  max-width:340px;
+  background-color:#f2f3f7;
+  border-radius:0.75em;
+  cursor:default;
+  transition:ease .2s;
+  box-shadow:1em 1em 1em #d8dae0b1, -0.75em -0.75em 1em #ffffff;
+  border:1.5px solid #f2f3f7;
   pointer-events:auto;
-  animation:liveAlertIn .2s ease-out;
+  animation:liveAlertIn .22s ease-out;
 }
-.live-alert-icon{
-  width:28px;
-  height:28px;
-  border-radius:999px;
-  display:grid;
-  place-items:center;
-  color:#fff;
+.live-alert:hover{
+  background-color:#d3ddf1;
+  border:1.5px solid var(--primary);
 }
-.live-alert.ticket .live-alert-icon{ background:linear-gradient(135deg,#f97316,#fb923c); }
-.live-alert.msg .live-alert-icon{ background:linear-gradient(135deg,#0ea5e9,#38bdf8); }
-.live-alert.ticket{
-  border-color:rgba(251,146,60,.85);
-  background:linear-gradient(135deg, rgba(124,45,18,.97), rgba(154,52,18,.95));
-  box-shadow:0 20px 44px rgba(124,45,18,.45);
+.live-alert .la-container{
+  margin:1.25em 2em 1.375em 1.375em;
+  display:flex;
+  flex-direction:row;
+  gap:0.75em;
 }
-.live-alert.ticket .live-alert-body strong{
-  color:#fff7ed;
+.live-alert .la-ind{
+  width:0.625em;
+  height:0.625em;
+  border-radius:0.5em;
+  margin:0.375em 0;
+  flex-shrink:0;
+}
+.live-alert.ticket .la-ind{ background-color:#f97316; }
+.live-alert.msg .la-ind{ background-color:var(--primary); }
+.live-alert .la-right{
+  display:flex;
+  flex-direction:column;
+  gap:0.875em;
+}
+.live-alert .la-text{
+  display:flex;
+  flex-direction:column;
+  gap:0.25em;
+  color:#333;
+}
+.live-alert .la-text strong{
+  font-weight:600;
   font-size:14px;
+  color:#000;
 }
-.live-alert.ticket .live-alert-body span{
-  color:#ffedd5;
-  font-size:12px;
-  font-weight:700;
-}
-.live-alert.ticket .live-alert-btn{
-  border-color:rgba(255,237,213,.45);
-  background:rgba(124,45,18,.52);
-  color:#fff7ed;
-}
-.live-alert-body strong{
-  display:block;
+.live-alert .la-text span{
   font-size:13px;
-  font-weight:800;
-  letter-spacing:.01em;
+  color:#777;
 }
-.live-alert-body span{
-  display:block;
-  margin-top:2px;
-  font-size:12px;
-  color:#bfdbfe;
+.live-alert .la-actions{
+  display:flex;
+  flex-direction:row;
+  gap:1em;
+  align-items:center;
 }
-.live-alert-btn{
-  border:1px solid rgba(148,163,184,.35);
-  border-radius:9px;
-  background:rgba(30,41,59,.8);
-  color:#e2e8f0;
-  font-size:11px;
-  font-weight:700;
-  padding:6px 9px;
+.live-alert .la-dismiss{
+  background:transparent;
+  border:none;
+  font-size:13px;
+  font-weight:400;
+  color:#666;
   cursor:pointer;
+  padding:0;
+  font-family:inherit;
+}
+.live-alert .la-action{
+  background:transparent;
+  border:none;
+  font-size:13px;
+  font-weight:600;
+  color:var(--primary);
+  cursor:pointer;
+  padding:0;
+  font-family:inherit;
+}
+.live-alert .la-dismiss:hover,
+.live-alert .la-action:hover{
+  text-decoration:underline;
 }
 .live-alert.closing{
   opacity:0;
-  transform:translateY(-6px);
+  transform:translateY(-6px) scale(.97);
   transition:all .18s ease;
 }
 @keyframes liveAlertIn{
-  from{ opacity:0; transform:translateY(-8px); }
-  to{ opacity:1; transform:translateY(0); }
+  from{ opacity:0; transform:translateY(-10px) scale(.97); }
+  to{ opacity:1; transform:translateY(0) scale(1); }
 }
 
 /* ================= RESPONSIVE ================= */
@@ -3029,7 +3044,9 @@ body.dark-mode .ticket-date{
                  placeholder="Buscar por asunto, cliente o ID..."
                  value="{{ q }}">
 
-          <button class="btn" type="submit">Buscar</button>
+          <div class="buscar-wrap">
+            <button class="buscar-btn" type="submit">Buscar</button>
+          </div>
 
         </div>
       </form>
