@@ -35,13 +35,20 @@ class Settings(BaseSettings):
     REDIS_URL: Optional[str] = None
 
     # ==============================
-    # EMAIL (IMAP)
+    # EMAIL (IMAP) — cuenta principal
     # ==============================
     IMAP_HOST: str
     IMAP_PORT: int = 993
     IMAP_USER: str
     IMAP_PASSWORD: str
     IMAP_FOLDER: str = "INBOX"
+
+    # Segunda cuenta IMAP (opcional)
+    IMAP2_HOST: Optional[str] = None
+    IMAP2_PORT: int = 993
+    IMAP2_USER: Optional[str] = None
+    IMAP2_PASSWORD: Optional[str] = None
+    IMAP2_FOLDER: str = "INBOX"
 
     # ==============================
     # EMAIL (SMTP)
