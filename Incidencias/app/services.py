@@ -442,8 +442,54 @@ class IncidenciasService:
         except Exception:
             timeout = 20
 
+        bcc_raw = str(settings.smtp_bcc_emails or env_get("SMTP_BCC_EMAILS", "")).strip()
+        bcc_emails = [e.strip() for e in bcc_raw.split(",") if e.strip()]
+
         return {
             "enabled": enabled,
+            "host": host,
+            "port": port,
+            "username": username,
+            "password": password,
+            "from_email": from_email,
+            "from_name": from_name,
+            "use_tls": use_tls,
+            "use_ssl": use_ssl,
+            "timeout": timeout,
+            "bcc_emails": bcc_emails,
+        }
+
+    def _smtp2_runtime_config(self) -> dict[str, Any]:
+        env_file = self._load_env_runtime()
+        env_get = lambda k, d="": (os.getenv(k) or env_file.get(k) or d)
+
+        enabled = bool(settings.smtp2_enabled)
+        enabled = enabled or self._to_bool_env(env_get("SMTP2_ENABLED", "false"), False)
+        if not enabled:
+            return {"enabled": False}
+
+        host = str(settings.smtp2_host or env_get("SMTP2_HOST", "")).strip()
+        port_raw = settings.smtp2_port or env_get("SMTP2_PORT", "587")
+        try:
+            port = int(port_raw)
+        except Exception:
+            port = 587
+        username = str(settings.smtp2_username or env_get("SMTP2_USERNAME", "")).strip()
+        password = str(settings.smtp2_password or env_get("SMTP2_PASSWORD", ""))
+        from_email = str(settings.smtp2_from_email or env_get("SMTP2_FROM_EMAIL", username)).strip()
+        from_name = str(settings.smtp2_from_name or env_get("SMTP2_FROM_NAME", "ATC Incidencias")).strip()
+        use_tls = self._to_bool_env(settings.smtp2_use_tls, True)
+        use_tls = self._to_bool_env(env_get("SMTP2_USE_TLS", str(use_tls).lower()), use_tls)
+        use_ssl = self._to_bool_env(settings.smtp2_use_ssl, False)
+        use_ssl = self._to_bool_env(env_get("SMTP2_USE_SSL", str(use_ssl).lower()), use_ssl)
+        timeout_raw = settings.smtp2_timeout_sec or env_get("SMTP2_TIMEOUT_SEC", "20")
+        try:
+            timeout = int(timeout_raw)
+        except Exception:
+            timeout = 20
+
+        return {
+            "enabled": True,
             "host": host,
             "port": port,
             "username": username,
