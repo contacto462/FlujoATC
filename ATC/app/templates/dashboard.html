@@ -3127,7 +3127,7 @@ body.dark-mode .ticket-date{
             <div class="ticket-meta">
               <span><strong>Cliente:</strong> {{ ticket.requester.display_name if ticket.requester else "Cliente" }}</span>
               <span class="meta-sep">&middot;</span>
-              <span><strong>Prioridad:</strong> {{ {"low":"Baja","medium":"Media","high":"Alta","urgent":"Urgente"}.get(ticket.priority, "No Asignado") }}</span>
+              <span><strong>Prioridad:</strong> {{ {"low":"Baja","medium":"Media","high":"Alta","urgent":"Urgente"}.get(ticket.priority, "No Asignada") }}</span>
               <span class="meta-sep">&middot;</span>
               <span><strong>Asignado:</strong></span>
               <form
@@ -3708,13 +3708,25 @@ body.dark-mode .ticket-date{
     card.className = `live-alert ${tone}`;
     card.dataset.alertId = String(++counter);
     card.innerHTML = `
-      <div class="live-alert-icon">${iconMarkup(tone)}</div>
-      <div class="live-alert-body"><strong>${title}</strong><span>${message}</span></div>
-      ${actionLabel ? `<button type="button" class="live-alert-btn">${actionLabel}</button>` : ""}
+      <div class="la-container">
+        <div class="la-ind"></div>
+        <div class="la-right">
+          <div class="la-text">
+            <strong>${title}</strong>
+            ${message ? `<span>${message}</span>` : ""}
+          </div>
+          <div class="la-actions">
+            <button type="button" class="la-dismiss">Descartar</button>
+            ${actionLabel ? `<button type="button" class="la-action">${actionLabel}</button>` : ""}
+          </div>
+        </div>
+      </div>
     `;
 
+    card.querySelector(".la-dismiss").addEventListener("click", () => closeCard(card));
+
     if (actionLabel && action) {
-      const btn = card.querySelector(".live-alert-btn");
+      const btn = card.querySelector(".la-action");
       if (btn) {
         btn.addEventListener("click", () => {
           action();
