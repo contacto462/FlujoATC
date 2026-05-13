@@ -1604,3 +1604,157 @@ def update_operaciones_ods_fecha(db: Session, codigo: str, fecha: str) -> dict:
     row.fecha_inicio_servicio = str(fecha or "").strip()[:40]
     db.commit()
     return {"ok": True, "codigo": codigo_limpio, "fechaInicioServicio": row.fecha_inicio_servicio}
+
+
+# ─── Comercial (vista general) ───────────────────────────────────────────────
+
+def _fecha_corta(value) -> str:
+    if not value:
+        return ""
+    if isinstance(value, datetime):
+        return value.strftime("%d/%m/%Y")
+    return str(value)
+
+
+def _evaluar_exclusion_carta(tipo_servicio: str) -> bool:
+    ts = (tipo_servicio or "").lower()
+    return any(k in ts for k in (
+        "solo instalacion", "servicio tecnico", "servicio técnico",
+        "desinstalacion", "desinstalación", "monitoreo adicional",
+        "upgrade", "downgrade",
+    ))
+
+
+def _area_estado(checks: list[tuple[str, bool]]) -> dict:
+    detalles = [name for name, done in checks if not done]
+    completados = [name for name, done in checks if done]
+    if not detalles:
+        estado = "Terminado"
+    elif not completados:
+        estado = "Pendiente"
+    else:
+        estado = "En proceso"
+    return {"estado": estado, "detalles": detalles, "completados": completados}
+
+
+def get_comercial_todo(db: Session) -> dict:
+    from app.models import OperacionesVentaODT
+    rows = (
+        db.query(VentaODS, AdministracionODT, ServicioTecnicoVentaODT, FinanzasODT, OperacionesVentaODT)
+        .outerjoin(AdministracionODT, func.lower(func.trim(AdministracionODT.odt)) == func.lower(func.trim(VentaODS.codigo)))
+        .outerjoin(ServicioTecnicoVentaODT, func.lower(func.trim(ServicioTecnicoVentaODT.odt)) == func.lower(func.trim(VentaODS.codigo)))
+        .outerjoin(FinanzasODT, func.lower(func.trim(FinanzasODT.odt)) == func.lower(func.trim(VentaODS.codigo)))
+        .outerjoin(OperacionesVentaODT, func.lower(func.trim(OperacionesVentaODT.odt)) == func.lower(func.trim(VentaODS.codigo)))
+        .order_by(VentaODS.created_at.desc(), VentaODS.id.desc())
+        .all()
+    )
+    out: list[dict] = []
+    for ods, adm, st, fin, op in rows:
+        estado_ods = str(ods.estado or "").strip()
+        anulada = estado_ods.lower() == "anulada"
+        tipo_servicio = str(ods.tipo_servicio or "")
+        excluir_carta = _evaluar_exclusion_carta(tipo_servicio)
+
+        area_comercial = _area_estado([
+            ("Cotizacion", bool(ods.cotizacion_path)),
+            ("Orden de Compra", bool(ods.odc_path)),
+        ])
+
+        admin_checks: list[tuple[str, bool]] = [
+            ("Recepcion info", _is_true(getattr(adm, "recepcion_info", False))),
+            ("Registro Alpha3", _is_true(getattr(adm, "registro_alpha3", False))),
+            ("Registro Intranet", _is_true(getattr(adm, "registro_intranet", False))),
+            ("Envio solicitud instalacion", _is_true(getattr(adm, "envio_solicitud_instalacion", False))),
+            ("Envio datos facturacion", _is_true(getattr(adm, "envio_datos_facturacion", False))),
+        ]
+        if not excluir_carta:
+            admin_checks.append(("Carta de bienvenida", _is_true(getattr(adm, "envio_carta_bienvenida", False))))
+        area_admin = _area_estado(admin_checks)
+
+        area_servicio = _area_estado([
+            ("Recepcion solicitud", _is_true(getattr(st, "recepcion_solicitud_instalacion", False))),
+            ("Instalacion finalizada", _is_true(getattr(st, "instalacion_finalizada", False))),
+        ])
+
+        area_soporte = _area_estado([
+            ("Soporte terminado", _is_true(getattr(st, "finalizado", False))),
+        ])
+
+        area_operaciones = _area_estado([
+            ("Fecha coordinacion", _is_true(getattr(op, "fecha_coordinacion", False))),
+            ("Reunion coordinacion", _is_true(getattr(op, "reunion_coordinacion", False))),
+            ("Coord. apertura puesto", _is_true(getattr(op, "coord_apertura_puesto", False))),
+            ("Coord. equipo", _is_true(getattr(op, "coord_equipo", False))),
+        ])
+
+        area_finanzas = _area_estado([
+            ("Recepcion datos facturacion", _is_true(getattr(fin, "recepcion_datos_facturacion", False))),
+            ("Creacion clientes Piriod", _is_true(getattr(fin, "creacion_clientes_piriod", False))),
+            ("Creacion clientes BD", _is_true(getattr(fin, "creacion_clientes_bd", False))),
+            ("Facturacion instalacion", _is_true(getattr(fin, "facturacion_instalacion", False))),
+            ("Facturacion servicio", _is_true(getattr(fin, "facturacion_servicio", False))),
+        ])
+
+        out.append({
+            "codigo": ods.codigo or "",
+            "fecha": _fecha_corta(ods.created_at),
+            "ejecutivo": ods.creado_por or "",
+            "rutCliente": ods.rut_cliente or "",
+            "razonSocial": ods.razon_social or "",
+            "nombreSucursal": ods.nombre_sucursal or "",
+            "direccionSucursal": ods.direccion_sucursal or "",
+            "tipoServicio": tipo_servicio,
+            "tipoPlan": ods.tipo_plan or "",
+            "carpeta": ods.cotizacion_path or ods.odc_path or ods.desglose_path or "",
+            "anulada": anulada,
+            "areaComercial": area_comercial,
+            "areaAdmin": area_admin,
+            "areaServicio": area_servicio,
+            "areaSoporte": area_soporte,
+            "areaOperaciones": area_operaciones,
+            "areaFinanzas": area_finanzas,
+        })
+    return {"rows": out}
+
+
+def anular_ods_venta(db: Session, codigo: str) -> dict:
+    codigo_limpio = str(codigo or "").strip()
+    ods = (
+        db.query(VentaODS)
+        .filter(func.lower(func.trim(VentaODS.codigo)) == codigo_limpio.lower())
+        .first()
+    )
+    if not ods:
+        raise HTTPException(status_code=404, detail="ODS no encontrada.")
+    if str(ods.estado or "").strip().lower() == "anulada":
+        raise HTTPException(status_code=400, detail="La ODS ya esta anulada.")
+    ods.estado = "Anulada"
+    db.commit()
+    return {"ok": True, "codigo": codigo_limpio}
+
+
+def subir_contrato_venta(db: Session, codigo: str, nombre: str, data_base64: str) -> dict:
+    codigo_limpio = str(codigo or "").strip()
+    nombre_limpio = str(nombre or "").strip()
+    if not codigo_limpio or not nombre_limpio or not data_base64:
+        raise HTTPException(status_code=400, detail="Datos incompletos.")
+    ods = (
+        db.query(VentaODS)
+        .filter(func.lower(func.trim(VentaODS.codigo)) == codigo_limpio.lower())
+        .first()
+    )
+    if not ods:
+        raise HTTPException(status_code=404, detail="ODS no encontrada.")
+    try:
+        contenido = base64.b64decode(data_base64)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Datos base64 invalidos.")
+    directorio = VENTA_UPLOADS_DIR / codigo_limpio / "contrato"
+    directorio.mkdir(parents=True, exist_ok=True)
+    ruta = directorio / nombre_limpio
+    ruta.write_bytes(contenido)
+    ruta_rel = f"{codigo_limpio}/contrato/{nombre_limpio}"
+    if not ods.cotizacion_path:
+        ods.cotizacion_path = ruta_rel
+        db.commit()
+    return {"ok": True, "codigo": codigo_limpio, "nombre": nombre_limpio}

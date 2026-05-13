@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
@@ -18,6 +18,8 @@ from app.venta.schemas import (
     VentaPersonaRegistroRequest,
     VentaClienteTableUpdateRequest,
     VentaAdminEstadoRequest,
+    VentaAnularODSRequest,
+    VentaContratoUploadRequest,
     VentaFinanzasEstadoRequest,
     VentaOperacionesEstadoRequest,
     VentaOperacionesFechaRequest,
@@ -28,16 +30,19 @@ from app.venta.schemas import (
     VentaSucursalTableUpdateRequest,
 )
 from app.venta.service import (
+    VENTA_UPLOADS_DIR,
     create_cliente,
     create_ods,
     create_sucursal,
     add_persona_registro,
+    anular_ods_venta,
     fetch_comunas,
     fetch_regiones,
     get_cliente_resumen_by_rut,
     get_cliente_nombre_by_rut,
     get_cliente_sucursal_resumen,
     get_clientes_table,
+    get_comercial_todo,
     get_ods_codes,
     get_ods_detail,
     get_admin_ods_detail,
@@ -54,6 +59,7 @@ from app.venta.service import (
     get_proveedores_electricidad,
     get_proveedores_internet,
     rut_exists,
+    subir_contrato_venta,
     update_ods,
     update_admin_ods_estado,
     update_finanzas_ods_estado,

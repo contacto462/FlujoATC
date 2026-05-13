@@ -239,3 +239,13 @@ class VentaPersonaCampoUpdateRequest(BaseModel):
     registroId: int
     campo: str = Field(min_length=2, max_length=80)
     nuevoValor: str | None = None
+
+
+class VentaAnularODSRequest(BaseModel):
+    codigo: str = Field(min_length=2, max_length=30)
+
+
+class VentaContratoUploadRequest(BaseModel):
+    codigo: str = Field(min_length=2, max_length=30)
+    nombre: str = Field(min_length=1, max_length=255)
+    data: str
