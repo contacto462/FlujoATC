@@ -686,54 +686,69 @@ body.sidebar-collapsed .sidebar-rail-toggle{
   box-shadow: 0 5px 14px rgba(58,111,212,.16);
 }
 
-/* ── Nuevo Ticket ── */
+/* ── Nuevo Ticket animated button ── */
 .nuevo-ticket-btn{
   position:relative;
-  color:#fff;
-  padding:0 16px;
-  width:calc(100% - 16px);
-  height:44px;
-  margin:8px 8px;
-  font-weight:600;
-  font-size:13.5px;
+  color:#e8e8e8;
+  padding:15px 30px;
+  width:calc(100% - 8px);
+  height:52px;
+  margin:6px 4px;
+  font-weight:700;
+  font-size:14px;
   cursor:pointer;
   border:none;
-  border-radius:10px;
   overflow:hidden;
-  background:linear-gradient(135deg, var(--primary), var(--primary-2));
-  transition:box-shadow .2s ease, transform .18s ease, filter .18s ease;
-  letter-spacing:.01em;
-  box-shadow:0 4px 12px rgba(58,111,212,.20);
+  background:linear-gradient(-45deg,var(--primary) 0%,var(--primary-2) 100%);
+  transition:all .3s cubic-bezier(.215,.61,.355,1);
+  letter-spacing:.02em;
+}
+.nuevo-ticket-btn span,
+.nuevo-ticket-btn span::before{
+  position:absolute;
+  top:0;left:0;
+  width:100%;height:100%;
   display:flex;
   align-items:center;
   justify-content:center;
-}
-.nuevo-ticket-btn span{
-  position:static !important;
-  top:auto !important;
-  width:auto !important;
-  height:auto !important;
-  display:inline !important;
-  transition:none !important;
+  pointer-events:none;
+  transition:all .3s cubic-bezier(.215,.61,.355,1);
 }
 .nuevo-ticket-btn span::before{
-  display:none !important;
-  content:none !important;
+  content:'Nuevo Ticket';
+  top:-100%;
 }
-.nuevo-ticket-btn::before,
+.nuevo-ticket-btn::before{
+  top:0;left:0;
+  border-top:2px solid #e8e8e8;
+  border-left:2px solid #e8e8e8;
+}
 .nuevo-ticket-btn::after{
-  display:none !important;
-  content:none !important;
+  bottom:0;right:0;
+  border-bottom:2px solid #e8e8e8;
+  border-right:2px solid #e8e8e8;
+}
+.nuevo-ticket-btn::after,
+.nuevo-ticket-btn::before{
+  content:"";
+  position:absolute;
+  width:24px;height:24px;
+  pointer-events:none;
+  transition:all .3s cubic-bezier(.215,.61,.355,1);
 }
 .nuevo-ticket-btn:hover{
-  box-shadow:0 8px 20px rgba(58,111,212,.28) !important;
-  transform:translateY(-1px) !important;
-  filter:brightness(1.04) !important;
+  box-shadow:0 0 24px rgba(58,111,212,.40),0 0 14px rgba(42,87,194,.30);
+}
+.nuevo-ticket-btn:hover::before,
+.nuevo-ticket-btn:hover::after{
+  width:100%;height:100%;
+}
+.nuevo-ticket-btn:hover span{
+  top:100%;
 }
 .nuevo-ticket-btn:active{
-  scale:1;
-  transform:translateY(0) !important;
-  box-shadow:0 4px 12px rgba(58,111,212,.18) !important;
+  scale:.96;
+  box-shadow:0 0 10px rgba(58,111,212,.35),0 0 8px rgba(42,87,194,.30);
 }
 
 /* ── Buscar button ── */
@@ -1368,6 +1383,8 @@ body.dark-mode{
     radial-gradient(1200px 500px at 30% -10%, rgba(58,111,212,.13), transparent 60%),
     radial-gradient(900px 400px at 90% 0%, rgba(99,102,241,.09), transparent 55%),
     #020712;
+  background-repeat: no-repeat, no-repeat, no-repeat;
+  background-size: 100% 100%, 100% 100%, auto;
   color:var(--text);
 }
 
@@ -2874,6 +2891,114 @@ body.dark-mode .ticket-date{
     transition: none !important;
     animation: none !important;
   }
+}
+
+/* ── Dark mode: pager ── */
+body.dark-mode .tickets-pager{
+  background:rgba(15,23,41,.78);
+  border-color:rgba(148,163,184,.20);
+}
+body.dark-mode .pager-arrow{
+  background:linear-gradient(180deg, rgba(20,31,54,.98), rgba(15,23,41,.98));
+  border-color:rgba(148,163,184,.18);
+  color:#cbd5e1;
+}
+body.dark-mode .pager-arrow:hover{
+  border-color:rgba(96,165,250,.28);
+  color:#dbeafe;
+}
+body.dark-mode .pager-range{
+  background:rgba(58,111,212,.12);
+  border-color:rgba(96,165,250,.20);
+  color:#9fb0c9;
+}
+body.dark-mode .pager-range strong{
+  color:#dbeafe;
+}
+body.dark-mode .pager-jump-menu{
+  background:rgba(12,24,45,.98);
+  border-color:rgba(148,163,184,.20);
+}
+body.dark-mode .pager-jump-title{
+  color:#cbd5e1;
+}
+body.dark-mode .pager-jump-link,
+body.dark-mode .pager-jump-nav{
+  background:rgba(20,31,54,.92);
+  border-color:rgba(148,163,184,.18);
+  color:#e6edf8;
+}
+body.dark-mode .pager-jump-link:hover,
+body.dark-mode .pager-jump-nav:hover{
+  border-color:rgba(96,165,250,.28);
+  color:#dbeafe;
+}
+body.dark-mode .pager-jump-link.active{
+  border-color:rgba(96,165,250,.38);
+  background:rgba(37,99,235,.20);
+  color:#dbeafe;
+}
+body.dark-mode .pager-meta{
+  color:#9fb0c9;
+}
+
+/* ── Dark mode: source/priority chips ── */
+body.dark-mode .source-chip,
+body.dark-mode .priority-chip{
+  border-color:rgba(148,163,184,.18);
+  background:linear-gradient(180deg, rgba(15,23,41,.98), rgba(19,29,51,.96));
+  color:#e6edf8;
+  box-shadow:none;
+}
+body.dark-mode .source-chip:hover,
+body.dark-mode .priority-chip:hover{
+  border-color:rgba(96,165,250,.26);
+  box-shadow:0 6px 16px rgba(0,0,0,.22);
+}
+body.dark-mode .source-chip.active,
+body.dark-mode .priority-chip.active{
+  border-color:rgba(96,165,250,.34);
+  background:linear-gradient(180deg, rgba(37,99,235,.20), rgba(30,64,175,.24));
+  color:#dbeafe;
+}
+
+/* ── Dark mode: kpis ── */
+body.dark-mode .kpi{
+  background:rgba(15,23,41,.88);
+  border-color:rgba(148,163,184,.18);
+  box-shadow:0 4px 14px rgba(0,0,0,.22);
+}
+body.dark-mode .kpi .k{ color:#9fb0c9; }
+body.dark-mode .kpi .v{ color:#e6edf8; }
+body.dark-mode .kpi.kpi-open{
+  border-color:rgba(34,197,94,.26);
+  background:rgba(20,83,45,.28);
+}
+body.dark-mode .kpi.kpi-pending{
+  border-color:rgba(245,158,11,.26);
+  background:rgba(92,45,5,.28);
+}
+body.dark-mode .kpi.kpi-resolved{
+  border-color:rgba(99,102,241,.26);
+  background:rgba(67,56,202,.18);
+}
+
+/* ── Dark mode: group chat panel ── */
+body.dark-mode .group-chat-panel{
+  background:rgba(12,22,42,.98);
+  border-color:rgba(148,163,184,.22);
+}
+body.dark-mode .group-chat-title{ color:#e6edf8; }
+body.dark-mode .group-chat-close{ color:#9fb0c9; }
+body.dark-mode .group-chat-msg{
+  background:rgba(20,31,54,.90);
+  border-color:rgba(148,163,184,.16);
+}
+body.dark-mode .group-chat-msg-text{ color:#e6edf8; }
+body.dark-mode .group-chat-form textarea{
+  background:rgba(15,23,41,.90);
+  border-color:rgba(148,163,184,.20);
+  color:#e6edf8;
 }
 </style>
 </head>
