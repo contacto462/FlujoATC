@@ -1,58 +1,515 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tabla Comercial</title>
-  <style>
-    body{
-      margin:0;
-      min-height:100vh;
-      display:grid;
-      place-items:center;
-      font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background:#f4f6f8;
-      color:#1f2937;
-      padding:24px;
-    }
-    .shell{
-      width:min(760px,100%);
-      background:#fff;
-      border-radius:18px;
-      box-shadow:0 18px 40px rgba(0,0,0,.08);
-      padding:44px 36px;
-      text-align:center;
-      border-top:6px solid #f59e0b;
-    }
-    h1{
-      margin:0 0 10px;
-      font-size:34px;
-      line-height:1.05;
-    }
-    p{
-      margin:0;
-      font-size:16px;
-      color:#4b5563;
-      line-height:1.6;
-    }
-    .badge{
-      display:inline-block;
-      margin-bottom:18px;
-      padding:8px 12px;
-      border-radius:999px;
-      background:#fff7ed;
-      color:#c2410c;
-      font-weight:700;
-      font-size:13px;
-    }
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Tabla Comercial — ODS</title>
+<style>
+:root {
+  --bg-1: #0a1c20;
+  --bg-2: #10272d;
+  --bg-3: #17363d;
+  --border: rgba(255,255,255,.10);
+  --text: #f4f8f9;
+  --muted: #c0cfd4;
+  --primary: #ff6e23;
+  --primary-2: #ff8b33;
+  --c-comercial: #f97316;
+  --c-admin: #3b82f6;
+  --c-servicio: #fb923c;
+  --c-soporte: #22c55e;
+  --c-operaciones: #0d9488;
+  --c-finanzas: #86efac;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%;margin:0}
+body{
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  color:var(--text);
+  background:linear-gradient(145deg,var(--bg-1) 0%,var(--bg-2) 42%,var(--bg-3) 100%);
+  min-height:100vh;
+}
+
+/* Header */
+.hdr{
+  position:sticky;top:0;z-index:100;
+  background:rgba(10,28,32,.96);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  padding:11px 18px;
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+}
+.brand{display:flex;align-items:center;gap:10px}
+.brand img{width:34px;height:34px;border-radius:8px;object-fit:contain}
+.brand strong{display:block;font-size:13px;font-weight:800}
+.brand small{display:block;font-size:11px;color:var(--muted)}
+.hdr-actions{display:flex;align-items:center;gap:8px}
+
+/* Buttons */
+.btn{
+  appearance:none;border:1px solid var(--border);
+  background:rgba(255,255,255,.06);color:var(--text);
+  padding:7px 13px;border-radius:10px;
+  font-size:12px;font-weight:700;cursor:pointer;
+  transition:background .14s,border-color .14s;white-space:nowrap;
+}
+.btn:hover{background:rgba(255,255,255,.11)}
+.btn-primary{background:var(--primary);border-color:var(--primary)}
+.btn-primary:hover{background:var(--primary-2);border-color:var(--primary-2)}
+.btn-danger{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.35);color:#fca5a5}
+.btn-danger:hover{background:rgba(239,68,68,.22)}
+.btn-danger.active{background:#dc2626;border-color:#dc2626;color:#fff}
+.btn-sm{padding:5px 10px;font-size:11px;border-radius:8px}
+
+/* Filters */
+.filters{
+  padding:10px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  border-bottom:1px solid var(--border);background:rgba(255,255,255,.02);
+}
+.search-box{
+  flex:1;min-width:180px;padding:7px 12px;
+  border-radius:10px;border:1px solid var(--border);
+  background:rgba(255,255,255,.05);color:var(--text);font-size:13px;outline:none;
+}
+.search-box:focus{border-color:var(--primary)}
+.filter-sel{
+  padding:7px 11px;border-radius:10px;border:1px solid var(--border);
+  background:rgba(255,255,255,.05);color:var(--text);font-size:13px;cursor:pointer;outline:none;
+}
+.counter{font-size:12px;color:var(--muted);white-space:nowrap}
+
+/* Table */
+.tbl-wrap{overflow-x:auto;padding:0 2px 32px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{
+  padding:9px 10px;text-align:left;font-weight:700;
+  font-size:10px;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--muted);border-bottom:1px solid var(--border);
+  white-space:nowrap;background:rgba(255,255,255,.03);
+  position:sticky;top:57px;
+}
+thead th.c-comercial{color:var(--c-comercial)}
+thead th.c-admin{color:var(--c-admin)}
+thead th.c-servicio{color:var(--c-servicio)}
+thead th.c-soporte{color:var(--c-soporte)}
+thead th.c-operaciones{color:var(--c-operaciones)}
+thead th.c-finanzas{color:var(--c-finanzas)}
+tbody tr{border-bottom:1px solid rgba(255,255,255,.04);transition:background .1s}
+tbody tr:hover{background:rgba(255,255,255,.04)}
+tbody tr.anulada{opacity:.5}
+tbody tr.hidden{display:none}
+td{padding:8px 10px;vertical-align:middle}
+td.cod{font-weight:700;font-family:monospace;font-size:11px}
+td.dim{color:var(--muted)}
+
+/* Status badge */
+.badge{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 8px;border-radius:999px;font-size:11px;font-weight:700;
+  cursor:pointer;white-space:nowrap;border:none;outline:none;
+  transition:filter .12s;background:none;
+}
+.badge:hover{filter:brightness(1.18)}
+.badge.ok{background:rgba(22,163,74,.18);color:#4ade80;border:1px solid rgba(22,163,74,.35)}
+.badge.proc{background:rgba(217,119,6,.18);color:#fbbf24;border:1px solid rgba(217,119,6,.35)}
+.badge.pend{background:rgba(75,85,99,.18);color:#9ca3af;border:1px solid rgba(75,85,99,.3)}
+
+/* Popup overlay */
+.pop-overlay{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(0,0,0,.52);display:none;place-items:center;
+}
+.pop-overlay.open{display:grid}
+.pop{
+  background:#0f2028;border:1px solid var(--border);border-radius:16px;
+  padding:18px 20px;min-width:260px;max-width:380px;
+  box-shadow:0 24px 56px rgba(0,0,0,.48);
+}
+.pop-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.pop-title{font-size:14px;font-weight:800}
+.pop-x{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:0 3px;line-height:1}
+.pop-x:hover{color:var(--text)}
+.pop-sec{margin-bottom:10px}
+.pop-sec-title{font-size:10px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:5px}
+.pop-item{font-size:12px;padding:2px 0;display:flex;align-items:center;gap:6px}
+.pop-item.done{color:#4ade80}
+.pop-item.done::before{content:"✓";font-weight:800}
+.pop-item.pend{color:#fca5a5}
+.pop-item.pend::before{content:"·";font-size:18px;line-height:.85}
+
+/* Modal */
+.mod-overlay{
+  position:fixed;inset:0;z-index:300;
+  background:rgba(0,0,0,.62);display:none;place-items:center;
+}
+.mod-overlay.open{display:grid}
+.mod{
+  background:#0f2028;border:1px solid var(--border);border-radius:18px;
+  padding:22px 24px;width:min(460px,95vw);
+  box-shadow:0 28px 60px rgba(0,0,0,.5);
+}
+.mod h3{margin:0 0 14px;font-size:15px;font-weight:800}
+.mod-field{margin-bottom:12px}
+.mod-label{display:block;font-size:11px;font-weight:700;margin-bottom:5px;color:var(--muted)}
+.mod-input{
+  width:100%;padding:9px 11px;border-radius:10px;
+  border:1px solid var(--border);background:rgba(255,255,255,.05);
+  color:var(--text);font-size:13px;outline:none;
+}
+.mod-input:focus{border-color:var(--primary)}
+.mod-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.mod-msg{min-height:18px;font-size:12px;margin-top:8px}
+.ok-msg{color:#4ade80}
+.err-msg{color:#fca5a5}
+
+/* Loading */
+.loading{text-align:center;padding:56px 20px;color:var(--muted);font-size:14px}
+</style>
 </head>
 <body>
-  <main class="shell">
-    <div class="badge">Modulo Comercial</div>
-    <h1>Proximamente</h1>
-    <p>Esta vista aun no esta disponible. La dejaremos conectada al panel de Venta para avanzar en la siguiente fase sin perder el acceso reservado.</p>
-  </main>
-<script src="/static/auth-guard.js"></script>
+
+<!-- Header -->
+<header class="hdr">
+  <div class="brand">
+    <img src="/shared-static/img/logo-atc.png" alt="ATC">
+    <div>
+      <strong>ATC — Tabla Comercial</strong>
+      <small>Vision general de ODS</small>
+    </div>
+  </div>
+  <div class="hdr-actions">
+    <button class="btn btn-danger btn-sm" id="btnAnularToggle" onclick="toggleAnularMode()">Modo Anular</button>
+    <button class="btn btn-sm" onclick="cerrarSesion()">Cerrar sesion</button>
+  </div>
+</header>
+
+<!-- Filters -->
+<div class="filters">
+  <input type="text" class="search-box" id="searchBox" placeholder="Buscar por codigo, cliente, rut, ejecutivo..." oninput="aplicarFiltros()"/>
+  <select class="filter-sel" id="filterEstado" onchange="aplicarFiltros()">
+    <option value="todos">Todos los estados</option>
+    <option value="proceso">En proceso</option>
+    <option value="terminado">Terminados</option>
+    <option value="anulado">Anuladas</option>
+  </select>
+  <span class="counter" id="counter">Cargando...</span>
+</div>
+
+<!-- Table -->
+<div class="tbl-wrap">
+  <div class="loading" id="loading">Cargando datos...</div>
+  <table id="tabla" style="display:none">
+    <thead>
+      <tr>
+        <th>Cod.</th>
+        <th>Fecha</th>
+        <th>Ejecutivo</th>
+        <th>RUT</th>
+        <th>Razon Social</th>
+        <th>Tipo Servicio</th>
+        <th>Plan</th>
+        <th class="c-comercial">Comercial</th>
+        <th class="c-admin">Admin</th>
+        <th class="c-servicio">Serv. Tecnico</th>
+        <th class="c-soporte">Soporte</th>
+        <th class="c-operaciones">Operaciones</th>
+        <th class="c-finanzas">Finanzas</th>
+        <th id="thAcc" style="display:none">Acciones</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<!-- Status popup -->
+<div class="pop-overlay" id="popOverlay" onclick="cerrarPop(event)">
+  <div class="pop">
+    <div class="pop-hdr">
+      <span class="pop-title" id="popTitle"></span>
+      <button class="pop-x" onclick="cerrarPop()">×</button>
+    </div>
+    <div id="popBody"></div>
+  </div>
+</div>
+
+<!-- Upload modal -->
+<div class="mod-overlay" id="modOverlay">
+  <div class="mod">
+    <h3>Subir Contrato</h3>
+    <input type="hidden" id="modCodigo"/>
+    <div class="mod-field">
+      <span class="mod-label">ODS</span>
+      <div id="modCodigoText" style="font-size:13px;font-weight:700;color:var(--primary)"></div>
+    </div>
+    <div class="mod-field">
+      <label class="mod-label" for="modFile">Archivo (PDF, DOC, JPG...)</label>
+      <input type="file" id="modFile" class="mod-input" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xls,.xlsx"/>
+    </div>
+    <div class="mod-msg" id="modMsg"></div>
+    <div class="mod-actions">
+      <button class="btn btn-sm" onclick="cerrarMod()">Cancelar</button>
+      <button class="btn btn-primary btn-sm" id="btnSubir" onclick="subirContrato()">Subir</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TOKEN = new URLSearchParams(location.search).get("token") || "";
+let modoAnular = false;
+
+async function api(url, opts) {
+  const sep = url.includes("?") ? "&" : "?";
+  const res = await fetch(`${url}${sep}token=${encodeURIComponent(TOKEN)}`, opts);
+  if (res.status === 401) { location.href = "/venta/login"; return null; }
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}));
+    throw new Error(e.detail || `Error ${res.status}`);
+  }
+  return res.json();
+}
+
+function cls(estado) {
+  if (estado === "Terminado") return "ok";
+  if (estado === "En proceso") return "proc";
+  return "pend";
+}
+function sym(estado) {
+  if (estado === "Terminado") return "✓";
+  if (estado === "En proceso") return "◑";
+  return "○";
+}
+
+function mkBadge(area, label) {
+  const btn = document.createElement("button");
+  btn.className = `badge ${cls(area.estado)}`;
+  btn.innerHTML = `${sym(area.estado)} ${area.estado}`;
+  btn.addEventListener("click", () => abrirPop(label, area));
+  return btn;
+}
+
+function abrirPop(titulo, area) {
+  document.getElementById("popTitle").textContent = titulo;
+  const body = document.getElementById("popBody");
+  body.innerHTML = "";
+
+  if (area.completados.length) {
+    const sec = document.createElement("div");
+    sec.className = "pop-sec";
+    sec.innerHTML = `<div class="pop-sec-title" style="color:#4ade80">Completado</div>`;
+    area.completados.forEach(t => {
+      const d = document.createElement("div");
+      d.className = "pop-item done";
+      d.textContent = t;
+      sec.appendChild(d);
+    });
+    body.appendChild(sec);
+  }
+  if (area.detalles.length) {
+    const sec = document.createElement("div");
+    sec.className = "pop-sec";
+    sec.innerHTML = `<div class="pop-sec-title" style="color:#fca5a5">Pendiente</div>`;
+    area.detalles.forEach(t => {
+      const d = document.createElement("div");
+      d.className = "pop-item pend";
+      d.textContent = t;
+      sec.appendChild(d);
+    });
+    body.appendChild(sec);
+  }
+  if (!area.completados.length && !area.detalles.length) {
+    body.innerHTML = `<div style="font-size:12px;color:var(--muted)">Sin registros.</div>`;
+  }
+  document.getElementById("popOverlay").classList.add("open");
+}
+
+function cerrarPop(e) {
+  if (!e || e.target === document.getElementById("popOverlay")) {
+    document.getElementById("popOverlay").classList.remove("open");
+  }
+}
+
+function calcEstadoFila(row) {
+  if (row.anulada) return "anulado";
+  const areas = [row.areaComercial, row.areaAdmin, row.areaServicio, row.areaSoporte, row.areaOperaciones, row.areaFinanzas];
+  return areas.every(a => a.estado === "Terminado") ? "terminado" : "proceso";
+}
+
+function mkFila(row) {
+  const tr = document.createElement("tr");
+  if (row.anulada) tr.classList.add("anulada");
+  tr.dataset.codigo = (row.codigo || "").toLowerCase();
+  tr.dataset.rs = (row.razonSocial || "").toLowerCase();
+  tr.dataset.rut = (row.rutCliente || "").toLowerCase();
+  tr.dataset.ej = (row.ejecutivo || "").toLowerCase();
+  tr.dataset.estado = calcEstadoFila(row);
+
+  const td = (content, c) => {
+    const el = document.createElement("td");
+    if (c) el.className = c;
+    if (typeof content === "string") el.textContent = content;
+    else el.appendChild(content);
+    tr.appendChild(el);
+    return el;
+  };
+
+  td(row.codigo, "cod");
+  td(row.fecha, "dim");
+  td(row.ejecutivo, "dim");
+  td(row.rutCliente, "dim");
+  td(row.razonSocial);
+  td(row.tipoServicio, "dim");
+  td(row.tipoPlan, "dim");
+  td(mkBadge(row.areaComercial, "Comercial"));
+  td(mkBadge(row.areaAdmin, "Administracion"));
+  td(mkBadge(row.areaServicio, "Serv. Tecnico"));
+  td(mkBadge(row.areaSoporte, "Soporte"));
+  td(mkBadge(row.areaOperaciones, "Operaciones"));
+  td(mkBadge(row.areaFinanzas, "Finanzas"));
+
+  // Acciones
+  const tdAcc = document.createElement("td");
+  tdAcc.className = "col-acc";
+  tdAcc.style.display = "none";
+
+  const btnUp = document.createElement("button");
+  btnUp.className = "btn btn-sm";
+  btnUp.textContent = "↑ Contrato";
+  btnUp.style.marginRight = "4px";
+  btnUp.addEventListener("click", () => abrirMod(row.codigo));
+  tdAcc.appendChild(btnUp);
+
+  if (!row.anulada) {
+    const btnAn = document.createElement("button");
+    btnAn.className = "btn btn-danger btn-sm anular-btn";
+    btnAn.textContent = "Anular";
+    btnAn.addEventListener("click", () => anularODS(row.codigo, tr));
+    tdAcc.appendChild(btnAn);
+  }
+  tr.appendChild(tdAcc);
+  return tr;
+}
+
+function aplicarFiltros() {
+  const txt = (document.getElementById("searchBox").value || "").toLowerCase();
+  const est = document.getElementById("filterEstado").value;
+  let vis = 0;
+  document.querySelectorAll("#tbody tr").forEach(tr => {
+    const matchTxt = !txt ||
+      tr.dataset.codigo.includes(txt) ||
+      tr.dataset.rs.includes(txt) ||
+      tr.dataset.rut.includes(txt) ||
+      tr.dataset.ej.includes(txt);
+    const matchEst = est === "todos" || tr.dataset.estado === est;
+    const show = matchTxt && matchEst;
+    tr.classList.toggle("hidden", !show);
+    if (show) vis++;
+  });
+  document.getElementById("counter").textContent = `${vis} ODS`;
+}
+
+function toggleAnularMode() {
+  modoAnular = !modoAnular;
+  const btn = document.getElementById("btnAnularToggle");
+  btn.classList.toggle("active", modoAnular);
+  btn.textContent = modoAnular ? "✕ Salir modo anular" : "Modo Anular";
+  const thAcc = document.getElementById("thAcc");
+  thAcc.style.display = modoAnular ? "" : "none";
+  document.querySelectorAll(".col-acc").forEach(td => {
+    td.style.display = modoAnular ? "" : "none";
+  });
+}
+
+async function anularODS(codigo, tr) {
+  if (!confirm(`¿Seguro que deseas anular la ODS ${codigo}?\nEsta accion no se puede deshacer.`)) return;
+  try {
+    await api("/api/venta/ods/anular", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ codigo }),
+    });
+    tr.classList.add("anulada");
+    tr.dataset.estado = "anulado";
+    tr.querySelectorAll(".anular-btn").forEach(b => b.remove());
+    aplicarFiltros();
+  } catch (err) {
+    alert(`Error: ${err.message}`);
+  }
+}
+
+function abrirMod(codigo) {
+  document.getElementById("modCodigo").value = codigo;
+  document.getElementById("modCodigoText").textContent = codigo;
+  document.getElementById("modFile").value = "";
+  document.getElementById("modMsg").textContent = "";
+  document.getElementById("modMsg").className = "mod-msg";
+  document.getElementById("modOverlay").classList.add("open");
+}
+
+function cerrarMod() {
+  document.getElementById("modOverlay").classList.remove("open");
+}
+
+async function subirContrato() {
+  const codigo = document.getElementById("modCodigo").value;
+  const file = document.getElementById("modFile").files[0];
+  const msgEl = document.getElementById("modMsg");
+
+  if (!file) {
+    msgEl.textContent = "Selecciona un archivo primero.";
+    msgEl.className = "mod-msg err-msg";
+    return;
+  }
+
+  const btn = document.getElementById("btnSubir");
+  btn.disabled = true;
+  btn.textContent = "Subiendo...";
+  msgEl.textContent = "";
+
+  try {
+    const b64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res((r.result || "").split(",")[1] || r.result);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+    await api("/api/venta/ods/subir-contrato", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ codigo, nombre: file.name, data: b64 }),
+    });
+    msgEl.textContent = "Archivo subido correctamente.";
+    msgEl.className = "mod-msg ok-msg";
+    setTimeout(cerrarMod, 1800);
+  } catch (err) {
+    msgEl.textContent = err.message || "Error al subir.";
+    msgEl.className = "mod-msg err-msg";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Subir";
+  }
+}
+
+async function cerrarSesion() {
+  try { await fetch(`/api/logout?token=${encodeURIComponent(TOKEN)}`, { method: "POST" }); } catch (_) {}
+  location.href = "/venta/login";
+}
+
+async function cargarDatos() {
+  try {
+    const data = await api("/api/venta/comercial-todo");
+    if (!data) return;
+    const tbody = document.getElementById("tbody");
+    tbody.innerHTML = "";
+    (data.rows || []).forEach(row => tbody.appendChild(mkFila(row)));
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("tabla").style.display = "";
+    aplicarFiltros();
+  } catch (err) {
+    document.getElementById("loading").textContent = `Error al cargar: ${err.message}`;
+  }
+}
+
+cargarDatos();
+</script>
 </body>
 </html>

@@ -636,3 +636,43 @@ def venta_operaciones_ods_notificar(
     token: str = Depends(require_venta_token),
 ):
     return {"ok": True, "mensaje": "pendiente_configuracion"}
+
+
+# ─── Comercial (vista general) ───────────────────────────────────────────────
+
+@router.get("/api/venta/comercial-todo")
+def venta_comercial_todo(
+    db: Session = Depends(get_db),
+    token: str = Depends(require_venta_token),
+):
+    return get_comercial_todo(db)
+
+
+@router.post("/api/venta/ods/anular")
+def venta_ods_anular(
+    payload: VentaAnularODSRequest,
+    db: Session = Depends(get_db),
+    token: str = Depends(require_venta_token),
+):
+    return anular_ods_venta(db, payload.codigo)
+
+
+@router.post("/api/venta/ods/subir-contrato")
+def venta_ods_subir_contrato(
+    payload: VentaContratoUploadRequest,
+    db: Session = Depends(get_db),
+    token: str = Depends(require_venta_token),
+):
+    return subir_contrato_venta(db, payload.codigo, payload.nombre, payload.data)
+
+
+@router.get("/api/venta/ods/{codigo}/contrato/{nombre}")
+def venta_ods_contrato_file(
+    codigo: str,
+    nombre: str,
+    _: str = Depends(require_venta_token),
+):
+    ruta = VENTA_UPLOADS_DIR / codigo / "contrato" / nombre
+    if not ruta.exists() or not ruta.is_file():
+        raise HTTPException(status_code=404, detail="Archivo no encontrado.")
+    return FileResponse(str(ruta), filename=nombre)
