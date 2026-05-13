@@ -1,0 +1,439 @@
+<style>
+  .client-notes-fab {
+    position: fixed;
+    right: 22px;
+    bottom: 22px;
+    z-index: 9998;
+    min-width: 142px;
+    min-height: 42px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+    background: linear-gradient(135deg, #17358f, #0b1f64);
+    color: #fff;
+    font: 800 13px/1 "Segoe UI", Inter, sans-serif;
+    box-shadow: 0 18px 34px rgba(11, 31, 100, 0.32);
+    cursor: pointer;
+  }
+
+  .client-notes-fab:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 22px 42px rgba(11, 31, 100, 0.38);
+  }
+
+  .client-notes-panel {
+    position: fixed;
+    right: 22px;
+    bottom: 76px;
+    z-index: 9999;
+    width: min(380px, calc(100vw - 28px));
+    max-height: min(620px, calc(100vh - 110px));
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    border-radius: 18px;
+    background: rgba(7, 18, 28, 0.98);
+    color: #eef6ff;
+    box-shadow: 0 28px 70px rgba(0, 0, 0, 0.44);
+    backdrop-filter: blur(14px);
+    font-family: "Segoe UI", Inter, sans-serif;
+  }
+
+  .client-notes-panel.open {
+    display: flex;
+  }
+
+  .client-notes-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 16px 12px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  }
+
+  .client-notes-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 900;
+  }
+
+  .client-notes-subtitle {
+    display: block;
+    margin-top: 4px;
+    color: #9fb0c9;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .client-notes-close {
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.06);
+    color: #dbeafe;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .client-notes-body {
+    display: grid;
+    gap: 12px;
+    padding: 14px 16px 16px;
+    overflow: auto;
+  }
+
+  .client-notes-field {
+    display: grid;
+    gap: 6px;
+  }
+
+  .client-notes-field label {
+    margin: 0;
+    color: #cbd5e1;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .client-notes-field input,
+  .client-notes-field textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 12px;
+    background: rgba(2, 8, 23, 0.72);
+    color: #fff;
+    padding: 10px 11px;
+    font: 500 13px/1.4 "Segoe UI", Inter, sans-serif;
+    outline: none;
+  }
+
+  .client-notes-field textarea {
+    min-height: 82px;
+    resize: vertical;
+  }
+
+  .client-notes-field input:focus,
+  .client-notes-field textarea:focus {
+    border-color: rgba(96, 165, 250, 0.56);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.14);
+  }
+
+  .client-notes-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .client-notes-btn {
+    border: 0;
+    border-radius: 12px;
+    padding: 10px 13px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #e5edf7;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .client-notes-btn.primary {
+    background: linear-gradient(135deg, #17358f, #0b1f64);
+    color: #fff;
+  }
+
+  .client-notes-feed {
+    display: grid;
+    gap: 9px;
+    min-height: 54px;
+  }
+
+  .client-notes-empty,
+  .client-notes-status {
+    padding: 12px;
+    border: 1px dashed rgba(148, 163, 184, 0.24);
+    border-radius: 12px;
+    color: #9fb0c9;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .client-notes-note {
+    padding: 11px 12px;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 13px;
+    background: rgba(255, 255, 255, 0.045);
+  }
+
+  .client-notes-note p {
+    margin: 0;
+    color: #f8fbff;
+    font-size: 13px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .client-notes-meta {
+    margin-top: 8px;
+    color: #9fb0c9;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  body[data-theme="light"] .client-notes-panel {
+    background: rgba(248, 250, 252, 0.98);
+    color: #102033;
+    border-color: rgba(15, 23, 42, 0.14);
+    box-shadow: 0 24px 54px rgba(15, 23, 42, 0.20);
+  }
+
+  body[data-theme="light"] .client-notes-subtitle,
+  body[data-theme="light"] .client-notes-meta,
+  body[data-theme="light"] .client-notes-empty,
+  body[data-theme="light"] .client-notes-status {
+    color: #64748b;
+  }
+
+  body[data-theme="light"] .client-notes-field label {
+    color: #334155;
+  }
+
+  body[data-theme="light"] .client-notes-field input,
+  body[data-theme="light"] .client-notes-field textarea {
+    background: #fff;
+    color: #0f172a;
+    border-color: rgba(15, 23, 42, 0.14);
+  }
+
+  body[data-theme="light"] .client-notes-note {
+    background: #fff;
+    border-color: rgba(15, 23, 42, 0.10);
+  }
+
+  body[data-theme="light"] .client-notes-note p {
+    color: #0f172a;
+  }
+</style>
+
+<button id="clientNotesFab" class="client-notes-fab" type="button">Notas internas</button>
+<aside id="clientNotesPanel" class="client-notes-panel" aria-hidden="true">
+  <div class="client-notes-head">
+    <div>
+      <p class="client-notes-title">Notas internas</p>
+      <span id="clientNotesSubtitle" class="client-notes-subtitle">Selecciona un cliente o sucursal.</span>
+    </div>
+    <button id="clientNotesClose" class="client-notes-close" type="button" aria-label="Cerrar">&times;</button>
+  </div>
+  <div class="client-notes-body">
+    <div class="client-notes-field">
+      <label for="clientNotesClientInput">Cliente / sucursal</label>
+      <input id="clientNotesClientInput" type="text" placeholder="Nombre del cliente..." autocomplete="off" />
+    </div>
+    <div id="clientNotesFeed" class="client-notes-feed">
+      <div class="client-notes-empty">El panel mostrara las notas del cliente seleccionado.</div>
+    </div>
+    <div class="client-notes-field">
+      <label for="clientNotesTextInput">Nueva nota</label>
+      <textarea id="clientNotesTextInput" placeholder="Escribe una nota interna para este cliente..."></textarea>
+    </div>
+    <div class="client-notes-actions">
+      <button id="clientNotesReload" class="client-notes-btn" type="button">Actualizar</button>
+      <button id="clientNotesSave" class="client-notes-btn primary" type="button">Guardar nota</button>
+    </div>
+    <div id="clientNotesStatus" class="client-notes-status" hidden></div>
+  </div>
+</aside>
+
+<script>
+(function () {
+  const fab = document.getElementById("clientNotesFab");
+  const panel = document.getElementById("clientNotesPanel");
+  const closeBtn = document.getElementById("clientNotesClose");
+  const clientInput = document.getElementById("clientNotesClientInput");
+  const noteInput = document.getElementById("clientNotesTextInput");
+  const feed = document.getElementById("clientNotesFeed");
+  const statusBox = document.getElementById("clientNotesStatus");
+  const subtitle = document.getElementById("clientNotesSubtitle");
+  const reloadBtn = document.getElementById("clientNotesReload");
+  const saveBtn = document.getElementById("clientNotesSave");
+  const defaultAuthor = {{ (user.name if user is defined and user else "")|tojson }};
+
+  if (!fab || !panel || !clientInput || !noteInput || !feed || !statusBox || !subtitle || !reloadBtn || !saveBtn) return;
+
+  let currentClient = "";
+
+  function esc(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function clean(value) {
+    return String(value || "").replace(/\s+/g, " ").trim();
+  }
+
+  function setStatus(message, isError) {
+    const text = clean(message);
+    statusBox.hidden = !text;
+    statusBox.textContent = text;
+    statusBox.style.borderColor = isError ? "rgba(239,68,68,.38)" : "rgba(148,163,184,.24)";
+    statusBox.style.color = isError ? "#fecaca" : "";
+  }
+
+  function openPanel() {
+    panel.classList.add("open");
+    panel.setAttribute("aria-hidden", "false");
+  }
+
+  function closePanel() {
+    panel.classList.remove("open");
+    panel.setAttribute("aria-hidden", "true");
+  }
+
+  function renderNotes(notes) {
+    if (!Array.isArray(notes) || !notes.length) {
+      feed.innerHTML = '<div class="client-notes-empty">Sin notas internas para este cliente.</div>';
+      return;
+    }
+    feed.innerHTML = notes.map((note) => {
+      const author = esc(note.author || "Agente");
+      const date = esc(note.created_at_display || "Sin fecha");
+      return `
+        <article class="client-notes-note">
+          <p>${esc(note.text || "")}</p>
+          <div class="client-notes-meta">${author} · ${date}</div>
+        </article>
+      `;
+    }).join("");
+  }
+
+  async function loadNotes(clientName) {
+    const client = clean(clientName || clientInput.value);
+    currentClient = client;
+    clientInput.value = client;
+    subtitle.textContent = client ? client : "Selecciona un cliente o sucursal.";
+    if (!client) {
+      renderNotes([]);
+      setStatus("Indica un cliente para cargar notas.", false);
+      return;
+    }
+    setStatus("Cargando notas...", false);
+    try {
+      const response = await fetch(`/api/client-notes?client=${encodeURIComponent(client)}`, {
+        credentials: "same-origin",
+        cache: "no-store",
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.detail || "No se pudieron cargar las notas.");
+      renderNotes(payload.notes || []);
+      setStatus("", false);
+    } catch (err) {
+      renderNotes([]);
+      setStatus(err.message || "No se pudieron cargar las notas.", true);
+    }
+  }
+
+  async function saveNote() {
+    const client = clean(clientInput.value || currentClient);
+    const note = String(noteInput.value || "").trim();
+    if (!client) {
+      setStatus("Indica un cliente antes de guardar.", true);
+      clientInput.focus();
+      return;
+    }
+    if (!note) {
+      setStatus("Escribe una nota antes de guardar.", true);
+      noteInput.focus();
+      return;
+    }
+    setStatus("Guardando nota...", false);
+    try {
+      const author = clean(defaultAuthor || localStorage.getItem("ATC_USER_NAME") || "");
+      const response = await fetch("/api/client-notes", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          client,
+          note,
+          author,
+          token: localStorage.getItem("ATC_TOKEN") || localStorage.getItem("atc_token") || "",
+        }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.detail || "No se pudo guardar la nota.");
+      noteInput.value = "";
+      renderNotes(payload.notes || []);
+      setStatus("Nota guardada.", false);
+    } catch (err) {
+      setStatus(err.message || "No se pudo guardar la nota.", true);
+    }
+  }
+
+  function inferClientFromElement(target) {
+    if (!target || !(target instanceof Element)) return "";
+    const field = target.closest("input, select, textarea");
+    if (field) {
+      const hint = `${field.name || ""} ${field.id || ""} ${field.placeholder || ""}`;
+      if (/cliente|sucursal/i.test(hint) && clean(field.value)) return clean(field.value);
+    }
+
+    const tr = target.closest("tr");
+    if (!tr) return "";
+    if (clean(tr.dataset.cliente || tr.dataset.client || tr.dataset.sucursal)) {
+      return clean(tr.dataset.cliente || tr.dataset.client || tr.dataset.sucursal);
+    }
+
+    const tableRules = [
+      { selector: "#tablaRegistro", index: 2 },
+      { selector: "#registrosExistentes", index: 2 },
+      { selector: "#cuerpoTabla", index: 2 },
+      { selector: "#tablaIncidenciasPendientes", index: 3 },
+    ];
+    for (const rule of tableRules) {
+      if (tr.closest(rule.selector)) {
+        return clean(tr.children[rule.index]?.textContent || "");
+      }
+    }
+    return "";
+  }
+
+  function selectClient(clientName, shouldOpen) {
+    const client = clean(clientName);
+    if (!client || client === currentClient) return;
+    currentClient = client;
+    clientInput.value = client;
+    subtitle.textContent = client;
+    if (shouldOpen) openPanel();
+    loadNotes(client);
+  }
+
+  fab.addEventListener("click", () => {
+    openPanel();
+    if (clean(clientInput.value || currentClient)) loadNotes(clientInput.value || currentClient);
+  });
+  closeBtn?.addEventListener("click", closePanel);
+  reloadBtn.addEventListener("click", () => loadNotes(clientInput.value || currentClient));
+  saveBtn.addEventListener("click", saveNote);
+  clientInput.addEventListener("change", () => loadNotes(clientInput.value));
+
+  document.addEventListener("click", (event) => {
+    if (panel.contains(event.target) || fab.contains(event.target)) return;
+    const client = inferClientFromElement(event.target);
+    if (client) selectClient(client, false);
+  }, true);
+
+  document.addEventListener("change", (event) => {
+    const client = inferClientFromElement(event.target);
+    if (client) selectClient(client, false);
+  }, true);
+
+  const paramsClient = clean(new URLSearchParams(window.location.search).get("cliente") || "");
+  if (paramsClient) selectClient(paramsClient, false);
+})();
+</script>

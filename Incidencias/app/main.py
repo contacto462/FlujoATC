@@ -5,18 +5,20 @@ import json
 import threading
 import time
 import logging
+import re
+import unicodedata
 from pathlib import Path
 from typing import Annotated
 from zoneinfo import ZoneInfo
 
-from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
+from fastapi import Body, Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import inspect, text
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from app.database import Base, SessionLocal, engine, get_db
+from app.database import Base, SessionLocal, build_engine, engine, get_db
 from app.config import settings
 from app.schemas import (
     CerrarIncidenciaRequest,
@@ -187,6 +189,222 @@ def startup() -> None:
             name="protocolos-weekly-worker",
             daemon=True,
         ).start()
+
+
+_support_notes_engine = None
+
+
+def _client_notes_key(value: str | None) -> str:
+    text_value = re.sub(r"\s+", " ", (value or "")).strip().casefold()
+    text_value = unicodedata.normalize("NFD", text_value)
+    text_value = "".join(ch for ch in text_value if unicodedata.category(ch) != "Mn")
+    return re.sub(r"[^a-z0-9]+", " ", text_value).strip()
+
+
+def _support_requesters_table_name() -> str:
+    schema = re.sub(r"[^A-Za-z0-9_]", "", settings.support_db_schema or "")
+    if schema and settings.support_db_url.startswith("postgresql"):
+        return f'"{schema}"."requesters"'
+    return "requesters"
+
+
+def _get_support_notes_engine():
+    global _support_notes_engine
+    if not settings.support_db_url:
+        return None
+    if _support_notes_engine is None:
+        _support_notes_engine = build_engine(settings.support_db_url, pool_pre_ping=True)
+    return _support_notes_engine
+
+
+def _format_support_note_datetime(value: str | None) -> str:
+    raw = (value or "").strip()
+    if not raw:
+        return "Sin fecha"
+    try:
+        parsed = datetime.fromisoformat(raw)
+    except ValueError:
+        return raw
+    if parsed.tzinfo is None:
+        return parsed.strftime("%d-%m-%Y %H:%M")
+    return parsed.astimezone(ZoneInfo(settings.timezone)).strftime("%d-%m-%Y %H:%M")
+
+
+def _parse_support_requester_notes(raw_notes: str | None) -> list[dict[str, str | int]]:
+    if not raw_notes or not str(raw_notes).strip():
+        return []
+    notes_text = str(raw_notes).strip()
+    try:
+        parsed = json.loads(notes_text)
+    except json.JSONDecodeError:
+        parsed = None
+    if not isinstance(parsed, list):
+        return [
+            {
+                "text": notes_text,
+                "author": "Nota previa",
+                "author_id": 0,
+                "created_at": "",
+                "created_at_display": "Sin fecha",
+            }
+        ]
+    notes: list[dict[str, str | int]] = []
+    for item in parsed:
+        if not isinstance(item, dict):
+            continue
+        text_value = str(item.get("text", "") or "").strip()
+        if not text_value:
+            continue
+        created_at = str(item.get("created_at", "") or "").strip()
+        notes.append(
+            {
+                "text": text_value,
+                "author": str(item.get("author", "") or "").strip() or "Agente",
+                "author_id": int(item.get("author_id") or 0),
+                "created_at": created_at,
+                "created_at_display": _format_support_note_datetime(created_at),
+            }
+        )
+    return notes
+
+
+def _serialize_support_requester_notes(notes: list[dict[str, str | int]]) -> str:
+    payload: list[dict[str, str | int]] = []
+    for note in notes:
+        text_value = str(note.get("text", "") or "").strip()
+        if not text_value:
+            continue
+        payload.append(
+            {
+                "text": text_value,
+                "author": str(note.get("author", "") or "").strip() or "Agente",
+                "author_id": int(note.get("author_id") or 0),
+                "created_at": str(note.get("created_at", "") or "").strip(),
+            }
+        )
+    return json.dumps(payload, ensure_ascii=False)
+
+
+def _support_requester_keys(row: dict) -> set[str]:
+    values = [
+        str(row.get("name") or ""),
+        str(row.get("internal_name") or ""),
+        str(row.get("email") or ""),
+    ]
+    return {key for key in (_client_notes_key(value) for value in values) if key}
+
+
+def _support_fetch_requesters(conn) -> list[dict]:
+    table_name = _support_requesters_table_name()
+    inspector = inspect(conn)
+    if not inspector.has_table("requesters", schema=settings.support_db_schema if settings.support_db_url.startswith("postgresql") else None):
+        raise HTTPException(status_code=503, detail="La tabla requesters no existe en la base de soporte.")
+    schema_arg = settings.support_db_schema if settings.support_db_url.startswith("postgresql") else None
+    columns = {str(col.get("name", "")) for col in inspector.get_columns("requesters", schema=schema_arg)}
+    internal_expr = "internal_name" if "internal_name" in columns else "'' AS internal_name"
+    rows = conn.execute(
+        text(f"SELECT id, name, {internal_expr}, email, notes FROM {_support_requesters_table_name()} ORDER BY id ASC")
+    ).mappings().all()
+    return [dict(row) for row in rows]
+
+
+def _support_find_requesters(conn, client_name: str) -> list[dict]:
+    target_key = _client_notes_key(client_name)
+    if not target_key:
+        return []
+    return [
+        row
+        for row in _support_fetch_requesters(conn)
+        if target_key in _support_requester_keys(row)
+    ]
+
+
+def _support_collect_client_notes(conn, client_name: str) -> list[dict[str, str | int]]:
+    notes: list[dict[str, str | int]] = []
+    seen: set[tuple[str, str, str]] = set()
+    for requester in _support_find_requesters(conn, client_name):
+        for note in _parse_support_requester_notes(str(requester.get("notes") or "")):
+            text_value = str(note.get("text", "") or "").strip()
+            note_key = (
+                text_value,
+                str(note.get("author", "") or ""),
+                str(note.get("created_at", "") or ""),
+            )
+            if not text_value or note_key in seen:
+                continue
+            seen.add(note_key)
+            enriched = dict(note)
+            enriched["source_requester_id"] = int(requester.get("id") or 0)
+            notes.append(enriched)
+    notes.sort(key=lambda note: str(note.get("created_at", "") or ""))
+    return notes
+
+
+@app.get("/api/client-notes")
+def get_client_internal_notes(client: str = Query("")) -> JSONResponse:
+    client_name = re.sub(r"\s+", " ", (client or "").strip())
+    if not client_name:
+        return JSONResponse({"ok": True, "client": "", "notes": [], "count": 0})
+    notes_engine = _get_support_notes_engine()
+    if notes_engine is None:
+        raise HTTPException(status_code=503, detail="SUPPORT_DB_URL no esta configurado.")
+    with notes_engine.begin() as conn:
+        notes = _support_collect_client_notes(conn, client_name)
+    return JSONResponse({"ok": True, "client": client_name, "notes": notes, "count": len(notes)})
+
+
+@app.post("/api/client-notes")
+def add_client_internal_note(payload: dict = Body(...)) -> JSONResponse:
+    client_name = re.sub(r"\s+", " ", str(payload.get("client", "") or "").strip())
+    note_text = str(payload.get("note", "") or "").strip()
+    if not client_name:
+        raise HTTPException(status_code=400, detail="Debes indicar el cliente.")
+    if not note_text:
+        raise HTTPException(status_code=400, detail="Debes escribir una nota.")
+    notes_engine = _get_support_notes_engine()
+    if notes_engine is None:
+        raise HTTPException(status_code=503, detail="SUPPORT_DB_URL no esta configurado.")
+
+    author = re.sub(r"\s+", " ", str(payload.get("author", "") or "").strip()) or "Incidencias"
+    table_name = _support_requesters_table_name()
+    with notes_engine.begin() as conn:
+        matches = _support_find_requesters(conn, client_name)
+        if matches:
+            requester = matches[0]
+        else:
+            conn.execute(
+                text(f"INSERT INTO {table_name} (name, email, notes) VALUES (:name, NULL, NULL)"),
+                {"name": client_name[:100] or "Cliente"},
+            )
+            matches = _support_find_requesters(conn, client_name)
+            if not matches:
+                raise HTTPException(status_code=500, detail="No se pudo crear el cliente para notas.")
+            requester = matches[0]
+
+        notes = _parse_support_requester_notes(str(requester.get("notes") or ""))
+        notes.append(
+            {
+                "text": note_text,
+                "author": author,
+                "author_id": 0,
+                "created_at": datetime.now(ZoneInfo(settings.timezone)).isoformat(),
+            }
+        )
+        conn.execute(
+            text(f"UPDATE {table_name} SET notes = :notes WHERE id = :id"),
+            {"notes": _serialize_support_requester_notes(notes), "id": requester.get("id")},
+        )
+        merged_notes = _support_collect_client_notes(conn, client_name)
+
+    return JSONResponse(
+        {
+            "ok": True,
+            "client": client_name,
+            "requester_id": int(requester.get("id") or 0),
+            "notes": merged_notes,
+            "count": len(merged_notes),
+        }
+    )
 
 
 def _ensure_registro_optional_columns() -> None:

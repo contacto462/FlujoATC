@@ -17,7 +17,7 @@ from email.utils import parseaddr
 from urllib.parse import urlencode
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Request, Form, HTTPException, Query, File, UploadFile
+from fastapi import APIRouter, Body, Depends, Request, Form, HTTPException, Query, File, UploadFile
 
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 
@@ -3475,6 +3475,106 @@ def _serialize_requester_notes(notes: list[dict[str, str | int]]) -> str:
     return json.dumps(payload, ensure_ascii=False)
 
 
+def _client_notes_key(value: str | None) -> str:
+    text_value = decode_mime_words(value or "") or (value or "")
+    text_value = re.sub(r"\s+", " ", text_value).strip().casefold()
+    text_value = unicodedata.normalize("NFD", text_value)
+    text_value = "".join(ch for ch in text_value if unicodedata.category(ch) != "Mn")
+    return re.sub(r"[^a-z0-9]+", " ", text_value).strip()
+
+
+def _requester_client_note_keys(requester: Requester | None) -> set[str]:
+    if not requester:
+        return set()
+    values = [
+        requester.display_name,
+        requester.internal_name or "",
+        requester.name or "",
+        requester.email or "",
+    ]
+    return {key for key in (_client_notes_key(value) for value in values) if key}
+
+
+def _find_requesters_for_client_notes(
+    db: Session,
+    client_name: str,
+    preferred: Requester | None = None,
+) -> list[Requester]:
+    target_key = _client_notes_key(client_name)
+    matches: list[Requester] = []
+    seen_ids: set[int] = set()
+
+    if preferred is not None:
+        matches.append(preferred)
+        seen_ids.add(int(preferred.id))
+        if not target_key:
+            return matches
+
+    if not target_key:
+        return matches
+
+    requesters = db.query(Requester).order_by(Requester.id.asc()).all()
+    for requester in requesters:
+        requester_id = int(requester.id)
+        if requester_id in seen_ids:
+            continue
+        if target_key in _requester_client_note_keys(requester):
+            matches.append(requester)
+            seen_ids.add(requester_id)
+
+    return matches
+
+
+def _note_sort_key(note: dict[str, str | int], fallback_index: int) -> tuple[str, int]:
+    created_at = str(note.get("created_at", "") or "")
+    return (created_at, fallback_index)
+
+
+def _collect_client_internal_notes(
+    db: Session,
+    client_name: str,
+    preferred: Requester | None = None,
+) -> list[dict[str, str | int]]:
+    notes: list[dict[str, str | int]] = []
+    seen: set[tuple[str, str, str]] = set()
+    fallback_index = 0
+    for requester in _find_requesters_for_client_notes(db, client_name, preferred=preferred):
+        for note in _parse_requester_notes(requester.notes):
+            text = str(note.get("text", "") or "").strip()
+            if not text:
+                continue
+            note_key = (
+                text,
+                str(note.get("author", "") or ""),
+                str(note.get("created_at", "") or ""),
+            )
+            if note_key in seen:
+                continue
+            seen.add(note_key)
+            fallback_index += 1
+            enriched = dict(note)
+            enriched["source_requester_id"] = int(requester.id)
+            enriched["_fallback_index"] = fallback_index
+            notes.append(enriched)
+
+    notes.sort(key=lambda item: _note_sort_key(item, int(item.get("_fallback_index") or 0)))
+    for note in notes:
+        note.pop("_fallback_index", None)
+    return notes
+
+
+def _get_or_create_requester_for_client_notes(db: Session, client_name: str) -> Requester:
+    matches = _find_requesters_for_client_notes(db, client_name)
+    if matches:
+        return matches[0]
+
+    clean_name = re.sub(r"\s+", " ", (client_name or "").strip())[:100] or "Cliente"
+    requester = Requester(name=clean_name, email=None)
+    db.add(requester)
+    db.flush()
+    return requester
+
+
 def _normalize_requester_name(requester: Requester | None) -> None:
     if not requester or not requester.name:
         return
@@ -3731,7 +3831,12 @@ def ticket_detail(
 
         m.content = Markup(content)
 
-    requester_notes = _parse_requester_notes(ticket.requester.notes if ticket.requester else None)
+    requester_note_client_name = ticket.requester.display_name if ticket.requester else ""
+    requester_notes = _collect_client_internal_notes(
+        db,
+        requester_note_client_name,
+        preferred=ticket.requester,
+    )
     total_internal_notes = len(requester_notes)
     internal_note_state = (
         db.query(TicketInternalNoteReadState)
@@ -3976,6 +4081,75 @@ def ticket_detail(
     )
 
 
+@router.get("/api/client-notes")
+def api_get_client_internal_notes(
+    client: str = Query(""),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    client_name = re.sub(r"\s+", " ", (client or "").strip())
+    if not client_name:
+        return JSONResponse({"ok": True, "client": "", "notes": [], "count": 0})
+
+    notes = _collect_client_internal_notes(db, client_name)
+    return JSONResponse(
+        {
+            "ok": True,
+            "client": client_name,
+            "notes": notes,
+            "count": len(notes),
+        }
+    )
+
+
+@router.post("/api/client-notes")
+def api_add_client_internal_note(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    client_name = re.sub(r"\s+", " ", str(payload.get("client", "") or "").strip())
+    note_text = str(payload.get("note", "") or "").strip()
+    if not client_name:
+        raise HTTPException(status_code=400, detail="Debes indicar el cliente.")
+    if not note_text:
+        raise HTTPException(status_code=400, detail="Debes escribir una nota.")
+
+    requester_id_raw = payload.get("requester_id")
+    requester: Requester | None = None
+    if requester_id_raw:
+        try:
+            requester = db.get(Requester, int(requester_id_raw))
+        except (TypeError, ValueError):
+            requester = None
+    if requester is None:
+        requester = _get_or_create_requester_for_client_notes(db, client_name)
+
+    notes = _parse_requester_notes(requester.notes)
+    notes.append(
+        {
+            "text": note_text,
+            "author": current_user.name or current_user.username,
+            "author_id": current_user.id,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+    )
+    requester.notes = _serialize_requester_notes(notes)
+    db.commit()
+    db.refresh(requester)
+
+    merged_notes = _collect_client_internal_notes(db, client_name, preferred=requester)
+    return JSONResponse(
+        {
+            "ok": True,
+            "client": client_name,
+            "requester_id": requester.id,
+            "notes": merged_notes,
+            "count": len(merged_notes),
+        }
+    )
+
+
 @router.post("/tickets/requesters/{requester_id}/notes")
 
 def add_requester_internal_note(
@@ -4052,7 +4226,11 @@ def mark_internal_notes_as_read(
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
 
-    notes = _parse_requester_notes(ticket.requester.notes if ticket.requester else None)
+    notes = _collect_client_internal_notes(
+        db,
+        ticket.requester.display_name if ticket.requester else "",
+        preferred=ticket.requester,
+    )
     note_count = len(notes)
 
     read_state = (
