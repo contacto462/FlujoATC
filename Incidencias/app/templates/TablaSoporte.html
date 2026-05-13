@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tabla Área Soporte Técnico</title>
+  <style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f6f8;
+    color: #333;
+    margin: 0;
+    padding: 30px;
+    text-align: center;
+  }
+
+  h1 {
+    font-size: 26px;
+    margin-bottom: 25px;
+    color: #2d3436;
+  }
+
+  .tabla-container {
+    max-height: 80vh;
+    overflow-y: auto;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.07);
+    background-color: white;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    table-layout: fixed;
+  }
+
+  thead th {
+    position: sticky;
+    top: 0;
+    background-color: #2ecc71;
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+    padding: 12px;
+    text-align: center;
+    z-index: 5;
+  }
+
+  td {
+    padding: 10px;
+    font-size: 13px;
+    text-align: center;
+    word-wrap: break-word;
+    border-bottom: 1px solid #eee;
+  }
+
+  tbody tr:nth-child(even) {
+    background-color: #fdfdfd;
+  }
+
+  tbody tr:hover {
+    background-color: #f1f1f1;
+  }
+
+  .cliente-link {
+    color: #007bff;
+    text-decoration: none;
+    border-bottom: 2px solid #007bff;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .cliente-link:hover {
+    color: #0056b3;
+    border-color: #0056b3;
+  }
+
+  .boton {
+    padding: 6px 10px;
+    font-size: 13px;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+    width: 100%;
+    text-transform: uppercase;
+    border: none;
+    transition: 0.3s;
+    box-sizing: border-box;
+  }
+
+  .completado {
+    background-color: #27ae60;
+    color: white;
+  }
+
+  .pendiente {
+    background-color: #e74c3c;
+    color: white;
+  }
+
+  .si {
+    background-color: #3498db;
+    color: white;
+  }
+
+  .no {
+    background-color: #d35400;
+    color: white;
+  }
+
+  .boton:hover {
+    transform: scale(1.05);
+  }
+
+  .input-number {
+    width: 100%;
+    padding: 7px;
+    font-size: 13px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    text-align: center;
+    box-sizing: border-box;
+  }
+
+  .filtro-container {
+    margin-top: 8px;
+  }
+
+  select.filtro {
+    padding: 6px 8px;
+    font-size: 13px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  select.filtro:focus {
+    outline: none;
+    border-color: #2ecc71;
+  }
+
+  .detalles-camaras {
+    background-color: #ffffff;
+    border-radius: 14px;
+    padding: 20px 28px;
+    margin: 16px auto;
+    text-align: left;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e0e0e0;
+    line-height: 1.7;
+    font-size: 15px;
+    color: #2d3436;
+    max-width: 680px;
+    width: 95%;
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .detalles-camaras h4 {
+    margin-top: 0;
+    color: #2d3436;
+    font-size: 16px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+  }
+
+  .detalles-camaras div {
+    margin: 6px 0;
+    font-size: 14px;
+  }
+
+  .detalles-camaras b {
+    color: #2c3e50;
+  }
+
+  .detalles-camaras a {
+    color: #2980b9;
+    font-weight: bold;
+    text-decoration: none;
+  }
+
+  .detalles-camaras a:hover {
+    text-decoration: underline;
+  }
+
+  .fila-anulada {
+    background-color: #f8d7da;
+    color: #c0392b;
+    pointer-events: none;
+    opacity: 0.6;
+  }
+
+  tbody tr.fila-anulada:hover {
+    background-color: #f8d7da;
+  }
+
+  #cargando {
+    font-size: 16px;
+    color: #888;
+    margin: 40px 0;
+  }
+  </style>
+</head>
+
+<body>
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px;">
+    <div style="flex: 1; text-align: left;">
+      <a href="/panel" style="font-size: 13px; color: #555; text-decoration: none; background: #eee; padding: 6px 12px; border-radius: 6px;">← Panel</a>
+    </div>
+    <div style="flex: 2; text-align: center;">
+      <h1 style="margin: 0;">Tabla Área Soporte Técnico</h1>
+    </div>
+    <div style="flex: 1;"></div>
+  </div>
+
+  <div id="cargando">Cargando datos...</div>
+
+  <div class="tabla-container" id="contenedor-tabla" style="display:none;">
+    <table>
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Fecha</th>
+          <th>Ejecutivo</th>
+          <th>Rut Cliente</th>
+          <th>Razón Social</th>
+          <th>Dirección Sucursal</th>
+          <th>Tipo Servicio</th>
+          <th>Tipo de Plan</th>
+          <th>Instalación Finalizada</th>
+          <th>Configuración de Cámaras</th>
+          <th>Posicionamiento de Imagen</th>
+          <th>Enlace con Servidor</th>
+          <th>Configuración de IVS</th>
+          <th>Plan de Grabación</th>
+          <th>Requiere Puesto Nuevo</th>
+          <th>Número de Central Asignado</th>
+          <th>Configuración en Cliente</th>
+          <th>V°B Final de Servicio</th>
+          <th>
+            Terminado
+            <div class="filtro-container">
+              <select id="filtro-terminado" class="filtro" onchange="filtrarTabla()">
+                <option value="Pendiente" selected>Pendiente</option>
+                <option value="Todos">Todos</option>
+                <option value="✓">✓</option>
+              </select>
+            </div>
+          </th>
+        </tr>
+      </thead>
+      <tbody id="tabla-datos"></tbody>
+    </table>
+  </div>
+
+<script>
+  let obtenerIDsGlobal = () => [];
+
+  /* ===== API helpers ===== */
+  async function apiGet(url) {
+    const res = await fetch(url, { credentials: "include" });
+    if (res.status === 401) { window.location.href = "/login?next=/tabla-soporte"; throw new Error("401"); }
+    if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.detail || `HTTP ${res.status}`); }
+    return res.json();
+  }
+
+  async function apiPost(url, body) {
+    const res = await fetch(url, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (res.status === 401) { window.location.href = "/login?next=/tabla-soporte"; throw new Error("401"); }
+    if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.detail || `HTTP ${res.status}`); }
+    return res.json();
+  }
+
+  /* ===== Campo mapping (tabla index → field name) ===== */
+  const campoReal = {
+    9:  "configuracion_camaras",
+    10: "posicionamiento_imagen",
+    11: "enlace_servidor",
+    12: "configuracion_ivs",
+    13: "plan_grabacion",
+    16: "configuracion_cliente",
+    17: "vb_final_servicio",
+    18: "finalizado",
+  };
+
+  /* ===== Load table ===== */
+  async function cargarDatosTablaSoporteTecnico() {
+    try {
+      const datos = await apiGet("/api/soporte-tecnico/ods-filas");
+      mostrarDatosEnTabla(datos);
+    } catch (err) {
+      if (err.message !== "401") {
+        document.getElementById("cargando").textContent = "Error al cargar datos: " + err.message;
+      }
+    }
+  }
+
+  function filtrarTabla() {
+    const filtro = document.getElementById("filtro-terminado").value;
+    document.querySelectorAll("#tabla-datos tr").forEach(fila => {
+      if (fila.classList.contains("fila-detalles") || fila.classList.contains("modal-subida")) return;
+      const estado = (fila.cells[18] && fila.cells[18].textContent.trim()) || "";
+      fila.style.display = (filtro === "Todos" || estado === filtro) ? "" : "none";
+    });
+  }
+
+  function mostrarDatosEnTabla(datos) {
+    const cuerpoTabla = document.getElementById("tabla-datos");
+    cuerpoTabla.innerHTML = "";
+
+    datos.forEach((fila) => {
+      const tr = document.createElement("tr");
+      const tipoServicio = (fila[6] || "").toString().toLowerCase();
+      const esTelevigilancia = tipoServicio.includes("televigilancia");
+      const instalacionFinalizada = fila[8];
+
+      if ((fila[19] || "").toLowerCase() === "anulada") {
+        tr.classList.add("fila-anulada");
+      }
+
+      fila.forEach((celda, idx) => {
+        if (idx === 19) return;
+        const td = document.createElement("td");
+
+        if (idx === 0) {
+          const link = document.createElement("span");
+          link.textContent = celda || "Sin Código";
+          link.className = "cliente-link";
+          link.onclick = () => abrirDetalle(tr, fila, esTelevigilancia);
+          td.appendChild(link);
+
+        } else if (idx === 2) {
+          const enlace = document.createElement("a");
+          enlace.href = "#";
+          enlace.className = "cliente-link";
+          enlace.textContent = celda || "Subir Archivos";
+          enlace.onclick = (e) => { e.preventDefault(); abrirModalSubida(tr, fila); };
+          td.appendChild(enlace);
+
+        } else if (idx === 14) {
+          const cont = document.createElement("div");
+          cont.style.cssText = "display:flex;justify-content:center;gap:8px;";
+          let estadoActual = (celda || "").toString().trim().toLowerCase();
+          ["si", "no"].forEach(opcion => {
+            const btn = document.createElement("button");
+            btn.textContent = opcion.toUpperCase();
+            btn.classList.add("boton", opcion);
+            btn.dataset.opcion = opcion;
+            btn.style.opacity = estadoActual === opcion ? "1" : "0.4";
+            btn.onclick = async () => {
+              const yaSeleccionado = estadoActual === opcion;
+              const nuevoValor = yaSeleccionado ? "" : (opcion === "si" ? "Si" : "No");
+              Array.from(cont.children).forEach(b => b.style.opacity = "1");
+              estadoActual = yaSeleccionado ? "" : opcion;
+              if (!yaSeleccionado) {
+                Array.from(cont.children).forEach(b => {
+                  b.style.opacity = b.dataset.opcion === opcion ? "1" : "0.4";
+                });
+              }
+              try {
+                await apiPost("/api/soporte-tecnico/ods/actualizar-valor", { codigo: fila[0], campo: "requiere_puesto_nuevo", valor: nuevoValor });
+              } catch (err) { alert("Error: " + err.message); }
+            };
+            cont.appendChild(btn);
+          });
+          td.appendChild(cont);
+
+        } else if (idx === 15) {
+          const input = document.createElement("input");
+          input.type = "number";
+          input.value = celda || "";
+          input.classList.add("input-number");
+          input.onchange = async () => {
+            try {
+              await apiPost("/api/soporte-tecnico/ods/actualizar-valor", { codigo: fila[0], campo: "numero_central_asignado", valor: input.value });
+              await apiPost("/api/soporte-tecnico/ods/notificar-termino", { codigo: fila[0] });
+            } catch (err) { alert("Error: " + err.message); }
+          };
+          td.appendChild(input);
+
+        } else if (
+          (idx >= 9 && idx <= 13) || (idx >= 16 && idx <= 18)
+        ) {
+          const btn = document.createElement("button");
+          const estadoActual = (celda && celda !== "Pendiente") ? "✓" : "Pendiente";
+          btn.textContent = estadoActual;
+          btn.classList.add("boton", estadoActual === "✓" ? "completado" : "pendiente");
+
+          const instPendiente = !instalacionFinalizada || instalacionFinalizada === "" || instalacionFinalizada.toLowerCase() === "pendiente";
+          if (!esTelevigilancia && instPendiente) {
+            btn.disabled = true;
+            btn.title = "Debe estar finalizada la instalación";
+          } else {
+            btn.onclick = async () => {
+              const nuevoEstado = btn.textContent === "Pendiente" ? "Completado" : "Pendiente";
+              const nuevo = nuevoEstado === "Completado";
+              btn.textContent = nuevo ? "✓" : "Pendiente";
+              btn.classList.toggle("pendiente");
+              btn.classList.toggle("completado");
+              const campo = campoReal[idx];
+              try {
+                await apiPost("/api/soporte-tecnico/ods/actualizar-estado", { codigo: fila[0], campo, valor: nuevo });
+                if (idx === 18 && nuevo) {
+                  await apiPost("/api/soporte-tecnico/ods/notificar-termino", { codigo: fila[0] });
+                }
+              } catch (err) {
+                btn.textContent = nuevo ? "Pendiente" : "✓";
+                btn.classList.toggle("pendiente");
+                btn.classList.toggle("completado");
+                alert("Error: " + err.message);
+              }
+            };
+          }
+          td.appendChild(btn);
+
+        } else if (idx === 8) {
+          td.textContent = celda || "Pendiente";
+        } else {
+          td.textContent = celda || "Pendiente";
+        }
+
+        tr.appendChild(td);
+      });
+
+      cuerpoTabla.appendChild(tr);
+    });
+
+    document.getElementById("cargando").style.display = "none";
+    document.getElementById("contenedor-tabla").style.display = "";
+    filtrarTabla();
+  }
+
+  /* ===== Detalle ODT ===== */
+  async function abrirDetalle(filaPrincipal, fila, esTelevigilancia) {
+    const filaExistente = filaPrincipal.nextElementSibling;
+    if (filaExistente && filaExistente.classList.contains("fila-detalles")) {
+      filaExistente.remove();
+      return;
+    }
+    try {
+      const info = await apiGet(`/api/soporte-tecnico/ods/${encodeURIComponent(fila[0])}/detalle`);
+      const detalle = document.createElement("div");
+      detalle.style.cssText = "margin:20px auto;max-width:95%;background:#fff8f0;padding:16px 20px;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,0.08);text-align:left;";
+      detalle.innerHTML = `
+        <h4>Información completa ODT</h4>
+        <p><b>Cámaras a Instalar:</b> ${info.camarasInstalar}</p>
+        <p><b>Cámaras a Vigilar:</b> ${info.camarasVigilar}</p>
+        <p><b>Días de Grabación:</b> ${info.diasGrabacion}</p>
+        <p><b>Materiales:</b><br>${info.materiales}</p>
+        <p><b>Contacto:</b> ${info.contactoNombre} (${info.contactoTelefono})</p>
+        <p><b>Layout:</b> ${info.layout ? `<a href="${info.layout}" target="_blank">Ver Layout</a>` : "No disponible"}</p>
+        <p><b>Observación:</b> ${info.observacion || "Sin observaciones"}</p>
+        ${esTelevigilancia ? `
+          <hr style="margin:16px 0;">
+          <button id="btn-toggle-tabla-${fila[0]}" style="background:#000;color:white;padding:8px 14px;border:none;border-radius:6px;font-weight:bold;cursor:pointer;">
+            Registrar IDs de Cámaras Instaladas
+          </button>
+          <div id="contenedor-tabla-camaras-${fila[0]}" style="display:none;margin-top:15px;"></div>
+          <button id="btn-guardar-ids-${fila[0]}" style="margin-top:12px;background:#27ae60;color:white;padding:8px 14px;border:none;border-radius:6px;font-weight:bold;cursor:pointer;">
+            Guardar IDs de Cámaras
+          </button>
+        ` : ""}
+      `;
+
+      const filaDetalle = document.createElement("tr");
+      filaDetalle.className = "fila-detalles";
+      const tdDetalle = document.createElement("td");
+      tdDetalle.colSpan = 19;
+      tdDetalle.appendChild(detalle);
+      filaDetalle.appendChild(tdDetalle);
+      filaPrincipal.insertAdjacentElement("afterend", filaDetalle);
+
+      if (esTelevigilancia) {
+        const btn = document.getElementById(`btn-toggle-tabla-${fila[0]}`);
+        const cont = document.getElementById(`contenedor-tabla-camaras-${fila[0]}`);
+        const btnGuardar = document.getElementById(`btn-guardar-ids-${fila[0]}`);
+
+        btn.onclick = async () => {
+          const visible = cont.style.display === "block";
+          cont.style.display = visible ? "none" : "block";
+          if (!visible && cont.innerHTML === "") {
+            try {
+              const ids = await apiGet(`/api/soporte-tecnico/ods/${encodeURIComponent(fila[0])}/camaras`);
+              iniciarTablaBidireccional(cont.id, ids);
+            } catch (err) { alert("Error cargando cámaras: " + err.message); }
+          }
+        };
+
+        btnGuardar.onclick = async () => {
+          const ids = obtenerIDsGlobal();
+          if (ids.length === 0) { alert("⚠️ Debes seleccionar al menos una cámara"); return; }
+          try {
+            const res = await apiPost("/api/soporte-tecnico/ods/guardar-camaras", {
+              odt: fila[0], ids,
+              idCliente: info.idCliente, idSucursal: info.idSucursal,
+              razonSocial: info.razonSocial, sucursal: info.sucursal, direccion: info.direccion,
+            });
+            alert("✅ " + res.mensaje);
+          } catch (err) { alert("❌ Error: " + err.message); }
+        };
+      }
+    } catch (err) {
+      if (err.message !== "401") alert("Error cargando detalle: " + err.message);
+    }
+  }
+
+  /* ===== Modal subida de imágenes ===== */
+  function abrirModalSubida(tr, fila) {
+    const filaAbierta = tr.nextElementSibling;
+    if (filaAbierta && filaAbierta.classList.contains("modal-subida")) { filaAbierta.remove(); return; }
+    document.querySelector(".modal-subida")?.remove();
+
+    const filaDetalle = document.createElement("tr");
+    filaDetalle.className = "modal-subida";
+    const tdModal = document.createElement("td");
+    tdModal.colSpan = 19;
+    tdModal.innerHTML = `
+      <div style="background:#fff8f0;padding:24px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.1);margin-top:6px;">
+        <h4 style="margin-top:0;font-size:16px;color:#2d3436;text-align:center;">📤 Subir imágenes para <b>${fila[0]}</b></h4>
+        <div id="contenedor-inputs-${fila[0]}" style="margin:20px auto 24px auto;max-width:600px;"></div>
+        <div style="display:flex;justify-content:center;gap:12px;">
+          <button id="btn-subir-${fila[0]}" style="background:#27ae60;color:white;padding:6px 14px;border:none;border-radius:6px;">Subir</button>
+          <button id="btn-cancelar-${fila[0]}" style="background:#e74c3c;color:white;padding:6px 14px;border:none;border-radius:6px;">Cancelar</button>
+        </div>
+      </div>
+    `;
+    filaDetalle.appendChild(tdModal);
+    tr.insertAdjacentElement("afterend", filaDetalle);
+
+    const contenedor = document.getElementById(`contenedor-inputs-${fila[0]}`);
+
+    function agregarInputArchivo() {
+      const wrapper = document.createElement("div");
+      wrapper.style.cssText = "display:flex;align-items:center;gap:12px;margin-bottom:10px;";
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/*";
+      input.style.display = "none";
+      const inputId = `file-${fila[0]}-${Date.now()}`;
+      input.id = inputId;
+      const label = document.createElement("label");
+      label.htmlFor = inputId;
+      label.textContent = "📎 Seleccionar imagen";
+      label.style.cssText = "display:inline-block;padding:8px 14px;background:#3498db;color:#fff;border-radius:6px;cursor:pointer;font-size:13px;min-width:160px;text-align:center;";
+      const span = document.createElement("span");
+      span.style.cssText = "font-style:italic;font-size:13px;color:#2d3436;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
+      input.addEventListener("change", () => {
+        if (input.files.length) { span.textContent = input.files[0].name; agregarInputArchivo(); }
+      });
+      wrapper.append(label, input, span);
+      contenedor.appendChild(wrapper);
+    }
+    agregarInputArchivo();
+
+    document.getElementById(`btn-cancelar-${fila[0]}`).onclick = () => filaDetalle.remove();
+    document.getElementById(`btn-subir-${fila[0]}`).onclick = async () => {
+      const btnSubir = document.getElementById(`btn-subir-${fila[0]}`);
+      const inputs = contenedor.querySelectorAll("input[type='file']");
+      const archivos = [];
+      inputs.forEach(inp => { if (inp.files.length) archivos.push(inp.files[0]); });
+      if (!archivos.length) { alert("Debes seleccionar al menos una imagen."); return; }
+      btnSubir.disabled = true;
+      btnSubir.textContent = "Subiendo...";
+      const convertidos = await Promise.all(archivos.map((file, i) => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve({ nombre: `IMAGEN${i + 1}`, mimeType: file.type, base64: reader.result.split(",")[1] });
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      })));
+      try {
+        const res = await apiPost("/api/soporte-tecnico/ods/upload-imagenes", { odt: fila[0], archivos: convertidos });
+        alert(`✅ ${res.guardadas} imagen(es) subida(s)`);
+        filaDetalle.remove();
+      } catch (err) {
+        alert("❌ Error al subir archivos: " + err.message);
+        btnSubir.disabled = false;
+        btnSubir.textContent = "Subir";
+      }
+    };
+  }
+
+  /* ===== Tabla bidireccional cámaras ===== */
+  function iniciarTablaBidireccional(contenedorId, idsGuardados = []) {
+    const contenedor = document.getElementById(contenedorId);
+    if (!contenedor) return;
+
+    let totalCamaras = 8;
+    let totalEquipos = 2;
+
+    if (idsGuardados.length) {
+      const maxCam = Math.max(...idsGuardados.map(i => +i.split("_")[1]));
+      if (maxCam > 16) totalCamaras = 32;
+      else if (maxCam > 8) totalCamaras = 16;
+    }
+
+    const estado = {};
+    idsGuardados.forEach(id => estado[id] = true);
+
+    function render() {
+      contenedor.innerHTML = `
+        <div style="display:inline-block;background:#1f2933;border:1px solid #3a4656;border-radius:6px;padding:12px;position:relative;font-family:Segoe UI,Roboto,sans-serif;">
+          <table style="border-collapse:collapse;table-layout:auto;">
+            <thead>
+              <tr>
+                <th style="background:#273241;border:1px solid #3a4656;color:#e5e9f0;width:40px;font-size:12px;">#</th>
+                ${Array.from({ length: totalEquipos }, (_, e) => `<th style="background:#273241;border:1px solid #3a4656;color:#e5e9f0;min-width:70px;font-size:12px;">${e + 1}</th>`).join("")}
+              </tr>
+            </thead>
+            <tbody>
+              ${Array.from({ length: totalCamaras }, (_, c) => `
+                <tr>
+                  <td style="background:#273241;border:1px solid #3a4656;color:#e5e9f0;font-size:12px;font-weight:600;height:30px;text-align:center;">${c + 1}</td>
+                  ${Array.from({ length: totalEquipos }, (_, e) => {
+                    const key = `${e + 1}_${c + 1}`;
+                    const activo = estado[key];
+                    return `<td class="celda-id" data-key="${key}" style="border:1px solid #3a4656;height:30px;cursor:pointer;text-align:center;font-size:12px;background:${activo ? "#3b82f6" : "transparent"};color:${activo ? "#ffffff" : "#9aa5b1"};font-weight:${activo ? "600" : "400"};">${activo ? key : ""}</td>`;
+                  }).join("")}
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+          <div id="btn-add-equipo" style="position:absolute;right:-28px;top:50%;transform:translateY(-50%);width:22px;height:22px;border-radius:50%;background:#273241;border:1px solid #3a4656;color:#e5e9f0;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;user-select:none;">+</div>
+          <div style="display:flex;justify-content:center;margin-top:8px;">
+            <div id="btn-add-camara" style="width:22px;height:22px;border-radius:50%;background:#FFFFFF;border:1px solid #3a4656;color:#000;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;user-select:none;">+</div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById("btn-add-equipo").onclick = () => { totalEquipos++; render(); };
+      document.getElementById("btn-add-camara").onclick = () => {
+        if (totalCamaras === 8) totalCamaras = 16;
+        else if (totalCamaras === 16) totalCamaras = 32;
+        else return alert("Máximo 32 cámaras");
+        render();
+      };
+      contenedor.querySelectorAll(".celda-id").forEach(celda => {
+        celda.onclick = () => { const key = celda.dataset.key; estado[key] = !estado[key]; render(); };
+      });
+    }
+
+    obtenerIDsGlobal = () => Object.keys(estado).filter(k => estado[k]);
+    render();
+  }
+
+  window.onload = cargarDatosTablaSoporteTecnico;
+</script>
+</body>
+</html>

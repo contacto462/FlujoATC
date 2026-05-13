@@ -5552,3 +5552,349 @@ def create_ticket(
     return RedirectResponse("/dashboard", status_code=303)
 
 
+# ============================================================
+# TABLA SOPORTE TECNICO ODS - INSTALACIONES
+# ============================================================
+
+_ST_BOOL_FIELDS = {
+    "instalacion_finalizada", "configuracion_camaras", "posicionamiento_imagen",
+    "enlace_servidor", "configuracion_ivs", "plan_grabacion",
+    "configuracion_cliente", "vb_final_servicio", "finalizado",
+}
+_ST_TEXT_FIELDS = {"requiere_puesto_nuevo", "numero_central_asignado"}
+_ST_BOOL_DATE: dict[str, str] = {
+    "instalacion_finalizada": "fecha_instalacion_finalizada",
+    "configuracion_camaras": "fecha_configuracion_camaras",
+    "posicionamiento_imagen": "fecha_posicionamiento_imagen",
+    "enlace_servidor": "fecha_enlace_servidor",
+    "configuracion_ivs": "fecha_configuracion_ivs",
+    "plan_grabacion": "fecha_plan_grabacion",
+    "configuracion_cliente": "fecha_configuracion_cliente",
+    "vb_final_servicio": "fecha_vb_final_servicio",
+    "finalizado": "fecha_cierre",
+}
+_st_campos_ok = False
+
+
+def _ensure_st_campos(db: Session) -> None:
+    global _st_campos_ok
+    if _st_campos_ok:
+        return
+    extras = [
+        ("configuracion_camaras", "BOOLEAN DEFAULT FALSE"),
+        ("fecha_configuracion_camaras", "TIMESTAMP"),
+        ("posicionamiento_imagen", "BOOLEAN DEFAULT FALSE"),
+        ("fecha_posicionamiento_imagen", "TIMESTAMP"),
+        ("enlace_servidor", "BOOLEAN DEFAULT FALSE"),
+        ("fecha_enlace_servidor", "TIMESTAMP"),
+        ("configuracion_ivs", "BOOLEAN DEFAULT FALSE"),
+        ("fecha_configuracion_ivs", "TIMESTAMP"),
+        ("plan_grabacion", "BOOLEAN DEFAULT FALSE"),
+        ("fecha_plan_grabacion", "TIMESTAMP"),
+        ("requiere_puesto_nuevo", "TEXT"),
+        ("numero_central_asignado", "TEXT"),
+        ("configuracion_cliente", "BOOLEAN DEFAULT FALSE"),
+        ("fecha_configuracion_cliente", "TIMESTAMP"),
+        ("vb_final_servicio", "BOOLEAN DEFAULT FALSE"),
+        ("fecha_vb_final_servicio", "TIMESTAMP"),
+        ("camaras_registradas", "TEXT"),
+    ]
+    try:
+        for col, ctype in extras:
+            db.execute(text(
+                f"ALTER TABLE servicio_tecnico_ventas_odt ADD COLUMN IF NOT EXISTS {col} {ctype}"
+            ))
+        db.commit()
+    except Exception:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+    _st_campos_ok = True
+
+
+def _st_bool_val(v: object) -> str:
+    if v is None or v is False:
+        return "Pendiente"
+    if v is True:
+        return "Completado"
+    return "Pendiente" if str(v).strip().lower() in ("", "false", "0", "pendiente") else "Completado"
+
+
+@router.get("/tabla-soporte", response_class=HTMLResponse)
+def tabla_soporte_page(
+    request: Request,
+    current_user: User = Depends(get_current_user_web),
+):
+    return templates.TemplateResponse(
+        "TablaSoporte.html",
+        {"request": request, "user": current_user},
+    )
+
+
+@router.get("/api/soporte-tecnico/ods-filas")
+def st_ods_filas(
+    db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    _ = current_user
+    _ensure_st_campos(db)
+    rows = db.execute(text("""
+        SELECT
+            v.codigo, v.created_at, v.creado_por, v.rut_cliente, v.razon_social,
+            v.direccion_sucursal, v.tipo_servicio, v.tipo_plan, v.estado,
+            COALESCE(s.instalacion_finalizada, FALSE),
+            COALESCE(s.configuracion_camaras, FALSE),
+            COALESCE(s.posicionamiento_imagen, FALSE),
+            COALESCE(s.enlace_servidor, FALSE),
+            COALESCE(s.configuracion_ivs, FALSE),
+            COALESCE(s.plan_grabacion, FALSE),
+            COALESCE(s.requiere_puesto_nuevo, ''),
+            COALESCE(s.numero_central_asignado, ''),
+            COALESCE(s.configuracion_cliente, FALSE),
+            COALESCE(s.vb_final_servicio, FALSE),
+            COALESCE(s.finalizado, FALSE)
+        FROM venta_ods v
+        LEFT JOIN servicio_tecnico_ventas_odt s
+            ON LOWER(TRIM(s.odt)) = LOWER(TRIM(v.codigo))
+        WHERE LOWER(v.tipo_servicio) LIKE '%servicio técnico%'
+           OR LOWER(v.tipo_servicio) LIKE '%servicio tecnico%'
+        ORDER BY v.created_at DESC, v.id DESC
+    """)).fetchall()
+    result: list[list] = []
+    for r in rows:
+        try:
+            fecha = r[1].strftime("%d/%m/%Y") if r[1] else ""
+        except Exception:
+            fecha = str(r[1] or "")
+        result.append([
+            r[0] or "",
+            fecha,
+            r[2] or "",
+            r[3] or "",
+            r[4] or "",
+            r[5] or "",
+            r[6] or "",
+            r[7] or "",
+            _st_bool_val(r[9]),
+            _st_bool_val(r[10]),
+            _st_bool_val(r[11]),
+            _st_bool_val(r[12]),
+            _st_bool_val(r[13]),
+            _st_bool_val(r[14]),
+            r[15] or "",
+            r[16] or "",
+            _st_bool_val(r[17]),
+            _st_bool_val(r[18]),
+            _st_bool_val(r[19]),
+            r[8] or "",
+        ])
+    return result
+
+
+@router.get("/api/soporte-tecnico/ods/{codigo}/detalle")
+def st_ods_detalle(
+    codigo: str,
+    db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    _ = current_user
+    row = db.execute(text("""
+        SELECT numero_camaras_instalar, numero_camaras_vigilar, dias_grabacion,
+               materiales, observacion, rut_cliente, nombre_sucursal, razon_social,
+               direccion_sucursal
+        FROM venta_ods
+        WHERE LOWER(TRIM(codigo)) = LOWER(TRIM(:c))
+        LIMIT 1
+    """), {"c": codigo}).mappings().first()
+    if not row:
+        raise HTTPException(status_code=404, detail="ODS no encontrada")
+    layout_url = db.execute(text("""
+        SELECT ruta_archivo FROM venta_ods_archivos
+        WHERE LOWER(TRIM(codigo_ods)) = LOWER(TRIM(:c))
+          AND LOWER(COALESCE(tipo_documento,'')) LIKE '%layout%'
+        ORDER BY id DESC LIMIT 1
+    """), {"c": codigo}).scalar_one_or_none()
+    contacto = db.execute(text("""
+        SELECT c.nombre, c.telefono
+        FROM sucursal_contactos_emergencia c
+        JOIN bbdd_sucursales s ON s.id = c.sucursal_id
+        WHERE LOWER(TRIM(s.direccion_sucursal)) = LOWER(TRIM(:d))
+        ORDER BY c.id ASC LIMIT 1
+    """), {"d": str(row.get("direccion_sucursal") or "")}).mappings().first()
+    return {
+        "camarasInstalar": str(row.get("numero_camaras_instalar") or ""),
+        "camarasVigilar": str(row.get("numero_camaras_vigilar") or ""),
+        "diasGrabacion": str(row.get("dias_grabacion") or ""),
+        "materiales": str(row.get("materiales") or ""),
+        "observacion": str(row.get("observacion") or ""),
+        "idCliente": str(row.get("rut_cliente") or ""),
+        "idSucursal": str(row.get("nombre_sucursal") or ""),
+        "razonSocial": str(row.get("razon_social") or ""),
+        "sucursal": str(row.get("nombre_sucursal") or row.get("razon_social") or ""),
+        "direccion": str(row.get("direccion_sucursal") or ""),
+        "layout": layout_url or "",
+        "contactoNombre": str(contacto.get("nombre") or "") if contacto else "",
+        "contactoTelefono": str(contacto.get("telefono") or "") if contacto else "",
+    }
+
+
+@router.get("/api/soporte-tecnico/ods/{codigo}/camaras")
+def st_ods_camaras(
+    codigo: str,
+    db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    _ = current_user
+    _ensure_st_campos(db)
+    raw = db.execute(text("""
+        SELECT camaras_registradas FROM servicio_tecnico_ventas_odt
+        WHERE LOWER(TRIM(odt)) = LOWER(TRIM(:c)) LIMIT 1
+    """), {"c": codigo}).scalar_one_or_none()
+    if not raw:
+        return []
+    try:
+        return json.loads(raw)
+    except Exception:
+        return []
+
+
+@router.post("/api/soporte-tecnico/ods/actualizar-estado")
+def st_ods_actualizar_estado(
+    payload: dict,
+    db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    _ = current_user
+    _ensure_st_campos(db)
+    codigo = str(payload.get("codigo") or "").strip()
+    campo = str(payload.get("campo") or "").strip()
+    valor = bool(payload.get("valor"))
+    if not codigo or campo not in _ST_BOOL_FIELDS:
+        raise HTTPException(status_code=400, detail="Parametros invalidos")
+    eid = db.execute(text(
+        "SELECT id FROM servicio_tecnico_ventas_odt WHERE LOWER(TRIM(odt)) = LOWER(TRIM(:c)) LIMIT 1"
+    ), {"c": codigo}).scalar_one_or_none()
+    now = datetime.now()
+    date_col = _ST_BOOL_DATE.get(campo)
+    if eid:
+        if date_col:
+            db.execute(text(
+                f"UPDATE servicio_tecnico_ventas_odt SET {campo}=:v, {date_col}=:d WHERE id=:id"
+            ), {"v": valor, "d": now if valor else None, "id": eid})
+        else:
+            db.execute(text(
+                f"UPDATE servicio_tecnico_ventas_odt SET {campo}=:v WHERE id=:id"
+            ), {"v": valor, "id": eid})
+    else:
+        cols = f"odt, {campo}"
+        vals = ":odt, :v"
+        params: dict[str, object] = {"odt": codigo, "v": valor}
+        if date_col:
+            cols += f", {date_col}"
+            vals += ", :d"
+            params["d"] = now if valor else None
+        db.execute(text(
+            f"INSERT INTO servicio_tecnico_ventas_odt ({cols}) VALUES ({vals})"
+        ), params)
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/api/soporte-tecnico/ods/actualizar-valor")
+def st_ods_actualizar_valor(
+    payload: dict,
+    db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    _ = current_user
+    _ensure_st_campos(db)
+    codigo = str(payload.get("codigo") or "").strip()
+    campo = str(payload.get("campo") or "").strip()
+    valor = str(payload.get("valor") or "").strip()
+    if not codigo or campo not in _ST_TEXT_FIELDS:
+        raise HTTPException(status_code=400, detail="Parametros invalidos")
+    eid = db.execute(text(
+        "SELECT id FROM servicio_tecnico_ventas_odt WHERE LOWER(TRIM(odt)) = LOWER(TRIM(:c)) LIMIT 1"
+    ), {"c": codigo}).scalar_one_or_none()
+    if eid:
+        db.execute(text(
+            f"UPDATE servicio_tecnico_ventas_odt SET {campo}=:v WHERE id=:id"
+        ), {"v": valor or None, "id": eid})
+    else:
+        db.execute(text(
+            f"INSERT INTO servicio_tecnico_ventas_odt (odt, {campo}) VALUES (:odt, :v)"
+        ), {"odt": codigo, "v": valor or None})
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/api/soporte-tecnico/ods/guardar-camaras")
+def st_ods_guardar_camaras(
+    payload: dict,
+    db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    _ = current_user
+    _ensure_st_campos(db)
+    codigo = str(payload.get("odt") or payload.get("codigo") or "").strip()
+    ids = payload.get("ids") or []
+    if not codigo:
+        raise HTTPException(status_code=400, detail="Codigo ODT requerido")
+    ids_json = json.dumps(ids, ensure_ascii=False)
+    eid = db.execute(text(
+        "SELECT id FROM servicio_tecnico_ventas_odt WHERE LOWER(TRIM(odt)) = LOWER(TRIM(:c)) LIMIT 1"
+    ), {"c": codigo}).scalar_one_or_none()
+    if eid:
+        db.execute(text(
+            "UPDATE servicio_tecnico_ventas_odt SET camaras_registradas=:v WHERE id=:id"
+        ), {"v": ids_json, "id": eid})
+    else:
+        db.execute(text(
+            "INSERT INTO servicio_tecnico_ventas_odt (odt, camaras_registradas) VALUES (:odt, :v)"
+        ), {"odt": codigo, "v": ids_json})
+    db.commit()
+    return {"ok": True, "mensaje": f"{len(ids)} camaras guardadas"}
+
+
+@router.post("/api/soporte-tecnico/ods/upload-imagenes")
+async def st_ods_upload_imagenes(
+    request: Request,
+    db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    _ = current_user
+    payload = await request.json()
+    odt = str(payload.get("odt") or "").strip()
+    archivos = payload.get("archivos") or []
+    if not odt:
+        raise HTTPException(status_code=400, detail="ODT requerido")
+    folder_safe = re.sub(r"[^\w\-]", "_", odt)
+    dest_dir = Path("uploads") / "soporte_tecnico" / folder_safe
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    saved: list[str] = []
+    for f in archivos:
+        b64 = str(f.get("base64") or "")
+        nombre = str(f.get("nombre") or "archivo")
+        mime = str(f.get("mimeType") or "application/octet-stream")
+        if not b64:
+            continue
+        try:
+            content = base64.b64decode(b64)
+        except Exception:
+            continue
+        ext = mimetypes.guess_extension(mime) or ".bin"
+        safe_name = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid4().hex[:8]}{ext}"
+        (dest_dir / safe_name).write_bytes(content)
+        saved.append(f"/uploads/soporte_tecnico/{folder_safe}/{safe_name}")
+    return {"ok": True, "guardadas": len(saved), "urls": saved}
+
+
+@router.post("/api/soporte-tecnico/ods/notificar-termino")
+def st_ods_notificar_termino(
+    payload: dict,
+    current_user: User = Depends(get_current_user_web),
+):
+    _ = (payload, current_user)
+    return {"ok": True}
+
