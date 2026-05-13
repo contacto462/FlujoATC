@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <base target="_top">
   <title>Incidencias Soporte Técnico</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="/static/gas_adapter_soporte.js?v=20260414_2"></script>
   <style>
     :root {
@@ -17,9 +18,9 @@
       --muted: #64748b;
       --border: rgba(148, 163, 184, 0.26);
       --border-strong: rgba(148, 163, 184, 0.34);
-      --header-1: #20c46b;
-      --header-2: #18a957;
-      --header-filter: #13924a;
+      --header-1: #1d7048;
+      --header-2: #165739;
+      --header-filter: #104428;
       --shadow-lg: 0 22px 56px rgba(15, 23, 42, 0.12);
       --shadow-md: 0 14px 34px rgba(15, 23, 42, 0.10);
       --shadow-sm: 0 8px 20px rgba(15, 23, 42, 0.08);
@@ -54,6 +55,9 @@
       --input-bg: rgba(9, 18, 33, 0.92);
       --button-bg: linear-gradient(135deg, #2563eb, #1d4ed8);
       --button-hover: linear-gradient(135deg, #1d4ed8, #1e40af);
+      --header-1: #1a5e3d;
+      --header-2: #134a2f;
+      --header-filter: #0e3922;
       color-scheme: dark;
     }
 
@@ -62,9 +66,11 @@
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: "Segoe UI", sans-serif;
+      font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
       color: var(--text);
       background: var(--bg);
+      background-repeat: no-repeat, no-repeat;
+      background-size: 100% 100%, 100% 100%;
       padding: 28px;
       transition: background .2s ease, color .2s ease;
     }
@@ -107,24 +113,24 @@
 
     .page-hero {
       display: grid;
-      grid-template-columns: 300px 1fr 300px;
+      grid-template-columns: 240px 1fr 280px;
       align-items: center;
-      gap: 28px;
-      margin-bottom: 22px;
-      min-height: 92px;
-      padding: 18px 22px;
-      border-radius: 26px;
+      gap: 20px;
+      margin-bottom: 18px;
+      min-height: 68px;
+      padding: 13px 20px;
+      border-radius: 18px;
       background: var(--panel);
       border: 1px solid var(--border);
-      box-shadow: var(--shadow-lg);
+      box-shadow: var(--shadow-md);
       backdrop-filter: blur(14px);
     }
 
     .logo-atc {
-      width: 148px;
-      min-width: 148px;
+      width: 116px;
+      min-width: 116px;
       height: auto;
-      border-radius: 14px;
+      border-radius: 10px;
       background: transparent;
       border: 0;
       display: flex;
@@ -142,7 +148,7 @@
 
     .logo-atc img {
       width: 100%;
-      max-width: 136px;
+      max-width: 108px;
       height: auto;
       display: block;
       object-fit: contain;
@@ -157,10 +163,10 @@
 
     .titulo-central {
       margin: 0;
-      font-size: clamp(28px, 3vw, 42px);
-      line-height: 1.05;
-      font-weight: 800;
-      letter-spacing: .2px;
+      font-size: clamp(20px, 2.2vw, 30px);
+      line-height: 1.1;
+      font-weight: 700;
+      letter-spacing: .1px;
       color: var(--text);
     }
 
@@ -283,9 +289,10 @@
     #tablaRegistro col.col-imagenes { width: 5%; }
     th, td {
       border: 1px solid var(--border);
-      padding: 10px 10px;
+      padding: 11px 10px;
       text-align: center;
       color: var(--text);
+      font-size: 13px;
     }
 
     thead th {
@@ -302,11 +309,12 @@
       padding-top: 0;
       padding-bottom: 0;
       vertical-align: middle;
-      background: linear-gradient(135deg, var(--header-1), var(--header-2));
-      font-size: 13px;
-      font-weight: 800;
-      letter-spacing: .02em;
+      background: linear-gradient(180deg, var(--header-1), var(--header-2));
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .06em;
       text-transform: uppercase;
+      color: rgba(255,255,255,.92);
     }
 
     thead tr.filtros th {
@@ -314,7 +322,7 @@
       z-index: 4;
       background: var(--header-filter);
       height: var(--sticky-filter-height);
-      padding: 0 8px;
+      padding: 0 7px;
       border-top: 0;
       vertical-align: middle;
     }
@@ -322,15 +330,24 @@
     thead tr.filtros input,
     thead tr.filtros select {
       width: 100%;
-      min-height: 36px;
+      min-height: 32px;
       font-size: 12px;
-      padding: 6px 10px;
-      border-radius: 8px;
-      border: 1px solid rgba(255,255,255,.22);
+      font-family: inherit;
+      padding: 4px 8px;
+      border-radius: 7px;
+      border: 1px solid rgba(255,255,255,.16);
       box-sizing: border-box;
       color: var(--text);
       background: var(--input-bg);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+      box-shadow: none;
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+
+    thead tr.filtros input:focus,
+    thead tr.filtros select:focus {
+      border-color: rgba(255,255,255,.38);
+      box-shadow: 0 0 0 2px rgba(255,255,255,.08);
+      outline: none;
     }
 
     tbody tr {
@@ -338,8 +355,20 @@
       transition: background .18s ease;
     }
 
+    tbody tr:nth-child(even) {
+      background: rgba(37, 99, 235, 0.022);
+    }
+
+    body.dark-mode tbody tr:nth-child(even) {
+      background: rgba(96, 165, 250, 0.03);
+    }
+
     tbody tr:hover {
       background: var(--row-hover);
+    }
+
+    tbody td {
+      vertical-align: top;
     }
 
     input,
@@ -436,20 +465,24 @@
 
     .obs-group {
       border: 1px solid var(--obs-border);
-      border-radius: 10px;
+      border-radius: 8px;
       background: var(--obs-bg);
       overflow: hidden;
     }
 
     .obs-group-title {
-      padding: 6px 10px;
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: .06em;
+      padding: 5px 9px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .07em;
       text-transform: uppercase;
       color: var(--muted);
       border-bottom: 1px solid var(--obs-border);
-      background: rgba(15, 23, 42, 0.08);
+      background: rgba(15, 23, 42, 0.05);
+    }
+
+    body.dark-mode .obs-group-title {
+      background: rgba(255, 255, 255, 0.045);
     }
 
     .obs-group-body {
@@ -471,12 +504,12 @@
     }
 
     .obs-group-puestos .obs-group-title {
-      border-left: 3px solid #38bdf8;
+      border-left: 3px solid #4b9ab8;
       padding-left: 8px;
     }
 
     .obs-group-soporte .obs-group-title {
-      border-left: 3px solid #22c55e;
+      border-left: 3px solid #2d7d52;
       padding-left: 8px;
     }
 
@@ -524,10 +557,23 @@
     }
 
     .btn-ver-observacion {
-      min-width: 74px;
-      padding: 8px 14px;
-      border-radius: 8px;
+      min-width: 68px;
+      padding: 6px 12px;
+      border-radius: 7px;
       font-size: 12px;
+      font-weight: 600;
+      background: var(--chip);
+      border: 1px solid var(--chip-border);
+      color: var(--text);
+      box-shadow: none;
+    }
+
+    .btn-ver-observacion:hover {
+      background: var(--button-bg);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: var(--shadow-sm);
+      transform: translateY(-1px);
     }
 
     .imagenes-cell {
@@ -542,21 +588,23 @@
 
     .btn-imagenes-support {
       min-width: 64px;
-      min-height: 30px;
-      border-radius: 999px;
-      border: 1px solid var(--border-strong);
-      background: linear-gradient(135deg, rgba(255, 145, 59, 0.2), rgba(249, 115, 22, 0.25));
+      min-height: 28px;
+      border-radius: 7px;
+      border: 1px solid var(--chip-border);
+      background: var(--chip);
       color: var(--text);
       font-size: 11px;
-      font-weight: 700;
-      padding: 0 12px;
+      font-weight: 600;
+      padding: 0 11px;
       cursor: pointer;
-      transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+      transition: transform .15s ease, box-shadow .15s ease, background .15s ease, color .15s ease;
     }
 
     .btn-imagenes-support:hover {
       transform: translateY(-1px);
-      border-color: rgba(249, 115, 22, 0.58);
+      background: var(--button-bg);
+      color: #fff;
+      border-color: transparent;
       box-shadow: var(--shadow-sm);
     }
 
@@ -576,10 +624,14 @@
       background: transparent !important;
       box-shadow: none;
       font-size: 11px;
-      color: #93c5fd;
+      color: #60a5fa;
       text-decoration: underline;
       line-height: 1.2;
       white-space: nowrap;
+    }
+
+    body:not(.dark-mode) .imagenes-links a {
+      color: #2a57c9;
     }
 
     .soporte-imagen-modal-card {
