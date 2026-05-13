@@ -22,6 +22,7 @@ from fastapi import APIRouter, Depends, Request, Form, HTTPException, Query, Fil
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 
 from fastapi.templating import Jinja2Templates
+from jinja2 import Environment as _Jinja2Env, FileSystemLoader as _FSLoader
 
 from sqlalchemy.orm import Session
 
@@ -98,7 +99,11 @@ from datetime import datetime, timezone, timedelta
 
 router = APIRouter(tags=["web"])
 
-templates = Jinja2Templates(directory="app/templates")
+_TEMPLATES_DIRS = ["app/templates"]
+_INCIDENCIAS_TEMPLATES = Path(__file__).resolve().parents[3] / "Incidencias" / "app" / "templates"
+if _INCIDENCIAS_TEMPLATES.is_dir():
+    _TEMPLATES_DIRS.append(str(_INCIDENCIAS_TEMPLATES))
+templates = Jinja2Templates(env=_Jinja2Env(loader=_FSLoader(_TEMPLATES_DIRS)))
 
 COOKIE_NAME = "access_token"
 EMAIL_ATTACHMENT_UPLOAD_ROOT = Path("uploads") / "ticket_replies"

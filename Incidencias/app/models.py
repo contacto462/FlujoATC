@@ -460,3 +460,29 @@ class ProtocoloInforme(Base):
     metadata_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), index=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class OperacionesVentaODT(Base):
+    __tablename__ = "operaciones_venta_odt"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    odt: Mapped[str] = mapped_column(String(30), unique=True, index=True)
+
+    fecha_inicio_servicio: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+
+    fecha_coordinacion: Mapped[bool] = mapped_column(Boolean, default=False)
+    ts_fecha_coordinacion: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    reunion_coordinacion: Mapped[bool] = mapped_column(Boolean, default=False)
+    ts_reunion_coordinacion: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    coord_apertura_puesto: Mapped[bool] = mapped_column(Boolean, default=False)
+    ts_coord_apertura_puesto: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    coord_equipo: Mapped[bool] = mapped_column(Boolean, default=False)
+    ts_coord_equipo: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    terminado: Mapped[bool] = mapped_column(Boolean, default=False)
+    ts_terminado: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
