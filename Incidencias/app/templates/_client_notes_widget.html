@@ -20,6 +20,41 @@
     box-shadow: 0 22px 42px rgba(11, 31, 100, 0.38);
   }
 
+  .client-notes-link {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: #8ec5ff;
+    font: inherit;
+    font-weight: 800;
+    text-align: inherit;
+    text-decoration: underline;
+    text-decoration-color: rgba(142, 197, 255, 0.45);
+    text-underline-offset: 3px;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .client-notes-link:hover {
+    color: #bfdbfe;
+    text-decoration-color: currentColor;
+  }
+
+  .client-notes-table-btn {
+    min-width: 68px;
+    min-height: 30px;
+    border: 1px solid rgba(96, 165, 250, 0.28);
+    border-radius: 10px;
+    background: rgba(37, 99, 235, 0.14);
+    color: #dbeafe;
+    font: 800 12px/1 "Segoe UI", Inter, sans-serif;
+    cursor: pointer;
+  }
+
+  .client-notes-table-btn:hover {
+    background: rgba(37, 99, 235, 0.24);
+  }
+
   .client-notes-panel {
     position: fixed;
     right: 22px;
@@ -214,6 +249,21 @@
 
   body[data-theme="light"] .client-notes-note p {
     color: #0f172a;
+  }
+
+  body[data-theme="light"] .client-notes-link {
+    color: #1d4ed8;
+    text-decoration-color: rgba(29, 78, 216, 0.38);
+  }
+
+  body[data-theme="light"] .client-notes-link:hover {
+    color: #0b1f64;
+  }
+
+  body[data-theme="light"] .client-notes-table-btn {
+    background: rgba(37, 99, 235, 0.10);
+    color: #1e3a8a;
+    border-color: rgba(37, 99, 235, 0.22);
   }
 </style>
 
