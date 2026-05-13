@@ -1,4 +1,16 @@
 <style>
+  :root {
+    --client-notes-accent: var(--header-1, var(--orange-2, #2563eb));
+    --client-notes-accent-strong: var(--header-2, var(--orange-3, #1d4ed8));
+    --client-notes-card: var(--panel-strong, var(--panel, var(--panel-bg, rgba(7, 18, 28, 0.98))));
+    --client-notes-card-soft: var(--cell-bg, var(--cell, rgba(255, 255, 255, 0.045)));
+    --client-notes-text: var(--text, var(--text-main, #eef6ff));
+    --client-notes-muted: var(--muted, var(--text-soft, #9fb0c9));
+    --client-notes-border: var(--border, var(--panel-border, var(--line, rgba(148, 163, 184, 0.22))));
+    --client-notes-input: var(--input-bg, var(--field-bg, var(--field, rgba(2, 8, 23, 0.72))));
+    --client-notes-shadow: var(--shadow-lg, var(--shadow, 0 28px 70px rgba(0, 0, 0, 0.34)));
+  }
+
   .client-notes-fab {
     display: none;
   }
@@ -55,8 +67,8 @@
     overflow: hidden;
     border: 0;
     border-radius: 0;
-    background: rgba(2, 6, 23, 0.62);
-    color: #eef6ff;
+    background: color-mix(in srgb, var(--client-notes-card) 35%, rgba(2, 6, 23, 0.68));
+    color: var(--client-notes-text);
     box-shadow: none;
     backdrop-filter: blur(8px);
     font-family: "Segoe UI", Inter, sans-serif;
@@ -74,10 +86,11 @@
     width: min(720px, calc(100vw - 32px));
     box-sizing: border-box;
     padding: 18px 20px 14px;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+    border: 1px solid var(--client-notes-border);
+    border-bottom: 0;
     border-radius: 18px 18px 0 0;
-    background: rgba(7, 18, 28, 0.98);
-    box-shadow: 0 28px 70px rgba(0, 0, 0, 0.34);
+    background: var(--client-notes-card);
+    box-shadow: var(--client-notes-shadow);
   }
 
   .client-notes-title {
@@ -89,7 +102,7 @@
   .client-notes-subtitle {
     display: block;
     margin-top: 4px;
-    color: #9fb0c9;
+    color: var(--client-notes-muted);
     font-size: 12px;
     line-height: 1.35;
   }
@@ -99,8 +112,8 @@
     height: 30px;
     border: 0;
     border-radius: 10px;
-    background: rgba(255, 255, 255, 0.06);
-    color: #dbeafe;
+    background: color-mix(in srgb, var(--client-notes-text) 8%, transparent);
+    color: var(--client-notes-text);
     cursor: pointer;
     font-size: 18px;
     line-height: 1;
@@ -115,8 +128,10 @@
     padding: 16px 20px 20px;
     overflow: auto;
     border-radius: 0 0 18px 18px;
-    background: rgba(7, 18, 28, 0.98);
-    box-shadow: 0 28px 70px rgba(0, 0, 0, 0.34);
+    border: 1px solid var(--client-notes-border);
+    border-top: 0;
+    background: var(--client-notes-card);
+    box-shadow: var(--client-notes-shadow);
   }
 
   .client-notes-field {
@@ -126,7 +141,7 @@
 
   .client-notes-field label {
     margin: 0;
-    color: #cbd5e1;
+    color: var(--client-notes-muted);
     font-size: 12px;
     font-weight: 800;
   }
@@ -135,10 +150,10 @@
   .client-notes-field textarea {
     width: 100%;
     box-sizing: border-box;
-    border: 1px solid rgba(148, 163, 184, 0.22);
+    border: 1px solid var(--client-notes-border);
     border-radius: 12px;
-    background: rgba(2, 8, 23, 0.72);
-    color: #fff;
+    background: var(--client-notes-input);
+    color: var(--client-notes-text);
     padding: 10px 11px;
     font: 500 13px/1.4 "Segoe UI", Inter, sans-serif;
     outline: none;
@@ -149,10 +164,15 @@
     resize: vertical;
   }
 
+  .client-notes-field input[readonly] {
+    cursor: default;
+    opacity: .86;
+  }
+
   .client-notes-field input:focus,
   .client-notes-field textarea:focus {
-    border-color: rgba(96, 165, 250, 0.56);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.14);
+    border-color: color-mix(in srgb, var(--client-notes-accent) 58%, var(--client-notes-border));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--client-notes-accent) 16%, transparent);
   }
 
   .client-notes-actions {
@@ -165,15 +185,15 @@
     border: 0;
     border-radius: 12px;
     padding: 10px 13px;
-    background: rgba(255, 255, 255, 0.08);
-    color: #e5edf7;
+    background: color-mix(in srgb, var(--client-notes-text) 9%, transparent);
+    color: var(--client-notes-text);
     font-size: 12px;
     font-weight: 800;
     cursor: pointer;
   }
 
   .client-notes-btn.primary {
-    background: linear-gradient(135deg, #17358f, #0b1f64);
+    background: var(--button-bg, linear-gradient(135deg, var(--client-notes-accent), var(--client-notes-accent-strong)));
     color: #fff;
   }
 
@@ -188,23 +208,23 @@
   .client-notes-empty,
   .client-notes-status {
     padding: 12px;
-    border: 1px dashed rgba(148, 163, 184, 0.24);
+    border: 1px dashed var(--client-notes-border);
     border-radius: 12px;
-    color: #9fb0c9;
+    color: var(--client-notes-muted);
     font-size: 12px;
     line-height: 1.45;
   }
 
   .client-notes-note {
     padding: 11px 12px;
-    border: 1px solid rgba(148, 163, 184, 0.16);
+    border: 1px solid var(--client-notes-border);
     border-radius: 13px;
-    background: rgba(255, 255, 255, 0.045);
+    background: var(--client-notes-card-soft);
   }
 
   .client-notes-note p {
     margin: 0;
-    color: #f8fbff;
+    color: var(--client-notes-text);
     font-size: 13px;
     line-height: 1.45;
     white-space: pre-wrap;
@@ -213,7 +233,7 @@
 
   .client-notes-meta {
     margin-top: 8px;
-    color: #9fb0c9;
+    color: var(--client-notes-muted);
     font-size: 11px;
     font-weight: 700;
   }
@@ -228,7 +248,7 @@
   .client-notes-note-label {
     display: block;
     margin-bottom: 3px;
-    color: #8aa0bc;
+    color: var(--client-notes-muted);
     font-size: 10px;
     font-weight: 900;
     letter-spacing: .04em;
@@ -236,14 +256,73 @@
   }
 
   .client-notes-note-value {
-    color: #f8fbff;
+    color: var(--client-notes-text);
     font-size: 13px;
     font-weight: 900;
   }
 
   .client-notes-note-text {
     padding-top: 10px;
-    border-top: 1px solid rgba(148, 163, 184, 0.14);
+    border-top: 1px solid var(--client-notes-border);
+  }
+
+  body.dark-mode {
+    --client-notes-card: var(--panel-strong, rgba(15, 26, 46, 0.96));
+    --client-notes-card-soft: var(--obs-bg, rgba(17, 32, 56, 0.92));
+    --client-notes-text: var(--text, #e5eefb);
+    --client-notes-muted: var(--muted, #9fb1c8);
+    --client-notes-border: var(--border, rgba(148, 163, 184, 0.20));
+    --client-notes-input: var(--input-bg, rgba(9, 18, 33, 0.92));
+    --client-notes-shadow: var(--shadow-lg, 0 24px 60px rgba(2, 6, 23, 0.45));
+  }
+
+  body.dark-mode .client-notes-panel {
+    background: rgba(2, 6, 23, 0.72);
+    color: var(--client-notes-text);
+  }
+
+  body.dark-mode .client-notes-head,
+  body.dark-mode .client-notes-body {
+    background: var(--client-notes-card);
+    border-color: var(--client-notes-border);
+    box-shadow: var(--client-notes-shadow);
+  }
+
+  body.dark-mode .client-notes-field input,
+  body.dark-mode .client-notes-field textarea {
+    background: var(--client-notes-input);
+    color: var(--client-notes-text);
+    border-color: var(--client-notes-border);
+  }
+
+  body.dark-mode .client-notes-note {
+    background: var(--client-notes-card-soft);
+    border-color: var(--obs-border, var(--client-notes-border));
+  }
+
+  body.dark-mode .client-notes-close,
+  body.dark-mode .client-notes-btn {
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--client-notes-text);
+  }
+
+  body.dark-mode .client-notes-btn.primary {
+    background: var(--button-bg, linear-gradient(135deg, #2563eb, #1d4ed8));
+    color: #fff;
+  }
+
+  body.dark-mode .client-notes-subtitle,
+  body.dark-mode .client-notes-meta,
+  body.dark-mode .client-notes-empty,
+  body.dark-mode .client-notes-status,
+  body.dark-mode .client-notes-field label,
+  body.dark-mode .client-notes-note-label {
+    color: var(--client-notes-muted);
+  }
+
+  body.dark-mode .client-notes-note p,
+  body.dark-mode .client-notes-note-value {
+    color: var(--client-notes-text);
   }
 
   body[data-theme="light"] .client-notes-panel {
@@ -292,15 +371,6 @@
     color: #0f172a;
   }
 
-  body[data-theme="light"] .client-notes-link {
-    color: #1d4ed8;
-    text-decoration-color: rgba(29, 78, 216, 0.38);
-  }
-
-  body[data-theme="light"] .client-notes-link:hover {
-    color: #0b1f64;
-  }
-
   body[data-theme="light"] .client-notes-table-btn {
     background: rgba(37, 99, 235, 0.10);
     color: #1e3a8a;
@@ -320,7 +390,7 @@
   <div class="client-notes-body">
     <div class="client-notes-field">
       <label for="clientNotesClientInput">Cliente / sucursal</label>
-      <input id="clientNotesClientInput" type="text" placeholder="Nombre del cliente..." autocomplete="off" />
+      <input id="clientNotesClientInput" type="text" placeholder="Nombre del cliente..." autocomplete="off" readonly aria-readonly="true" />
     </div>
     <div id="clientNotesFeed" class="client-notes-feed">
       <div class="client-notes-empty">El panel mostrara las notas del cliente seleccionado.</div>
@@ -352,6 +422,7 @@
   const defaultAuthor = {{ (user.name if user is defined and user else "")|tojson }};
 
   if (!fab || !panel || !clientInput || !noteInput || !feed || !statusBox || !subtitle || !reloadBtn || !saveBtn) return;
+  clientInput.readOnly = true;
 
   let currentClient = "";
 
@@ -519,12 +590,14 @@
 
   function selectClient(clientName, shouldOpen) {
     const client = clean(clientName);
-    if (!client || client === currentClient) return;
+    if (!client) return;
+    const sameClient = client === currentClient;
     currentClient = client;
     clientInput.value = client;
+    clientInput.readOnly = true;
     subtitle.textContent = client;
     if (shouldOpen) openPanel();
-    loadNotes(client);
+    if (!sameClient || shouldOpen) loadNotes(client);
   }
 
   fab.addEventListener("click", () => {
@@ -539,8 +612,13 @@
   document.addEventListener("click", (event) => {
     if (panel.contains(event.target) || fab.contains(event.target)) return;
     const client = inferClientFromElement(event.target);
-    if (client) selectClient(client, false);
+    const shouldOpen = Boolean(event.target.closest?.("[data-client-notes-open='1'], .client-notes-client-cell"));
+    if (client) selectClient(client, shouldOpen);
   }, true);
+
+  panel.addEventListener("click", (event) => {
+    if (event.target === panel) closePanel();
+  });
 
   document.addEventListener("change", (event) => {
     const client = inferClientFromElement(event.target);
