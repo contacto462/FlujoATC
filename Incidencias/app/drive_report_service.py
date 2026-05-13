@@ -254,6 +254,45 @@ def _upload_bytes(drive, parent_id: str, file_name: str, payload: bytes, mime_ty
     }
 
 
+def upload_ods_files_to_drive(codigo: str, files: list[dict]) -> list[dict]:
+    """
+    Sube los archivos adjuntos de una ODS a Google Drive.
+    Estructura: Registros ODS / {codigo} / archivo.ext
+
+    Args:
+        codigo: Código ODS (ej. "V0001")
+        files:  Lista de dicts con claves "path" (ruta local relativa), "nombre", "mime"
+
+    Returns:
+        Lista de dicts con id, name, webViewLink de cada archivo subido.
+    """
+    if not settings.google_drive_enabled:
+        raise DriveReportError("GOOGLE_DRIVE_ENABLED=false — subida ODS omitida")
+    root_id = _safe_text(settings.google_drive_root_folder_id)
+    if not root_id:
+        raise DriveReportError("Falta GOOGLE_DRIVE_ROOT_FOLDER_ID")
+
+    drive, _ = _build_clients()
+
+    ods_root_id = _find_or_create_folder(drive, root_id, "Registros ODS")
+    ods_folder_id = _find_or_create_folder(drive, ods_root_id, _clean_filename(codigo, codigo))
+
+    results: list[dict] = []
+    for f in files:
+        local = Path(str(f.get("path", "")))
+        if not local.is_absolute():
+            local = Path.cwd() / local
+        if not local.exists():
+            continue
+        content = local.read_bytes()
+        mime = str(f.get("mime") or "") or _guess_mime_and_ext(local.name)[0]
+        name = _clean_filename(str(f.get("nombre") or local.name), local.name)
+        info = _upload_bytes(drive, ods_folder_id, name, content, mime)
+        results.append(info)
+
+    return results
+
+
 def _set_public_read(drive, file_id: str) -> None:
     try:
         drive.permissions().create(
