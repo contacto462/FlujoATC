@@ -252,6 +252,10 @@ h1{
   background:linear-gradient(135deg, rgba(61,115,168,.24), rgba(47,92,135,.18));
 }
 
+.option.cliente:hover{
+  background:linear-gradient(135deg, rgba(20,184,166,.22), rgba(13,148,136,.16));
+}
+
 .icon{
   width:40px;
   height:40px;
@@ -267,6 +271,7 @@ h1{
 
 .registro .icon{background:linear-gradient(135deg,var(--primary),var(--primary-2))}
 .tabla .icon{background:linear-gradient(135deg,var(--blue),var(--blue-2))}
+.cliente .icon{background:linear-gradient(135deg,#0d9488,#0f766e)}
 
 .option strong{
   display:block;
@@ -336,6 +341,11 @@ h1{
           <div class="icon">A</div>
           <strong>Tabla Administracion</strong>
           <p>Seguimiento de recepcion, registros, solicitudes, facturacion, carta de bienvenida y termino.</p>
+        </a>
+        <a class="option cliente" href="/venta/informacion-cliente?token={{ token|default('') }}">
+          <div class="icon">IC</div>
+          <strong>Informacion del Cliente</strong>
+          <p>Consulta y gestion de informacion de clientes vinculados a las ordenes de servicio activas.</p>
         </a>
       </div>
     </section>
