@@ -104,6 +104,9 @@ USUARIOS_FINANZAS = [
 USUARIOS_ADMINISTRACION = [
     "Maryorie Alegría",
 ]
+USUARIOS_OPERACIONES = [
+    "Carlos Zamora Munita",
+]
 MANTENCIONES_PROGRAMADAS_QUILPUE: dict[int, list[str]] = {
     1: [
         "Imq Consistorial Nuevo",
@@ -889,6 +892,18 @@ class IncidenciasService:
     def _usuarios_login_incidencias(self) -> list[str]:
         return list(USUARIOS_INCIDENCIAS)
 
+    def _usuarios_login_venta(self) -> list[str]:
+        return list(USUARIOS_VENTA)
+
+    def _usuarios_login_finanzas(self) -> list[str]:
+        return list(USUARIOS_FINANZAS)
+
+    def _usuarios_login_administracion(self) -> list[str]:
+        return list(USUARIOS_ADMINISTRACION)
+
+    def _usuarios_login_operaciones(self) -> list[str]:
+        return list(USUARIOS_OPERACIONES)
+
     def _es_usuario_tabla_servicio(self, usuario: str) -> bool:
         usuario_norm = self._normalizar_nombre_login(usuario)
         permitidos = {
@@ -898,6 +913,14 @@ class IncidenciasService:
 
     def obtener_usuarios_login_tecnicos(self, destino: str = "tecnicos") -> list[str]:
         destino_norm = (destino or "").strip().lower()
+        if destino_norm in {"panelselectorventa", "registrocliente", "tablacliente"}:
+            return self._usuarios_login_venta()
+        if destino_norm in {"panelselectorfinanzas", "tablafinanzas"}:
+            return self._usuarios_login_finanzas()
+        if destino_norm in {"panelselectoradministracion", "tablaadministracion"}:
+            return self._usuarios_login_administracion()
+        if destino_norm in {"panelselectoroperaciones", "tablaoperaciones"}:
+            return self._usuarios_login_operaciones()
         if destino_norm in {
             "panelselector",
             "panel_selector",
@@ -908,21 +931,13 @@ class IncidenciasService:
             "tablaprotocolos",
             "envioprotocolossemanales",
             "coordinacion",
-            "panelselectorventa",
-            "panelselectoradministracion",
-            "tablaadministracion",
-            "panelselectorfinanzas",
-            "tablafinanzas",
-            "registrocliente",
-            "tablacliente",
+            "incidencias",
         }:
             return self._usuarios_login_incidencias()
         if destino_norm in {"panelselectorservicio", "panel_selector_servicio", "stventas"}:
             return self._usuarios_login_tabla_servicio()
         if destino_norm in {"tabla", "serviciotecnico"}:
             return self._usuarios_login_tabla_servicio()
-        if destino_norm in {"incidencias"}:
-            return self._usuarios_login_incidencias()
         return self._usuarios_login_tecnicos()
 
     # =========================
@@ -984,19 +999,18 @@ class IncidenciasService:
 
         if destino_ok in {"servicioTecnico", "panelSelectorServicio", "stVentas"}:
             usuarios_base = self._usuarios_login_tabla_servicio()
+        elif destino_ok in {"panelSelectorVenta", "registroCliente", "tablaCliente"}:
+            usuarios_base = self._usuarios_login_venta()
+        elif destino_ok in {"panelSelectorFinanzas", "tablaFinanzas"}:
+            usuarios_base = self._usuarios_login_finanzas()
+        elif destino_ok in {"panelSelectorAdministracion", "tablaAdministracion"}:
+            usuarios_base = self._usuarios_login_administracion()
+        elif destino_ok in {"panelSelectorOperaciones", "tablaOperaciones"}:
+            usuarios_base = self._usuarios_login_operaciones()
         elif destino_ok in {
             "incidencias",
             "panelSelector",
             "panelSelectorCoordinacion",
-            "panelSelectorVenta",
-            "panelSelectorAdministracion",
-            "tablaAdministracion",
-            "panelSelectorFinanzas",
-            "tablaFinanzas",
-            "panelSelectorOperaciones",
-            "tablaOperaciones",
-            "registroCliente",
-            "tablaCliente",
             "cierreAperturaClientes",
             "controlProtocolos",
             "tablaProtocolos",
