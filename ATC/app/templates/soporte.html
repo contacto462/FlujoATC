@@ -1871,6 +1871,10 @@
           } else {
             td.textContent = i === 1 ? formatDateForDisplay(v) : displayCellValue(v);
           }
+          if (i === 2) {
+            const clienteNotas = displayCellValue(v);
+            td.innerHTML = `<button class="client-notes-link" type="button" data-client-notes-open="1" data-client-name="${escapeHtml(clienteNotas)}">${escapeHtml(clienteNotas || "-")}</button>`;
+          }
           if (i === 5) td.ondblclick = () => editarTexto(td, 6, fila[0], fila[2]);
           if (i === 4) td.ondblclick = () => editarTexto(td, 7);
           if (i === 6 || i === 7) td.ondblclick = () => editarTexto(td, 8);

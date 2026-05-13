@@ -1410,7 +1410,7 @@
         tr.innerHTML = `
           <td>${esc(r.odt)}</td>
           <td>${esc(r.fecha)}</td>
-          <td>${esc(r.cliente)}</td>
+          <td><button class="client-notes-link" type="button" data-client-notes-open="1" data-client-name="${esc(r.cliente)}">${esc(r.cliente || "-")}</button></td>
           <td>${esc(r.problema)}</td>
           <td class="editable-observacion celda-observacion" data-odt="${esc(r.odt)}" title="Doble clic para editar">${formatearObservacionHTML(r.observacion, r.observacionSoporte, r.observacionServicio)}</td>
           <td class="editable-derivacion" data-odt="${esc(r.odt)}" title="Doble clic para editar">${esc(r.derivacion)}</td>

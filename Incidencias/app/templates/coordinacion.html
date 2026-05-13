@@ -1059,6 +1059,9 @@
           } else if (index === 5) {
             td.className = "td-observacion";
             td.innerHTML = renderObservacion(fila);
+          } else if (index === 2) {
+            const sucursal = valor || "";
+            td.innerHTML = `<button class="client-notes-link" type="button" data-client-notes-open="1" data-client-name="${esc(sucursal)}">${esc(sucursal || "-")}</button>`;
           } else {
             td.textContent = valor || "";
           }
