@@ -92,6 +92,18 @@ USUARIOS_INCIDENCIAS = [
     "Marian Macho",
     "Manuel Mondaca",
 ]
+USUARIOS_VENTA = [
+    "Teodoro Storm",
+    "Gianpiero Lubiano",
+    "Lucas Cortes",
+    "Sebastian Storm",
+]
+USUARIOS_FINANZAS = [
+    "Giancarlo Lubiano",
+]
+USUARIOS_ADMINISTRACION = [
+    "Maryorie Alegría",
+]
 MANTENCIONES_PROGRAMADAS_QUILPUE: dict[int, list[str]] = {
     1: [
         "Imq Consistorial Nuevo",
@@ -952,6 +964,8 @@ class IncidenciasService:
                 "tablaAdministracion",
                 "panelSelectorFinanzas",
                 "tablaFinanzas",
+                "panelSelectorOperaciones",
+                "tablaOperaciones",
                 "registroCliente",
                 "tablaCliente",
                 "incidencias",
@@ -979,6 +993,8 @@ class IncidenciasService:
             "tablaAdministracion",
             "panelSelectorFinanzas",
             "tablaFinanzas",
+            "panelSelectorOperaciones",
+            "tablaOperaciones",
             "registroCliente",
             "tablaCliente",
             "cierreAperturaClientes",
@@ -1007,6 +1023,8 @@ class IncidenciasService:
                 "tablaAdministracion",
                 "panelSelectorFinanzas",
                 "tablaFinanzas",
+                "panelSelectorOperaciones",
+                "tablaOperaciones",
                 "registroCliente",
                 "tablaCliente",
                 "cierreAperturaClientes",
@@ -1026,7 +1044,11 @@ class IncidenciasService:
                             else (
                                 "Finanzas"
                                 if destino_ok in {"panelSelectorFinanzas", "tablaFinanzas"}
-                                else ("Venta" if destino_ok in {"panelSelectorVenta", "registroCliente", "tablaCliente"} else "Operaciones")
+                                else (
+                                    "Operaciones"
+                                    if destino_ok in {"panelSelectorOperaciones", "tablaOperaciones"}
+                                    else ("Venta" if destino_ok in {"panelSelectorVenta", "registroCliente", "tablaCliente"} else "General")
+                                )
                             )
                         )
                     )
@@ -1077,6 +1099,11 @@ class IncidenciasService:
             return {
                 "success": True,
                 "redirect": f"{app_url}/venta/finanzas?token={token}&next={destino_ok}",
+            }
+        if destino_ok in {"panelSelectorOperaciones", "tablaOperaciones"}:
+            return {
+                "success": True,
+                "redirect": f"{app_url}/venta/operaciones?token={token}&next={destino_ok}",
             }
         if destino_ok in {"incidencias", "panelSelector", "cierreAperturaClientes", "controlProtocolos"}:
             return {

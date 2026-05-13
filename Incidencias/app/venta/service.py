@@ -1481,3 +1481,126 @@ def update_cliente_row(db: Session, row_id: int, values: list[str]) -> None:
     record.contacto = record.nombre_representante
     record.correo = record.email_facturas
     db.commit()
+
+
+# ─── Operaciones ────────────────────────────────────────────────────────────
+
+OPERACIONES_BOOL_FIELDS: dict[str, str] = {
+    "fecha_coordinacion": "ts_fecha_coordinacion",
+    "reunion_coordinacion": "ts_reunion_coordinacion",
+    "coord_apertura_puesto": "ts_coord_apertura_puesto",
+    "coord_equipo": "ts_coord_equipo",
+    "terminado": "ts_terminado",
+}
+
+
+def _get_or_create_operaciones_row(db: Session, codigo: str):
+    from app.models import OperacionesVentaODT
+    codigo_limpio = str(codigo or "").strip()
+    row = (
+        db.query(OperacionesVentaODT)
+        .filter(func.lower(func.trim(OperacionesVentaODT.odt)) == codigo_limpio.lower())
+        .first()
+    )
+    if not row:
+        row = OperacionesVentaODT(odt=codigo_limpio)
+        db.add(row)
+        db.flush()
+    return row
+
+
+def get_operaciones_ods_rows(db: Session) -> dict:
+    from app.models import OperacionesVentaODT
+    rows = (
+        db.query(VentaODS, OperacionesVentaODT, ServicioTecnicoVentaODT)
+        .outerjoin(
+            OperacionesVentaODT,
+            func.lower(func.trim(OperacionesVentaODT.odt)) == func.lower(func.trim(VentaODS.codigo)),
+        )
+        .outerjoin(
+            ServicioTecnicoVentaODT,
+            func.lower(func.trim(ServicioTecnicoVentaODT.odt)) == func.lower(func.trim(VentaODS.codigo)),
+        )
+        .order_by(VentaODS.created_at.desc(), VentaODS.id.desc())
+        .all()
+    )
+    out: list[dict] = []
+    total_anuladas = 0
+    for ods, op, st in rows:
+        estado_ods = str(ods.estado or "").strip()
+        anulada = estado_ods.lower() == "anulada"
+        if anulada:
+            total_anuladas += 1
+        terminado_soporte = _is_true(getattr(st, "finalizado", False))
+        requiere_puesto = getattr(st, "requiere_puesto_nuevo", "") if st else ""
+        numero_central = getattr(st, "numero_central_asignado", "") if st else ""
+        out.append({
+            "codigo": ods.codigo or "",
+            "fecha": _fmt_date(ods.created_at),
+            "ejecutivo": ods.creado_por or "",
+            "rutCliente": ods.rut_cliente or "",
+            "razonSocial": ods.razon_social or "",
+            "nombreSucursal": ods.nombre_sucursal or "",
+            "direccionSucursal": ods.direccion_sucursal or "",
+            "tipoServicio": ods.tipo_servicio or "",
+            "tipoPlan": ods.tipo_plan or "",
+            "terminadoSoporte": terminado_soporte,
+            "requierePuestoNuevo": requiere_puesto or "",
+            "numeroCentralAsignado": numero_central or "",
+            "fechaInicioServicio": getattr(op, "fecha_inicio_servicio", "") if op else "",
+            "estados": {
+                "fecha_coordinacion": _is_true(getattr(op, "fecha_coordinacion", False)),
+                "reunion_coordinacion": _is_true(getattr(op, "reunion_coordinacion", False)),
+                "coord_apertura_puesto": _is_true(getattr(op, "coord_apertura_puesto", False)),
+                "coord_equipo": _is_true(getattr(op, "coord_equipo", False)),
+                "terminado": _is_true(getattr(op, "terminado", False)),
+            },
+            "anulada": anulada,
+        })
+    return {"rows": out, "totalAnuladas": total_anuladas}
+
+
+def update_operaciones_ods_estado(db: Session, codigo: str, campo: str, valor: bool) -> dict:
+    from app.models import OperacionesVentaODT
+    codigo_limpio = str(codigo or "").strip()
+    campo_limpio = str(campo or "").strip()
+    if campo_limpio not in OPERACIONES_BOOL_FIELDS:
+        raise HTTPException(status_code=400, detail="Campo operaciones invalido.")
+    ods = (
+        db.query(VentaODS)
+        .filter(func.lower(func.trim(VentaODS.codigo)) == codigo_limpio.lower())
+        .first()
+    )
+    if not ods:
+        raise HTTPException(status_code=404, detail="ODS no encontrada.")
+    if str(ods.estado or "").strip().lower() == "anulada":
+        raise HTTPException(status_code=400, detail="La ODS esta anulada.")
+    row = _get_or_create_operaciones_row(db, codigo_limpio)
+    ts_field = OPERACIONES_BOOL_FIELDS[campo_limpio]
+    now = datetime.utcnow()
+    setattr(row, campo_limpio, bool(valor))
+    setattr(row, ts_field, now if valor else None)
+    db.commit()
+    return {
+        "ok": True,
+        "codigo": codigo_limpio,
+        "campo": campo_limpio,
+        "valor": bool(valor),
+        "estado": "Completado" if valor else "Pendiente",
+        "timestamp": _fmt_date(now) if valor else "",
+    }
+
+
+def update_operaciones_ods_fecha(db: Session, codigo: str, fecha: str) -> dict:
+    codigo_limpio = str(codigo or "").strip()
+    ods = (
+        db.query(VentaODS)
+        .filter(func.lower(func.trim(VentaODS.codigo)) == codigo_limpio.lower())
+        .first()
+    )
+    if not ods:
+        raise HTTPException(status_code=404, detail="ODS no encontrada.")
+    row = _get_or_create_operaciones_row(db, codigo_limpio)
+    row.fecha_inicio_servicio = str(fecha or "").strip()[:40]
+    db.commit()
+    return {"ok": True, "codigo": codigo_limpio, "fechaInicioServicio": row.fecha_inicio_servicio}

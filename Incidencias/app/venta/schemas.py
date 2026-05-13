@@ -201,6 +201,17 @@ class VentaServicioTecnicoValorRequest(BaseModel):
     valor: str | None = Field(default="", max_length=4000)
 
 
+class VentaOperacionesEstadoRequest(BaseModel):
+    codigo: str = Field(min_length=2, max_length=30)
+    campo: str = Field(min_length=2, max_length=80)
+    valor: bool
+
+
+class VentaOperacionesFechaRequest(BaseModel):
+    codigo: str = Field(min_length=2, max_length=30)
+    fecha: str = Field(default="", max_length=40)
+
+
 class VentaPersonaRegistroRequest(BaseModel):
     categoria: str = Field(min_length=3, max_length=80)
     rutCliente: str = Field(min_length=3, max_length=32)

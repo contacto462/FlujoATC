@@ -19,6 +19,8 @@ from app.venta.schemas import (
     VentaClienteTableUpdateRequest,
     VentaAdminEstadoRequest,
     VentaFinanzasEstadoRequest,
+    VentaOperacionesEstadoRequest,
+    VentaOperacionesFechaRequest,
     VentaServicioTecnicoEstadoRequest,
     VentaServicioTecnicoValorRequest,
     VentaSucursalCreateRequest,
@@ -42,6 +44,7 @@ from app.venta.service import (
     get_admin_ods_rows,
     get_finanzas_ods_detail,
     get_finanzas_ods_rows,
+    get_operaciones_ods_rows,
     get_servicio_tecnico_ventas_contacto,
     get_servicio_tecnico_ventas_detail,
     get_servicio_tecnico_ventas_rows,
@@ -54,6 +57,8 @@ from app.venta.service import (
     update_ods,
     update_admin_ods_estado,
     update_finanzas_ods_estado,
+    update_operaciones_ods_estado,
+    update_operaciones_ods_fecha,
     update_servicio_tecnico_ventas_estado,
     update_servicio_tecnico_ventas_valor,
     update_cliente_row,
@@ -548,3 +553,80 @@ def venta_servicio_tecnico_ods_valor(
     token: str = Depends(require_venta_token),
 ):
     return update_servicio_tecnico_ventas_valor(db, payload.codigo, payload.campo, payload.valor)
+
+
+# ─── Operaciones ─────────────────────────────────────────────────────────────
+
+@router.get("/venta/operaciones", response_class=HTMLResponse)
+def venta_operaciones_page(
+    request: Request,
+    token: str = Query(default=""),
+    service: IncidenciasService = Depends(get_service),
+):
+    if not service.usuario_logueado_por_token(token):
+        return templates.TemplateResponse(
+            "login.html",
+            {"request": request, "title": "Operaciones", "next_form": "panelSelectorOperaciones"},
+        )
+    tecnico = service.get_usuario_actual(token)
+    return templates.TemplateResponse(
+        "panel_selector_operaciones.html",
+        {"request": request, "token": token, "tecnico": tecnico},
+    )
+
+
+@router.get("/venta/operaciones/login", response_class=HTMLResponse)
+def venta_operaciones_login_page(request: Request):
+    return templates.TemplateResponse(
+        "login.html",
+        {"request": request, "title": "Operaciones", "next_form": "panelSelectorOperaciones"},
+    )
+
+
+@router.get("/venta/operaciones/tabla", response_class=HTMLResponse)
+def venta_tabla_operaciones_page(
+    request: Request,
+    token: str = Query(default=""),
+    service: IncidenciasService = Depends(get_service),
+):
+    if not service.usuario_logueado_por_token(token):
+        return templates.TemplateResponse(
+            "login.html",
+            {"request": request, "title": "Operaciones", "next_form": "panelSelectorOperaciones"},
+        )
+    return templates.TemplateResponse("TablaOperaciones.html", {"request": request, "token": token})
+
+
+@router.get("/api/venta/operaciones-ods")
+def venta_operaciones_ods_listar(
+    db: Session = Depends(get_db),
+    token: str = Depends(require_venta_token),
+):
+    return get_operaciones_ods_rows(db)
+
+
+@router.post("/api/venta/operaciones-ods/actualizar-estado")
+def venta_operaciones_ods_estado(
+    payload: VentaOperacionesEstadoRequest,
+    db: Session = Depends(get_db),
+    token: str = Depends(require_venta_token),
+):
+    return update_operaciones_ods_estado(db, payload.codigo, payload.campo, payload.valor)
+
+
+@router.post("/api/venta/operaciones-ods/actualizar-fecha")
+def venta_operaciones_ods_fecha(
+    payload: VentaOperacionesFechaRequest,
+    db: Session = Depends(get_db),
+    token: str = Depends(require_venta_token),
+):
+    return update_operaciones_ods_fecha(db, payload.codigo, payload.fecha)
+
+
+@router.post("/api/venta/operaciones-ods/notificar-inicio")
+def venta_operaciones_ods_notificar(
+    payload: VentaOperacionesFechaRequest,
+    db: Session = Depends(get_db),
+    token: str = Depends(require_venta_token),
+):
+    return {"ok": True, "mensaje": "pendiente_configuracion"}
