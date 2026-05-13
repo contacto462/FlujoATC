@@ -201,6 +201,9 @@ class Settings(BaseSettings):
     google_drive_root_folder_id: str = Field(
         default_factory=lambda: os.getenv("GOOGLE_DRIVE_ROOT_FOLDER_ID") or "",
     )
+    google_drive_ods_root_folder_id: str = Field(
+        default_factory=lambda: os.getenv("GOOGLE_DRIVE_ODS_ROOT_FOLDER_ID") or "",
+    )
     google_drive_support_folder_id: str = Field(
         default_factory=lambda: os.getenv("GOOGLE_DRIVE_SUPPORT_FOLDER_ID") or "1EO7fPTC6d97BnZfnfUYxRp6e1sFUmJa_",
     )

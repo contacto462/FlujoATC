@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
+import logging
 import re
 import ssl
 import unicodedata
@@ -15,6 +16,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.config import settings
+from app.drive_report_service import DriveReportError, upload_ods_files_to_drive
 from app.models import (
     AdministracionODT,
     ClienteBBDD,
@@ -30,6 +32,7 @@ from app.models import (
 from app.services import IncidenciasService
 from app.venta.schemas import VentaClienteCreateRequest, VentaODSArchivoRequest, VentaODSCreateRequest, VentaSucursalCreateRequest
 
+_log = logging.getLogger(__name__)
 
 PROVEEDORES_INTERNET = [
     "ATC",
@@ -657,6 +660,8 @@ def create_ods(db: Session, payload: VentaODSCreateRequest, usuario_email: str) 
     archivos.extend(payload.contratos or [])
     archivos.extend(payload.layouts or [])
 
+    drive_files: list[dict] = []
+
     for archivo in archivos:
         ruta = None
         if archivo is payload.cotizacion:
@@ -678,9 +683,28 @@ def create_ods(db: Session, payload: VentaODSCreateRequest, usuario_email: str) 
             mime_type=_clean_text(archivo.tipo),
             ruta_archivo=ruta,
         ))
+        drive_files.append({
+            "path": ruta,
+            "nombre": _clean_text(archivo.nombre),
+            "mime": _clean_text(archivo.tipo),
+            "servicio": _clean_text(archivo.servicio) or "General",
+        })
 
     db.commit()
     db.refresh(record)
+
+    # Subir archivos adjuntos a Google Drive (best-effort, no bloquea el registro)
+    if drive_files:
+        try:
+            upload_ods_files_to_drive(
+                codigo=codigo,
+                rut=rut,
+                razon_social=razon_social,
+                files=drive_files,
+            )
+        except (DriveReportError, Exception) as exc:
+            _log.warning("Drive upload ODS %s falló (el registro se guardó igual): %s", codigo, exc)
+
     return record
 
 
