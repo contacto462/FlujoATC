@@ -1472,6 +1472,10 @@ def get_operaciones_ods_rows(db: Session) -> dict:
     out: list[dict] = []
     total_anuladas = 0
     for ods, op, st in rows:
+        tipo_servicio_op = str(ods.tipo_servicio or "")
+        tipos_lista_op = [t.strip() for t in tipo_servicio_op.split("|") if t.strip()]
+        if not _calcular_areas_aplicables(tipos_lista_op)["operaciones"]:
+            continue
         estado_ods = str(ods.estado or "").strip()
         anulada = estado_ods.lower() == "anulada"
         if anulada:
