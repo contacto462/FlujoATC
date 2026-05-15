@@ -1638,10 +1638,13 @@ def get_comercial_todo(db: Session) -> dict:
         tipos_lista = [t.strip() for t in tipo_servicio.split("|") if t.strip()]
         areas_aplica = _calcular_areas_aplicables(tipos_lista)
 
-        area_comercial = _area_estado([
+        comercial_checks = [
             ("Cotizacion", bool(ods.cotizacion_path)),
-            ("Orden de Compra", bool(ods.odc_path)),
-        ])
+            ("Contrato Firmado", bool(ods.contrato_path)),
+        ]
+        if str(ods.requiere_oc or "").strip().lower() == "si":
+            comercial_checks.append(("Orden de Compra", bool(ods.odc_path)))
+        area_comercial = _area_estado(comercial_checks)
 
         admin_checks: list[tuple[str, bool]] = [
             ("Recepcion info", _is_true(getattr(adm, "recepcion_info", False))),
@@ -1698,6 +1701,8 @@ def get_comercial_todo(db: Session) -> dict:
             "tipoServicio": tipo_servicio,
             "tipoPlan": ods.tipo_plan or "",
             "carpeta": ods.cotizacion_path or ods.odc_path or ods.desglose_path or ods.contrato_path or "",
+            "contratoPath": ods.contrato_path or "",
+            "requiereOC": ods.requiere_oc or "",
             "anulada": anulada,
             "areaComercial": area_comercial,
             "areaAdmin": area_admin,
@@ -1745,8 +1750,28 @@ def subir_contrato_venta(db: Session, codigo: str, nombre: str, data_base64: str
     directorio.mkdir(parents=True, exist_ok=True)
     ruta = directorio / nombre_limpio
     ruta.write_bytes(contenido)
-    ruta_rel = f"{codigo_limpio}/contrato/{nombre_limpio}"
-    if not ods.cotizacion_path:
-        ods.cotizacion_path = ruta_rel
-        db.commit()
+    ruta_rel = f"uploads/venta_ods/{codigo_limpio}/contrato/{nombre_limpio}"
+    ods.contrato_path = ruta_rel
+    existing = (
+        db.query(VentaODSArchivo)
+        .filter(
+            VentaODSArchivo.ods_id == ods.id,
+            func.lower(func.trim(VentaODSArchivo.tipo_documento)) == "contrato",
+        )
+        .first()
+    )
+    if existing:
+        existing.nombre_archivo = nombre_limpio
+        existing.ruta_archivo = ruta_rel
+    else:
+        db.add(VentaODSArchivo(
+            ods_id=ods.id,
+            codigo_ods=codigo_limpio,
+            tipo_documento="Contrato",
+            servicio="General",
+            nombre_archivo=nombre_limpio,
+            mime_type="",
+            ruta_archivo=ruta_rel,
+        ))
+    db.commit()
     return {"ok": True, "codigo": codigo_limpio, "nombre": nombre_limpio}

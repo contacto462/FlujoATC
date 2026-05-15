@@ -491,24 +491,26 @@ function abrirPop(titulo, area) {
   document.getElementById("popTitle").textContent = titulo;
   const body = document.getElementById("popBody");
   body.innerHTML = "";
-  if (area.completados.length) {
-    const sec = document.createElement("div"); sec.className = "pop-sec";
-    sec.innerHTML = `<div class="pop-sec-title" style="color:#16a34a">Completado</div>`;
-    area.completados.forEach(t => {
-      const d = document.createElement("div"); d.className = "pop-item done"; d.textContent = t; sec.appendChild(d);
-    });
-    body.appendChild(sec);
-  }
-  if (area.detalles.length) {
-    const sec = document.createElement("div"); sec.className = "pop-sec";
-    sec.innerHTML = `<div class="pop-sec-title" style="color:#dc2626">Pendiente</div>`;
-    area.detalles.forEach(t => {
-      const d = document.createElement("div"); d.className = "pop-item pend"; d.textContent = t; sec.appendChild(d);
-    });
-    body.appendChild(sec);
-  }
-  if (!area.completados.length && !area.detalles.length)
+
+  const todosItems = [
+    ...area.completados.map(t => ({ nombre: t, hecho: true })),
+    ...area.detalles.map(t => ({ nombre: t, hecho: false })),
+  ];
+
+  if (!todosItems.length) {
     body.innerHTML = `<div style="font-size:13px;color:var(--muted)">Sin registros.</div>`;
+  } else {
+    const sec = document.createElement("div"); sec.className = "pop-sec";
+    const estadoColor = area.estado === "Terminado" ? "#16a34a" : area.estado === "En proceso" ? "#92400e" : "#64748b";
+    sec.innerHTML = `<div class="pop-sec-title" style="color:${estadoColor};margin-bottom:10px;">Estado: ${area.estado}</div>`;
+    todosItems.forEach(({ nombre, hecho }) => {
+      const d = document.createElement("div");
+      d.className = `pop-item ${hecho ? "done" : "pend"}`;
+      d.textContent = nombre;
+      sec.appendChild(d);
+    });
+    body.appendChild(sec);
+  }
   document.getElementById("popOverlay").classList.add("open");
 }
 
@@ -552,7 +554,7 @@ function mkFila(row) {
 
   // Contrato / Anexo
   const tdCtrt = document.createElement("td");
-  if (row.carpeta) {
+  if (row.contratoPath) {
     const lbl = document.createElement("span");
     lbl.className = "ctrt-ok";
     lbl.textContent = "✓ Subido";
@@ -657,18 +659,7 @@ async function subirContrato() {
     });
     msgEl.textContent = "Archivo subido correctamente.";
     msgEl.className = "mod-msg ok-msg";
-    document.querySelectorAll("#tbody tr").forEach(tr => {
-      if (tr.dataset.codigo === codigo.toLowerCase()) {
-        const tdCtrt = tr.cells[8];
-        if (tdCtrt) {
-          tdCtrt.innerHTML = "";
-          const lbl = document.createElement("span");
-          lbl.className = "ctrt-ok"; lbl.textContent = "✓ Subido";
-          tdCtrt.appendChild(lbl);
-        }
-      }
-    });
-    setTimeout(() => { cerrarMod(); toast("Contrato subido correctamente."); }, 1400);
+    setTimeout(() => { cerrarMod(); cargarDatos(); toast("Contrato subido correctamente."); }, 1000);
   } catch (err) {
     msgEl.textContent = err.message || "Error al subir.";
     msgEl.className = "mod-msg err-msg";
