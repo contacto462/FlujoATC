@@ -165,6 +165,7 @@ class VentaODS(Base):
     cotizacion_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     odc_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     desglose_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    contrato_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     estado: Mapped[str] = mapped_column(String(80), default="Registrada", index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())

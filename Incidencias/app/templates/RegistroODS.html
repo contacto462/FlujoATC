@@ -625,14 +625,24 @@ function actualizarMontosPorCobrar(servicios) {
   seccion.style.display = campos.length ? "block" : "none";
 }
 function actualizarCamposAdjuntar(servicios) {
-  const contenedor = document.getElementById("contenedorArchivos"); contenedor.innerHTML = "";
-  const mk = (id, label, cls, ds, accept) => { const d = document.createElement("div"); d.className = "f"; d.innerHTML = `<label for="${id}">${label}</label><input type="file" id="${id}" class="${cls}" ${ds ? `data-servicio="${ds}"` : ''} accept="${accept}">`; contenedor.appendChild(d); };
-  mk("cotizacion_general", "Adjuntar Cotización", "cotizacion", "", ".pdf,.doc,.docx");
+  const contenedor = document.getElementById("contenedorArchivos");
+  const esperados = new Map();
+  esperados.set("cotizacion_general", { label: "Adjuntar Cotización", cls: "cotizacion", ds: "", accept: ".pdf,.doc,.docx" });
   const requiereOC = document.querySelector('input[name="requiereOC"]:checked')?.value;
-  if (requiereOC === "Si") mk("odc_general", "Adjuntar Orden de Compra", "odc", "Instalacion", ".pdf,.doc,.docx");
+  if (requiereOC === "Si") esperados.set("odc_general", { label: "Adjuntar Orden de Compra", cls: "odc", ds: "Instalacion", accept: ".pdf,.doc,.docx" });
   servicios.forEach(s => {
-    if (!["Instalacion", "Servicio Tecnico", "Desinstalacion"].includes(s)) mk(`contrato_${s}`, `Adjuntar Contrato (${s})`, "contrato", s, ".pdf,.doc,.docx");
-    if (s === "Instalacion") mk(`layout_${s}`, `Adjuntar Layout (${s})`, "layout", s, "image/*,.pdf");
+    if (!["Instalacion", "Servicio Tecnico", "Desinstalacion"].includes(s)) esperados.set(`contrato_${s}`, { label: `Adjuntar Contrato (${s})`, cls: "contrato", ds: s, accept: ".pdf,.doc,.docx" });
+    if (s === "Instalacion") esperados.set(`layout_${s}`, { label: `Adjuntar Layout (${s})`, cls: "layout", ds: s, accept: "image/*,.pdf" });
+  });
+  Array.from(contenedor.querySelectorAll("input[type='file']")).forEach(input => {
+    if (!esperados.has(input.id)) input.closest(".f").remove();
+  });
+  esperados.forEach(({ label, cls, ds, accept }, id) => {
+    if (!document.getElementById(id)) {
+      const d = document.createElement("div"); d.className = "f";
+      d.innerHTML = `<label for="${id}">${label}</label><input type="file" id="${id}" class="${cls}" ${ds ? `data-servicio="${ds}"` : ''} accept="${accept}">`;
+      contenedor.appendChild(d);
+    }
   });
 }
 async function procesarArchivoAsync(input, tipoArchivo, servicio) {

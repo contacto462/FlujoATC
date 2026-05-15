@@ -643,6 +643,7 @@ def create_ods(db: Session, payload: VentaODSCreateRequest, usuario_email: str) 
         cotizacion_path=cotizacion_path,
         odc_path=odc_path,
         desglose_path=desglose_path,
+        contrato_path=None,
     )
     db.add(record)
     db.flush()
@@ -689,15 +690,18 @@ def create_ods(db: Session, payload: VentaODSCreateRequest, usuario_email: str) 
             ruta = _save_ods_file(codigo, archivo)
         if not ruta:
             continue
+        tipo_doc = _clean_text(archivo.tipoDocumento) or ""
         db.add(VentaODSArchivo(
             ods_id=record.id,
             codigo_ods=codigo,
-            tipo_documento=_clean_text(archivo.tipoDocumento),
+            tipo_documento=tipo_doc,
             servicio=_clean_text(archivo.servicio),
             nombre_archivo=_clean_text(archivo.nombre),
             mime_type=_clean_text(archivo.tipo),
             ruta_archivo=ruta,
         ))
+        if tipo_doc.lower() == "contrato" and not record.contrato_path:
+            record.contrato_path = ruta
         drive_files.append({
             "path": ruta,
             "nombre": _clean_text(archivo.nombre),
@@ -749,10 +753,13 @@ def get_ods_detail(db: Session, codigo: str) -> dict[str, str]:
     cotizacion = record.cotizacion_path or ""
     layout = ""
     oc = record.odc_path or ""
+    contrato = record.contrato_path or ""
     for archivo in archivos:
         tipo = str(archivo.tipo_documento or "").strip().lower()
         if tipo == "layout" and not layout:
             layout = archivo.ruta_archivo or ""
+        if tipo == "contrato" and not contrato:
+            contrato = archivo.ruta_archivo or ""
 
     return {
         "rut": record.rut_cliente or "",
@@ -773,6 +780,7 @@ def get_ods_detail(db: Session, codigo: str) -> dict[str, str]:
         "cotizacion": cotizacion,
         "layout": layout,
         "oc": oc,
+        "contrato": contrato,
     }
 
 
@@ -879,7 +887,7 @@ def get_admin_ods_rows(db: Session) -> list[dict[str, object]]:
     for ods, adm in rows:
         estado_ods = str(ods.estado or "").strip()
         anulada = estado_ods.lower() == "anulada"
-        carpeta = ods.cotizacion_path or ods.odc_path or ods.desglose_path or ""
+        carpeta = ods.cotizacion_path or ods.odc_path or ods.desglose_path or ods.contrato_path or ""
         out.append(
             {
                 "codigo": ods.codigo or "",
@@ -966,7 +974,7 @@ def get_finanzas_ods_rows(db: Session) -> dict[str, object]:
         anulada = estado_ods.lower() == "anulada"
         if anulada:
             total_anuladas += 1
-        carpeta = ods.cotizacion_path or ods.odc_path or ods.desglose_path or ""
+        carpeta = ods.cotizacion_path or ods.odc_path or ods.desglose_path or ods.contrato_path or ""
         out.append(
             {
                 "codigo": ods.codigo or "",
@@ -1689,7 +1697,7 @@ def get_comercial_todo(db: Session) -> dict:
             "direccionSucursal": ods.direccion_sucursal or "",
             "tipoServicio": tipo_servicio,
             "tipoPlan": ods.tipo_plan or "",
-            "carpeta": ods.cotizacion_path or ods.odc_path or ods.desglose_path or "",
+            "carpeta": ods.cotizacion_path or ods.odc_path or ods.desglose_path or ods.contrato_path or "",
             "anulada": anulada,
             "areaComercial": area_comercial,
             "areaAdmin": area_admin,
