@@ -17,6 +17,7 @@ from app.models import (
     AdministracionODT,
     ClienteBBDD,
     FinanzasODT,
+    OperacionesVentaODT,
     ServicioTecnicoVentaODT,
     SucursalBBDD,
     SucursalContactoEmergencia,
@@ -644,6 +645,24 @@ def create_ods(db: Session, payload: VentaODSCreateRequest, usuario_email: str) 
         desglose_path=desglose_path,
     )
     db.add(record)
+    db.flush()
+
+    # Pre-crear registros de área con auto-completado según tipo_servicio.
+    # Las áreas que NO aplican arrancan con sus flags en True (Terminado automático).
+    areas = _calcular_areas_aplicables(tipos)
+    db.add(ServicioTecnicoVentaODT(
+        odt=codigo,
+        recepcion_solicitud_instalacion=not areas["servtec"],
+        instalacion_finalizada=not areas["servtec"],
+        finalizado=not areas["soporte"],
+    ))
+    db.add(OperacionesVentaODT(
+        odt=codigo,
+        fecha_coordinacion=not areas["operaciones"],
+        reunion_coordinacion=not areas["operaciones"],
+        coord_apertura_puesto=not areas["operaciones"],
+        coord_equipo=not areas["operaciones"],
+    ))
     db.flush()
 
     archivos: list[VentaODSArchivoRequest] = []
@@ -1550,6 +1569,31 @@ def _evaluar_exclusion_carta(tipo_servicio: str) -> bool:
         "desinstalacion", "desinstalación", "monitoreo adicional",
         "upgrade", "downgrade",
     ))
+
+
+def _calcular_areas_aplicables(tipos: list[str]) -> dict[str, bool]:
+    """Determina qué áreas corresponden según los tipos de servicio seleccionados.
+
+    Tabla de referencia (imagen TablaAdministracion):
+      ServTec aplica  → Instalacion | Servicio Tecnico | Alarma | Upgrade | Downgrade | Desinstalacion
+      Soporte aplica  → Televigilancia | Alarma | Instalacion | Servicio Tecnico | Upgrade | Downgrade | Monitoreo Adicional
+      Operaciones aplica → Televigilancia | Guardia | Upgrade | Downgrade | Monitoreo Adicional
+    """
+    n = {_normalize_text(t) for t in tipos}
+    tv      = "televigilancia" in n
+    inst    = "instalacion" in n
+    st      = "servicio tecnico" in n
+    alarma  = "alarma" in n
+    guardia = "guardia" in n
+    upg     = "upgrade" in n
+    dwn     = "downgrade" in n
+    desinst = "desinstalacion" in n
+    mon     = "monitoreo adicional" in n
+    return {
+        "servtec":      inst or st or alarma or upg or dwn or desinst,
+        "soporte":      tv or alarma or inst or st or upg or dwn or mon,
+        "operaciones":  tv or guardia or upg or dwn or mon,
+    }
 
 
 def _area_estado(checks: list[tuple[str, bool]]) -> dict:
