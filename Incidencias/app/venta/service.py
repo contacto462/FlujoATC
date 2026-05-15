@@ -1053,7 +1053,8 @@ def get_servicio_tecnico_ventas_rows(db: Session) -> list[dict[str, object]]:
     out: list[dict[str, object]] = []
     for ods, st in rows:
         tipo_servicio = str(ods.tipo_servicio or "")
-        if "servicio tecnico" not in tipo_servicio.lower() and "servicio técnico" not in tipo_servicio.lower():
+        tipos_lista = [t.strip() for t in tipo_servicio.split("|") if t.strip()]
+        if not _calcular_areas_aplicables(tipos_lista)["servtec"]:
             continue
         anulada = str(ods.estado or "").strip().lower() == "anulada"
         out.append(
@@ -1441,7 +1442,6 @@ OPERACIONES_BOOL_FIELDS: dict[str, str] = {
 
 
 def _get_or_create_operaciones_row(db: Session, codigo: str):
-    from app.models import OperacionesVentaODT
     codigo_limpio = str(codigo or "").strip()
     row = (
         db.query(OperacionesVentaODT)
@@ -1456,7 +1456,6 @@ def _get_or_create_operaciones_row(db: Session, codigo: str):
 
 
 def get_operaciones_ods_rows(db: Session) -> dict:
-    from app.models import OperacionesVentaODT
     rows = (
         db.query(VentaODS, OperacionesVentaODT, ServicioTecnicoVentaODT)
         .outerjoin(
@@ -1507,7 +1506,6 @@ def get_operaciones_ods_rows(db: Session) -> dict:
 
 
 def update_operaciones_ods_estado(db: Session, codigo: str, campo: str, valor: bool) -> dict:
-    from app.models import OperacionesVentaODT
     codigo_limpio = str(codigo or "").strip()
     campo_limpio = str(campo or "").strip()
     if campo_limpio not in OPERACIONES_BOOL_FIELDS:
@@ -1609,7 +1607,6 @@ def _area_estado(checks: list[tuple[str, bool]]) -> dict:
 
 
 def get_comercial_todo(db: Session) -> dict:
-    from app.models import OperacionesVentaODT
     rows = (
         db.query(VentaODS, AdministracionODT, ServicioTecnicoVentaODT, FinanzasODT, OperacionesVentaODT)
         .outerjoin(AdministracionODT, func.lower(func.trim(AdministracionODT.odt)) == func.lower(func.trim(VentaODS.codigo)))
@@ -1625,6 +1622,9 @@ def get_comercial_todo(db: Session) -> dict:
         anulada = estado_ods.lower() == "anulada"
         tipo_servicio = str(ods.tipo_servicio or "")
         excluir_carta = _evaluar_exclusion_carta(tipo_servicio)
+
+        tipos_lista = [t.strip() for t in tipo_servicio.split("|") if t.strip()]
+        areas_aplica = _calcular_areas_aplicables(tipos_lista)
 
         area_comercial = _area_estado([
             ("Cotizacion", bool(ods.cotizacion_path)),
@@ -1642,21 +1642,30 @@ def get_comercial_todo(db: Session) -> dict:
             admin_checks.append(("Carta de bienvenida", _is_true(getattr(adm, "envio_carta_bienvenida", False))))
         area_admin = _area_estado(admin_checks)
 
-        area_servicio = _area_estado([
-            ("Recepcion solicitud", _is_true(getattr(st, "recepcion_solicitud_instalacion", False))),
-            ("Instalacion finalizada", _is_true(getattr(st, "instalacion_finalizada", False))),
-        ])
+        if areas_aplica["servtec"]:
+            area_servicio = _area_estado([
+                ("Recepcion solicitud", _is_true(getattr(st, "recepcion_solicitud_instalacion", False))),
+                ("Instalacion finalizada", _is_true(getattr(st, "instalacion_finalizada", False))),
+            ])
+        else:
+            area_servicio = _area_estado([("No aplica", True)])
 
-        area_soporte = _area_estado([
-            ("Soporte terminado", _is_true(getattr(st, "finalizado", False))),
-        ])
+        if areas_aplica["soporte"]:
+            area_soporte = _area_estado([
+                ("Soporte terminado", _is_true(getattr(st, "finalizado", False))),
+            ])
+        else:
+            area_soporte = _area_estado([("No aplica", True)])
 
-        area_operaciones = _area_estado([
-            ("Fecha coordinacion", _is_true(getattr(op, "fecha_coordinacion", False))),
-            ("Reunion coordinacion", _is_true(getattr(op, "reunion_coordinacion", False))),
-            ("Coord. apertura puesto", _is_true(getattr(op, "coord_apertura_puesto", False))),
-            ("Coord. equipo", _is_true(getattr(op, "coord_equipo", False))),
-        ])
+        if areas_aplica["operaciones"]:
+            area_operaciones = _area_estado([
+                ("Fecha coordinacion", _is_true(getattr(op, "fecha_coordinacion", False))),
+                ("Reunion coordinacion", _is_true(getattr(op, "reunion_coordinacion", False))),
+                ("Coord. apertura puesto", _is_true(getattr(op, "coord_apertura_puesto", False))),
+                ("Coord. equipo", _is_true(getattr(op, "coord_equipo", False))),
+            ])
+        else:
+            area_operaciones = _area_estado([("No aplica", True)])
 
         area_finanzas = _area_estado([
             ("Recepcion datos facturacion", _is_true(getattr(fin, "recepcion_datos_facturacion", False))),

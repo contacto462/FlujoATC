@@ -5793,6 +5793,21 @@ def _ensure_st_campos(db: Session) -> None:
             db.rollback()
         except Exception:
             pass
+
+    # Asegurar DEFAULT FALSE en columnas NOT NULL del modelo base que no tienen
+    # default a nivel de BD (solo tienen default Python-side en el ORM).
+    for col in ("recepcion_solicitud_instalacion", "instalacion_finalizada", "finalizado"):
+        try:
+            db.execute(text(
+                f"ALTER TABLE servicio_tecnico_ventas_odt ALTER COLUMN {col} SET DEFAULT FALSE"
+            ))
+            db.commit()
+        except Exception:
+            try:
+                db.rollback()
+            except Exception:
+                pass
+
     _st_campos_ok = True
 
 
@@ -5840,8 +5855,15 @@ def st_ods_filas(
         FROM venta_ods v
         LEFT JOIN servicio_tecnico_ventas_odt s
             ON LOWER(TRIM(s.odt)) = LOWER(TRIM(v.codigo))
-        WHERE LOWER(v.tipo_servicio) LIKE '%servicio técnico%'
-           OR LOWER(v.tipo_servicio) LIKE '%servicio tecnico%'
+        WHERE (
+            LOWER(v.tipo_servicio) LIKE '%televigilancia%'
+            OR LOWER(v.tipo_servicio) LIKE '%alarma%'
+            OR LOWER(v.tipo_servicio) LIKE '%instalaci%'
+            OR LOWER(v.tipo_servicio) LIKE '%servicio t%'
+            OR LOWER(v.tipo_servicio) LIKE '%upgrade%'
+            OR LOWER(v.tipo_servicio) LIKE '%downgrade%'
+            OR LOWER(v.tipo_servicio) LIKE '%monitoreo adicional%'
+        )
         ORDER BY v.created_at DESC, v.id DESC
     """)).fetchall()
     result: list[list] = []
