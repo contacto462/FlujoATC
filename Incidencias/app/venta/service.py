@@ -1,15 +1,11 @@
 from __future__ import annotations
 
 import base64
-import json
 import logging
 import re
-import ssl
 import unicodedata
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import quote
-from urllib.request import Request, urlopen
 
 from fastapi import HTTPException
 from sqlalchemy import func
@@ -1310,106 +1306,37 @@ def update_sucursal_row(db: Session, row_id: int, values: list[str]) -> None:
     db.commit()
 
 
-def _fetch_catalog(path: str) -> dict:
-    base_url = (settings.venta_catalogo_base_url or "https://apis.digital.gob.cl/dpa").rstrip("/")
-    if not base_url:
-        raise HTTPException(status_code=503, detail="La API externa de regiones/comunas no esta configurada.")
-    req = Request(
-        url=f"{base_url}{path}",
-        method="GET",
-        headers={
-            "User-Agent": "Mozilla/5.0",
-            "Accept": "application/json",
-        },
-    )
-    try:
-        timeout = int(settings.venta_catalogo_timeout_seconds or 8)
-        ssl_context = None
-        verify_ssl = settings.venta_catalogo_verify_ssl
-        if "apis.digital.gob.cl" in base_url:
-            verify_ssl = False
-        if base_url.startswith("https://") and not verify_ssl:
-            ssl_context = ssl._create_unverified_context()
-        with urlopen(req, timeout=timeout, context=ssl_context) as resp:
-            body = resp.read().decode("utf-8")
-            return json.loads(body)
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"No fue posible consultar la API externa de regiones/comunas: {exc}")
+_CHILE_REGIONES_COMUNAS: dict[str, list[str]] = {
+    "Arica y Parinacota": ["Arica", "Camarones", "Putre", "General Lagos"],
+    "Tarapacá": ["Iquique", "Alto Hospicio", "Pozo Almonte", "Camiña", "Colchane", "Huara", "Pica"],
+    "Antofagasta": ["Antofagasta", "Mejillones", "Sierra Gorda", "Taltal", "Calama", "Ollagüe", "San Pedro de Atacama", "Tocopilla", "María Elena"],
+    "Atacama": ["Copiapó", "Caldera", "Tierra Amarilla", "Chañaral", "Diego de Almagro", "Vallenar", "Alto del Carmen", "Freirina", "Huasco"],
+    "Coquimbo": ["La Serena", "Coquimbo", "Andacollo", "La Higuera", "Paiguano", "Vicuña", "Illapel", "Canela", "Los Vilos", "Salamanca", "Ovalle", "Combarbalá", "Monte Patria", "Punitaqui", "Río Hurtado"],
+    "Valparaíso": ["Valparaíso", "Casablanca", "Concón", "Juan Fernández", "Puchuncaví", "Quintero", "Viña del Mar", "Isla de Pascua", "Los Andes", "Calle Larga", "Rinconada", "San Esteban", "La Ligua", "Cabildo", "Papudo", "Petorca", "Zapallar", "Quillota", "Calera", "Hijuelas", "La Cruz", "Nogales", "San Antonio", "Algarrobo", "Cartagena", "El Quisco", "El Tabo", "Santo Domingo", "San Felipe", "Catemu", "Llaillay", "Panquehue", "Putaendo", "Santa María", "Quilpué", "Limache", "Olmué", "Villa Alemana"],
+    "Metropolitana de Santiago": ["Santiago", "Cerrillos", "Cerro Navia", "Conchalí", "El Bosque", "Estación Central", "Huechuraba", "Independencia", "La Cisterna", "La Florida", "La Granja", "La Pintana", "La Reina", "Las Condes", "Lo Barnechea", "Lo Espejo", "Lo Prado", "Macul", "Maipú", "Ñuñoa", "Pedro Aguirre Cerda", "Peñalolén", "Providencia", "Pudahuel", "Quilicura", "Quinta Normal", "Recoleta", "Renca", "San Joaquín", "San Miguel", "San Ramón", "Vitacura", "Puente Alto", "Pirque", "San José de Maipo", "Colina", "Lampa", "Tiltil", "San Bernardo", "Buin", "Calera de Tango", "Paine", "Melipilla", "Alhué", "Curacaví", "María Pinto", "San Pedro", "Talagante", "El Monte", "Isla de Maipo", "Padre Hurtado", "Peñaflor"],
+    "O'Higgins": ["Rancagua", "Codegua", "Coinco", "Coltauco", "Doñihue", "Graneros", "Las Cabras", "Machalí", "Malloa", "Mostazal", "Olivar", "Peumo", "Pichidegua", "Quinta de Tilcoco", "Rengo", "Requínoa", "San Vicente", "Pichilemu", "La Estrella", "Litueche", "Marchihue", "Navidad", "Paredones", "San Fernando", "Chépica", "Chimbarongo", "Lolol", "Nancagua", "Palmilla", "Peralillo", "Placilla", "Pumanque", "Santa Cruz"],
+    "Maule": ["Talca", "Constitución", "Curepto", "Empedrado", "Maule", "Pelarco", "Pencahue", "Río Claro", "San Clemente", "San Rafael", "Cauquenes", "Chanco", "Pelluhue", "Curicó", "Hualañé", "Licantén", "Molina", "Rauco", "Romeral", "Sagrada Familia", "Teno", "Vichuquén", "Linares", "Colbún", "Longaví", "Parral", "Retiro", "San Javier", "Villa Alegre", "Yerbas Buenas"],
+    "Ñuble": ["Chillán", "Bulnes", "Chillán Viejo", "El Carmen", "Pemuco", "Pinto", "Quillón", "San Ignacio", "Yungay", "Cobquecura", "Coelemu", "Ninhue", "Portezuelo", "Quirihue", "Ránquil", "Trehuaco", "Coihueco", "Ñiquén", "San Carlos", "San Fabián", "San Nicolás"],
+    "Biobío": ["Concepción", "Coronel", "Chiguayante", "Florida", "Hualqui", "Lota", "Penco", "San Pedro de la Paz", "Santa Juana", "Talcahuano", "Tomé", "Hualpén", "Lebu", "Arauco", "Cañete", "Contulmo", "Curanilahue", "Los Álamos", "Tirúa", "Los Ángeles", "Antuco", "Cabrero", "Laja", "Mulchén", "Nacimiento", "Negrete", "Quilaco", "Quilleco", "San Rosendo", "Santa Bárbara", "Tucapel", "Yumbel", "Alto Biobío"],
+    "La Araucanía": ["Temuco", "Carahue", "Cunco", "Curarrehue", "Freire", "Galvarino", "Gorbea", "Lautaro", "Loncoche", "Melipeuco", "Nueva Imperial", "Padre Las Casas", "Perquenco", "Pitrufquén", "Pucón", "Saavedra", "Teodoro Schmidt", "Toltén", "Vilcún", "Villarrica", "Cholchol", "Angol", "Collipulli", "Curacautín", "Ercilla", "Lonquimay", "Los Sauces", "Lumaco", "Purén", "Renaico", "Traiguén", "Victoria"],
+    "Los Ríos": ["Valdivia", "Corral", "Futrono", "La Unión", "Lago Ranco", "Lanco", "Los Lagos", "Máfil", "Mariquina", "Paillaco", "Panguipulli", "Río Bueno"],
+    "Los Lagos": ["Puerto Montt", "Calbuco", "Cochamó", "Fresia", "Frutillar", "Los Muermos", "Llanquihue", "Maullín", "Puerto Varas", "Castro", "Ancud", "Chonchi", "Curaco de Vélez", "Dalcahue", "Puqueldón", "Queilén", "Quellón", "Quemchi", "Quinchao", "Osorno", "Puerto Octay", "Purranque", "Puyehue", "Río Negro", "San Juan de la Costa", "San Pablo", "Chaitén", "Futaleufú", "Hualaihué", "Palena"],
+    "Aysén": ["Coyhaique", "Lago Verde", "Aysén", "Cisnes", "Guaitecas", "Cochrane", "O'Higgins", "Tortel", "Chile Chico", "Río Ibáñez"],
+    "Magallanes": ["Punta Arenas", "Laguna Blanca", "Río Verde", "San Gregorio", "Cabo de Hornos", "Antártica", "Porvenir", "Primavera", "Timaukel", "Natales", "Torres del Paine"],
+}
 
 
 def fetch_regiones() -> list[str]:
-    data = _fetch_catalog("/regiones")
-    regiones = None
-    if isinstance(data, dict):
-        regiones = data.get("regiones")
-    elif isinstance(data, list):
-        regiones = data
-    if not isinstance(regiones, list):
-        raise HTTPException(status_code=502, detail="La API externa devolvio una respuesta invalida para regiones.")
-
-    cleaned: list[str] = []
-    for item in regiones:
-        if isinstance(item, str):
-            nombre = item.strip()
-        elif isinstance(item, (list, tuple)) and len(item) >= 2:
-            nombre = str(item[1]).strip()
-        elif isinstance(item, dict):
-            nombre = str(item.get("nombre") or item.get("name") or "").strip()
-        else:
-            nombre = ""
-        if nombre:
-            cleaned.append(nombre)
-    if not cleaned:
-        raise HTTPException(status_code=502, detail="La API externa no devolvio regiones.")
-    return cleaned
+    return sorted(_CHILE_REGIONES_COMUNAS.keys())
 
 
 def fetch_comunas(region: str) -> list[str]:
     region_name = (region or "").strip()
-    encoded = quote(region_name)
-    data = None
-
-    base_url = (settings.venta_catalogo_base_url or "").rstrip("/")
-    if base_url.endswith("/dpa"):
-        regiones_data = _fetch_catalog("/regiones")
-        regiones = regiones_data if isinstance(regiones_data, list) else regiones_data.get("regiones", [])
-        region_code = ""
-        for item in regiones:
-            if isinstance(item, dict):
-                nombre = str(item.get("nombre") or "").strip()
-                codigo = str(item.get("codigo") or "").strip()
-                if _normalize_text(nombre) == _normalize_text(region_name):
-                    region_code = codigo
-                    break
-        if not region_code:
-            raise HTTPException(status_code=404, detail=f"No se encontro la region '{region_name}' en la API externa.")
-        data = _fetch_catalog(f"/regiones/{quote(region_code)}/comunas")
-    else:
-        data = _fetch_catalog(f"/comunas?region={encoded}")
-
-    comunas = None
-    if isinstance(data, dict):
-        comunas = data.get("comunas")
-    elif isinstance(data, list):
-        comunas = data
-    if not isinstance(comunas, list):
-        raise HTTPException(status_code=502, detail="La API externa devolvio una respuesta invalida para comunas.")
-
-    cleaned: list[str] = []
-    for item in comunas:
-        if isinstance(item, str):
-            nombre = item.strip()
-        elif isinstance(item, (list, tuple)) and len(item) >= 2:
-            nombre = str(item[1]).strip()
-        elif isinstance(item, dict):
-            nombre = str(item.get("nombre") or item.get("name") or "").strip()
-        else:
-            nombre = ""
-        if nombre:
-            cleaned.append(nombre)
-    if not cleaned:
-        raise HTTPException(status_code=502, detail=f"La API externa no devolvio comunas para la region '{region_name}'.")
-    return cleaned
+    region_norm = _normalize_text(region_name)
+    for key, comunas in _CHILE_REGIONES_COMUNAS.items():
+        if _normalize_text(key) == region_norm:
+            return sorted(comunas)
+    raise HTTPException(status_code=404, detail=f"Region '{region_name}' no encontrada.")
 
 
 def get_clientes_table(db: Session) -> dict:
