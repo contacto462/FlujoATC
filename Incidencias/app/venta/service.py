@@ -1581,6 +1581,13 @@ def _evaluar_exclusion_carta(tipo_servicio: str) -> bool:
     ))
 
 
+def _contrato_no_requerido(tipos: list[str]) -> bool:
+    """Servicio Tecnico o Instalacion (solos) no requieren contrato firmado."""
+    if len(tipos) != 1:
+        return False
+    return _normalize_text(tipos[0]) in {"servicio tecnico", "instalacion"}
+
+
 def _calcular_areas_aplicables(tipos: list[str]) -> dict[str, bool]:
     """Determina qué áreas corresponden según los tipos de servicio seleccionados.
 
@@ -1637,22 +1644,32 @@ def get_comercial_todo(db: Session) -> dict:
 
         tipos_lista = [t.strip() for t in tipo_servicio.split("|") if t.strip()]
         areas_aplica = _calcular_areas_aplicables(tipos_lista)
+        contrato_no_requerido = _contrato_no_requerido(tipos_lista)
 
         comercial_checks = [
             ("Cotizacion", bool(ods.cotizacion_path)),
-            ("Contrato Firmado", bool(ods.contrato_path)),
         ]
+        if not contrato_no_requerido:
+            comercial_checks.append(("Contrato Firmado", bool(ods.contrato_path)))
         if str(ods.requiere_oc or "").strip().lower() == "si":
             comercial_checks.append(("Orden de Compra", bool(ods.odc_path)))
         area_comercial = _area_estado(comercial_checks)
 
+        # Servicio Tecnico o Instalacion solos no requieren registro en Alpha3 / Intranet
+        # (mismo criterio que TablaAdministracion.html: debeOcultarBoton).
+        omitir_registros = (
+            len(tipos_lista) == 1
+            and _normalize_text(tipos_lista[0]) in {"servicio tecnico", "instalacion"}
+        )
+
         admin_checks: list[tuple[str, bool]] = [
             ("Recepcion info", _is_true(getattr(adm, "recepcion_info", False))),
-            ("Registro Alpha3", _is_true(getattr(adm, "registro_alpha3", False))),
-            ("Registro Intranet", _is_true(getattr(adm, "registro_intranet", False))),
-            ("Envio solicitud instalacion", _is_true(getattr(adm, "envio_solicitud_instalacion", False))),
-            ("Envio datos facturacion", _is_true(getattr(adm, "envio_datos_facturacion", False))),
         ]
+        if not omitir_registros:
+            admin_checks.append(("Registro Alpha3", _is_true(getattr(adm, "registro_alpha3", False))))
+            admin_checks.append(("Registro Intranet", _is_true(getattr(adm, "registro_intranet", False))))
+        admin_checks.append(("Envio solicitud instalacion", _is_true(getattr(adm, "envio_solicitud_instalacion", False))))
+        admin_checks.append(("Envio datos facturacion", _is_true(getattr(adm, "envio_datos_facturacion", False))))
         if not excluir_carta:
             admin_checks.append(("Carta de bienvenida", _is_true(getattr(adm, "envio_carta_bienvenida", False))))
         area_admin = _area_estado(admin_checks)
@@ -1702,6 +1719,7 @@ def get_comercial_todo(db: Session) -> dict:
             "tipoPlan": ods.tipo_plan or "",
             "carpeta": ods.cotizacion_path or ods.odc_path or ods.desglose_path or ods.contrato_path or "",
             "contratoPath": ods.contrato_path or "",
+            "contratoRequerido": not contrato_no_requerido,
             "requiereOC": ods.requiere_oc or "",
             "anulada": anulada,
             "areaComercial": area_comercial,

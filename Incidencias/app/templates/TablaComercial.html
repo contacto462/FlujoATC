@@ -231,6 +231,13 @@ td.cod  { font-weight: 700; font-family: 'JetBrains Mono', 'Courier New', monosp
   background: #dcfce7; color: #166534;
   white-space: nowrap;
 }
+.ctrt-na {
+  display: inline-flex; align-items: center;
+  padding: 5px 12px; border-radius: 999px;
+  font-size: 12px; font-weight: 700;
+  background: #f1f5f9; color: #64748b;
+  white-space: nowrap;
+}
 .btn-ctrt {
   appearance: none;
   padding: 5px 13px; border-radius: 999px;
@@ -558,6 +565,12 @@ function mkFila(row) {
     const lbl = document.createElement("span");
     lbl.className = "ctrt-ok";
     lbl.textContent = "✓ Subido";
+    tdCtrt.appendChild(lbl);
+  } else if (row.contratoRequerido === false) {
+    const lbl = document.createElement("span");
+    lbl.className = "ctrt-na";
+    lbl.textContent = "No requiere";
+    lbl.title = "Servicio Técnico / Instalación sola no requiere contrato";
     tdCtrt.appendChild(lbl);
   } else {
     const btnUp = document.createElement("button");
