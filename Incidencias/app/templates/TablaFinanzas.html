@@ -162,9 +162,10 @@ thead th::after {
   padding-top: 1px;
 }
 .th-content.no-filter .th-label {
-  white-space: nowrap;
-  font-size: 9.4px;
-  letter-spacing: .035em;
+  white-space: normal;
+  font-size: inherit;
+  letter-spacing: inherit;
+  line-height: 1.25;
 }
 .filtro-container { display: block; width: 100%; }
 .filtro-container select, select.filtro {
@@ -338,17 +339,17 @@ tr.detalle-vineta {
         <th style="width:5%"><div class="th-content"><span class="th-label">Tipo Servicio</span><div class="filtro-container"><select id="filtro-servicio" class="filtro"><option value="Todos">Todos</option></select></div></div></th>
         <th style="width:4.5%"><div class="th-content"><span class="th-label">Tipo Plan</span><div class="filtro-container"><select id="filtro-plan" class="filtro"><option value="Todos">Todos</option></select></div></div></th>
         <th style="width:4.5%"><div class="th-content no-filter"><span class="th-label">Carpeta</span></div></th>
-        <th style="width:5%"><div class="th-content no-filter"><span class="th-label">Fecha inicio servicio</span></div></th>
-        <th style="width:5.5%"><div class="th-content no-filter"><span class="th-label">Recepción datos facturación</span></div></th>
-        <th style="width:5.5%"><div class="th-content no-filter"><span class="th-label">Creación clientes Piriod</span></div></th>
-        <th style="width:5.5%"><div class="th-content no-filter"><span class="th-label">Creación clientes BD</span></div></th>
-        <th style="width:5.5%"><div class="th-content no-filter"><span class="th-label">Facturación Instalación</span></div></th>
-        <th style="width:5.5%"><div class="th-content no-filter"><span class="th-label">Facturación Servicio</span></div></th>
-        <th style="width:6%"><div class="th-content"><span class="th-label">Terminado</span>
+        <th style="width:6.5%"><div class="th-content no-filter"><span class="th-label">Fecha inicio servicio</span></div></th>
+        <th style="width:8%"><div class="th-content no-filter"><span class="th-label">Recepción datos facturación</span></div></th>
+        <th style="width:6.8%"><div class="th-content no-filter"><span class="th-label">Creación clientes Piriod</span></div></th>
+        <th style="width:6.8%"><div class="th-content no-filter"><span class="th-label">Creación clientes BD</span></div></th>
+        <th style="width:7.2%"><div class="th-content no-filter"><span class="th-label">Facturación Instalación</span></div></th>
+        <th style="width:7.2%"><div class="th-content no-filter"><span class="th-label">Facturación Servicio</span></div></th>
+        <th style="width:5.5%"><div class="th-content"><span class="th-label">Terminado</span>
           <div class="filtro-container">
             <select id="filtro-terminado" class="filtro">
               <option value="Pendiente" selected>Pendientes</option>
-              <option value="✓">Terminados</option>
+              <option value="Finalizado">Terminados</option>
               <option value="Anuladas">Anuladas</option>
               <option value="Todos">Todos</option>
             </select>
@@ -403,11 +404,11 @@ tr.detalle-vineta {
   function mkBtn(anulada, estado, codigo, campo){
     const btn = document.createElement("button");
     btn.className = "boton-estado " + (estado ? "completado" : "pendiente");
-    btn.textContent = estado ? "✓" : "Pendiente";
+    btn.textContent = estado ? "Finalizado" : "Pendiente";
     btn.disabled = !!anulada;
     if(!anulada){
       btn.addEventListener("click", async () => {
-        const nuevo = btn.textContent === "✓" ? false : true;
+        const nuevo = btn.classList.contains("completado") ? false : true;
         const res = await fetch("/api/venta/finanzas-ods/estado?token=" + encodeURIComponent(token), {
           method: "POST",
           headers: {"Content-Type":"application/json"},
@@ -418,7 +419,7 @@ tr.detalle-vineta {
           alert(data?.detail || "No se pudo actualizar.");
           return;
         }
-        btn.textContent = nuevo ? "✓" : "Pendiente";
+        btn.textContent = nuevo ? "Finalizado" : "Pendiente";
         btn.className = "boton-estado " + (nuevo ? "completado" : "pendiente");
         aplicarFiltroTerminado();
       });
@@ -489,12 +490,12 @@ tr.detalle-vineta {
             visible = r.classList.contains("anulada");
             return;
           }
-          if(i === 16 && val === "✓"){
-            visible = txt === "✓" && !r.classList.contains("anulada");
+          if(i === 16 && val === "Finalizado"){
+            visible = txt === "Finalizado" && !r.classList.contains("anulada");
             return;
           }
           if(i === 16 && val === "Pendiente"){
-            visible = txt !== "✓" && !r.classList.contains("anulada");
+            visible = txt !== "Finalizado" && !r.classList.contains("anulada");
             return;
           }
           if(i !== 16 && txt !== val.trim()){

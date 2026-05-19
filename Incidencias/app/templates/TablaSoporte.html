@@ -642,7 +642,7 @@ tr.modal-subida {
             <select id="filtro-terminado" onchange="filtrarTabla()">
               <option value="Pendiente" selected>Pendientes</option>
               <option value="Todos">Todos</option>
-              <option value="✓">Terminados</option>
+              <option value="Finalizado">Terminados</option>
             </select>
           </div>
         </th>
@@ -800,9 +800,9 @@ tr.modal-subida {
           (idx >= 9 && idx <= 13) || (idx >= 16 && idx <= 18)
         ) {
           const btn = document.createElement("button");
-          const estadoActual = (celda && celda !== "Pendiente") ? "✓" : "Pendiente";
+          const estadoActual = (celda && celda !== "Pendiente") ? "Finalizado" : "Pendiente";
           btn.textContent = estadoActual;
-          btn.classList.add("boton", estadoActual === "✓" ? "completado" : "pendiente");
+          btn.classList.add("boton", estadoActual === "Finalizado" ? "completado" : "pendiente");
 
           const instPendiente = !instalacionFinalizada || instalacionFinalizada === "" || instalacionFinalizada.toLowerCase() === "pendiente";
           if (!esTelevigilancia && instPendiente) {
@@ -810,9 +810,8 @@ tr.modal-subida {
             btn.title = "Debe estar finalizada la instalación";
           } else {
             btn.onclick = async () => {
-              const nuevoEstado = btn.textContent === "Pendiente" ? "Completado" : "Pendiente";
-              const nuevo = nuevoEstado === "Completado";
-              btn.textContent = nuevo ? "✓" : "Pendiente";
+              const nuevo = btn.textContent === "Pendiente";
+              btn.textContent = nuevo ? "Finalizado" : "Pendiente";
               btn.classList.toggle("pendiente");
               btn.classList.toggle("completado");
               const campo = campoReal[idx];
@@ -822,7 +821,7 @@ tr.modal-subida {
                   await apiPost("/api/soporte-tecnico/ods/notificar-termino", { codigo: fila[0] });
                 }
               } catch (err) {
-                btn.textContent = nuevo ? "Pendiente" : "✓";
+                btn.textContent = nuevo ? "Pendiente" : "Finalizado";
                 btn.classList.toggle("pendiente");
                 btn.classList.toggle("completado");
                 alert("Error: " + err.message);

@@ -384,12 +384,12 @@ td textarea { resize: vertical; min-height: 48px; }
   function estadoBtn(codigo, campo, activo){
     const btn = document.createElement("button");
     btn.className = "boton-estado " + (activo ? "completado" : "pendiente");
-    btn.textContent = activo ? "✓" : "Pendiente";
+    btn.textContent = activo ? "Finalizado" : "Pendiente";
     btn.addEventListener("click", async () => {
       try{
-        const nuevo = btn.textContent !== "✓";
+        const nuevo = !btn.classList.contains("completado");
         await postEstado(codigo, campo, nuevo);
-        btn.textContent = nuevo ? "✓" : "Pendiente";
+        btn.textContent = nuevo ? "Finalizado" : "Pendiente";
         btn.className = "boton-estado " + (nuevo ? "completado" : "pendiente");
         aplicarFiltroTerminado();
       }catch(err){
@@ -440,7 +440,7 @@ td textarea { resize: vertical; min-height: 48px; }
     const valor = row.valores?.llamar_cliente || "";
     const btn = document.createElement("button");
     btn.className = "boton-estado " + (valor ? "completado" : "pendiente");
-    btn.textContent = valor ? "✓" : "Pendiente";
+    btn.textContent = valor ? "Finalizado" : "Pendiente";
     if(valor) btn.title = valor;
     const input = document.createElement("input");
     input.placeholder = "Con quien hablaste";
@@ -458,7 +458,7 @@ td textarea { resize: vertical; min-height: 48px; }
       const final = `${fecha} - ${nombre}`;
       try{
         await postValor(row.codigo, "llamar_cliente", final);
-        btn.textContent = "✓";
+        btn.textContent = "Finalizado";
         btn.className = "boton-estado completado";
         btn.title = final;
         input.style.display = "none";
@@ -466,7 +466,7 @@ td textarea { resize: vertical; min-height: 48px; }
     }
 
     btn.addEventListener("click", () => {
-      if(btn.textContent === "✓") return;
+      if(btn.classList.contains("completado")) return;
       input.style.display = input.style.display === "none" ? "block" : "none";
       input.focus();
     });
@@ -481,7 +481,7 @@ td textarea { resize: vertical; min-height: 48px; }
     const valor = row.valores?.solicitud_materiales || "";
     const btn = document.createElement("button");
     btn.className = "boton-estado " + (valor ? "completado" : "pendiente");
-    btn.textContent = valor ? "✓" : "Pendiente";
+    btn.textContent = valor ? "Finalizado" : "Pendiente";
     btn.title = valor || row.materialesBase || "";
     const edit = document.createElement("button");
     edit.className = "boton-estado mini";
@@ -500,7 +500,7 @@ td textarea { resize: vertical; min-height: 48px; }
       const final = comentario.startsWith(fecha) ? comentario : `${fecha}\n${comentario}`;
       try{
         await postValor(row.codigo, "solicitud_materiales", final);
-        btn.textContent = "✓";
+        btn.textContent = "Finalizado";
         btn.className = "boton-estado completado";
         btn.title = final;
         textarea.value = final;
@@ -509,7 +509,7 @@ td textarea { resize: vertical; min-height: 48px; }
     }
 
     btn.addEventListener("click", () => {
-      if(btn.textContent === "✓") return;
+      if(btn.classList.contains("completado")) return;
       textarea.style.display = "block";
       textarea.focus();
     });
@@ -619,8 +619,8 @@ td textarea { resize: vertical; min-height: 48px; }
       const matchTxt = !txt || texto.includes(txt);
       let matchEst = true;
       if(filtro === "Todos") matchEst = true;
-      else if(filtro === "check") matchEst = estado === "✓";
-      else matchEst = estado !== "✓";
+      else if(filtro === "check") matchEst = estado === "Finalizado";
+      else matchEst = estado !== "Finalizado";
       const show = matchTxt && matchEst;
       tr.style.display = show ? "" : "none";
       if (show) vis++;

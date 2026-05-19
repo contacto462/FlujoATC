@@ -333,7 +333,7 @@ tbody tr td a:not(.link-estilo):hover { text-decoration: underline; }
   ];
 
   function volverPanel() {
-    location.href = `/venta/panel-selector?token=${encodeURIComponent(tokenSesion || "")}`;
+    location.href = `/venta/administracion?token=${encodeURIComponent(tokenSesion || "")}`;
   }
 
   function esc(texto) {
@@ -508,7 +508,7 @@ tbody tr td a:not(.link-estilo):hover { text-decoration: underline; }
     const boton = document.createElement("button");
     boton.type = "button";
     boton.className = `boton-estado ${completado ? "completado" : "pendiente"}`;
-    boton.textContent = completado ? "OK" : "Pendiente";
+    boton.textContent = completado ? "Finalizado" : "Pendiente";
     boton.dataset.estado = completado ? "1" : "0";
     boton.disabled = Boolean(row.anulada);
     boton.addEventListener("click", () => actualizarEstado(row.codigo, campo, boton));
@@ -526,7 +526,7 @@ tbody tr td a:not(.link-estilo):hover { text-decoration: underline; }
         body: JSON.stringify(payload),
       });
       boton.dataset.estado = result.valor ? "1" : "0";
-      boton.textContent = result.valor ? "OK" : "Pendiente";
+      boton.textContent = result.valor ? "Finalizado" : "Pendiente";
       boton.className = `boton-estado ${result.valor ? "completado" : "pendiente"}`;
       const extra = result.notificacion ? " Notificación pendiente de configuración." : "";
       setMensaje(`Estado actualizado para ${codigo}.${extra}`, true);
@@ -561,8 +561,8 @@ tbody tr td a:not(.link-estilo):hover { text-decoration: underline; }
 
       let mostrar = true;
       if (filtro === "Todos") mostrar = true;
-      else if (filtro === "ok" && estado !== "OK") mostrar = false;
-      else if (filtro === "Pendiente" && estado === "OK") mostrar = false;
+      else if (filtro === "ok" && estado !== "Finalizado") mostrar = false;
+      else if (filtro === "Pendiente" && estado === "Finalizado") mostrar = false;
 
       if (!m) mostrar = false;
       fila.style.display = mostrar ? "" : "none";
