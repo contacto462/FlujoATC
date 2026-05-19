@@ -210,20 +210,22 @@ table {
 
 /* THEAD */
 thead th {
-  position: sticky; top: 165px; z-index: 30;
+  position: sticky; top: 163px; z-index: 60;
   background: #f0fdf4;
   color: #475569;
   font-weight: 700;
   font-size: 10.5px;
-  padding: 14px 8px 12px;
+  padding: 14px 8px 14px;
   text-align: center;
   white-space: normal;
   letter-spacing: .06em;
   text-transform: uppercase;
-  border-bottom: 2px solid #bbf7d0;
+  border-bottom: 3px solid #86efac;
   line-height: 1.35;
   vertical-align: middle;
 }
+/* Espaciado entre encabezado y primer registro */
+tbody tr:first-child td { padding-top: 18px; }
 thead th.th-terminado { vertical-align: top; padding-bottom: 10px; }
 
 /* Filtro embebido en el encabezado Terminado */
@@ -620,7 +622,7 @@ tr.modal-subida {
         <th style="width:4.5%">Fecha</th>
         <th style="width:5%">Ejecutivo</th>
         <th style="width:4.5%">RUT</th>
-        <th style="width:4.5%">Razón Social</th>
+        <th style="width:4.5%">Sucursal</th>
         <th style="width:5%">Dirección Sucursal</th>
         <th style="width:4.5%">Tipo Servicio</th>
         <th style="width:4%">Tipo Plan</th>

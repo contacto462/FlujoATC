@@ -288,7 +288,8 @@
               <th>Fecha<div class="filtro-container"><select id="filtro-fecha" class="filtro"><option value="Todos">Todos</option></select></div></th>
               <th>Ejecutivo<div class="filtro-container"><select id="filtro-ejecutivo" class="filtro"><option value="Todos">Todos</option></select></div></th>
               <th>Rut Cliente<div class="filtro-container"><select id="filtro-rut" class="filtro"><option value="Todos">Todos</option></select></div></th>
-              <th>Razon Social<div class="filtro-container"><select id="filtro-razon" class="filtro"><option value="Todos">Todos</option></select></div></th>
+              <th>Razon Social<div class="filtro-container"><select id="filtro-razonsocial" class="filtro"><option value="Todos">Todos</option></select></div></th>
+              <th>Sucursal<div class="filtro-container"><select id="filtro-razon" class="filtro"><option value="Todos">Todos</option></select></div></th>
               <th>Direccion Sucursal<div class="filtro-container"><select id="filtro-direccion" class="filtro"><option value="Todos">Todos</option></select></div></th>
               <th>Tipo Servicio<div class="filtro-container"><select id="filtro-servicio" class="filtro"><option value="Todos">Todos</option></select></div></th>
               <th>Tipo Plan<div class="filtro-container"><select id="filtro-plan" class="filtro"><option value="Todos">Todos</option></select></div></th>
@@ -491,7 +492,7 @@
         opts.fecha.add(r.fecha || "");
         opts.ejecutivo.add(r.ejecutivo || "");
         opts.rut.add(r.rutCliente || "");
-        opts.razon.add(r.razonSocial || "");
+        opts.razon.add(r.nombreSucursal || r.razonSocial || "");
         opts.direccion.add(r.direccionSucursal || "");
         opts.servicio.add(r.tipoServicio || "");
         opts.plan.add(r.tipoPlan || "");
@@ -513,7 +514,7 @@
         tr.appendChild(tdCodigo);
 
         const cols = [
-          r.fecha, r.ejecutivo, r.rutCliente, r.razonSocial, r.direccionSucursal, r.tipoServicio, r.tipoPlan
+          r.fecha, r.ejecutivo, r.rutCliente, (r.nombreSucursal || r.razonSocial), r.direccionSucursal, r.tipoServicio, r.tipoPlan
         ];
         cols.forEach(v => {
           const td = document.createElement("td");

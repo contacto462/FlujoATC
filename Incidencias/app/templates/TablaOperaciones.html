@@ -210,8 +210,7 @@ td input[type=text].campo-deshabilitado{
           <th>Fecha</th>
           <th>Ejecutivo</th>
           <th>Rut Cliente</th>
-          <th>Razon Social</th>
-          <th>Nombre Sucursal</th>
+          <th>Sucursal</th>
           <th>Direccion Sucursal</th>
           <th>Tipo Servicio</th>
           <th>Tipo Plan</th>
@@ -307,8 +306,7 @@ td input[type=text].campo-deshabilitado{
         <td class="cell-date">${esc(fila.fecha)}</td>
         <td class="cell-text" title="${esc(fila.ejecutivo)}">${esc(fila.ejecutivo)}</td>
         <td class="cell-text">${esc(fila.rutCliente)}</td>
-        <td class="cell-text" title="${esc(fila.razonSocial)}">${esc(fila.razonSocial)}</td>
-        <td class="cell-text" title="${esc(fila.nombreSucursal)}">${esc(fila.nombreSucursal)}</td>
+        <td class="cell-text" title="${esc(fila.nombreSucursal || fila.razonSocial)}">${esc(fila.nombreSucursal || fila.razonSocial)}</td>
         <td class="cell-text" title="${esc(fila.direccionSucursal)}">${esc(fila.direccionSucursal)}</td>
         <td class="cell-text">${esc(fila.tipoServicio)}</td>
         <td class="cell-text">${esc(fila.tipoPlan)}</td>

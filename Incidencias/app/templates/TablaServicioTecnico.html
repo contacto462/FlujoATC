@@ -254,7 +254,7 @@
               <th>Fecha</th>
               <th>Ejecutivo</th>
               <th>Rut Cliente</th>
-              <th>Razon Social</th>
+              <th>Sucursal</th>
               <th>Direccion Sucursal</th>
               <th>Tipo Servicio</th>
               <th>Recepcion solicitud instalacion</th>
@@ -587,7 +587,7 @@
         tr.appendChild(td(row.fecha));
         tr.appendChild(td(row.ejecutivo));
         tr.appendChild(td(row.rutCliente));
-        tr.appendChild(td(row.razonSocial));
+        tr.appendChild(td(row.nombreSucursal || row.razonSocial));
         tr.appendChild(td(direccionDetalle(row)));
         tr.appendChild(td(row.tipoServicio));
         tr.appendChild(td(estadoBtn(row.codigo, "recepcion_solicitud_instalacion", !!row.estados?.recepcion_solicitud_instalacion)));

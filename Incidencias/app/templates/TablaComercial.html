@@ -574,7 +574,7 @@ td.cod::before {
         <th style="width:5.5%">Fecha</th>
         <th style="width:6.5%">Ejecutivo</th>
         <th style="width:5.5%">RUT</th>
-        <th style="width:5%">Razón Social</th>
+        <th style="width:5%">Sucursal</th>
         <th style="width:8%">Dirección Sucursal</th>
         <th style="width:7%">Tipo Servicio</th>
         <th style="width:5%">Plan</th>
@@ -734,7 +734,7 @@ function mkFila(row) {
   td(row.fecha);
   td(row.ejecutivo);
   td(row.rutCliente);
-  td(row.razonSocial, "left");
+  td(row.nombreSucursal || row.razonSocial, "left");
   td(row.direccionSucursal || row.nombreSucursal || "");
   td(row.tipoServicio);
   td(row.tipoPlan);

@@ -5839,7 +5839,8 @@ def st_ods_filas(
     _ensure_st_campos(db)
     rows = db.execute(text("""
         SELECT
-            v.codigo, v.created_at, v.creado_por, v.rut_cliente, v.razon_social,
+            v.codigo, v.created_at, v.creado_por, v.rut_cliente,
+            COALESCE(NULLIF(TRIM(v.nombre_sucursal), ''), v.razon_social) AS sucursal_label,
             v.direccion_sucursal, v.tipo_servicio, v.tipo_plan, v.estado,
             COALESCE(s.instalacion_finalizada, FALSE),
             COALESCE(s.configuracion_camaras, FALSE),
