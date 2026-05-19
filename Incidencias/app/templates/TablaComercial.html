@@ -195,6 +195,15 @@ tbody tr:hover { background: #f1f5f9; }
 tbody tr.anulada { opacity: .40; }
 tbody tr.hidden  { display: none; }
 
+/* fila con TODAS las areas en Terminado */
+tbody tr[data-estado="terminado"] {
+  background: #ecfdf5;
+  box-shadow: inset 4px 0 0 #16a34a;
+}
+tbody tr[data-estado="terminado"]:nth-child(even) { background: #d1fae5; }
+tbody tr[data-estado="terminado"]:hover { background: #bbf7d0; }
+tbody tr[data-estado="terminado"] td.cod { color: #15803d; }
+
 td {
   padding: 13px 12px;
   font-size: 13px;

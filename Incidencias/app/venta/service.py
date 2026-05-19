@@ -1676,7 +1676,7 @@ def get_comercial_todo(db: Session) -> dict:
 
         if areas_aplica["servtec"]:
             area_servicio = _area_estado([
-                ("Recepcion solicitud", _is_true(getattr(st, "recepcion_solicitud_instalacion", False))),
+                ("Llamar cliente", bool(_clean_text(getattr(st, "llamar_cliente", None)))),
                 ("Instalacion finalizada", _is_true(getattr(st, "instalacion_finalizada", False))),
             ])
         else:
