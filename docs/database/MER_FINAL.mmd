@@ -26,10 +26,9 @@ erDiagram
     VENTA_ODS ||--o| OPERACIONES_VENTA_ODT : coordina
 
     PROTOCOLOS_REGISTRO ||--o{ PROTOCOLOS_INFORMES : genera
-    INCIDENCIAS_DATA ||--o{ INCIDENCIAS_CIERRES : cierra_logico
-    INCIDENCIAS_DATA ||--o| INCIDENCIAS_IMAGENES_ODT : evidencia_logica
-    REGISTRO ||--o| INCIDENCIAS_IMAGENES_ODT : evidencia_por_odt
-    REGISTRO ||--o{ REGISTROS_CORREOS_CLIENTE : notifica
+    REGISTRO ||--o{ INCIDENCIAS_CIERRES : cierra
+    REGISTRO ||--o| INCIDENCIAS_IMAGENES_ODT : evidencia_logica
+    REGISTRO ||--o{ REGISTROS_CORREOS_CLIENTE : notifica_logica
     REGISTRO ||--o{ RENDICIONES : consume_gastos
 
     USERS {
@@ -184,7 +183,7 @@ erDiagram
     }
     INCIDENCIAS_CIERRES {
         int id PK
-        int incidencia_id FK "pendiente"
+        int incidencia_id FK
         string odt
     }
     INCIDENCIAS_IMAGENES_ODT {

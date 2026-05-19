@@ -55,10 +55,9 @@ erDiagram
     VENTA_ODS ||--o| OPERACIONES_VENTA_ODT : coordina
 
     PROTOCOLOS_REGISTRO ||--o{ PROTOCOLOS_INFORMES : genera
-    INCIDENCIAS_DATA ||--o{ INCIDENCIAS_CIERRES : cierra_logico
-    INCIDENCIAS_DATA ||--o| INCIDENCIAS_IMAGENES_ODT : evidencia_logica
-    REGISTRO ||--o| INCIDENCIAS_IMAGENES_ODT : evidencia_por_odt
-    REGISTRO ||--o{ REGISTROS_CORREOS_CLIENTE : notifica
+    REGISTRO ||--o{ INCIDENCIAS_CIERRES : cierra
+    REGISTRO ||--o| INCIDENCIAS_IMAGENES_ODT : evidencia_logica
+    REGISTRO ||--o{ REGISTROS_CORREOS_CLIENTE : notifica_logica
     REGISTRO ||--o{ RENDICIONES : consume_gastos
 
     USERS {
@@ -213,7 +212,7 @@ erDiagram
     }
     INCIDENCIAS_CIERRES {
         int id PK
-        int incidencia_id FK "pendiente"
+        int incidencia_id FK
         string odt
     }
     INCIDENCIAS_IMAGENES_ODT {
@@ -235,7 +234,7 @@ erDiagram
 ```
 
 ## Como leer el diagrama
-`||--o{` significa uno a muchos. `||--o|` significa uno a cero/uno. `PK` identifica la tabla; `FK` apunta a otra tabla; `UK` indica valor unico. El comentario `"pendiente"` marca una relacion recomendable que debe validarse y declararse en PostgreSQL antes de tratarla como integridad fisica real.
+`||--o{` significa uno a muchos. `||--o|` significa uno a cero/uno. `PK` identifica la tabla; `FK` apunta a otra tabla; `UK` indica valor unico. Las relaciones etiquetadas como `evidencia_logica` o `notifica_logica` siguen pendientes de formalizacion con FK porque la validacion previa encontro datos huerfanos.
 
 ## Observaciones finales
-Este MER es presentable como mapa profesional del sistema, pero conserva salvedades tecnicas importantes: existen tablas reales sin modelo, una tabla modelada sin tabla fisica en `helpdesk`, y relaciones de incidencias por ODT que todavia no estan formalizadas completamente con foreign keys. Para produccion, lo primero es definir la tabla canonica de incidencias y versionar los cambios con migraciones.
+Este MER ya tiene formalizada fisicamente la relacion `registro -> incidencias_cierres` mediante la FK `fk_incidencias_cierres_registro`. Conserva salvedades tecnicas: existen tablas reales sin modelo, una tabla modelada sin tabla fisica en `helpdesk`, y las relaciones por ODT hacia `incidencias_imagenes_odt` y `registros_correos_cliente` siguen pendientes por datos huerfanos.
