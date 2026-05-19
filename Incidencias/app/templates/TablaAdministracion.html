@@ -1,428 +1,581 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tabla Area Administracion</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f1f1f1;
-      color: #333;
-      margin: 0;
-      padding: 20px;
-      text-align: center;
-    }
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Tabla Administración — ODS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:           #f6f8fb;
+  --surface:      #ffffff;
+  --surface-alt:  #fafbfc;
+  --border:       #e5e7eb;
+  --border-soft:  #f1f5f9;
+  --border-strong:#cbd5e1;
 
-    .header {
-      display: flex;
-      align-items: center;
-      margin-bottom: 25px;
-      gap: 20px;
-    }
+  --text:         #0f172a;
+  --text-soft:    #334155;
+  --text-muted:   #64748b;
+  --label:        #64748b;
+  --placeholder:  #94a3b8;
 
-    .header img {
-      height: 80px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      background: #fff;
-    }
+  --accent:       #2563eb;
 
-    .header-title {
-      flex: 1;
-      text-align: center;
-    }
+  /* Área: Administración → azul */
+  --area-text:   #1d4ed8;
+  --area-bg:     #dbeafe;
+  --area-border: #93c5fd;
 
-    .header-title h1 {
-      margin: 0;
-    }
+  --ok-bg:    #ecfdf5;
+  --ok-fg:    #166534;
+  --ok-bd:    rgba(22,101,52,.18);
+  --pend-bg:  #f8fafc;
+  --pend-fg:  #475569;
+  --pend-bd:  #e5e7eb;
+}
 
-    .tabla-container {
-      max-height: 80vh;
-      overflow: auto;
-      border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      background: white;
-    }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { min-height: 100%; }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: white;
-      min-width: 1500px;
-    }
+body {
+  font-family: 'Inter', system-ui, -apple-system, Segoe UI, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.4;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
-    th, td {
-      border: 1px solid #ddd;
-      padding: 10px;
-      text-align: center;
-      vertical-align: top;
-    }
+/* Header */
+.header {
+  position: sticky; top: 0; z-index: 50;
+  background: linear-gradient(180deg, #0b1424 0%, #111c2f 100%);
+  display: flex; align-items: center; gap: 18px;
+  padding: 20px 30px;
+  min-height: 108px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  flex-shrink: 0;
+}
+.header-logo {
+  height: 68px; width: auto; object-fit: contain;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,.30));
+}
+.header-title { flex: 1; color: #fff; font-size: 18px; font-weight: 700; letter-spacing: -.015em; line-height: 1.25; }
+.header-title small { display: block; font-size: 13px; font-weight: 400; color: rgba(255,255,255,.55); margin-top: 5px; }
+.header-actions { display: flex; gap: 10px; align-items: center; }
 
-    th {
-      background-color: #2f75b5;
-      color: white;
-      font-weight: bold;
-      position: sticky;
-      top: 0;
-      z-index: 2;
-    }
+/* Buttons */
+.btn {
+  appearance: none; padding: 7px 13px; border-radius: 7px;
+  font-size: 12.5px; font-weight: 500; cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+  border: 1px solid transparent; outline: none;
+  font-family: inherit; letter-spacing: -.005em; line-height: 1.3;
+}
+.btn-ghost {
+  background: rgba(255,255,255,.04);
+  border-color: rgba(255,255,255,.12);
+  color: rgba(255,255,255,.92);
+}
+.btn-ghost:hover { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.22); }
 
-    .boton-estado {
-      padding: 8px 12px;
-      font-size: 14px;
-      font-weight: bold;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      color: white;
-      transition: 0.2s;
-      width: 108px;
-    }
+/* Filters */
+.filters {
+  position: sticky; top: 108px; z-index: 40;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 11px 22px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  box-shadow: 0 1px 0 var(--border);
+}
+.search-box {
+  flex: 1; min-width: 240px;
+  padding: 8px 12px 8px 34px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: #fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'/><path d='m21 21-4.3-4.3'/></svg>") no-repeat 11px center;
+  color: var(--text); font-size: 12.5px; outline: none; font-family: inherit;
+  transition: border-color .15s, box-shadow .15s;
+}
+.search-box::placeholder { color: var(--placeholder); font-weight: 400; }
+.search-box:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+.counter {
+  display: inline-flex; align-items: center;
+  padding: 5px 11px; background: var(--surface-alt); border: 1px solid var(--border);
+  border-radius: 999px; font-size: 11.5px; color: var(--text-soft);
+  font-weight: 600; letter-spacing: .02em; white-space: nowrap;
+}
+.mensaje {
+  font-size: 12.5px; font-weight: 600;
+  padding: 5px 11px; border-radius: 8px; min-height: 28px;
+  display: inline-flex; align-items: center;
+}
+.mensaje.ok { background: var(--ok-bg); color: var(--ok-fg); border: 1px solid var(--ok-bd); }
+.mensaje.error { background: #fef2f2; color: #b91c1c; border: 1px solid rgba(220,38,38,.20); }
 
-    .boton-estado:disabled {
-      opacity: 0.55;
-      cursor: not-allowed;
-    }
+/* Table */
+.tabla-container { flex: 1; background: var(--surface); }
+table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 12.5px; }
 
-    .completado { background-color: green; }
-    .pendiente { background-color: red; }
+thead th {
+  position: sticky; top: 163px; z-index: 60;
+  background: var(--area-bg);
+  color: var(--area-text);
+  font-weight: 700;
+  font-size: 10.5px;
+  padding: 14px 8px 14px;
+  text-align: center;
+  white-space: normal;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  border-bottom: 3px solid var(--area-border);
+  line-height: 1.35;
+  vertical-align: middle;
+}
+thead th.th-terminado { vertical-align: top; padding-bottom: 10px; }
+.filtro-container { margin-top: 8px; display: block; }
+.filtro-container select, select.filtro {
+  width: 100%;
+  padding: 5px 22px 5px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>") no-repeat right 6px center;
+  color: var(--text-soft);
+  font-size: 10.5px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer; outline: none;
+  appearance: none; -webkit-appearance: none;
+  text-transform: none; letter-spacing: 0;
+  transition: border-color .15s, box-shadow .15s;
+}
+.filtro-container select:focus, select.filtro:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+}
 
-    .filtro-container { margin-top: 10px; }
+tbody tr {
+  border-bottom: 1px solid #e2e8f0;
+  transition: background .18s, box-shadow .18s;
+  box-shadow: inset 3px 0 0 #cbd5e1;
+}
+tbody tr:nth-child(even):not(.anulada) { background: #fafbfc; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover:not(.anulada) {
+  background: #f1f5fb;
+  box-shadow: inset 3px 0 0 var(--area-text), 0 1px 0 rgba(15,23,42,.04);
+}
+tbody tr.anulada {
+  opacity: .50;
+  background: #fef2f2 !important;
+  box-shadow: inset 3px 0 0 #dc2626;
+  pointer-events: none;
+}
+tbody tr.anulada td { color: #7f1d1d; }
+tbody tr.anulada a { color: #7f1d1d; text-decoration: none; }
+tbody tr:first-child td { padding-top: 18px; }
 
-    select.filtro {
-      padding: 5px;
-      font-size: 12px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      background-color: white;
-      cursor: pointer;
-    }
+td {
+  padding: 12px 8px;
+  font-size: 12.5px;
+  text-align: center;
+  color: var(--text);
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
+  line-height: 1.45;
+  vertical-align: middle;
+}
 
-    tr.anulada {
-      background-color: #f8d7da !important;
-      pointer-events: none;
-      opacity: 0.75;
-    }
+/* Codigo link */
+.link-estilo {
+  display: inline-block;
+  font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  font-weight: 700;
+  font-size: 12.5px;
+  color: #0f172a;
+  text-decoration: none;
+  cursor: pointer;
+  letter-spacing: .015em;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background .15s, color .15s;
+}
+.link-estilo:hover { background: #eff6ff; color: var(--area-text); }
+tbody tr td a:not(.link-estilo) {
+  color: var(--area-text);
+  text-decoration: none;
+  font-weight: 600;
+}
+tbody tr td a:not(.link-estilo):hover { text-decoration: underline; }
 
-    tr.anulada td { color: #555; }
-    tr.anulada a {
-      pointer-events: none;
-      color: #777;
-      text-decoration: none;
-    }
+/* Estado buttons */
+.boton-estado {
+  appearance: none;
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  outline: none;
+  font-family: inherit;
+  letter-spacing: .015em;
+  min-width: 80px;
+  line-height: 1.4;
+  transition: background .15s, border-color .15s, transform .15s, box-shadow .15s;
+}
+.boton-estado:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(15,23,42,.07); }
+.boton-estado:disabled { cursor: not-allowed; opacity: .45; }
+.boton-estado.completado { background: var(--ok-bg); color: var(--ok-fg); border-color: var(--ok-bd); }
+.boton-estado.pendiente  { background: var(--pend-bg); color: var(--pend-fg); border-color: var(--pend-bd); }
 
-    .link-estilo {
-      color: #0d5fa6;
-      font-weight: bold;
-      text-decoration: none;
-    }
+/* Detalle ODT inline */
+.detalle-odt {
+  display: none;
+  margin: 14px auto 4px;
+  max-width: 520px;
+  padding: 18px 22px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 1px 0 rgba(15,23,42,.04);
+  text-align: left;
+  line-height: 1.6;
+  font-size: 12.5px;
+  color: var(--text);
+}
+.detalle-odt p { margin: 4px 0; }
+.detalle-odt strong { color: var(--text-soft); font-weight: 600; }
+.detalle-odt pre { white-space: pre-wrap; font-family: inherit; margin: 4px 0 0; color: var(--text-soft); }
 
-    .link-estilo:hover { text-decoration: underline; }
-
-    .detalle-odt {
-      display: none;
-      margin-top: 12px;
-      padding: 16px;
-      background-color: #fff8f0;
-      border: 1px solid #e0e0e0;
-      border-radius: 10px;
-      font-size: 14px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-      text-align: left;
-      line-height: 1.6;
-      min-width: 320px;
-    }
-
-    .detalle-odt pre {
-      white-space: pre-wrap;
-      margin: 4px 0 0;
-      font-family: Arial, sans-serif;
-    }
-
-    .mensaje {
-      min-height: 22px;
-      margin: 10px 0;
-      font-weight: bold;
-    }
-
-    .mensaje.ok { color: #147a32; }
-    .mensaje.error { color: #b00020; }
-  </style>
+/* Loading */
+#loading { text-align: center; padding: 56px 20px; color: var(--text-muted); font-size: 13px; }
+</style>
 </head>
 <body>
-  <div class="header">
-    <img src="https://i.imgur.com/VgLG9Ei.png" alt="Logo ATC">
-    <div class="header-title">
-      <h1>Tabla Area Administracion</h1>
-    </div>
+
+<header class="header">
+  <img class="header-logo" src="/shared-static/img/logo-atc.png" alt="ATC" onerror="this.style.display='none'"/>
+  <div class="header-title">
+    Tabla Administración — ODS
+    <small>Seguimiento de gestión administrativa por orden de servicio</small>
   </div>
-
-  <div id="mensaje" class="mensaje"></div>
-
-  <div class="tabla-container">
-    <table>
-      <thead>
-        <tr>
-          <th>Codigo</th>
-          <th>Fecha</th>
-          <th>Ejecutivo</th>
-          <th>Rut Cliente</th>
-          <th>Sucursal</th>
-          <th>Direccion Sucursal</th>
-          <th>Tipo de Servicio</th>
-          <th>Tipo de Plan</th>
-          <th>Carpeta</th>
-          <th>Recepcion Informacion</th>
-          <th>Registro de informacion en Alpha 3</th>
-          <th>Registro de informacion en Intranet</th>
-          <th>Envio de Solicitud de Instalacion</th>
-          <th>Envio de datos de facturacion</th>
-          <th>Fecha de envio carta bienvenida y presentacion del servicio</th>
-          <th>
-            Terminado
-            <div class="filtro-container">
-              <select id="filtro-terminado" class="filtro">
-                <option value="Pendiente" selected>Pendiente</option>
-                <option value="ok">OK</option>
-                <option value="Todos">Todos</option>
-              </select>
-            </div>
-          </th>
-        </tr>
-      </thead>
-      <tbody id="tabla-datos"></tbody>
-    </table>
+  <div class="header-actions">
+    <button class="btn btn-ghost" onclick="volverPanel()">Volver al Panel</button>
   </div>
+</header>
 
-  <script>
-    const tokenSesion = {{ token|tojson }};
-    const camposAdmin = [
-      "recepcion_info",
-      "registro_alpha3",
-      "registro_intranet",
-      "envio_solicitud_instalacion",
-      "envio_datos_facturacion",
-      "envio_carta_bienvenida",
-      "finalizado",
-    ];
+<div class="filters">
+  <input type="text" class="search-box" id="searchBox"
+    placeholder="Buscar por código, cliente, RUT, ejecutivo…"
+    oninput="aplicarBusqueda()"/>
+  <span id="mensaje" class="mensaje"></span>
+  <span class="counter" id="counter">Cargando…</span>
+</div>
 
-    function esc(texto) {
-      return String(texto || "").replace(/[&<>"']/g, (m) => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        "\"": "&quot;",
-        "'": "&#39;",
-      }[m]));
+<div class="tabla-container">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:4.5%">Código</th>
+        <th style="width:5%">Fecha</th>
+        <th style="width:6%">Ejecutivo</th>
+        <th style="width:5%">RUT Cliente</th>
+        <th style="width:6%">Razón Social</th>
+        <th style="width:6%">Sucursal</th>
+        <th style="width:7%">Dirección Sucursal</th>
+        <th style="width:6%">Tipo de Servicio</th>
+        <th style="width:5%">Tipo de Plan</th>
+        <th style="width:5%">Carpeta</th>
+        <th style="width:6%">Recepción Información</th>
+        <th style="width:6%">Registro Alpha 3</th>
+        <th style="width:6%">Registro Intranet</th>
+        <th style="width:6%">Envío Solicitud Instalación</th>
+        <th style="width:6%">Envío datos Facturación</th>
+        <th style="width:6.5%">Carta Bienvenida</th>
+        <th style="width:6.5%" class="th-terminado">
+          Terminado
+          <div class="filtro-container">
+            <select id="filtro-terminado" class="filtro">
+              <option value="Pendiente" selected>Pendientes</option>
+              <option value="ok">Terminados</option>
+              <option value="Todos">Todos</option>
+            </select>
+          </div>
+        </th>
+      </tr>
+    </thead>
+    <tbody id="tabla-datos"></tbody>
+  </table>
+</div>
+
+<script>
+  const tokenSesion = {{ token|tojson }};
+  const camposAdmin = [
+    "recepcion_info",
+    "registro_alpha3",
+    "registro_intranet",
+    "envio_solicitud_instalacion",
+    "envio_datos_facturacion",
+    "envio_carta_bienvenida",
+    "finalizado",
+  ];
+
+  function volverPanel() {
+    location.href = `/venta/panel-selector?token=${encodeURIComponent(tokenSesion || "")}`;
+  }
+
+  function esc(texto) {
+    return String(texto || "").replace(/[&<>"']/g, (m) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      "\"": "&quot;",
+      "'": "&#39;",
+    }[m]));
+  }
+
+  function normalizar(texto) {
+    return String(texto || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .trim();
+  }
+
+  function setMensaje(texto, ok = true) {
+    const el = document.getElementById("mensaje");
+    el.textContent = texto || "";
+    el.className = `mensaje ${texto ? (ok ? "ok" : "error") : ""}`;
+  }
+
+  async function api(url, options = {}) {
+    const response = await fetch(url, options);
+    const contentType = response.headers.get("content-type") || "";
+    const payload = contentType.includes("application/json") ? await response.json() : await response.text();
+    if (!response.ok) {
+      const detail = typeof payload === "string" ? payload : payload?.detail || JSON.stringify(payload);
+      throw new Error(detail || `HTTP ${response.status}`);
+    }
+    return payload;
+  }
+
+  async function cargarDatos() {
+    setMensaje("Cargando datos...");
+    try {
+      const data = await api(`/api/venta/admin-ods?token=${encodeURIComponent(tokenSesion || "")}`);
+      renderTabla(data.rows || []);
+      setMensaje("");
+    } catch (err) {
+      setMensaje(err.message || "No se pudo cargar la tabla.", false);
+    }
+  }
+
+  function renderTabla(rows) {
+    const tbody = document.getElementById("tabla-datos");
+    tbody.innerHTML = "";
+
+    if (!rows.length) {
+      tbody.innerHTML = "<tr><td colspan='17'>No hay datos disponibles</td></tr>";
+      const counter = document.getElementById("counter");
+      if (counter) counter.textContent = "0 ODS";
+      return;
     }
 
-    function normalizar(texto) {
-      return String(texto || "")
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .trim();
-    }
+    rows.forEach((row) => {
+      const tr = document.createElement("tr");
+      if (row.anulada) tr.classList.add("anulada");
+      tr.dataset.codigo = (row.codigo || "").toLowerCase();
+      tr.dataset.rs     = (row.razonSocial || "").toLowerCase();
+      tr.dataset.suc    = (row.nombreSucursal || "").toLowerCase();
+      tr.dataset.rut    = (row.rutCliente || "").toLowerCase();
+      tr.dataset.ej     = (row.ejecutivo || "").toLowerCase();
 
-    function setMensaje(texto, ok = true) {
-      const el = document.getElementById("mensaje");
-      el.textContent = texto || "";
-      el.className = `mensaje ${texto ? (ok ? "ok" : "error") : ""}`;
-    }
+      const base = [
+        row.codigo,
+        row.fecha,
+        row.ejecutivo,
+        row.rutCliente,
+        row.razonSocial,
+        row.nombreSucursal || row.razonSocial,
+        row.direccionSucursal,
+        row.tipoServicio,
+        row.tipoPlan,
+      ];
 
-    async function api(url, options = {}) {
-      const response = await fetch(url, options);
-      const contentType = response.headers.get("content-type") || "";
-      const payload = contentType.includes("application/json") ? await response.json() : await response.text();
-      if (!response.ok) {
-        const detail = typeof payload === "string" ? payload : payload?.detail || JSON.stringify(payload);
-        throw new Error(detail || `HTTP ${response.status}`);
+      base.forEach((valor, index) => {
+        const td = document.createElement("td");
+        if (index === 0) {
+          td.appendChild(crearLinkDetalle(row.codigo));
+        } else {
+          td.textContent = valor || "";
+        }
+        tr.appendChild(td);
+      });
+
+      const tdCarpeta = document.createElement("td");
+      if (row.carpeta && String(row.carpeta).startsWith("http") && !row.anulada) {
+        const a = document.createElement("a");
+        a.href = row.carpeta;
+        a.target = "_blank";
+        a.rel = "noopener";
+        a.textContent = "Ver Carpeta";
+        tdCarpeta.appendChild(a);
+      } else {
+        tdCarpeta.textContent = row.carpeta ? "Ver Carpeta" : "";
       }
-      return payload;
-    }
+      tr.appendChild(tdCarpeta);
 
-    async function cargarDatos() {
-      setMensaje("Cargando datos...");
-      try {
-        const data = await api(`/api/venta/admin-ods?token=${encodeURIComponent(tokenSesion || "")}`);
-        renderTabla(data.rows || []);
-        setMensaje("");
-      } catch (err) {
-        setMensaje(err.message || "No se pudo cargar la tabla.", false);
-      }
-    }
+      camposAdmin.forEach((campo, idx) => {
+        const td = document.createElement("td");
+        if (debeOcultarBoton(row.tipoServicio, campo)) {
+          td.textContent = "—";
+          td.style.color = "var(--text-muted)";
+          td.style.fontWeight = "600";
+        } else {
+          td.appendChild(crearBotonEstado(row, campo, Boolean(row.estados?.[campo])));
+        }
+        tr.appendChild(td);
+      });
 
-    function renderTabla(rows) {
-      const tbody = document.getElementById("tabla-datos");
-      tbody.innerHTML = "";
+      tbody.appendChild(tr);
+    });
 
-      if (!rows.length) {
-        tbody.innerHTML = "<tr><td colspan='16'>No hay datos disponibles</td></tr>";
+    aplicarFiltroTerminado();
+  }
+
+  function crearLinkDetalle(codigo) {
+    const wrap = document.createElement("div");
+    const link = document.createElement("a");
+    link.href = "#";
+    link.textContent = codigo || "Sin ODS";
+    link.className = "link-estilo";
+    const detalle = document.createElement("div");
+    detalle.className = "detalle-odt";
+
+    link.addEventListener("click", async (event) => {
+      event.preventDefault();
+      if (detalle.style.display === "block") {
+        detalle.style.display = "none";
         return;
       }
-
-      rows.forEach((row) => {
-        const tr = document.createElement("tr");
-        if (row.anulada) tr.classList.add("anulada");
-
-        const base = [
-          row.codigo,
-          row.fecha,
-          row.ejecutivo,
-          row.rutCliente,
-          row.nombreSucursal || row.razonSocial,
-          row.direccionSucursal,
-          row.tipoServicio,
-          row.tipoPlan,
-        ];
-
-        base.forEach((valor, index) => {
-          const td = document.createElement("td");
-          if (index === 0) {
-            td.appendChild(crearLinkDetalle(row.codigo));
-          } else {
-            td.textContent = valor || "";
-          }
-          tr.appendChild(td);
-        });
-
-        const tdCarpeta = document.createElement("td");
-        if (row.carpeta && String(row.carpeta).startsWith("http") && !row.anulada) {
-          const a = document.createElement("a");
-          a.href = row.carpeta;
-          a.target = "_blank";
-          a.rel = "noopener";
-          a.textContent = "Ver Carpeta";
-          tdCarpeta.appendChild(a);
-        } else {
-          tdCarpeta.textContent = row.carpeta ? "Ver Carpeta" : "";
-        }
-        tr.appendChild(tdCarpeta);
-
-        camposAdmin.forEach((campo, idx) => {
-          const td = document.createElement("td");
-          if (debeOcultarBoton(row.tipoServicio, campo)) {
-            td.textContent = "";
-          } else {
-            td.appendChild(crearBotonEstado(row, campo, Boolean(row.estados?.[campo])));
-          }
-          tr.appendChild(td);
-        });
-
-        tbody.appendChild(tr);
-      });
-
-      aplicarFiltroTerminado();
-    }
-
-    function crearLinkDetalle(codigo) {
-      const wrap = document.createElement("div");
-      const link = document.createElement("a");
-      link.href = "#";
-      link.textContent = codigo || "Sin ODS";
-      link.className = "link-estilo";
-      const detalle = document.createElement("div");
-      detalle.className = "detalle-odt";
-
-      link.addEventListener("click", async (event) => {
-        event.preventDefault();
-        if (detalle.style.display === "block") {
-          detalle.style.display = "none";
-          return;
-        }
-        detalle.innerHTML = "Cargando detalle...";
-        detalle.style.display = "block";
-        try {
-          const info = await api(`/api/venta/admin-ods/${encodeURIComponent(codigo)}/detalle?token=${encodeURIComponent(tokenSesion || "")}`);
-          detalle.innerHTML = `
-            <div style="text-align:center;font-weight:bold;font-size:15px;margin-bottom:10px;">Informacion completa ODS</div>
-            <p><strong>Nombre Sucursal:</strong> ${esc(info.sucursal || "-")}</p>
-            <p><strong>Direccion:</strong> ${esc(info.direccion || "-")}</p>
-            <p><strong>Observaciones:</strong><br><pre>${esc(info.observacion || "-")}</pre></p>
-            <p><strong>Consideraciones:</strong><br><pre>${esc(info.consideraciones || "-")}</pre></p>
-            <p><strong>Camaras:</strong> ${esc(info.camaras || "-")}</p>
-            <p><strong>Dias de Grabacion:</strong> ${esc(info.dias || "-")}</p>
-          `;
-        } catch (err) {
-          detalle.innerHTML = `<span style="color:#b00020;">${esc(err.message || "No se pudo cargar el detalle.")}</span>`;
-        }
-      });
-
-      wrap.appendChild(link);
-      wrap.appendChild(detalle);
-      return wrap;
-    }
-
-    function debeOcultarBoton(tipoServicio, campo) {
-      const tipo = normalizar(tipoServicio);
-      if (campo === "envio_carta_bienvenida") {
-        return tipo.includes("upgrade") || tipo.includes("downgrade") || tipo === "instalacion";
-      }
-      if ((campo === "registro_alpha3" || campo === "registro_intranet") && (tipo === "servicio tecnico" || tipo === "instalacion")) {
-        return true;
-      }
-      return false;
-    }
-
-    function crearBotonEstado(row, campo, completado) {
-      const boton = document.createElement("button");
-      boton.type = "button";
-      boton.className = `boton-estado ${completado ? "completado" : "pendiente"}`;
-      boton.textContent = completado ? "OK" : "Pendiente";
-      boton.dataset.estado = completado ? "1" : "0";
-      boton.disabled = Boolean(row.anulada);
-      boton.addEventListener("click", () => actualizarEstado(row.codigo, campo, boton));
-      return boton;
-    }
-
-    async function actualizarEstado(codigo, campo, boton) {
-      const nuevoValor = boton.dataset.estado !== "1";
-      boton.disabled = true;
+      detalle.innerHTML = "Cargando detalle...";
+      detalle.style.display = "block";
       try {
-        const payload = { codigo, campo, valor: nuevoValor };
-        const result = await api(`/api/venta/admin-ods/estado?token=${encodeURIComponent(tokenSesion || "")}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        boton.dataset.estado = result.valor ? "1" : "0";
-        boton.textContent = result.valor ? "OK" : "Pendiente";
-        boton.className = `boton-estado ${result.valor ? "completado" : "pendiente"}`;
-        const extra = result.notificacion ? " Notificacion pendiente de configuracion." : "";
-        setMensaje(`Estado actualizado para ${codigo}.${extra}`, true);
-        aplicarFiltroTerminado();
+        const info = await api(`/api/venta/admin-ods/${encodeURIComponent(codigo)}/detalle?token=${encodeURIComponent(tokenSesion || "")}`);
+        detalle.innerHTML = `
+          <div style="text-align:center;font-weight:700;font-size:13px;margin-bottom:10px;color:var(--text);">Información completa ODS</div>
+          <p><strong>Nombre Sucursal:</strong> ${esc(info.sucursal || "-")}</p>
+          <p><strong>Dirección:</strong> ${esc(info.direccion || "-")}</p>
+          <p><strong>Observaciones:</strong><br><pre>${esc(info.observacion || "-")}</pre></p>
+          <p><strong>Consideraciones:</strong><br><pre>${esc(info.consideraciones || "-")}</pre></p>
+          <p><strong>Cámaras:</strong> ${esc(info.camaras || "-")}</p>
+          <p><strong>Días de Grabación:</strong> ${esc(info.dias || "-")}</p>
+        `;
       } catch (err) {
-        setMensaje(err.message || "No se pudo actualizar el estado.", false);
-      } finally {
-        boton.disabled = false;
+        detalle.innerHTML = `<span style="color:#b00020;">${esc(err.message || "No se pudo cargar el detalle.")}</span>`;
       }
+    });
+
+    wrap.appendChild(link);
+    wrap.appendChild(detalle);
+    return wrap;
+  }
+
+  function debeOcultarBoton(tipoServicio, campo) {
+    const tipo = normalizar(tipoServicio);
+    if (campo === "envio_carta_bienvenida") {
+      return tipo.includes("upgrade") || tipo.includes("downgrade") || tipo === "instalacion";
     }
+    if ((campo === "registro_alpha3" || campo === "registro_intranet") && (tipo === "servicio tecnico" || tipo === "instalacion")) {
+      return true;
+    }
+    return false;
+  }
 
-    function aplicarFiltroTerminado() {
-      const filtro = document.getElementById("filtro-terminado").value;
-      const filas = document.querySelectorAll("#tabla-datos tr");
+  function crearBotonEstado(row, campo, completado) {
+    const boton = document.createElement("button");
+    boton.type = "button";
+    boton.className = `boton-estado ${completado ? "completado" : "pendiente"}`;
+    boton.textContent = completado ? "OK" : "Pendiente";
+    boton.dataset.estado = completado ? "1" : "0";
+    boton.disabled = Boolean(row.anulada);
+    boton.addEventListener("click", () => actualizarEstado(row.codigo, campo, boton));
+    return boton;
+  }
 
-      filas.forEach((fila) => {
-        const celdaTerminado = fila.cells[15];
-        if (!celdaTerminado) return;
-        const estado = celdaTerminado.textContent.trim();
-
-        if (filtro === "Todos") {
-          fila.style.display = "";
-        } else if (filtro === "ok" && estado !== "OK") {
-          fila.style.display = "none";
-        } else if (filtro === "Pendiente" && estado === "OK") {
-          fila.style.display = "none";
-        } else {
-          fila.style.display = "";
-        }
+  async function actualizarEstado(codigo, campo, boton) {
+    const nuevoValor = boton.dataset.estado !== "1";
+    boton.disabled = true;
+    try {
+      const payload = { codigo, campo, valor: nuevoValor };
+      const result = await api(`/api/venta/admin-ods/estado?token=${encodeURIComponent(tokenSesion || "")}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
+      boton.dataset.estado = result.valor ? "1" : "0";
+      boton.textContent = result.valor ? "OK" : "Pendiente";
+      boton.className = `boton-estado ${result.valor ? "completado" : "pendiente"}`;
+      const extra = result.notificacion ? " Notificación pendiente de configuración." : "";
+      setMensaje(`Estado actualizado para ${codigo}.${extra}`, true);
+      aplicarFiltroTerminado();
+    } catch (err) {
+      setMensaje(err.message || "No se pudo actualizar el estado.", false);
+    } finally {
+      boton.disabled = false;
     }
+  }
 
-    document.getElementById("filtro-terminado").addEventListener("change", aplicarFiltroTerminado);
-    window.addEventListener("load", cargarDatos);
-  </script>
+  function aplicarBusqueda() {
+    aplicarFiltroTerminado();
+  }
+
+  function aplicarFiltroTerminado() {
+    const filtro = document.getElementById("filtro-terminado").value;
+    const txt = (document.getElementById("searchBox")?.value || "").toLowerCase();
+    const filas = document.querySelectorAll("#tabla-datos tr");
+    let vis = 0;
+
+    filas.forEach((fila) => {
+      const celdaTerminado = fila.cells[16];
+      if (!celdaTerminado) return;
+      const estado = celdaTerminado.textContent.trim();
+      const m = !txt ||
+        (fila.dataset.codigo || "").includes(txt) ||
+        (fila.dataset.rs     || "").includes(txt) ||
+        (fila.dataset.suc    || "").includes(txt) ||
+        (fila.dataset.rut    || "").includes(txt) ||
+        (fila.dataset.ej     || "").includes(txt);
+
+      let mostrar = true;
+      if (filtro === "Todos") mostrar = true;
+      else if (filtro === "ok" && estado !== "OK") mostrar = false;
+      else if (filtro === "Pendiente" && estado === "OK") mostrar = false;
+
+      if (!m) mostrar = false;
+      fila.style.display = mostrar ? "" : "none";
+      if (mostrar) vis++;
+    });
+
+    const counter = document.getElementById("counter");
+    if (counter) counter.textContent = `${vis} ODS`;
+  }
+
+  document.getElementById("filtro-terminado").addEventListener("change", aplicarFiltroTerminado);
+  window.addEventListener("load", cargarDatos);
+</script>
 <script src="/static/auth-guard.js"></script>
 </body>
 </html>
