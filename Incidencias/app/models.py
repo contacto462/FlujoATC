@@ -282,6 +282,8 @@ class ServicioTecnicoVentaODT(Base):
     fecha_fin_instalacion: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
     tecnico_a_cargo: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     acompanante: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    requiere_puesto_nuevo: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    numero_central_asignado: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
 
     instalacion_finalizada: Mapped[bool] = mapped_column(default=False)
     fecha_instalacion_finalizada: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)

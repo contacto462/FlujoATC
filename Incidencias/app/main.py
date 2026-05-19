@@ -506,6 +506,8 @@ def _ensure_servicio_tecnico_ventas_optional_columns() -> None:
         "fecha_fin_instalacion": "VARCHAR(40)",
         "tecnico_a_cargo": "VARCHAR(255)",
         "acompanante": "VARCHAR(255)",
+        "requiere_puesto_nuevo": "VARCHAR(20)",
+        "numero_central_asignado": "VARCHAR(40)",
         "instalacion_finalizada": "BOOLEAN NOT NULL DEFAULT FALSE",
         "fecha_instalacion_finalizada": "TIMESTAMP",
         "finalizado": "BOOLEAN NOT NULL DEFAULT FALSE",

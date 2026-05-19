@@ -521,7 +521,7 @@ def _next_ods_code(db: Session, prefijo: str) -> str:
         if not match:
             continue
         max_number = max(max_number, int(match.group(1)))
-    return f"{prefijo}{max_number + 1:04d}"
+    return f"{prefijo}{max_number + 1:03d}"
 
 
 def _decode_base64_payload(data: str | None) -> bytes:
@@ -816,6 +816,8 @@ SERVICIO_TECNICO_VENTAS_VALOR_FIELDS = {
     "fecha_fin_instalacion",
     "tecnico_a_cargo",
     "acompanante",
+    "requiere_puesto_nuevo",
+    "numero_central_asignado",
 }
 
 
