@@ -176,6 +176,7 @@ TIPOS_Y_ESPECIFICACIONES = {
 def startup() -> None:
     global _protocolos_weekly_worker_started
     Base.metadata.create_all(bind=engine)
+    _ensure_database_relationships()
     _ensure_registro_optional_columns()
     _ensure_administracion_odt_optional_columns()
     _ensure_finanzas_odt_optional_columns()
@@ -189,6 +190,184 @@ def startup() -> None:
             name="protocolos-weekly-worker",
             daemon=True,
         ).start()
+
+
+def _ensure_database_relationships() -> None:
+    if engine.dialect.name != "postgresql":
+        return
+
+    def constraint_exists(conn, name: str) -> bool:
+        return bool(
+            conn.execute(
+                text("SELECT 1 FROM pg_constraint WHERE conname = :name LIMIT 1"),
+                {"name": name},
+            ).first()
+        )
+
+    def table_exists(conn, table: str) -> bool:
+        return bool(conn.execute(text("SELECT to_regclass(:table) IS NOT NULL"), {"table": table}).scalar())
+
+    def add_unique_if_clean(conn, table: str, column: str, constraint: str) -> None:
+        if constraint_exists(conn, constraint) or not table_exists(conn, table):
+            return
+        duplicates = conn.execute(
+            text(
+                f'''
+                SELECT COUNT(*) FROM (
+                    SELECT "{column}"
+                    FROM "{table}"
+                    WHERE "{column}" IS NOT NULL
+                    GROUP BY "{column}"
+                    HAVING COUNT(*) > 1
+                ) dup
+                '''
+            )
+        ).scalar_one()
+        if duplicates:
+            LOGGER.warning("No se creo %s: hay valores duplicados en %s.%s", constraint, table, column)
+            return
+        conn.execute(text(f'ALTER TABLE "{table}" ADD CONSTRAINT "{constraint}" UNIQUE ("{column}")'))
+
+    def add_fk_if_clean(
+        conn,
+        *,
+        constraint: str,
+        child_table: str,
+        child_column: str,
+        parent_table: str,
+        parent_column: str,
+        on_delete: str | None = None,
+    ) -> None:
+        if constraint_exists(conn, constraint):
+            return
+        if not table_exists(conn, child_table) or not table_exists(conn, parent_table):
+            return
+        orphans = conn.execute(
+            text(
+                f'''
+                SELECT COUNT(*)
+                FROM "{child_table}" child
+                LEFT JOIN "{parent_table}" parent
+                  ON parent."{parent_column}" = child."{child_column}"
+                WHERE child."{child_column}" IS NOT NULL
+                  AND parent."{parent_column}" IS NULL
+                '''
+            )
+        ).scalar_one()
+        if orphans:
+            LOGGER.warning(
+                "No se creo %s: %s.%s tiene %s registros sin padre en %s.%s",
+                constraint,
+                child_table,
+                child_column,
+                orphans,
+                parent_table,
+                parent_column,
+            )
+            return
+        delete_clause = f" ON DELETE {on_delete}" if on_delete else ""
+        conn.execute(
+            text(
+                f'''
+                ALTER TABLE "{child_table}"
+                ADD CONSTRAINT "{constraint}"
+                FOREIGN KEY ("{child_column}")
+                REFERENCES "{parent_table}" ("{parent_column}"){delete_clause}
+                '''
+            )
+        )
+
+    with engine.begin() as conn:
+        add_unique_if_clean(conn, "bbdd_clientes", "rut", "uq_bbdd_clientes_rut")
+        for spec in [
+            {
+                "constraint": "fk_bbdd_sucursales_cliente_rut",
+                "child_table": "bbdd_sucursales",
+                "child_column": "rut",
+                "parent_table": "bbdd_clientes",
+                "parent_column": "rut",
+            },
+            {
+                "constraint": "fk_sucursal_contactos_sucursal",
+                "child_table": "sucursal_contactos_emergencia",
+                "child_column": "sucursal_id",
+                "parent_table": "bbdd_sucursales",
+                "parent_column": "id",
+                "on_delete": "CASCADE",
+            },
+            {
+                "constraint": "fk_sucursal_personas_sucursal",
+                "child_table": "sucursal_personas_autorizadas",
+                "child_column": "sucursal_id",
+                "parent_table": "bbdd_sucursales",
+                "parent_column": "id",
+                "on_delete": "CASCADE",
+            },
+            {
+                "constraint": "fk_sucursal_guardias_sucursal",
+                "child_table": "sucursal_guardias",
+                "child_column": "sucursal_id",
+                "parent_table": "bbdd_sucursales",
+                "parent_column": "id",
+                "on_delete": "CASCADE",
+            },
+            {
+                "constraint": "fk_venta_ods_cliente_rut",
+                "child_table": "venta_ods",
+                "child_column": "rut_cliente",
+                "parent_table": "bbdd_clientes",
+                "parent_column": "rut",
+            },
+            {
+                "constraint": "fk_venta_ods_archivos_ods",
+                "child_table": "venta_ods_archivos",
+                "child_column": "ods_id",
+                "parent_table": "venta_ods",
+                "parent_column": "id",
+                "on_delete": "CASCADE",
+            },
+            {
+                "constraint": "fk_administracion_odt_venta_ods",
+                "child_table": "administracion_odt",
+                "child_column": "odt",
+                "parent_table": "venta_ods",
+                "parent_column": "codigo",
+                "on_delete": "CASCADE",
+            },
+            {
+                "constraint": "fk_finanzas_odt_venta_ods",
+                "child_table": "finanzas_odt",
+                "child_column": "odt",
+                "parent_table": "venta_ods",
+                "parent_column": "codigo",
+                "on_delete": "CASCADE",
+            },
+            {
+                "constraint": "fk_servicio_tecnico_ventas_odt_venta_ods",
+                "child_table": "servicio_tecnico_ventas_odt",
+                "child_column": "odt",
+                "parent_table": "venta_ods",
+                "parent_column": "codigo",
+                "on_delete": "CASCADE",
+            },
+            {
+                "constraint": "fk_operaciones_venta_odt_venta_ods",
+                "child_table": "operaciones_venta_odt",
+                "child_column": "odt",
+                "parent_table": "venta_ods",
+                "parent_column": "codigo",
+                "on_delete": "CASCADE",
+            },
+            {
+                "constraint": "fk_protocolos_informes_registro",
+                "child_table": "protocolos_informes",
+                "child_column": "registro_id",
+                "parent_table": "protocolos_registro",
+                "parent_column": "id",
+                "on_delete": "CASCADE",
+            },
+        ]:
+            add_fk_if_clean(conn, **spec)
 
 
 _support_notes_engine = None

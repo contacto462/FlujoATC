@@ -4,8 +4,8 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, Numeric, String, Text, UniqueConstraint, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Boolean, DateTime, ForeignKey, Numeric, String, Text, UniqueConstraint, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
@@ -64,7 +64,7 @@ class ClienteBBDD(Base):
     comuna: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
     contacto: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     correo: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    rut: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    rut: Mapped[Optional[str]] = mapped_column(String(40), nullable=True, unique=True)
     email_facturas: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     nombre_representante: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     rut_representante: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
@@ -73,12 +73,15 @@ class ClienteBBDD(Base):
     ejecutivo_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     fecha_creacion: Mapped[Optional[datetime]] = mapped_column(DateTime, server_default=func.now())
 
+    sucursales: Mapped[list["SucursalBBDD"]] = relationship(back_populates="cliente_ref")
+    venta_ods: Mapped[list["VentaODS"]] = relationship(back_populates="cliente_ref")
+
 
 class SucursalBBDD(Base):
     __tablename__ = "bbdd_sucursales"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    rut: Mapped[str] = mapped_column(String(40), index=True)
+    rut: Mapped[str] = mapped_column(String(40), ForeignKey("bbdd_clientes.rut"), index=True)
     nombre_empresa: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     nombre_sucursal: Mapped[str] = mapped_column(String(255), index=True)
     direccion_sucursal: Mapped[str] = mapped_column(String(255), index=True)
@@ -98,23 +101,39 @@ class SucursalBBDD(Base):
     created_by: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
+    cliente_ref: Mapped[Optional["ClienteBBDD"]] = relationship(back_populates="sucursales")
+    contactos_emergencia: Mapped[list["SucursalContactoEmergencia"]] = relationship(
+        back_populates="sucursal",
+        cascade="all, delete-orphan",
+    )
+    personas_autorizadas: Mapped[list["SucursalPersonaAutorizada"]] = relationship(
+        back_populates="sucursal",
+        cascade="all, delete-orphan",
+    )
+    guardias: Mapped[list["SucursalGuardia"]] = relationship(
+        back_populates="sucursal",
+        cascade="all, delete-orphan",
+    )
+
 
 class SucursalContactoEmergencia(Base):
     __tablename__ = "sucursal_contactos_emergencia"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    sucursal_id: Mapped[int] = mapped_column(index=True)
+    sucursal_id: Mapped[int] = mapped_column(ForeignKey("bbdd_sucursales.id", ondelete="CASCADE"), index=True)
     nombre: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     rut: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
     telefono: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+
+    sucursal: Mapped["SucursalBBDD"] = relationship(back_populates="contactos_emergencia")
 
 
 class SucursalPersonaAutorizada(Base):
     __tablename__ = "sucursal_personas_autorizadas"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    sucursal_id: Mapped[int] = mapped_column(index=True)
+    sucursal_id: Mapped[int] = mapped_column(ForeignKey("bbdd_sucursales.id", ondelete="CASCADE"), index=True)
     nombre: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     rut: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
     telefono: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
@@ -122,17 +141,21 @@ class SucursalPersonaAutorizada(Base):
     clave_verde: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     clave_roja: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
+    sucursal: Mapped["SucursalBBDD"] = relationship(back_populates="personas_autorizadas")
+
 
 class SucursalGuardia(Base):
     __tablename__ = "sucursal_guardias"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    sucursal_id: Mapped[int] = mapped_column(index=True)
+    sucursal_id: Mapped[int] = mapped_column(ForeignKey("bbdd_sucursales.id", ondelete="CASCADE"), index=True)
     nombre: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     rut: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
     telefono: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     horario_desde: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     horario_hasta: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+
+    sucursal: Mapped["SucursalBBDD"] = relationship(back_populates="guardias")
 
 
 class VentaODS(Base):
@@ -141,7 +164,7 @@ class VentaODS(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     codigo: Mapped[str] = mapped_column(String(30), unique=True, index=True)
     creado_por: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    rut_cliente: Mapped[str] = mapped_column(String(40), index=True)
+    rut_cliente: Mapped[str] = mapped_column(String(40), ForeignKey("bbdd_clientes.rut"), index=True)
     razon_social: Mapped[str] = mapped_column(String(255), index=True)
     direccion_sucursal: Mapped[str] = mapped_column(String(255), index=True)
     nombre_sucursal: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
@@ -170,12 +193,22 @@ class VentaODS(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
+    cliente_ref: Mapped[Optional["ClienteBBDD"]] = relationship(back_populates="venta_ods")
+    archivos: Mapped[list["VentaODSArchivo"]] = relationship(
+        back_populates="ods",
+        cascade="all, delete-orphan",
+    )
+    administracion: Mapped[Optional["AdministracionODT"]] = relationship(back_populates="ods_ref")
+    finanzas: Mapped[Optional["FinanzasODT"]] = relationship(back_populates="ods_ref")
+    servicio_tecnico: Mapped[Optional["ServicioTecnicoVentaODT"]] = relationship(back_populates="ods_ref")
+    operaciones: Mapped[Optional["OperacionesVentaODT"]] = relationship(back_populates="ods_ref")
+
 
 class VentaODSArchivo(Base):
     __tablename__ = "venta_ods_archivos"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    ods_id: Mapped[int] = mapped_column(index=True)
+    ods_id: Mapped[int] = mapped_column(ForeignKey("venta_ods.id", ondelete="CASCADE"), index=True)
     codigo_ods: Mapped[str] = mapped_column(String(30), index=True)
     tipo_documento: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
     servicio: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
@@ -183,6 +216,8 @@ class VentaODSArchivo(Base):
     mime_type: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
     ruta_archivo: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    ods: Mapped["VentaODS"] = relationship(back_populates="archivos")
 
 
 class CatalogoCliente(Base):
@@ -218,7 +253,7 @@ class AdministracionODT(Base):
     __tablename__ = "administracion_odt"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    odt: Mapped[str] = mapped_column(String(30), unique=True, index=True)
+    odt: Mapped[str] = mapped_column(String(30), ForeignKey("venta_ods.codigo", ondelete="CASCADE"), unique=True, index=True)
     tecnico: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     acompanante: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     fecha_derivacion: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
@@ -238,12 +273,14 @@ class AdministracionODT(Base):
     fecha_cierre: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
+    ods_ref: Mapped["VentaODS"] = relationship(back_populates="administracion")
+
 
 class FinanzasODT(Base):
     __tablename__ = "finanzas_odt"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    odt: Mapped[str] = mapped_column(String(30), unique=True, index=True)
+    odt: Mapped[str] = mapped_column(String(30), ForeignKey("venta_ods.codigo", ondelete="CASCADE"), unique=True, index=True)
     fecha_inicio_servicio: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
 
     recepcion_datos_facturacion: Mapped[bool] = mapped_column(default=False)
@@ -266,12 +303,14 @@ class FinanzasODT(Base):
 
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
+    ods_ref: Mapped["VentaODS"] = relationship(back_populates="finanzas")
+
 
 class ServicioTecnicoVentaODT(Base):
     __tablename__ = "servicio_tecnico_ventas_odt"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    odt: Mapped[str] = mapped_column(String(30), unique=True, index=True)
+    odt: Mapped[str] = mapped_column(String(30), ForeignKey("venta_ods.codigo", ondelete="CASCADE"), unique=True, index=True)
 
     recepcion_solicitud_instalacion: Mapped[bool] = mapped_column(default=False)
     fecha_recepcion_solicitud_instalacion: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
@@ -291,6 +330,8 @@ class ServicioTecnicoVentaODT(Base):
     fecha_cierre: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    ods_ref: Mapped["VentaODS"] = relationship(back_populates="servicio_tecnico")
 
 
 class ContactoEmergencia(Base):
@@ -431,6 +472,11 @@ class ProtocoloRegistro(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
+    informes: Mapped[list["ProtocoloInforme"]] = relationship(
+        back_populates="registro",
+        cascade="all, delete-orphan",
+    )
+
 
 class ProtocoloInforme(Base):
     __tablename__ = "protocolos_informes"
@@ -449,7 +495,11 @@ class ProtocoloInforme(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     tipo_informe: Mapped[str] = mapped_column(String(20), index=True)  # INDIVIDUAL | SEMANAL
     estado: Mapped[str] = mapped_column(String(30), default="PENDIENTE", index=True)  # PENDIENTE | OK | ERROR
-    registro_id: Mapped[Optional[int]] = mapped_column(nullable=True, index=True)
+    registro_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("protocolos_registro.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
     cliente: Mapped[str] = mapped_column(String(255), index=True)
     sucursal: Mapped[str] = mapped_column(String(255), index=True)
     periodo_inicio: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
@@ -464,12 +514,14 @@ class ProtocoloInforme(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), index=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
+    registro: Mapped[Optional["ProtocoloRegistro"]] = relationship(back_populates="informes")
+
 
 class OperacionesVentaODT(Base):
     __tablename__ = "operaciones_venta_odt"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    odt: Mapped[str] = mapped_column(String(30), unique=True, index=True)
+    odt: Mapped[str] = mapped_column(String(30), ForeignKey("venta_ods.codigo", ondelete="CASCADE"), unique=True, index=True)
 
     fecha_inicio_servicio: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
 
@@ -489,3 +541,5 @@ class OperacionesVentaODT(Base):
     ts_terminado: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    ods_ref: Mapped["VentaODS"] = relationship(back_populates="operaciones")
