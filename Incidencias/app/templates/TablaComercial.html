@@ -73,36 +73,38 @@ body {
   background: linear-gradient(180deg, #0b1424 0%, #111c2f 100%);
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 12px 22px;
+  gap: 18px;
+  padding: 20px 30px;
   border-bottom: 1px solid rgba(255,255,255,.06);
   flex-shrink: 0;
 }
 .header-logo {
-  height: 40px; width: 40px;
-  border-radius: 9px;
-  padding: 5px;
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.10);
+  height: 68px;
+  width: auto;
   object-fit: contain;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,.30));
 }
 .header-title {
   flex: 1;
   color: #fff;
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -.01em;
-  line-height: 1.2;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -.015em;
+  line-height: 1.25;
 }
 .header-title small {
   display: block;
-  font-size: 11.5px;
+  font-size: 13px;
   font-weight: 400;
-  color: rgba(255,255,255,.50);
-  margin-top: 3px;
+  color: rgba(255,255,255,.55);
+  margin-top: 5px;
   letter-spacing: 0;
 }
-.header-actions { display: flex; gap: 8px; align-items: center; }
+.header-actions { display: flex; gap: 10px; align-items: center; }
 
 /* ── Buttons ────────────────────────────────────────────── */
 .btn {
@@ -142,19 +144,38 @@ body {
 .btn-primary:hover { background: #1e293b; }
 .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 .btn-danger {
-  background: rgba(220,38,38,.05);
-  border-color: rgba(220,38,38,.22);
-  color: #b91c1c;
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(255,255,255,.04);
+  border-color: rgba(255,255,255,.16);
+  color: rgba(255,255,255,.92);
+  padding: 8px 14px;
 }
-.btn-danger:hover { background: rgba(220,38,38,.10); border-color: rgba(220,38,38,.38); }
+.btn-danger::before {
+  content: "";
+  width: 14px; height: 14px;
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='4.9' y1='4.9' x2='19.1' y2='19.1'/></svg>") center/contain no-repeat;
+          mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='4.9' y1='4.9' x2='19.1' y2='19.1'/></svg>") center/contain no-repeat;
+  flex-shrink: 0;
+}
+.btn-danger:hover {
+  background: rgba(220,38,38,.16);
+  border-color: rgba(220,38,38,.55);
+  color: #fecaca;
+}
 .btn-danger.active {
-  background: #b91c1c; border-color: #b91c1c;
+  background: #b91c1c;
+  border-color: #b91c1c;
   color: #fff;
+}
+.btn-danger.active:hover {
+  background: #991b1b;
+  border-color: #991b1b;
 }
 
 /* ── Filters ────────────────────────────────────────────── */
 .filters {
-  position: sticky; top: 64px; z-index: 40;
+  position: sticky; top: 108px; z-index: 40;
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
   padding: 11px 22px;
   background: var(--surface);
@@ -225,27 +246,27 @@ table {
 
 /* THEAD */
 thead th {
-  position: sticky; top: 120px; z-index: 30;
-  background: var(--surface-alt);
-  color: var(--label);
-  font-weight: 600;
-  font-size: 10px;
-  padding: 11px 8px 10px;
+  position: sticky; top: 165px; z-index: 30;
+  background: #f1f5f9;
+  color: #475569;
+  font-weight: 700;
+  font-size: 10.5px;
+  padding: 14px 10px 12px;
   text-align: center;
   white-space: nowrap;
-  letter-spacing: .07em;
+  letter-spacing: .08em;
   text-transform: uppercase;
-  border-bottom: 1px solid var(--border);
-  box-shadow: inset 0 2px 0 transparent;
+  border-bottom: 2px solid #cbd5e1;
+  box-shadow: inset 0 3px 0 transparent;
 }
-thead th.c-contrato    { color: var(--c-contrato);    box-shadow: inset 0 2px 0 var(--c-contrato); }
-thead th.c-comercial   { color: var(--c-comercial);   box-shadow: inset 0 2px 0 var(--c-comercial); }
-thead th.c-admin       { color: var(--c-admin);       box-shadow: inset 0 2px 0 var(--c-admin); }
-thead th.c-servicio    { color: var(--c-servicio);    box-shadow: inset 0 2px 0 var(--c-servicio); }
-thead th.c-soporte     { color: var(--c-soporte);     box-shadow: inset 0 2px 0 var(--c-soporte); }
-thead th.c-operaciones { color: var(--c-operaciones); box-shadow: inset 0 2px 0 var(--c-operaciones); }
-thead th.c-finanzas    { color: var(--c-finanzas);    box-shadow: inset 0 2px 0 var(--c-finanzas); }
-thead th.c-anular      { color: var(--c-anular);      box-shadow: inset 0 2px 0 var(--c-anular); }
+thead th.c-contrato    { color: var(--c-contrato);    box-shadow: inset 0 3px 0 var(--c-contrato); }
+thead th.c-comercial   { color: var(--c-comercial);   box-shadow: inset 0 3px 0 var(--c-comercial); }
+thead th.c-admin       { color: var(--c-admin);       box-shadow: inset 0 3px 0 var(--c-admin); }
+thead th.c-servicio    { color: var(--c-servicio);    box-shadow: inset 0 3px 0 var(--c-servicio); }
+thead th.c-soporte     { color: var(--c-soporte);     box-shadow: inset 0 3px 0 var(--c-soporte); }
+thead th.c-operaciones { color: var(--c-operaciones); box-shadow: inset 0 3px 0 var(--c-operaciones); }
+thead th.c-finanzas    { color: var(--c-finanzas);    box-shadow: inset 0 3px 0 var(--c-finanzas); }
+thead th.c-anular      { color: var(--c-anular);      box-shadow: inset 0 3px 0 var(--c-anular); }
 
 /* TBODY */
 tbody tr {
@@ -297,10 +318,10 @@ td {
   font-size: 13px;
   text-align: center;
   color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  line-height: 1.4;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.45;
   vertical-align: middle;
 }
 td.left { text-align: left; }
@@ -312,6 +333,7 @@ td.cod  {
   letter-spacing: .015em;
   text-align: left;
   padding-left: 14px;
+  white-space: nowrap;
 }
 td.cod::before {
   content: "";
@@ -324,18 +346,12 @@ td.cod::before {
   box-shadow: 0 0 0 2px rgba(217,119,6,.18);
 }
 
-/* Separador visual entre datos y etapas */
-thead th:nth-child(9),
-tbody td:nth-child(9) {
-  border-left: 1px solid #e5e7eb;
-}
-
 /* ── Status badges ──────────────────────────────────────── */
 .badge {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 9px;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 11px;
   border-radius: 999px;
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -343,40 +359,38 @@ tbody td:nth-child(9) {
   outline: none;
   font-family: inherit;
   letter-spacing: .015em;
-  transition: background .15s, border-color .15s, color .15s;
-  line-height: 1.5;
+  transition: background .15s, border-color .15s, transform .15s, box-shadow .15s;
+  line-height: 1.4;
   max-width: 100%;
 }
-.badge .sym { font-size: 11px; line-height: 1; }
+.badge:hover { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(15,23,42,.07); }
+.badge .sym { font-size: 11px; line-height: 1; font-weight: 700; }
 .badge.ok   { background: var(--ok-bg);   color: var(--ok-fg);   border-color: var(--ok-bd); }
-.badge.ok:hover   { background: #d1fae5; }
 .badge.proc { background: var(--warn-bg); color: var(--warn-fg); border-color: var(--warn-bd); }
-.badge.proc:hover { background: #fef3c7; }
 .badge.pend { background: var(--pend-bg); color: var(--pend-fg); border-color: var(--pend-bd); }
-.badge.pend:hover { background: #f1f5f9; }
 
 /* contrato uploaded / no aplica / subir */
 .ctrt-ok {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 9px; border-radius: 999px;
-  font-size: 10.5px; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 11px; border-radius: 999px;
+  font-size: 11px; font-weight: 600;
   background: var(--ok-bg); color: var(--ok-fg);
   border: 1px solid var(--ok-bd);
   white-space: nowrap; letter-spacing: .015em;
 }
 .ctrt-na {
   display: inline-flex; align-items: center;
-  padding: 3px 9px; border-radius: 999px;
-  font-size: 10.5px; font-weight: 600;
+  padding: 5px 11px; border-radius: 999px;
+  font-size: 11px; font-weight: 600;
   background: var(--pend-bg); color: var(--text-muted);
   border: 1px solid var(--pend-bd);
   white-space: nowrap; letter-spacing: .015em;
 }
 .btn-ctrt {
   appearance: none;
-  padding: 3px 11px;
+  padding: 5px 12px;
   border-radius: 999px;
-  font-size: 10.5px; font-weight: 600;
+  font-size: 11px; font-weight: 600;
   cursor: pointer;
   background: #fff;
   color: var(--info-fg);
@@ -384,9 +398,13 @@ tbody td:nth-child(9) {
   white-space: nowrap;
   font-family: inherit;
   letter-spacing: .015em;
-  transition: background .15s, border-color .15s;
+  transition: background .15s, border-color .15s, transform .15s, box-shadow .15s;
 }
-.btn-ctrt:hover { background: var(--info-bg); border-color: var(--accent); }
+.btn-ctrt:hover {
+  background: var(--info-bg); border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(37,99,235,.12);
+}
 
 /* anular button */
 .btn-anular {
@@ -527,8 +545,8 @@ tbody td:nth-child(9) {
     <small>Visión general del estado de cada área por orden de servicio</small>
   </div>
   <div class="header-actions">
-    <button class="btn btn-danger" id="btnAnularToggle" onclick="toggleAnularMode()">Modo Anular</button>
-    <button class="btn btn-ghost" onclick="cerrarSesion()">Cerrar sesión</button>
+    <button class="btn btn-danger" id="btnAnularToggle" onclick="toggleAnularMode()">Anular ODS</button>
+    <button class="btn btn-ghost" onclick="volverPanel()">Volver al Panel</button>
   </div>
 </header>
 
@@ -552,21 +570,21 @@ tbody td:nth-child(9) {
   <table id="tabla" style="display:none">
     <thead>
       <tr>
-        <th style="width:4.5%">Cód.</th>
+        <th style="width:4%">Cód.</th>
         <th style="width:5.5%">Fecha</th>
-        <th style="width:7.5%">Ejecutivo</th>
+        <th style="width:6.5%">Ejecutivo</th>
         <th style="width:5.5%">RUT</th>
-        <th style="width:6.5%">Razón Social</th>
-        <th style="width:9.5%">Dirección Sucursal</th>
-        <th style="width:8.5%">Tipo Servicio</th>
-        <th style="width:5.5%">Plan</th>
-        <th style="width:7.5%" class="c-contrato">Contrato / Anexo</th>
-        <th style="width:6.5%" class="c-comercial">Comercial</th>
-        <th style="width:8%"   class="c-admin">Administración</th>
-        <th style="width:6.5%" class="c-servicio">Serv. Técnico</th>
-        <th style="width:6%"   class="c-soporte">Soporte</th>
-        <th style="width:6.5%" class="c-operaciones">Operaciones</th>
-        <th style="width:5%"   class="c-finanzas">Finanzas</th>
+        <th style="width:5%">Razón Social</th>
+        <th style="width:8%">Dirección Sucursal</th>
+        <th style="width:7%">Tipo Servicio</th>
+        <th style="width:5%">Plan</th>
+        <th style="width:8%"   class="c-contrato">Contrato / Anexo</th>
+        <th style="width:7.5%" class="c-comercial">Comercial</th>
+        <th style="width:7.5%" class="c-admin">Administración</th>
+        <th style="width:7.5%" class="c-servicio">Serv. Técnico</th>
+        <th style="width:7.5%" class="c-soporte">Soporte</th>
+        <th style="width:7.5%" class="c-operaciones">Operaciones</th>
+        <th style="width:7.5%" class="c-finanzas">Finanzas</th>
         <th style="width:4%; display:none" class="c-anular" id="thAnular">Anular</th>
       </tr>
     </thead>
@@ -784,7 +802,7 @@ function toggleAnularMode() {
   modoAnular = !modoAnular;
   const btn = document.getElementById("btnAnularToggle");
   btn.classList.toggle("active", modoAnular);
-  btn.textContent = modoAnular ? "✕ Salir modo anular" : "Modo Anular";
+  btn.textContent = modoAnular ? "Salir" : "Anular ODS";
   const show = modoAnular ? "" : "none";
   document.getElementById("thAnular").style.display = show;
   document.querySelectorAll(".col-anular").forEach(td => td.style.display = show);
@@ -841,9 +859,8 @@ async function subirContrato() {
   } finally { btn.disabled = false; btn.textContent = "Subir"; }
 }
 
-async function cerrarSesion() {
-  try { await fetch(`/api/logout?token=${encodeURIComponent(TOKEN)}`, { method: "POST" }); } catch (_) {}
-  location.href = "/venta/login";
+function volverPanel() {
+  location.href = `/venta/panel-selector?token=${encodeURIComponent(TOKEN)}`;
 }
 
 async function cargarDatos() {
