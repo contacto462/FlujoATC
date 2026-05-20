@@ -6,6 +6,7 @@ import logging
 import mimetypes
 import os
 import re
+import secrets
 import smtplib
 import threading
 import urllib.error
@@ -34,6 +35,7 @@ from app.drive_report_service import (
 )
 from app.models import (
     AdministracionODT,
+    Area,
     CatalogoCliente,
     ClienteBBDD,
     ContactoEmergencia,
@@ -46,6 +48,8 @@ from app.models import (
     Rendicion,
     SyncOutbox,
     Tarea,
+    User,
+    UserArea,
 )
 from app.schemas import (
     ContactoDestinoRequest,
@@ -57,15 +61,70 @@ from app.schemas import (
 )
 
 
-USUARIOS_LOGIN = {
-    "Ronald Montilla": "RM2025",
-    "Julissa Mella": "JM2025",
-    "Antonio Bahamondes": "AB2025",
-    "Sthefan Leal": "SL2025",
-    "Felipe Mora": "FM2025",
-    "Fernando Lubiano": "Fernando1180",
-}
 CLAVE_TECNICOS_TEMPORAL = "123456"
+AREA_DESTINOS: dict[str, str] = {
+    "panelselector": "incidencias",
+    "panelselectorcoordinacion": "coordinacion",
+    "cierreaperturaclientes": "incidencias",
+    "controlprotocolos": "protocolos",
+    "tablaprotocolos": "protocolos",
+    "envioprotocolossemanales": "protocolos",
+    "coordinacion": "coordinacion",
+    "incidencias": "incidencias",
+    "panelselectorservicio": "servicio_tecnico",
+    "serviciotecnico": "servicio_tecnico",
+    "stventas": "servicio_tecnico",
+    "tabla": "servicio_tecnico",
+    "panelselectorventa": "venta",
+    "registrocliente": "venta",
+    "tablacliente": "venta",
+    "panelselectorfinanzas": "finanzas",
+    "tablafinanzas": "finanzas",
+    "panelselectoradministracion": "administracion",
+    "tablaadministracion": "administracion",
+    "panelselectoroperaciones": "operaciones",
+    "tablaoperaciones": "operaciones",
+    "pendientes": "tecnicos",
+    "tecnicos": "tecnicos",
+}
+DEFAULT_AREAS_BOOTSTRAP: list[dict[str, str]] = [
+    {"code": "soporte", "name": "Soporte", "department": "Soporte"},
+    {"code": "tecnicos", "name": "Tecnicos", "department": "Servicio Tecnico"},
+    {"code": "servicio_tecnico", "name": "Servicio Tecnico", "department": "Servicio Tecnico"},
+    {"code": "incidencias", "name": "Incidencias", "department": "Incidencias"},
+    {"code": "coordinacion", "name": "Coordinacion", "department": "Incidencias"},
+    {"code": "protocolos", "name": "Control de Protocolos", "department": "Incidencias"},
+    {"code": "venta", "name": "Venta", "department": "Venta"},
+    {"code": "finanzas", "name": "Finanzas", "department": "Finanzas"},
+    {"code": "administracion", "name": "Administracion", "department": "Administracion"},
+    {"code": "operaciones", "name": "Operaciones", "department": "Operaciones"},
+]
+DEFAULT_USERS_BOOTSTRAP: list[dict[str, Any]] = [
+    {"name": "Ronald Montilla", "password": "RM2025", "role": "admin", "areas": ["soporte"]},
+    {"name": "Julissa Mella", "password": "JM2025", "role": "agent", "areas": ["soporte"]},
+    {"name": "Antonio Bahamondes", "password": "AB2025", "role": "agent", "areas": ["soporte"]},
+    {"name": "Sthefan Leal", "password": "SL2025", "role": "agent", "areas": ["soporte"]},
+    {"name": "Felipe Mora", "password": "FM2025", "role": "agent", "areas": ["soporte"]},
+    {"name": "Fernando Lubiano", "password": "Fernando1180", "role": "admin", "areas": ["soporte"]},
+    {"name": "Jason Kevin Perez Ortiz", "password": CLAVE_TECNICOS_TEMPORAL, "role": "agent", "areas": ["servicio_tecnico", "tecnicos"]},
+    {"name": "Carlos Zamora Munita", "password": CLAVE_TECNICOS_TEMPORAL, "role": "agent", "areas": ["servicio_tecnico", "operaciones", "tecnicos"]},
+    {"name": "Fernando Andres Lubiano Moraga", "password": CLAVE_TECNICOS_TEMPORAL, "role": "agent", "areas": ["servicio_tecnico", "tecnicos"]},
+    {"name": "Mery Delgado", "password": CLAVE_TECNICOS_TEMPORAL, "role": "agent", "areas": ["incidencias", "coordinacion", "protocolos"]},
+    {"name": "Cristian Olivares", "password": CLAVE_TECNICOS_TEMPORAL, "role": "agent", "areas": ["incidencias", "coordinacion", "protocolos"]},
+    {"name": "Hector Rosales", "password": CLAVE_TECNICOS_TEMPORAL, "role": "agent", "areas": ["incidencias", "coordinacion", "protocolos"]},
+    {"name": "Angelica Guerra", "password": CLAVE_TECNICOS_TEMPORAL, "role": "agent", "areas": ["incidencias", "coordinacion", "protocolos"]},
+    {"name": "Nicolas Santibanez", "password": CLAVE_TECNICOS_TEMPORAL, "role": "agent", "areas": ["incidencias", "coordinacion", "protocolos"]},
+    {"name": "Daisy Vergara", "password": CLAVE_TECNICOS_TEMPORAL, "role": "agent", "areas": ["incidencias", "coordinacion", "protocolos"]},
+    {"name": "Tahira Riquelme", "password": CLAVE_TECNICOS_TEMPORAL, "role": "agent", "areas": ["incidencias", "coordinacion", "protocolos"]},
+    {"name": "Marian Macho", "password": CLAVE_TECNICOS_TEMPORAL, "role": "agent", "areas": ["incidencias", "coordinacion", "protocolos"]},
+    {"name": "Manuel Mondaca", "password": CLAVE_TECNICOS_TEMPORAL, "role": "agent", "areas": ["incidencias", "coordinacion", "protocolos"]},
+    {"name": "Teodoro Storm", "password": CLAVE_TECNICOS_TEMPORAL, "role": "agent", "areas": ["venta"]},
+    {"name": "Gianpiero Lubiano", "password": CLAVE_TECNICOS_TEMPORAL, "role": "agent", "areas": ["venta"]},
+    {"name": "Lucas Cortes", "password": CLAVE_TECNICOS_TEMPORAL, "role": "agent", "areas": ["venta"]},
+    {"name": "Sebastian Storm", "password": CLAVE_TECNICOS_TEMPORAL, "role": "agent", "areas": ["venta"]},
+    {"name": "Giancarlo Lubiano", "password": CLAVE_TECNICOS_TEMPORAL, "role": "agent", "areas": ["finanzas"]},
+    {"name": "Maryorie Alegria", "password": CLAVE_TECNICOS_TEMPORAL, "role": "agent", "areas": ["administracion"]},
+]
 _GEOCODE_CACHE: dict[str, tuple[str, str]] = {}
 _COORD_FALLBACK_CL: list[tuple[tuple[str, ...], tuple[str, str]]] = [
     (("valparaiso", "valparaiso"), ("-33.0472", "-71.6127")),
@@ -75,37 +134,6 @@ _COORD_FALLBACK_CL: list[tuple[tuple[str, ...], tuple[str, str]]] = [
     (("san miguel",), ("-33.4979", "-70.6510")),
     (("maipu",), ("-33.5108", "-70.7653")),
     (("region metropolitana", "santiago"), ("-33.4489", "-70.6693")),
-]
-USUARIOS_TABLA_SERVICIO = [
-    "Jason Kevin Pérez Ortiz",
-    "Carlos Zamora Munita",
-    "Fernando Andrés Lubiano Moraga",
-]
-USUARIOS_INCIDENCIAS = [
-    "Mery Delgado",
-    "Cristian Olivares",
-    "Héctor Rosales",
-    "Angélica Guerra",
-    "Nicolas Santibañez",
-    "Daisy Vergara",
-    "Tahira Riquelme",
-    "Marian Macho",
-    "Manuel Mondaca",
-]
-USUARIOS_VENTA = [
-    "Teodoro Storm",
-    "Gianpiero Lubiano",
-    "Lucas Cortes",
-    "Sebastian Storm",
-]
-USUARIOS_FINANZAS = [
-    "Giancarlo Lubiano",
-]
-USUARIOS_ADMINISTRACION = [
-    "Maryorie Alegría",
-]
-USUARIOS_OPERACIONES = [
-    "Carlos Zamora Munita",
 ]
 MANTENCIONES_PROGRAMADAS_QUILPUE: dict[int, list[str]] = {
     1: [
@@ -284,6 +312,89 @@ def _is_lock_timeout_error(exc: Exception) -> bool:
     message = str(exc or "").lower()
     has_lock_hint = "lock timeout" in message or "locknotavailable" in message or "tiempo de espera" in message
     return has_lock_hint and ("lock" in message or "locks" in message)
+
+
+def _normalizar_identidad(valor: Any) -> str:
+    txt = str(valor or "").strip().lower()
+    txt = unicodedata.normalize("NFD", txt)
+    txt = "".join(c for c in txt if unicodedata.category(c) != "Mn")
+    txt = re.sub(r"\s+", " ", txt).strip()
+    return txt
+
+
+def _username_desde_nombre(nombre: str) -> str:
+    base = _normalizar_identidad(nombre)
+    base = re.sub(r"[^a-z0-9]+", ".", base).strip(".")
+    return base or "usuario"
+
+
+def seed_default_identity_data(db: Session) -> None:
+    """Carga inicial idempotente: la autorizacion operativa se lee desde BBDD."""
+    areas_por_codigo: dict[str, Area] = {}
+    for area_data in DEFAULT_AREAS_BOOTSTRAP:
+        area = db.scalar(select(Area).where(Area.code == area_data["code"]))
+        if not area:
+            area = Area(
+                code=area_data["code"],
+                name=area_data["name"],
+                department=area_data["department"],
+                is_active=True,
+            )
+            db.add(area)
+            db.flush()
+        else:
+            area.name = area_data["name"]
+            area.department = area_data["department"]
+            area.is_active = True
+        areas_por_codigo[area.code] = area
+
+    usuarios_existentes = list(db.scalars(select(User)).all())
+    usuarios_por_nombre = {_normalizar_identidad(u.name): u for u in usuarios_existentes}
+    usuarios_por_username = {str(u.username or "").strip().lower(): u for u in usuarios_existentes}
+
+    for user_data in DEFAULT_USERS_BOOTSTRAP:
+        nombre = str(user_data["name"]).strip()
+        username = _username_desde_nombre(nombre)
+        user = usuarios_por_nombre.get(_normalizar_identidad(nombre)) or usuarios_por_username.get(username)
+        user_areas = [areas_por_codigo[c] for c in user_data["areas"] if c in areas_por_codigo]
+        department = user_areas[0].department if user_areas else None
+        if not user:
+            user = User(
+                name=nombre,
+                username=username,
+                hashed_password=f"plain:{user_data['password']}",
+                role=str(user_data.get("role") or "agent"),
+                department=department,
+                is_active=True,
+            )
+            db.add(user)
+            db.flush()
+            usuarios_por_nombre[_normalizar_identidad(nombre)] = user
+            usuarios_por_username[username] = user
+        else:
+            user.name = user.name or nombre
+            user.role = str(user_data.get("role") or user.role or "agent")
+            user.department = user.department or department
+            user.is_active = True
+            if not user.hashed_password:
+                user.hashed_password = f"plain:{user_data['password']}"
+
+        membresias = {ua.area_id: ua for ua in list(user.areas)}
+        for index, area in enumerate(user_areas):
+            membership = membresias.get(area.id)
+            if not membership:
+                membership = UserArea(
+                    user_id=user.id,
+                    area_id=area.id,
+                    department=area.department,
+                    is_primary=index == 0,
+                )
+                db.add(membership)
+            else:
+                membership.department = area.department
+                membership.is_primary = membership.is_primary or index == 0
+
+    db.commit()
 
 
 class IncidenciasService:
@@ -880,29 +991,80 @@ class IncidenciasService:
         except Exception:
             pass
 
-        # Compatibilidad: usuarios histÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³ricos de soporte.
-        for nombre in USUARIOS_LOGIN.keys():
+        # Compatibilidad: usuarios internos del area soporte, ahora desde BBDD.
+        for nombre in self._usuarios_login_por_area("soporte"):
             _add(nombre)
 
         return sorted(nombres.values(), key=lambda x: self._normalizar_nombre_login(x))
 
+    def _area_code_desde_destino(self, destino: str | None) -> str | None:
+        key = self._normalizar_nombre_login(destino).replace(" ", "")
+        return AREA_DESTINOS.get(key)
+
+    def _area_por_codigo(self, area_code: str | None) -> Area | None:
+        if not area_code:
+            return None
+        return self.db.scalar(select(Area).where(Area.code == area_code, Area.is_active.is_(True)))
+
+    def _usuarios_login_por_area(self, area_code: str) -> list[str]:
+        stmt = (
+            select(User.name)
+            .join(UserArea, UserArea.user_id == User.id)
+            .join(Area, Area.id == UserArea.area_id)
+            .where(
+                User.is_active.is_(True),
+                Area.is_active.is_(True),
+                Area.code == area_code,
+            )
+        )
+        nombres = list(self.db.scalars(stmt).all())
+        return sorted(nombres, key=lambda x: self._normalizar_nombre_login(x))
+
+    def obtener_usuarios_login_detalle(self, destino: str = "tecnicos") -> list[dict[str, Any]]:
+        area_code = self._area_code_desde_destino(destino)
+        if not area_code:
+            return []
+        stmt = (
+            select(User, Area, UserArea)
+            .join(UserArea, UserArea.user_id == User.id)
+            .join(Area, Area.id == UserArea.area_id)
+            .where(
+                User.is_active.is_(True),
+                Area.is_active.is_(True),
+                Area.code == area_code,
+            )
+        )
+        rows = self.db.execute(stmt).all()
+        detalle = [
+            {
+                "usuario": user.name,
+                "username": user.username,
+                "area": area.name,
+                "area_code": area.code,
+                "department": membership.department or area.department or user.department,
+                "role": user.role,
+            }
+            for user, area, membership in rows
+        ]
+        return sorted(detalle, key=lambda item: self._normalizar_nombre_login(item["usuario"]))
+
     def _usuarios_login_tabla_servicio(self) -> list[str]:
-        return list(USUARIOS_TABLA_SERVICIO)
+        return self._usuarios_login_por_area("servicio_tecnico")
 
     def _usuarios_login_incidencias(self) -> list[str]:
-        return list(USUARIOS_INCIDENCIAS)
+        return self._usuarios_login_por_area("incidencias")
 
     def _usuarios_login_venta(self) -> list[str]:
-        return list(USUARIOS_VENTA)
+        return self._usuarios_login_por_area("venta")
 
     def _usuarios_login_finanzas(self) -> list[str]:
-        return list(USUARIOS_FINANZAS)
+        return self._usuarios_login_por_area("finanzas")
 
     def _usuarios_login_administracion(self) -> list[str]:
-        return list(USUARIOS_ADMINISTRACION)
+        return self._usuarios_login_por_area("administracion")
 
     def _usuarios_login_operaciones(self) -> list[str]:
-        return list(USUARIOS_OPERACIONES)
+        return self._usuarios_login_por_area("operaciones")
 
     def _es_usuario_tabla_servicio(self, usuario: str) -> bool:
         usuario_norm = self._normalizar_nombre_login(usuario)
@@ -912,33 +1074,43 @@ class IncidenciasService:
         return usuario_norm in permitidos
 
     def obtener_usuarios_login_tecnicos(self, destino: str = "tecnicos") -> list[str]:
-        destino_norm = (destino or "").strip().lower()
-        if destino_norm in {"panelselectorventa", "registrocliente", "tablacliente"}:
-            return self._usuarios_login_venta()
-        if destino_norm in {"panelselectorfinanzas", "tablafinanzas"}:
-            return self._usuarios_login_finanzas()
-        if destino_norm in {"panelselectoradministracion", "tablaadministracion"}:
-            return self._usuarios_login_administracion()
-        if destino_norm in {"panelselectoroperaciones", "tablaoperaciones"}:
-            return self._usuarios_login_operaciones()
-        if destino_norm in {
-            "panelselector",
-            "panel_selector",
-            "panelselectorcoordinacion",
-            "panel_selector_coordinacion",
-            "cierreaperturaclientes",
-            "controlprotocolos",
-            "tablaprotocolos",
-            "envioprotocolossemanales",
-            "coordinacion",
-            "incidencias",
-        }:
-            return self._usuarios_login_incidencias()
-        if destino_norm in {"panelselectorservicio", "panel_selector_servicio", "stventas"}:
-            return self._usuarios_login_tabla_servicio()
-        if destino_norm in {"tabla", "serviciotecnico"}:
-            return self._usuarios_login_tabla_servicio()
+        area_code = self._area_code_desde_destino(destino)
+        if area_code and area_code != "tecnicos":
+            return self._usuarios_login_por_area(area_code)
         return self._usuarios_login_tecnicos()
+
+    def _buscar_usuario_login(self, nombre: str) -> User | None:
+        nombre_norm = self._normalizar_nombre_login(nombre)
+        usuarios = self.db.scalars(select(User).where(User.is_active.is_(True))).all()
+        for user in usuarios:
+            if self._normalizar_nombre_login(user.name) == nombre_norm:
+                return user
+            if self._normalizar_nombre_login(user.username) == nombre_norm:
+                return user
+        return None
+
+    def _usuario_tiene_area(self, user: User, area_code: str | None) -> bool:
+        if not area_code:
+            return True
+        if user.role == "admin":
+            return True
+        stmt = (
+            select(UserArea.id)
+            .join(Area, Area.id == UserArea.area_id)
+            .where(
+                UserArea.user_id == user.id,
+                Area.code == area_code,
+                Area.is_active.is_(True),
+            )
+        )
+        return self.db.scalar(stmt) is not None
+
+    def _password_usuario_ok(self, user: User, clave: str) -> bool:
+        stored = str(user.hashed_password or "")
+        incoming = str(clave or "")
+        if stored.startswith("plain:"):
+            return secrets.compare_digest(stored.removeprefix("plain:"), incoming)
+        return secrets.compare_digest(stored, incoming)
 
     # =========================
     # LOGIN
@@ -997,27 +1169,10 @@ class IncidenciasService:
             else "tecnicos"
         )
 
-        if destino_ok in {"servicioTecnico", "panelSelectorServicio", "stVentas"}:
-            usuarios_base = self._usuarios_login_tabla_servicio()
-        elif destino_ok in {"panelSelectorVenta", "registroCliente", "tablaCliente"}:
-            usuarios_base = self._usuarios_login_venta()
-        elif destino_ok in {"panelSelectorFinanzas", "tablaFinanzas"}:
-            usuarios_base = self._usuarios_login_finanzas()
-        elif destino_ok in {"panelSelectorAdministracion", "tablaAdministracion"}:
-            usuarios_base = self._usuarios_login_administracion()
-        elif destino_ok in {"panelSelectorOperaciones", "tablaOperaciones"}:
-            usuarios_base = self._usuarios_login_operaciones()
-        elif destino_ok in {
-            "incidencias",
-            "panelSelector",
-            "panelSelectorCoordinacion",
-            "cierreAperturaClientes",
-            "controlProtocolos",
-            "tablaProtocolos",
-            "envioProtocolosSemanales",
-            "coordinacion",
-        }:
-            usuarios_base = self._usuarios_login_incidencias()
+        area_code = self._area_code_desde_destino(destino_ok)
+        area_login = self._area_por_codigo(area_code)
+        if area_code and area_code != "tecnicos":
+            usuarios_base = self._usuarios_login_por_area(area_code)
         else:
             usuarios_base = self._usuarios_login_tecnicos()
         usuarios_norm = {self._normalizar_nombre_login(u): u for u in usuarios_base}
@@ -1025,64 +1180,32 @@ class IncidenciasService:
 
         # Modo temporal solicitado: clave unica para tecnicos.
         if str(clave or "").strip() == CLAVE_TECNICOS_TEMPORAL:
-            if destino_ok in {
-                "servicioTecnico",
-                "panelSelectorServicio",
-                "stVentas",
-                "incidencias",
-                "panelSelector",
-                "panelSelectorCoordinacion",
-                "panelSelectorVenta",
-                "panelSelectorAdministracion",
-                "tablaAdministracion",
-                "panelSelectorFinanzas",
-                "tablaFinanzas",
-                "panelSelectorOperaciones",
-                "tablaOperaciones",
-                "registroCliente",
-                "tablaCliente",
-                "cierreAperturaClientes",
-                "controlProtocolos",
-                "tablaProtocolos",
-                "envioProtocolosSemanales",
-                "coordinacion",
-            }:
-                # En tabla de servicio, acceso estricto solo a usuarios permitidos.
+            if area_code and area_code != "tecnicos":
+                # En areas internas, acceso estricto solo a usuarios del area/departamento.
                 if nombre_norm not in usuarios_norm:
-                    scope_name = (
-                        "Tabla Servicio Tecnico"
-                        if destino_ok in {"servicioTecnico", "panelSelectorServicio", "stVentas"}
-                        else (
-                            "Administracion"
-                            if destino_ok in {"panelSelectorAdministracion", "tablaAdministracion"}
-                            else (
-                                "Finanzas"
-                                if destino_ok in {"panelSelectorFinanzas", "tablaFinanzas"}
-                                else (
-                                    "Operaciones"
-                                    if destino_ok in {"panelSelectorOperaciones", "tablaOperaciones"}
-                                    else ("Venta" if destino_ok in {"panelSelectorVenta", "registroCliente", "tablaCliente"} else "General")
-                                )
-                            )
-                        )
-                    )
+                    scope_name = area_login.name if area_login else area_code
                     return {"success": False, "message": f"Usuario no autorizado para {scope_name}"}
                 nombre_sesion = usuarios_norm[nombre_norm]
             else:
                 # Modo temporal para tÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cnicos: permitir nombre libre.
                 nombre_sesion = usuarios_norm.get(nombre_norm, nombre_limpio)
         else:
-            # Fallback legado: claves histÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³ricas de soporte.
-            if nombre_limpio not in USUARIOS_LOGIN:
+            user_login = self._buscar_usuario_login(nombre_limpio)
+            if not user_login:
                 return {"success": False, "message": "Usuario invalido"}
-            if USUARIOS_LOGIN[nombre_limpio] != clave:
+            if not self._password_usuario_ok(user_login, clave):
                 return {"success": False, "message": "Clave incorrecta"}
-            nombre_sesion = nombre_limpio
+            if area_code and area_code != "tecnicos" and not self._usuario_tiene_area(user_login, area_code):
+                scope_name = area_login.name if area_login else area_code
+                return {"success": False, "message": f"Usuario no autorizado para {scope_name}"}
+            nombre_sesion = user_login.name
 
         self.db.merge(
             LoginSession(
                 token=token,
                 usuario=nombre_sesion,
+                area_code=area_code,
+                department=area_login.department if area_login else None,
                 expires_at=self._expira_fin_dia_utc(),
             )
         )

@@ -5,6 +5,8 @@ erDiagram
     USERS ||--o{ INTERNAL_CHAT_MESSAGES : envia
     USERS ||--o| INTERNAL_CHAT_READ_STATES : lee
     USERS ||--o{ TICKET_ALERT_READ_STATES : lee
+    USERS ||--o{ USER_AREAS : pertenece
+    AREAS ||--o{ USER_AREAS : agrupa
     REQUESTERS ||--o{ TICKETS : solicita
     TICKETS ||--o{ MESSAGES : contiene
     TICKETS ||--o{ TICKET_ASSIGNMENT_HISTORY : registra
@@ -34,8 +36,24 @@ erDiagram
     USERS {
         int id PK
         string username UK
+        string name
         string role
+        string department
         boolean is_active
+    }
+    AREAS {
+        int id PK
+        string code UK
+        string name UK
+        string department
+        boolean is_active
+    }
+    USER_AREAS {
+        int id PK
+        int user_id FK
+        int area_id FK
+        string department
+        boolean is_primary
     }
     REQUESTERS {
         int id PK

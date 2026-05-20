@@ -380,11 +380,66 @@ class MantencionImagenSucursal(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    username: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
+    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    role: Mapped[str] = mapped_column(String(20), default="agent", nullable=False)
+    department: Mapped[Optional[str]] = mapped_column(String(80), nullable=True, index=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    areas: Mapped[list["UserArea"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
+
+class Area(Base):
+    __tablename__ = "areas"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    code: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    department: Mapped[str] = mapped_column(String(80), index=True, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    users: Mapped[list["UserArea"]] = relationship(
+        back_populates="area",
+        cascade="all, delete-orphan",
+    )
+
+
+class UserArea(Base):
+    __tablename__ = "user_areas"
+    __table_args__ = (
+        UniqueConstraint("user_id", "area_id", name="uq_user_areas_user_area"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    area_id: Mapped[int] = mapped_column(ForeignKey("areas.id", ondelete="CASCADE"), index=True)
+    department: Mapped[str] = mapped_column(String(80), index=True, nullable=False)
+    is_primary: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    user: Mapped["User"] = relationship(back_populates="areas")
+    area: Mapped["Area"] = relationship(back_populates="users")
+
+
 class LoginSession(Base):
     __tablename__ = "login_sessions"
 
     token: Mapped[str] = mapped_column(String(120), primary_key=True)
     usuario: Mapped[str] = mapped_column(String(255), index=True)
+    area_code: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
+    department: Mapped[Optional[str]] = mapped_column(String(80), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     expires_at: Mapped[datetime] = mapped_column(DateTime, index=True)
 

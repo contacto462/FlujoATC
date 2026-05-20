@@ -35,7 +35,7 @@ from app.schemas import (
     RendicionRequest,
     TareaManualRequest,
 )
-from app.services import IncidenciasService
+from app.services import IncidenciasService, seed_default_identity_data
 from app.protocolos_service import ProtocolosService
 from app.venta.routes import router as venta_router
 
@@ -183,6 +183,8 @@ def startup() -> None:
     _ensure_servicio_tecnico_ventas_optional_columns()
     _ensure_protocolos_optional_columns()
     _ensure_bbdd_clientes_optional_columns()
+    _ensure_identity_optional_columns()
+    _seed_identity_data()
     if not _protocolos_weekly_worker_started:
         _protocolos_weekly_worker_started = True
         threading.Thread(
@@ -754,6 +756,49 @@ def _ensure_bbdd_clientes_optional_columns() -> None:
         LOGGER.warning("No fue posible asegurar columnas opcionales en 'bbdd_clientes': %s", exc)
 
 
+def _ensure_identity_optional_columns() -> None:
+    optional_by_table: dict[str, dict[str, str]] = {
+        "users": {
+            "name": "VARCHAR(100)",
+            "username": "VARCHAR(50)",
+            "hashed_password": "VARCHAR(255)",
+            "role": "VARCHAR(20) NOT NULL DEFAULT 'agent'",
+            "department": "VARCHAR(80)",
+            "is_active": "BOOLEAN NOT NULL DEFAULT TRUE",
+            "created_at": "TIMESTAMP",
+            "updated_at": "TIMESTAMP",
+        },
+        "login_sessions": {
+            "area_code": "VARCHAR(50)",
+            "department": "VARCHAR(80)",
+        },
+    }
+    try:
+        with engine.begin() as conn:
+            inspector = inspect(conn)
+            for table, optional_columns in optional_by_table.items():
+                if not inspector.has_table(table):
+                    continue
+                existing_columns = {str(c.get("name", "")).strip() for c in inspector.get_columns(table)}
+                for col_name, col_type in optional_columns.items():
+                    if col_name in existing_columns:
+                        continue
+                    conn.execute(text(f'ALTER TABLE "{table}" ADD COLUMN "{col_name}" {col_type}'))
+    except Exception as exc:
+        LOGGER.warning("No fue posible asegurar columnas opcionales de identidad/usuarios: %s", exc)
+
+
+def _seed_identity_data() -> None:
+    db = SessionLocal()
+    try:
+        seed_default_identity_data(db)
+    except Exception as exc:
+        db.rollback()
+        LOGGER.warning("No fue posible cargar usuarios/areas iniciales en BBDD: %s", exc)
+    finally:
+        db.close()
+
+
 def get_service(db: Annotated[Session, Depends(get_db)]) -> IncidenciasService:
     return IncidenciasService(db)
 
@@ -1024,7 +1069,10 @@ def get_usuarios_login(
     destino: str = "tecnicos",
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
 ):
-    return {"usuarios": service.obtener_usuarios_login_tecnicos(destino)}
+    return {
+        "usuarios": service.obtener_usuarios_login_tecnicos(destino),
+        "detalles": service.obtener_usuarios_login_detalle(destino),
+    }
 
 
 @app.get("/api/listas/bbdd")
