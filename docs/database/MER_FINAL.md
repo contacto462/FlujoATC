@@ -5,7 +5,7 @@ El sistema ATC combina gestion de soporte, clientes, sucursales, ordenes de trab
 
 ## Entidades principales
 - `users`: usuarios internos del sistema.
-- `areas` y `user_areas`: catalogo de areas/departamentos y pertenencia de usuarios para evitar cruces de acceso.
+- `areas`, `user_areas` y vista `users_con_areas`: catalogo de areas/departamentos y pertenencia de usuarios para evitar cruces de acceso.
 - `requesters`: solicitantes o clientes que originan tickets.
 - `tickets` y `messages`: nucleo de atencion y conversacion.
 - `bbdd_clientes` y `bbdd_sucursales`: maestro de clientes y ubicaciones.
@@ -17,7 +17,7 @@ El sistema ATC combina gestion de soporte, clientes, sucursales, ordenes de trab
 
 ## Relaciones principales y cardinalidades
 - Un usuario puede tener muchos tickets asignados y muchos mensajes enviados.
-- Un usuario puede pertenecer a muchas areas mediante `user_areas`; cada area pertenece a un departamento operativo.
+- Un usuario se relaciona con sus areas mediante `user_areas.user_id -> users.id`; `user_areas.id` identifica cada pertenencia usuario-area y la vista `users_con_areas` deja ese join listo para consulta.
 - Un solicitante puede tener muchos tickets.
 - Un ticket puede contener muchos mensajes, eventos, historiales y logs de automatizacion.
 - Un cliente puede tener muchas sucursales y muchas ODT.
@@ -38,6 +38,7 @@ erDiagram
     USERS ||--o{ TICKET_ALERT_READ_STATES : lee
     USERS ||--o{ USER_AREAS : pertenece
     AREAS ||--o{ USER_AREAS : agrupa
+    USER_AREAS ||--o{ LOGIN_SESSIONS : contexto
     REQUESTERS ||--o{ TICKETS : solicita
     TICKETS ||--o{ MESSAGES : contiene
     TICKETS ||--o{ TICKET_ASSIGNMENT_HISTORY : registra
@@ -85,6 +86,13 @@ erDiagram
         int area_id FK
         string department
         boolean is_primary
+    }
+    LOGIN_SESSIONS {
+        string token PK
+        int user_id FK
+        int user_area_id FK
+        string area_code
+        string department
     }
     REQUESTERS {
         int id PK

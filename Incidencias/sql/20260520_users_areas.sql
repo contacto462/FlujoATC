@@ -6,6 +6,8 @@ ALTER TABLE public.users
     ADD COLUMN IF NOT EXISTS department VARCHAR(80);
 
 ALTER TABLE public.login_sessions
+    ADD COLUMN IF NOT EXISTS user_id INTEGER,
+    ADD COLUMN IF NOT EXISTS user_area_id INTEGER,
     ADD COLUMN IF NOT EXISTS area_code VARCHAR(50),
     ADD COLUMN IF NOT EXISTS department VARCHAR(80);
 
@@ -35,6 +37,25 @@ CREATE INDEX IF NOT EXISTS ix_areas_department ON public.areas(department);
 CREATE INDEX IF NOT EXISTS ix_user_areas_user_id ON public.user_areas(user_id);
 CREATE INDEX IF NOT EXISTS ix_user_areas_area_id ON public.user_areas(area_id);
 CREATE INDEX IF NOT EXISTS ix_user_areas_department ON public.user_areas(department);
+CREATE INDEX IF NOT EXISTS ix_login_sessions_user_id ON public.login_sessions(user_id);
+CREATE INDEX IF NOT EXISTS ix_login_sessions_user_area_id ON public.login_sessions(user_area_id);
+
+CREATE OR REPLACE VIEW public.users_con_areas AS
+SELECT
+    ua.id AS user_area_id,
+    u.id AS user_id,
+    u.name AS usuario,
+    u.username,
+    u.role,
+    u.is_active AS user_is_active,
+    a.id AS area_id,
+    a.code AS area_code,
+    a.name AS area,
+    ua.department,
+    ua.is_primary
+FROM public.user_areas ua
+JOIN public.users u ON u.id = ua.user_id
+JOIN public.areas a ON a.id = ua.area_id;
 
 INSERT INTO public.areas (code, name, department, is_active)
 VALUES
@@ -61,14 +82,14 @@ WITH seed_users(name, username, password, role, primary_department) AS (
         ('Sthefan Leal', 'sthefan.leal', 'plain:SL2025', 'agent', 'Soporte'),
         ('Felipe Mora', 'felipe.mora', 'plain:FM2025', 'agent', 'Soporte'),
         ('Fernando Lubiano', 'fernando.lubiano', 'plain:Fernando1180', 'admin', 'Soporte'),
-        ('Jason Kevin Perez Ortiz', 'jason.kevin.perez.ortiz', 'plain:123456', 'agent', 'Servicio Tecnico'),
+        ('Jason Kevin Pérez Ortiz', 'jason.kevin.perez.ortiz', 'plain:123456', 'agent', 'Servicio Tecnico'),
         ('Carlos Zamora Munita', 'carlos.zamora.munita', 'plain:123456', 'agent', 'Servicio Tecnico'),
-        ('Fernando Andres Lubiano Moraga', 'fernando.andres.lubiano.moraga', 'plain:123456', 'agent', 'Servicio Tecnico'),
+        ('Fernando Andrés Lubiano Moraga', 'fernando.andres.lubiano.moraga', 'plain:123456', 'agent', 'Servicio Tecnico'),
         ('Mery Delgado', 'mery.delgado', 'plain:123456', 'agent', 'Incidencias'),
         ('Cristian Olivares', 'cristian.olivares', 'plain:123456', 'agent', 'Incidencias'),
-        ('Hector Rosales', 'hector.rosales', 'plain:123456', 'agent', 'Incidencias'),
-        ('Angelica Guerra', 'angelica.guerra', 'plain:123456', 'agent', 'Incidencias'),
-        ('Nicolas Santibanez', 'nicolas.santibanez', 'plain:123456', 'agent', 'Incidencias'),
+        ('Héctor Rosales', 'hector.rosales', 'plain:123456', 'agent', 'Incidencias'),
+        ('Angélica Guerra', 'angelica.guerra', 'plain:123456', 'agent', 'Incidencias'),
+        ('Nicolas Santibañez', 'nicolas.santibanez', 'plain:123456', 'agent', 'Incidencias'),
         ('Daisy Vergara', 'daisy.vergara', 'plain:123456', 'agent', 'Incidencias'),
         ('Tahira Riquelme', 'tahira.riquelme', 'plain:123456', 'agent', 'Incidencias'),
         ('Marian Macho', 'marian.macho', 'plain:123456', 'agent', 'Incidencias'),
@@ -78,7 +99,7 @@ WITH seed_users(name, username, password, role, primary_department) AS (
         ('Lucas Cortes', 'lucas.cortes', 'plain:123456', 'agent', 'Venta'),
         ('Sebastian Storm', 'sebastian.storm', 'plain:123456', 'agent', 'Venta'),
         ('Giancarlo Lubiano', 'giancarlo.lubiano', 'plain:123456', 'agent', 'Finanzas'),
-        ('Maryorie Alegria', 'maryorie.alegria', 'plain:123456', 'agent', 'Administracion')
+        ('Maryorie Alegría', 'maryorie.alegria', 'plain:123456', 'agent', 'Administracion')
 )
 INSERT INTO public.users (name, username, hashed_password, role, department, is_active)
 SELECT name, username, password, role, primary_department, TRUE

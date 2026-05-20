@@ -7,6 +7,7 @@ erDiagram
     USERS ||--o{ TICKET_ALERT_READ_STATES : lee
     USERS ||--o{ USER_AREAS : pertenece
     AREAS ||--o{ USER_AREAS : agrupa
+    USER_AREAS ||--o{ LOGIN_SESSIONS : contexto
     REQUESTERS ||--o{ TICKETS : solicita
     TICKETS ||--o{ MESSAGES : contiene
     TICKETS ||--o{ TICKET_ASSIGNMENT_HISTORY : registra
@@ -54,6 +55,13 @@ erDiagram
         int area_id FK
         string department
         boolean is_primary
+    }
+    LOGIN_SESSIONS {
+        string token PK
+        int user_id FK
+        int user_area_id FK
+        string area_code
+        string department
     }
     REQUESTERS {
         int id PK

@@ -438,6 +438,8 @@ class LoginSession(Base):
 
     token: Mapped[str] = mapped_column(String(120), primary_key=True)
     usuario: Mapped[str] = mapped_column(String(255), index=True)
+    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    user_area_id: Mapped[Optional[int]] = mapped_column(ForeignKey("user_areas.id", ondelete="SET NULL"), nullable=True, index=True)
     area_code: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
     department: Mapped[Optional[str]] = mapped_column(String(80), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

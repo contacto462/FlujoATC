@@ -185,6 +185,7 @@ def startup() -> None:
     _ensure_bbdd_clientes_optional_columns()
     _ensure_identity_optional_columns()
     _seed_identity_data()
+    _ensure_identity_views()
     if not _protocolos_weekly_worker_started:
         _protocolos_weekly_worker_started = True
         threading.Thread(
@@ -769,6 +770,8 @@ def _ensure_identity_optional_columns() -> None:
             "updated_at": "TIMESTAMP",
         },
         "login_sessions": {
+            "user_id": "INTEGER",
+            "user_area_id": "INTEGER",
             "area_code": "VARCHAR(50)",
             "department": "VARCHAR(80)",
         },
@@ -797,6 +800,42 @@ def _seed_identity_data() -> None:
         LOGGER.warning("No fue posible cargar usuarios/areas iniciales en BBDD: %s", exc)
     finally:
         db.close()
+
+
+def _ensure_identity_views() -> None:
+    try:
+        with engine.begin() as conn:
+            inspector = inspect(conn)
+            if not (
+                inspector.has_table("users")
+                and inspector.has_table("areas")
+                and inspector.has_table("user_areas")
+            ):
+                return
+            conn.execute(
+                text(
+                    """
+                    CREATE OR REPLACE VIEW users_con_areas AS
+                    SELECT
+                        ua.id AS user_area_id,
+                        u.id AS user_id,
+                        u.name AS usuario,
+                        u.username,
+                        u.role,
+                        u.is_active AS user_is_active,
+                        a.id AS area_id,
+                        a.code AS area_code,
+                        a.name AS area,
+                        ua.department,
+                        ua.is_primary
+                    FROM user_areas ua
+                    JOIN users u ON u.id = ua.user_id
+                    JOIN areas a ON a.id = ua.area_id
+                    """
+                )
+            )
+    except Exception as exc:
+        LOGGER.warning("No fue posible asegurar vista users_con_areas: %s", exc)
 
 
 def get_service(db: Annotated[Session, Depends(get_db)]) -> IncidenciasService:
