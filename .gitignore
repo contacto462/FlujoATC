@@ -1,6 +1,7 @@
 .env
 *.json
 *.db
+backups/
 __pycache__/
 *.pyc
 auto_git.py

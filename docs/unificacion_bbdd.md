@@ -122,3 +122,30 @@ Tablas comunes detectadas:
 Conclusion: el riesgo principal esta acotado. La mayor parte de la migracion
 es copiar tablas completas; solo `users` e `incidencias_imagenes_odt` necesitan
 tratamiento especial.
+
+## Ejecucion aplicada
+
+El 2026-05-20 se ejecuto la unificacion real:
+
+```powershell
+python tools\unify_postgres_databases_to_atc.py --execute --drop-old
+```
+
+Resultado:
+
+- Se creo la base PostgreSQL `ATC`.
+- `ATC` se creo inicialmente desde `helpdesk`.
+- Se copiaron las tablas y datos de `incidencias`.
+- Se fusiono `users`.
+- Se migro `incidencias_imagenes_odt` convirtiendo `imagenes` a JSONB.
+- Se vacio `login_sessions` porque son sesiones temporales.
+- Se actualizaron `ATC/.env` e `Incidencias/.env` para apuntar a `ATC`.
+- Se eliminaron las bases antiguas `helpdesk` e `incidencias`.
+
+Respaldo previo:
+
+```text
+backups/db_unification/20260520_123315
+```
+
+Ese respaldo queda ignorado por Git porque contiene datos reales.
