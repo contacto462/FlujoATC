@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from datetime import datetime
 from typing import Optional
@@ -6,7 +6,7 @@ from typing import Optional
 from sqlalchemy import DateTime, ForeignKey, Integer, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.db import Base
+from ATC.app.core.db import Base
 
 
 class InternalChatReadState(Base):
@@ -38,3 +38,4 @@ class InternalChatReadState(Base):
             f"user_id={self.user_id} "
             f"last_seen_message_id={self.last_seen_message_id}>"
         )
+

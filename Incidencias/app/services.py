@@ -25,15 +25,15 @@ from sqlalchemy import func, or_, select, text
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.config import settings
-from app.database import SessionLocal, build_engine
-from app.drive_report_service import (
+from Incidencias.app.config import settings
+from Incidencias.app.database import SessionLocal, build_engine
+from Incidencias.app.drive_report_service import (
     DriveReportError,
     create_drive_report_for_odt,
     list_support_images_for_odt,
     upload_support_images_for_odt,
 )
-from app.models import (
+from Incidencias.app.models import (
     AdministracionODT,
     Area,
     CatalogoCliente,
@@ -51,7 +51,7 @@ from app.models import (
     User,
     UserArea,
 )
-from app.schemas import (
+from Incidencias.app.schemas import (
     ContactoDestinoRequest,
     EnviarInformacionContactoRequest,
     FormularioRegistro,
@@ -68,6 +68,8 @@ AREA_DESTINOS: dict[str, str] = {
     "loginunico": "",
     "unificado": "",
     "panelselectorauto": "",
+    "panelselectorsoporte": "soporte",
+    "panel_selector_soporte": "soporte",
     "panelselector": "incidencias",
     "panel_selector": "incidencias",
     "panelselectorcoordinacion": "coordinacion",
@@ -1025,6 +1027,46 @@ class IncidenciasService:
             return None
         return self.db.scalar(select(Area).where(Area.code == area_code, Area.is_active.is_(True)))
 
+    def _es_destino_auto(self, destino: str | None) -> bool:
+        key = self._normalizar_nombre_login(destino).replace(" ", "")
+        return key in {"", "auto", "loginunico", "unificado", "panelselectorauto"}
+
+    def _usuarios_login_todos(self) -> list[str]:
+        nombres = list(
+            self.db.scalars(
+                select(User.name)
+                .where(User.is_active.is_(True))
+                .order_by(User.name.asc())
+            ).all()
+        )
+        return sorted(nombres, key=lambda x: self._normalizar_nombre_login(x))
+
+    def _membership_principal_usuario(self, user: User | None) -> tuple[Area | None, UserArea | None]:
+        if not user:
+            return None, None
+        stmt = (
+            select(Area, UserArea)
+            .join(UserArea, UserArea.area_id == Area.id)
+            .where(
+                UserArea.user_id == user.id,
+                Area.is_active.is_(True),
+            )
+            .order_by(UserArea.is_primary.desc(), UserArea.id.asc())
+        )
+        row = self.db.execute(stmt).first()
+        if not row:
+            return None, None
+        area, membership = row
+        return area, membership
+
+    def _destino_principal_usuario(self, user: User | None) -> str:
+        area, _membership = self._membership_principal_usuario(user)
+        if area and area.code in AREA_PANEL_DESTINOS:
+            return AREA_PANEL_DESTINOS[area.code]
+        if user and user.role == "admin":
+            return "panelSelectorSoporte"
+        return "panelSelectorServicio"
+
     def _usuarios_login_por_area(self, area_code: str) -> list[str]:
         stmt = (
             select(User.name)
@@ -1040,6 +1082,35 @@ class IncidenciasService:
         return sorted(nombres, key=lambda x: self._normalizar_nombre_login(x))
 
     def obtener_usuarios_login_detalle(self, destino: str = "tecnicos") -> list[dict[str, Any]]:
+        if self._es_destino_auto(destino):
+            stmt = (
+                select(User, Area, UserArea)
+                .outerjoin(UserArea, UserArea.user_id == User.id)
+                .outerjoin(Area, Area.id == UserArea.area_id)
+                .where(User.is_active.is_(True))
+                .order_by(User.name.asc(), UserArea.is_primary.desc())
+            )
+            seen: set[int] = set()
+            detalle: list[dict[str, Any]] = []
+            for user, area, membership in self.db.execute(stmt).all():
+                if user.id in seen:
+                    continue
+                seen.add(user.id)
+                detalle.append(
+                    {
+                        "user_id": user.id,
+                        "user_area_id": membership.id if membership else None,
+                        "area_id": area.id if area else None,
+                        "usuario": user.name,
+                        "username": user.username,
+                        "area": area.name if area else "",
+                        "area_code": area.code if area else "",
+                        "department": (membership.department if membership else None) or (area.department if area else None) or user.department,
+                        "role": user.role,
+                    }
+                )
+            return sorted(detalle, key=lambda item: self._normalizar_nombre_login(item["usuario"]))
+
         area_code = self._area_code_desde_destino(destino)
         if not area_code:
             return []
@@ -1096,6 +1167,8 @@ class IncidenciasService:
         return usuario_norm in permitidos
 
     def obtener_usuarios_login_tecnicos(self, destino: str = "tecnicos") -> list[str]:
+        if self._es_destino_auto(destino):
+            return self._usuarios_login_todos()
         area_code = self._area_code_desde_destino(destino)
         if area_code and area_code != "tecnicos":
             return self._usuarios_login_por_area(area_code)
@@ -1158,6 +1231,28 @@ class IncidenciasService:
         midnight_local = datetime.combine(now_local.date() + timedelta(days=1), time.min, tzinfo=tz)
         return midnight_local.astimezone(timezone.utc).replace(tzinfo=None)
 
+    def _redirect_panel_destino(self, app_url: str, destino_ok: str, token: str) -> str:
+        if destino_ok == "panelSelectorSoporte":
+            base = (settings.helpdesk_base_url or app_url).rstrip("/")
+            return f"{base}/sso/login?token={token}"
+        if destino_ok in {"servicioTecnico", "panelSelectorServicio", "stVentas"}:
+            return f"{app_url}?form=panelSelectorServicio&token={token}&next={destino_ok}"
+        if destino_ok == "coordinacion":
+            return f"{app_url}?form=coordinacion&token={token}"
+        if destino_ok in {"panelSelectorCoordinacion", "tablaProtocolos", "envioProtocolosSemanales"}:
+            return f"{app_url}?form=panelSelectorCoordinacion&token={token}&next={destino_ok}"
+        if destino_ok in {"panelSelectorVenta", "registroCliente", "tablaCliente"}:
+            return f"{app_url}/venta/panel-selector?token={token}&next={destino_ok}"
+        if destino_ok in {"panelSelectorAdministracion", "tablaAdministracion"}:
+            return f"{app_url}/venta/administracion?token={token}&next={destino_ok}"
+        if destino_ok in {"panelSelectorFinanzas", "tablaFinanzas"}:
+            return f"{app_url}/venta/finanzas?token={token}&next={destino_ok}"
+        if destino_ok in {"panelSelectorOperaciones", "tablaOperaciones"}:
+            return f"{app_url}/venta/operaciones?token={token}&next={destino_ok}"
+        if destino_ok in {"incidencias", "panelSelector", "cierreAperturaClientes", "controlProtocolos"}:
+            return f"{app_url}?form=panelSelector&token={token}&next={destino_ok}"
+        return f"{app_url}?form={destino_ok}&token={token}"
+
     def check_login(
         self,
         nombre_tecnico: str,
@@ -1171,6 +1266,7 @@ class IncidenciasService:
             return {"success": False, "message": "Usuario invalido"}
 
         destino_norm = (destino or "").strip()
+        destino_auto = self._es_destino_auto(destino_norm)
         if destino_norm == "tabla":
             destino_norm = "servicioTecnico"
         if destino_norm == "STVentas":
@@ -1180,6 +1276,7 @@ class IncidenciasService:
             if destino_norm
             in {
                 "panelSelector",
+                "panelSelectorSoporte",
                 "panelSelectorServicio",
                 "panelSelectorCoordinacion",
                 "panelSelectorVenta",
@@ -1202,10 +1299,10 @@ class IncidenciasService:
                 "servicioTecnico",
                 "stVentas",
             }
-            else "tecnicos"
+            else "auto" if destino_auto else "tecnicos"
         )
 
-        area_code = self._area_code_desde_destino(destino_ok)
+        area_code = None if destino_auto else self._area_code_desde_destino(destino_ok)
         area_login = self._area_por_codigo(area_code)
         if area_code and area_code != "tecnicos":
             usuarios_base = self._usuarios_login_por_area(area_code)
@@ -1218,7 +1315,24 @@ class IncidenciasService:
         user_sesion: User | None = None
         membership_sesion: UserArea | None = None
 
-        if str(clave or "").strip() == CLAVE_TECNICOS_TEMPORAL:
+        if destino_auto:
+            user_login = self._buscar_usuario_login(nombre_limpio)
+            if not user_login:
+                return {"success": False, "message": "Usuario invalido"}
+            clave_limpia = str(clave or "").strip()
+            if not self._password_usuario_ok(user_login, clave_limpia) and clave_limpia != CLAVE_TECNICOS_TEMPORAL:
+                return {"success": False, "message": "Clave incorrecta"}
+            nombre_sesion = user_login.name
+            user_sesion = user_login
+            destino_ok = self._destino_principal_usuario(user_sesion)
+            area_code = self._area_code_desde_destino(destino_ok)
+            area_login, membership_sesion = self._membership_principal_usuario(user_sesion)
+            if area_code:
+                preferred_membership = self._membership_usuario_area(user_sesion, area_code)
+                if preferred_membership:
+                    membership_sesion = preferred_membership
+                    area_login = self._area_por_codigo(area_code)
+        elif str(clave or "").strip() == CLAVE_TECNICOS_TEMPORAL:
             if area_code and area_code != "tecnicos":
                 # En areas internas, acceso estricto solo a usuarios del area/departamento.
                 if nombre_norm not in usuarios_norm:
@@ -1257,44 +1371,7 @@ class IncidenciasService:
             )
         )
         self.db.commit()
-        if destino_ok in {"servicioTecnico", "panelSelectorServicio", "stVentas"}:
-            return {
-                "success": True,
-                "redirect": f"{app_url}?form=panelSelectorServicio&token={token}&next={destino_ok}",
-            }
-        if destino_ok == "coordinacion":
-            return {"success": True, "redirect": f"{app_url}?form=coordinacion&token={token}"}
-        if destino_ok in {"panelSelectorCoordinacion", "tablaProtocolos", "envioProtocolosSemanales"}:
-            return {
-                "success": True,
-                "redirect": f"{app_url}?form=panelSelectorCoordinacion&token={token}&next={destino_ok}",
-            }
-        if destino_ok in {"panelSelectorVenta", "registroCliente", "tablaCliente"}:
-            return {
-                "success": True,
-                "redirect": f"{app_url}/venta/panel-selector?token={token}&next={destino_ok}",
-            }
-        if destino_ok in {"panelSelectorAdministracion", "tablaAdministracion"}:
-            return {
-                "success": True,
-                "redirect": f"{app_url}/venta/administracion?token={token}&next={destino_ok}",
-            }
-        if destino_ok in {"panelSelectorFinanzas", "tablaFinanzas"}:
-            return {
-                "success": True,
-                "redirect": f"{app_url}/venta/finanzas?token={token}&next={destino_ok}",
-            }
-        if destino_ok in {"panelSelectorOperaciones", "tablaOperaciones"}:
-            return {
-                "success": True,
-                "redirect": f"{app_url}/venta/operaciones?token={token}&next={destino_ok}",
-            }
-        if destino_ok in {"incidencias", "panelSelector", "cierreAperturaClientes", "controlProtocolos"}:
-            return {
-                "success": True,
-                "redirect": f"{app_url}?form=panelSelector&token={token}&next={destino_ok}",
-            }
-        return {"success": True, "redirect": f"{app_url}?form={destino_ok}&token={token}"}
+        return {"success": True, "redirect": self._redirect_panel_destino(app_url, destino_ok, token)}
 
     def usuario_logueado_por_token(self, token: str) -> bool:
         if not token:
@@ -6242,3 +6319,4 @@ class IncidenciasService:
                 }
             )
         return resultado
+

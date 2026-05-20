@@ -1,8 +1,8 @@
-from sqlalchemy.orm import Session
+﻿from sqlalchemy.orm import Session
 
-from app.models.ticket import Ticket
-from app.models.requester import Requester
-from app.models.message import Message
+from ATC.app.models.ticket import Ticket
+from ATC.app.models.requester import Requester
+from ATC.app.models.message import Message
 
 
 # =========================
@@ -45,7 +45,7 @@ def _create_ticket(
 
 
 # =========================
-# WEB / FORM PÚBLICO
+# WEB / FORM PÃšBLICO
 # =========================
 def create_ticket_from_public(
     db: Session,

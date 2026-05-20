@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import email
 import imaplib
@@ -10,13 +10,13 @@ from email.utils import parseaddr, parsedate_to_datetime
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
-from app.core.text import decode_mime_words
-from app.models.email_sync_state import EmailSyncState
-from app.models.message import Message
-from app.models.requester import Requester
-from app.models.ticket import Ticket
-from app.services.ticket_status_service import apply_ticket_status_change
+from ATC.app.core.config import settings
+from ATC.app.core.text import decode_mime_words
+from ATC.app.models.email_sync_state import EmailSyncState
+from ATC.app.models.message import Message
+from ATC.app.models.requester import Requester
+from ATC.app.models.ticket import Ticket
+from ATC.app.services.ticket_status_service import apply_ticket_status_change
 
 
 UPLOAD_DIR = "uploads"
@@ -164,7 +164,7 @@ def _is_safe_subject_reticket_match(
     ticket: Ticket,
     from_email: str,
 ) -> bool:
-    # Candado fuerte: asunto con Ticket #N por sí solo NO basta.
+    # Candado fuerte: asunto con Ticket #N por sÃ­ solo NO basta.
     # Requiere remitente del solicitante + evidencia real de hilo.
     if not _is_same_requester(ticket, from_email):
         return False
@@ -383,7 +383,7 @@ def _strip_ticket_thread_tail(
     trimmed = re.sub(r"(?is)<blockquote\b.*$", "", trimmed).strip()
 
     quote_markers = [
-        r"(?is)(?:<br\s*/?>|\n|\r)\s*el\s+.{0,500}?escribi(?:o|ó)\s*:",
+        r"(?is)(?:<br\s*/?>|\n|\r)\s*el\s+.{0,500}?escribi(?:o|Ã³)\s*:",
         r"(?is)(?:<br\s*/?>|\n|\r)\s*on\s+.{0,500}?wrote\s*:",
         r"(?is)(?:<br\s*/?>|\n|\r)\s*from\s*:\s*.+",
         r"(?is)(?:<br\s*/?>|\n|\r)\s*-{2,}\s*(mensaje original|original message)\s*-{2,}",
@@ -507,7 +507,7 @@ def fetch_emails_and_create_tickets(
     sync_state = _get_or_create_sync_state(db, mailbox_key)
     uid_validity = _parse_uid_validity(mail)
 
-    # Primera conexión a este buzón: saltar historial, arrancar desde ahora
+    # Primera conexiÃ³n a este buzÃ³n: saltar historial, arrancar desde ahora
     if is_new_mailbox:
         _, uidnext_data = mail.status(folder, "(UIDNEXT)")
         try:
@@ -647,3 +647,4 @@ def fetch_emails_and_create_tickets(
 
     mail.logout()
     return {"count": processed, "last_uid": sync_state.last_uid}
+

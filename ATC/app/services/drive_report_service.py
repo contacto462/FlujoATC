@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import base64
 import io
@@ -18,7 +18,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 
-from app.core.config import settings
+from ATC.app.core.config import settings
 
 
 SCOPES = [
@@ -545,3 +545,4 @@ def upload_support_images_for_odt(
         "uploaded_images_count": len(uploaded_images),
         "imagenes": [img.get("public_uri", "") for img in uploaded_images if img.get("public_uri")],
     }
+

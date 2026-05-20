@@ -245,8 +245,8 @@
 
       <div class="form-grid">
         <div>
-          <label for="nombreTecnico">Técnico</label>
-          <input id="nombreTecnico" list="listaTecnicosLogin" type="text" autocomplete="username" placeholder="Nombre y Apellido Completo" />
+          <label for="nombreTecnico">Usuario</label>
+          <input id="nombreTecnico" list="listaTecnicosLogin" type="text" autocomplete="username" placeholder="Nombre, apellido o usuario" />
           <datalist id="listaTecnicosLogin"></datalist>
         </div>
 
@@ -278,7 +278,9 @@
 
     function aplicarContextoLogin() {
       const badge = document.getElementById("modoBadge");
-      if (nextForm === "tecnicos") {
+      if (["auto", "loginUnico", "unificado", "panelSelectorAuto"].includes(nextForm)) {
+        badge.textContent = "Acceso Unificado";
+      } else if (nextForm === "tecnicos") {
         badge.textContent = "Acceso Técnico";
       } else if (["panelSelectorVenta", "registroCliente", "tablaCliente"].includes(nextForm)) {
         badge.textContent = "Acceso Comercial";
@@ -302,7 +304,7 @@
       const clave = document.getElementById("claveTecnico").value;
 
       if (!nombre || !clave) {
-        setMsg("Completa técnico y clave.", false);
+        setMsg("Completa usuario y clave.", false);
         return;
       }
 

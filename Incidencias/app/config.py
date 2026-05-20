@@ -64,6 +64,10 @@ class Settings(BaseSettings):
         default_factory=lambda: os.getenv("SUPPORT_DB_TABLE") or "registro",
         description="Tabla destino en SQL de soporte.",
     )
+    helpdesk_base_url: str = Field(
+        default_factory=lambda: (os.getenv("HELPDESK_BASE_URL") or "").rstrip("/"),
+        description="URL base del Helpdesk para redirigir usuarios de soporte desde el login unico.",
+    )
     venta_catalogo_base_url: str = Field(
         default_factory=lambda: (os.getenv("VENTA_CATALOGO_BASE_URL") or "").rstrip("/"),
         description="Base URL de la API externa de regiones/comunas para Venta.",

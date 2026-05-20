@@ -1,5 +1,5 @@
-import requests
-from app.core.config import settings
+﻿import requests
+from ATC.app.core.config import settings
 
 
 def send_whatsapp_message(to_phone: str, body: str):

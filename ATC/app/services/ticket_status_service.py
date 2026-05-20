@@ -1,9 +1,9 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from datetime import datetime, timezone
 import unicodedata
 
-from app.models.ticket import Ticket
+from ATC.app.models.ticket import Ticket
 
 
 def _normalize_status(status: str | None) -> str:
@@ -43,7 +43,7 @@ def apply_ticket_status_change(ticket: Ticket, new_status: str) -> dict[str, obj
         ticket.resolved_at = now
 
     if reopened_from_resolved:
-        # Si el ticket vuelve a abrirse, limpiamos la resolución previa.
+        # Si el ticket vuelve a abrirse, limpiamos la resoluciÃ³n previa.
         ticket.reopen_count = (ticket.reopen_count or 0) + 1
         ticket.resolved_at = None
 
@@ -58,6 +58,7 @@ def apply_ticket_status_change(ticket: Ticket, new_status: str) -> dict[str, obj
 
 def mark_first_agent_reply(ticket: Ticket) -> None:
     # La primera respuesta del agente se fija una sola vez
-    # para alimentar métricas de tiempo de primera respuesta.
+    # para alimentar mÃ©tricas de tiempo de primera respuesta.
     if ticket.first_agent_reply_at is None:
         ticket.first_agent_reply_at = datetime.now(timezone.utc)
+

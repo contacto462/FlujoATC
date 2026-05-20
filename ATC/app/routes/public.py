@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -6,10 +6,10 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.core.db import get_db
-from app.core.config import settings
-from app.models.ticket import Ticket
-from app.services.sla_feedback_service import (
+from ATC.app.core.db import get_db
+from ATC.app.core.config import settings
+from ATC.app.models.ticket import Ticket
+from ATC.app.services.sla_feedback_service import (
     apply_ticket_sla_feedback,
     build_sla_feedback_link,
     build_sla_feedback_token,
@@ -21,7 +21,7 @@ from app.services.sla_feedback_service import (
     store_sla_feedback_event,
     verify_sla_feedback_token,
 )
-from app.services.ticket_service import create_ticket_from_public
+from ATC.app.services.ticket_service import create_ticket_from_public
 
 
 router = APIRouter(prefix="/public", tags=["public"])
@@ -70,7 +70,7 @@ def ticket_sla_feedback(
     resolved_value: bool | None = None
     if resolved is not None:
         lowered = resolved.strip().lower()
-        if lowered in {"si", "sí", "yes", "true", "1"}:
+        if lowered in {"si", "sÃ­", "yes", "true", "1"}:
             resolved_value = True
         elif lowered in {"no", "false", "0"}:
             resolved_value = False
@@ -210,3 +210,4 @@ def fillout_sla_webhook(
         "technician_rating": feedback.technician_rating,
         "resolution_satisfied": feedback.resolution_satisfied,
     }
+

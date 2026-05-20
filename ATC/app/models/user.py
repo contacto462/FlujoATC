@@ -1,21 +1,21 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from typing import List
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Boolean, Index
 
-from app.core.db import Base
+from ATC.app.core.db import Base
 
 class User(Base):
     __tablename__ = "users"
 
     # =========================
-    # 🆔 IDENTIFICACIÓN
+    # ðŸ†” IDENTIFICACIÃ“N
     # =========================
     id: Mapped[int] = mapped_column(primary_key=True)
 
     # =========================
-    # 👤 INFORMACIÓN BÁSICA
+    # ðŸ‘¤ INFORMACIÃ“N BÃSICA
     # =========================
     name: Mapped[str] = mapped_column(String(100), nullable=False)
 
@@ -32,7 +32,7 @@ class User(Base):
     )
 
     # =========================
-    # 🛡 ROLES Y ESTADO
+    # ðŸ›¡ ROLES Y ESTADO
     # =========================
     role: Mapped[str] = mapped_column(
         String(20),
@@ -48,7 +48,7 @@ class User(Base):
     )
 
     # =========================
-    # 🔗 RELACIONES
+    # ðŸ”— RELACIONES
     # =========================
     assigned_tickets: Mapped[List["Ticket"]] = relationship(
         "Ticket",
@@ -56,7 +56,7 @@ class User(Base):
     )
 
     # =========================
-    # 🛡 PROPIEDADES DE PERMISOS
+    # ðŸ›¡ PROPIEDADES DE PERMISOS
     # =========================
     @property
     def is_admin(self) -> bool:
@@ -67,7 +67,7 @@ class User(Base):
         return self.role == "agent"
 
     # =========================
-    # 🧠 MÉTODOS ÚTILES
+    # ðŸ§  MÃ‰TODOS ÃšTILES
     # =========================
     def deactivate(self) -> None:
         self.is_active = False
@@ -82,7 +82,7 @@ class User(Base):
         self.role = "agent"
 
     # =========================
-    # 🧾 DEBUG PROFESIONAL
+    # ðŸ§¾ DEBUG PROFESIONAL
     # =========================
     def __repr__(self) -> str:
         return (
@@ -93,6 +93,6 @@ class User(Base):
 
 
 # =========================
-# 📌 ÍNDICES OPCIONALES EXTRA
+# ðŸ“Œ ÃNDICES OPCIONALES EXTRA
 # =========================
 Index("ix_users_role", User.role)

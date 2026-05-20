@@ -1,16 +1,16 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
-from app.models.automation_log import AutomationLog
-from app.models.message import Message
-from app.models.requester import Requester
-from app.models.ticket import Ticket
-from app.services.ticket_status_service import apply_ticket_status_change
+from ATC.app.core.config import settings
+from ATC.app.models.automation_log import AutomationLog
+from ATC.app.models.message import Message
+from ATC.app.models.requester import Requester
+from ATC.app.models.ticket import Ticket
+from ATC.app.services.ticket_status_service import apply_ticket_status_change
 
 
 RULE_PENDING_AUTO_CLOSE = "pending_auto_close"
@@ -26,8 +26,8 @@ def log_automation_event(
     ticket_id: int | None = None,
     details: dict | None = None,
 ) -> AutomationLog:
-    # Guardamos cada ejecución para poder auditar qué hizo
-    # la automatización y diagnosticar fallos después.
+    # Guardamos cada ejecuciÃ³n para poder auditar quÃ© hizo
+    # la automatizaciÃ³n y diagnosticar fallos despuÃ©s.
     row = AutomationLog(
         ticket_id=ticket_id,
         rule_key=rule_key,
@@ -46,7 +46,7 @@ def add_system_internal_note(
     ticket_id: int,
     content: str,
 ) -> Message:
-    # Reutilizamos el modelo Message para las notas automáticas
+    # Reutilizamos el modelo Message para las notas automÃ¡ticas
     # del sistema, en vez de crear otro mecanismo paralelo.
     note = Message(
         ticket_id=ticket_id,
@@ -94,7 +94,7 @@ def close_ticket_for_inactivity(
 
 def run_pending_auto_close(db: Session) -> dict[str, int]:
     # Esta regla cierra tickets en pending cuando el ultimo mensaje
-    # visible del hilo lo envió un agente y ya pasaron X días.
+    # visible del hilo lo enviÃ³ un agente y ya pasaron X dÃ­as.
     now = datetime.now(timezone.utc)
     cutoff_at = now - timedelta(days=max(int(settings.AUTOMATION_PENDING_CLOSE_DAYS or 3), 1))
 
@@ -165,7 +165,7 @@ def send_initial_email_auto_reply(
     in_reply_to_external_id: str | None = None,
     event_name: str = "ticket_created",
 ) -> bool:
-    # Solo respondemos automáticamente tickets nuevos por email.
+    # Solo respondemos automÃ¡ticamente tickets nuevos por email.
     if not bool(settings.AUTOMATION_EMAIL_AUTO_REPLY_ENABLED):
         return False
 
@@ -193,7 +193,7 @@ def send_initial_email_auto_reply(
     requester_name = ((requester.name if requester else "") or "Cliente").strip() or "Cliente"
     logo_cid = "logo-atc-auto-reply"
 
-    # Priorizamos el Message-ID del correo entrante que gatilló
+    # Priorizamos el Message-ID del correo entrante que gatillÃ³
     # este ticket para asegurar que viaje en el mismo hilo.
     in_reply_to = (in_reply_to_external_id or "").strip() or None
     references = in_reply_to
@@ -237,15 +237,15 @@ def send_initial_email_auto_reply(
         </div>
         <div style="padding:28px;">
           <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">Hola {requester_name},</p>
-          <p style="margin:0 0 14px;font-size:16px;line-height:1.7;">Le confirmamos que su solicitud fue recibida correctamente e ingresó a nuestra plataforma de soporte.</p>
-          <p style="margin:0 0 14px;font-size:16px;line-height:1.7;">Nuestro equipo revisará su caso y le responderá a la brevedad. Puede responder este mismo correo para agregar más antecedentes si lo necesita.</p>
+          <p style="margin:0 0 14px;font-size:16px;line-height:1.7;">Le confirmamos que su solicitud fue recibida correctamente e ingresÃ³ a nuestra plataforma de soporte.</p>
+          <p style="margin:0 0 14px;font-size:16px;line-height:1.7;">Nuestro equipo revisarÃ¡ su caso y le responderÃ¡ a la brevedad. Puede responder este mismo correo para agregar mÃ¡s antecedentes si lo necesita.</p>
           <p style="margin:22px 0 0;font-size:15px;line-height:1.7;">Gracias por contactar con el Soporte de Alguien te cuida.</p>
         </div>
       </div>
     </div>
     """
 
-    from app.integrations.email_smtp import send_email_reply
+    from ATC.app.integrations.email_smtp import send_email_reply
 
     outgoing_message_id = send_email_reply(
         to=requester_email,
@@ -283,3 +283,4 @@ def send_initial_email_auto_reply(
         details={"to": requester_email},
     )
     return True
+

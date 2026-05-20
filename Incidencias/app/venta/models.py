@@ -1,11 +1,11 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from datetime import datetime
 
 from sqlalchemy import DateTime, Index, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.database import Base
+from Incidencias.app.database import Base
 
 
 class VentaCliente(Base):
@@ -32,3 +32,4 @@ class VentaCliente(Base):
 
 
 Index("ix_venta_clientes_rut", VentaCliente.rut, unique=True)
+

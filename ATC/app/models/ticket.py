@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from datetime import datetime
 from typing import List, Optional
@@ -6,9 +6,9 @@ from typing import List, Optional
 from sqlalchemy import String, ForeignKey, DateTime, Boolean, Integer, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.db import Base
+from ATC.app.core.db import Base
 
-from app.models.user import User
+from ATC.app.models.user import User
 
 class Ticket(Base):
     __tablename__ = "tickets"
@@ -85,7 +85,7 @@ class Ticket(Base):
     )
 
     # =========================
-    # MÉTRICAS / ANALÍTICA
+    # MÃ‰TRICAS / ANALÃTICA
     # =========================
     first_agent_reply_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True),
@@ -124,8 +124,9 @@ class Ticket(Base):
     )
 
     # =========================
-    # REPRESENTACIÓN
+    # REPRESENTACIÃ“N
     # =========================
     def __repr__(self) -> str:
         return f"<Ticket id={self.id} status={self.status}>"
     
+

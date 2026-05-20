@@ -1,12 +1,12 @@
-from app.workers.celery_app import celery_app
+﻿from ATC.app.workers.celery_app import celery_app
 from sqlalchemy.orm import Session
 
-from app.core.db import SessionLocal
-from app.models.ticket import Ticket
-from app.models.message import Message
-from app.models.requester import Requester
-from app.integrations.email_smtp import send_email_reply
-from app.integrations.whatsapp_cloud import send_whatsapp_message
+from ATC.app.core.db import SessionLocal
+from ATC.app.models.ticket import Ticket
+from ATC.app.models.message import Message
+from ATC.app.models.requester import Requester
+from ATC.app.integrations.email_smtp import send_email_reply
+from ATC.app.integrations.whatsapp_cloud import send_whatsapp_message
 
 
 @celery_app.task
@@ -39,3 +39,4 @@ def send_ticket_reply(message_id: int):
         )
 
     db.close()
+

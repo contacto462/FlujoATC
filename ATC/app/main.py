@@ -1,4 +1,4 @@
-import app.models
+﻿import ATC.app.models
 import logging
 from sqlalchemy import inspect, text
 
@@ -6,52 +6,52 @@ from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.core.db import engine, Base, SessionLocal
-from app.core.config import settings
+from ATC.app.core.db import engine, Base, SessionLocal
+from ATC.app.core.config import settings
 
 # =========================
 # IMPORTAR MODELOS (OBLIGATORIO para create_all)
 # =========================
-from app.models.user import User  # noqa
-from app.models.ticket import Ticket  # noqa
-from app.models.message import Message  # noqa
-from app.models.internal_chat_message import InternalChatMessage  # noqa
-from app.models.internal_chat_read_state import InternalChatReadState  # noqa
-from app.models.ticket_alert_read_state import TicketAlertReadState  # noqa
-from app.models.ticket_message_read_state import TicketMessageReadState  # noqa
-from app.models.ticket_internal_note_read_state import TicketInternalNoteReadState  # noqa
-from app.models.requester import Requester  # noqa
-from app.models.ticket_history import TicketAssignmentHistory  # noqa
-from app.models.email_sync_state import EmailSyncState  # noqa
-from app.models.ticket_sla_feedback import TicketSlaFeedback  # noqa
-from app.models.ticket_sla_feedback_event import TicketSlaFeedbackEvent  # noqa
-from app.models.automation_log import AutomationLog  # noqa
+from ATC.app.models.user import User  # noqa
+from ATC.app.models.ticket import Ticket  # noqa
+from ATC.app.models.message import Message  # noqa
+from ATC.app.models.internal_chat_message import InternalChatMessage  # noqa
+from ATC.app.models.internal_chat_read_state import InternalChatReadState  # noqa
+from ATC.app.models.ticket_alert_read_state import TicketAlertReadState  # noqa
+from ATC.app.models.ticket_message_read_state import TicketMessageReadState  # noqa
+from ATC.app.models.ticket_internal_note_read_state import TicketInternalNoteReadState  # noqa
+from ATC.app.models.requester import Requester  # noqa
+from ATC.app.models.ticket_history import TicketAssignmentHistory  # noqa
+from ATC.app.models.email_sync_state import EmailSyncState  # noqa
+from ATC.app.models.ticket_sla_feedback import TicketSlaFeedback  # noqa
+from ATC.app.models.ticket_sla_feedback_event import TicketSlaFeedbackEvent  # noqa
+from ATC.app.models.automation_log import AutomationLog  # noqa
 
 # =========================
 # IMPORTAR ROUTERS API
 # =========================
-from app.routes.tickets import router as tickets_router
-from app.routes.messages import router as messages_router
-from app.routes.whatsapp_webhook import router as whatsapp_router
-from app.routes.requesters import router as requesters_router
-from app.routes.public import router as public_router
+from ATC.app.routes.tickets import router as tickets_router
+from ATC.app.routes.messages import router as messages_router
+from ATC.app.routes.whatsapp_webhook import router as whatsapp_router
+from ATC.app.routes.requesters import router as requesters_router
+from ATC.app.routes.public import router as public_router
 
 # =========================
 # IMPORTAR ROUTER WEB (CRM)
 # =========================
-from app.routes.web import router as web_router
+from ATC.app.routes.web import router as web_router
 
 # =========================
 # SERVICIO EMAIL
 # =========================
-from app.services.email_service import fetch_emails_and_create_tickets
-from app.services.automation_service import run_pending_auto_close
+from ATC.app.services.email_service import fetch_emails_and_create_tickets
+from ATC.app.services.automation_service import run_pending_auto_close
 
 # =========================
 # UTILS
 # =========================
-from app.core.security import hash_password
-from app.core.text import decode_mime_words
+from ATC.app.core.security import hash_password
+from ATC.app.core.text import decode_mime_words
 
 import threading
 import time
@@ -98,7 +98,7 @@ os.makedirs("uploads", exist_ok=True)
 os.makedirs("static", exist_ok=True)
 
 # =========================
-# SERVIR ARCHIVOS ESTÁTICOS
+# SERVIR ARCHIVOS ESTÃTICOS
 # =========================
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -168,7 +168,7 @@ app.include_router(web_router)
 def seed_default_users():
     """
     Crea usuarios iniciales si no existen.
-    Password inicial: 123456 (CAMBIAR EN PRODUCCIÓN).
+    Password inicial: 123456 (CAMBIAR EN PRODUCCIÃ“N).
     """
     db = SessionLocal()
     try:
@@ -239,7 +239,7 @@ def health():
 # EMAIL AUTO-IMPORT LOOP
 # =========================
 def _poll_imap(imap_host=None, imap_port=None, imap_user=None, imap_password=None, imap_folder=None):
-    """Abre su propia sesión de BD, pollea un buzón y la cierra. Fallos no afectan otros buzones."""
+    """Abre su propia sesiÃ³n de BD, pollea un buzÃ³n y la cierra. Fallos no afectan otros buzones."""
     db = SessionLocal()
     try:
         fetch_emails_and_create_tickets(
@@ -258,13 +258,13 @@ def _poll_imap(imap_host=None, imap_port=None, imap_user=None, imap_password=Non
 def email_loop():
     """
     Worker que revisa el inbox de ambas cuentas IMAP
-    y crea tickets automáticamente.
+    y crea tickets automÃ¡ticamente.
     """
     while True:
         try:
             _poll_imap()
         except Exception as e:
-            print("❌ Error IMAP1:", e)
+            print("âŒ Error IMAP1:", e)
 
         try:
             if settings.IMAP2_HOST and settings.IMAP2_USER and settings.IMAP2_PASSWORD:
@@ -276,7 +276,7 @@ def email_loop():
                     imap_folder=settings.IMAP2_FOLDER,
                 )
         except Exception as e:
-            print("❌ Error IMAP2:", e)
+            print("âŒ Error IMAP2:", e)
 
         time.sleep(5)
 
@@ -291,7 +291,7 @@ def automation_loop():
         try:
             run_pending_auto_close(db)
         except Exception as e:
-            print("❌ Error ejecutando automatizaciones:", e)
+            print("âŒ Error ejecutando automatizaciones:", e)
         finally:
             db.close()
 
@@ -310,3 +310,4 @@ def startup_tasks():
     # Iniciar thread de email
     threading.Thread(target=email_loop, daemon=True).start()
     threading.Thread(target=automation_loop, daemon=True).start()
+

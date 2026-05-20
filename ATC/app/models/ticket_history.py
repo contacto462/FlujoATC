@@ -1,7 +1,7 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey, DateTime, func
-from app.core.db import Base
+from ATC.app.core.db import Base
 
 
 class TicketAssignmentHistory(Base):

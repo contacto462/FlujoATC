@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from datetime import datetime
 from typing import Optional
@@ -6,7 +6,7 @@ from typing import Optional
 from sqlalchemy import DateTime, ForeignKey, JSON, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.db import Base
+from ATC.app.core.db import Base
 
 
 class AutomationLog(Base):
@@ -27,3 +27,4 @@ class AutomationLog(Base):
         server_default=func.now(),
         nullable=False,
     )
+

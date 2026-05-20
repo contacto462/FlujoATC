@@ -1,16 +1,16 @@
-from typing import Optional
+﻿from typing import Optional
 from datetime import datetime
 
 from sqlalchemy import String, ForeignKey, DateTime, func, Boolean, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.db import Base
+from ATC.app.core.db import Base
 
 class Message(Base):
     __tablename__ = "messages"
 
     # ==============================
-    # 🔑 IDENTIFICACIÓN
+    # ðŸ”‘ IDENTIFICACIÃ“N
     # ==============================
     id: Mapped[int] = mapped_column(primary_key=True)
 
@@ -21,20 +21,20 @@ class Message(Base):
     )
 
     # ==============================
-    # 👤 QUIÉN ENVÍA EL MENSAJE
+    # ðŸ‘¤ QUIÃ‰N ENVÃA EL MENSAJE
     # ==============================
     sender_type: Mapped[str] = mapped_column(
         String(20)
     )  # requester | agent | system
 
-    # 🔥 NUEVO: usuario real que envió el mensaje
+    # ðŸ”¥ NUEVO: usuario real que enviÃ³ el mensaje
     sender_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("users.id"),
         nullable=True,
         index=True,
     )
 
-    # Relación al usuario (si es agent)
+    # RelaciÃ³n al usuario (si es agent)
     sender = relationship("User", foreign_keys=[sender_id])
 
     # Identidad visible del remitente por mensaje.
@@ -49,14 +49,14 @@ class Message(Base):
     )
 
     # ==============================
-    # 📡 CANAL
+    # ðŸ“¡ CANAL
     # ==============================
     channel: Mapped[str] = mapped_column(
         String(20)
     )  # email | whatsapp | internal
 
     # ==============================
-    # 📝 CONTENIDO
+    # ðŸ“ CONTENIDO
     # ==============================
     content: Mapped[str] = mapped_column(Text)
 
@@ -75,7 +75,7 @@ class Message(Base):
     )
 
     # ==============================
-    # 🕒 FECHA
+    # ðŸ•’ FECHA
     # ==============================
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -83,12 +83,12 @@ class Message(Base):
     )
 
     # ==============================
-    # 🔗 RELACIONES
+    # ðŸ”— RELACIONES
     # ==============================
     ticket = relationship("Ticket", back_populates="messages")
 
     # ==============================
-    # 🧠 DEBUG
+    # ðŸ§  DEBUG
     # ==============================
     def __repr__(self) -> str:
         return (
@@ -98,3 +98,4 @@ class Message(Base):
             f"sender_id={self.sender_id} "
             f"sender_email={self.sender_email}>"
         )
+

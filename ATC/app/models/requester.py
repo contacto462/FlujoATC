@@ -1,23 +1,23 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from typing import List, Optional
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Text
 
-from app.core.db import Base
-from app.models.ticket import Ticket
+from ATC.app.core.db import Base
+from ATC.app.models.ticket import Ticket
 
 
 class Requester(Base):
     __tablename__ = "requesters"
 
     # =========================
-    # 🆔 IDENTIFICACIÓN
+    # ðŸ†” IDENTIFICACIÃ“N
     # =========================
     id: Mapped[int] = mapped_column(primary_key=True)
 
     # =========================
-    # 👤 INFORMACIÓN DEL CLIENTE
+    # ðŸ‘¤ INFORMACIÃ“N DEL CLIENTE
     # =========================
     email: Mapped[Optional[str]] = mapped_column(
         String(255),
@@ -38,7 +38,7 @@ class Requester(Base):
     )
 
     # =========================
-    # 📝 NOTAS INTERNAS DEL CLIENTE
+    # ðŸ“ NOTAS INTERNAS DEL CLIENTE
     # =========================
     notes: Mapped[Optional[str]] = mapped_column(
         Text,
@@ -47,7 +47,7 @@ class Requester(Base):
     )
 
     # =========================
-    # 🎫 RELACIÓN CON TICKETS
+    # ðŸŽ« RELACIÃ“N CON TICKETS
     # =========================
     tickets: Mapped[List["Ticket"]] = relationship(
         "Ticket",
@@ -64,7 +64,7 @@ class Requester(Base):
         return base_name or "Cliente"
 
     # =========================
-    # 🧾 REPRESENTACIÓN DEBUG
+    # ðŸ§¾ REPRESENTACIÃ“N DEBUG
     # =========================
     def __repr__(self) -> str:
         return (
@@ -73,3 +73,4 @@ class Requester(Base):
             f"name={self.name} "
             f"internal_name={self.internal_name}>"
         )
+

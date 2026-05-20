@@ -1,9 +1,9 @@
-from sqlalchemy import and_, case, func, or_
+﻿from sqlalchemy import and_, case, func, or_
 from datetime import datetime, timezone, timedelta
 
-from app.models.ticket import Ticket
-from app.models.user import User
-from app.models.ticket_sla_feedback import TicketSlaFeedback
+from ATC.app.models.ticket import Ticket
+from ATC.app.models.user import User
+from ATC.app.models.ticket_sla_feedback import TicketSlaFeedback
 
 
 # =========================
@@ -412,3 +412,4 @@ def get_ticket_aging(db, date_from: datetime | None = None, date_to: datetime | 
             buckets["72h+"] += 1
 
     return buckets
+

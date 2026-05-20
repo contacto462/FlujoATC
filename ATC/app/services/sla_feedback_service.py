@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from datetime import datetime, timezone
 from urllib.parse import urlencode
@@ -7,9 +7,9 @@ import re
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
-from app.models.ticket_sla_feedback import TicketSlaFeedback
-from app.models.ticket_sla_feedback_event import TicketSlaFeedbackEvent
+from ATC.app.core.config import settings
+from ATC.app.models.ticket_sla_feedback import TicketSlaFeedback
+from ATC.app.models.ticket_sla_feedback_event import TicketSlaFeedbackEvent
 
 
 def get_public_base_url() -> str:
@@ -198,7 +198,7 @@ def parse_resolution_value(value: object) -> bool | None:
         return value
 
     raw = str(value).strip().lower()
-    if raw in {"si", "sí", "yes", "true", "1", "satisfactorio"}:
+    if raw in {"si", "sÃ­", "yes", "true", "1", "satisfactorio"}:
         return True
     if raw in {"no", "false", "0"}:
         return False
@@ -234,10 +234,10 @@ def extract_feedback_from_payload(payload: dict) -> tuple[int | None, int | None
             marker in label
             for marker in (
                 "atencion del tecnico",
-                "atención del técnico",
+                "atenciÃ³n del tÃ©cnico",
                 "atencion_tecnico",
                 "tecnico",
-                "técnico",
+                "tÃ©cnico",
                 "technician",
                 "rating",
             )
@@ -249,7 +249,7 @@ def extract_feedback_from_payload(payload: dict) -> tuple[int | None, int | None
             marker in label
             for marker in (
                 "tiempo de resolucion",
-                "tiempo de resolución",
+                "tiempo de resoluciÃ³n",
                 "tiempo_resolucion",
                 "satisfactorio",
                 "resolution",
@@ -274,9 +274,9 @@ def extract_feedback_from_payload(payload: dict) -> tuple[int | None, int | None
             marker in normalized_key
             for marker in (
                 "atencion_tecnico",
-                "atención_técnico",
+                "atenciÃ³n_tÃ©cnico",
                 "tecnico",
-                "técnico",
+                "tÃ©cnico",
                 "technician_rating",
                 "rating",
             )
@@ -288,7 +288,7 @@ def extract_feedback_from_payload(payload: dict) -> tuple[int | None, int | None
             marker in normalized_key
             for marker in (
                 "tiempo_resolucion",
-                "tiempo_resolución",
+                "tiempo_resoluciÃ³n",
                 "resolution",
                 "satisfactorio",
                 "satisfied",
@@ -320,3 +320,4 @@ def store_sla_feedback_event(
     db.commit()
     db.refresh(event)
     return event
+

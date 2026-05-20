@@ -1,9 +1,9 @@
-from datetime import datetime
+﻿from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.db import Base
+from ATC.app.core.db import Base
 
 
 class TicketInternalNoteReadState(Base):
@@ -30,3 +30,4 @@ class TicketInternalNoteReadState(Base):
         onupdate=func.now(),
         nullable=False,
     )
+

@@ -18,9 +18,9 @@ from sqlalchemy import inspect, text
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from app.database import Base, SessionLocal, build_engine, engine, get_db
-from app.config import settings
-from app.schemas import (
+from Incidencias.app.database import Base, SessionLocal, build_engine, engine, get_db
+from Incidencias.app.config import settings
+from Incidencias.app.schemas import (
     CerrarIncidenciaRequest,
     DerivarTecnicoRequest,
     EditarIncidenciaTablaRequest,
@@ -35,9 +35,9 @@ from app.schemas import (
     RendicionRequest,
     TareaManualRequest,
 )
-from app.services import IncidenciasService, seed_default_identity_data
-from app.protocolos_service import ProtocolosService
-from app.venta.routes import router as venta_router
+from Incidencias.app.services import IncidenciasService, seed_default_identity_data
+from Incidencias.app.protocolos_service import ProtocolosService
+from Incidencias.app.venta.routes import router as venta_router
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -915,12 +915,12 @@ def _protocolos_weekly_worker_loop() -> None:
 @app.get("/", response_class=HTMLResponse)
 def do_get(
     request: Request,
-    form: str = Query(default="servicioTecnico"),
+    form: str = Query(default="login"),
     tecnico: str = Query(default=""),
     cliente: str = Query(default=""),
     odt: str = Query(default=""),
     token: str = Query(default=""),
-    next_form: str = Query(default="tecnicos", alias="next"),
+    next_form: str = Query(default="auto", alias="next"),
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
 ):
     form_aliases = {
@@ -967,10 +967,7 @@ def do_get(
         return HTMLResponse(content=html, status_code=400)
 
     if form == "panelSelectorVenta" and not service.usuario_logueado_por_token(token):
-        return HTMLResponse(
-            content="<script>window.location.href='/venta/login';</script>",
-            status_code=200,
-        )
+        return RedirectResponse(url="/?form=login&next=auto", status_code=303)
 
     if form in {
         "panelSelector",
@@ -991,16 +988,10 @@ def do_get(
         "servicioTecnico",
         "stVentas",
     } and not service.usuario_logueado_por_token(token):
-        return templates.TemplateResponse(
-            "login.html",
-            {"request": request, "title": "Iniciar Sesion", "next_form": form},
-        )
+        return RedirectResponse(url="/?form=login&next=auto", status_code=303)
 
     if form in {"servicioTecnico", "panelSelectorServicio", "stVentas"} and not service.usuario_autorizado_para_tabla(token):
-        return templates.TemplateResponse(
-            "login.html",
-            {"request": request, "title": "Iniciar Sesion", "next_form": "servicioTecnico"},
-        )
+        return RedirectResponse(url="/?form=login&next=auto", status_code=303)
 
     if form in {
         "tecnicos",
@@ -1066,8 +1057,9 @@ def do_get(
             "rendicionesTecnico",
             "servicioTecnico",
             "stVentas",
+            "auto",
         }
-        else "tecnicos",
+        else "auto",
     }
     resp = templates.TemplateResponse(tpl, context)
     resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
@@ -1088,7 +1080,7 @@ def check_login(
         payload.clave,
         payload.token,
         app_url,
-        payload.destino or "pendientes",
+        payload.destino or "auto",
     )
     return LoginResponse(**data)
 
@@ -1931,7 +1923,7 @@ def servicio_indicadores_page(request: Request):
 @app.get("/api/servicio/kpis-data")
 def servicio_kpis_data(db: Annotated[Session, Depends(get_db)]):
     from sqlalchemy import select as sa_select
-    from app.models import Registro
+    from Incidencias.app.models import Registro
     registros = db.scalars(sa_select(Registro).order_by(Registro.fecha_registro.desc())).all()
     return [
         {
@@ -1956,3 +1948,4 @@ def servicio_kpis_data(db: Annotated[Session, Depends(get_db)]):
         }
         for r in registros
     ]
+

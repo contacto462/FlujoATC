@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import base64
 import logging
@@ -11,9 +11,9 @@ from fastapi import HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.config import settings
-from app.drive_report_service import DriveReportError, upload_ods_files_to_drive
-from app.models import (
+from Incidencias.app.config import settings
+from Incidencias.app.drive_report_service import DriveReportError, upload_ods_files_to_drive
+from Incidencias.app.models import (
     AdministracionODT,
     ClienteBBDD,
     FinanzasODT,
@@ -26,8 +26,8 @@ from app.models import (
     VentaODS,
     VentaODSArchivo,
 )
-from app.services import IncidenciasService
-from app.venta.schemas import VentaClienteCreateRequest, VentaODSArchivoRequest, VentaODSCreateRequest, VentaSucursalCreateRequest
+from Incidencias.app.services import IncidenciasService
+from Incidencias.app.venta.schemas import VentaClienteCreateRequest, VentaODSArchivoRequest, VentaODSCreateRequest, VentaSucursalCreateRequest
 
 _log = logging.getLogger(__name__)
 
@@ -648,8 +648,8 @@ def create_ods(db: Session, payload: VentaODSCreateRequest, usuario_email: str) 
     db.add(record)
     db.flush()
 
-    # Pre-crear registros de área con auto-completado según tipo_servicio.
-    # Las áreas que NO aplican arrancan con sus flags en True (Terminado automático).
+    # Pre-crear registros de Ã¡rea con auto-completado segÃºn tipo_servicio.
+    # Las Ã¡reas que NO aplican arrancan con sus flags en True (Terminado automÃ¡tico).
     areas = _calcular_areas_aplicables(tipos)
     db.add(ServicioTecnicoVentaODT(
         odt=codigo,
@@ -722,7 +722,7 @@ def create_ods(db: Session, payload: VentaODSCreateRequest, usuario_email: str) 
                 files=drive_files,
             )
         except (DriveReportError, Exception) as exc:
-            _log.warning("Drive upload ODS %s falló (el registro se guardó igual): %s", codigo, exc)
+            _log.warning("Drive upload ODS %s fallÃ³ (el registro se guardÃ³ igual): %s", codigo, exc)
 
     return record
 
@@ -1341,21 +1341,21 @@ def update_sucursal_row(db: Session, row_id: int, values: list[str]) -> None:
 
 _CHILE_REGIONES_COMUNAS: dict[str, list[str]] = {
     "Arica y Parinacota": ["Arica", "Camarones", "Putre", "General Lagos"],
-    "Tarapacá": ["Iquique", "Alto Hospicio", "Pozo Almonte", "Camiña", "Colchane", "Huara", "Pica"],
-    "Antofagasta": ["Antofagasta", "Mejillones", "Sierra Gorda", "Taltal", "Calama", "Ollagüe", "San Pedro de Atacama", "Tocopilla", "María Elena"],
-    "Atacama": ["Copiapó", "Caldera", "Tierra Amarilla", "Chañaral", "Diego de Almagro", "Vallenar", "Alto del Carmen", "Freirina", "Huasco"],
-    "Coquimbo": ["La Serena", "Coquimbo", "Andacollo", "La Higuera", "Paiguano", "Vicuña", "Illapel", "Canela", "Los Vilos", "Salamanca", "Ovalle", "Combarbalá", "Monte Patria", "Punitaqui", "Río Hurtado"],
-    "Valparaíso": ["Valparaíso", "Casablanca", "Concón", "Juan Fernández", "Puchuncaví", "Quintero", "Viña del Mar", "Isla de Pascua", "Los Andes", "Calle Larga", "Rinconada", "San Esteban", "La Ligua", "Cabildo", "Papudo", "Petorca", "Zapallar", "Quillota", "Calera", "Hijuelas", "La Cruz", "Nogales", "San Antonio", "Algarrobo", "Cartagena", "El Quisco", "El Tabo", "Santo Domingo", "San Felipe", "Catemu", "Llaillay", "Panquehue", "Putaendo", "Santa María", "Quilpué", "Limache", "Olmué", "Villa Alemana"],
-    "Metropolitana de Santiago": ["Santiago", "Cerrillos", "Cerro Navia", "Conchalí", "El Bosque", "Estación Central", "Huechuraba", "Independencia", "La Cisterna", "La Florida", "La Granja", "La Pintana", "La Reina", "Las Condes", "Lo Barnechea", "Lo Espejo", "Lo Prado", "Macul", "Maipú", "Ñuñoa", "Pedro Aguirre Cerda", "Peñalolén", "Providencia", "Pudahuel", "Quilicura", "Quinta Normal", "Recoleta", "Renca", "San Joaquín", "San Miguel", "San Ramón", "Vitacura", "Puente Alto", "Pirque", "San José de Maipo", "Colina", "Lampa", "Tiltil", "San Bernardo", "Buin", "Calera de Tango", "Paine", "Melipilla", "Alhué", "Curacaví", "María Pinto", "San Pedro", "Talagante", "El Monte", "Isla de Maipo", "Padre Hurtado", "Peñaflor"],
-    "O'Higgins": ["Rancagua", "Codegua", "Coinco", "Coltauco", "Doñihue", "Graneros", "Las Cabras", "Machalí", "Malloa", "Mostazal", "Olivar", "Peumo", "Pichidegua", "Quinta de Tilcoco", "Rengo", "Requínoa", "San Vicente", "Pichilemu", "La Estrella", "Litueche", "Marchihue", "Navidad", "Paredones", "San Fernando", "Chépica", "Chimbarongo", "Lolol", "Nancagua", "Palmilla", "Peralillo", "Placilla", "Pumanque", "Santa Cruz"],
-    "Maule": ["Talca", "Constitución", "Curepto", "Empedrado", "Maule", "Pelarco", "Pencahue", "Río Claro", "San Clemente", "San Rafael", "Cauquenes", "Chanco", "Pelluhue", "Curicó", "Hualañé", "Licantén", "Molina", "Rauco", "Romeral", "Sagrada Familia", "Teno", "Vichuquén", "Linares", "Colbún", "Longaví", "Parral", "Retiro", "San Javier", "Villa Alegre", "Yerbas Buenas"],
-    "Ñuble": ["Chillán", "Bulnes", "Chillán Viejo", "El Carmen", "Pemuco", "Pinto", "Quillón", "San Ignacio", "Yungay", "Cobquecura", "Coelemu", "Ninhue", "Portezuelo", "Quirihue", "Ránquil", "Trehuaco", "Coihueco", "Ñiquén", "San Carlos", "San Fabián", "San Nicolás"],
-    "Biobío": ["Concepción", "Coronel", "Chiguayante", "Florida", "Hualqui", "Lota", "Penco", "San Pedro de la Paz", "Santa Juana", "Talcahuano", "Tomé", "Hualpén", "Lebu", "Arauco", "Cañete", "Contulmo", "Curanilahue", "Los Álamos", "Tirúa", "Los Ángeles", "Antuco", "Cabrero", "Laja", "Mulchén", "Nacimiento", "Negrete", "Quilaco", "Quilleco", "San Rosendo", "Santa Bárbara", "Tucapel", "Yumbel", "Alto Biobío"],
-    "La Araucanía": ["Temuco", "Carahue", "Cunco", "Curarrehue", "Freire", "Galvarino", "Gorbea", "Lautaro", "Loncoche", "Melipeuco", "Nueva Imperial", "Padre Las Casas", "Perquenco", "Pitrufquén", "Pucón", "Saavedra", "Teodoro Schmidt", "Toltén", "Vilcún", "Villarrica", "Cholchol", "Angol", "Collipulli", "Curacautín", "Ercilla", "Lonquimay", "Los Sauces", "Lumaco", "Purén", "Renaico", "Traiguén", "Victoria"],
-    "Los Ríos": ["Valdivia", "Corral", "Futrono", "La Unión", "Lago Ranco", "Lanco", "Los Lagos", "Máfil", "Mariquina", "Paillaco", "Panguipulli", "Río Bueno"],
-    "Los Lagos": ["Puerto Montt", "Calbuco", "Cochamó", "Fresia", "Frutillar", "Los Muermos", "Llanquihue", "Maullín", "Puerto Varas", "Castro", "Ancud", "Chonchi", "Curaco de Vélez", "Dalcahue", "Puqueldón", "Queilén", "Quellón", "Quemchi", "Quinchao", "Osorno", "Puerto Octay", "Purranque", "Puyehue", "Río Negro", "San Juan de la Costa", "San Pablo", "Chaitén", "Futaleufú", "Hualaihué", "Palena"],
-    "Aysén": ["Coyhaique", "Lago Verde", "Aysén", "Cisnes", "Guaitecas", "Cochrane", "O'Higgins", "Tortel", "Chile Chico", "Río Ibáñez"],
-    "Magallanes": ["Punta Arenas", "Laguna Blanca", "Río Verde", "San Gregorio", "Cabo de Hornos", "Antártica", "Porvenir", "Primavera", "Timaukel", "Natales", "Torres del Paine"],
+    "TarapacÃ¡": ["Iquique", "Alto Hospicio", "Pozo Almonte", "CamiÃ±a", "Colchane", "Huara", "Pica"],
+    "Antofagasta": ["Antofagasta", "Mejillones", "Sierra Gorda", "Taltal", "Calama", "OllagÃ¼e", "San Pedro de Atacama", "Tocopilla", "MarÃ­a Elena"],
+    "Atacama": ["CopiapÃ³", "Caldera", "Tierra Amarilla", "ChaÃ±aral", "Diego de Almagro", "Vallenar", "Alto del Carmen", "Freirina", "Huasco"],
+    "Coquimbo": ["La Serena", "Coquimbo", "Andacollo", "La Higuera", "Paiguano", "VicuÃ±a", "Illapel", "Canela", "Los Vilos", "Salamanca", "Ovalle", "CombarbalÃ¡", "Monte Patria", "Punitaqui", "RÃ­o Hurtado"],
+    "ValparaÃ­so": ["ValparaÃ­so", "Casablanca", "ConcÃ³n", "Juan FernÃ¡ndez", "PuchuncavÃ­", "Quintero", "ViÃ±a del Mar", "Isla de Pascua", "Los Andes", "Calle Larga", "Rinconada", "San Esteban", "La Ligua", "Cabildo", "Papudo", "Petorca", "Zapallar", "Quillota", "Calera", "Hijuelas", "La Cruz", "Nogales", "San Antonio", "Algarrobo", "Cartagena", "El Quisco", "El Tabo", "Santo Domingo", "San Felipe", "Catemu", "Llaillay", "Panquehue", "Putaendo", "Santa MarÃ­a", "QuilpuÃ©", "Limache", "OlmuÃ©", "Villa Alemana"],
+    "Metropolitana de Santiago": ["Santiago", "Cerrillos", "Cerro Navia", "ConchalÃ­", "El Bosque", "EstaciÃ³n Central", "Huechuraba", "Independencia", "La Cisterna", "La Florida", "La Granja", "La Pintana", "La Reina", "Las Condes", "Lo Barnechea", "Lo Espejo", "Lo Prado", "Macul", "MaipÃº", "Ã‘uÃ±oa", "Pedro Aguirre Cerda", "PeÃ±alolÃ©n", "Providencia", "Pudahuel", "Quilicura", "Quinta Normal", "Recoleta", "Renca", "San JoaquÃ­n", "San Miguel", "San RamÃ³n", "Vitacura", "Puente Alto", "Pirque", "San JosÃ© de Maipo", "Colina", "Lampa", "Tiltil", "San Bernardo", "Buin", "Calera de Tango", "Paine", "Melipilla", "AlhuÃ©", "CuracavÃ­", "MarÃ­a Pinto", "San Pedro", "Talagante", "El Monte", "Isla de Maipo", "Padre Hurtado", "PeÃ±aflor"],
+    "O'Higgins": ["Rancagua", "Codegua", "Coinco", "Coltauco", "DoÃ±ihue", "Graneros", "Las Cabras", "MachalÃ­", "Malloa", "Mostazal", "Olivar", "Peumo", "Pichidegua", "Quinta de Tilcoco", "Rengo", "RequÃ­noa", "San Vicente", "Pichilemu", "La Estrella", "Litueche", "Marchihue", "Navidad", "Paredones", "San Fernando", "ChÃ©pica", "Chimbarongo", "Lolol", "Nancagua", "Palmilla", "Peralillo", "Placilla", "Pumanque", "Santa Cruz"],
+    "Maule": ["Talca", "ConstituciÃ³n", "Curepto", "Empedrado", "Maule", "Pelarco", "Pencahue", "RÃ­o Claro", "San Clemente", "San Rafael", "Cauquenes", "Chanco", "Pelluhue", "CuricÃ³", "HualaÃ±Ã©", "LicantÃ©n", "Molina", "Rauco", "Romeral", "Sagrada Familia", "Teno", "VichuquÃ©n", "Linares", "ColbÃºn", "LongavÃ­", "Parral", "Retiro", "San Javier", "Villa Alegre", "Yerbas Buenas"],
+    "Ã‘uble": ["ChillÃ¡n", "Bulnes", "ChillÃ¡n Viejo", "El Carmen", "Pemuco", "Pinto", "QuillÃ³n", "San Ignacio", "Yungay", "Cobquecura", "Coelemu", "Ninhue", "Portezuelo", "Quirihue", "RÃ¡nquil", "Trehuaco", "Coihueco", "Ã‘iquÃ©n", "San Carlos", "San FabiÃ¡n", "San NicolÃ¡s"],
+    "BiobÃ­o": ["ConcepciÃ³n", "Coronel", "Chiguayante", "Florida", "Hualqui", "Lota", "Penco", "San Pedro de la Paz", "Santa Juana", "Talcahuano", "TomÃ©", "HualpÃ©n", "Lebu", "Arauco", "CaÃ±ete", "Contulmo", "Curanilahue", "Los Ãlamos", "TirÃºa", "Los Ãngeles", "Antuco", "Cabrero", "Laja", "MulchÃ©n", "Nacimiento", "Negrete", "Quilaco", "Quilleco", "San Rosendo", "Santa BÃ¡rbara", "Tucapel", "Yumbel", "Alto BiobÃ­o"],
+    "La AraucanÃ­a": ["Temuco", "Carahue", "Cunco", "Curarrehue", "Freire", "Galvarino", "Gorbea", "Lautaro", "Loncoche", "Melipeuco", "Nueva Imperial", "Padre Las Casas", "Perquenco", "PitrufquÃ©n", "PucÃ³n", "Saavedra", "Teodoro Schmidt", "ToltÃ©n", "VilcÃºn", "Villarrica", "Cholchol", "Angol", "Collipulli", "CuracautÃ­n", "Ercilla", "Lonquimay", "Los Sauces", "Lumaco", "PurÃ©n", "Renaico", "TraiguÃ©n", "Victoria"],
+    "Los RÃ­os": ["Valdivia", "Corral", "Futrono", "La UniÃ³n", "Lago Ranco", "Lanco", "Los Lagos", "MÃ¡fil", "Mariquina", "Paillaco", "Panguipulli", "RÃ­o Bueno"],
+    "Los Lagos": ["Puerto Montt", "Calbuco", "CochamÃ³", "Fresia", "Frutillar", "Los Muermos", "Llanquihue", "MaullÃ­n", "Puerto Varas", "Castro", "Ancud", "Chonchi", "Curaco de VÃ©lez", "Dalcahue", "PuqueldÃ³n", "QueilÃ©n", "QuellÃ³n", "Quemchi", "Quinchao", "Osorno", "Puerto Octay", "Purranque", "Puyehue", "RÃ­o Negro", "San Juan de la Costa", "San Pablo", "ChaitÃ©n", "FutaleufÃº", "HualaihuÃ©", "Palena"],
+    "AysÃ©n": ["Coyhaique", "Lago Verde", "AysÃ©n", "Cisnes", "Guaitecas", "Cochrane", "O'Higgins", "Tortel", "Chile Chico", "RÃ­o IbÃ¡Ã±ez"],
+    "Magallanes": ["Punta Arenas", "Laguna Blanca", "RÃ­o Verde", "San Gregorio", "Cabo de Hornos", "AntÃ¡rtica", "Porvenir", "Primavera", "Timaukel", "Natales", "Torres del Paine"],
 }
 
 
@@ -1443,7 +1443,7 @@ def update_cliente_row(db: Session, row_id: int, values: list[str]) -> None:
     db.commit()
 
 
-# ─── Operaciones ────────────────────────────────────────────────────────────
+# â”€â”€â”€ Operaciones â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 OPERACIONES_BOOL_FIELDS: dict[str, str] = {
     "fecha_coordinacion": "ts_fecha_coordinacion",
@@ -1567,7 +1567,7 @@ def update_operaciones_ods_fecha(db: Session, codigo: str, fecha: str) -> dict:
     return {"ok": True, "codigo": codigo_limpio, "fechaInicioServicio": row.fecha_inicio_servicio}
 
 
-# ─── Comercial (vista general) ───────────────────────────────────────────────
+# â”€â”€â”€ Comercial (vista general) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def _fecha_corta(value) -> str:
     if not value:
@@ -1580,8 +1580,8 @@ def _fecha_corta(value) -> str:
 def _evaluar_exclusion_carta(tipo_servicio: str) -> bool:
     ts = (tipo_servicio or "").lower()
     return any(k in ts for k in (
-        "solo instalacion", "servicio tecnico", "servicio técnico",
-        "desinstalacion", "desinstalación", "monitoreo adicional",
+        "solo instalacion", "servicio tecnico", "servicio tÃ©cnico",
+        "desinstalacion", "desinstalaciÃ³n", "monitoreo adicional",
         "upgrade", "downgrade",
     ))
 
@@ -1594,12 +1594,12 @@ def _contrato_no_requerido(tipos: list[str]) -> bool:
 
 
 def _calcular_areas_aplicables(tipos: list[str]) -> dict[str, bool]:
-    """Determina qué áreas corresponden según los tipos de servicio seleccionados.
+    """Determina quÃ© Ã¡reas corresponden segÃºn los tipos de servicio seleccionados.
 
     Tabla de referencia (imagen TablaAdministracion):
-      ServTec aplica  → Instalacion | Servicio Tecnico | Alarma | Upgrade | Downgrade | Desinstalacion
-      Soporte aplica  → Televigilancia | Alarma | Instalacion | Servicio Tecnico | Upgrade | Downgrade | Monitoreo Adicional
-      Operaciones aplica → Televigilancia | Guardia | Upgrade | Downgrade | Monitoreo Adicional
+      ServTec aplica  â†’ Instalacion | Servicio Tecnico | Alarma | Upgrade | Downgrade | Desinstalacion
+      Soporte aplica  â†’ Televigilancia | Alarma | Instalacion | Servicio Tecnico | Upgrade | Downgrade | Monitoreo Adicional
+      Operaciones aplica â†’ Televigilancia | Guardia | Upgrade | Downgrade | Monitoreo Adicional
     """
     n = {_normalize_text(t) for t in tipos}
     tv      = "televigilancia" in n
@@ -1798,3 +1798,4 @@ def subir_contrato_venta(db: Session, codigo: str, nombre: str, data_base64: str
         ))
     db.commit()
     return {"ok": True, "codigo": codigo_limpio, "nombre": nombre_limpio}
+

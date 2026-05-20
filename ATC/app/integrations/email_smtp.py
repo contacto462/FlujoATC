@@ -1,4 +1,4 @@
-import html
+﻿import html
 import mimetypes
 import re
 import smtplib
@@ -8,7 +8,7 @@ from typing import Iterable
 from email.message import EmailMessage
 from email.utils import formatdate, make_msgid, parseaddr
 
-from app.core.config import settings
+from ATC.app.core.config import settings
 
 
 def _norm_msgid(value: str | None) -> str | None:
@@ -352,3 +352,4 @@ def send_email_reply(
             ) from second_error
 
     return _norm_msgid(msgid) or _norm_msgid(message_id) or ""
+

@@ -1,14 +1,15 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+from pathlib import Path
 
-from app.database import get_db
-from app.schemas import LoginRequest
-from app.services import IncidenciasService
-from app.venta.schemas import (
+from Incidencias.app.database import get_db
+from Incidencias.app.schemas import LoginRequest
+from Incidencias.app.services import IncidenciasService
+from Incidencias.app.venta.schemas import (
     VentaClienteCreateRequest,
     VentaClienteCreateResponse,
     VentaODSCreateRequest,
@@ -29,7 +30,7 @@ from app.venta.schemas import (
     VentaSucursalCreateResponse,
     VentaSucursalTableUpdateRequest,
 )
-from app.venta.service import (
+from Incidencias.app.venta.service import (
     VENTA_UPLOADS_DIR,
     create_cliente,
     create_ods,
@@ -73,7 +74,7 @@ from app.venta.service import (
 )
 
 router = APIRouter(tags=["venta"])
-templates = Jinja2Templates(directory="app/templates")
+templates = Jinja2Templates(directory=str(Path(__file__).resolve().parents[1] / "templates"))
 
 
 def get_service(db: Session = Depends(get_db)) -> IncidenciasService:
@@ -128,10 +129,7 @@ def venta_administracion_page(
     service: IncidenciasService = Depends(get_service),
 ):
     if not service.usuario_logueado_por_token(token):
-        return templates.TemplateResponse(
-            "login.html",
-            {"request": request, "title": "Administracion", "next_form": "panelSelectorAdministracion"},
-        )
+        return RedirectResponse(url="/?form=login&next=auto", status_code=303)
     return templates.TemplateResponse("panel_selector_administracion.html", {"request": request, "token": token})
 
 
@@ -142,19 +140,13 @@ def venta_tabla_administracion_page(
     service: IncidenciasService = Depends(get_service),
 ):
     if not service.usuario_logueado_por_token(token):
-        return templates.TemplateResponse(
-            "login.html",
-            {"request": request, "title": "Administracion", "next_form": "panelSelectorAdministracion"},
-        )
+        return RedirectResponse(url="/?form=login&next=auto", status_code=303)
     return templates.TemplateResponse("TablaAdministracion.html", {"request": request, "token": token})
 
 
 @router.get("/venta/administracion/login", response_class=HTMLResponse)
 def venta_administracion_login_page(request: Request):
-    return templates.TemplateResponse(
-        "login.html",
-        {"request": request, "title": "Administracion", "next_form": "panelSelectorAdministracion"},
-    )
+    return RedirectResponse(url="/?form=login&next=auto", status_code=303)
 
 
 @router.get("/venta/finanzas", response_class=HTMLResponse)
@@ -164,10 +156,7 @@ def venta_finanzas_page(
     service: IncidenciasService = Depends(get_service),
 ):
     if not service.usuario_logueado_por_token(token):
-        return templates.TemplateResponse(
-            "login.html",
-            {"request": request, "title": "Finanzas", "next_form": "panelSelectorFinanzas"},
-        )
+        return RedirectResponse(url="/?form=login&next=auto", status_code=303)
     tecnico = service.get_usuario_actual(token)
     return templates.TemplateResponse("panel_selector_finanzas.html", {"request": request, "token": token, "tecnico": tecnico})
 
@@ -179,27 +168,18 @@ def venta_tabla_finanzas_page(
     service: IncidenciasService = Depends(get_service),
 ):
     if not service.usuario_logueado_por_token(token):
-        return templates.TemplateResponse(
-            "login.html",
-            {"request": request, "title": "Finanzas", "next_form": "panelSelectorFinanzas"},
-        )
+        return RedirectResponse(url="/?form=login&next=auto", status_code=303)
     return templates.TemplateResponse("TablaFinanzas.html", {"request": request, "token": token})
 
 
 @router.get("/venta/finanzas/login", response_class=HTMLResponse)
 def venta_finanzas_login_page(request: Request):
-    return templates.TemplateResponse(
-        "login.html",
-        {"request": request, "title": "Finanzas", "next_form": "panelSelectorFinanzas"},
-    )
+    return RedirectResponse(url="/?form=login&next=auto", status_code=303)
 
 
 @router.get("/venta/login", response_class=HTMLResponse)
 def venta_login_page(request: Request):
-    return templates.TemplateResponse(
-        "login.html",
-        {"request": request, "title": "Venta", "next_form": "panelSelectorVenta"},
-    )
+    return RedirectResponse(url="/?form=login&next=auto", status_code=303)
 
 
 @router.get("/venta/panel-selector", response_class=HTMLResponse)
@@ -561,7 +541,7 @@ def venta_servicio_tecnico_ods_valor(
     return update_servicio_tecnico_ventas_valor(db, payload.codigo, payload.campo, payload.valor)
 
 
-# ─── Operaciones ─────────────────────────────────────────────────────────────
+# â”€â”€â”€ Operaciones â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @router.get("/venta/operaciones", response_class=HTMLResponse)
 def venta_operaciones_page(
@@ -570,10 +550,7 @@ def venta_operaciones_page(
     service: IncidenciasService = Depends(get_service),
 ):
     if not service.usuario_logueado_por_token(token):
-        return templates.TemplateResponse(
-            "login.html",
-            {"request": request, "title": "Operaciones", "next_form": "panelSelectorOperaciones"},
-        )
+        return RedirectResponse(url="/?form=login&next=auto", status_code=303)
     tecnico = service.get_usuario_actual(token)
     return templates.TemplateResponse(
         "panel_selector_operaciones.html",
@@ -583,10 +560,7 @@ def venta_operaciones_page(
 
 @router.get("/venta/operaciones/login", response_class=HTMLResponse)
 def venta_operaciones_login_page(request: Request):
-    return templates.TemplateResponse(
-        "login.html",
-        {"request": request, "title": "Operaciones", "next_form": "panelSelectorOperaciones"},
-    )
+    return RedirectResponse(url="/?form=login&next=auto", status_code=303)
 
 
 @router.get("/venta/operaciones/tabla", response_class=HTMLResponse)
@@ -596,10 +570,7 @@ def venta_tabla_operaciones_page(
     service: IncidenciasService = Depends(get_service),
 ):
     if not service.usuario_logueado_por_token(token):
-        return templates.TemplateResponse(
-            "login.html",
-            {"request": request, "title": "Operaciones", "next_form": "panelSelectorOperaciones"},
-        )
+        return RedirectResponse(url="/?form=login&next=auto", status_code=303)
     return templates.TemplateResponse("TablaOperaciones.html", {"request": request, "token": token})
 
 
@@ -638,7 +609,7 @@ def venta_operaciones_ods_notificar(
     return {"ok": True, "mensaje": "pendiente_configuracion"}
 
 
-# ─── Comercial (vista general) ───────────────────────────────────────────────
+# â”€â”€â”€ Comercial (vista general) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @router.get("/api/venta/comercial-todo")
 def venta_comercial_todo(
@@ -676,3 +647,4 @@ def venta_ods_contrato_file(
     if not ruta.exists() or not ruta.is_file():
         raise HTTPException(status_code=404, detail="Archivo no encontrado.")
     return FileResponse(str(ruta), filename=nombre)
+

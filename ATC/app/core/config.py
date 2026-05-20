@@ -1,5 +1,10 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
+from pathlib import Path
+
+
+BASE_DIR = Path(__file__).resolve().parents[2]
+ENV_FILE = BASE_DIR / ".env"
 
 
 class Settings(BaseSettings):
@@ -9,7 +14,7 @@ class Settings(BaseSettings):
     """
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(ENV_FILE),
         env_file_encoding="utf-8",  # ðŸ”¥ IMPORTANTE para evitar UnicodeDecodeError
         env_ignore_empty=True,
         extra="ignore",
@@ -63,6 +68,7 @@ class Settings(BaseSettings):
     # PUBLIC URLS
     # ==============================
     PUBLIC_BASE_URL: Optional[str] = None
+    INCIDENCIAS_PUBLIC_BASE_URL: Optional[str] = None
     SLA_SURVEY_URL: Optional[str] = None
     SLA_WEBHOOK_TOKEN: Optional[str] = None
     AUTOMATION_PENDING_CLOSE_DAYS: int = 3

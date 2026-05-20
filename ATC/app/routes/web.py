@@ -53,21 +53,21 @@ from uuid import uuid4
 
 from markupsafe import Markup
 
-from app.core.db import get_db, get_incidencias_db
+from ATC.app.core.db import get_db, get_incidencias_db
 
-from app.core.config import settings
+from ATC.app.core.config import settings
 
-from app.core.security import create_access_token, verify_password
+from ATC.app.core.security import create_access_token, verify_password
 
-from app.core.text import decode_mime_words
-from app.services.ticket_status_service import apply_ticket_status_change, mark_first_agent_reply
-from app.services.automation_service import RULE_EMAIL_AUTO_REPLY, send_initial_email_auto_reply
-from app.services.drive_report_service import (
+from ATC.app.core.text import decode_mime_words
+from ATC.app.services.ticket_status_service import apply_ticket_status_change, mark_first_agent_reply
+from ATC.app.services.automation_service import RULE_EMAIL_AUTO_REPLY, send_initial_email_auto_reply
+from ATC.app.services.drive_report_service import (
     create_drive_report_for_odt,
     upload_support_images_for_odt,
     DriveReportError,
 )
-from app.services.sla_feedback_service import (
+from ATC.app.services.sla_feedback_service import (
     apply_ticket_sla_feedback,
     build_sla_feedback_token,
     build_configured_sla_survey_link,
@@ -76,24 +76,24 @@ from app.services.sla_feedback_service import (
     verify_sla_feedback_token,
 )
 
-from app.models.ticket import Ticket
+from ATC.app.models.ticket import Ticket
 
-from app.models.message import Message
+from ATC.app.models.message import Message
 
-from app.models.internal_chat_message import InternalChatMessage
+from ATC.app.models.internal_chat_message import InternalChatMessage
 
-from app.models.internal_chat_read_state import InternalChatReadState
+from ATC.app.models.internal_chat_read_state import InternalChatReadState
 
-from app.models.ticket_alert_read_state import TicketAlertReadState
-from app.models.ticket_message_read_state import TicketMessageReadState
-from app.models.ticket_internal_note_read_state import TicketInternalNoteReadState
+from ATC.app.models.ticket_alert_read_state import TicketAlertReadState
+from ATC.app.models.ticket_message_read_state import TicketMessageReadState
+from ATC.app.models.ticket_internal_note_read_state import TicketInternalNoteReadState
 
-from app.models.user import User
+from ATC.app.models.user import User
 
-from app.models.requester import Requester
+from ATC.app.models.requester import Requester
 
-from app.models.ticket_history import TicketAssignmentHistory
-from app.models.automation_log import AutomationLog
+from ATC.app.models.ticket_history import TicketAssignmentHistory
+from ATC.app.models.automation_log import AutomationLog
 
 from datetime import datetime, timezone, timedelta
 
@@ -766,7 +766,7 @@ def _send_sla_satisfaction_email(ticket: Ticket) -> None:
     </div>
     """
 
-    from app.integrations.email_smtp import send_email_reply
+    from ATC.app.integrations.email_smtp import send_email_reply
 
     send_email_reply(
 
@@ -869,6 +869,105 @@ def _decode_cookie_token(token: str) -> str:
 
         raise HTTPException(status_code=401, detail="Token invÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡lido")
 
+def _verify_web_password(plain_password: str, stored_password: str) -> bool:
+    stored = str(stored_password or "")
+    incoming = str(plain_password or "")
+    if stored.startswith("plain:"):
+        return stored.removeprefix("plain:") == incoming
+    try:
+        return verify_password(incoming, stored)
+    except Exception:
+        return False
+
+def _primary_user_area(db: Session, user_id: int) -> dict[str, object] | None:
+    row = db.execute(
+        text(
+            """
+            SELECT
+                a.code AS area_code,
+                a.department AS department,
+                ua.id AS user_area_id
+            FROM user_areas ua
+            JOIN areas a ON a.id = ua.area_id
+            WHERE ua.user_id = :user_id
+              AND a.is_active = TRUE
+            ORDER BY ua.is_primary DESC, ua.id ASC
+            LIMIT 1
+            """
+        ),
+        {"user_id": user_id},
+    ).mappings().first()
+    return dict(row) if row else None
+
+def _create_unified_login_session(db: Session, user: User, area_info: dict[str, object] | None) -> str:
+    token = str(uuid4())
+    expires_at = datetime.utcnow() + timedelta(minutes=settings.JWT_EXPIRES_MIN)
+    db.execute(
+        text(
+            """
+            INSERT INTO login_sessions
+                (token, usuario, user_id, user_area_id, area_code, department, created_at, expires_at)
+            VALUES
+                (:token, :usuario, :user_id, :user_area_id, :area_code, :department, NOW(), :expires_at)
+            ON CONFLICT (token) DO UPDATE
+            SET usuario = EXCLUDED.usuario,
+                user_id = EXCLUDED.user_id,
+                user_area_id = EXCLUDED.user_area_id,
+                area_code = EXCLUDED.area_code,
+                department = EXCLUDED.department,
+                created_at = NOW(),
+                expires_at = EXCLUDED.expires_at
+            """
+        ),
+        {
+            "token": token,
+            "usuario": user.name or user.username,
+            "user_id": user.id,
+            "user_area_id": area_info.get("user_area_id") if area_info else None,
+            "area_code": area_info.get("area_code") if area_info else None,
+            "department": area_info.get("department") if area_info else None,
+            "expires_at": expires_at,
+        },
+    )
+    db.commit()
+    return token
+
+def _incidencias_base_url() -> str:
+    return (settings.INCIDENCIAS_PUBLIC_BASE_URL or "").strip().rstrip("/")
+
+def _redirect_for_user_area(area_code: str | None, session_token: str) -> str:
+    base = _incidencias_base_url()
+    prefix = base if base else ""
+    area = (area_code or "").strip()
+    if area == "soporte":
+        return "/panel"
+    if area in {"servicio_tecnico", "tecnicos"}:
+        return f"{prefix}/?form=panelSelectorServicio&token={session_token}&next=panelSelectorServicio"
+    if area in {"coordinacion", "protocolos"}:
+        return f"{prefix}/?form=panelSelectorCoordinacion&token={session_token}&next=panelSelectorCoordinacion"
+    if area == "venta":
+        return f"{prefix}/venta/panel-selector?token={session_token}&next=panelSelectorVenta"
+    if area == "finanzas":
+        return f"{prefix}/venta/finanzas?token={session_token}&next=panelSelectorFinanzas"
+    if area == "administracion":
+        return f"{prefix}/venta/administracion?token={session_token}&next=panelSelectorAdministracion"
+    if area == "operaciones":
+        return f"{prefix}/venta/operaciones?token={session_token}&next=panelSelectorOperaciones"
+    if area == "incidencias":
+        return f"{prefix}/?form=panelSelector&token={session_token}&next=panelSelector"
+    return "/panel"
+
+def _set_web_cookie(resp: RedirectResponse, token: str) -> RedirectResponse:
+    resp.set_cookie(
+        key=COOKIE_NAME,
+        value=token,
+        httponly=True,
+        samesite="lax",
+        secure=False,
+        max_age=settings.JWT_EXPIRES_MIN * 60,
+    )
+    return resp
+
 def get_current_user_web(
 
     request: Request,
@@ -926,6 +1025,9 @@ def home():
 @router.get("/login", response_class=HTMLResponse)
 
 def login_page(request: Request, db: Session = Depends(get_db)):
+    central_login = _incidencias_base_url()
+    if central_login:
+        return RedirectResponse(url=f"{central_login}/?form=login&next=auto", status_code=303)
 
     token = request.cookies.get(COOKIE_NAME)
     if token:
@@ -933,7 +1035,12 @@ def login_page(request: Request, db: Session = Depends(get_db)):
             username = _decode_cookie_token(token)
             user = db.query(User).filter(User.username == username).first()
             if user and user.is_active:
-                return RedirectResponse(url="/panel", status_code=303)
+                area_info = _primary_user_area(db, user.id)
+                session_token = _create_unified_login_session(db, user, area_info)
+                return RedirectResponse(
+                    url=_redirect_for_user_area(area_info.get("area_code") if area_info else None, session_token),
+                    status_code=303,
+                )
         except Exception:
             pass
 
@@ -955,7 +1062,7 @@ def web_login(
 
     user = db.query(User).filter(User.username == username).first()
 
-    if not user or not user.is_active or not verify_password(password, user.hashed_password):
+    if not user or not user.is_active or not _verify_web_password(password, user.hashed_password):
 
         # vuelve al form con error
 
@@ -971,31 +1078,40 @@ def web_login(
 
     token = create_access_token({"sub": user.username})
 
-    # Redirigir segÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âºn rol
+    area_info = _primary_user_area(db, user.id)
+    session_token = _create_unified_login_session(db, user, area_info)
+    redirect_to = _redirect_for_user_area(area_info.get("area_code") if area_info else None, session_token)
 
-    redirect_to = "/panel"
+    return _set_web_cookie(RedirectResponse(url=redirect_to, status_code=303), token)
 
-    resp = RedirectResponse(url=redirect_to, status_code=303)
+@router.get("/sso/login")
+def sso_login(
+    token: str = Query(default=""),
+    db: Session = Depends(get_db),
+):
+    token_limpio = (token or "").strip()
+    if not token_limpio:
+        return RedirectResponse(url="/login", status_code=303)
 
-    # En localhost sin https -> secure=False
+    row = db.execute(
+        text(
+            """
+            SELECT u.username
+            FROM login_sessions ls
+            JOIN users u ON u.id = ls.user_id
+            WHERE ls.token = :token
+              AND ls.expires_at > NOW()
+              AND u.is_active = TRUE
+            LIMIT 1
+            """
+        ),
+        {"token": token_limpio},
+    ).mappings().first()
+    if not row:
+        return RedirectResponse(url="/login", status_code=303)
 
-    resp.set_cookie(
-
-        key=COOKIE_NAME,
-
-        value=token,
-
-        httponly=True,
-
-        samesite="lax",
-
-        secure=False,
-
-        max_age=settings.JWT_EXPIRES_MIN * 60,
-
-    )
-
-    return resp
+    web_token = create_access_token({"sub": row["username"]})
+    return _set_web_cookie(RedirectResponse(url="/panel", status_code=303), web_token)
 
 @router.get("/logout")
 
@@ -4830,7 +4946,7 @@ def send_ticket_to_service(
         requester_email = parseaddr(ticket.requester.email if ticket.requester else "")[1].strip()
         if (ticket.source or "").strip().lower() == "email" and requester_email:
             try:
-                from app.integrations.email_smtp import send_email_reply
+                from ATC.app.integrations.email_smtp import send_email_reply
 
                 requester_name = (
                     ((ticket.requester.name if ticket.requester else "") or "Cliente").strip() or "Cliente"
@@ -5138,7 +5254,7 @@ def reply_ticket(
 
     try:
         if ticket_source == "email":
-            from app.integrations.email_smtp import send_email_reply
+            from ATC.app.integrations.email_smtp import send_email_reply
 
             email_body = email_body_for_send or ("Se adjuntan archivos solicitados." if saved_attachments else "")
 
@@ -5157,7 +5273,7 @@ def reply_ticket(
             )
 
         elif ticket_source == "whatsapp":
-            from app.integrations.whatsapp_cloud import send_whatsapp_message
+            from ATC.app.integrations.whatsapp_cloud import send_whatsapp_message
 
             send_whatsapp_message(
                 to_phone=ticket.requester.phone,
@@ -5342,7 +5458,7 @@ def panel_indicadores(
 
 ):
 
-    from app.services.analytics_service import (
+    from ATC.app.services.analytics_service import (
 
         get_overview_kpis,
 
@@ -6103,4 +6219,5 @@ def st_ods_notificar_termino(
 ):
     _ = (payload, current_user)
     return {"ok": True}
+
 

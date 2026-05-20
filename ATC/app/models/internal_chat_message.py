@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from datetime import datetime
 from typing import Optional
@@ -6,7 +6,7 @@ from typing import Optional
 from sqlalchemy import DateTime, ForeignKey, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.db import Base
+from ATC.app.core.db import Base
 
 
 class InternalChatMessage(Base):
@@ -32,3 +32,4 @@ class InternalChatMessage(Base):
 
     def __repr__(self) -> str:
         return f"<InternalChatMessage id={self.id} sender_id={self.sender_id}>"
+

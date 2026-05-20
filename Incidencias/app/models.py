@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
@@ -7,7 +7,7 @@ from typing import Optional
 from sqlalchemy import Boolean, DateTime, ForeignKey, Numeric, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.database import Base
+from Incidencias.app.database import Base
 
 
 class Registro(Base):
@@ -20,7 +20,7 @@ class Registro(Base):
     cliente: Mapped[str] = mapped_column(String(255), index=True)
     problema: Mapped[str] = mapped_column(String(255))
     detalle_problema: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    derivacion: Mapped[str] = mapped_column(String(120), default="Servicio Técnico")
+    derivacion: Mapped[str] = mapped_column(String(120), default="Servicio TÃ©cnico")
     observacion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     observacion_soporte: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     observacion_servicio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -600,3 +600,4 @@ class OperacionesVentaODT(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
     ods_ref: Mapped["VentaODS"] = relationship(back_populates="operaciones")
+

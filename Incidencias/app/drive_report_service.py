@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import base64
 import io
@@ -21,7 +21,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 
-from app.config import settings
+from Incidencias.app.config import settings
 
 
 SCOPES = [
@@ -264,27 +264,27 @@ def upload_ods_files_to_drive(
     Sube los archivos adjuntos de una ODS a Google Drive.
 
     Estructura:
-        Carpeta raíz ODS /
-          {RUT} - {Razón Social} /
+        Carpeta raÃ­z ODS /
+          {RUT} - {RazÃ³n Social} /
             {Codigo ODS} /
               {Tipo Servicio} /
                 archivo.pdf
 
     Args:
-        codigo:       Código ODS (ej. "V0001")
+        codigo:       CÃ³digo ODS (ej. "V0001")
         rut:          RUT del cliente (ej. "12.345.678-9")
-        razon_social: Razón social del cliente
+        razon_social: RazÃ³n social del cliente
         files:        Lista de dicts con claves:
-                        "path"    → ruta local relativa al archivo
-                        "nombre"  → nombre original del archivo
-                        "mime"    → tipo MIME
-                        "servicio"→ tipo de servicio (Televigilancia, Instalación, etc.)
+                        "path"    â†’ ruta local relativa al archivo
+                        "nombre"  â†’ nombre original del archivo
+                        "mime"    â†’ tipo MIME
+                        "servicio"â†’ tipo de servicio (Televigilancia, InstalaciÃ³n, etc.)
 
     Returns:
         Lista de dicts con id, name, webViewLink de cada archivo subido.
     """
     if not settings.google_drive_enabled:
-        raise DriveReportError("GOOGLE_DRIVE_ENABLED=false — subida ODS omitida")
+        raise DriveReportError("GOOGLE_DRIVE_ENABLED=false â€” subida ODS omitida")
 
     ods_root_id = _safe_text(settings.google_drive_ods_root_folder_id)
     if not ods_root_id:
@@ -292,14 +292,14 @@ def upload_ods_files_to_drive(
 
     drive, _ = _build_clients()
 
-    # Nivel 1: {RUT} - {Razón Social}
+    # Nivel 1: {RUT} - {RazÃ³n Social}
     cliente_folder_name = _clean_filename(
         f"{_safe_text(rut)} - {_safe_text(razon_social)}",
         fallback=_safe_text(rut) or "cliente",
     )
     cliente_folder_id = _find_or_create_folder(drive, ods_root_id, cliente_folder_name)
 
-    # Nivel 2: código ODS (ej. "V0001")
+    # Nivel 2: cÃ³digo ODS (ej. "V0001")
     ods_folder_id = _find_or_create_folder(drive, cliente_folder_id, _clean_filename(codigo, codigo))
 
     results: list[dict] = []
@@ -1925,3 +1925,4 @@ def create_protocol_weekly_report_pdf(
         template_context=ctx,
         root_folder_id=root_folder_id,
     )
+

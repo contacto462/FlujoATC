@@ -1,11 +1,11 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from datetime import datetime
 
 from sqlalchemy import DateTime, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.db import Base
+from ATC.app.core.db import Base
 
 
 class Incidencia(Base):
@@ -52,3 +52,4 @@ class Incidencia(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
+

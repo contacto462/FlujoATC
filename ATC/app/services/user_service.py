@@ -1,6 +1,6 @@
-from sqlalchemy.orm import Session
-from app.models.user import User
-from app.core.security import hash_password, verify_password
+﻿from sqlalchemy.orm import Session
+from ATC.app.models.user import User
+from ATC.app.core.security import hash_password, verify_password
 
 class UserService:
 

@@ -14,15 +14,15 @@ import requests
 from sqlalchemy import and_, func, select, text
 from sqlalchemy.orm import Session
 
-from app.config import settings
-from app.database import SessionLocal
-from app.drive_report_service import (
+from Incidencias.app.config import settings
+from Incidencias.app.database import SessionLocal
+from Incidencias.app.drive_report_service import (
     DriveReportError,
     create_protocol_individual_report_pdf,
     create_protocol_weekly_report_pdf,
 )
-from app.models import LoginSession, ProtocoloInforme, ProtocoloRegistro, Registro
-from app.schemas import ProtocoloRegistroCreateRequest
+from Incidencias.app.models import LoginSession, ProtocoloInforme, ProtocoloRegistro, Registro
+from Incidencias.app.schemas import ProtocoloRegistroCreateRequest
 
 LOGGER = logging.getLogger(__name__)
 
@@ -1121,6 +1121,7 @@ class ProtocolosService:
                 }
             )
         return out
+
 
 
 

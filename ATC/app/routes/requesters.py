@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends
+﻿from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.core.db import get_db
-from app.models.requester import Requester   # ✅ FIX
-from app.schemas.requester import RequesterCreate, RequesterOut
+from ATC.app.core.db import get_db
+from ATC.app.models.requester import Requester   # âœ… FIX
+from ATC.app.schemas.requester import RequesterCreate, RequesterOut
 
 router = APIRouter(prefix="/requesters", tags=["requesters"])
 

@@ -1,16 +1,16 @@
-from fastapi import APIRouter, Depends, Request, HTTPException, Form
+﻿from fastapi import APIRouter, Depends, Request, HTTPException, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import asc
 
-from app.core.db import get_db
-from app.core.templates import templates
+from ATC.app.core.db import get_db
+from ATC.app.core.templates import templates
 
-from app.models.ticket import Ticket
-from app.models.requester import Requester
+from ATC.app.models.ticket import Ticket
+from ATC.app.models.requester import Requester
 
-from app.schemas.ticket import TicketCreate, TicketOut
-from app.models.ticket_history import TicketAssignmentHistory
+from ATC.app.schemas.ticket import TicketCreate, TicketOut
+from ATC.app.models.ticket_history import TicketAssignmentHistory
 
 router = APIRouter(prefix="/tickets", tags=["tickets"])
 
@@ -64,7 +64,7 @@ def ticket_detail(
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
 
-    # 🔹 Obtener siguiente ticket
+    # ðŸ”¹ Obtener siguiente ticket
     next_ticket = (
         db.query(Ticket)
         .filter(Ticket.id > ticket_id)
