@@ -264,7 +264,7 @@ def email_loop():
         try:
             _poll_imap()
         except Exception as e:
-            print("âŒ Error IMAP1:", e)
+            print("Error IMAP1:", e)
 
         try:
             if settings.IMAP2_HOST and settings.IMAP2_USER and settings.IMAP2_PASSWORD:
@@ -276,7 +276,7 @@ def email_loop():
                     imap_folder=settings.IMAP2_FOLDER,
                 )
         except Exception as e:
-            print("âŒ Error IMAP2:", e)
+            print("Error IMAP2:", e)
 
         time.sleep(5)
 
@@ -291,7 +291,7 @@ def automation_loop():
         try:
             run_pending_auto_close(db)
         except Exception as e:
-            print("âŒ Error ejecutando automatizaciones:", e)
+            print("Error ejecutando automatizaciones:", e)
         finally:
             db.close()
 

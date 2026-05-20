@@ -30,8 +30,8 @@ En `ATC/.env`:
 INCIDENCIAS_PUBLIC_BASE_URL=http://127.0.0.1:8001
 ```
 
-Si ambas apps estan bajo el mismo dominio/reverse proxy, esas variables pueden
-quedar vacias y se usaran rutas relativas.
+En la aplicacion unificada (`unified_main.py`) ambas variables pueden quedar
+vacias porque todo corre en el mismo puerto y se usan rutas relativas.
 
 ## SSO hacia Helpdesk
 
@@ -43,4 +43,3 @@ Helpdesk expone:
 
 Ese endpoint valida `login_sessions.token`, crea la cookie web de Helpdesk y
 redirige a `/panel`.
-
