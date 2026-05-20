@@ -1,0 +1,411 @@
+erDiagram
+  %% ============================================================
+  %% BBDD ATC - MER ordenado desde users
+  %% Linea solida: FK real en PostgreSQL.
+  %% Linea punteada: relacion funcional/inferida por campo de negocio.
+  %% ============================================================
+
+  %% 1. Identidad y permisos
+  users {
+    int id PK
+    string username UK
+    string name
+    string role
+    string department
+    bool is_active
+  }
+
+  areas {
+    int id PK
+    string code UK
+    string name
+    string department
+    bool is_active
+  }
+
+  user_areas {
+    int id PK
+    int user_id FK
+    int area_id FK
+    string department
+    bool is_primary
+  }
+
+  login_sessions {
+    string token PK
+    string usuario
+    int user_id
+    int user_area_id
+    string area_code
+    string department
+  }
+
+  users ||--o{ user_areas : "FK user_id"
+  areas ||--o{ user_areas : "FK area_id"
+  users ||..o{ login_sessions : "inferido user_id"
+  user_areas ||..o{ login_sessions : "inferido user_area_id"
+  areas ||..o{ login_sessions : "inferido area_code"
+
+  %% 2. Helpdesk / tickets
+  requesters {
+    int id PK
+    string email
+    string name
+    string internal_name
+  }
+
+  tickets {
+    int id PK
+    int requester_id FK
+    int assigned_to_id FK
+    string subject
+    string status
+    string priority
+    string source
+    datetime created_at
+    datetime resolved_at
+  }
+
+  messages {
+    int id PK
+    int ticket_id FK
+    int sender_id FK
+    string sender_type
+    string channel
+    bool is_internal_note
+    datetime created_at
+  }
+
+  ticket_assignment_history {
+    int id PK
+    int ticket_id FK
+    int from_user_id FK
+    int to_user_id FK
+    int changed_by_id FK
+    datetime created_at
+  }
+
+  ticket_message_read_states {
+    int user_id FK
+    int ticket_id FK
+    int last_seen_message_id
+  }
+
+  ticket_internal_note_read_states {
+    int user_id FK
+    int ticket_id FK
+    int last_seen_note_count
+  }
+
+  ticket_alert_read_states {
+    int user_id FK
+    int last_seen_ticket_id
+  }
+
+  ticket_sla_feedback {
+    int ticket_id PK_FK
+    int technician_rating
+    bool resolution_satisfied
+  }
+
+  ticket_sla_feedback_events {
+    int id PK
+    int ticket_id FK
+    string source
+    int technician_rating
+  }
+
+  automation_logs {
+    int id PK
+    int ticket_id FK
+    string rule_key
+    string event_name
+    string status
+  }
+
+  internal_chat_messages {
+    int id PK
+    int sender_id FK
+    string content
+    datetime created_at
+  }
+
+  internal_chat_read_states {
+    int user_id FK
+    int last_seen_message_id
+  }
+
+  users ||--o{ tickets : "FK assigned_to_id"
+  requesters ||--o{ tickets : "FK requester_id"
+  tickets ||--o{ messages : "FK ticket_id"
+  users ||--o{ messages : "FK sender_id"
+  tickets ||--o{ ticket_assignment_history : "FK ticket_id"
+  users ||--o{ ticket_assignment_history : "FK from_user_id"
+  users ||--o{ ticket_assignment_history : "FK to_user_id"
+  users ||--o{ ticket_assignment_history : "FK changed_by_id"
+  tickets ||--o{ ticket_message_read_states : "FK ticket_id"
+  users ||--o{ ticket_message_read_states : "FK user_id"
+  tickets ||--o{ ticket_internal_note_read_states : "FK ticket_id"
+  users ||--o{ ticket_internal_note_read_states : "FK user_id"
+  users ||--o{ ticket_alert_read_states : "FK user_id"
+  tickets ||--|| ticket_sla_feedback : "FK ticket_id"
+  tickets ||--o{ ticket_sla_feedback_events : "FK ticket_id"
+  tickets ||--o{ automation_logs : "FK ticket_id"
+  users ||--o{ internal_chat_messages : "FK sender_id"
+  users ||--o{ internal_chat_read_states : "FK user_id"
+
+  %% 3. Clientes, sucursales y contactos
+  bbdd_clientes {
+    int id PK
+    string rut UK
+    string cliente UK
+    string correo
+    string telefono
+    string region
+    string comuna
+  }
+
+  bbdd_sucursales {
+    int id PK
+    string rut FK
+    string nombre_sucursal
+    string direccion_sucursal
+    string created_by
+  }
+
+  sucursal_contactos_emergencia {
+    int id PK
+    int sucursal_id FK
+    string nombre
+    string telefono
+    string email
+  }
+
+  sucursal_personas_autorizadas {
+    int id PK
+    int sucursal_id FK
+    string nombre
+    string telefono
+    string email
+  }
+
+  sucursal_guardias {
+    int id PK
+    int sucursal_id FK
+    string nombre
+    string telefono
+  }
+
+  contactos_emergencia {
+    int id PK
+    string sucursal
+    string nombre
+    string celular
+    string email
+  }
+
+  catalogo_clientes {
+    int id PK
+    string rut_cliente
+    string nombre_cliente
+    string nombre_sucursal
+    string direccion_sucursal
+  }
+
+  bbdd_clientes ||--o{ bbdd_sucursales : "FK rut"
+  bbdd_sucursales ||--o{ sucursal_contactos_emergencia : "FK sucursal_id"
+  bbdd_sucursales ||--o{ sucursal_personas_autorizadas : "FK sucursal_id"
+  bbdd_sucursales ||--o{ sucursal_guardias : "FK sucursal_id"
+  bbdd_sucursales ||..o{ contactos_emergencia : "inferido sucursal"
+  bbdd_clientes ||..o{ catalogo_clientes : "inferido rut_cliente"
+  users ||..o{ bbdd_sucursales : "inferido created_by"
+
+  %% 4. Venta ODS y flujo por areas
+  venta_ods {
+    int id PK
+    string codigo UK
+    string rut_cliente FK
+    string razon_social
+    string nombre_sucursal
+    string creado_por
+    string ejecutivo_venta
+    string estado
+  }
+
+  venta_ods_archivos {
+    int id PK
+    int ods_id FK
+    string codigo_ods
+    string tipo_documento
+    string ruta_archivo
+  }
+
+  administracion_odt {
+    int id PK
+    string odt FK
+    string tecnico
+    bool finalizado
+  }
+
+  finanzas_odt {
+    int id PK
+    string odt FK
+    bool finalizado
+  }
+
+  servicio_tecnico_ventas_odt {
+    int id PK
+    string odt FK
+    string tecnico_a_cargo
+    bool finalizado
+  }
+
+  operaciones_venta_odt {
+    int id PK
+    string odt FK
+    bool terminado
+  }
+
+  odt_ventas {
+    int id PK
+    string odt UK
+    string cliente
+    string tecnico
+    string estado
+  }
+
+  bbdd_clientes ||--o{ venta_ods : "FK rut_cliente"
+  venta_ods ||--o{ venta_ods_archivos : "FK ods_id"
+  venta_ods ||--o| administracion_odt : "FK codigo/odt"
+  venta_ods ||--o| finanzas_odt : "FK codigo/odt"
+  venta_ods ||--o| servicio_tecnico_ventas_odt : "FK codigo/odt"
+  venta_ods ||--o| operaciones_venta_odt : "FK codigo/odt"
+  venta_ods ||..o{ odt_ventas : "inferido codigo/odt"
+  users ||..o{ venta_ods : "inferido creado_por"
+  users ||..o{ venta_ods : "inferido ejecutivo_venta"
+
+  %% 5. Incidencias operativas
+  registro {
+    int id PK
+    string odt UK
+    string cliente
+    string problema
+    string derivacion
+    string tecnicos
+    string estado
+    datetime fecha_registro
+    datetime fecha_cierre
+  }
+
+  incidencias_cierres {
+    int id PK
+    int incidencia_id
+    string odt
+    string cerrado_por
+  }
+
+  incidencias_imagenes {
+    int id PK
+    string odt UK
+    string sucursal
+    json imagenes
+    string created_by
+  }
+
+  incidencias_imagenes_odt {
+    int id PK
+    string odt UK
+    string sucursal
+    json imagenes
+    string created_by
+  }
+
+  mantenciones_imagenes_sucursal {
+    int id PK
+    string sucursal_key UK
+    string sucursal
+    json imagenes
+    string created_by
+  }
+
+  incidencias_tecnicos {
+    int id PK
+    string nombre
+    bool activo
+  }
+
+  registros_correos_cliente {
+    int id PK
+    string odt
+    string sucursal
+    datetime fecha_envio
+  }
+
+  tareas {
+    int id PK
+    string codigo UK
+    string usuario_soporte
+    string cliente
+    string estado
+  }
+
+  rendiciones {
+    int id PK
+    int folio UK
+    string tecnico
+    string odt
+    string cliente
+    numeric monto_total
+  }
+
+  registro ||..o{ incidencias_cierres : "inferido odt/incidencia_id"
+  registro ||..o{ incidencias_imagenes : "inferido odt"
+  registro ||..o{ incidencias_imagenes_odt : "inferido odt"
+  registro ||..o{ registros_correos_cliente : "inferido odt"
+  registro ||..o{ rendiciones : "inferido odt"
+  registro ||..o{ tareas : "inferido cliente"
+  incidencias_tecnicos ||..o{ registro : "inferido tecnicos"
+  users ||..o{ incidencias_imagenes : "inferido created_by"
+  users ||..o{ incidencias_imagenes_odt : "inferido created_by"
+  users ||..o{ mantenciones_imagenes_sucursal : "inferido created_by"
+  users ||..o{ tareas : "inferido usuario_soporte"
+  users ||..o{ rendiciones : "inferido tecnico/mail"
+
+  %% 6. Protocolos
+  protocolos_registro {
+    int id PK
+    string encargado
+    string operador
+    string cliente
+    string sucursal
+    string tipo_protocolo
+    datetime fecha_registro
+  }
+
+  protocolos_informes {
+    int id PK
+    int registro_id FK
+    string tipo_informe
+    string estado
+    string cliente
+    string sucursal
+  }
+
+  protocolos_registro ||--o{ protocolos_informes : "FK registro_id"
+  users ||..o{ protocolos_registro : "inferido encargado"
+  users ||..o{ protocolos_registro : "inferido operador"
+
+  %% 7. Integracion, correo y outbox
+  email_sync_states {
+    string mailbox_key PK
+    string last_uid
+    datetime updated_at
+  }
+
+  sync_outbox {
+    int id PK
+    string event_type
+    string entity_key
+    string status
+  }
+

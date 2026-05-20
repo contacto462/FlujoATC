@@ -64,6 +64,10 @@ from app.schemas import (
 CLAVE_TECNICOS_TEMPORAL = "123456"
 IDENTITY_SEED_FILE = Path(__file__).resolve().parents[1] / "sql" / "users_areas_seed.csv"
 AREA_DESTINOS: dict[str, str] = {
+    "auto": "",
+    "loginunico": "",
+    "unificado": "",
+    "panelselectorauto": "",
     "panelselector": "incidencias",
     "panel_selector": "incidencias",
     "panelselectorcoordinacion": "coordinacion",
@@ -94,6 +98,18 @@ AREA_DESTINOS: dict[str, str] = {
     "tablaoperaciones": "operaciones",
     "pendientes": "tecnicos",
     "tecnicos": "tecnicos",
+}
+AREA_PANEL_DESTINOS: dict[str, str] = {
+    "soporte": "panelSelectorSoporte",
+    "servicio_tecnico": "panelSelectorServicio",
+    "tecnicos": "panelSelectorServicio",
+    "incidencias": "panelSelector",
+    "coordinacion": "panelSelectorCoordinacion",
+    "protocolos": "panelSelectorCoordinacion",
+    "venta": "panelSelectorVenta",
+    "finanzas": "panelSelectorFinanzas",
+    "administracion": "panelSelectorAdministracion",
+    "operaciones": "panelSelectorOperaciones",
 }
 _GEOCODE_CACHE: dict[str, tuple[str, str]] = {}
 _COORD_FALLBACK_CL: list[tuple[tuple[str, ...], tuple[str, str]]] = [
