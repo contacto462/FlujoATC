@@ -55,7 +55,7 @@ erDiagram
     VENTA_ODS ||--o| OPERACIONES_VENTA_ODT : coordina
 
     PROTOCOLOS_REGISTRO ||--o{ PROTOCOLOS_INFORMES : genera
-    REGISTRO ||--o{ INCIDENCIAS_CIERRES : cierra
+    REGISTRO ||--o{ INCIDENCIAS_CIERRES : cierra_logico
     REGISTRO ||--o| INCIDENCIAS_IMAGENES_ODT : evidencia_logica
     REGISTRO ||--o{ REGISTROS_CORREOS_CLIENTE : notifica_logica
     REGISTRO ||--o{ RENDICIONES : consume_gastos
@@ -212,7 +212,7 @@ erDiagram
     }
     INCIDENCIAS_CIERRES {
         int id PK
-        int incidencia_id FK
+        int incidencia_id FK "pendiente"
         string odt
     }
     INCIDENCIAS_IMAGENES_ODT {
@@ -234,7 +234,7 @@ erDiagram
 ```
 
 ## Como leer el diagrama
-`||--o{` significa uno a muchos. `||--o|` significa uno a cero/uno. `PK` identifica la tabla; `FK` apunta a otra tabla; `UK` indica valor unico. Las relaciones etiquetadas como `evidencia_logica` o `notifica_logica` siguen pendientes de formalizacion con FK porque la validacion previa encontro datos huerfanos.
+`||--o{` significa uno a muchos. `||--o|` significa uno a cero/uno. `PK` identifica la tabla; `FK` apunta a otra tabla; `UK` indica valor unico. Las relaciones etiquetadas como `cierra_logico`, `evidencia_logica` o `notifica_logica` siguen pendientes de formalizacion con FK.
 
 ## Observaciones finales
-Este MER ya tiene formalizada fisicamente la relacion `registro -> incidencias_cierres` mediante la FK `fk_incidencias_cierres_registro`. Conserva salvedades tecnicas: existen tablas reales sin modelo, una tabla modelada sin tabla fisica en `helpdesk`, y las relaciones por ODT hacia `incidencias_imagenes_odt` y `registros_correos_cliente` siguen pendientes por datos huerfanos.
+Este MER vuelve a quedar sin la FK fisica `registro -> incidencias_cierres`, porque la reversion SQL retiro cualquier constraint/indice asociado a `fk_incidencias_cierres_registro` e `ix_incidencias_cierres_incidencia_id`. Conserva salvedades tecnicas: existen tablas reales sin modelo, una tabla modelada sin tabla fisica en `helpdesk`, y las relaciones por ODT hacia `incidencias_imagenes_odt` y `registros_correos_cliente` siguen pendientes por datos huerfanos.
