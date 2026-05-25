@@ -15,7 +15,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 ROOT = Path(__file__).resolve().parents[1]
 ATC_ENV = ROOT / "ATC" / ".env"
-INC_ENV = ROOT / "Incidencias" / ".env"
+INC_ENV = ROOT / "ATC" / "incidencias" / ".env"
 BACKUP_ROOT = ROOT / "backups" / "db_unification"
 TARGET_DB = "ATC"
 SKIP_RAW_TABLES = {"users", "user_areas", "login_sessions", "incidencias_imagenes_odt"}

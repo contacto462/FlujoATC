@@ -7,42 +7,48 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0b1220;
-  --bg-2:#111a2f;
+  --bg:#08111f;
+  --bg-2:#111827;
   --surface:rgba(255,255,255,.07);
   --surface-2:rgba(255,255,255,.05);
   --border:rgba(255,255,255,.12);
   --text:#e7ecf5;
   --muted:#94a3b8;
-  --primary:#2563eb;
-  --primary-2:#1d4ed8;
-  --teal:#0f766e;
-  --teal-2:#115e59;
-  --violet:#5b21b6;
-  --violet-2:#4338ca;
+  --primary:#365f8d;
+  --primary-2:#27496f;
+  --teal:#2d6f6a;
+  --teal-2:#235955;
+  --violet:#59627e;
+  --violet-2:#454c66;
+  --danger:#8a3a3a;
+  --danger-2:#6f2f2f;
   --shadow:0 30px 60px rgba(0,0,0,.38);
   --radius:22px;
 }
 
 *{box-sizing:border-box}
-html,body{height:100%}
+html,body{width:100%;height:100%;overflow:hidden}
 
 body{
   margin:0;
   font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
   color:var(--text);
   background:
-    radial-gradient(900px 500px at 15% -10%, rgba(37,99,235,.24), transparent 60%),
-    radial-gradient(800px 420px at 95% 0%, rgba(91,33,182,.20), transparent 55%),
+    radial-gradient(900px 500px at 15% -10%, rgba(54,95,141,.18), transparent 60%),
+    radial-gradient(800px 420px at 95% 0%, rgba(45,111,106,.12), transparent 55%),
     linear-gradient(180deg,var(--bg),var(--bg-2));
   display:flex;
-  align-items:center;
+  align-items:flex-start;
   justify-content:center;
-  padding:28px;
+  padding:clamp(10px,2vh,20px);
+  overflow:hidden;
 }
 
 .shell{
   width:min(1180px,100%);
+  height:calc(100vh - clamp(10px,2vh,20px) * 2);
+  height:calc(100dvh - clamp(10px,2vh,20px) * 2);
+  margin:0 auto;
   border:1px solid var(--border);
   border-radius:30px;
   background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.04));
@@ -55,14 +61,15 @@ body{
   display:grid;
   grid-template-columns:1.15fr .85fr;
   gap:0;
-  min-height:680px;
+  height:100%;
+  min-height:0;
 }
 
 .hero-copy{
-  padding:42px;
+  padding:clamp(24px,3.4vh,38px);
   position:relative;
   background:
-    radial-gradient(580px 320px at 0% 0%, rgba(37,99,235,.16), transparent 70%),
+    radial-gradient(580px 320px at 0% 0%, rgba(54,95,141,.12), transparent 70%),
     linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
 }
 
@@ -70,12 +77,12 @@ body{
   display:flex;
   align-items:center;
   gap:14px;
-  margin-bottom:36px;
+  margin-bottom:clamp(18px,3vh,30px);
 }
 
 .brand-badge{
-  width:86px;
-  height:86px;
+  width:clamp(72px,8vh,86px);
+  height:clamp(72px,8vh,86px);
   border-radius:20px;
   padding:10px;
   background:rgba(255,255,255,.06);
@@ -107,7 +114,7 @@ body{
 
 .welcome-message{
   margin:0 0 12px;
-  font-size:22px;
+  font-size:clamp(18px,2.2vh,22px);
   line-height:1.08;
   letter-spacing:-.03em;
   font-weight:800;
@@ -115,8 +122,8 @@ body{
 }
 
 h1{
-  margin:20px 0 14px;
-  font-size:46px;
+  margin:clamp(14px,2.4vh,20px) 0 14px;
+  font-size:clamp(34px,5vh,46px);
   line-height:1.02;
   letter-spacing:-.03em;
 }
@@ -124,12 +131,12 @@ h1{
 .lead{
   max-width:560px;
   color:#a9b6cb;
-  font-size:16px;
-  line-height:1.65;
+  font-size:clamp(14px,1.8vh,16px);
+  line-height:1.55;
 }
 
 .user-chip{
-  margin-top:28px;
+  margin-top:clamp(18px,3vh,28px);
   display:inline-flex;
   align-items:center;
   gap:10px;
@@ -143,39 +150,52 @@ h1{
 }
 
 .hero-side{
-  padding:32px;
+  padding:clamp(128px,15vh,150px) clamp(22px,3vh,30px) clamp(22px,3vh,30px);
   display:flex;
   flex-direction:column;
-  justify-content:center;
+  justify-content:flex-start;
+  min-height:0;
   background:
     linear-gradient(180deg, rgba(14,23,43,.52), rgba(14,23,43,.76)),
-    radial-gradient(680px 340px at 100% 0%, rgba(37,99,235,.16), transparent 65%);
+    radial-gradient(680px 340px at 100% 0%, rgba(54,95,141,.12), transparent 65%);
   border-left:1px solid rgba(255,255,255,.08);
 }
 
 .panel-title{
   margin:0 0 10px;
-  font-size:28px;
+  font-size:clamp(22px,3vh,28px);
   font-weight:800;
 }
 
 .panel-sub{
-  margin:0 0 26px;
+  margin:0 0 clamp(14px,2vh,22px);
   color:var(--muted);
-  line-height:1.6;
+  line-height:1.45;
 }
 
 .grid{
   display:grid;
-  gap:16px;
+  grid-template-columns:1fr;
+  grid-template-rows:repeat(4, clamp(68px, 8.6vh, 82px));
+  gap:clamp(10px,1.4vh,13px);
+  width:100%;
+  margin:clamp(12px,1.8vh,18px) 0 auto;
+  flex:0 0 auto;
+  min-height:0;
 }
 
 .option{
-  display:block;
-  padding:22px 20px;
-  border-radius:22px;
-  border:1px solid rgba(255,255,255,.10);
-  background:var(--surface-2);
+  --option-accent:96,116,139;
+  display:flex;
+  flex-direction:row;
+  align-items:center;
+  gap:clamp(14px,2vh,18px);
+  justify-content:flex-start;
+  min-height:0;
+  padding:clamp(13px,1.8vh,17px) clamp(16px,2.2vh,20px);
+  border-radius:16px;
+  border:1px solid rgba(148,163,184,.18);
+  background:linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.032));
   color:inherit;
   text-decoration:none;
   position:relative;
@@ -183,9 +203,10 @@ h1{
 }
 
 .option:hover{
-  transform:translateY(-3px) scale(1.06);
-  border-color:rgba(255,255,255,.18);
-  box-shadow:0 18px 34px rgba(0,0,0,.22);
+  transform:translateY(-2px) scale(1.012);
+  border-color:rgba(var(--option-accent),.42);
+  box-shadow:0 18px 34px rgba(0,0,0,.20);
+  background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.04));
   filter:none;
   opacity:1;
   z-index:2;
@@ -193,66 +214,52 @@ h1{
 
 .grid:has(.option:hover) .option:not(:hover){
   filter:blur(1.8px);
-  opacity:.5;
-  transform:scale(.965);
-}
-
-.option.dashboard:hover{
-  background:linear-gradient(135deg, rgba(37,99,235,.24), rgba(29,78,216,.18));
-}
-
-.option.soporte:hover{
-  background:linear-gradient(135deg, rgba(15,118,110,.24), rgba(17,94,89,.18));
-}
-
-.option.indicadores:hover{
-  background:linear-gradient(135deg, rgba(91,33,182,.24), rgba(67,56,202,.18));
-}
-
-.option.soporte-tecnico:hover{
-  background:linear-gradient(135deg, rgba(220,38,38,.22), rgba(185,28,28,.16));
+  opacity:.62;
+  transform:scale(.985);
 }
 
 .option-top{
   display:flex;
   align-items:center;
-  justify-content:space-between;
-  gap:14px;
-  margin-bottom:10px;
+  justify-content:flex-start;
+  gap:0;
+  margin-bottom:0;
 }
 
 .icon{
-  width:52px;
-  height:52px;
-  border-radius:16px;
+  width:clamp(40px,5vh,48px);
+  height:clamp(40px,5vh,48px);
+  border-radius:14px;
   display:grid;
   place-items:center;
   color:#fff;
-  font-size:22px;
+  font-size:clamp(18px,2.4vh,21px);
   font-weight:800;
-  box-shadow:0 16px 28px rgba(0,0,0,.18);
+  background:linear-gradient(180deg, rgba(var(--option-accent),.34), rgba(var(--option-accent),.18));
+  border:1px solid rgba(var(--option-accent),.46);
+  box-shadow:none;
 }
 
-.dashboard .icon{background:linear-gradient(135deg,var(--primary),var(--primary-2))}
-.soporte .icon{background:linear-gradient(135deg,var(--teal),var(--teal-2))}
-.indicadores .icon{background:linear-gradient(135deg,var(--violet),var(--violet-2))}
-.soporte-tecnico .icon{background:linear-gradient(135deg,#dc2626,#b91c1c)}
+.dashboard{--option-accent:54,95,141}
+.soporte{--option-accent:45,111,106}
+.indicadores{--option-accent:89,98,126}
+.soporte-tecnico{--option-accent:138,58,58}
 
 .option strong{
   display:block;
-  font-size:20px;
-  margin-bottom:6px;
+  font-size:clamp(16px,2.05vh,19px);
+  margin-bottom:0;
 }
 
 .option p{
   margin:0;
   color:#aebbd0;
-  line-height:1.55;
-  font-size:14px;
+  line-height:1.38;
+  font-size:clamp(12px,1.55vh,14px);
 }
 
 .footer{
-  margin-top:18px;
+  margin-top:auto;
   display:flex;
   justify-content:space-between;
   align-items:center;
@@ -387,36 +394,32 @@ h1{
         </p>
 
         <div class="grid">
+          <a class="option soporte" href="/soporte">
+            <div class="option-top">
+              <div class="icon">I</div>
+            </div>
+            <strong>Incidencias</strong>
+          </a>
+
+          <a class="option soporte-tecnico" href="/tabla-soporte">
+            <div class="option-top">
+              <div class="icon">V</div>
+            </div>
+            <strong>Ventas</strong>
+          </a>
+
           <a class="option dashboard" href="/dashboard">
             <div class="option-top">
               <div class="icon">T</div>
             </div>
             <strong>Tickets</strong>
-            <p>Gestiona tickets, prioridades, asignaciones y flujo principal del equipo.</p>
-          </a>
-
-          <a class="option soporte" href="/soporte">
-            <div class="option-top">
-              <div class="icon">S</div>
-            </div>
-            <strong>Soporte</strong>
-            <p>Entra al módulo operativo para revisar incidencias, derivaciones y cierres.</p>
           </a>
 
           <a class="option indicadores" href="/panel-indicadores">
             <div class="option-top">
-              <div class="icon">I</div>
+              <div class="icon">D</div>
             </div>
-            <strong>Indicadores</strong>
-            <p>Consulta métricas, rendimiento, SLA y comportamiento general de la operación.</p>
-          </a>
-
-          <a class="option soporte-tecnico" href="/tabla-soporte">
-            <div class="option-top">
-              <div class="icon">ST</div>
-            </div>
-            <strong>Soporte Técnico ODS</strong>
-            <p>Gestión de instalaciones: configuración de cámaras, IVS, grabación y cierre de ODS.</p>
+            <strong>Dashboard</strong>
           </a>
         </div>
 

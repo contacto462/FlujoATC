@@ -16,7 +16,7 @@
     });
 
     if (response.status === 401) {
-      window.location.href = "/login?next=/soporte";
+      window.location.href = "/login";
       const authError = new Error("Sesion expirada. Redirigiendo a login.");
       authError.silent = true;
       throw authError;
@@ -48,7 +48,12 @@
         body: formData,
       }),
     getUsuarioActual: (token) =>
-      request(`/api/usuario-actual?token=${encodeURIComponent(token || "")}`),
+      request("/api/usuario-actual").then((payload) => {
+        if (payload && typeof payload === "object") {
+          return payload.usuario || payload.name || payload.username || "Desconocido";
+        }
+        return payload || "Desconocido";
+      }),
     actualizarCelda: (fila, columna, valor, valorOriginal, extraPayload = {}) =>
       request("/api/incidencias/actualizar-celda", {
         method: "POST",

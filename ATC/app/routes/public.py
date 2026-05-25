@@ -1,5 +1,7 @@
 ﻿from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
@@ -25,7 +27,7 @@ from ATC.app.services.ticket_service import create_ticket_from_public
 
 
 router = APIRouter(prefix="/public", tags=["public"])
-templates = Jinja2Templates(directory="app/templates")
+templates = Jinja2Templates(directory=str(Path(__file__).resolve().parents[1] / "templates"))
 
 
 class PublicTicketCreate(BaseModel):

@@ -61,6 +61,7 @@ from ATC.app.core.security import create_access_token, verify_password
 
 from ATC.app.core.text import decode_mime_words
 from ATC.app.services.ticket_status_service import apply_ticket_status_change, mark_first_agent_reply
+from ATC.app.services.user_service import UserService
 from ATC.app.services.automation_service import RULE_EMAIL_AUTO_REPLY, send_initial_email_auto_reply
 from ATC.app.services.drive_report_service import (
     create_drive_report_for_odt,
@@ -99,14 +100,16 @@ from datetime import datetime, timezone, timedelta
 
 router = APIRouter(tags=["web"])
 
-_TEMPLATES_DIRS = ["app/templates"]
-_INCIDENCIAS_TEMPLATES = Path(__file__).resolve().parents[3] / "Incidencias" / "app" / "templates"
+_ATC_APP_DIR = Path(__file__).resolve().parents[1]
+_TEMPLATES_DIRS = [str(_ATC_APP_DIR / "templates")]
+_INCIDENCIAS_TEMPLATES = _ATC_APP_DIR.parent / "incidencias" / "app" / "templates"
 if _INCIDENCIAS_TEMPLATES.is_dir():
     _TEMPLATES_DIRS.append(str(_INCIDENCIAS_TEMPLATES))
 templates = Jinja2Templates(env=_Jinja2Env(loader=_FSLoader(_TEMPLATES_DIRS)))
 
 COOKIE_NAME = "access_token"
-EMAIL_ATTACHMENT_UPLOAD_ROOT = Path("uploads") / "ticket_replies"
+_UPLOADS_ROOT = _ATC_APP_DIR.parent / "uploads"
+EMAIL_ATTACHMENT_UPLOAD_ROOT = _UPLOADS_ROOT / "ticket_replies"
 MAX_EMAIL_ATTACHMENTS = 10
 MAX_EMAIL_ATTACHMENT_BYTES = 25 * 1024 * 1024
 MAX_EMAIL_TOTAL_ATTACHMENT_BYTES = 25 * 1024 * 1024
@@ -879,25 +882,106 @@ def _verify_web_password(plain_password: str, stored_password: str) -> bool:
     except Exception:
         return False
 
+DEPARTMENT_AREA_MAP = {
+    "soporte": [("soporte", "Soporte", "Soporte")],
+    "servicio tecnico": [("servicio_tecnico", "Servicio Tecnico", "Servicio Tecnico")],
+    "servicio técnico": [("servicio_tecnico", "Servicio Tecnico", "Servicio Tecnico")],
+    "operador": [
+        ("incidencias", "Operadores", "Operador"),
+        ("coordinacion", "Coordinacion", "Operador"),
+    ],
+    "comercial": [("venta", "Venta", "Comercial")],
+    "finanzas": [("finanzas", "Finanzas", "Finanzas")],
+    "administracion": [("administracion", "Administracion", "Administracion")],
+    "administración": [("administracion", "Administracion", "Administracion")],
+    "operaciones": [("operaciones", "Operaciones", "Operaciones")],
+}
+
+
+def _split_user_departments(value: str | None) -> list[str]:
+    raw = str(value or "").strip()
+    if not raw:
+        return []
+    parts = re.split(r"[;,|]+", raw)
+    return [p.strip() for p in parts if p.strip()]
+
+
+def _areas_from_departments(departments: list[str]) -> list[dict[str, object]]:
+    out: list[dict[str, object]] = []
+    seen: set[str] = set()
+    for dept in departments:
+        key = dept.strip().casefold()
+        for code, name, department in DEPARTMENT_AREA_MAP.get(key, []):
+            if code in seen:
+                continue
+            seen.add(code)
+            out.append(
+                {
+                    "area_code": code,
+                    "area_name": name,
+                    "department": department,
+                    "is_primary": len(out) == 0,
+                }
+            )
+    return out
+
+
 def _primary_user_area(db: Session, user_id: int) -> dict[str, object] | None:
-    row = db.execute(
-        text(
-            """
-            SELECT
-                a.code AS area_code,
-                a.department AS department,
-                ua.id AS user_area_id
-            FROM user_areas ua
-            JOIN areas a ON a.id = ua.area_id
-            WHERE ua.user_id = :user_id
-              AND a.is_active = TRUE
-            ORDER BY ua.is_primary DESC, ua.id ASC
-            LIMIT 1
-            """
-        ),
-        {"user_id": user_id},
-    ).mappings().first()
-    return dict(row) if row else None
+    areas = _active_user_areas(db, user_id)
+    return areas[0] if areas else None
+
+def _active_user_areas(db: Session, user_id: int) -> list[dict[str, object]]:
+    user = db.get(User, user_id)
+    if not user:
+        return []
+    return _areas_from_departments(_split_user_departments(user.department))
+
+def _area_card_options(areas: list[dict[str, object]]) -> list[dict[str, str]]:
+    labels = {
+        "soporte": ("Soporte Técnico", "Tickets, incidencias de soporte y cierres operativos.", "S"),
+        "servicio_tecnico": ("Servicio Técnico", "Panel de servicio, coordinacion y seguimiento tecnico.", "ST"),
+        "tecnicos": ("Tecnicos", "Cola de trabajo, rutas, evidencias y rendiciones.", "T"),
+        "incidencias": ("Operadores", "Operador", "OP"),
+        "coordinacion": ("Coordinación", "Gestion operativa y control de derivaciones.", "C"),
+        "venta": ("Venta", "Clientes, sucursales y ordenes de servicio.", "V"),
+        "finanzas": ("Finanzas", "Estados financieros y seguimiento de ODS.", "F"),
+        "administracion": ("Administración", "Control administrativo de ordenes y procesos.", "A"),
+        "operaciones": ("Operaciones", "Coordinacion interna y seguimiento operacional.", "O"),
+    }
+    out: list[dict[str, str]] = []
+    for area in areas:
+        code = str(area.get("area_code") or "").strip()
+        if code == "protocolos":
+            continue
+        fallback_name = str(area.get("area_name") or code or "Area").strip()
+        title, description, initials = labels.get(
+            code,
+            (fallback_name, str(area.get("department") or "Acceso habilitado").strip(), fallback_name[:2].upper()),
+        )
+        out.append(
+            {
+                "code": code,
+                "title": title,
+                "description": description,
+                "initials": initials,
+                "primary": "true" if area.get("is_primary") else "false",
+            }
+        )
+    return out
+
+def _redirect_for_authenticated_user(db: Session, user: User) -> RedirectResponse:
+    areas = _active_user_areas(db, user.id)
+    if len(areas) > 1:
+        return RedirectResponse(url="/seleccionar-area", status_code=303)
+    area_info = areas[0] if areas else None
+    session_token = _create_unified_login_session(db, user, area_info)
+    return RedirectResponse(
+        url=_redirect_for_user_area(area_info.get("area_code") if area_info else None, session_token),
+        status_code=303,
+    )
+
+def _user_has_area(db: Session, user_id: int, area_code: str) -> bool:
+    return any(str(area.get("area_code") or "") == area_code for area in _active_user_areas(db, user_id))
 
 def _create_unified_login_session(db: Session, user: User, area_info: dict[str, object] | None) -> str:
     token = str(uuid4())
@@ -906,13 +990,12 @@ def _create_unified_login_session(db: Session, user: User, area_info: dict[str, 
         text(
             """
             INSERT INTO login_sessions
-                (token, usuario, user_id, user_area_id, area_code, department, created_at, expires_at)
+                (token, usuario, user_id, area_code, department, created_at, expires_at)
             VALUES
-                (:token, :usuario, :user_id, :user_area_id, :area_code, :department, NOW(), :expires_at)
+                (:token, :usuario, :user_id, :area_code, :department, NOW(), :expires_at)
             ON CONFLICT (token) DO UPDATE
             SET usuario = EXCLUDED.usuario,
                 user_id = EXCLUDED.user_id,
-                user_area_id = EXCLUDED.user_area_id,
                 area_code = EXCLUDED.area_code,
                 department = EXCLUDED.department,
                 created_at = NOW(),
@@ -923,7 +1006,6 @@ def _create_unified_login_session(db: Session, user: User, area_info: dict[str, 
             "token": token,
             "usuario": user.name or user.username,
             "user_id": user.id,
-            "user_area_id": area_info.get("user_area_id") if area_info else None,
             "area_code": area_info.get("area_code") if area_info else None,
             "department": area_info.get("department") if area_info else None,
             "expires_at": expires_at,
@@ -940,8 +1022,10 @@ def _redirect_for_user_area(area_code: str | None, session_token: str) -> str:
     prefix = base if base else ""
     area = (area_code or "").strip()
     if area == "soporte":
-        return "/panel"
-    if area in {"servicio_tecnico", "tecnicos"}:
+        return "/panel?area=soporte"
+    if area == "servicio_tecnico":
+        return f"{prefix}/?form=panelSelectorServicio&token={session_token}&next=panelSelectorServicio"
+    if area == "tecnicos":
         return f"{prefix}/?form=panelSelectorServicio&token={session_token}&next=panelSelectorServicio"
     if area in {"coordinacion", "protocolos"}:
         return f"{prefix}/?form=panelSelectorCoordinacion&token={session_token}&next=panelSelectorCoordinacion"
@@ -984,7 +1068,7 @@ def get_current_user_web(
 
     username = _decode_cookie_token(token)
 
-    user = db.query(User).filter(User.username == username).first()
+    user = UserService.find_by_login(db, username)
 
     if not user or not user.is_active:
 
@@ -1033,14 +1117,9 @@ def login_page(request: Request, db: Session = Depends(get_db)):
     if token:
         try:
             username = _decode_cookie_token(token)
-            user = db.query(User).filter(User.username == username).first()
+            user = UserService.find_by_login(db, username)
             if user and user.is_active:
-                area_info = _primary_user_area(db, user.id)
-                session_token = _create_unified_login_session(db, user, area_info)
-                return RedirectResponse(
-                    url=_redirect_for_user_area(area_info.get("area_code") if area_info else None, session_token),
-                    status_code=303,
-                )
+                return _redirect_for_authenticated_user(db, user)
         except Exception:
             pass
 
@@ -1060,7 +1139,7 @@ def web_login(
 
 ):
 
-    user = db.query(User).filter(User.username == username).first()
+    user = UserService.find_by_login(db, username)
 
     if not user or not user.is_active or not _verify_web_password(password, user.hashed_password):
 
@@ -1078,11 +1157,7 @@ def web_login(
 
     token = create_access_token({"sub": user.username})
 
-    area_info = _primary_user_area(db, user.id)
-    session_token = _create_unified_login_session(db, user, area_info)
-    redirect_to = _redirect_for_user_area(area_info.get("area_code") if area_info else None, session_token)
-
-    return _set_web_cookie(RedirectResponse(url=redirect_to, status_code=303), token)
+    return _set_web_cookie(_redirect_for_authenticated_user(db, user), token)
 
 @router.get("/sso/login")
 def sso_login(
@@ -1096,12 +1171,12 @@ def sso_login(
     row = db.execute(
         text(
             """
-            SELECT u.username
+            SELECT u."user" AS username
             FROM login_sessions ls
             JOIN users u ON u.id = ls.user_id
             WHERE ls.token = :token
               AND ls.expires_at > NOW()
-              AND u.is_active = TRUE
+              AND u.is_activate = TRUE
             LIMIT 1
             """
         ),
@@ -1124,11 +1199,54 @@ def logout():
     return resp
 
 
+@router.get("/seleccionar-area", response_class=HTMLResponse)
+def seleccionar_area_page(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    areas = _active_user_areas(db, current_user.id)
+    if len(areas) <= 1:
+        return _redirect_for_authenticated_user(db, current_user)
+    return templates.TemplateResponse(
+        "area_choice.html",
+        {
+            "request": request,
+            "user": current_user,
+            "areas": _area_card_options(areas),
+        },
+    )
+
+
+@router.post("/seleccionar-area")
+def seleccionar_area(
+    area_code: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    selected = None
+    for area in _active_user_areas(db, current_user.id):
+        if str(area.get("area_code") or "") == str(area_code or "").strip():
+            selected = area
+            break
+    if not selected:
+        raise HTTPException(status_code=403, detail="No tienes acceso a esa area")
+    session_token = _create_unified_login_session(db, current_user, selected)
+    return RedirectResponse(
+        url=_redirect_for_user_area(str(selected.get("area_code") or ""), session_token),
+        status_code=303,
+    )
+
+
 @router.get("/panel", response_class=HTMLResponse)
 def launcher_panel(
     request: Request,
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
 ):
+    areas = _active_user_areas(db, current_user.id)
+    if len(areas) > 1 and request.query_params.get("area") != "soporte":
+        return RedirectResponse(url="/seleccionar-area", status_code=303)
     return templates.TemplateResponse(
         "panel_selector.html",
         {
@@ -2647,7 +2765,7 @@ async def soporte_cerrar_odt(
     sucursal_value = _support_pick(dict(incidencia_row), "sucursal", "cliente", "puesto")
 
     folder_safe = _support_safe_odt_path(odt_clean)
-    dest_dir = Path("uploads") / "incidencias" / folder_safe
+    dest_dir = _UPLOADS_ROOT / "incidencias" / folder_safe
     dest_dir.mkdir(parents=True, exist_ok=True)
 
     stored_urls: list[str] = []
@@ -6192,7 +6310,7 @@ async def st_ods_upload_imagenes(
     if not odt:
         raise HTTPException(status_code=400, detail="ODT requerido")
     folder_safe = re.sub(r"[^\w\-]", "_", odt)
-    dest_dir = Path("uploads") / "soporte_tecnico" / folder_safe
+    dest_dir = _UPLOADS_ROOT / "soporte_tecnico" / folder_safe
     dest_dir.mkdir(parents=True, exist_ok=True)
     saved: list[str] = []
     for f in archivos:

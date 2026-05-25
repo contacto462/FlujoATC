@@ -1,8 +1,9 @@
 ﻿from __future__ import annotations
 
+from datetime import datetime
 from typing import List
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, Boolean, Index
+from sqlalchemy import String, Boolean, DateTime, Index, func
 
 from ATC.app.core.db import Base
 
@@ -20,6 +21,7 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
 
     username: Mapped[str] = mapped_column(
+        "user",
         String(50),
         unique=True,
         index=True,
@@ -27,6 +29,7 @@ class User(Base):
     )
 
     hashed_password: Mapped[str] = mapped_column(
+        "password",
         String(255),
         nullable=False,
     )
@@ -42,10 +45,21 @@ class User(Base):
     # Valores permitidos: "admin" | "agent"
 
     is_active: Mapped[bool] = mapped_column(
+        "is_activate",
         Boolean,
         default=True,
         nullable=False,
     )
+
+    department: Mapped[str | None] = mapped_column(
+        "departament",
+        String(80),
+        nullable=True,
+        index=True,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
     # =========================
     # ðŸ”— RELACIONES

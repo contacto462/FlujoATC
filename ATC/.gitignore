@@ -1,6 +1,7 @@
 .env
 *.json
 *.db
+*.csv
 __pycache__/
 *.pyc
 

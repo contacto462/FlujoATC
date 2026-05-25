@@ -13,7 +13,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 ROOT = Path(__file__).resolve().parents[1]
 ATC_ENV = ROOT / "ATC" / ".env"
-INC_ENV = ROOT / "Incidencias" / ".env"
+INC_ENV = ROOT / "ATC" / "incidencias" / ".env"
 
 
 @dataclass(frozen=True)

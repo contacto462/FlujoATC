@@ -10,20 +10,13 @@ engine = create_engine(
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 # AJUSTE SOPORTE REGISTRO SQL #
-incidencias_engine = (
-    create_engine(
-        settings.INCIDENCIAS_DATABASE_URL,
-        pool_pre_ping=True,
-        connect_args={"connect_timeout": 2},
-    )
-    if settings.INCIDENCIAS_DATABASE_URL
-    else None
+_INCIDENCIAS_DATABASE_URL = settings.INCIDENCIAS_DATABASE_URL or settings.DATABASE_URL
+incidencias_engine = create_engine(
+    _INCIDENCIAS_DATABASE_URL,
+    pool_pre_ping=True,
+    connect_args={"connect_timeout": 2},
 )
-IncidenciasSessionLocal = (
-    sessionmaker(bind=incidencias_engine, autoflush=False, autocommit=False)
-    if incidencias_engine is not None
-    else None
-)
+IncidenciasSessionLocal = sessionmaker(bind=incidencias_engine, autoflush=False, autocommit=False)
 
 class Base(DeclarativeBase):
     pass
@@ -37,8 +30,6 @@ def get_db():
 
 # AJUSTE SOPORTE REGISTRO SQL #
 def get_incidencias_db():
-    if IncidenciasSessionLocal is None:
-        raise RuntimeError('# AJUSTE SOPORTE REGISTRO SQL # INCIDENCIAS_DATABASE_URL no configurada.')
     db = IncidenciasSessionLocal()
     try:
         yield db

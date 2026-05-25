@@ -2,10 +2,10 @@
 
 ## Entry point
 
-La aplicacion unificada se levanta desde la raiz del repo:
+La aplicacion modular unificada se levanta desde la raiz del repo:
 
 ```powershell
-ATC\.venv\Scripts\python.exe -m uvicorn unified_main:app --host 127.0.0.1 --port 8000
+ATC\.venv\Scripts\python.exe -m uvicorn ATC.app.main:app --host 127.0.0.1 --port 8000
 ```
 
 URL local:
@@ -16,13 +16,15 @@ http://127.0.0.1:8000/
 
 ## Que hace
 
-`unified_main.py` corre Helpdesk e Incidencias en el mismo proceso y puerto.
-El despachador envia cada ruta al modulo correcto:
+`ATC.app.main` es ahora la unica instancia FastAPI.
+Helpdesk, Incidencias y Venta se registran como modulos dentro de esa app:
 
 - `/`, `/venta/*`, `/servicio/*` y APIs operativas -> Incidencias/Venta.
 - `/panel`, `/dashboard`, `/soporte`, `/tabla-soporte` y tickets -> Helpdesk.
-- `/static/*` se resuelve entre ambos proyectos segun exista el archivo.
+- `/static/*` y `/uploads/*` se resuelven desde una capa comun con fallback entre carpetas.
 - `/login` redirige al login unico `/?form=login&next=auto`.
+
+`unified_main.py` queda como alias de compatibilidad y expone el mismo `app`.
 
 ## Importante
 
@@ -30,7 +32,6 @@ Los paquetes ya no deben depender del nombre generico `app`.
 Los imports ahora son namespaced:
 
 - `ATC.app...`
-- `Incidencias.app...`
+- `ATC.incidencias.app...`
 
-Esto permite que ambos proyectos convivan dentro del mismo interprete Python.
-
+Esto permite que todo conviva como un solo proyecto Python modular.
