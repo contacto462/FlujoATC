@@ -866,3 +866,162 @@ INFO:     127.0.0.1:52847 - "GET /api/registros/tabla HTTP/1.1" 200 OK
 INFO:     127.0.0.1:52848 - "GET /api/registros/tabla HTTP/1.1" 200 OK
 INFO:     127.0.0.1:52893 - "GET /api/registros/tabla HTTP/1.1" 200 OK
 INFO:     127.0.0.1:52894 - "GET /api/registros/tabla HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52936 - "GET /api/registros/tabla HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52938 - "GET /soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52938 - "GET /api/listas-bbdd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52938 - "GET /api/registros/tabla HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52938 - "GET /api/usuario-actual HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52938 - "GET /api/registros/tabla HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52938 - "GET /api/registros/tabla HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52938 - "GET /api/registros/tabla HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52938 - "GET /api/registros/tabla HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52938 - "GET /api/registros/tabla HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53015 - "GET /api/registros/tabla HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53016 - "GET /api/client-notes?client=A.fram%20Valpo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53016 - "GET /panel HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:53016 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53080 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:53080 - "GET /?form=panelSelectorServicio&token=49677750-34a1-4707-8500-0f0bd90d6ea7&next=panelSelectorServicio HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53095 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:53095 - "GET /panel?area=soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53095 - "GET /soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53100 - "GET /api/usuario-actual HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53095 - "GET /api/registros/tabla HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53100 - "GET /api/listas-bbdd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53100 - "GET /tabla-soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53100 - "GET /api/soporte-tecnico/ods-filas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53100 - "GET /dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53106 - "GET /dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53106 - "GET /dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53106 - "GET /dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53106 - "GET /dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53106 - "GET /dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53106 - "GET /dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53253 - "GET /dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53253 - "GET /dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53253 - "GET /dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53342 - "GET /dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53342 - "GET /dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53346 - "GET /dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53346 - "GET /dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53346 - "GET /dashboard?page=11 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53346 - "GET /dashboard?page=6 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53346 - "GET /dashboard?page=5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53346 - "GET /dashboard?page=4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53346 - "GET /dashboard?page=6 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53363 - "GET /dashboard?page=6 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53363 - "GET /etapa HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53363 - "GET /panel HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:53363 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53363 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:53363 - "GET /panel?area=soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53363 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:53363 - "GET /?form=panelSelectorServicio&token=d59a8c0f-429d-4f01-979f-a6e9dcac7b29&next=panelSelectorServicio HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53496 - "GET /?form=panelSelectorServicio&token=866acc09-96a5-427c-99bf-fc7d09401ebc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53495 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:53495 - "GET /?form=panelSelector&token=d8282db3-9bb0-437e-a38d-368eb64f25f9&next=panelSelector HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53495 - "GET /?form=incidencias&token=d8282db3-9bb0-437e-a38d-368eb64f25f9 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53495 - "GET /api/listas/incidencias HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53497 - "GET /api/contactos/sucursal HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53497 - "GET /api/incidencias/puesto HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53526 - "GET /?form=panelSelectorServicio&token=866acc09-96a5-427c-99bf-fc7d09401ebc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53526 - "GET /?form=panelSelectorServicio&token=866acc09-96a5-427c-99bf-fc7d09401ebc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53526 - "GET /?form=panelSelectorServicio&token=866acc09-96a5-427c-99bf-fc7d09401ebc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53527 - "GET /?form=panelSelectorServicio&token=866acc09-96a5-427c-99bf-fc7d09401ebc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53528 - "GET /?form=panelSelectorServicio&token=866acc09-96a5-427c-99bf-fc7d09401ebc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53528 - "GET /?form=panelSelectorServicio&token=866acc09-96a5-427c-99bf-fc7d09401ebc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53574 - "GET /?form=servicioTecnico&token=866acc09-96a5-427c-99bf-fc7d09401ebc HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53574 - "GET /api/incidencias/puesto HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53574 - "GET /?form=panelSelectorServicio&token=866acc09-96a5-427c-99bf-fc7d09401ebc&next=panelSelectorServicio HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53574 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53574 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:53574 - "GET /panel?area=soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53574 - "GET /panel-indicadores HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53574 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:53574 - "GET /?form=panelSelectorServicio&token=d3672cb6-8ac4-418c-b8fa-4019a702a5fd&next=panelSelectorServicio HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53592 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:53592 - "GET /panel?area=soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53628 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:53628 - "GET /?form=panelSelectorServicio&token=d7764d9a-ace3-4c88-8137-cebef6a43d91&next=panelSelectorServicio HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53638 - "GET /?form=panelSelectorServicio&token=d7764d9a-ace3-4c88-8137-cebef6a43d91&next=panelSelectorServicio HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53651 - "GET /?form=TablaServicioTecnico&token=d7764d9a-ace3-4c88-8137-cebef6a43d91 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53651 - "GET /api/venta/servicio-tecnico-ods?token=d7764d9a-ace3-4c88-8137-cebef6a43d91 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53651 - "GET /?form=panelSelectorServicio&token=d7764d9a-ace3-4c88-8137-cebef6a43d91&next=panelSelectorServicio HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53651 - "GET /?form=rendiciones&token=d7764d9a-ace3-4c88-8137-cebef6a43d91 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53651 - "GET /api/usuario-actual?token=d7764d9a-ace3-4c88-8137-cebef6a43d91 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53651 - "GET /?form=login&next=auto HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53651 - "GET /?form=rendiciones&token=d7764d9a-ace3-4c88-8137-cebef6a43d91 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53651 - "GET /?form=login&next=auto HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53651 - "GET /?form=panelSelectorServicio&token=d7764d9a-ace3-4c88-8137-cebef6a43d91&next=panelSelectorServicio HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53651 - "GET /?form=rendiciones&token=d7764d9a-ace3-4c88-8137-cebef6a43d91 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53651 - "GET /api/usuario-actual?token=d7764d9a-ace3-4c88-8137-cebef6a43d91 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53651 - "GET /?form=login&next=auto HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53656 - "POST /api/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53656 - "GET /sso/login?token=31a03771-0e54-4a58-ad54-ebd76c195a18 HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:53656 - "GET /panel HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:53656 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53656 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:53656 - "GET /?form=panelSelectorServicio&token=3c145cd8-e2d1-4484-84c7-16c6e90babe8&next=panelSelectorServicio HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53656 - "GET /?form=rendiciones&token=3c145cd8-e2d1-4484-84c7-16c6e90babe8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53656 - "GET /api/usuario-actual?token=3c145cd8-e2d1-4484-84c7-16c6e90babe8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53656 - "GET /?form=login&next=auto HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53753 - "GET /?form=rendiciones&token=3c145cd8-e2d1-4484-84c7-16c6e90babe8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53753 - "GET /?form=login&next=auto HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53753 - "GET /?form=panelSelectorServicio&token=3c145cd8-e2d1-4484-84c7-16c6e90babe8&next=panelSelectorServicio HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53753 - "GET /?form=panelSelectorServicio&token=3c145cd8-e2d1-4484-84c7-16c6e90babe8&next=panelSelectorServicio HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53753 - "GET /?form=servicioTecnico&token=3c145cd8-e2d1-4484-84c7-16c6e90babe8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53754 - "GET /api/listas/incidencias HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53756 - "GET /api/contactos/sucursal HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53753 - "GET /api/listas/bbdd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53753 - "GET /api/incidencias/puesto HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53771 - "GET /api/client-notes?client=Imq%20CIAM HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53771 - "GET /api/client-notes?client=Imq%20Deportes-%20Gimnasio%20Municipal HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53771 - "GET /api/client-notes?client=Impuesto%20Territorial%20ex%20Seguridad%20P%C3%BAblica HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53771 - "POST /api/incidencias/derivar-tecnico HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53771 - "GET /api/client-notes?client=TodosA.fram%20Vi%C3%B1aCesfam%20Llay%20LlayClub%204%20PadelFelipe%20Mora%20ATCFernando%20LubianoGagIMQ%20Centro%20CulturalIMQ%20FeriaIMQ%20ZoologicoImpuesto%20Territorial%20ex%20Seguridad%20P%C3%BAblicaImq%20CIAMImq%20Carozzi%202%20Dideco%2Fsecpla%2FobrasImq%20Centro%20Pr%C3%A1cticasImq%20Consistorial%20NuevoImq%20Deportes-%20Gimnasio%20MunicipalImq%20Derecho%20-%20Carozzi%203Imq%20Desarrollo%20economico%20-%20ex%20bibliotecaImq%20Estadio%20V.%20OlimpicaImq%20JuzgadoImq%20Oficina%20Ni%C3%B1ezImq%20Oficina%20persona%20mayoresImq%20OperacionesImq%20Pisc.%20Bto.%20NorteImq%20Pisc.%20Bto.%20SurImq%20Piscina%20V.%20OlimpicaImq%20Teatro%20Municipal%20-%20Direcci%C3%B3n%20CulturaImq%20Tr%C3%A1nsito%20y%20Transporte%20p%C3%BAblico%20-%20deleg%20el%20BellotoImq%20UncoImq%20VepP%20Lub HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53771 - "GET /api/client-notes?client=Imq%20Carozzi%202%20Dideco%2Fsecpla%2Fobras HTTP/1.1" 200 OK
+Email procesado -> Ticket #303 (UID 2835)
+INFO:     127.0.0.1:53772 - "GET /api/client-notes?client=Impuesto%20Territorial%20ex%20Seguridad%20P%C3%BAblica HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53772 - "POST /api/incidencias/derivar-tecnico HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53772 - "GET /api/client-notes?client=Imq%20Centro%20Pr%C3%A1cticas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53772 - "GET /api/client-notes?client=TodosA.fram%20Vi%C3%B1aCesfam%20Llay%20LlayClub%204%20PadelFelipe%20Mora%20ATCFernando%20LubianoGagIMQ%20Centro%20CulturalIMQ%20FeriaIMQ%20ZoologicoImpuesto%20Territorial%20ex%20Seguridad%20P%C3%BAblicaImq%20CIAMImq%20Carozzi%202%20Dideco%2Fsecpla%2FobrasImq%20Centro%20Pr%C3%A1cticasImq%20Consistorial%20NuevoImq%20Deportes-%20Gimnasio%20MunicipalImq%20Derecho%20-%20Carozzi%203Imq%20Desarrollo%20economico%20-%20ex%20bibliotecaImq%20Estadio%20V.%20OlimpicaImq%20JuzgadoImq%20Oficina%20Ni%C3%B1ezImq%20Oficina%20persona%20mayoresImq%20OperacionesImq%20Pisc.%20Bto.%20NorteImq%20Pisc.%20Bto.%20SurImq%20Piscina%20V.%20OlimpicaImq%20Teatro%20Municipal%20-%20Direcci%C3%B3n%20CulturaImq%20Tr%C3%A1nsito%20y%20Transporte%20p%C3%BAblico%20-%20deleg%20el%20BellotoImq%20UncoImq%20VepP%20Lub HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53793 - "GET /api/incidencias/puesto HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53793 - "GET /api/client-notes?client=Impuesto%20Territorial%20ex%20Seguridad%20P%C3%BAblica HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53793 - "GET /?form=servicioTecnico&token=3c145cd8-e2d1-4484-84c7-16c6e90babe8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53793 - "GET /api/listas/bbdd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53793 - "GET /api/listas/incidencias HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53793 - "GET /api/contactos/sucursal HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53793 - "GET /api/incidencias/puesto HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53793 - "GET /?form=panelSelectorServicio&token=3c145cd8-e2d1-4484-84c7-16c6e90babe8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53793 - "GET /?form=panelSelectorServicio&token=3c145cd8-e2d1-4484-84c7-16c6e90babe8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53817 - "GET /api/usuario-actual?token=d7764d9a-ace3-4c88-8137-cebef6a43d91 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53819 - "GET /api/usuario-actual?token=3c145cd8-e2d1-4484-84c7-16c6e90babe8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53807 - "GET /servicio/indicadores?token=3c145cd8-e2d1-4484-84c7-16c6e90babe8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53807 - "GET /api/servicio/kpis-data HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53834 - "GET /api/usuario-actual?token=d59a8c0f-429d-4f01-979f-a6e9dcac7b29 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53836 - "GET /?form=rendiciones&token=d59a8c0f-429d-4f01-979f-a6e9dcac7b29 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53942 - "GET /resumen-equipos-tecnicos HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53973 - "GET /api/rendiciones?pendientes=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53975 - "GET /api/rendiciones?pendientes=true&token=d59a8c0f-429d-4f01-979f-a6e9dcac7b29 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53977 - "GET /api/rendiciones?pendientes=true&token=d59a8c0f-429d-4f01-979f-a6e9dcac7b29 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53943 - "GET /?form=panelSelectorServicio&token=3c145cd8-e2d1-4484-84c7-16c6e90babe8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53943 - "GET /?form=panelSelectorServicio&token=3c145cd8-e2d1-4484-84c7-16c6e90babe8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53943 - "GET /?form=rendiciones&token=3c145cd8-e2d1-4484-84c7-16c6e90babe8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53943 - "GET /api/usuario-actual?token=3c145cd8-e2d1-4484-84c7-16c6e90babe8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53943 - "GET /?form=login&next=auto HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53943 - "GET /?form=rendiciones&token=3c145cd8-e2d1-4484-84c7-16c6e90babe8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53943 - "GET /?form=login&next=auto HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53943 - "GET /?form=panelSelectorServicio&token=3c145cd8-e2d1-4484-84c7-16c6e90babe8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53943 - "GET /?form=servicioTecnico&token=3c145cd8-e2d1-4484-84c7-16c6e90babe8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53943 - "GET /api/incidencias/puesto HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53943 - "GET /?form=panelSelectorServicio&token=3c145cd8-e2d1-4484-84c7-16c6e90babe8&next=panelSelectorServicio HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53943 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53943 - "GET /?form=login&next=auto HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53943 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:53943 - "GET /?form=panelSelectorCoordinacion&token=b6cc9366-c2c4-4456-be1a-5679c2c1e001&next=panelSelectorCoordinacion HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53943 - "GET /?form=tablaProtocolos&token=b6cc9366-c2c4-4456-be1a-5679c2c1e001 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53943 - "GET /api/protocolos/registros?limit=1000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54018 - "GET /?form=panelSelectorCoordinacion&token=b6cc9366-c2c4-4456-be1a-5679c2c1e001&next=panelSelectorCoordinacion HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54018 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:54018 - "GET /?form=panelSelectorServicio&token=aa936ed6-5874-46e7-ba29-105e6d26be9d&next=panelSelectorServicio HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54050 - "GET /api/usuario-actual?token=3c145cd8-e2d1-4484-84c7-16c6e90babe8 HTTP/1.1" 200 OK
