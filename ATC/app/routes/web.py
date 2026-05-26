@@ -972,6 +972,26 @@ def _area_card_options(areas: list[dict[str, object]]) -> list[dict[str, str]]:
         )
     return out
 
+
+@router.get("/resumen-equipos-tecnicos", response_class=HTMLResponse)
+def resumen_equipos_tecnicos_page(
+    request: Request,
+    db: Session = Depends(get_incidencias_db),
+):
+    resumen = IncidenciasService(db).obtener_resumen_equipos_tecnicos_hoy()
+    resp = templates.TemplateResponse(
+        "resumen_equipos_tecnicos.html",
+        {
+            "request": request,
+            "resumen": resumen,
+        },
+    )
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
+
+
 def _redirect_for_authenticated_user(db: Session, user: User) -> RedirectResponse:
     areas = _active_user_areas(db, user.id)
     if len(areas) > 1:
