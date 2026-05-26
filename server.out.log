@@ -91,3 +91,4 @@ INFO:     127.0.0.1:53774 - "GET /resumen-equipos-tecnicos HTTP/1.1" 200 OK
 INFO:     127.0.0.1:53799 - "GET /resumen-equipos-tecnicos HTTP/1.1" 200 OK
 INFO:     127.0.0.1:53826 - "GET /resumen-equipos-tecnicos HTTP/1.1" 200 OK
 INFO:     127.0.0.1:53846 - "GET /resumen-equipos-tecnicos HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53871 - "GET /resumen-equipos-tecnicos HTTP/1.1" 200 OK
