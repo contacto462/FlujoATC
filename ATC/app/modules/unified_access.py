@@ -52,12 +52,12 @@ def usuario_actual_unificado(
     token: str = Query(default=""),
     db: Session = Depends(get_db),
 ):
-    web_user_name = _web_user_name_from_cookie(request, db)
-    if web_user_name:
-        return JSONResponse(web_user_name)
-
     token = (token or "").strip()
     if token:
         return {"usuario": _incidencias_user_name_from_token(token)}
+
+    web_user_name = _web_user_name_from_cookie(request, db)
+    if web_user_name:
+        return {"usuario": web_user_name}
 
     return {"usuario": "Desconocido"}
