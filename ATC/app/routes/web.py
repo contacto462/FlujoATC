@@ -886,6 +886,8 @@ DEPARTMENT_AREA_MAP = {
     "soporte": [("soporte", "Soporte", "Soporte")],
     "servicio tecnico": [("servicio_tecnico", "Servicio Tecnico", "Servicio Tecnico")],
     "servicio técnico": [("servicio_tecnico", "Servicio Tecnico", "Servicio Tecnico")],
+    "tecnicos": [("tecnicos", "Tecnicos", "Tecnicos")],
+    "técnicos": [("tecnicos", "Tecnicos", "Tecnicos")],
     "operador": [
         ("incidencias", "Operadores", "Operador"),
         ("coordinacion", "Coordinacion", "Operador"),
@@ -1026,7 +1028,7 @@ def _redirect_for_user_area(area_code: str | None, session_token: str) -> str:
     if area == "servicio_tecnico":
         return f"{prefix}/?form=panelSelectorServicio&token={session_token}&next=panelSelectorServicio"
     if area == "tecnicos":
-        return f"{prefix}/?form=panelSelectorServicio&token={session_token}&next=panelSelectorServicio"
+        return f"{prefix}/?form=tecnicos&token={session_token}&next=tecnicos"
     if area in {"coordinacion", "protocolos"}:
         return f"{prefix}/?form=panelSelectorCoordinacion&token={session_token}&next=panelSelectorCoordinacion"
     if area == "venta":
