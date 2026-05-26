@@ -163,7 +163,7 @@ def ensure_users_unified_columns():
             }
             for column_name, column_type in additions.items():
                 if column_name not in column_names:
-                    nullable_default = " DEFAULT 'plain:123456'" if column_name == "password" else ""
+                    nullable_default = " DEFAULT '$2b$12$11IAjAQbjYhCCxKc4Qo0zu2rcMO1U5BHQrK.Z1vNoqYckEd3SHzYq'" if column_name == "password" else ""
                     conn.execute(text(f'ALTER TABLE users ADD COLUMN "{column_name}" {column_type}{nullable_default}'))
                     column_names.add(column_name)
     except Exception as e:
