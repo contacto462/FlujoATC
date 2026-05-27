@@ -89,6 +89,7 @@ from ATC.app.models.internal_chat_read_state import InternalChatReadState
 from ATC.app.models.ticket_alert_read_state import TicketAlertReadState
 from ATC.app.models.ticket_message_read_state import TicketMessageReadState
 from ATC.app.models.ticket_internal_note_read_state import TicketInternalNoteReadState
+from ATC.app.models.requester_internal_note_read_state import RequesterInternalNoteReadState
 
 from ATC.app.models.user import User
 
@@ -4123,14 +4124,17 @@ def ticket_detail(
         preferred=ticket.requester,
     )
     total_internal_notes = len(requester_notes)
-    internal_note_state = (
-        db.query(TicketInternalNoteReadState)
-        .filter(
-            TicketInternalNoteReadState.user_id == current_user.id,
-            TicketInternalNoteReadState.ticket_id == ticket.id,
+    requester_id = int(ticket.requester_id or 0)
+    internal_note_state = None
+    if requester_id:
+        internal_note_state = (
+            db.query(RequesterInternalNoteReadState)
+            .filter(
+                RequesterInternalNoteReadState.user_id == current_user.id,
+                RequesterInternalNoteReadState.requester_id == requester_id,
+            )
+            .first()
         )
-        .first()
-    )
     seen_internal_notes = int(internal_note_state.last_seen_note_count or 0) if internal_note_state else 0
     unseen_internal_notes = 0
     if total_internal_notes > seen_internal_notes:
@@ -4502,6 +4506,7 @@ def mark_internal_notes_as_read(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
 ):
+    _require_area_access(db, current_user, "soporte")
     ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
@@ -4513,18 +4518,21 @@ def mark_internal_notes_as_read(
     )
     note_count = len(notes)
 
+    requester_id = int(ticket.requester_id or 0)
+    if not requester_id:
+        raise HTTPException(status_code=400, detail="Ticket sin cliente asociado.")
     read_state = (
-        db.query(TicketInternalNoteReadState)
+        db.query(RequesterInternalNoteReadState)
         .filter(
-            TicketInternalNoteReadState.user_id == current_user.id,
-            TicketInternalNoteReadState.ticket_id == ticket_id,
+            RequesterInternalNoteReadState.user_id == current_user.id,
+            RequesterInternalNoteReadState.requester_id == requester_id,
         )
         .first()
     )
     if read_state is None:
-        read_state = TicketInternalNoteReadState(
+        read_state = RequesterInternalNoteReadState(
             user_id=current_user.id,
-            ticket_id=ticket_id,
+            requester_id=requester_id,
             last_seen_note_count=note_count,
         )
         db.add(read_state)

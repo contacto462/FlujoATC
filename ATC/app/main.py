@@ -21,6 +21,7 @@ from ATC.app.models.internal_chat_read_state import InternalChatReadState  # noq
 from ATC.app.models.ticket_alert_read_state import TicketAlertReadState  # noqa
 from ATC.app.models.ticket_message_read_state import TicketMessageReadState  # noqa
 from ATC.app.models.ticket_internal_note_read_state import TicketInternalNoteReadState  # noqa
+from ATC.app.models.requester_internal_note_read_state import RequesterInternalNoteReadState  # noqa
 from ATC.app.models.requester import Requester  # noqa
 from ATC.app.models.ticket_history import TicketAssignmentHistory  # noqa
 from ATC.app.models.email_sync_state import EmailSyncState  # noqa
