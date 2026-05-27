@@ -673,3 +673,31 @@ INFO:     127.0.0.1:49595 - "GET /?form=coordinacion&token=c34d660b-d7f1-46b1-88
 INFO:     127.0.0.1:49595 - "GET /api/derivaciones HTTP/1.1" 200 OK
 INFO:     127.0.0.1:49596 - "GET /api/contactos/sucursal HTTP/1.1" 200 OK
 INFO:     127.0.0.1:49598 - "GET /api/listas/bbdd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49663 - "GET /?form=coordinacion&token=c34d660b-d7f1-46b1-8868-8ec7dcdf7b8b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49672 - "GET /api/derivaciones HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49670 - "GET /api/contactos/sucursal HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49663 - "GET /api/listas/bbdd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49683 - "GET /api/client-notes?client=TodosA.fram%20Vi%C3%B1aCesfam%20Llay%20LlayClub%204%20PadelFelipe%20Mora%20ATCFernando%20LubianoGagIMQ%20Centro%20CulturalIMQ%20FeriaIMQ%20ZoologicoImpuesto%20Territorial%20ex%20Seguridad%20P%C3%BAblicaImq%20CIAMImq%20Carozzi%202%20Dideco%2Fsecpla%2FobrasImq%20Centro%20Pr%C3%A1cticasImq%20Consistorial%20NuevoImq%20Deportes-%20Gimnasio%20MunicipalImq%20Derecho%20-%20Carozzi%203Imq%20Desarrollo%20economico%20-%20ex%20bibliotecaImq%20Estadio%20V.%20OlimpicaImq%20JuzgadoImq%20Oficina%20Ni%C3%B1ezImq%20Oficina%20persona%20mayoresImq%20OperacionesImq%20Pisc.%20Bto.%20NorteImq%20Pisc.%20Bto.%20SurImq%20Piscina%20V.%20OlimpicaImq%20Teatro%20Municipal%20-%20Direcci%C3%B3n%20CulturaImq%20Tr%C3%A1nsito%20y%20Transporte%20p%C3%BAblico%20-%20deleg%20el%20BellotoImq%20UncoImq%20VepP%20Lub HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49684 - "GET /api/client-notes?client=Imq%20Derecho%20-%20Carozzi%203 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49684 - "GET /api/incidencias/imagenes-tabla?odt=M6 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50118 - "GET /?form=servicioTecnico&token=b69a8dd1-da9d-4a2f-a7f5-e49afefc0bed HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50121 - "GET /api/listas/incidencias HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50119 - "GET /api/contactos/sucursal HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50118 - "GET /api/listas/bbdd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50118 - "GET /api/incidencias/puesto HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50118 - "GET /api/client-notes?client=Impuesto%20Territorial%20ex%20Seguridad%20P%C3%BAblica HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50119 - "GET /api/incidencias/imagenes-tabla?odt=M39 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50161 - "GET /?form=panelSelectorServicio&token=b69a8dd1-da9d-4a2f-a7f5-e49afefc0bed HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50161 - "GET /?form=servicioTecnico&token=b69a8dd1-da9d-4a2f-a7f5-e49afefc0bed HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50162 - "GET /?form=panelSelectorServicio&token=b69a8dd1-da9d-4a2f-a7f5-e49afefc0bed&next=panelSelectorServicio HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50161 - "GET /api/incidencias/puesto HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50161 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50163 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:50163 - "GET /?form=panelSelectorServicio&token=c1a5a87c-2c49-49b9-9b73-3b7a7a5093e6&next=panelSelectorServicio HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50178 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:50178 - "GET /venta/panel-selector?token=73250bfc-6469-48c9-9652-98e10ff65610&next=panelSelectorVenta HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50178 - "GET /venta/clientes?token=73250bfc-6469-48c9-9652-98e10ff65610 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50182 - "GET /api/venta/catalogo/regiones?token=73250bfc-6469-48c9-9652-98e10ff65610 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50178 - "GET /api/venta/usuario-actual?token=73250bfc-6469-48c9-9652-98e10ff65610 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50344 - "GET /venta/bbdd-clientes?token=73250bfc-6469-48c9-9652-98e10ff65610 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50344 - "GET /api/venta/clientes/tabla?token=73250bfc-6469-48c9-9652-98e10ff65610 HTTP/1.1" 200 OK
