@@ -82,13 +82,10 @@ from ATC.app.models.ticket import Ticket
 
 from ATC.app.models.message import Message
 
-from ATC.app.models.internal_chat_message import InternalChatMessage
-
-from ATC.app.models.internal_chat_read_state import InternalChatReadState
-
 from ATC.app.models.ticket_alert_read_state import TicketAlertReadState
 from ATC.app.models.ticket_message_read_state import TicketMessageReadState
 from ATC.app.models.ticket_internal_note_read_state import TicketInternalNoteReadState
+from ATC.app.models.ticket_manual_unread import TicketManualUnread
 from ATC.app.models.requester_internal_note_read_state import RequesterInternalNoteReadState
 
 from ATC.app.models.user import User
