@@ -328,3 +328,76 @@ INFO:     127.0.0.1:54850 - "GET /?form=envioProtocolosSemanales&token=518a5c67-
 INFO:     127.0.0.1:54850 - "GET /api/protocolos/informes?tipo_informe=SEMANAL&limit=300 HTTP/1.1" 200 OK
 INFO:     127.0.0.1:54923 - "GET /?form=envioProtocolosSemanales&token=518a5c67-4727-4bf3-9530-a04750478f59 HTTP/1.1" 200 OK
 INFO:     127.0.0.1:54923 - "GET /api/protocolos/informes?tipo_informe=SEMANAL&limit=300 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54942 - "GET /?form=envioProtocolosSemanales&token=518a5c67-4727-4bf3-9530-a04750478f59 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54942 - "GET /api/protocolos/informes?tipo_informe=SEMANAL&limit=300 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54942 - "GET /api/protocolos/informes/30/contactos HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54977 - "GET /api/protocolos/informes/20/contactos HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54977 - "GET /api/protocolos/informes/18/contactos HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54977 - "GET /api/protocolos/informes/17/contactos HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54977 - "GET /api/protocolos/informes/16/contactos HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55008 - "POST /api/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55008 - "GET /sso/login?token=4dd3c2a4-db5a-401e-8a0c-111a54abcf12 HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:55008 - "GET /panel HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:55008 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55008 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:55008 - "GET /?form=panelSelectorCoordinacion&token=aab3e9e7-af73-4a3e-ad4f-c12c7a70e513&next=panelSelectorCoordinacion HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55008 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:55008 - "GET /?form=panelSelector&token=fa35adc0-8231-4152-b427-fe0807eee8eb&next=panelSelector HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55008 - "GET /?form=controlProtocolos&token=fa35adc0-8231-4152-b427-fe0807eee8eb HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55008 - "GET /api/protocolos/listas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55050 - "POST /api/protocolos/registro HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:55009 - "POST /api/protocolos/registro HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:55069 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55069 - "POST /api/protocolos/registro HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:55070 - "GET /api/protocolos/registros?limit=0 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55070 - "GET /?form=panelSelector&token=fa35adc0-8231-4152-b427-fe0807eee8eb HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55070 - "GET /?form=controlProtocolos&token=fa35adc0-8231-4152-b427-fe0807eee8eb HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55070 - "GET /api/protocolos/listas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55092 - "GET /?form=panelSelectorCoordinacion&token=518a5c67-4727-4bf3-9530-a04750478f59 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55092 - "GET /?form=tablaProtocolos&token=518a5c67-4727-4bf3-9530-a04750478f59 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55092 - "GET /api/protocolos/registros?limit=1000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55092 - "GET /?form=panelSelectorCoordinacion&token=518a5c67-4727-4bf3-9530-a04750478f59 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55108 - "GET /?form=envioProtocolosSemanales&token=518a5c67-4727-4bf3-9530-a04750478f59 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55108 - "GET /api/protocolos/informes?tipo_informe=SEMANAL&limit=300 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55163 - "GET /api/protocolos/informes/30/contactos HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55217 - "GET /api/protocolos/informes/30/contactos HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55233 - "GET /api/protocolos/informes/30/contactos HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55232 - "GET /api/contactos/sucursal HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55218 - "GET /resumen-equipos-tecnicos HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55246 - "GET /?form=envioProtocolosSemanales&token=518a5c67-4727-4bf3-9530-a04750478f59 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55246 - "GET /api/protocolos/informes?tipo_informe=SEMANAL&limit=300 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55246 - "GET /api/protocolos/informes/30/contactos HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55246 - "GET /?form=envioProtocolosSemanales&token=518a5c67-4727-4bf3-9530-a04750478f59 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55246 - "GET /api/protocolos/informes?tipo_informe=SEMANAL&limit=300 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55246 - "GET /?form=envioProtocolosSemanales&token=518a5c67-4727-4bf3-9530-a04750478f59 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55246 - "GET /api/protocolos/informes?tipo_informe=SEMANAL&limit=300 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55246 - "GET /api/protocolos/informes/30/contactos HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55246 - "GET /api/contactos/sucursal HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55246 - "GET /api/protocolos/informes/29/contactos HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55246 - "GET /api/contactos/sucursal HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55258 - "GET /api/protocolos/informes/20/contactos HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55258 - "GET /api/contactos/sucursal HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55258 - "GET /api/protocolos/informes/30/contactos HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55258 - "GET /api/contactos/sucursal HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55398 - "GET /?form=envioProtocolosSemanales&token=518a5c67-4727-4bf3-9530-a04750478f59 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55398 - "GET /api/protocolos/informes?tipo_informe=SEMANAL&limit=300 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55398 - "GET /?form=envioProtocolosSemanales&token=518a5c67-4727-4bf3-9530-a04750478f59 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55398 - "GET /api/protocolos/informes?tipo_informe=SEMANAL&limit=300 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55398 - "GET /api/protocolos/informes/30/contactos HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55398 - "GET /api/contactos/sucursal HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55399 - "GET /?form=envioProtocolosSemanales&token=518a5c67-4727-4bf3-9530-a04750478f59 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55399 - "GET /api/protocolos/informes?tipo_informe=SEMANAL&limit=300 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55540 - "GET /?form=envioProtocolosSemanales&token=518a5c67-4727-4bf3-9530-a04750478f59 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55540 - "GET /api/protocolos/informes?tipo_informe=SEMANAL&limit=300 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55541 - "GET /?form=envioProtocolosSemanales&token=518a5c67-4727-4bf3-9530-a04750478f59 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55541 - "GET /api/protocolos/informes?tipo_informe=SEMANAL&limit=300 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55544 - "GET /?form=envioProtocolosSemanales&token=518a5c67-4727-4bf3-9530-a04750478f59 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55544 - "GET /api/protocolos/informes?tipo_informe=SEMANAL&limit=300 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55667 - "GET /?form=envioProtocolosSemanales&token=518a5c67-4727-4bf3-9530-a04750478f59 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55667 - "GET /api/protocolos/informes?tipo_informe=SEMANAL&limit=300 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55763 - "GET /?form=envioProtocolosSemanales&token=518a5c67-4727-4bf3-9530-a04750478f59 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55763 - "GET /api/protocolos/informes?tipo_informe=SEMANAL&limit=300 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55763 - "GET /api/protocolos/informes/21/contactos HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55763 - "GET /api/contactos/sucursal HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55824 - "POST /api/protocolos/informes/21/enviar HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55892 - "POST /api/protocolos/informes/21/enviar HTTP/1.1" 404 Not Found
