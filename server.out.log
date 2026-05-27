@@ -139,3 +139,28 @@ INFO:     127.0.0.1:53099 - "POST /seleccionar-area HTTP/1.1" 303 See Other
 INFO:     127.0.0.1:53099 - "GET /panel?area=soporte HTTP/1.1" 200 OK
 INFO:     127.0.0.1:53099 - "GET /tabla-soporte HTTP/1.1" 200 OK
 INFO:     127.0.0.1:53099 - "GET /api/soporte-tecnico/ods-filas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53255 - "GET /tabla-soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53255 - "GET /api/soporte-tecnico/ods-filas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53320 - "GET /tabla-soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53320 - "GET /api/soporte-tecnico/ods-filas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53321 - "GET /tabla-soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53321 - "GET /api/soporte-tecnico/ods-filas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53321 - "GET /tabla-soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53321 - "GET /api/soporte-tecnico/ods-filas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53321 - "GET /panel?area=soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53321 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53321 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:53321 - "GET /?form=panelSelectorServicio&token=7e1a3de5-e92f-40a1-8e88-4e85d9e62fee&next=panelSelectorServicio HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53321 - "GET /?form=TablaServicioTecnico&token=7e1a3de5-e92f-40a1-8e88-4e85d9e62fee HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53321 - "GET /api/venta/servicio-tecnico-ods?token=7e1a3de5-e92f-40a1-8e88-4e85d9e62fee HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53321 - "GET /?form=panelSelectorServicio&token=7e1a3de5-e92f-40a1-8e88-4e85d9e62fee HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53321 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53321 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:53321 - "GET /?form=panelSelector&token=833a9580-a53b-43fe-bb3b-505d06239531&next=panelSelector HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53321 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53321 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:53321 - "GET /?form=panelSelectorCoordinacion&token=df8f565c-ddea-4804-8be4-de53be394217&next=panelSelectorCoordinacion HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53321 - "GET /?form=coordinacion&token=df8f565c-ddea-4804-8be4-de53be394217 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53322 - "GET /api/contactos/sucursal HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53321 - "GET /api/listas/bbdd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53322 - "GET /api/derivaciones HTTP/1.1" 200 OK
