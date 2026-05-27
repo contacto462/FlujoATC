@@ -162,3 +162,5 @@ INFO:     127.0.0.1:52930 - "GET /api/protocolos/registros?limit=1000 HTTP/1.1" 
 INFO:     127.0.0.1:52930 - "GET /api/usuario-actual?token=a1630374-b8eb-450b-8af4-a67edfecfdec HTTP/1.1" 200 OK
 INFO:     127.0.0.1:52930 - "GET /api/incidencias/puesto?tecnico=Bryan%20Alexander%20Rebolledo%20Hidalgo HTTP/1.1" 200 OK
 INFO:     127.0.0.1:52930 - "GET /api/tecnicos/ruta-optima?tecnico=Bryan%20Alexander%20Rebolledo%20Hidalgo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53400 - "GET /?form=tablaProtocolos&token=518a5c67-4727-4bf3-9530-a04750478f59 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53400 - "GET /api/protocolos/registros?limit=1000 HTTP/1.1" 200 OK
