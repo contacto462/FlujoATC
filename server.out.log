@@ -1,7 +1,0 @@
-INFO:     127.0.0.1:49718 - "GET /dashboard HTTP/1.1" 200 OK
-INFO:     127.0.0.1:49718 - "GET /dashboard HTTP/1.1" 200 OK
-INFO:     127.0.0.1:49718 - "GET /dashboard HTTP/1.1" 200 OK
-INFO:     127.0.0.1:49720 - "GET /dashboard HTTP/1.1" 200 OK
-INFO:     127.0.0.1:49750 - "GET /dashboard HTTP/1.1" 200 OK
-INFO:     127.0.0.1:49751 - "GET /dashboard HTTP/1.1" 200 OK
-INFO:     127.0.0.1:49769 - "GET /dashboard HTTP/1.1" 200 OK
