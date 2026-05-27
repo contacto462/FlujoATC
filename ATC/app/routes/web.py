@@ -494,76 +494,6 @@ def _has_reception_sent(db: Session, ticket_id: int) -> bool:
         is not None
     )
 
-def _get_internal_chat_unread_count(db: Session, user_id: int) -> int:
-
-    read_state = db.get(InternalChatReadState, user_id)
-
-    last_seen_message_id = (
-
-        read_state.last_seen_message_id
-
-        if read_state and read_state.last_seen_message_id
-
-        else 0
-
-    )
-
-    return (
-
-        db.query(InternalChatMessage)
-
-        .filter(
-
-            InternalChatMessage.id > last_seen_message_id,
-
-            or_(
-
-                InternalChatMessage.sender_id.is_(None),
-
-                InternalChatMessage.sender_id != user_id,
-
-            ),
-
-        )
-
-        .count()
-
-    )
-
-def _mark_internal_chat_as_read(
-
-    db: Session,
-
-    user_id: int,
-
-    last_message_id: int | None,
-
-) -> int:
-
-    safe_last_message_id = max(0, int(last_message_id or 0))
-
-    read_state = db.get(InternalChatReadState, user_id)
-
-    if read_state is None:
-
-        read_state = InternalChatReadState(
-
-            user_id=user_id,
-
-            last_seen_message_id=safe_last_message_id,
-
-        )
-
-        db.add(read_state)
-
-    elif safe_last_message_id > (read_state.last_seen_message_id or 0):
-
-        read_state.last_seen_message_id = safe_last_message_id
-
-    db.commit()
-
-    return _get_internal_chat_unread_count(db, user_id)
-
 def _get_latest_active_ticket_id(db: Session) -> int:
 
     latest_row = (
@@ -1495,8 +1425,20 @@ def dashboard(
     ticket_has_new_message: dict[int, bool] = {}
     ticket_unseen_message_id: dict[int, int] = {}
     ticket_unseen_message_count: dict[int, int] = {}
+    ticket_manually_unread: dict[int, bool] = {}
     ticket_ids = [t.id for t in tickets]
     if ticket_ids:
+        manual_rows = (
+            db.query(TicketManualUnread.ticket_id)
+            .filter(
+                TicketManualUnread.user_id == current_user.id,
+                TicketManualUnread.ticket_id.in_(ticket_ids),
+            )
+            .all()
+        )
+        for row in manual_rows:
+            ticket_manually_unread[int(row.ticket_id)] = True
+
         read_rows = (
             db.query(
                 TicketMessageReadState.ticket_id,
@@ -1620,7 +1562,6 @@ def dashboard(
         ).count(),
     }
 
-    internal_chat_unread_count = _get_internal_chat_unread_count(db, current_user.id)
     ticket_alert_unread_count = _mark_ticket_alerts_as_read(db, current_user.id)
 
     pending_incidencias: list[dict[str, str]] = []
@@ -1659,6 +1600,7 @@ def dashboard(
             "ticket_has_new_message": ticket_has_new_message,
             "ticket_unseen_message_id": ticket_unseen_message_id,
             "ticket_unseen_message_count": ticket_unseen_message_count,
+            "ticket_manually_unread": ticket_manually_unread,
             "status": scope_filter if scope_filter in {"open", "pending", "resolved"} else None,
             "scope_filter": scope_filter,
             "scope_filters": scope_filters,
@@ -1673,7 +1615,6 @@ def dashboard(
             "priority_filters": priority_filters,
             "date_from": date_from_value,
             "date_to": date_to_value,
-            "internal_chat_unread_count": internal_chat_unread_count,
             "ticket_alert_unread_count": ticket_alert_unread_count,
             "pending_incidencias": pending_incidencias,
             "pending_incidencias_count": pending_incidencias_count,
@@ -3302,140 +3243,6 @@ def assign_ticket_json(
         }
     )
 
-@router.get("/internal-chat/messages")
-
-def get_internal_chat_messages(
-
-    limit: int = 80,
-
-    mark_read: int = 0,
-
-    db: Session = Depends(get_db),
-
-    current_user: User = Depends(get_current_user_web),
-
-):
-
-    safe_limit = max(1, min(limit, 200))
-
-    rows = (
-
-        db.query(InternalChatMessage)
-
-        .options(joinedload(InternalChatMessage.sender))
-
-        .order_by(InternalChatMessage.created_at.desc())
-
-        .limit(safe_limit)
-
-        .all()
-
-    )
-
-    rows.reverse()
-
-    unread_count = _get_internal_chat_unread_count(db, current_user.id)
-
-    if mark_read:
-
-        latest_message_id = rows[-1].id if rows else 0
-
-        unread_count = _mark_internal_chat_as_read(
-
-            db=db,
-
-            user_id=current_user.id,
-
-            last_message_id=latest_message_id,
-
-        )
-
-    return JSONResponse(
-
-        {
-
-            "messages": [_serialize_internal_chat_message(row) for row in rows],
-
-            "unread_count": unread_count,
-
-            "current_user_id": current_user.id,
-
-        }
-
-    )
-
-@router.get("/internal-chat/unread-count")
-
-def get_internal_chat_unread_count(
-
-    db: Session = Depends(get_db),
-
-    current_user: User = Depends(get_current_user_web),
-
-):
-
-    return JSONResponse(
-
-        {
-
-            "unread_count": _get_internal_chat_unread_count(db, current_user.id),
-
-        }
-
-    )
-
-@router.post("/internal-chat/messages")
-
-def post_internal_chat_message(
-
-    content: str = Form(""),
-
-    db: Session = Depends(get_db),
-
-    current_user: User = Depends(get_current_user_web),
-
-):
-
-    message_text = content.strip()
-
-    if not message_text:
-
-        raise HTTPException(status_code=400, detail="Mensaje vacio")
-
-    if len(message_text) > 2000:
-
-        raise HTTPException(status_code=400, detail="Mensaje demasiado largo")
-
-    row = InternalChatMessage(
-
-        sender_id=current_user.id,
-
-        content=message_text,
-
-    )
-
-    db.add(row)
-
-    db.commit()
-
-    db.refresh(row)
-
-    unread_count = _get_internal_chat_unread_count(db, current_user.id)
-
-    return JSONResponse(
-
-        {
-
-            "ok": True,
-
-            "message": _serialize_internal_chat_message(row),
-
-            "unread_count": unread_count,
-
-        }
-
-    )
-
 @router.get("/ticket-alerts/unread-count")
 
 def get_ticket_alerts_unread_count(
@@ -3958,27 +3765,6 @@ def _enforce_status_transition_rules(ticket: Ticket, new_status: str) -> None:
         )
 
 
-def _serialize_internal_chat_message(msg: InternalChatMessage) -> dict[str, str | int | None]:
-    created_at = msg.created_at
-    created_at_display = "-"
-    created_at_iso = ""
-    if created_at is not None:
-        if created_at.tzinfo is None:
-            created_at_display = created_at.strftime("%d-%m-%Y %H:%M:%S")
-        else:
-            created_at_display = created_at.astimezone().strftime("%d-%m-%Y %H:%M:%S")
-        created_at_iso = created_at.isoformat()
-
-    return {
-        "id": msg.id,
-        "sender_id": msg.sender_id,
-        "sender_name": msg.sender.name if msg.sender and msg.sender.name else "Usuario",
-        "content": msg.content,
-        "created_at": created_at_iso,
-        "created_at_display": created_at_display,
-    }
-
-
 @router.get("/dashboard/tickets/{ticket_id}", response_class=HTMLResponse)
 def ticket_detail(
     request: Request,
@@ -4084,6 +3870,11 @@ def ticket_detail(
         db.commit()
     elif latest_message_id > (ticket_read_state.last_seen_message_id or 0):
         ticket_read_state.last_seen_message_id = latest_message_id
+        db.commit()
+
+    manual_unread_row = db.get(TicketManualUnread, (current_user.id, ticket_id))
+    if manual_unread_row is not None:
+        db.delete(manual_unread_row)
         db.commit()
 
     for m in messages:
@@ -4290,7 +4081,6 @@ def ticket_detail(
         correos_count = 0
 
     assignable_users = _active_users_in_area(db, "soporte")
-    internal_chat_unread_count = _get_internal_chat_unread_count(db, current_user.id)
     ticket_alert_unread_count = _get_ticket_alert_unread_count(db, current_user.id)
     raw_send_error = request.query_params.get("send_error")
     send_error = None
@@ -4341,7 +4131,6 @@ def ticket_detail(
             "requester_info": requester_info,
             "requester_name_catalog": requester_name_catalog,
             "assignable_users": assignable_users,
-            "internal_chat_unread_count": internal_chat_unread_count,
             "ticket_alert_unread_count": ticket_alert_unread_count,
             "previous_ticket_id": previous_ticket.id if previous_ticket else None,
             "next_ticket_id": next_ticket.id if next_ticket else None,
@@ -4781,6 +4570,26 @@ def assign_ticket(
         status_code=303,
 
     )
+
+
+@router.post("/dashboard/tickets/{ticket_id}/mark-unread")
+def mark_ticket_unread(
+    ticket_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    _require_area_access(db, current_user, "soporte")
+
+    ticket = db.get(Ticket, ticket_id)
+    if not ticket:
+        return JSONResponse({"detail": "Ticket no encontrado"}, status_code=404)
+
+    existing = db.get(TicketManualUnread, (current_user.id, ticket_id))
+    if not existing:
+        db.add(TicketManualUnread(user_id=current_user.id, ticket_id=ticket_id))
+        db.commit()
+
+    return JSONResponse({"ok": True, "ticket_id": ticket_id})
 
 # ======================================================
 

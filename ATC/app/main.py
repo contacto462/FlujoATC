@@ -16,11 +16,10 @@ from ATC.app.core.static import MultiDirectoryStaticFiles
 from ATC.app.models.user import User  # noqa
 from ATC.app.models.ticket import Ticket  # noqa
 from ATC.app.models.message import Message  # noqa
-from ATC.app.models.internal_chat_message import InternalChatMessage  # noqa
-from ATC.app.models.internal_chat_read_state import InternalChatReadState  # noqa
 from ATC.app.models.ticket_alert_read_state import TicketAlertReadState  # noqa
 from ATC.app.models.ticket_message_read_state import TicketMessageReadState  # noqa
 from ATC.app.models.ticket_internal_note_read_state import TicketInternalNoteReadState  # noqa
+from ATC.app.models.ticket_manual_unread import TicketManualUnread  # noqa
 from ATC.app.models.requester_internal_note_read_state import RequesterInternalNoteReadState  # noqa
 from ATC.app.models.requester import Requester  # noqa
 from ATC.app.models.ticket_history import TicketAssignmentHistory  # noqa

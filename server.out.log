@@ -379,3 +379,138 @@ INFO:     127.0.0.1:54677 - "GET /api/venta/admin-ods?token=5241c76b-8683-4f70-9
 INFO:     127.0.0.1:54677 - "GET /venta/administracion?token=5241c76b-8683-4f70-96ab-344a07438d55 HTTP/1.1" 200 OK
 INFO:     127.0.0.1:54677 - "GET /venta/informacion-cliente?token=5241c76b-8683-4f70-96ab-344a07438d55 HTTP/1.1" 200 OK
 INFO:     127.0.0.1:54677 - "GET /static/logo.png HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54704 - "GET /venta/informacion-cliente?token=5241c76b-8683-4f70-96ab-344a07438d55 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54704 - "GET /static/logo.png HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54739 - "GET /api/venta/clientes/resumen?rut=77002367&token=5241c76b-8683-4f70-96ab-344a07438d55 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54739 - "GET /api/venta/clientes/resumen-sucursal?rut=77002367&sucursal_id=1&token=5241c76b-8683-4f70-96ab-344a07438d55 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54762 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54762 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:54762 - "GET /panel?area=soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54762 - "GET /soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54762 - "GET /api/usuario-actual HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54763 - "GET /api/listas-bbdd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54764 - "GET /api/registros/tabla HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54764 - "GET /panel?area=soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54764 - "GET /tabla-soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54764 - "GET /api/soporte-tecnico/ods-filas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54764 - "GET /panel?area=soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54764 - "GET /soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54764 - "GET /api/usuario-actual HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54763 - "GET /api/listas-bbdd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54762 - "GET /api/registros/tabla HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54762 - "GET /panel?area=soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54762 - "GET /tabla-soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54762 - "GET /api/soporte-tecnico/ods-filas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54762 - "GET /panel?area=soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54762 - "GET /dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54762 - "GET /static/img/Gmail_icon_%282026%29.svg HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:54762 - "GET /panel?area=soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54762 - "GET /panel-indicadores HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54777 - "GET /panel?area=soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54904 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54904 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:54904 - "GET /venta/operaciones?token=641ab9ca-7c55-489e-8b70-61d34578af7c&next=panelSelectorOperaciones HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54904 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54904 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:54904 - "GET /venta/administracion?token=b96d578c-71c7-4e64-951c-dc162cf1036f&next=panelSelectorAdministracion HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54904 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54904 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:54904 - "GET /venta/finanzas?token=b2ad4848-2c2f-415e-98cd-aa0ce1edf2ed&next=panelSelectorFinanzas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54904 - "GET /venta/finanzas/tabla?token=b2ad4848-2c2f-415e-98cd-aa0ce1edf2ed HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54904 - "GET /api/venta/finanzas-ods?token=b2ad4848-2c2f-415e-98cd-aa0ce1edf2ed HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54904 - "GET /venta/finanzas?token=b2ad4848-2c2f-415e-98cd-aa0ce1edf2ed HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54904 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54904 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:54904 - "GET /panel?area=soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54904 - "GET /soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54904 - "GET /api/usuario-actual HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54905 - "GET /api/listas-bbdd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54906 - "GET /api/registros/tabla HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54906 - "GET /api/registros/tabla HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54906 - "GET /tabla-soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54906 - "GET /api/soporte-tecnico/ods-filas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54906 - "GET /dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54932 - "GET /dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54952 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54955 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54955 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54989 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54955 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55030 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55030 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54955 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54955 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55193 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55193 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55193 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55193 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55193 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55305 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55305 - "POST /dashboard/tickets/313/internal-notes/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55305 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55304 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55336 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55336 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55360 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55360 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55336 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55360 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55360 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55360 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55360 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55360 - "POST /dashboard/tickets/313/mark-unread HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55360 - "POST /dashboard/tickets/313/mark-unread HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55452 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55452 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55500 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55500 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55500 - "POST /dashboard/tickets/313/mark-unread HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55500 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55537 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55537 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55537 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55537 - "GET /dashboard/tickets/312 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55537 - "GET /dashboard/tickets/313 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55537 - "GET /dashboard HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:55573 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55573 - "GET /api/login/usuarios?destino=auto HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55594 - "POST /api/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55594 - "GET /sso/login?token=f6c17dc7-9502-41d5-8319-4c39b923e228 HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:55594 - "GET /panel HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:55594 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55594 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:55594 - "GET /panel?area=soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55594 - "GET /dashboard HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:55692 - "GET /dashboard HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:55784 - "GET /dashboard HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:55785 - "GET /dashboard HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:55786 - "GET /soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55786 - "GET /api/usuario-actual HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55786 - "GET /api/listas-bbdd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55836 - "GET /api/registros/tabla HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55836 - "GET /panel?area=soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55836 - "GET /dashboard HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:55837 - "GET /tabla-soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55837 - "GET /api/soporte-tecnico/ods-filas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55837 - "GET /panel?area=soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55837 - "GET /panel-indicadores HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55837 - "GET /panel?area=soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55837 - "GET /panel?area=soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55837 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55837 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:55837 - "GET /?form=panelSelectorServicio&token=d27055d6-3486-4c18-8b9e-63b3da1b106a&next=panelSelectorServicio HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55837 - "GET /?form=TablaServicioTecnico&token=d27055d6-3486-4c18-8b9e-63b3da1b106a HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55837 - "GET /api/venta/servicio-tecnico-ods?token=d27055d6-3486-4c18-8b9e-63b3da1b106a HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55837 - "GET /?form=panelSelectorServicio&token=d27055d6-3486-4c18-8b9e-63b3da1b106a HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55837 - "GET /?form=servicioTecnico&token=d27055d6-3486-4c18-8b9e-63b3da1b106a HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55845 - "GET /api/listas/incidencias HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55845 - "GET /api/contactos/sucursal HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55837 - "GET /api/listas/bbdd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55837 - "GET /api/incidencias/puesto HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55837 - "GET /?form=panelSelectorServicio&token=d27055d6-3486-4c18-8b9e-63b3da1b106a HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55837 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55837 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:55837 - "GET /panel?area=soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55837 - "GET /panel?area=soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55861 - "GET /dashboard HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:55881 - "GET /dashboard HTTP/1.1" 500 Internal Server Error
