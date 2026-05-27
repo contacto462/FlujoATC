@@ -1221,6 +1221,7 @@ def launcher_panel(
         {
             "request": request,
             "user": current_user,
+            "show_back_button": len(areas) > 1,
         },
     )
 
