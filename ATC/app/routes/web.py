@@ -972,6 +972,24 @@ def _area_card_options(areas: list[dict[str, object]]) -> list[dict[str, str]]:
         )
     return out
 
+def _department_has_area(department_value: str | None, area_code: str) -> bool:
+    target = (area_code or "").strip()
+    if not target:
+        return False
+    for area in _areas_from_departments(_split_user_departments(department_value)):
+        if str(area.get("area_code") or "").strip() == target:
+            return True
+    return False
+
+def _require_area_access(db: Session, user: User, area_code: str) -> None:
+    _ = db
+    if not _department_has_area(user.department, area_code):
+        raise HTTPException(status_code=403, detail="No tienes acceso a esta area.")
+
+def _active_users_in_area(db: Session, area_code: str) -> list[User]:
+    users = db.query(User).filter(User.is_active == True).order_by(User.name.asc()).all()
+    return [u for u in users if _department_has_area(u.department, area_code)]
+
 
 @router.get("/resumen-equipos-tecnicos", response_class=HTMLResponse)
 def resumen_equipos_tecnicos_page(
@@ -1305,6 +1323,7 @@ def dashboard(
     page: int = 1,
 ):
     view = request.query_params.get("view")
+    _require_area_access(db, current_user, "soporte")
 
     allowed_scopes = {"all", "open", "pending", "resolved", "spam", "trash"}
     allowed_sources = {"all", "email", "whatsapp", "internal"}
@@ -1312,7 +1331,7 @@ def dashboard(
 
     date_from_value = (date_from or "").strip()
     date_to_value = (date_to or "").strip()
-    users = db.query(User).filter(User.is_active == True).order_by(User.name.asc()).all()
+    users = _active_users_in_area(db, "soporte")
     valid_user_ids = {str(u.id) for u in users}
 
     # AJUSTE DASHBOARD FILTROS MULTISELECT #
@@ -1680,7 +1699,8 @@ def etapa_board(
     current_user: User = Depends(get_current_user_web),
     q: str | None = None,
 ):
-    users = db.query(User).filter(User.is_active == True).order_by(User.name.asc()).all()
+    _require_area_access(db, current_user, "soporte")
+    users = _active_users_in_area(db, "soporte")
 
     query = db.query(Ticket).options(
         joinedload(Ticket.requester),
@@ -1732,8 +1752,10 @@ def etapa_board(
 @router.get("/soporte", response_class=HTMLResponse)
 def soporte_page(
     request: Request,
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
 ):
+    _require_area_access(db, current_user, "soporte")
     # Vista importada desde el proyecto de Incidencias.
     return templates.TemplateResponse(
         "soporte.html",
@@ -3222,6 +3244,7 @@ def update_priority_json(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
 ):
+    _require_area_access(db, current_user, "soporte")
     ticket = db.query(Ticket).filter(
         Ticket.id == ticket_id,
         Ticket.is_deleted == False,
@@ -3253,16 +3276,20 @@ def assign_ticket_json(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
 ):
+    _require_area_access(db, current_user, "soporte")
     ticket = db.get(Ticket, ticket_id)
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
 
+    support_users = _active_users_in_area(db, "soporte")
+    support_user_ids = {u.id for u in support_users}
+
     safe_user_id = user_id
     assigned_user = None
     if safe_user_id is not None:
-        assigned_user = db.query(User).filter(User.id == safe_user_id, User.is_active == True).first()
-        if not assigned_user:
+        if safe_user_id not in support_user_ids:
             raise HTTPException(status_code=400, detail="Usuario invalido")
+        assigned_user = next((u for u in support_users if u.id == safe_user_id), None)
 
     assign_ticket_logic(db, ticket, safe_user_id, current_user)
     db.commit()
@@ -3963,6 +3990,7 @@ def ticket_detail(
     incidencias_db: Session = Depends(get_incidencias_db),
     current_user: User = Depends(get_current_user_web),
 ):
+    _require_area_access(db, current_user, "soporte")
     # Ticket actual
     ticket = db.query(Ticket).filter(
         Ticket.id == ticket_id
@@ -4260,12 +4288,7 @@ def ticket_detail(
         correos_enviados = []
         correos_count = 0
 
-    assignable_users = (
-        db.query(User)
-        .filter(User.is_active == True)
-        .order_by(User.name.asc())
-        .all()
-    )
+    assignable_users = _active_users_in_area(db, "soporte")
     internal_chat_unread_count = _get_internal_chat_unread_count(db, current_user.id)
     ticket_alert_unread_count = _get_ticket_alert_unread_count(db, current_user.id)
     raw_send_error = request.query_params.get("send_error")
@@ -4688,6 +4711,7 @@ def assign_to_me(
     current_user: User = Depends(get_current_user_web),
 
 ):
+    _require_area_access(db, current_user, "soporte")
 
     ticket = db.get(Ticket, ticket_id)
 
@@ -4720,6 +4744,7 @@ def assign_ticket(
     current_user: User = Depends(get_current_user_web),
 
 ):
+    _require_area_access(db, current_user, "soporte")
 
     ticket = db.get(Ticket, ticket_id)
 
@@ -4730,6 +4755,13 @@ def assign_ticket(
     if _ticket_is_locked(ticket):
         return RedirectResponse(
             url=f"/dashboard/tickets/{ticket_id}?service_error=El+ticket+ya+esta+resuelto+y+no+permite+cambios.",
+            status_code=303,
+        )
+
+    support_user_ids = {u.id for u in _active_users_in_area(db, "soporte")}
+    if user_id is not None and int(user_id) not in support_user_ids:
+        return RedirectResponse(
+            url=f"/dashboard/tickets/{ticket_id}?service_error=Usuario+invalido",
             status_code=303,
         )
 
@@ -5598,6 +5630,7 @@ def panel_indicadores(
     current_user: User = Depends(get_current_user_web),
 
 ):
+    _require_area_access(db, current_user, "soporte")
 
     from ATC.app.services.analytics_service import (
 
@@ -5750,7 +5783,8 @@ def panel_indicadores(
 
     priorities = get_tickets_by_priority(db, date_from=priority_from_dt, date_to=priority_to_dt)
 
-    agents = get_tickets_by_agent(db, date_from=agent_from_dt, date_to=agent_to_dt)
+    support_user_ids = {u.id for u in _active_users_in_area(db, "soporte")}
+    agents = get_tickets_by_agent(db, date_from=agent_from_dt, date_to=agent_to_dt, allowed_user_ids=support_user_ids)
 
     aging = get_ticket_aging(db, date_from=aging_from_dt, date_to=aging_to_dt)
 
@@ -5821,8 +5855,8 @@ def new_ticket_form(
     db: Session = Depends(get_db)
 
 ):
-
-    users = db.query(User).all()
+    _require_area_access(db, current_user, "soporte")
+    users = _active_users_in_area(db, "soporte")
 
     return templates.TemplateResponse(
 
@@ -5857,6 +5891,7 @@ def create_ticket(
     db: Session = Depends(get_db)             # ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬ÂÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾ SesiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n de base de datos
 
 ):
+    _require_area_access(db, current_user, "soporte")
 
     # =====================================
 
@@ -5914,8 +5949,11 @@ def create_ticket(
         raise HTTPException(status_code=400, detail="Debes seleccionar una prioridad")
 
     if not assigned_to_id:
-
         assigned_to_id = current_user.id
+
+    support_user_ids = {u.id for u in _active_users_in_area(db, "soporte")}
+    if int(assigned_to_id) not in support_user_ids:
+        raise HTTPException(status_code=400, detail="Usuario asignado invalido")
 
     # =====================================
 
@@ -6079,8 +6117,10 @@ def _st_bool_val(v: object) -> str:
 @router.get("/tabla-soporte", response_class=HTMLResponse)
 def tabla_soporte_page(
     request: Request,
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
 ):
+    _require_area_access(db, current_user, "soporte")
     return templates.TemplateResponse(
         "TablaSoporte.html",
         {"request": request, "user": current_user},

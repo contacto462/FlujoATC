@@ -329,7 +329,12 @@ def get_tickets_by_priority(db, date_from: datetime | None = None, date_to: date
 # =========================================================
 # TICKETS POR AGENTE
 # =========================================================
-def get_tickets_by_agent(db, date_from: datetime | None = None, date_to: datetime | None = None):
+def get_tickets_by_agent(
+    db,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    allowed_user_ids: set[int] | None = None,
+):
 
     # Referencia movil para mantener el KPI de "ultimos 7 dias" consistente.
     since_7d = (date_to or datetime.now(timezone.utc)) - timedelta(days=7)
@@ -344,7 +349,7 @@ def get_tickets_by_agent(db, date_from: datetime | None = None, date_to: datetim
     if date_to is not None:
         join_conditions.append(Ticket.created_at <= date_to)
 
-    rows = (
+    query = (
         db.query(
             User.name.label("agent"),
             func.count(Ticket.id).label("tickets"),
@@ -359,8 +364,11 @@ def get_tickets_by_agent(db, date_from: datetime | None = None, date_to: datetim
         .filter(User.is_active == True)
         .group_by(User.id, User.name)
         .order_by(User.name.asc())
-        .all()
     )
+    if allowed_user_ids:
+        query = query.filter(User.id.in_(allowed_user_ids))
+
+    rows = query.all()
 
     return [
         {

@@ -1,0 +1,74 @@
+INFO:     127.0.0.1:50537 - "GET /dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50539 - "GET /dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50566 - "GET /panel?area=soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50566 - "GET /panel-indicadores HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50566 - "GET /panel?area=soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50735 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50735 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:50735 - "GET /?form=panelSelectorServicio&token=356aa2de-9f0b-4134-8225-41b8d80bb221&next=panelSelectorServicio HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50735 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50735 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:50735 - "GET /venta/panel-selector?token=ab513908-a966-4164-8a4f-84974ee9f7c7&next=panelSelectorVenta HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50736 - "GET /venta/panel-selector?token=ab513908-a966-4164-8a4f-84974ee9f7c7&next=panelSelectorVenta HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50736 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50736 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:50736 - "GET /panel?area=soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50736 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:50736 - "GET /?form=panelSelectorServicio&token=6f6c26f7-ce25-4e47-8a9f-3b9539549278&next=panelSelectorServicio HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50736 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:50736 - "GET /?form=panelSelector&token=e1e22bcb-e14e-4ea4-a25f-b8a2eefcc64d&next=panelSelector HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50736 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:50736 - "GET /?form=panelSelectorCoordinacion&token=18063492-3c54-4cd6-b3e5-91ea797a57e7&next=panelSelectorCoordinacion HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50736 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:50736 - "GET /?form=panelSelector&token=9c3cc365-4f07-4c16-aa4b-71ddc5c01c6d&next=panelSelector HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50736 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:50736 - "GET /?form=panelSelectorCoordinacion&token=ae17bc89-68e0-409b-82b0-0c727af521d8&next=panelSelectorCoordinacion HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50736 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:50736 - "GET /?form=panelSelector&token=76083dac-3029-4d96-bc50-c58bb4b607b4&next=panelSelector HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50736 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:50736 - "GET /venta/panel-selector?token=94419b0a-be59-4a7f-8ea0-d8c8f7140738&next=panelSelectorVenta HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50736 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:50736 - "GET /venta/finanzas?token=ed189e17-71ed-4149-b15c-97979cfabc0b&next=panelSelectorFinanzas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50818 - "GET /venta/finanzas?token=ed189e17-71ed-4149-b15c-97979cfabc0b&next=panelSelectorFinanzas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50855 - "GET /venta/finanzas?token=ed189e17-71ed-4149-b15c-97979cfabc0b&next=panelSelectorFinanzas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50855 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50855 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:50855 - "GET /venta/administracion?token=4b8744a6-89c5-4685-a333-487f44b8c5c8&next=panelSelectorAdministracion HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50855 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50855 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:50855 - "GET /venta/operaciones?token=90e90df9-2c72-4fff-837a-523290f73298&next=panelSelectorOperaciones HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50871 - "GET /venta/operaciones?token=90e90df9-2c72-4fff-837a-523290f73298&next=panelSelectorOperaciones HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50871 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50871 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:50871 - "GET /venta/operaciones?token=02b0bcab-101c-4f61-9eb3-a4f61e70807a&next=panelSelectorOperaciones HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50871 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50969 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50978 - "GET /?form=login&next=tecnicos HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50970 - "GET /resumen-equipos-tecnicos HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50993 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50994 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:50994 - "GET /panel?area=soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50994 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51042 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:51042 - "GET /panel?area=soporte HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51042 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51042 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:51042 - "GET /?form=panelSelectorServicio&token=e2bbe059-abb9-4f54-8af3-d2598a8f42a5&next=panelSelectorServicio HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51042 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51042 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:51042 - "GET /?form=panelSelector&token=53a9bac0-064c-45a3-9a58-dbc2752d5c65&next=panelSelector HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51042 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51042 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:51042 - "GET /venta/finanzas?token=c714368a-6037-4dee-93e8-4ec7c8c66ed2&next=panelSelectorFinanzas HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51043 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51043 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:51043 - "GET /?form=panelSelectorCoordinacion&token=a29c70af-05c3-4d69-a5ef-803c273af686&next=panelSelectorCoordinacion HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51043 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51043 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:51043 - "GET /venta/operaciones?token=0deac1ca-4eab-443c-832d-5cbda6bcb604&next=panelSelectorOperaciones HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51043 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51043 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:51043 - "GET /venta/administracion?token=b70013a3-26d9-41c9-9bdc-47e4b07cb902&next=panelSelectorAdministracion HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51044 - "GET /seleccionar-area HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51441 - "POST /seleccionar-area HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:51441 - "GET /panel?area=soporte HTTP/1.1" 200 OK
