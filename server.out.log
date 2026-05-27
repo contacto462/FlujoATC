@@ -90,3 +90,10 @@ INFO:     127.0.0.1:58540 - "GET /resumen-equipos-tecnicos HTTP/1.1" 200 OK
 INFO:     127.0.0.1:59959 - "GET /resumen-equipos-tecnicos HTTP/1.1" 200 OK
 INFO:     127.0.0.1:61426 - "GET /resumen-equipos-tecnicos HTTP/1.1" 200 OK
 INFO:     127.0.0.1:62874 - "GET /resumen-equipos-tecnicos HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64363 - "GET /resumen-equipos-tecnicos HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49421 - "GET /resumen-equipos-tecnicos HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50970 - "GET /resumen-equipos-tecnicos HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52463 - "GET /resumen-equipos-tecnicos HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53960 - "GET /resumen-equipos-tecnicos HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55523 - "GET /resumen-equipos-tecnicos HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57041 - "GET /resumen-equipos-tecnicos HTTP/1.1" 200 OK
