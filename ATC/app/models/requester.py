@@ -25,6 +25,12 @@ class Requester(Base):
         index=True,
     )
 
+    phone: Mapped[Optional[str]] = mapped_column(
+        String(32),
+        nullable=True,
+        index=True,
+    )
+
     name: Mapped[str] = mapped_column(
         String(100),
         nullable=False

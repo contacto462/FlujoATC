@@ -254,6 +254,23 @@ def ensure_requesters_internal_name_column():
 ensure_requesters_internal_name_column()
 
 
+def ensure_requesters_phone_column():
+    try:
+        with engine.begin() as conn:
+            inspector = inspect(conn)
+            column_names = {column["name"] for column in inspector.get_columns("requesters")}
+            if "phone" in column_names:
+                return
+            conn.execute(text("ALTER TABLE requesters ADD COLUMN phone VARCHAR(32)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_requesters_phone ON requesters (phone)"))
+            print("Schema updated: requesters.phone")
+    except Exception as e:
+        print("Error ensuring requesters.phone:", e)
+
+
+ensure_requesters_phone_column()
+
+
 def ensure_messages_sender_identity_columns():
     # Guarda remitente por mensaje para distinguir respuestas de CC.
     try:
