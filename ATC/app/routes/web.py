@@ -1168,6 +1168,12 @@ def logout():
     return resp
 
 
+@router.get("/area_choice", include_in_schema=False)
+@router.get("/area-choice", include_in_schema=False)
+def legacy_area_choice_redirect():
+    return RedirectResponse(url="/seleccionar-area", status_code=303)
+
+
 @router.get("/seleccionar-area", response_class=HTMLResponse)
 def seleccionar_area_page(
     request: Request,
