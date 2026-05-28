@@ -9,6 +9,7 @@ from ATC.incidencias.app.main import app as incidencias_app
 SKIPPED_PATHS = {
     "/api/client-notes",
     "/api/usuario-actual",
+    "/sso/login",
 }
 
 
