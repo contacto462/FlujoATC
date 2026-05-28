@@ -173,31 +173,68 @@ def ensure_users_unified_columns():
 ensure_users_unified_columns()
 
 
-FERNANDO_FULL_DEPARTMENTS = "Soporte;Servicio Tecnico;Operador;Comercial;Finanzas;Administracion;Operaciones"
+FULL_AREA_CHOICE_DEPARTMENTS = "Soporte;Servicio Tecnico;Operador;Comercial;Finanzas;Administracion;Operaciones"
+USER_AREA_DEPARTMENT_OVERRIDES = [
+    {
+        "names": ("Fernando Lubiano",),
+        "usernames": ("21134285-4",),
+        "departments": FULL_AREA_CHOICE_DEPARTMENTS,
+        "role": "admin",
+    },
+    {
+        "names": ("Gianpiero Lubiano",),
+        "usernames": (),
+        "departments": FULL_AREA_CHOICE_DEPARTMENTS,
+        "role": "admin",
+    },
+    {
+        "names": ("Maryorie Alegria", "Maryorie Alegría"),
+        "usernames": (),
+        "departments": "Administracion;Comercial;Finanzas;Servicio Tecnico;Soporte;Operaciones",
+        "role": None,
+    },
+    {
+        "names": ("Carlos Zamora", "Carlos Zamora Munita"),
+        "usernames": (),
+        "departments": "Operaciones;Servicio Tecnico;Soporte;Coordinacion",
+        "role": None,
+    },
+]
 
 
-def ensure_fernando_full_panel_access():
+def ensure_configured_user_area_access():
     try:
         with engine.begin() as conn:
             inspector = inspect(conn)
             if not inspector.has_table("users"):
                 return
-            conn.execute(
-                text(
-                    """
-                    UPDATE users
-                    SET departament = :departments,
-                        role = 'admin',
-                        is_activate = TRUE,
-                        updated_at = NOW()
-                    WHERE "user" = '21134285-4'
-                       OR name = 'Fernando Lubiano'
-                    """
-                ),
-                {"departments": FERNANDO_FULL_DEPARTMENTS},
-            )
+            for override in USER_AREA_DEPARTMENT_OVERRIDES:
+                name_filters = [f"name = :name_{idx}" for idx, _ in enumerate(override["names"])]
+                username_filters = [f'"user" = :username_{idx}' for idx, _ in enumerate(override["usernames"])]
+                filters = name_filters + username_filters
+                if not filters:
+                    continue
+                role_sql = ", role = :role" if override.get("role") else ""
+                params = {"departments": override["departments"]}
+                params.update({f"name_{idx}": name for idx, name in enumerate(override["names"])})
+                params.update({f"username_{idx}": username for idx, username in enumerate(override["usernames"])})
+                if override.get("role"):
+                    params["role"] = override["role"]
+                conn.execute(
+                    text(
+                        f"""
+                        UPDATE users
+                        SET departament = :departments,
+                            is_activate = TRUE,
+                            updated_at = NOW()
+                            {role_sql}
+                        WHERE {" OR ".join(filters)}
+                        """
+                    ),
+                    params,
+                )
     except Exception as e:
-        print("Error ensuring Fernando full panel access:", e)
+        print("Error ensuring configured user area access:", e)
 
 
 def ensure_requesters_internal_name_column():
@@ -447,7 +484,7 @@ def startup_tasks():
     _configure_access_log_noise_filter()
     normalize_requester_names()
     seed_default_users()
-    ensure_fernando_full_panel_access()
+    ensure_configured_user_area_access()
 
     # Iniciar thread de email
     threading.Thread(target=email_loop, daemon=True).start()
