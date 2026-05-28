@@ -821,6 +821,8 @@ DEPARTMENT_AREA_MAP = {
         ("incidencias", "Operadores", "Operador"),
         ("coordinacion", "Coordinacion", "Operador"),
     ],
+    "coordinacion": [("coordinacion", "Coordinacion", "Coordinacion")],
+    "coordinación": [("coordinacion", "Coordinacion", "Coordinacion")],
     "comercial": [("venta", "Venta", "Comercial")],
     "finanzas": [("finanzas", "Finanzas", "Finanzas")],
     "administracion": [("administracion", "Administracion", "Administracion")],
