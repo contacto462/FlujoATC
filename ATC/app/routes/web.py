@@ -1156,8 +1156,12 @@ def sso_login(
     if not row:
         return RedirectResponse(url="/login", status_code=303)
 
+    user = UserService.find_by_login(db, row["username"])
+    if not user or not user.is_active:
+        return RedirectResponse(url="/login", status_code=303)
+
     web_token = create_access_token({"sub": row["username"]})
-    return _set_web_cookie(RedirectResponse(url="/panel", status_code=303), web_token)
+    return _set_web_cookie(_redirect_for_authenticated_user(db, user), web_token)
 
 @router.get("/logout")
 
