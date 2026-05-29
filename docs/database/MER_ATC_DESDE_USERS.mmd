@@ -228,7 +228,6 @@ erDiagram
     string razon_social
     string nombre_sucursal
     string creado_por
-    string ejecutivo_venta
     string estado
   }
 
@@ -282,7 +281,6 @@ erDiagram
   venta_ods ||--o| operaciones_venta_odt : "FK codigo/odt"
   venta_ods ||..o{ odt_ventas : "inferido codigo/odt"
   users ||..o{ venta_ods : "inferido creado_por"
-  users ||..o{ venta_ods : "inferido ejecutivo_venta"
 
   %% 5. Incidencias operativas
   registro {
@@ -408,4 +406,3 @@ erDiagram
     string entity_key
     string status
   }
-
