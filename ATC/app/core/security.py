@@ -1,5 +1,6 @@
 ﻿from datetime import datetime, timedelta
 
+import bcrypt
 from jose import jwt
 from passlib.context import CryptContext
 
@@ -13,7 +14,16 @@ def hash_password(password: str) -> str:
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    plain = str(plain_password or "")
+    hashed = str(hashed_password or "")
+    if not hashed:
+        return False
+    if hashed.startswith("$2"):
+        try:
+            return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
+        except Exception:
+            pass
+    return pwd_context.verify(plain, hashed)
 
 
 def create_access_token(data: dict) -> str:
