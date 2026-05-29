@@ -759,6 +759,7 @@ def corporate_sla_feedback_page(
     fresh_token = build_sla_feedback_token(ticket_id)
 
     return templates.TemplateResponse(
+        request,
         "public_sla_feedback.html",
         {
             "request": request,
@@ -928,6 +929,7 @@ def resumen_equipos_tecnicos_page(
 ):
     resumen = IncidenciasService(db).obtener_resumen_equipos_tecnicos_hoy()
     resp = templates.TemplateResponse(
+        request,
         "resumen_equipos_tecnicos.html",
         {
             "request": request,
@@ -1094,7 +1096,7 @@ def login_page(request: Request, db: Session = Depends(get_db)):
         except Exception:
             pass
 
-    return templates.TemplateResponse("login.html", {"request": request, "error": None})
+    return templates.TemplateResponse(request, "login.html", {"request": request, "error": None})
 
 @router.post("/web/login")
 
@@ -1117,7 +1119,7 @@ def web_login(
         # vuelve al form con error
 
         return templates.TemplateResponse(
-
+            request,
             "login.html",
 
             {"request": request, "error": "Usuario o contraseÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â±a incorrectos"},
@@ -1190,6 +1192,7 @@ def seleccionar_area_page(
     if len(areas) <= 1:
         return _redirect_for_authenticated_user(db, current_user)
     return templates.TemplateResponse(
+        request,
         "area_choice.html",
         {
             "request": request,
@@ -1229,6 +1232,7 @@ def launcher_panel(
     if len(areas) > 1 and request.query_params.get("area") != "soporte":
         return RedirectResponse(url="/seleccionar-area", status_code=303)
     return templates.TemplateResponse(
+        request,
         "panel_selector.html",
         {
             "request": request,
@@ -1605,6 +1609,7 @@ def dashboard(
         pending_incidencias_count = 0
 
     return templates.TemplateResponse(
+        request,
         "dashboard.html",
         {
             "request": request,
@@ -1686,6 +1691,7 @@ def etapa_board(
     counts["all"] = counts["open"] + counts["pending"] + counts["resolved"]
 
     return templates.TemplateResponse(
+        request,
         "etapa.html",
         {
             "request": request,
@@ -1710,6 +1716,7 @@ def soporte_page(
     _require_area_access(db, current_user, "soporte")
     # Vista importada desde el proyecto de Incidencias.
     return templates.TemplateResponse(
+        request,
         "soporte.html",
         {
             "request": request,
@@ -3649,7 +3656,7 @@ def tickets_view(
         _normalize_requester_name(t.requester)
 
     return templates.TemplateResponse(
-
+        request,
         "tickets.html",
 
         {
@@ -4324,6 +4331,7 @@ def ticket_detail(
     ticket_locked = _ticket_is_locked(ticket)
 
     return templates.TemplateResponse(
+        request,
         "ticket_detail.html",
         {
             "request": request,
@@ -5809,7 +5817,7 @@ def panel_indicadores(
     aging = get_ticket_aging(db, date_from=aging_from_dt, date_to=aging_to_dt)
 
     return templates.TemplateResponse(
-
+        request,
         "panel_indicadores.html",
 
         {
@@ -5879,7 +5887,7 @@ def new_ticket_form(
     users = _active_users_in_area(db, "soporte")
 
     return templates.TemplateResponse(
-
+        request,
         "new_ticket.html",
 
         {
@@ -6142,6 +6150,7 @@ def tabla_soporte_page(
 ):
     _require_area_access(db, current_user, "soporte")
     return templates.TemplateResponse(
+        request,
         "TablaSoporte.html",
         {"request": request, "user": current_user},
     )
