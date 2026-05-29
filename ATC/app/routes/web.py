@@ -1819,6 +1819,20 @@ def _support_safe_odt_path(odt: str) -> str:
     return cleaned or "sin_odt"
 
 
+def _support_is_mantencion_odt(odt: str) -> bool:
+    return (odt or "").strip().upper().startswith("M")
+
+
+def _support_normalize_sucursal_key(value: str) -> str:
+    txt = str(value or "").strip().lower()
+    if not txt:
+        return ""
+    txt = unicodedata.normalize("NFD", txt)
+    txt = "".join(ch for ch in txt if unicodedata.category(ch) != "Mn")
+    txt = re.sub(r"\s+", " ", txt).strip()
+    return txt
+
+
 def _support_ensure_cierre_tables(db: Session) -> None:
     bind = db.get_bind()
     metadata = MetaData()
@@ -2128,6 +2142,107 @@ def _support_ensure_support_images_table(db: Session) -> None:
         raise
 
 
+def _support_ensure_mantenciones_images_table(db: Session) -> None:
+    try:
+        db.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS mantenciones_imagenes_sucursal (
+                    id BIGSERIAL PRIMARY KEY,
+                    sucursal_key VARCHAR(255) NOT NULL UNIQUE,
+                    sucursal VARCHAR(255) NOT NULL,
+                    imagenes JSONB NOT NULL DEFAULT '[]'::jsonb,
+                    created_by VARCHAR(180),
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                )
+                """
+            )
+        )
+        db.execute(
+            text(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS uq_mantenciones_imagenes_sucursal_key
+                ON mantenciones_imagenes_sucursal (sucursal_key)
+                """
+            )
+        )
+        db.execute(
+            text(
+                """
+                CREATE INDEX IF NOT EXISTS idx_mantenciones_imagenes_sucursal
+                ON mantenciones_imagenes_sucursal (sucursal)
+                """
+            )
+        )
+        db.execute(text("ALTER TABLE mantenciones_imagenes_sucursal ALTER COLUMN created_at SET DEFAULT NOW()"))
+        db.execute(text("ALTER TABLE mantenciones_imagenes_sucursal ALTER COLUMN updated_at SET DEFAULT NOW()"))
+        db.execute(text("UPDATE mantenciones_imagenes_sucursal SET created_at = NOW() WHERE created_at IS NULL"))
+        db.execute(text("UPDATE mantenciones_imagenes_sucursal SET updated_at = NOW() WHERE updated_at IS NULL"))
+
+        # Migración liviana: si existían imágenes por ODT para Mantenciones (ODT 'M%'),
+        # consolidamos por sucursal para que queden "para siempre" en la tabla nueva.
+        try:
+            legacy_rows = db.execute(
+                text(
+                    """
+                    SELECT odt, sucursal, imagenes, created_by
+                    FROM incidencias_imagenes_odt
+                    WHERE UPPER(COALESCE(TRIM(odt), '')) LIKE 'M%'
+                      AND COALESCE(TRIM(sucursal), '') <> ''
+                    """
+                )
+            ).mappings().all()
+        except Exception:
+            legacy_rows = []
+
+        migrated_any = False
+        for row in legacy_rows:
+            sucursal = _support_text(row.get("sucursal"))
+            key = _support_normalize_sucursal_key(sucursal)
+            if not key:
+                continue
+            imgs = _support_parse_image_list(row.get("imagenes"))[:3]
+            if not imgs:
+                continue
+            db.execute(
+                text(
+                    """
+                    INSERT INTO mantenciones_imagenes_sucursal (sucursal_key, sucursal, imagenes, created_by, created_at, updated_at)
+                    VALUES (:key, :sucursal, CAST(:imagenes AS JSONB), :created_by, NOW(), NOW())
+                    ON CONFLICT (sucursal_key) DO UPDATE SET
+                        sucursal = EXCLUDED.sucursal,
+                        imagenes = EXCLUDED.imagenes,
+                        created_by = COALESCE(EXCLUDED.created_by, mantenciones_imagenes_sucursal.created_by),
+                        updated_at = NOW()
+                    """
+                ),
+                {
+                    "key": key,
+                    "sucursal": sucursal,
+                    "imagenes": json.dumps(imgs, ensure_ascii=False),
+                    "created_by": _support_text(row.get("created_by")) or "migracion_mantencion",
+                },
+            )
+            migrated_any = True
+
+        # Si migramos algo, limpiamos las filas 'M%' para evitar duplicidad y forzar el nuevo origen.
+        if migrated_any:
+            db.execute(
+                text(
+                    """
+                    DELETE FROM incidencias_imagenes_odt
+                    WHERE UPPER(COALESCE(TRIM(odt), '')) LIKE 'M%'
+                    """
+                )
+            )
+
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
+
 def _support_fetch_support_images_by_odt(db: Session) -> dict[str, list[str]]:
     _support_ensure_support_images_table(db)
     out: dict[str, list[str]] = {}
@@ -2145,6 +2260,26 @@ def _support_fetch_support_images_by_odt(db: Session) -> dict[str, list[str]]:
         if not odt_key:
             continue
         out[odt_key] = _support_parse_image_list(row.get("imagenes"))[:3]
+    return out
+
+
+def _support_fetch_mantencion_images_by_sucursal_key(db: Session) -> dict[str, list[str]]:
+    _support_ensure_mantenciones_images_table(db)
+    out: dict[str, list[str]] = {}
+    rows = db.execute(
+        text(
+            """
+            SELECT sucursal_key, imagenes
+            FROM mantenciones_imagenes_sucursal
+            WHERE COALESCE(TRIM(sucursal_key), '') <> ''
+            """
+        )
+    ).mappings().all()
+    for row in rows:
+        key = _support_text(row.get("sucursal_key"))
+        if not key:
+            continue
+        out[key] = _support_parse_image_list(row.get("imagenes"))[:3]
     return out
 
 
@@ -2318,10 +2453,15 @@ def soporte_obtener_registros_tabla(
 
     _table, incidencias = _support_query_incidencias(db)
     extra_images_by_odt: dict[str, list[str]] = {}
+    mantencion_images_by_sucursal_key: dict[str, list[str]] = {}
     try:
         extra_images_by_odt = _support_fetch_support_images_by_odt(db)
     except Exception:
         # Si falla la lectura de tabla de soporte, seguimos sin imagenes.
+        pass
+    try:
+        mantencion_images_by_sucursal_key = _support_fetch_mantencion_images_by_sucursal_key(db)
+    except Exception:
         pass
 
     rows: list[list[str | int]] = []
@@ -2331,7 +2471,11 @@ def soporte_obtener_registros_tabla(
         odt = _support_pick(incidencia, "odt") or f"#{incidencia.get('id')}"
         tecnico_titular = _support_pick_person(incidencia, "tecnico", "tecnicos")
         tecnico_acompanante = _support_pick_person(incidencia, "acompanante")
-        odt_images = extra_images_by_odt.get(odt, [])
+        if _support_is_mantencion_odt(odt):
+            key = _support_normalize_sucursal_key(cliente)
+            odt_images = mantencion_images_by_sucursal_key.get(key, []) if key else []
+        else:
+            odt_images = extra_images_by_odt.get(odt, [])
         extra_images: list[str] = []
         for image_url in odt_images:
             if image_url and image_url not in extra_images:
@@ -3026,30 +3170,54 @@ async def soporte_upload_image(
     if not incidencia_row:
         raise HTTPException(status_code=404, detail=f"ODT {odt_clean} no encontrada.")
 
-    existing_images_row = db.execute(
-        text(
-            """
-            SELECT id, imagenes
-            FROM incidencias_imagenes_odt
-            WHERE odt = :odt
-            LIMIT 1
-            """
-        ),
-        {"odt": odt_clean},
-    ).mappings().first()
-    existing_images = (
-        _support_parse_image_list(existing_images_row.get("imagenes"))[:3]
-        if existing_images_row
-        else []
-    )
+    user_label = (current_user.name or current_user.username or "Usuario").strip()
+    sucursal_value = _support_pick(dict(incidencia_row), "sucursal", "cliente", "puesto")
+    is_mantencion = _support_is_mantencion_odt(odt_clean)
+
+    if is_mantencion:
+        _support_ensure_mantenciones_images_table(db)
+        sucursal_key = _support_normalize_sucursal_key(sucursal_value)
+        if not sucursal_key:
+            raise HTTPException(status_code=400, detail="No se pudo determinar la sucursal para guardar imágenes de Mantención.")
+        existing_images_row = db.execute(
+            text(
+                """
+                SELECT id, imagenes
+                FROM mantenciones_imagenes_sucursal
+                WHERE sucursal_key = :key
+                LIMIT 1
+                """
+            ),
+            {"key": sucursal_key},
+        ).mappings().first()
+    else:
+        existing_images_row = db.execute(
+            text(
+                """
+                SELECT id, imagenes
+                FROM incidencias_imagenes_odt
+                WHERE odt = :odt
+                LIMIT 1
+                """
+            ),
+            {"odt": odt_clean},
+        ).mappings().first()
+
+    existing_images = _support_parse_image_list(existing_images_row.get("imagenes"))[:3] if existing_images_row else []
 
     remaining_slots = max(0, 3 - len(existing_images))
     if remaining_slots <= 0:
+        if is_mantencion:
+            raise HTTPException(status_code=400, detail="Esta sucursal ya tiene 3 imagenes de mantención guardadas.")
         raise HTTPException(status_code=400, detail="Esta ODT ya tiene 3 imagenes de soporte.")
     if len(incoming_images) > remaining_slots:
         raise HTTPException(
             status_code=400,
-            detail=f"Solo puedes subir {remaining_slots} imagen(es) adicional(es) para esta ODT.",
+            detail=(
+                f"Solo puedes subir {remaining_slots} imagen(es) adicional(es) para esta sucursal."
+                if is_mantencion
+                else f"Solo puedes subir {remaining_slots} imagen(es) adicional(es) para esta ODT."
+            ),
         )
 
     try:
@@ -3074,52 +3242,77 @@ async def soporte_upload_image(
             merged_images.append(url)
     merged_images = merged_images[:3]
 
-    user_label = (current_user.name or current_user.username or "Usuario").strip()
-    sucursal_value = _support_pick(dict(incidencia_row), "sucursal", "cliente", "puesto")
-
-    if existing_images_row:
+    if is_mantencion:
+        # Guardar "para siempre" por sucursal (plantilla de mantención preventiva).
+        sucursal_key = _support_normalize_sucursal_key(sucursal_value)
         db.execute(
             text(
                 """
-                UPDATE incidencias_imagenes_odt
-                SET
-                    sucursal = COALESCE(:sucursal, sucursal),
-                    imagenes = CAST(:imagenes AS JSONB),
-                    created_by = :created_by,
+                INSERT INTO mantenciones_imagenes_sucursal (
+                    sucursal_key, sucursal, imagenes, created_by, created_at, updated_at
+                ) VALUES (
+                    :key, :sucursal, CAST(:imagenes AS JSONB), :created_by, NOW(), NOW()
+                )
+                ON CONFLICT (sucursal_key) DO UPDATE SET
+                    sucursal = EXCLUDED.sucursal,
+                    imagenes = EXCLUDED.imagenes,
+                    created_by = COALESCE(EXCLUDED.created_by, mantenciones_imagenes_sucursal.created_by),
                     updated_at = NOW()
-                WHERE id = :id
                 """
             ),
             {
-                "id": existing_images_row.get("id"),
-                "sucursal": sucursal_value or None,
+                "key": sucursal_key,
+                "sucursal": sucursal_value or sucursal_key,
                 "imagenes": json.dumps(merged_images, ensure_ascii=False),
                 "created_by": user_label,
             },
         )
     else:
-        db.execute(
-            text(
-                """
-                INSERT INTO incidencias_imagenes_odt (
-                    odt, sucursal, imagenes, created_by
-                ) VALUES (
-                    :odt, :sucursal, CAST(:imagenes AS JSONB), :created_by
-                )
-                """
-            ),
-            {
-                "odt": odt_clean,
-                "sucursal": sucursal_value or None,
-                "imagenes": json.dumps(merged_images, ensure_ascii=False),
-                "created_by": user_label,
-            },
-        )
+        if existing_images_row:
+            db.execute(
+                text(
+                    """
+                    UPDATE incidencias_imagenes_odt
+                    SET
+                        sucursal = COALESCE(:sucursal, sucursal),
+                        imagenes = CAST(:imagenes AS JSONB),
+                        created_by = :created_by,
+                        updated_at = NOW()
+                    WHERE id = :id
+                    """
+                ),
+                {
+                    "id": existing_images_row.get("id"),
+                    "sucursal": sucursal_value or None,
+                    "imagenes": json.dumps(merged_images, ensure_ascii=False),
+                    "created_by": user_label,
+                },
+            )
+        else:
+            db.execute(
+                text(
+                    """
+                    INSERT INTO incidencias_imagenes_odt (
+                        odt, sucursal, imagenes, created_by
+                    ) VALUES (
+                        :odt, :sucursal, CAST(:imagenes AS JSONB), :created_by
+                    )
+                    """
+                ),
+                {
+                    "odt": odt_clean,
+                    "sucursal": sucursal_value or None,
+                    "imagenes": json.dumps(merged_images, ensure_ascii=False),
+                    "created_by": user_label,
+                },
+            )
 
     db.commit()
     return {
         "ok": True,
         "odt": odt_clean,
+        "sucursal": sucursal_value,
+        "scope": "sucursal" if is_mantencion else "odt",
         "imagenes": merged_images,
         "imagenes_guardadas": len(new_urls),
         "total_imagenes": len(merged_images),
