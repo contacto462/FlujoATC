@@ -307,6 +307,29 @@ body{
   font-weight:700;
 }
 
+.entregado-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.btn-delete-row{
+  width:38px;
+  min-width:38px;
+  height:38px;
+  border:none;
+  border-radius:10px;
+  background:#fee2e2;
+  color:#b91c1c;
+  font-size:18px;
+  font-weight:800;
+  cursor:pointer;
+}
+
+.btn-delete-row:hover{
+  background:#fecaca;
+}
+
 .toolbar{
   display:flex;
   align-items:center;
@@ -576,6 +599,7 @@ function getSavedBodegaItems(detail) {
     nombre: String(item?.nombre || "").trim(),
     entregado: String(item?.entregado || "").trim(),
     agregado: Boolean(item?.agregado),
+    guardado: Boolean(item?.guardado ?? true),
   }));
 }
 
@@ -591,6 +615,7 @@ function mergeItems(parsedItems, savedItems) {
       nombre: saved.nombre || parsed.nombre,
       entregado: saved.entregado || parsed.entregado,
       agregado: Boolean(saved.agregado || i >= parsedItems.length),
+      guardado: saved.guardado ?? Boolean(saved.nombre || saved.presupuestado || saved.entregado),
     });
   }
   return merged.filter((item) => item.nombre || item.presupuestado || item.entregado);
@@ -602,24 +627,30 @@ function normalizeQty(value) {
     .replace(",", ".");
 }
 
+function hasDeliveredQty(value) {
+  return normalizeQty(value) !== "";
+}
+
 function isOdsCompleted(detail) {
   if (!detail) return false;
   const parsedItems = parseMateriales(detail.materiales || "");
-  if (!parsedItems.length) return false;
   const savedItems = getSavedBodegaItems(detail);
-  if (!savedItems.length) return false;
-  if (savedItems.length !== parsedItems.length) return false;
+  const currentItems = mergeItems(parsedItems, savedItems);
+  if (!currentItems.length) return false;
 
-  for (let i = 0; i < parsedItems.length; i += 1) {
-    const base = parsedItems[i] || {};
-    const saved = savedItems[i] || {};
-    if (normalizeQty(base.presupuestado) !== normalizeQty(saved.presupuestado || base.presupuestado)) {
+  for (let i = 0; i < currentItems.length; i += 1) {
+    const current = currentItems[i] || {};
+    const base = parsedItems[i] || null;
+    if (!normalizeQty(current.presupuestado) || !normalizeQty(current.entregado)) {
       return false;
     }
-    if (normalizeQty(base.presupuestado) !== normalizeQty(saved.entregado)) {
+    if (normalizeQty(current.presupuestado) !== normalizeQty(current.entregado)) {
       return false;
     }
-    if ((saved.nombre || "").trim() && (base.nombre || "").trim() && (saved.nombre || "").trim() !== (base.nombre || "").trim()) {
+    if (!(current.nombre || "").trim()) {
+      return false;
+    }
+    if (base && normalizeQty(base.presupuestado) !== normalizeQty(current.presupuestado)) {
       return false;
     }
   }
@@ -629,8 +660,30 @@ function isOdsCompleted(detail) {
 function buildMaterialRow(item, index) {
   const nombre = item.nombre || `Material ${index + 1}`;
   if (item.agregado) {
+    const canDeleteAddedRow = !hasDeliveredQty(item.entregado);
+    if (item.guardado) {
+      return `
+        <tr data-added-row="true" data-index="${index}">
+          <td>
+            <span class="qty-text">${escapeHtml(item.presupuestado || "-")}</span>
+            <input type="hidden" data-role="presupuestado" data-index="${index}" value="${escapeHtml(item.presupuestado)}">
+          </td>
+          <td>
+            <div class="material-name">${escapeHtml(item.nombre || "-")}</div>
+            <div class="material-extra-flag">Material agregado</div>
+            <input type="hidden" data-role="nombre" data-index="${index}" value="${escapeHtml(item.nombre)}">
+          </td>
+          <td>
+            <div class="entregado-actions">
+              <input class="qty-input" type="text" inputmode="decimal" data-role="entregado" data-index="${index}" value="${escapeHtml(item.entregado)}" placeholder="0">
+              ${canDeleteAddedRow ? `<button class="btn-delete-row" type="button" data-delete-index="${index}" title="Borrar fila">×</button>` : ""}
+            </div>
+          </td>
+        </tr>
+      `;
+    }
     return `
-      <tr>
+      <tr data-added-row="true" data-index="${index}">
         <td>
           <input type="text" data-role="presupuestado" data-index="${index}" value="${escapeHtml(item.presupuestado)}" placeholder="0">
         </td>
@@ -639,7 +692,10 @@ function buildMaterialRow(item, index) {
           <div class="material-extra-flag">Material agregado</div>
         </td>
         <td>
-          <input class="qty-input" type="text" inputmode="decimal" data-role="entregado" data-index="${index}" value="${escapeHtml(item.entregado)}" placeholder="0">
+          <div class="entregado-actions">
+            <input class="qty-input" type="text" inputmode="decimal" data-role="entregado" data-index="${index}" value="${escapeHtml(item.entregado)}" placeholder="0">
+            ${canDeleteAddedRow ? `<button class="btn-delete-row" type="button" data-delete-index="${index}" title="Borrar fila">×</button>` : ""}
+          </div>
         </td>
       </tr>
     `;
@@ -807,7 +863,10 @@ function syncDetailFromDom() {
   if (!row) return;
   const detail = state.detailCache.get(row.codigo) || {};
   detail.materialesBodega = {
-    items: collectMaterialItems(),
+    items: collectMaterialItems().map((item) => ({
+      ...item,
+      guardado: false,
+    })),
     observacion: "",
   };
   state.detailCache.set(row.codigo, detail);
@@ -836,7 +895,7 @@ function addMaterialRow() {
   els.materialCountBadge.textContent = `${index + 1} item${index + 1 === 1 ? "" : "s"}`;
   const input = els.materialTableBody.querySelector(`tr:last-child [data-role="nombre"]`);
   if (input) input.focus();
-  scheduleAutoSave();
+  els.saveStatus.textContent = "";
 }
 
 async function saveCurrent(silent = false) {
@@ -866,11 +925,15 @@ async function saveCurrent(silent = false) {
 
     const detail = state.detailCache.get(row.codigo) || {};
     detail.materialesBodega = {
-      items: payload.items,
+      items: payload.items.map((item) => ({
+        ...item,
+        guardado: true,
+      })),
       observacion: payload.observacion,
     };
     state.detailCache.set(row.codigo, detail);
     els.saveStatus.textContent = silent ? "Guardado automatico." : (result.mensaje || "Registro guardado.");
+    renderMaterials(detail);
     renderList();
   } catch (_error) {
     els.saveStatus.textContent = silent ? "No se pudo guardar automaticamente." : "No se pudo guardar el registro.";
@@ -879,6 +942,25 @@ async function saveCurrent(silent = false) {
     els.saveButton.disabled = false;
     els.addMaterialButton.disabled = false;
   }
+}
+
+function deleteAddedRow(index) {
+  const row = getSelectedRow();
+  if (!row) return;
+  const detail = state.detailCache.get(row.codigo) || {};
+  const items = collectMaterialItems();
+  const nextItems = items.filter((_, itemIndex) => itemIndex !== index);
+  detail.materialesBodega = {
+    items: nextItems.map((item) => ({
+      ...item,
+      guardado: false,
+    })),
+    observacion: "",
+  };
+  state.detailCache.set(row.codigo, detail);
+  renderMaterials(detail);
+  renderList();
+  scheduleAutoSave();
 }
 
 async function init() {
@@ -903,6 +985,13 @@ els.addMaterialButton.addEventListener("click", addMaterialRow);
 els.saveButton.addEventListener("click", () => void saveCurrent(false));
 els.materialTableBody.addEventListener("input", scheduleAutoSave);
 els.materialTableBody.addEventListener("change", scheduleAutoSave);
+els.materialTableBody.addEventListener("click", (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) return;
+  const deleteIndex = target.getAttribute("data-delete-index");
+  if (deleteIndex === null) return;
+  deleteAddedRow(Number(deleteIndex));
+});
 
 init();
 </script>
