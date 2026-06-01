@@ -6067,7 +6067,7 @@ _ST_BOOL_FIELDS = {
     "enlace_servidor", "configuracion_ivs", "plan_grabacion",
     "configuracion_cliente", "vb_final_servicio", "finalizado",
 }
-_ST_TEXT_FIELDS = {"requiere_puesto_nuevo", "numero_central_asignado"}
+_ST_TEXT_FIELDS = {"requiere_puesto_nuevo", "numero_central_asignado", "materiales_bodega"}
 _ST_BOOL_DATE: dict[str, str] = {
     "instalacion_finalizada": "fecha_instalacion_finalizada",
     "configuracion_camaras": "fecha_configuracion_camaras",
@@ -6104,6 +6104,7 @@ def _ensure_st_campos(db: Session) -> None:
         ("vb_final_servicio", "BOOLEAN DEFAULT FALSE"),
         ("fecha_vb_final_servicio", "TIMESTAMP"),
         ("camaras_registradas", "TEXT"),
+        ("materiales_bodega", "TEXT"),
     ]
     try:
         for col, ctype in extras:
@@ -6231,6 +6232,7 @@ def st_ods_detalle(
     current_user: User = Depends(get_current_user_web),
 ):
     _ = current_user
+    _ensure_st_campos(db)
     row = db.execute(text("""
         SELECT numero_camaras_instalar, numero_camaras_vigilar, dias_grabacion,
                materiales, observacion, rut_cliente, nombre_sucursal, razon_social,
@@ -6254,6 +6256,15 @@ def st_ods_detalle(
         WHERE LOWER(TRIM(s.direccion_sucursal)) = LOWER(TRIM(:d))
         ORDER BY c.id ASC LIMIT 1
     """), {"d": str(row.get("direccion_sucursal") or "")}).mappings().first()
+    materiales_bodega_raw = db.execute(text("""
+        SELECT materiales_bodega FROM servicio_tecnico_ventas_odt
+        WHERE LOWER(TRIM(odt)) = LOWER(TRIM(:c))
+        LIMIT 1
+    """), {"c": codigo}).scalar_one_or_none()
+    try:
+        materiales_bodega = json.loads(materiales_bodega_raw) if materiales_bodega_raw else None
+    except Exception:
+        materiales_bodega = None
     return {
         "camarasInstalar": str(row.get("numero_camaras_instalar") or ""),
         "camarasVigilar": str(row.get("numero_camaras_vigilar") or ""),
@@ -6268,6 +6279,7 @@ def st_ods_detalle(
         "layout": layout_url or "",
         "contactoNombre": str(contacto.get("nombre") or "") if contacto else "",
         "contactoTelefono": str(contacto.get("telefono") or "") if contacto else "",
+        "materialesBodega": materiales_bodega,
     }
 
 
@@ -6387,6 +6399,64 @@ def st_ods_guardar_camaras(
         ), {"odt": codigo, "v": ids_json})
     db.commit()
     return {"ok": True, "mensaje": f"{len(ids)} camaras guardadas"}
+
+
+@router.post("/api/soporte-tecnico/ods/guardar-materiales-bodega")
+def st_ods_guardar_materiales_bodega(
+    payload: dict,
+    db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    _ = current_user
+    _ensure_st_campos(db)
+    codigo = str(payload.get("codigo") or payload.get("odt") or "").strip()
+    items = payload.get("items") or []
+    observacion = str(payload.get("observacion") or "").strip()
+    if not codigo:
+        raise HTTPException(status_code=400, detail="Codigo ODS requerido")
+    if not isinstance(items, list):
+        raise HTTPException(status_code=400, detail="Items invalidos")
+
+    sane_items: list[dict[str, str]] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        nombre = str(item.get("nombre") or "").strip()
+        presupuestado = str(item.get("presupuestado") or "").strip()
+        entregado = str(item.get("entregado") or "").strip()
+        if not nombre and not presupuestado and not entregado:
+            continue
+        sane_items.append(
+            {
+                "nombre": nombre,
+                "presupuestado": presupuestado,
+                "entregado": entregado,
+            }
+        )
+
+    data_json = json.dumps(
+        {
+            "items": sane_items,
+            "observacion": observacion,
+            "guardado_por": str(current_user.name or current_user.username or "").strip(),
+            "guardado_en": datetime.now().isoformat(),
+        },
+        ensure_ascii=False,
+    )
+
+    eid = db.execute(text(
+        "SELECT id FROM servicio_tecnico_ventas_odt WHERE LOWER(TRIM(odt)) = LOWER(TRIM(:c)) LIMIT 1"
+    ), {"c": codigo}).scalar_one_or_none()
+    if eid:
+        db.execute(text(
+            "UPDATE servicio_tecnico_ventas_odt SET materiales_bodega=:v WHERE id=:id"
+        ), {"v": data_json, "id": eid})
+    else:
+        db.execute(text(
+            "INSERT INTO servicio_tecnico_ventas_odt (odt, materiales_bodega) VALUES (:odt, :v)"
+        ), {"odt": codigo, "v": data_json})
+    db.commit()
+    return {"ok": True, "mensaje": "Materiales de bodega guardados"}
 
 
 @router.post("/api/soporte-tecnico/ods/upload-imagenes")
