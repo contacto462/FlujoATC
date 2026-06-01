@@ -6157,6 +6157,20 @@ def tabla_soporte_page(
     )
 
 
+@router.get("/materiales", response_class=HTMLResponse)
+def materiales_page(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    _require_area_access(db, current_user, "soporte")
+    return templates.TemplateResponse(
+        request,
+        "materiales.html",
+        {"request": request, "user": current_user},
+    )
+
+
 @router.get("/api/soporte-tecnico/ods-filas")
 def st_ods_filas(
     db: Session = Depends(get_incidencias_db),

@@ -16,9 +16,6 @@
   --primary:#1f5fbf;
   --primary-2:#194f9f;
   --accent:#dfeeff;
-  --ok:#0f766e;
-  --warn:#b45309;
-  --danger:#b91c1c;
   --shadow:0 20px 40px rgba(15,23,42,.08);
   --radius:20px;
 }
@@ -42,7 +39,7 @@ body{
 
 .topbar{
   display:flex;
-  align-items:center;
+  align-items:flex-start;
   justify-content:space-between;
   gap:16px;
   margin-bottom:18px;
@@ -59,17 +56,15 @@ body{
   color:var(--muted);
 }
 
-.back-link{
+.user-chip{
   display:inline-flex;
   align-items:center;
-  justify-content:center;
-  min-height:44px;
-  padding:0 16px;
+  min-height:42px;
+  padding:0 14px;
   border-radius:999px;
   border:1px solid var(--line);
   background:rgba(255,255,255,.72);
-  color:var(--text);
-  text-decoration:none;
+  color:var(--muted);
   font-weight:700;
 }
 
@@ -406,7 +401,6 @@ body{
   }
   .topbar{
     flex-direction:column;
-    align-items:flex-start;
   }
   .summary{
     grid-template-columns:1fr;
@@ -434,12 +428,12 @@ body{
         <h1>Control de materiales ODS</h1>
         <p>Vista para bodega: compara lo presupuestado en RegistroODS versus lo entregado realmente.</p>
       </div>
-      <a class="back-link" href="/panel">Volver al panel</a>
+      <div class="user-chip">{{ (user.name or user.username or 'Usuario') }}</div>
     </div>
 
     <div class="layout">
       <aside class="panel sidebar">
-        <input id="searchInput" class="search" type="search" placeholder="Buscar por ODS, sucursal, cliente o dirección">
+        <input id="searchInput" class="search" type="search" placeholder="Buscar por ODS, sucursal, cliente o direccion">
         <div class="summary">
           <div class="metric">
             <strong id="metricTotal">0</strong>
@@ -488,7 +482,7 @@ body{
             <section class="info-card">
               <div class="info-stack">
                 <div class="info-row">
-                  <span>Dirección</span>
+                  <span>Direccion</span>
                   <strong id="detailDireccion">-</strong>
                 </div>
                 <div class="info-row">
@@ -500,7 +494,7 @@ body{
                   <strong id="detailFecha">-</strong>
                 </div>
                 <div class="info-row">
-                  <span>Observación comercial</span>
+                  <span>Observacion comercial</span>
                   <strong id="detailObservacion">Sin observaciones.</strong>
                 </div>
               </div>
@@ -530,8 +524,8 @@ body{
             <div id="noMaterialsBox" class="empty-state" hidden>Esta ODS no trae materiales cargados.</div>
 
             <div style="margin-top:16px;">
-              <label for="observacionBodega" style="display:block;font-weight:800;margin-bottom:8px;">Observación de bodega</label>
-              <textarea id="observacionBodega" class="observacion-box" rows="4" placeholder="Ejemplo: faltó un sensor, se entregó parcial, pendiente reposición..."></textarea>
+              <label for="observacionBodega" style="display:block;font-weight:800;margin-bottom:8px;">Observacion de bodega</label>
+              <textarea id="observacionBodega" class="observacion-box" rows="4" placeholder="Ejemplo: falto un sensor, se entrego parcial, pendiente reposicion..."></textarea>
             </div>
 
             <div class="toolbar">
@@ -714,7 +708,7 @@ function renderList() {
       </div>
       <p class="ods-meta"><strong>${escapeHtml(row.sucursal || "Sin sucursal")}</strong></p>
       <p class="ods-meta">${escapeHtml(row.tipoServicio || "Sin tipo de servicio")}</p>
-      <p class="ods-meta">${escapeHtml(row.direccion || "Sin dirección")}</p>
+      <p class="ods-meta">${escapeHtml(row.direccion || "Sin direccion")}</p>
       <p class="ods-meta">${escapeHtml(row.fecha || "")} · ${escapeHtml(row.creadoPor || "Sin creador")}</p>
     </button>
   `).join("");
@@ -747,7 +741,7 @@ function renderMaterials(detail) {
       </td>
       <td>
         <div class="material-name">${escapeHtml(item.nombre || `Material ${index + 1}`)}</div>
-        <div class="material-sub">Línea editable por si el texto original viene incompleto.</div>
+        <div class="material-sub">Linea editable por si el texto original viene incompleto.</div>
         <textarea rows="2" data-role="nombre" data-index="${index}" placeholder="Nombre del material">${escapeHtml(item.nombre)}</textarea>
       </td>
       <td>
@@ -892,7 +886,7 @@ function resetCurrent() {
   const detail = state.detailCache.get(row.codigo);
   if (!detail) return;
   renderMaterials(detail);
-  els.saveStatus.textContent = "Se restauró la información cargada.";
+  els.saveStatus.textContent = "Se restauro la informacion cargada.";
 }
 
 async function init() {
