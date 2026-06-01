@@ -6168,6 +6168,10 @@ def materiales_page(
     token: str = Query(default=""),
 ):
     current_user: User | None = None
+    token_limpio = (token or "").strip()
+    if token_limpio:
+        return RedirectResponse(url=f"/sso/login?token={token_limpio}", status_code=303)
+
     cookie_token = request.cookies.get(COOKIE_NAME)
     if cookie_token:
         try:
@@ -6177,9 +6181,6 @@ def materiales_page(
             current_user = None
 
     if not current_user or not current_user.is_active:
-        token_limpio = (token or "").strip()
-        if token_limpio:
-            return RedirectResponse(url=f"/sso/login?token={token_limpio}", status_code=303)
         return RedirectResponse(url="/login", status_code=303)
 
     _require_area_access(db, current_user, "materiales")
@@ -6268,7 +6269,7 @@ def st_ods_detalle(
     _ensure_st_campos(db)
     row = db.execute(text("""
         SELECT numero_camaras_instalar, numero_camaras_vigilar, dias_grabacion,
-               materiales, observacion, rut_cliente, nombre_sucursal, razon_social,
+               observacion, rut_cliente, nombre_sucursal, razon_social,
                direccion_sucursal
         FROM venta_ods
         WHERE LOWER(TRIM(codigo)) = LOWER(TRIM(:c))
@@ -6289,6 +6290,11 @@ def st_ods_detalle(
         WHERE LOWER(TRIM(s.direccion_sucursal)) = LOWER(TRIM(:d))
         ORDER BY c.id ASC LIMIT 1
     """), {"d": str(row.get("direccion_sucursal") or "")}).mappings().first()
+    materiales_st = db.execute(text("""
+        SELECT solicitud_materiales FROM servicio_tecnico_ventas_odt
+        WHERE LOWER(TRIM(odt)) = LOWER(TRIM(:c))
+        LIMIT 1
+    """), {"c": codigo}).scalar_one_or_none()
     materiales_bodega_raw = db.execute(text("""
         SELECT materiales_bodega FROM servicio_tecnico_ventas_odt
         WHERE LOWER(TRIM(odt)) = LOWER(TRIM(:c))
@@ -6302,7 +6308,7 @@ def st_ods_detalle(
         "camarasInstalar": str(row.get("numero_camaras_instalar") or ""),
         "camarasVigilar": str(row.get("numero_camaras_vigilar") or ""),
         "diasGrabacion": str(row.get("dias_grabacion") or ""),
-        "materiales": str(row.get("materiales") or ""),
+        "materiales": str(materiales_st or ""),
         "observacion": str(row.get("observacion") or ""),
         "idCliente": str(row.get("rut_cliente") or ""),
         "idSucursal": str(row.get("nombre_sucursal") or ""),
