@@ -814,6 +814,7 @@ def _verify_web_password(plain_password: str, stored_password: str) -> bool:
 
 DEPARTMENT_AREA_MAP = {
     "soporte": [("soporte", "Soporte", "Soporte")],
+    "materiales": [("materiales", "Materiales", "Materiales")],
     "servicio tecnico": [("servicio_tecnico", "Servicio Tecnico", "Servicio Tecnico")],
     "servicio técnico": [("servicio_tecnico", "Servicio Tecnico", "Servicio Tecnico")],
     "tecnicos": [("tecnicos", "Tecnicos", "Tecnicos")],
@@ -873,6 +874,7 @@ def _active_user_areas(db: Session, user_id: int) -> list[dict[str, object]]:
 def _area_card_options(areas: list[dict[str, object]]) -> list[dict[str, str]]:
     labels = {
         "soporte": ("Soporte Técnico", "Tickets, incidencias de soporte y cierres operativos.", "S"),
+        "materiales": ("Materiales", "Control de materiales presupuestados versus entregados.", "M"),
         "servicio_tecnico": ("Servicio Técnico", "Panel de servicio, coordinacion y seguimiento tecnico.", "ST"),
         "tecnicos": ("Tecnicos", "Cola de trabajo, rutas, evidencias y rendiciones.", "T"),
         "incidencias": ("Operadores", "Operador", "OP"),
@@ -996,6 +998,8 @@ def _redirect_for_user_area(area_code: str | None, session_token: str) -> str:
     area = (area_code or "").strip()
     if area == "soporte":
         return "/panel?area=soporte"
+    if area == "materiales":
+        return "/materiales"
     if area == "servicio_tecnico":
         return f"{prefix}/?form=panelSelectorServicio&token={session_token}&next=panelSelectorServicio"
     if area == "tecnicos":
@@ -6161,9 +6165,24 @@ def tabla_soporte_page(
 def materiales_page(
     request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_web),
+    token: str = Query(default=""),
 ):
-    _require_area_access(db, current_user, "soporte")
+    current_user: User | None = None
+    cookie_token = request.cookies.get(COOKIE_NAME)
+    if cookie_token:
+        try:
+            username = _decode_cookie_token(cookie_token)
+            current_user = UserService.find_by_login(db, username)
+        except Exception:
+            current_user = None
+
+    if not current_user or not current_user.is_active:
+        token_limpio = (token or "").strip()
+        if token_limpio:
+            return RedirectResponse(url=f"/sso/login?token={token_limpio}", status_code=303)
+        return RedirectResponse(url="/login", status_code=303)
+
+    _require_area_access(db, current_user, "materiales")
     return templates.TemplateResponse(
         request,
         "materiales.html",
