@@ -195,67 +195,6 @@ body{
   color:var(--muted);
 }
 
-.header-card{
-  display:grid;
-  grid-template-columns:1.5fr 1fr;
-  gap:16px;
-  margin-bottom:18px;
-}
-
-.hero-card,
-.info-card{
-  border:1px solid var(--line);
-  border-radius:18px;
-  background:linear-gradient(180deg,#fff, #f8fbff);
-  padding:18px;
-}
-
-.hero-card h2{
-  margin:0;
-  font-size:28px;
-}
-
-.hero-grid{
-  display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:10px;
-  margin-top:14px;
-}
-
-.hero-item{
-  padding:12px;
-  border-radius:14px;
-  background:#fff;
-  border:1px solid var(--line);
-}
-
-.hero-item span,
-.info-row span{
-  display:block;
-  color:var(--muted);
-  font-size:12px;
-  margin-bottom:4px;
-}
-
-.hero-item strong,
-.info-row strong{
-  display:block;
-  font-size:14px;
-}
-
-.info-stack{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-}
-
-.info-row{
-  padding:12px;
-  border-radius:14px;
-  background:#fff;
-  border:1px solid var(--line);
-}
-
 .section{
   border:1px solid var(--line);
   border-radius:18px;
@@ -414,9 +353,6 @@ body{
   .ods-list{
     max-height:320px;
   }
-  .header-card{
-    grid-template-columns:1fr;
-  }
 }
 
 @media (max-width: 720px){
@@ -479,52 +415,6 @@ body{
         <div id="loadingState" class="loading-state">Cargando ODS...</div>
         <div id="emptyState" class="empty-state" hidden>Selecciona una ODS para revisar materiales.</div>
         <div id="detailView" hidden>
-          <div class="header-card">
-            <section class="hero-card">
-              <div class="badge" id="detailEstado">Sin estado</div>
-              <h2 id="detailCodigo">ODS</h2>
-              <div class="hero-grid">
-                <div class="hero-item">
-                  <span>Sucursal</span>
-                  <strong id="detailSucursal">-</strong>
-                </div>
-                <div class="hero-item">
-                  <span>Cliente</span>
-                  <strong id="detailRut">-</strong>
-                </div>
-                <div class="hero-item">
-                  <span>Tipo de servicio</span>
-                  <strong id="detailServicio">-</strong>
-                </div>
-                <div class="hero-item">
-                  <span>Plan</span>
-                  <strong id="detailPlan">-</strong>
-                </div>
-              </div>
-            </section>
-
-            <section class="info-card">
-              <div class="info-stack">
-                <div class="info-row">
-                  <span>Direccion</span>
-                  <strong id="detailDireccion">-</strong>
-                </div>
-                <div class="info-row">
-                  <span>Creado por</span>
-                  <strong id="detailCreadoPor">-</strong>
-                </div>
-                <div class="info-row">
-                  <span>Fecha</span>
-                  <strong id="detailFecha">-</strong>
-                </div>
-                <div class="info-row">
-                  <span>Observacion comercial</span>
-                  <strong id="detailObservacion">Sin observaciones.</strong>
-                </div>
-              </div>
-            </section>
-          </div>
-
           <section class="section">
             <div class="section-head">
               <div>
@@ -592,16 +482,6 @@ const els = {
   metricTotal: document.getElementById("metricTotal"),
   metricConMaterial: document.getElementById("metricConMaterial"),
   metricGuardadas: document.getElementById("metricGuardadas"),
-  detailCodigo: document.getElementById("detailCodigo"),
-  detailEstado: document.getElementById("detailEstado"),
-  detailSucursal: document.getElementById("detailSucursal"),
-  detailRut: document.getElementById("detailRut"),
-  detailServicio: document.getElementById("detailServicio"),
-  detailPlan: document.getElementById("detailPlan"),
-  detailDireccion: document.getElementById("detailDireccion"),
-  detailCreadoPor: document.getElementById("detailCreadoPor"),
-  detailFecha: document.getElementById("detailFecha"),
-  detailObservacion: document.getElementById("detailObservacion"),
   materialTableBody: document.getElementById("materialTableBody"),
   noMaterialsBox: document.getElementById("noMaterialsBox"),
   materialCountBadge: document.getElementById("materialCountBadge"),
@@ -803,17 +683,6 @@ function renderDetail(row, detail) {
   els.loadingState.hidden = true;
   els.emptyState.hidden = true;
   els.detailView.hidden = false;
-
-  els.detailCodigo.textContent = row.codigo || "ODS";
-  els.detailEstado.textContent = row.estado || "Sin estado";
-  els.detailSucursal.textContent = detail.sucursal || row.sucursal || "-";
-  els.detailRut.textContent = detail.idCliente || row.rut || "-";
-  els.detailServicio.textContent = row.tipoServicio || "-";
-  els.detailPlan.textContent = row.tipoPlan || "-";
-  els.detailDireccion.textContent = detail.direccion || row.direccion || "-";
-  els.detailCreadoPor.textContent = row.creadoPor || "-";
-  els.detailFecha.textContent = row.fecha || "-";
-  els.detailObservacion.textContent = detail.observacion || "Sin observaciones.";
   renderMaterials(detail);
 }
 
