@@ -114,6 +114,13 @@ body{
   font-size:13px;
 }
 
+.header-right{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  justify-self:end;
+}
+
 .user-chip{
   display:inline-flex;
   align-items:center;
@@ -127,7 +134,6 @@ body{
   font-size:13px;
   font-weight:500;
   box-shadow:var(--shadow-sm);
-  justify-self:end;
 }
 
 .user-chip::before{
@@ -136,6 +142,37 @@ body{
   height:7px;
   border-radius:50%;
   background:var(--success);
+}
+
+.logout-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  min-height:36px;
+  padding:0 14px;
+  border-radius:var(--radius);
+  border:1px solid var(--border-strong);
+  background:var(--surface);
+  color:var(--text-soft);
+  font-size:13px;
+  font-weight:500;
+  font-family:inherit;
+  text-decoration:none;
+  box-shadow:var(--shadow-sm);
+  cursor:pointer;
+  transition:background .15s ease, border-color .15s ease, color .15s ease;
+}
+
+.logout-btn:hover{
+  background:var(--danger-soft);
+  border-color:#fca5a5;
+  color:var(--danger);
+}
+
+.logout-btn svg{
+  width:14px;
+  height:14px;
+  stroke-width:2;
 }
 
 .layout{
@@ -492,21 +529,23 @@ body{
   display:inline-flex;
   align-items:center;
   gap:4px;
-  margin-top:5px;
+  margin-top:6px;
   padding:2px 8px;
-  border-radius:999px;
-  background:var(--accent-soft);
-  color:var(--accent-hover);
+  border-radius:var(--radius-sm);
+  background:var(--surface-alt);
+  color:var(--text-muted);
   font-size:10.5px;
-  font-weight:700;
-  border:1px solid rgba(244,166,114,.3);
-  text-transform:uppercase;
-  letter-spacing:.04em;
+  font-weight:600;
+  border:1px solid var(--border);
+  letter-spacing:.02em;
 }
 
 .material-extra-flag::before{
-  content:"+";
-  font-weight:800;
+  content:"";
+  width:5px;
+  height:5px;
+  border-radius:50%;
+  background:var(--accent);
 }
 
 .entregado-actions{
@@ -519,20 +558,42 @@ body{
   width:32px;
   min-width:32px;
   height:32px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:0;
   border:1px solid var(--border);
   border-radius:var(--radius-sm);
   background:var(--surface);
-  color:var(--danger);
-  font-size:16px;
-  font-weight:700;
+  color:var(--text-muted);
   cursor:pointer;
-  transition:background .15s ease, border-color .15s ease;
+  transition:background .15s ease, border-color .15s ease, color .15s ease;
 }
 
-.btn-delete-row:hover{
+.btn-delete-row svg{
+  width:14px;
+  height:14px;
+  display:block;
+  fill:currentColor;
+  pointer-events:none;
+}
+
+.btn-delete-row .icon-hover{display:none;}
+
+.btn-delete-row:hover,
+.btn-delete-row:focus-visible{
   background:var(--danger-soft);
   border-color:#fca5a5;
+  color:var(--danger);
 }
+
+.btn-delete-row:hover .icon-default,
+.btn-delete-row:focus-visible .icon-default,
+.btn-delete-row:active .icon-default{display:none;}
+
+.btn-delete-row:hover .icon-hover,
+.btn-delete-row:focus-visible .icon-hover,
+.btn-delete-row:active .icon-hover{display:block;}
 
 .toolbar{
   display:flex;
@@ -620,7 +681,7 @@ body{
   }
   .logo-atc{justify-self:center;width:130px;}
   .title-wrap{text-align:center;}
-  .user-chip{justify-self:center;}
+  .header-right{justify-self:center;}
   .summary{grid-template-columns:1fr;}
   .toolbar{flex-direction:column;align-items:stretch;}
   .actions{width:100%;}
@@ -638,7 +699,17 @@ body{
         <h1>Control de materiales en bodega</h1>
         <p>Registra lo entregado a los técnicos para las instalaciones</p>
       </div>
-      <div class="user-chip">{{ (user.name or user.username or 'Usuario') }}</div>
+      <div class="header-right">
+        <div class="user-chip">{{ (user.name or user.username or 'Usuario') }}</div>
+        <a class="logout-btn" href="/logout" title="Cerrar sesión">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          Cerrar sesión
+        </a>
+      </div>
     </header>
 
     <div class="layout">
@@ -886,7 +957,7 @@ function buildMaterialRow(item, index) {
           <td>
             <div class="entregado-actions">
               <input class="qty-input" type="text" inputmode="decimal" data-role="entregado" data-index="${index}" value="${escapeHtml(item.entregado)}" placeholder="0">
-              ${canDeleteAddedRow ? `<button class="btn-delete-row" type="button" data-delete-index="${index}" title="Borrar fila">×</button>` : ""}
+              ${canDeleteAddedRow ? `<button class="btn-delete-row" type="button" data-delete-index="${index}" title="Borrar fila" aria-label="Borrar fila"><svg class="icon-default" viewBox="0 0 297 297" aria-hidden="true"><path d="M221.227 32.615H191V9.884C191 4.426 186.575 0 181.116 0h-65.231c-5.458 0-9.884 4.425-9.884 9.884v22.732H75.773c-19.301 0-35.004 15.703-35.004 35.004v23.803c0 5.458 4.425 9.884 9.884 9.884h6.967l11.124 186.399A9.883 9.883 0 0 0 78.61 297h139.78a9.884 9.884 0 0 0 9.866-9.295l11.124-186.399h6.967c5.458 0 9.884-4.425 9.884-9.884V67.619c0-19.301-15.703-35.004-35.004-35.004m-95.459-12.848h45.464v12.849h-45.464zM89.693 277.233h-1.772L77.452 101.8h12.241zm31.451 0H109.46V101.306h11.684zm34.946 0h-15.179V101.8h15.179zm31.45 0h-11.684V101.306h11.684zm21.539 0h-1.772V101.8h12.241zm27.384-195.694H60.537v-13.92c0-8.401 6.835-15.236 15.236-15.236h145.453c8.402 0 15.237 6.835 15.237 15.236z"/></svg><svg class="icon-hover" viewBox="0 0 297 297" aria-hidden="true"><path d="M248.596 80.468c-3.988-8.124-10.903-14.209-19.467-17.133l-27.689-9.453 7.109-20.824c1.707-5-.962-10.437-5.962-12.144L142.833.512a9.57 9.57 0 0 0-12.146 5.963l-7.109 20.823-27.69-9.454c-17.676-6.036-36.974 3.438-43.012 21.118l-7.444 21.804a9.57 9.57 0 0 0 5.962 12.146l46.897 16.011H57.694a9.566 9.566 0 0 0-9.55 10.136L59.42 288.003A9.57 9.57 0 0 0 68.97 297h135.3a9.567 9.567 0 0 0 9.55-8.997l9.336-156.45 7.502 2.561a9.6 9.6 0 0 0 3.092.516 9.57 9.57 0 0 0 9.053-6.478l7.444-21.805c2.924-8.564 2.338-17.756-1.651-25.879M79.697 277.866h-1.715l-10.134-169.81h11.849zM145.704 21.71l41.647 14.219-4.018 11.77-41.647-14.219zM110.14 277.866H98.831v-169.81h11.309zm33.826 0h-14.692v-169.81h14.692zm30.442.001h-11.309V111.049l11.309 3.861zm20.849-.001h-1.715V121.442l10.83 3.698zm36.883-177.701-4.353 12.751L66.631 57.895l4.354-12.75c2.628-7.695 11.03-11.818 18.722-9.193l133.241 45.491a14.65 14.65 0 0 1 8.474 7.457 14.65 14.65 0 0 1 .718 11.265"/></svg></button>` : ""}
             </div>
           </td>
         </tr>
@@ -904,7 +975,7 @@ function buildMaterialRow(item, index) {
         <td>
           <div class="entregado-actions">
             <input class="qty-input" type="text" inputmode="decimal" data-role="entregado" data-index="${index}" value="${escapeHtml(item.entregado)}" placeholder="0">
-            ${canDeleteAddedRow ? `<button class="btn-delete-row" type="button" data-delete-index="${index}" title="Borrar fila">×</button>` : ""}
+            ${canDeleteAddedRow ? `<button class="btn-delete-row" type="button" data-delete-index="${index}" title="Borrar fila" aria-label="Borrar fila"><svg class="icon-default" viewBox="0 0 297 297" aria-hidden="true"><path d="M221.227 32.615H191V9.884C191 4.426 186.575 0 181.116 0h-65.231c-5.458 0-9.884 4.425-9.884 9.884v22.732H75.773c-19.301 0-35.004 15.703-35.004 35.004v23.803c0 5.458 4.425 9.884 9.884 9.884h6.967l11.124 186.399A9.883 9.883 0 0 0 78.61 297h139.78a9.884 9.884 0 0 0 9.866-9.295l11.124-186.399h6.967c5.458 0 9.884-4.425 9.884-9.884V67.619c0-19.301-15.703-35.004-35.004-35.004m-95.459-12.848h45.464v12.849h-45.464zM89.693 277.233h-1.772L77.452 101.8h12.241zm31.451 0H109.46V101.306h11.684zm34.946 0h-15.179V101.8h15.179zm31.45 0h-11.684V101.306h11.684zm21.539 0h-1.772V101.8h12.241zm27.384-195.694H60.537v-13.92c0-8.401 6.835-15.236 15.236-15.236h145.453c8.402 0 15.237 6.835 15.237 15.236z"/></svg><svg class="icon-hover" viewBox="0 0 297 297" aria-hidden="true"><path d="M248.596 80.468c-3.988-8.124-10.903-14.209-19.467-17.133l-27.689-9.453 7.109-20.824c1.707-5-.962-10.437-5.962-12.144L142.833.512a9.57 9.57 0 0 0-12.146 5.963l-7.109 20.823-27.69-9.454c-17.676-6.036-36.974 3.438-43.012 21.118l-7.444 21.804a9.57 9.57 0 0 0 5.962 12.146l46.897 16.011H57.694a9.566 9.566 0 0 0-9.55 10.136L59.42 288.003A9.57 9.57 0 0 0 68.97 297h135.3a9.567 9.567 0 0 0 9.55-8.997l9.336-156.45 7.502 2.561a9.6 9.6 0 0 0 3.092.516 9.57 9.57 0 0 0 9.053-6.478l7.444-21.805c2.924-8.564 2.338-17.756-1.651-25.879M79.697 277.866h-1.715l-10.134-169.81h11.849zM145.704 21.71l41.647 14.219-4.018 11.77-41.647-14.219zM110.14 277.866H98.831v-169.81h11.309zm33.826 0h-14.692v-169.81h14.692zm30.442.001h-11.309V111.049l11.309 3.861zm20.849-.001h-1.715V121.442l10.83 3.698zm36.883-177.701-4.353 12.751L66.631 57.895l4.354-12.75c2.628-7.695 11.03-11.818 18.722-9.193l133.241 45.491a14.65 14.65 0 0 1 8.474 7.457 14.65 14.65 0 0 1 .718 11.265"/></svg></button>` : ""}
           </div>
         </td>
       </tr>
