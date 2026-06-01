@@ -422,8 +422,8 @@ body{
   <div class="page">
     <div class="topbar">
       <div class="title-wrap">
-        <h1>Control de materiales ODS</h1>
-        <p>Vista para bodega: compara lo presupuestado en RegistroODS versus lo entregado realmente.</p>
+        <h1>Control de materiales en bodega</h1>
+        <p>Registra lo entregado a los técnicos para las instalaciones</p>
       </div>
       <div class="user-chip">{{ (user.name or user.username or 'Usuario') }}</div>
     </div>
@@ -455,7 +455,7 @@ body{
           <section class="section">
             <div class="section-head">
               <div>
-                <h3>Materiales presupuestados vs entregados</h3>
+                <h3>Materiales solicitados para la instalación</h3>
                 <p>Completa la columna entregada. Puedes corregir cantidades antes de guardar.</p>
               </div>
               <div class="badge" id="materialCountBadge">0 items</div>
@@ -464,7 +464,7 @@ body{
             <table class="material-table">
               <thead>
                 <tr>
-                  <th style="width:22%;">Presupuestado</th>
+                  <th style="width:22%;">Cantidad</th>
                   <th>Material</th>
                   <th style="width:20%;">Entregado</th>
                 </tr>
@@ -487,7 +487,6 @@ body{
             <div class="section-head">
               <div>
                 <h3>Texto original de materiales</h3>
-                <p>Referencia directa tomada desde RegistroODS.</p>
               </div>
             </div>
             <pre id="rawMateriales" class="raw-box">Sin materiales cargados.</pre>
