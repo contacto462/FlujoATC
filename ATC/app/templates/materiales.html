@@ -130,6 +130,7 @@ body{
   gap:10px;
   max-height:calc(100vh - 290px);
   overflow:auto;
+  padding-top:4px;
   padding-right:4px;
 }
 
@@ -144,11 +145,24 @@ body{
   transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease;
 }
 
-.ods-card:hover,
-.ods-card.active{
+.ods-card:hover{
   transform:translateY(-1px);
   border-color:rgba(31,95,191,.45);
   box-shadow:0 14px 24px rgba(31,95,191,.10);
+}
+
+.ods-card.active{
+  border-color:rgba(31,95,191,.45);
+  box-shadow:0 14px 24px rgba(31,95,191,.10);
+}
+
+.ods-card.completed{
+  border-color:rgba(34,197,94,.72);
+  box-shadow:0 14px 24px rgba(34,197,94,.12);
+}
+
+.ods-card.completed .ods-code{
+  color:#15803d;
 }
 
 .ods-top{
@@ -437,11 +451,6 @@ body{
 
             <div id="noMaterialsBox" class="empty-state" hidden>Esta ODS no trae materiales cargados.</div>
 
-            <div style="margin-top:16px;">
-              <label for="observacionBodega" style="display:block;font-weight:800;margin-bottom:8px;">Observacion de bodega</label>
-              <textarea id="observacionBodega" class="observacion-box" rows="4" placeholder="Ejemplo: falto un sensor, se entrego parcial, pendiente reposicion..."></textarea>
-            </div>
-
             <div class="toolbar">
               <div id="saveStatus" class="status"></div>
               <div class="actions">
@@ -471,6 +480,8 @@ const state = {
   filteredRows: [],
   selectedCode: "",
   detailCache: new Map(),
+  autoSaveTimer: null,
+  saveInFlight: false,
 };
 
 const els = {
@@ -486,7 +497,6 @@ const els = {
   noMaterialsBox: document.getElementById("noMaterialsBox"),
   materialCountBadge: document.getElementById("materialCountBadge"),
   addMaterialButton: document.getElementById("addMaterialButton"),
-  observacionBodega: document.getElementById("observacionBodega"),
   rawMateriales: document.getElementById("rawMateriales"),
   saveStatus: document.getElementById("saveStatus"),
   saveButton: document.getElementById("saveButton"),
@@ -580,10 +590,40 @@ function mergeItems(parsedItems, savedItems) {
       presupuestado: saved.presupuestado || parsed.presupuestado,
       nombre: saved.nombre || parsed.nombre,
       entregado: saved.entregado || parsed.entregado,
-      agregado: Boolean(saved.agregado && !parsed.nombre),
+      agregado: Boolean(saved.agregado || i >= parsedItems.length),
     });
   }
   return merged.filter((item) => item.nombre || item.presupuestado || item.entregado);
+}
+
+function normalizeQty(value) {
+  return String(value || "")
+    .trim()
+    .replace(",", ".");
+}
+
+function isOdsCompleted(detail) {
+  if (!detail) return false;
+  const parsedItems = parseMateriales(detail.materiales || "");
+  if (!parsedItems.length) return false;
+  const savedItems = getSavedBodegaItems(detail);
+  if (!savedItems.length) return false;
+  if (savedItems.length !== parsedItems.length) return false;
+
+  for (let i = 0; i < parsedItems.length; i += 1) {
+    const base = parsedItems[i] || {};
+    const saved = savedItems[i] || {};
+    if (normalizeQty(base.presupuestado) !== normalizeQty(saved.presupuestado || base.presupuestado)) {
+      return false;
+    }
+    if (normalizeQty(base.presupuestado) !== normalizeQty(saved.entregado)) {
+      return false;
+    }
+    if ((saved.nombre || "").trim() && (base.nombre || "").trim() && (saved.nombre || "").trim() !== (base.nombre || "").trim()) {
+      return false;
+    }
+  }
+  return true;
 }
 
 function buildMaterialRow(item, index) {
@@ -644,7 +684,7 @@ function renderList() {
   }
 
   els.odsList.innerHTML = items.map((row) => `
-    <button class="ods-card ${row.codigo === state.selectedCode ? "active" : ""}" type="button" data-code="${escapeHtml(row.codigo)}">
+    <button class="ods-card ${row.codigo === state.selectedCode ? "active" : ""} ${isOdsCompleted(state.detailCache.get(row.codigo)) ? "completed" : ""}" type="button" data-code="${escapeHtml(row.codigo)}">
       <div class="ods-top">
         <div class="ods-code">${escapeHtml(row.codigo)}</div>
       </div>
@@ -667,7 +707,6 @@ function renderMaterials(detail) {
 
   els.materialCountBadge.textContent = `${items.length} item${items.length === 1 ? "" : "s"}`;
   els.rawMateriales.textContent = String(detail.materiales || "").trim() || "Sin materiales cargados.";
-  els.observacionBodega.value = String(detail?.materialesBodega?.observacion || "");
 
   if (!items.length) {
     els.materialTableBody.innerHTML = "";
@@ -763,6 +802,28 @@ function collectMaterialItems() {
   return rows;
 }
 
+function syncDetailFromDom() {
+  const row = getSelectedRow();
+  if (!row) return;
+  const detail = state.detailCache.get(row.codigo) || {};
+  detail.materialesBodega = {
+    items: collectMaterialItems(),
+    observacion: "",
+  };
+  state.detailCache.set(row.codigo, detail);
+}
+
+function scheduleAutoSave() {
+  syncDetailFromDom();
+  renderList();
+  if (state.autoSaveTimer) {
+    clearTimeout(state.autoSaveTimer);
+  }
+  state.autoSaveTimer = setTimeout(() => {
+    void saveCurrent(true);
+  }, 500);
+}
+
 function addMaterialRow() {
   els.noMaterialsBox.hidden = true;
   const index = els.materialTableBody.querySelectorAll("tr").length;
@@ -775,20 +836,26 @@ function addMaterialRow() {
   els.materialCountBadge.textContent = `${index + 1} item${index + 1 === 1 ? "" : "s"}`;
   const input = els.materialTableBody.querySelector(`tr:last-child [data-role="nombre"]`);
   if (input) input.focus();
+  scheduleAutoSave();
 }
 
-async function saveCurrent() {
+async function saveCurrent(silent = false) {
   const row = getSelectedRow();
   if (!row) return;
+  if (state.saveInFlight) return;
 
   const payload = {
     codigo: row.codigo,
     items: collectMaterialItems(),
-    observacion: els.observacionBodega.value.trim(),
+    observacion: "",
   };
 
+  state.saveInFlight = true;
   els.saveButton.disabled = true;
-  els.saveStatus.textContent = "Guardando registro...";
+  els.addMaterialButton.disabled = true;
+  if (!silent) {
+    els.saveStatus.textContent = "Guardando registro...";
+  }
 
   try {
     const result = await fetchJson("/api/soporte-tecnico/ods/guardar-materiales-bodega", {
@@ -803,12 +870,14 @@ async function saveCurrent() {
       observacion: payload.observacion,
     };
     state.detailCache.set(row.codigo, detail);
-    els.saveStatus.textContent = result.mensaje || "Registro guardado.";
+    els.saveStatus.textContent = silent ? "Guardado automatico." : (result.mensaje || "Registro guardado.");
     renderList();
   } catch (_error) {
-    els.saveStatus.textContent = "No se pudo guardar el registro.";
+    els.saveStatus.textContent = silent ? "No se pudo guardar automaticamente." : "No se pudo guardar el registro.";
   } finally {
+    state.saveInFlight = false;
     els.saveButton.disabled = false;
+    els.addMaterialButton.disabled = false;
   }
 }
 
@@ -831,7 +900,9 @@ async function init() {
 
 els.searchInput.addEventListener("input", applyFilter);
 els.addMaterialButton.addEventListener("click", addMaterialRow);
-els.saveButton.addEventListener("click", saveCurrent);
+els.saveButton.addEventListener("click", () => void saveCurrent(false));
+els.materialTableBody.addEventListener("input", scheduleAutoSave);
+els.materialTableBody.addEventListener("change", scheduleAutoSave);
 
 init();
 </script>
