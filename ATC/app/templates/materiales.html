@@ -21,6 +21,9 @@
 }
 
 *{box-sizing:border-box}
+[hidden]{
+  display:none !important;
+}
 body{
   margin:0;
   font-family:'Inter',system-ui,-apple-system,Segoe UI,Arial,sans-serif;
@@ -320,6 +323,15 @@ body{
   font-weight:700;
 }
 
+.qty-text{
+  display:inline-block;
+  min-width:36px;
+  padding-top:10px;
+  font-weight:800;
+  font-size:18px;
+  color:var(--text);
+}
+
 .material-name{
   font-weight:700;
 }
@@ -328,6 +340,18 @@ body{
   margin-top:4px;
   color:var(--muted);
   font-size:12px;
+}
+
+.material-extra-flag{
+  display:inline-flex;
+  align-items:center;
+  margin-top:6px;
+  padding:4px 8px;
+  border-radius:999px;
+  background:#eef4fb;
+  color:#1d3557;
+  font-size:11px;
+  font-weight:700;
 }
 
 .toolbar{
@@ -507,7 +531,10 @@ body{
                 <h3>Materiales presupuestados vs entregados</h3>
                 <p>Completa la columna entregada. Puedes corregir cantidades antes de guardar.</p>
               </div>
-              <div class="badge" id="materialCountBadge">0 items</div>
+              <div class="actions">
+                <div class="badge" id="materialCountBadge">0 items</div>
+                <button id="addMaterialButton" class="btn btn-secondary" type="button">Agregar material</button>
+              </div>
             </div>
 
             <table class="material-table">
@@ -531,7 +558,6 @@ body{
             <div class="toolbar">
               <div id="saveStatus" class="status"></div>
               <div class="actions">
-                <button id="resetButton" class="btn btn-secondary" type="button">Reiniciar</button>
                 <button id="saveButton" class="btn btn-primary" type="button">Guardar registro</button>
               </div>
             </div>
@@ -581,11 +607,11 @@ const els = {
   materialTableBody: document.getElementById("materialTableBody"),
   noMaterialsBox: document.getElementById("noMaterialsBox"),
   materialCountBadge: document.getElementById("materialCountBadge"),
+  addMaterialButton: document.getElementById("addMaterialButton"),
   observacionBodega: document.getElementById("observacionBodega"),
   rawMateriales: document.getElementById("rawMateriales"),
   saveStatus: document.getElementById("saveStatus"),
   saveButton: document.getElementById("saveButton"),
-  resetButton: document.getElementById("resetButton"),
 };
 
 function escapeHtml(value) {
@@ -649,6 +675,7 @@ function parseMateriales(rawText) {
       presupuestado,
       nombre,
       entregado: "",
+      agregado: false,
     };
   });
 }
@@ -660,6 +687,7 @@ function getSavedBodegaItems(detail) {
     presupuestado: String(item?.presupuestado || "").trim(),
     nombre: String(item?.nombre || "").trim(),
     entregado: String(item?.entregado || "").trim(),
+    agregado: Boolean(item?.agregado),
   }));
 }
 
@@ -674,9 +702,46 @@ function mergeItems(parsedItems, savedItems) {
       presupuestado: saved.presupuestado || parsed.presupuestado,
       nombre: saved.nombre || parsed.nombre,
       entregado: saved.entregado || parsed.entregado,
+      agregado: Boolean(saved.agregado && !parsed.nombre),
     });
   }
   return merged.filter((item) => item.nombre || item.presupuestado || item.entregado);
+}
+
+function buildMaterialRow(item, index) {
+  const nombre = item.nombre || `Material ${index + 1}`;
+  if (item.agregado) {
+    return `
+      <tr>
+        <td>
+          <input type="text" data-role="presupuestado" data-index="${index}" value="${escapeHtml(item.presupuestado)}" placeholder="0">
+        </td>
+        <td>
+          <input type="text" data-role="nombre" data-index="${index}" value="${escapeHtml(item.nombre)}" placeholder="Nombre del material agregado">
+          <div class="material-extra-flag">Material agregado</div>
+        </td>
+        <td>
+          <input class="qty-input" type="text" inputmode="decimal" data-role="entregado" data-index="${index}" value="${escapeHtml(item.entregado)}" placeholder="0">
+        </td>
+      </tr>
+    `;
+  }
+
+  return `
+    <tr>
+      <td>
+        <span class="qty-text">${escapeHtml(item.presupuestado || "-")}</span>
+        <input type="hidden" data-role="presupuestado" data-index="${index}" value="${escapeHtml(item.presupuestado)}">
+      </td>
+      <td>
+        <div class="material-name">${escapeHtml(nombre)}</div>
+        <input type="hidden" data-role="nombre" data-index="${index}" value="${escapeHtml(item.nombre)}">
+      </td>
+      <td>
+        <input class="qty-input" type="text" inputmode="decimal" data-role="entregado" data-index="${index}" value="${escapeHtml(item.entregado)}" placeholder="0">
+      </td>
+    </tr>
+  `;
 }
 
 function renderList() {
@@ -704,7 +769,6 @@ function renderList() {
     <button class="ods-card ${row.codigo === state.selectedCode ? "active" : ""}" type="button" data-code="${escapeHtml(row.codigo)}">
       <div class="ods-top">
         <div class="ods-code">${escapeHtml(row.codigo)}</div>
-        <div class="badge">${escapeHtml(row.estado || "Sin estado")}</div>
       </div>
       <p class="ods-meta"><strong>${escapeHtml(row.sucursal || "Sin sucursal")}</strong></p>
       <p class="ods-meta">${escapeHtml(row.tipoServicio || "Sin tipo de servicio")}</p>
@@ -734,21 +798,7 @@ function renderMaterials(detail) {
   }
 
   els.noMaterialsBox.hidden = true;
-  els.materialTableBody.innerHTML = items.map((item, index) => `
-    <tr>
-      <td>
-        <input type="text" data-role="presupuestado" data-index="${index}" value="${escapeHtml(item.presupuestado)}" placeholder="0">
-      </td>
-      <td>
-        <div class="material-name">${escapeHtml(item.nombre || `Material ${index + 1}`)}</div>
-        <div class="material-sub">Linea editable por si el texto original viene incompleto.</div>
-        <textarea rows="2" data-role="nombre" data-index="${index}" placeholder="Nombre del material">${escapeHtml(item.nombre)}</textarea>
-      </td>
-      <td>
-        <input class="qty-input" type="text" inputmode="decimal" data-role="entregado" data-index="${index}" value="${escapeHtml(item.entregado)}" placeholder="0">
-      </td>
-    </tr>
-  `).join("");
+  els.materialTableBody.innerHTML = items.map((item, index) => buildMaterialRow(item, index)).join("");
 }
 
 function renderDetail(row, detail) {
@@ -839,10 +889,25 @@ function collectMaterialItems() {
     const presupuestado = tr.querySelector('[data-role="presupuestado"]')?.value?.trim() || "";
     const nombre = tr.querySelector('[data-role="nombre"]')?.value?.trim() || "";
     const entregado = tr.querySelector('[data-role="entregado"]')?.value?.trim() || "";
+    const agregado = Boolean(tr.querySelector(".material-extra-flag"));
     if (!presupuestado && !nombre && !entregado) return;
-    rows.push({ presupuestado, nombre, entregado });
+    rows.push({ presupuestado, nombre, entregado, agregado });
   });
   return rows;
+}
+
+function addMaterialRow() {
+  els.noMaterialsBox.hidden = true;
+  const index = els.materialTableBody.querySelectorAll("tr").length;
+  els.materialTableBody.insertAdjacentHTML("beforeend", buildMaterialRow({
+    presupuestado: "",
+    nombre: "",
+    entregado: "",
+    agregado: true,
+  }, index));
+  els.materialCountBadge.textContent = `${index + 1} item${index + 1 === 1 ? "" : "s"}`;
+  const input = els.materialTableBody.querySelector(`tr:last-child [data-role="nombre"]`);
+  if (input) input.focus();
 }
 
 async function saveCurrent() {
@@ -880,15 +945,6 @@ async function saveCurrent() {
   }
 }
 
-function resetCurrent() {
-  const row = getSelectedRow();
-  if (!row) return;
-  const detail = state.detailCache.get(row.codigo);
-  if (!detail) return;
-  renderMaterials(detail);
-  els.saveStatus.textContent = "Se restauro la informacion cargada.";
-}
-
 async function init() {
   try {
     const rawRows = await fetchJson("/api/soporte-tecnico/ods-filas");
@@ -907,8 +963,8 @@ async function init() {
 }
 
 els.searchInput.addEventListener("input", applyFilter);
+els.addMaterialButton.addEventListener("click", addMaterialRow);
 els.saveButton.addEventListener("click", saveCurrent);
-els.resetButton.addEventListener("click", resetCurrent);
 
 init();
 </script>
