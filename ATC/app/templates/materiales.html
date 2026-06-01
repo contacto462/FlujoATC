@@ -631,6 +631,13 @@ function hasDeliveredQty(value) {
   return normalizeQty(value) !== "";
 }
 
+function isAddedItemReadyToSave(item) {
+  return Boolean(
+    normalizeQty(item?.presupuestado) &&
+    String(item?.nombre || "").trim()
+  );
+}
+
 function isOdsCompleted(detail) {
   if (!detail) return false;
   const parsedItems = parseMateriales(detail.materiales || "");
@@ -663,7 +670,7 @@ function buildMaterialRow(item, index) {
     const canDeleteAddedRow = !hasDeliveredQty(item.entregado);
     if (item.guardado) {
       return `
-        <tr data-added-row="true" data-index="${index}">
+        <tr data-added-row="true" data-guardado="true" data-index="${index}">
           <td>
             <span class="qty-text">${escapeHtml(item.presupuestado || "-")}</span>
             <input type="hidden" data-role="presupuestado" data-index="${index}" value="${escapeHtml(item.presupuestado)}">
@@ -683,7 +690,7 @@ function buildMaterialRow(item, index) {
       `;
     }
     return `
-      <tr data-added-row="true" data-index="${index}">
+      <tr data-added-row="true" data-guardado="false" data-index="${index}">
         <td>
           <input type="text" data-role="presupuestado" data-index="${index}" value="${escapeHtml(item.presupuestado)}" placeholder="0">
         </td>
@@ -702,7 +709,7 @@ function buildMaterialRow(item, index) {
   }
 
   return `
-    <tr>
+    <tr data-guardado="true">
       <td>
         <span class="qty-text">${escapeHtml(item.presupuestado || "-")}</span>
         <input type="hidden" data-role="presupuestado" data-index="${index}" value="${escapeHtml(item.presupuestado)}">
@@ -852,8 +859,9 @@ function collectMaterialItems() {
     const nombre = tr.querySelector('[data-role="nombre"]')?.value?.trim() || "";
     const entregado = tr.querySelector('[data-role="entregado"]')?.value?.trim() || "";
     const agregado = Boolean(tr.querySelector(".material-extra-flag"));
+    const guardado = tr.dataset.guardado === "true";
     if (!presupuestado && !nombre && !entregado) return;
-    rows.push({ presupuestado, nombre, entregado, agregado });
+    rows.push({ presupuestado, nombre, entregado, agregado, guardado });
   });
   return rows;
 }
@@ -865,7 +873,7 @@ function syncDetailFromDom() {
   detail.materialesBodega = {
     items: collectMaterialItems().map((item) => ({
       ...item,
-      guardado: false,
+      guardado: item.guardado,
     })),
     observacion: "",
   };
@@ -875,12 +883,13 @@ function syncDetailFromDom() {
 function scheduleAutoSave() {
   syncDetailFromDom();
   renderList();
-  if (state.autoSaveTimer) {
-    clearTimeout(state.autoSaveTimer);
+  const items = collectMaterialItems();
+  const hasSavableDraft = items.some((item) => item.agregado && !item.guardado && isAddedItemReadyToSave(item));
+  const hasBaseOrLockedChanges = items.some((item) => !item.agregado || item.guardado);
+  if (!hasSavableDraft && !hasBaseOrLockedChanges) {
+    return;
   }
-  state.autoSaveTimer = setTimeout(() => {
-    void saveCurrent(true);
-  }, 500);
+  void saveCurrent(true);
 }
 
 function addMaterialRow() {
@@ -903,9 +912,28 @@ async function saveCurrent(silent = false) {
   if (!row) return;
   if (state.saveInFlight) return;
 
+  const allItems = collectMaterialItems();
+  const itemsToPersist = allItems.filter((item) => {
+    if (!item.agregado) return true;
+    if (item.guardado) return true;
+    return isAddedItemReadyToSave(item);
+  });
+
+  if (!itemsToPersist.length) {
+    if (!silent) {
+      els.saveStatus.textContent = "Completa Presupuesto y Material para guardar la fila agregada.";
+    }
+    return;
+  }
+
   const payload = {
     codigo: row.codigo,
-    items: collectMaterialItems(),
+    items: itemsToPersist.map((item) => ({
+      presupuestado: item.presupuestado,
+      nombre: item.nombre,
+      entregado: item.entregado,
+      agregado: item.agregado,
+    })),
     observacion: "",
   };
 
@@ -924,11 +952,18 @@ async function saveCurrent(silent = false) {
     });
 
     const detail = state.detailCache.get(row.codigo) || {};
+    const draftItems = allItems.filter((item) => item.agregado && !item.guardado && !isAddedItemReadyToSave(item));
     detail.materialesBodega = {
-      items: payload.items.map((item) => ({
-        ...item,
-        guardado: true,
-      })),
+      items: [
+        ...payload.items.map((item) => ({
+          ...item,
+          guardado: true,
+        })),
+        ...draftItems.map((item) => ({
+          ...item,
+          guardado: false,
+        })),
+      ],
       observacion: payload.observacion,
     };
     state.detailCache.set(row.codigo, detail);
@@ -949,18 +984,25 @@ function deleteAddedRow(index) {
   if (!row) return;
   const detail = state.detailCache.get(row.codigo) || {};
   const items = collectMaterialItems();
+  const targetItem = items[index];
+  if (targetItem?.agregado && hasDeliveredQty(targetItem.entregado)) {
+    return;
+  }
   const nextItems = items.filter((_, itemIndex) => itemIndex !== index);
   detail.materialesBodega = {
     items: nextItems.map((item) => ({
       ...item,
-      guardado: false,
+      guardado: item.guardado,
     })),
     observacion: "",
   };
   state.detailCache.set(row.codigo, detail);
   renderMaterials(detail);
   renderList();
-  scheduleAutoSave();
+  const hasPendingSavable = nextItems.some((item) => item.agregado && !item.guardado && isAddedItemReadyToSave(item));
+  if (hasPendingSavable) {
+    scheduleAutoSave();
+  }
 }
 
 async function init() {
@@ -983,7 +1025,6 @@ async function init() {
 els.searchInput.addEventListener("input", applyFilter);
 els.addMaterialButton.addEventListener("click", addMaterialRow);
 els.saveButton.addEventListener("click", () => void saveCurrent(false));
-els.materialTableBody.addEventListener("input", scheduleAutoSave);
 els.materialTableBody.addEventListener("change", scheduleAutoSave);
 els.materialTableBody.addEventListener("click", (event) => {
   const target = event.target;
