@@ -3655,63 +3655,12 @@ def mark_ticket_alerts_as_read(
 
 # ======================================================
 
-@router.get("/tickets", response_class=HTMLResponse)
-
-def tickets_view(
-
-    request: Request,
-
-    db: Session = Depends(get_db),
-
-    current_user: User = Depends(get_current_user_web),
-
-    status: str | None = None,
-
-    q: str | None = None,
-
-):
-
-    query = db.query(Ticket)
-
-    # ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ RestricciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n por rol
-
-    if not current_user.is_admin:
-
-        query = query.filter(Ticket.assigned_to_id == current_user.id)
-
-    if status:
-
-        query = query.filter(Ticket.status == status)
-
-    if q:
-
-        query = query.filter(or_(Ticket.subject.ilike(f"%{q}%")))
-
-    tickets = query.order_by(Ticket.created_at.desc()).all()
-
-    for t in tickets:
-
-        _normalize_requester_name(t.requester)
-
-    return templates.TemplateResponse(
-        request,
-        "tickets.html",
-
-        {
-
-            "request": request,
-
-            "user": current_user,
-
-            "tickets": tickets,
-
-            "status": status,
-
-            "q": q or "",
-
-        },
-
-    )
+@router.get("/tickets")
+def tickets_view(request: Request):
+    # tickets.html fue eliminado; el dashboard es la vista oficial de tickets.
+    qs = request.url.query
+    target = f"/dashboard?{qs}" if qs else "/dashboard"
+    return RedirectResponse(url=target, status_code=303)
 
 # ======================================================
 
