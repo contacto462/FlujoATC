@@ -916,6 +916,8 @@ def _department_has_area(department_value: str | None, area_code: str) -> bool:
 
 def _require_area_access(db: Session, user: User, area_code: str) -> None:
     _ = db
+    if getattr(user, "is_admin", False):
+        return
     if not _department_has_area(user.department, area_code):
         raise HTTPException(status_code=403, detail="No tienes acceso a esta area.")
 
@@ -1136,9 +1138,38 @@ def web_login(
 
     return _set_web_cookie(_redirect_for_authenticated_user(db, user), token)
 
+_SSO_NEXT_ALLOWED_PREFIXES = (
+    "/soporte",
+    "/tickets",
+    "/dashboard",
+    "/tabla-soporte",
+    "/materiales",
+    "/seleccionar-area",
+    "/panel",
+)
+
+
+def _sso_safe_next(raw: str | None, fallback_token: str = "") -> str | None:
+    candidate = (raw or "").strip()
+    if not candidate:
+        return None
+    # Rechaza rutas absolutas o con protocolo (anti open-redirect)
+    if not candidate.startswith("/") or candidate.startswith("//"):
+        return None
+    base = candidate.split("?", 1)[0]
+    if not any(base == p or base.startswith(p + "/") or base.startswith(p + "?") for p in _SSO_NEXT_ALLOWED_PREFIXES):
+        return None
+    # Si el destino no traía token y tenemos uno, lo agregamos para preservar el flujo
+    if fallback_token and "token=" not in candidate:
+        sep = "&" if "?" in candidate else "?"
+        candidate = f"{candidate}{sep}token={fallback_token}"
+    return candidate
+
+
 @router.get("/sso/login")
 def sso_login(
     token: str = Query(default=""),
+    next: str = Query(default=""),
     db: Session = Depends(get_db),
 ):
     token_limpio = (token or "").strip()
@@ -1167,6 +1198,9 @@ def sso_login(
         return RedirectResponse(url="/login", status_code=303)
 
     web_token = create_access_token({"sub": row["username"]})
+    safe_next = _sso_safe_next(next, fallback_token=token_limpio)
+    if safe_next:
+        return _set_web_cookie(RedirectResponse(url=safe_next, status_code=303), web_token)
     return _set_web_cookie(_redirect_for_authenticated_user(db, user), web_token)
 
 @router.get("/logout")
