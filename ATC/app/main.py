@@ -104,6 +104,26 @@ app = FastAPI(
     version="0.3.0",
 )
 
+
+# =========================
+# 401 -> /login redirect para rutas HTML
+# =========================
+from fastapi import HTTPException as _HTTPExc, Request as _Req  # noqa: E402
+from fastapi.responses import JSONResponse as _JSON, RedirectResponse as _Redir  # noqa: E402
+
+
+@app.exception_handler(_HTTPExc)
+async def _html_auth_redirect(request: _Req, exc: _HTTPExc):
+    # Si es un 401/403 y el cliente espera HTML (no JSON/API), mandar al login en vez de devolver JSON
+    if exc.status_code in (401, 403):
+        accept = (request.headers.get("accept") or "").lower()
+        path = str(request.url.path or "")
+        is_api = path.startswith("/api/") or path.startswith("/sso/")
+        wants_html = "text/html" in accept or "*/*" in accept
+        if not is_api and wants_html:
+            return _Redir(url="/login", status_code=303)
+    return _JSON({"detail": exc.detail}, status_code=exc.status_code, headers=dict(exc.headers or {}))
+
 # =========================
 # CREAR CARPETAS NECESARIAS
 # =========================

@@ -1146,6 +1146,7 @@ _SSO_NEXT_ALLOWED_PREFIXES = (
     "/materiales",
     "/seleccionar-area",
     "/panel",
+    "/panel-indicadores",
 )
 
 
@@ -1224,8 +1225,24 @@ def legacy_area_choice_redirect():
 def seleccionar_area_page(
     request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_web),
 ):
+    # Tolerante a cookie ausente: si no hay sesion, redirige al login (no 401 JSON)
+    cookie_token = request.cookies.get(COOKIE_NAME)
+    current_user: User | None = None
+    if cookie_token:
+        try:
+            username = _decode_cookie_token(cookie_token)
+            user = UserService.find_by_login(db, username)
+            if user and user.is_active:
+                current_user = user
+        except Exception:
+            current_user = None
+    if current_user is None:
+        # Si vino con ?token=... de incidencias, pasamos por el SSO bridge
+        token_qs = (request.query_params.get("token") or "").strip()
+        if token_qs:
+            return RedirectResponse(url=f"/sso/login?token={token_qs}&next=/seleccionar-area", status_code=303)
+        return RedirectResponse(url="/login", status_code=303)
     areas = _active_user_areas(db, current_user.id)
     if len(areas) <= 1:
         return _redirect_for_authenticated_user(db, current_user)
