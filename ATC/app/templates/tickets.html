@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Tickets</title>
+</head>
+<body>
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <h2>Tickets</h2>
+    <div>
+      {{ user.name }} ({{ user.role }})
+      <a href="/logout" style="margin-left:12px;">Salir</a>
+    </div>
+  </div>
+
+  {% if user.role == "admin" %}
+    <p><a href="/dashboard">Ir a dashboard</a></p>
+  {% endif %}
+
+  <table border="1" cellpadding="8" cellspacing="0">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Asunto</th>
+        <th>Estado</th>
+        <th>Prioridad</th>
+        <th>Asignado</th>
+        <th>Actualizado</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in tickets %}
+      <tr>
+        <td>{{ t.id }}</td>
+        <td>{{ t.subject }}</td>
+        <td>{{ t.status }}</td>
+        <td>{{ t.priority }}</td>
+        <td>{% if t.assigned_to %}{{ t.assigned_to.name }}{% else %}-{% endif %}</td>
+        <td>{{ t.updated_at }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>
