@@ -1286,6 +1286,13 @@ def launcher_panel(
     areas = _active_user_areas(db, current_user.id)
     if len(areas) > 1 and request.query_params.get("area") != "soporte":
         return RedirectResponse(url="/seleccionar-area", status_code=303)
+    # Token vivo para que los enlaces del panel pasen por el SSO bridge
+    # y refresquen la cookie. Si vino uno en la URL lo reusamos, si no
+    # creamos uno nuevo apuntando al area de soporte.
+    token = (request.query_params.get("token") or "").strip()
+    if not token:
+        area_info = next((a for a in areas if a.get("area_code") == "soporte"), None) or (areas[0] if areas else None)
+        token = _create_unified_login_session(db, current_user, area_info)
     return templates.TemplateResponse(
         request,
         "panel_selector.html",
@@ -1293,6 +1300,7 @@ def launcher_panel(
             "request": request,
             "user": current_user,
             "show_back_button": len(areas) > 1,
+            "token": token,
         },
     )
 
