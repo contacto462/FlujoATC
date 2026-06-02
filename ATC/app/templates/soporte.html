@@ -558,24 +558,25 @@
     }
 
     .btn-imagenes-support {
-      min-width: 64px;
-      min-height: 28px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--accent-hover);
-      background: var(--accent);
+      min-width: 72px;
+      min-height: 32px;
+      border-radius: 8px;
+      border: 1px solid #4f9d6b;
+      background: linear-gradient(180deg, #7fc497 0%, #5fb07f 100%);
       color: #ffffff;
-      font-size: 11px;
-      font-weight: 600;
-      padding: 0 12px;
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 0 14px;
       cursor: pointer;
-      box-shadow: 0 1px 2px rgba(22, 101, 52, 0.15), 0 2px 6px rgba(127, 196, 151, 0.35);
-      transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: 0 1px 2px rgba(22, 101, 52, 0.18), 0 4px 10px rgba(127, 196, 151, 0.34);
+      transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
     }
 
     .btn-imagenes-support:hover {
-      background: var(--accent-hover);
-      border-color: var(--accent-strong);
-      box-shadow: var(--shadow-sm);
+      background: linear-gradient(180deg, #6bb889 0%, #4e9f70 100%);
+      border-color: #2f7f50;
+      box-shadow: 0 1px 2px rgba(22, 101, 52, 0.22), 0 6px 14px rgba(95, 176, 127, 0.36);
+      transform: translateY(-1px);
     }
 
     .imagenes-links {
@@ -932,6 +933,40 @@
       background: var(--accent-hover);
       border-color: var(--accent-strong);
       box-shadow: 0 1px 2px rgba(22, 101, 52, 0.20), 0 4px 10px rgba(127, 196, 151, 0.45);
+    }
+
+    #scrollTopBtn {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 999;
+      background: linear-gradient(180deg, #7fc497 0%, #5fb07f 100%);
+      color: #ffffff;
+      border: 1px solid #4f9d6b;
+      border-radius: 50%;
+      width: 42px;
+      height: 42px;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(22, 101, 52, 0.18), 0 6px 14px rgba(95, 176, 127, 0.32);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    #scrollTopBtn:hover {
+      transform: translateY(-2px);
+      background: linear-gradient(180deg, #6bb889 0%, #4e9f70 100%);
+      border-color: #2f7f50;
+      box-shadow: 0 1px 2px rgba(22, 101, 52, 0.22), 0 8px 18px rgba(95, 176, 127, 0.36);
+    }
+
+    #scrollTopBtn svg {
+      display: block;
+      margin: auto;
+      width: 20px;
+      height: 20px;
     }
 
     /* Scrollbar sutil */
