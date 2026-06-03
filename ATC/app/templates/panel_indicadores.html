@@ -901,13 +901,15 @@
       </div>
     </section>
 
+    {% set allowed_support_agents = ['Ronald Montilla', 'Sthefan Leal', 'Antonio Bahamondes', 'Julissa Mella', 'Felipe Mora'] %}
+    {% set filtered_agents = agents|selectattr('agent', 'in', allowed_support_agents)|list %}
     <section class="section">
       <div class="section-header">
         <div>
           <h3>Detalle por responsable</h3>
           <p>Este es el puente entre la vista gerencial y la conversacion operativa con lideres o agentes.</p>
         </div>
-        <div class="section-badge">{{ agents|length }} responsables</div>
+        <div class="section-badge">{{ filtered_agents|length }} responsables</div>
       </div>
 
       <div class="card responsible-card">
@@ -923,7 +925,7 @@
               </tr>
             </thead>
             <tbody>
-              {% for agent in agents %}
+              {% for agent in filtered_agents %}
                 {% set load = agent.tickets or 0 %}
                 {% set resolved = agent.resolved or 0 %}
                 {% set resolved_7d = agent.resolved_7d or 0 %}
@@ -948,7 +950,7 @@
       "volume": volume,
       "statusBreakdown": status_breakdown,
       "priorities": priorities,
-      "agents": agents,
+      "agents": filtered_agents,
       "aging": aging,
       "summaryStatusKpis": summary_status_kpis,
       "summaryRatesKpis": summary_rates_kpis,
@@ -990,6 +992,18 @@
     }
 
     let pageData = readPanelDataFromDocument(document);
+
+    const allowedSupportAgents = new Set([
+      "Ronald Montilla",
+      "Sthefan Leal",
+      "Antonio Bahamondes",
+      "Julissa Mella",
+      "Felipe Mora",
+    ]);
+
+    pageData.agents = Array.isArray(pageData.agents)
+      ? pageData.agents.filter(item => allowedSupportAgents.has(String(item?.agent || "").trim()))
+      : [];
 
     const chartRegistry = [];
     const body = document.body;

@@ -5672,6 +5672,18 @@ def panel_indicadores(
 ):
     _require_area_access(db, current_user, "soporte")
 
+    def _support_indicator_name(value: str | None) -> str:
+        normalized = unicodedata.normalize("NFKD", str(value or "").strip())
+        return "".join(ch for ch in normalized if not unicodedata.combining(ch)).casefold()
+
+    support_real_technicians = {
+        "ronald montilla",
+        "sthefan leal",
+        "antonio bahamondes",
+        "julissa mella",
+        "felipe mora",
+    }
+
     from ATC.app.services.analytics_service import (
 
         get_overview_kpis,
@@ -5823,8 +5835,17 @@ def panel_indicadores(
 
     priorities = get_tickets_by_priority(db, date_from=priority_from_dt, date_to=priority_to_dt)
 
-    support_user_ids = {u.id for u in _active_users_in_area(db, "soporte")}
+    support_user_ids = {
+        u.id
+        for u in _active_users_in_area(db, "soporte")
+        if _support_indicator_name(getattr(u, "name", None)) in support_real_technicians
+    }
     agents = get_tickets_by_agent(db, date_from=agent_from_dt, date_to=agent_to_dt, allowed_user_ids=support_user_ids)
+    agents = [
+        agent
+        for agent in agents
+        if _support_indicator_name(agent.get("agent")) in support_real_technicians
+    ]
 
     aging = get_ticket_aging(db, date_from=aging_from_dt, date_to=aging_to_dt)
 
