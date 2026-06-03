@@ -48,131 +48,116 @@ body{
   font-family:'Inter','Segoe UI',system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
   color:var(--text);
   background:var(--bg);
-  font-size:13px;
+  font-size:13.5px;
+  font-weight:500;
+  line-height:1.5;
+  letter-spacing:-0.005em;
   overflow:hidden;
   -webkit-font-smoothing:antialiased;
   -moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility;
+  font-feature-settings:"cv11","ss01","ss03";
 }
 
 .page{
   height:100vh;
-  max-width:1840px;
-  margin:0 auto;
-  padding:20px 24px 24px;
   display:flex;
   flex-direction:column;
 }
 
 .encabezado-principal{
-  display:grid;
-  grid-template-columns:auto 1fr auto;
+  position:sticky;
+  top:0;
+  z-index:50;
+  display:flex;
   align-items:center;
-  gap:24px;
-  margin-bottom:16px;
-  min-height:84px;
-  padding:14px 22px;
-  border-radius:var(--radius-xl);
-  background:var(--surface);
-  border:1px solid var(--border);
-  box-shadow:var(--shadow);
+  gap:18px;
+  min-height:108px;
+  padding:20px 30px;
+  margin-bottom:0;
+  background:linear-gradient(180deg,#0b1424 0%,#111c2f 100%);
+  border-bottom:1px solid rgba(255,255,255,.06);
   flex-shrink:0;
 }
 
 .logo-atc{
-  display:flex;
-  align-items:center;
-  justify-self:start;
-  width:160px;
+  height:68px;
+  width:auto;
+  min-width:0;
+  display:block;
 }
 
 .logo-atc img{
-  width:100%;
-  max-width:160px;
-  height:auto;
+  height:68px;
+  width:auto;
   display:block;
   object-fit:contain;
-  mix-blend-mode:multiply;
+  filter:drop-shadow(0 2px 6px rgba(0,0,0,.30));
 }
 
 .title-wrap{
   min-width:0;
   text-align:left;
+  flex:1;
 }
 
 .title-wrap h1{
   margin:0;
-  font-size:22px;
+  font-size:20px;
   font-weight:700;
   letter-spacing:-0.02em;
-  color:var(--text);
-  line-height:1.15;
+  color:#ffffff;
+  line-height:1.25;
 }
 
 .title-wrap p{
-  margin:4px 0 0;
-  color:var(--text-muted);
-  font-size:13px;
+  margin:6px 0 0;
+  color:rgba(255,255,255,.72);
+  font-size:13.5px;
+  line-height:1.45;
 }
 
 .header-right{
   display:flex;
   align-items:center;
-  gap:8px;
-  justify-self:end;
+  gap:10px;
+  margin-left:auto;
 }
 
 .user-chip{
   display:inline-flex;
   align-items:center;
-  gap:8px;
   min-height:36px;
-  padding:0 14px;
-  border-radius:var(--radius);
-  border:1px solid var(--border-strong);
-  background:var(--surface);
-  color:var(--text);
-  font-size:13px;
-  font-weight:500;
-  box-shadow:var(--shadow-sm);
-}
-
-.user-chip::before{
-  content:"";
-  width:7px;
-  height:7px;
-  border-radius:50%;
-  background:var(--success);
+  padding:0 4px;
+  color:rgba(255,255,255,.92);
+  font-size:14px;
+  font-weight:600;
+  white-space:nowrap;
 }
 
 .logout-btn{
   display:inline-flex;
   align-items:center;
-  gap:6px;
-  min-height:36px;
-  padding:0 14px;
+  justify-content:center;
+  min-height:0;
+  padding:8px 14px;
   border-radius:var(--radius);
-  border:1px solid var(--border-strong);
-  background:var(--surface);
-  color:var(--text-soft);
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.04);
+  color:rgba(255,255,255,.92);
   font-size:13px;
-  font-weight:500;
+  font-weight:600;
   font-family:inherit;
   text-decoration:none;
-  box-shadow:var(--shadow-sm);
+  box-shadow:none;
   cursor:pointer;
   transition:background .15s ease, border-color .15s ease, color .15s ease;
 }
 
 .logout-btn:hover{
-  background:var(--danger-soft);
-  border-color:#fca5a5;
-  color:var(--danger);
-}
-
-.logout-btn svg{
-  width:14px;
-  height:14px;
-  stroke-width:2;
+  background:rgba(255,255,255,.08);
+  border-color:rgba(255,255,255,.22);
+  color:rgba(255,255,255,.92);
 }
 
 .layout{
@@ -181,6 +166,7 @@ body{
   gap:16px;
   flex:1;
   min-height:0;
+  padding:16px 24px 24px;
 }
 
 .panel{
@@ -693,7 +679,7 @@ body{
   <div class="page">
     <header class="encabezado-principal">
       <div class="logo-atc">
-        <img src="/static/img/logo-atc2.jpeg" alt="ATC - Alguien Te Cuida">
+        <img src="/static/img/logo-atc.png" alt="ATC - Alguien Te Cuida">
       </div>
       <div class="title-wrap">
         <h1>Control de materiales en bodega</h1>
@@ -701,14 +687,7 @@ body{
       </div>
       <div class="header-right">
         <div class="user-chip">{{ (user.name or user.username or 'Usuario') }}</div>
-        <a class="logout-btn" href="/logout" title="Cerrar sesión">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-            <polyline points="16 17 21 12 16 7"/>
-            <line x1="21" y1="12" x2="9" y2="12"/>
-          </svg>
-          Cerrar sesión
-        </a>
+        <a class="logout-btn" href="/panel?area=soporte" title="Volver">Volver</a>
       </div>
     </header>
 
@@ -1311,3 +1290,4 @@ init();
 </script>
 </body>
 </html>
+
