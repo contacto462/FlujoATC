@@ -39,6 +39,7 @@ from ATC.app.routes.public import router as public_router
 from ATC.app.modules.client_notes import router as client_notes_router
 from ATC.app.modules.incidencias import register_incidencias_module
 from ATC.app.modules.unified_access import router as unified_access_router
+from Bitácora.router import router as bitacora_router
 
 # =========================
 # IMPORTAR ROUTER WEB (CRM)
@@ -322,6 +323,7 @@ app.include_router(public_router, prefix="/api")
 app.include_router(public_router)
 app.include_router(unified_access_router)
 app.include_router(client_notes_router)
+app.include_router(bitacora_router)
 register_incidencias_module(app)
 
 # =========================

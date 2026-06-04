@@ -222,6 +222,9 @@
     </section>
 
     <section class="foot">
+      {% if bitacora_enabled %}
+      <a class="logout" href="/bitacora">Abrir bitacora</a>
+      {% endif %}
       <a class="logout" href="/logout">Cerrar sesion</a>
     </section>
   </main>
