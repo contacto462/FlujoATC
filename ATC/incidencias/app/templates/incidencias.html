@@ -1,0 +1,1027 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Puestos</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  <style>
+    :root{--bg-1:#08161a;--bg-2:#10252c;--bg-3:#17363d;--panel-bg:rgba(9,22,26,.94);--panel-border:rgba(255,255,255,.10);--text-main:#f4f8f9;--text-soft:#bed0d6;--cell-bg:rgba(8,18,22,.95);--cell-alt:rgba(12,27,32,.95);--cell-border:rgba(188,207,214,.10);--field-bg:#091217;--field-border:rgba(194,210,218,.18);--orange-1:#ff6e23;--orange-2:#ff8b33;--orange-3:#e85d14;--success:#34d399;--shadow:0 24px 55px rgba(0,0,0,.24);--theme-btn-bg:rgba(255,255,255,.06);--theme-btn-text:#fff;--theme-btn-border:rgba(255,255,255,.14)}
+    html,body{min-height:100%}
+    body{font-family:"Segoe UI",Inter,sans-serif;background:radial-gradient(circle at 18% 18%,rgba(255,255,255,.05),transparent 24%),radial-gradient(circle at 82% 12%,rgba(255,125,53,.10),transparent 20%),linear-gradient(145deg,var(--bg-1) 0%,var(--bg-2) 42%,var(--bg-3) 100%);background-attachment:fixed;padding:34px 36px 44px;margin:0;color:var(--text-main)}
+    .page-shell{max-width:1540px;margin:0 auto}
+    .encabezado-principal{display:grid;grid-template-columns:240px 1fr 320px;align-items:center;gap:20px;margin:0 auto 26px;max-width:1564px;padding:18px 22px;border-radius:26px;background:var(--panel-bg);border:1px solid var(--panel-border);box-shadow:var(--shadow)}
+    .logo-atc{display:flex;align-items:center;justify-content:flex-start}.logo-atc img{height:60px;max-width:140px;object-fit:contain}
+    .titulo-central{margin:0;text-align:center;font-size:38px;font-weight:800;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .acciones-header{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+    .panel{max-width:1220px;margin:0 auto 24px;background:var(--panel-bg);border:1px solid var(--panel-border);border-radius:28px;box-shadow:var(--shadow)}
+    .layout-principal{display:grid;grid-template-columns:minmax(0,1fr) 320px;justify-content:center;gap:24px;align-items:start;max-width:1564px;margin:0 auto}
+    .columna-contenido{min-width:0}
+    .columna-contenido .panel{max-width:none}
+    .columna-lateral{position:sticky;top:32px;align-self:start;display:flex}
+    .panel-puestos{padding:24px}.panel-tabla{padding:22px}
+    .section-heading{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;flex-wrap:wrap;margin-bottom:20px}
+    .section-heading h2{margin:4px 0 0;font-size:30px;font-weight:800;letter-spacing:-.02em}
+    .section-copy{margin:0;max-width:430px;color:var(--text-soft);line-height:1.5;text-align:right}
+    .eyebrow{margin:0;color:#ffb48c;text-transform:uppercase;letter-spacing:.18em;font-size:11px;font-weight:700}
+    #gridPuestos{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:0 auto 20px;max-width:1040px}
+    .boton-puesto{min-width:56px;height:50px;padding:0 14px;font-size:14px;font-weight:800;color:#fff;border:none;border-radius:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;white-space:nowrap;background:rgba(255,255,255,.06);box-shadow:0 10px 18px rgba(0,0,0,.18);transition:transform .18s ease,background-color .18s ease,box-shadow .18s ease}
+    .boton-puesto:hover{background:linear-gradient(135deg,var(--orange-1) 0%,var(--orange-2) 100%);transform:translateY(-2px);box-shadow:0 14px 24px rgba(255,110,35,.24)}
+    .boton-puesto.activo{background:linear-gradient(135deg,var(--orange-1) 0%,var(--orange-2) 100%);color:#fff;transform:translateY(-1px);box-shadow:0 0 0 2px rgba(255,196,150,.34),0 14px 24px rgba(255,110,35,.26)}
+    .alerta-importante{background:rgba(156,26,26,.18);border:1px solid rgba(255,112,112,.24);color:#ffd2d2;padding:14px 16px;font-weight:600;text-align:center;margin:0 auto 18px;max-width:860px;border-radius:16px;box-shadow:0 14px 24px rgba(0,0,0,.16)}
+    .formulario-puesto{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:22px;padding:20px;margin:0 auto 20px;max-width:1040px;box-shadow:0 18px 34px rgba(0,0,0,.18)}
+    .titulo-formulario-puesto{margin:0 0 10px;font-size:22px;font-weight:800;color:var(--text-main)}
+    .lista-puesto-wrap{margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.10)}
+    .lista-puesto-titulo{margin:0 0 8px;font-size:15px;font-weight:700;color:var(--text-soft)}
+    .lista-puesto-vacia{padding:12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);text-align:center;color:var(--text-soft);font-size:13px}
+    .tabla-mini th{font-size:11px;padding:8px 7px}
+    .tabla-mini td{font-size:12px;padding:8px 6px}
+    .tabla-scroll{overflow:auto;border-radius:20px;border:1px solid rgba(255,255,255,.06)}
+    table{width:100%;border-collapse:collapse;margin-top:0;background:transparent;font-size:14px;overflow:hidden}
+    th{background:linear-gradient(180deg,#24495c 0%,#1b3f52 100%);font-weight:700;padding:10px 9px;font-size:11.5px;color:#f7fbfd;border:1px solid rgba(164,198,214,.20);border-top:1px solid rgba(255,121,52,.88);text-align:center;text-transform:uppercase;letter-spacing:.02em;box-shadow:inset 0 1px 0 rgba(255,255,255,.08);font-variant-numeric:tabular-nums}
+    thead tr th:first-child{border-top-left-radius:12px}
+    thead tr th:last-child{border-top-right-radius:12px}
+    .formulario-puesto .titulo-formulario-puesto{margin-top:0;margin-bottom:10px}
+    .tabla-incidencias-nueva{margin-top:10px}
+    .tabla-scroll > table{margin-top:0}
+    .tabla-scroll thead tr th:first-child{border-top-left-radius:0}
+    .tabla-scroll thead tr th:last-child{border-top-right-radius:0}
+    .formulario-puesto table th{padding:9px 8px;font-size:11.2px}
+    #tablaIncidenciasPendientes th{padding:10px 8px}
+    td{padding:10px 8px;font-size:13px;color:var(--text-main);background:var(--cell-bg);border:1px solid var(--cell-border);text-align:center;vertical-align:middle}
+    tbody tr:nth-child(even) td{background:var(--cell-alt)}
+    textarea,input,select,button{font-family:"Segoe UI",Inter,sans-serif}
+    textarea,input,select{width:100%;padding:10px 12px;font-size:13px;border-radius:12px;border:1px solid var(--field-border);box-sizing:border-box;color:#fff;background:var(--field-bg)}
+    textarea::placeholder,input::placeholder{color:#aabcc3}select{color-scheme:dark}select option{background:var(--field-bg);color:#fff}
+    textarea:focus,input:focus,select:focus{outline:none;border-color:rgba(255,139,51,.56);box-shadow:0 0 0 3px rgba(255,110,35,.14)}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;padding:10px 18px;background:#111b1f;color:#fff;border:none;border-radius:14px;font-size:13px;font-weight:700;cursor:pointer;transition:transform .18s ease,background-color .18s ease,box-shadow .18s ease}
+    .btn:hover{background:#1a272c;transform:translateY(-1px)}
+    .btn-registrar-tarea{margin-top:0;padding:11px 16px;background:linear-gradient(135deg,var(--orange-1) 0%,var(--orange-2) 100%);box-shadow:0 12px 22px rgba(255,110,35,.22)}
+    .btn-registrar-tarea:hover{background:linear-gradient(135deg,#ff7d3a 0%,#ff9a52 100%)}
+    .btn-theme-toggle{margin-top:0;padding:11px 14px;min-width:124px;background:var(--theme-btn-bg);color:var(--theme-btn-text);border:1px solid var(--theme-btn-border)}
+    .btn-theme-toggle:hover{background:rgba(255,255,255,.14)}
+    .btn-danger{display:flex;justify-content:center;align-items:center;padding:0;width:38px;height:38px;margin:0 auto;border-radius:12px;background:linear-gradient(135deg,#ff6b6b 0%,#ff4f4f 100%);color:#fff;border:none;cursor:pointer;transition:transform .16s ease,box-shadow .16s ease,background .16s ease}
+    .btn-danger svg{width:18px;height:18px;display:block;fill:currentColor}
+    .btn-danger .icon-hover{display:none}
+    .btn-danger:hover,.btn-danger:focus-visible{background:linear-gradient(135deg,#ff7d7d 0%,#ff5f5f 100%);transform:translateY(-1px);box-shadow:0 10px 18px rgba(255,95,95,.26)}
+    .btn-danger:hover .icon-default,.btn-danger:focus-visible .icon-default,.btn-danger:active .icon-default{display:none}
+    .btn-danger:hover .icon-hover,.btn-danger:focus-visible .icon-hover,.btn-danger:active .icon-hover{display:block}
+    .derivacion{font-weight:700;color:#ffe0b4}
+    .acciones-principales{display:flex;justify-content:center;margin-top:20px}
+    .busqueda-wrap{display:flex;align-items:center;gap:12px;min-width:min(100%,320px)}
+    .busqueda-wrap input{min-width:280px}
+    #tablaIncidenciasPendientes{width:100%;margin:0;border-radius:18px;overflow:hidden;font-size:14px}
+    #tablaIncidenciasPendientes th,#tablaIncidenciasPendientes td{padding:10px 8px}
+    .modal{position:fixed;z-index:9999;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,.62);display:none;justify-content:center;align-items:center;padding:16px;backdrop-filter:blur(5px)}
+    .modal-content{background:var(--panel-bg);color:var(--text-main);padding:22px;border-radius:24px;border:1px solid var(--panel-border);max-width:860px;width:96%;max-height:86vh;overflow:auto;box-shadow:0 26px 50px rgba(0,0,0,.34)}
+    .modal-content h3{margin-top:0;font-size:24px}.modal-buttons{display:flex;justify-content:center;gap:12px;margin-top:14px;flex-wrap:wrap}
+    #modalConflictos .modal-content{max-width:980px;padding:24px;background:linear-gradient(145deg,rgba(4,28,34,.98) 0%,rgba(7,24,30,.98) 100%);display:flex;flex-direction:column;max-height:92vh;overflow:hidden}
+    .conf-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+    .conf-title{margin:0;font-size:30px;font-weight:800;letter-spacing:-.02em}
+    .conf-subtitle{margin:6px 0 0;color:#b8ccd3;font-size:14px}
+    .conf-summary{display:inline-flex;align-items:center;justify-content:center;min-width:170px;padding:9px 12px;border-radius:12px;background:rgba(255,139,51,.18);border:1px solid rgba(255,139,51,.34);font-size:13px;font-weight:700;color:#ffd4b6}
+    #contenedorConflictos{display:grid;gap:14px;max-height:min(58vh,620px);overflow:auto;padding:2px 6px 2px 0;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+    .conf-card{border:1px solid rgba(185,214,224,.14);padding:14px;border-radius:16px;background:linear-gradient(140deg,rgba(15,34,42,.95),rgba(9,25,31,.95));box-shadow:0 12px 26px rgba(0,0,0,.24)}
+    .conf-card.conf-accepted{border-color:rgba(66,211,146,.62);box-shadow:0 0 0 1px rgba(66,211,146,.26),0 12px 26px rgba(0,0,0,.22)}
+    .conf-card.conf-rejected{border-color:rgba(255,110,110,.66);box-shadow:0 0 0 1px rgba(255,110,110,.28),0 12px 26px rgba(0,0,0,.22)}
+    .conf-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+    .conf-section{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:11px}
+    .conf-section h4{margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#ffd2b3}
+    .conf-line{margin:0 0 4px;font-size:14px;color:#ecf4f6;line-height:1.4}
+    .conf-line b{color:#fff}
+    .conf-desc{margin-top:8px;padding:9px;border-radius:10px;background:rgba(4,17,22,.7);border:1px solid rgba(255,255,255,.09);white-space:pre-wrap;word-break:break-word;color:#f4fbff;font-size:13px;line-height:1.5}
+    .conf-sim-list{display:grid;gap:8px}
+    .conf-sim-item{padding:9px;border-radius:10px;background:rgba(7,18,23,.84);border:1px solid rgba(176,209,220,.13)}
+    .conf-note{margin-top:10px;text-align:center;color:#cfe2e8;font-size:13px}
+    .conf-decision{display:inline-flex;align-items:center;justify-content:center;min-height:30px;padding:6px 10px;border-radius:10px;margin:8px auto 0;font-size:13px;font-weight:700;background:rgba(140,161,171,.18);border:1px solid rgba(189,211,220,.28);color:#dbe9ee}
+    .conf-decision.ok{background:rgba(46,204,113,.18);border-color:rgba(46,204,113,.42);color:#c5f5da}
+    .conf-decision.no{background:rgba(231,76,60,.18);border-color:rgba(231,76,60,.42);color:#ffd0ca}
+    .conf-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .conf-choice{min-width:142px}
+    .conf-choice.active{transform:translateY(-1px);box-shadow:0 12px 20px rgba(0,0,0,.22)}
+    .btn-conf-ok{background:linear-gradient(135deg,#2dbf73 0%,#25a862 100%)}
+    .btn-conf-ok:hover{background:linear-gradient(135deg,#36cf7e 0%,#28b96a 100%)}
+    .btn-conf-no{background:linear-gradient(135deg,#eb5c4b 0%,#d54435 100%)}
+    .btn-conf-no:hover{background:linear-gradient(135deg,#f16a5a 0%,#df4f40 100%)}
+    .conf-footer{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.09)}
+    .conf-footer .btn{margin-top:0}
+    .btn-conf-main{background:linear-gradient(135deg,var(--orange-1) 0%,var(--orange-2) 100%);box-shadow:0 10px 18px rgba(255,110,35,.24)}
+    .panel-noticias{padding:20px;overflow:hidden;display:flex;flex-direction:column;margin-bottom:0;height:518px;min-height:518px;max-height:518px}
+    .panel-noticias .eyebrow{margin-bottom:8px}
+    .panel-noticias h2{margin:0 0 6px;font-size:24px;font-weight:800;letter-spacing:-.02em}
+    .noticias-subtitle{margin:0 0 14px;color:var(--text-soft);font-size:13px;line-height:1.45}
+    .noticias-carousel{position:relative;min-height:0;display:flex;flex:1}
+    .noticia-vacia{display:flex;align-items:center;justify-content:center;min-height:210px;width:100%;padding:20px;border-radius:22px;background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);text-align:center;color:var(--text-soft);font-size:14px;line-height:1.55}
+    .noticia-card{display:flex;flex-direction:column;gap:14px;padding:18px;border-radius:22px;background:linear-gradient(180deg,rgba(16,37,44,.95),rgba(8,23,28,.98));border:1px solid rgba(255,255,255,.08);box-shadow:0 18px 28px rgba(0,0,0,.24);min-height:0;width:100%;flex:1}
+    .noticia-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+    .noticia-badge{display:inline-flex;align-items:center;padding:0 0 6px;border-radius:0;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,.12)}
+    .noticia-badge.tipo-soporte{color:#9fd0ff;border-bottom-color:rgba(84,175,255,.34)}
+    .noticia-badge.tipo-tecnico{color:#aee9cf;border-bottom-color:rgba(84,220,169,.34)}
+    .noticia-badge.tipo-coordinacion{color:#ffd2a1;border-bottom-color:rgba(255,171,72,.34)}
+    .noticia-badge.tipo-otra{color:#d7e6eb;border-bottom-color:rgba(214,224,230,.20)}
+    .noticia-fecha{font-size:12px;color:var(--text-soft);text-align:right;line-height:1.4}
+    .noticia-main{padding-top:8px;display:grid;gap:10px}
+    .noticia-main h3{margin:0;font-size:18px;font-weight:800;line-height:1.12}
+    .noticia-meta{margin:0;color:var(--text-soft);font-size:13.5px;line-height:1.65;max-width:26ch}
+    .noticia-solucion{display:grid;gap:14px;flex:1;align-content:start;padding-top:10px}
+    .noticia-label{font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#ffb48c}
+    .noticia-texto{margin:0}
+    .btn-ver-obs{display:inline-flex;align-items:center;justify-content:center;min-width:82px;padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:#f4f8f9;font-size:13px;font-weight:700;cursor:pointer;transition:background-color .18s ease,border-color .18s ease,transform .18s ease}
+    .btn-ver-obs:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18);transform:translateY(-1px)}
+    .modal-obs-content{max-width:680px}
+    .modal-obs-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+    .modal-obs-meta{margin:6px 0 0;color:var(--text-soft);font-size:13px;line-height:1.5}
+    .modal-obs-body{padding:14px 16px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);font-size:14px;line-height:1.7;color:var(--text-main);white-space:pre-wrap;word-break:break-word}
+    .noticia-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:auto;padding-top:14px}
+    .noticia-odt{font-size:12px;font-weight:700;color:var(--text-soft);letter-spacing:.08em;text-transform:uppercase}
+    .noticia-nav{display:flex;align-items:center;gap:10px}
+    .noticia-flecha{width:42px;height:42px;border:none;border-radius:50%;background:rgba(255,255,255,.06);color:#fff;cursor:pointer;font-size:18px;font-weight:800;transition:transform .18s ease,background-color .18s ease,box-shadow .18s ease}
+    .noticia-flecha:hover{background:linear-gradient(135deg,var(--orange-1) 0%,var(--orange-2) 100%);transform:translateY(-1px);box-shadow:0 10px 18px rgba(255,110,35,.22)}
+    .noticia-indicador{font-size:12px;color:var(--text-soft);min-width:44px;text-align:center}
+    .noticia-progreso{display:flex;gap:6px;margin-top:auto;padding-top:14px}
+    .noticia-dot{flex:1;height:4px;border-radius:999px;background:rgba(255,255,255,.10)}
+    .noticia-dot.activo{background:linear-gradient(135deg,var(--orange-1) 0%,var(--orange-2) 100%)}
+    @media (max-width:1180px){
+      .layout-principal{grid-template-columns:1fr}
+      .columna-lateral{position:static;display:block}
+      .panel-noticias{height:auto;min-height:0;max-height:none}
+      #modalConflictos .modal-content{width:min(98vw,980px)}
+      .conf-head{align-items:flex-start}
+      .conf-title{font-size:28px}
+      .conf-subtitle{font-size:15px}
+      .conf-summary{font-size:14px;min-height:42px}
+      .conf-row{grid-template-columns:1fr}
+      .conf-section h4{font-size:14px}
+      .conf-line{font-size:18px;line-height:1.45}
+      .conf-desc{font-size:17px;line-height:1.52}
+      .conf-note{font-size:16px}
+      .conf-choice{min-width:190px;min-height:52px;font-size:20px;padding:12px 16px}
+      .conf-decision{min-height:36px;font-size:16px}
+      .conf-footer{position:sticky;bottom:0;z-index:4;margin:10px -24px -24px;padding:12px 24px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(4,23,29,.72) 0%,rgba(4,23,29,.98) 35%)}
+      .conf-footer .btn{min-height:52px;font-size:20px;padding:12px 20px}
+      #contenedorConflictos{max-height:none;flex:1;min-height:280px;padding-right:2px}
+    }
+    @media (max-width:900px){.conf-title{font-size:24px}.conf-row{grid-template-columns:1fr}.panel-noticias h2{font-size:22px}.noticia-card{min-height:0}.noticia-vacia{min-height:180px}}
+    @media (max-width:760px){
+      #modalConflictos .modal-content{padding:16px;border-radius:18px;max-height:94vh}
+      .conf-title{font-size:22px}
+      .conf-subtitle{font-size:14px}
+      .conf-summary{width:100%;justify-content:flex-start}
+      .conf-choice{width:100%;min-width:0}
+      .conf-footer{margin:10px -16px -16px;padding:12px 16px calc(12px + env(safe-area-inset-bottom))}
+      .conf-footer .btn{width:100%}
+      .noticia-header,.noticia-footer{flex-direction:column;align-items:flex-start}
+      .noticia-fecha{text-align:left}
+      .noticia-nav{width:100%;justify-content:space-between}
+    }
+    #mensaje{font-size:14px;font-weight:700;text-align:center;margin-top:16px;min-height:20px;color:var(--success)}
+    .select2-container{width:100%!important}
+    .select2-container--default .select2-selection--single{background:var(--field-bg);border:1px solid var(--field-border);border-radius:12px;min-height:40px;display:flex;align-items:center}
+    .select2-container--default .select2-selection--single .select2-selection__rendered{color:#fff;line-height:38px;padding-left:12px}
+    .select2-container--default .select2-selection--single .select2-selection__arrow{height:38px}
+    .select2-dropdown{background:var(--field-bg);border:1px solid var(--field-border)}
+    .select2-search__field{background:#0b171c!important;color:#fff!important;border:1px solid var(--field-border)!important;border-radius:10px!important}
+    .select2-results__option{color:#fff}
+    .select2-container--default .select2-results__option--highlighted.select2-results__option--selectable{background:#18343b}
+
+    body[data-theme="light"]{
+      color:#0f2a38;
+      background:
+        radial-gradient(circle at 12% 10%,rgba(255,255,255,.92),transparent 34%),
+        radial-gradient(circle at 90% 10%,rgba(255,132,61,.18),transparent 26%),
+        radial-gradient(circle at 24% 92%,rgba(92,153,191,.18),transparent 32%),
+        linear-gradient(160deg,#c7d9e6 0%,#b9cfdf 46%,#aec7d9 100%);
+    }
+    body[data-theme="light"] .encabezado-principal,
+    body[data-theme="light"] .panel,
+    body[data-theme="light"] .formulario-puesto{
+      background:linear-gradient(165deg,rgba(252,255,255,.97) 0%,rgba(238,247,252,.96) 100%);
+      border-color:rgba(79,117,138,.36);
+      box-shadow:0 16px 30px rgba(34,70,92,.20),0 1px 0 rgba(255,255,255,.76) inset;
+    }
+    body[data-theme="light"] .encabezado-principal{
+      border-top:2px solid rgba(255,110,35,.40);
+    }
+    body[data-theme="light"] .titulo-central,
+    body[data-theme="light"] .section-heading h2,
+    body[data-theme="light"] .titulo-formulario-puesto{
+      color:#0d2b3c;
+      text-shadow:0 1px 0 rgba(255,255,255,.48);
+    }
+    body[data-theme="light"] .eyebrow{color:#ab4f18}
+    body[data-theme="light"] .section-copy,
+    body[data-theme="light"] .lista-puesto-titulo{color:#244657}
+    body[data-theme="light"] .boton-puesto{
+      background:linear-gradient(165deg,#f2f8fc 0%,#d8e7f1 100%);
+      color:#0f3448;
+      border:1px solid rgba(103,141,163,.44);
+      box-shadow:0 10px 16px rgba(47,81,101,.18);
+    }
+    body[data-theme="light"] .boton-puesto:hover{
+      color:#fff;
+      border-color:transparent;
+      box-shadow:0 12px 20px rgba(255,110,35,.28);
+    }
+    body[data-theme="light"] .alerta-importante{
+      background:linear-gradient(160deg,#fff1ee 0%,#ffe2dd 100%);
+      border-color:#ecaa9e;
+      color:#8e2f25;
+      box-shadow:0 8px 16px rgba(139,51,42,.12);
+    }
+    body[data-theme="light"] .tabla-scroll{border-color:#9ab8ca;background:rgba(255,255,255,.60)}
+    body[data-theme="light"] th{
+      background:linear-gradient(180deg,#2e5e78 0%,#254f67 100%);
+      color:#f8fcff;
+      border-color:rgba(118,155,176,.50);
+      border-top-color:rgba(255,124,47,.80);
+      box-shadow:0 1px 0 rgba(255,255,255,.15) inset;
+    }
+    body[data-theme="light"] td{
+      background:#ffffff;
+      color:#0d2837;
+      border-color:#c6dbe7;
+    }
+    body[data-theme="light"] tbody tr:nth-child(even) td{background:#e9f2f8}
+    body[data-theme="light"] .derivacion{color:#974716}
+    body[data-theme="light"] .lista-puesto-vacia{
+      background:linear-gradient(145deg,#f5fbff,#e8f3fa);
+      border-color:#b3d0df;
+      color:#264a5d;
+    }
+    body[data-theme="light"] textarea,
+    body[data-theme="light"] input,
+    body[data-theme="light"] select{
+      background:linear-gradient(180deg,#ffffff 0%,#f3f9fd 100%);
+      color:#0f2a38;
+      border-color:#a8c5d5;
+    }
+    body[data-theme="light"] textarea:focus,
+    body[data-theme="light"] input:focus,
+    body[data-theme="light"] select:focus{
+      border-color:rgba(255,118,41,.54);
+      box-shadow:0 0 0 3px rgba(255,118,41,.15);
+    }
+    body[data-theme="light"] select{color-scheme:light}
+    body[data-theme="light"] textarea::placeholder,
+    body[data-theme="light"] input::placeholder{
+      color:#517083;
+    }
+    body[data-theme="light"] select option{
+      background:#fff;
+      color:#0f2a38;
+    }
+    body[data-theme="light"] .btn{
+      background:linear-gradient(145deg,#15364a 0%,#102a3a 100%);
+      color:#fff;
+      box-shadow:0 10px 16px rgba(28,60,80,.22);
+    }
+    body[data-theme="light"] .btn:hover{background:linear-gradient(145deg,#1b445c 0%,#13364a 100%)}
+    body[data-theme="light"] .btn-theme-toggle{
+      background:linear-gradient(145deg,#fdfefe 0%,#e8f2f8 100%);
+      color:#143548;
+      border-color:#99b9cb;
+      box-shadow:0 7px 13px rgba(43,77,97,.14);
+    }
+    body[data-theme="light"] .btn-theme-toggle:hover{background:linear-gradient(145deg,#ffffff 0%,#dcecf6 100%)}
+    body[data-theme="light"] .btn-registrar-tarea{
+      background:linear-gradient(135deg,#ff7d32 0%,#ff9847 100%);
+      box-shadow:0 12px 20px rgba(255,110,35,.28);
+    }
+    body[data-theme="light"] .modal{background:rgba(14,35,49,.46)}
+    body[data-theme="light"] .modal-content{
+      background:linear-gradient(165deg,#fcfeff 0%,#e8f2f8 100%);
+      color:#0f2a38;
+      border-color:#9dbdd0;
+      box-shadow:0 24px 38px rgba(33,65,84,.28);
+    }
+    body[data-theme="light"] #modalConflictos .modal-content{
+      background:linear-gradient(160deg,#f9fdff 0%,#e4f0f8 100%);
+      border-color:#9bbccf;
+    }
+    body[data-theme="light"] .conf-subtitle{color:#315569}
+    body[data-theme="light"] .conf-summary{
+      background:linear-gradient(145deg,#fff0e2,#ffdcbc);
+      border-color:#e4a56d;
+      color:#7b431d;
+    }
+    body[data-theme="light"] .conf-card{
+      background:linear-gradient(145deg,#f7fbff,#e7f1f8);
+      border-color:#9fc0d2;
+      box-shadow:0 12px 20px rgba(66,100,120,.18);
+    }
+    body[data-theme="light"] .conf-card.conf-accepted{border-color:#45be86;box-shadow:0 0 0 1px rgba(69,190,134,.25),0 12px 20px rgba(66,100,120,.14)}
+    body[data-theme="light"] .conf-card.conf-rejected{border-color:#d8665a;box-shadow:0 0 0 1px rgba(216,102,90,.24),0 12px 20px rgba(66,100,120,.14)}
+    body[data-theme="light"] .conf-section{
+      background:linear-gradient(160deg,#ffffff 0%,#eff7fc 100%);
+      border-color:#b2cedd;
+    }
+    body[data-theme="light"] .conf-section h4{color:#884719}
+    body[data-theme="light"] .conf-line{color:#163546}
+    body[data-theme="light"] .conf-line b{color:#0d2837}
+    body[data-theme="light"] .conf-desc{
+      background:linear-gradient(150deg,#ffffff,#edf6fb);
+      border-color:#b8d3e1;
+      color:#153746;
+    }
+    body[data-theme="light"] .conf-sim-item{
+      background:linear-gradient(155deg,#ffffff,#edf6fb);
+      border-color:#b9d4e2;
+    }
+    body[data-theme="light"] .conf-note{color:#274f63}
+    body[data-theme="light"] .conf-decision{
+      background:#e3eff6;
+      border-color:#afcad9;
+      color:#274a5d;
+    }
+    body[data-theme="light"] .conf-decision.ok{
+      background:#e3f8ee;
+      border-color:#7dcca6;
+      color:#1d6f4a;
+    }
+    body[data-theme="light"] .conf-decision.no{
+      background:#ffe9e5;
+      border-color:#e39a91;
+      color:#922f27;
+    }
+    body[data-theme="light"] .conf-footer{
+      border-top-color:#acc6d5;
+      background:linear-gradient(180deg,rgba(247,252,255,.84) 0%,rgba(231,242,249,.98) 38%);
+    }
+    body[data-theme="light"] .select2-container--default .select2-selection--single{
+      background:linear-gradient(180deg,#ffffff,#f3f9fd);
+      border-color:#a8c5d5;
+    }
+    body[data-theme="light"] .select2-container--default .select2-selection--single .select2-selection__rendered{
+      color:#0f2a38;
+    }
+    body[data-theme="light"] .select2-dropdown{
+      background:#fcfeff;
+      border-color:#a8c5d5;
+    }
+    body[data-theme="light"] .select2-results__option{color:#0f2a38}
+    body[data-theme="light"] .select2-container--default .select2-results__option--highlighted.select2-results__option--selectable{
+      background:#d8eaf5;
+      color:#0e2a3a;
+    }
+    body[data-theme="light"] .select2-search__field{
+      background:#fff!important;
+      color:#0f2a38!important;
+      border-color:#a8c5d5!important;
+    }
+    body[data-theme="light"] .noticia-vacia,
+    body[data-theme="light"] .noticia-card{
+      background:linear-gradient(160deg,#ffffff 0%,#eef6fb 100%);
+      border-color:#b7d1df;
+      box-shadow:0 16px 24px rgba(55,88,108,.14);
+    }
+    body[data-theme="light"] .noticias-subtitle,
+    body[data-theme="light"] .noticia-meta,
+    body[data-theme="light"] .noticia-fecha,
+    body[data-theme="light"] .noticia-odt,
+    body[data-theme="light"] .noticia-indicador{
+      color:#315569;
+    }
+    body[data-theme="light"] .noticia-main h3{color:#0d2b3c}
+    body[data-theme="light"] .noticia-texto{
+      color:#163546;
+    }
+    body[data-theme="light"] .btn-ver-obs{
+      background:#edf6fb;
+      color:#163546;
+      border-color:#bdd4e0;
+    }
+    body[data-theme="light"] .modal-obs-body{
+      background:linear-gradient(160deg,#ffffff,#f0f7fb);
+      border-color:#bdd4e0;
+      color:#163546;
+    }
+    body[data-theme="light"] .noticia-flecha{
+      background:#e6f1f7;
+      color:#13364a;
+      border:1px solid #bdd4e0;
+    }
+    body[data-theme="light"] .noticia-dot{background:#c8dbe6}
+    @media (max-width:900px){body{padding:18px}.encabezado-principal{grid-template-columns:1fr;text-align:center}.logo-atc,.acciones-header{justify-content:center}.titulo-central{font-size:30px}.section-copy{text-align:center}.section-heading{justify-content:center;text-align:center}.busqueda-wrap{width:100%;justify-content:center}.busqueda-wrap input{min-width:0;width:100%}}
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="encabezado-principal">
+      <div class="logo-atc"><img id="logoAtcTema" src="/shared-static/img/logo-atc.png" data-logo-dark="/shared-static/img/logo-atc.png" data-logo-light="/shared-static/img/logo-atc2.jpeg" alt="Logo ATC" /></div>
+      <div class="titulo-central">Puestos</div>
+      <div class="acciones-header">
+        <button class="btn btn-theme-toggle" id="btnThemeToggle" type="button" onclick="alternarTema()">Modo claro</button>
+        <button class="btn btn-theme-toggle" type="button" onclick="volverAlPanel()">Volver</button>
+      </div>
+    </div>
+
+    <div class="layout-principal">
+      <div class="columna-contenido">
+        <section class="panel panel-puestos">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Registro</p>
+              <h2>Asignaci&oacute;n por puesto</h2>
+            </div>
+          </div>
+          <div id="gridPuestos"></div>
+          <div id="formulariosContenedor"></div>
+          <div class="acciones-principales"><button class="btn" id="btnRegistrarTodo" onclick="registrarTodasLasIncidencias()">Registrar Todas las Incidencias</button></div>
+        </section>
+
+        <section class="panel panel-tabla">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Seguimiento</p>
+              <h2>Tabla de Incidencias Pendientes o En Proceso</h2>
+            </div>
+            <div class="busqueda-wrap">
+              <input id="inputBusquedaIncidencias" type="text" placeholder="Buscar por sucursal..." oninput="filtrarIncidenciasPendientes()" />
+            </div>
+          </div>
+          <div class="tabla-scroll">
+            <table id="tablaIncidenciasPendientes">
+              <thead><tr><th>ODT</th><th>Fecha</th><th>Puesto</th><th>Cliente</th><th>Tipo</th><th>Derivaci&oacute;n</th><th>Descripci&oacute;n</th><th>Estado</th><th>Acci&oacute;n</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <aside class="columna-lateral">
+        <section class="panel panel-noticias">
+          <p class="eyebrow">Noticias</p>
+          <h2>Ultimas solucionadas</h2>
+          <p class="noticias-subtitle">Recorre las incidencias cerradas recientemente y revisa si la resolucion fue por tecnico, coordinacion o soporte.</p>
+          <div class="noticias-carousel" id="noticiasCarousel">
+            <div class="noticia-vacia">Aun no hay incidencias solucionadas para mostrar.</div>
+          </div>
+          <div class="noticia-progreso" id="noticiasDots"></div>
+        </section>
+      </aside>
+    </div>
+
+    <div id="mensaje"></div>
+    <datalist id="listaClientes"></datalist>
+  </div>
+
+  <div id="popupRegistrarTarea" class="modal">
+    <div class="modal-content" style="max-width:420px">
+      <h3 style="margin-top:0;text-align:center">Registrar Tarea</h3>
+      <form id="formRegistrarTarea" onsubmit="return false;">
+        <label>Cliente</label><input type="text" name="cliente" list="listaClientes" required />
+        <label style="margin-top:10px;display:block">Tipo de Tarea</label><select name="tipoTarea" id="tipoTarea" required></select>
+        <label style="margin-top:10px;display:block">Especificaci&oacute;n</label><select name="especificacion" id="especificacion" required disabled></select>
+        <label style="margin-top:10px;display:block">Descripci&oacute;n</label><textarea name="descripcion" rows="4" required></textarea>
+        <label style="margin-top:10px;display:block">Solicitante</label><input type="text" name="tecnico" placeholder="Nombre y Apellido" />
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px"><button type="button" onclick="cerrarPopupRegistrarTarea()">Cancelar</button><button type="submit">Guardar</button></div>
+      </form>
+    </div>
+  </div>
+
+  <div id="modalConflictos" class="modal">
+    <div class="modal-content">
+      <div class="conf-head">
+        <div>
+          <h3 class="conf-title">Incidencias Previas Detectadas</h3>
+          <p class="conf-subtitle">Revisa cada coincidencia y decide si se registra o se rechaza.</p>
+        </div>
+        <div id="conflictosResumen" class="conf-summary"></div>
+      </div>
+      <div id="contenedorConflictos"></div>
+      <div class="conf-footer"><button class="btn btn-conf-main" onclick="finalizarSeleccionIncidencias()">Confirmar y Registrar</button><button class="btn" style="background:#7f8c8d" onclick="cerrarConflictos()">Cancelar</button></div>
+    </div>
+  </div>
+
+  <div id="modalObservacionNoticia" class="modal" onclick="cerrarModalObservacionNoticia(event)">
+    <div class="modal-content modal-obs-content" onclick="event.stopPropagation()">
+      <div class="modal-obs-header">
+        <div>
+          <h3 id="modalObsTitulo">Observacion</h3>
+          <p id="modalObsMeta" class="modal-obs-meta"></p>
+        </div>
+        <button class="btn" type="button" style="margin-top:0" onclick="cerrarModalObservacionNoticia()">Cerrar</button>
+      </div>
+      <div id="modalObsBody" class="modal-obs-body"></div>
+    </div>
+  </div>
+
+  <script>
+    const TOTAL_PUESTOS=30;
+    const TIPOS_INCIDENCIA=["Desconexión","Problema de Parlante","Problema de Alarma","Hora y/o Fecha Cambiada","Problema de Visual"];
+    const ESPECIFICACIONES_VISUAL=["Falla de Video","Obstruccion","Intermitencia","IVS","Camara sucia","Camara Movida","Bateria Baja"];
+    const THEME_STORAGE_KEY="ATC_THEME_PUESTOS";
+    let mapaTipos={},listaClientesGlobal=[],contactosPorSucursal={},todasIncidenciasPendientes=[],ultimasIncidenciasSolucionadas=[],conflictosPendientes=[],incidenciasAprobadasSinConflicto=[],seleccionConflictos=[],uidInc=0,puestoActivo=null,indiceNoticiaActual=0,noticiasAutoTimer=null;
+
+    async function api(url,options={}){const res=await fetch(url,{headers:{"Content-Type":"application/json"},...options});const ct=res.headers.get("content-type")||"";const payload=ct.includes("application/json")?await res.json():await res.text();if(!res.ok){const detail=typeof payload==="string"?payload:payload?.detail||JSON.stringify(payload);throw new Error(detail||`HTTP ${res.status}`)}return payload}
+    function setMensaje(msg,ok=true){const el=document.getElementById("mensaje");el.style.color=ok?"#27ae60":"#c62828";el.textContent=msg||"";if(msg){setTimeout(()=>{if(el.textContent===msg)el.textContent=""},5000)}}
+    function llenarDatalist(id,valores){const dl=document.getElementById(id);dl.innerHTML="";(valores||[]).forEach(v=>{if(!v)return;const o=document.createElement("option");o.value=String(v);dl.appendChild(o)})}
+    function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
+    function aLineas(v){return escapeHtml(v).replace(/\n/g,"<br>")}
+    function limpiarObservacionFirmada(v){
+      return String(v||"").replace(/\[[^\]]+\]\s*/g,"").replace(/\s+\n/g,"\n").trim();
+    }
+    function capitalizarPalabra(v){
+      const txt=String(v||"").trim();
+      return txt?txt.charAt(0).toUpperCase()+txt.slice(1):"";
+    }
+    function normalizarDerivacionVisible(valor){
+      const txt=String(valor||"").trim();
+      const norm=normalizarTexto(txt);
+      if(norm==="finalizado por soporte")return "Finalizado por Soporte";
+      if(norm==="servicio tecnico"||norm==="servicio t?cnico")return "Servicio Técnico";
+      if(norm==="cliente")return "Cliente";
+      return txt.replace(/T\?cnico/g,"Técnico");
+    }
+    function parseFechaLatina(valor){
+      const txt=String(valor||"").trim();
+      const m=txt.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})(?:\s+(\d{1,2}):(\d{2}))?$/);
+      if(!m)return 0;
+      const [,dd,mm,yyyy,hh="0",mi="0"]=m;
+      return new Date(Number(yyyy),Number(mm)-1,Number(dd),Number(hh),Number(mi),0,0).getTime()||0;
+    }
+    function resolverOrigenSolucion(row){
+      const deriv=normalizarTexto(row?.[5]||"");
+      if(deriv==="finalizado por soporte")return {tipo:"soporte",label:"Soporte"};
+      if(deriv==="cliente")return {tipo:"coordinacion",label:"Coordinacion"};
+      if(deriv==="servicio tecnico"||deriv==="servicio t?cnico")return {tipo:"tecnico",label:"Servicio Técnico"};
+      return {tipo:"otra",label:"Cierre"};
+    }
+    function obtenerResumenSolucion(row){
+      const obsFinal=limpiarObservacionFirmada(row?.[17]||"");
+      const obsServicio=limpiarObservacionFirmada(row?.[16]||"");
+      const obsSoporte=limpiarObservacionFirmada(row?.[15]||"");
+      const detalle=limpiarObservacionFirmada(row?.[6]||"");
+      return obsFinal||obsServicio||obsSoporte||detalle||"Sin detalle de cierre registrado.";
+    }
+    function construirTickerSolucionadas(rows){
+      return (rows||[])
+        .filter(r=>{
+          const estado=normalizarTexto(r?.[8]||"");
+          return estado.includes("termin")||estado.includes("repetida");
+        })
+        .map(r=>{
+          const origen=resolverOrigenSolucion(r);
+          return {
+            odt:String(r?.[0]||""),
+            fecha:String(r?.[11]||r?.[1]||"").trim(),
+            cliente:String(r?.[3]||"").trim(),
+            tipoIncidencia:String(r?.[4]||"").trim(),
+            resumen:obtenerResumenSolucion(r),
+            canal:origen.label,
+            canalClase:origen.tipo,
+            tecnico:String(r?.[7]||"").trim(),
+            acompanante:String(r?.[10]||"").trim(),
+            derivacion:normalizarDerivacionVisible(r?.[5]||""),
+            fechaOrden:parseFechaLatina(r?.[11]||r?.[1]||""),
+          };
+        })
+        .sort((a,b)=>(b.fechaOrden||0)-(a.fechaOrden||0))
+        .slice(0,12);
+    }
+    function renderNoticiasDots(total,activo){
+      const dots=document.getElementById("noticiasDots");
+      if(!dots)return;
+      dots.innerHTML="";
+      if(total<=1)return;
+      for(let i=0;i<total;i++){
+        const dot=document.createElement("span");
+        dot.className=`noticia-dot${i===activo?" activo":""}`;
+        dots.appendChild(dot);
+      }
+    }
+    function programarAutoNoticias(){
+      if(noticiasAutoTimer)clearInterval(noticiasAutoTimer);
+      if((ultimasIncidenciasSolucionadas||[]).length<=1)return;
+      noticiasAutoTimer=setInterval(()=>moverNoticias(1),7000);
+    }
+    function renderNoticiasSolucionadas(){
+      const box=document.getElementById("noticiasCarousel");
+      if(!box)return;
+      const items=ultimasIncidenciasSolucionadas||[];
+      if(!items.length){
+        box.innerHTML='<div class="noticia-vacia">Aun no hay incidencias solucionadas para mostrar.</div>';
+        renderNoticiasDots(0,0);
+        if(noticiasAutoTimer)clearInterval(noticiasAutoTimer);
+        noticiasAutoTimer=null;
+        return;
+      }
+      if(indiceNoticiaActual>=items.length)indiceNoticiaActual=0;
+      const item=items[indiceNoticiaActual];
+      const responsables=[item.tecnico,item.acompanante].filter(Boolean).join(" + ");
+      const extraMeta=responsables?` · ${escapeHtml(responsables)}`:"";
+      box.innerHTML=`<article class="noticia-card">
+        <div class="noticia-header">
+          <span class="noticia-badge tipo-${escapeHtml(item.canalClase)}">${escapeHtml(item.canal)}</span>
+          <div class="noticia-fecha">${escapeHtml(item.fecha||"Sin fecha de cierre")}</div>
+        </div>
+        <div class="noticia-main">
+          <h3>${escapeHtml(item.cliente||"Sucursal sin nombre")}</h3>
+          <p class="noticia-meta">${escapeHtml(item.tipoIncidencia||"Incidencia")} · ${escapeHtml(item.derivacion||item.canal)}${extraMeta}</p>
+        </div>
+        <div class="noticia-solucion">
+          <span class="noticia-label">Como se soluciono</span>
+          <div class="noticia-texto">
+            <button class="btn-ver-obs" type="button" onclick="abrirModalObservacionNoticia(${indiceNoticiaActual})">Ver</button>
+          </div>
+        </div>
+        <div class="noticia-footer">
+          <div class="noticia-odt">${escapeHtml(item.odt||"ODT sin folio")}</div>
+          <div class="noticia-nav">
+            <button class="noticia-flecha" type="button" aria-label="Incidencia anterior" onclick="moverNoticias(-1)">&#8249;</button>
+            <span class="noticia-indicador">${indiceNoticiaActual+1}/${items.length}</span>
+            <button class="noticia-flecha" type="button" aria-label="Siguiente incidencia" onclick="moverNoticias(1)">&#8250;</button>
+          </div>
+        </div>
+      </article>`;
+      renderNoticiasDots(items.length,indiceNoticiaActual);
+      programarAutoNoticias();
+    }
+    function moverNoticias(direccion){
+      const total=(ultimasIncidenciasSolucionadas||[]).length;
+      if(total<=1)return;
+      indiceNoticiaActual=(indiceNoticiaActual+direccion+total)%total;
+      renderNoticiasSolucionadas();
+    }
+    function abrirModalObservacionNoticia(idx){
+      const item=(ultimasIncidenciasSolucionadas||[])[Number(idx)];
+      if(!item)return;
+      document.getElementById("modalObsTitulo").textContent=item.cliente||"Observacion";
+      document.getElementById("modalObsMeta").textContent=`${item.tipoIncidencia||"Incidencia"} · ${item.derivacion||item.canal||""} · ${item.fecha||""}`;
+      document.getElementById("modalObsBody").textContent=item.resumen||"Sin detalle de cierre registrado.";
+      document.getElementById("modalObservacionNoticia").style.display="flex";
+    }
+    function cerrarModalObservacionNoticia(evt){
+      if(evt&&evt.target&&evt.target.id!=="modalObservacionNoticia")return;
+      document.getElementById("modalObservacionNoticia").style.display="none";
+    }
+    function obtenerTokenActual(){
+      const params=new URLSearchParams(window.location.search||"");
+      const tokenUrl=String(params.get("token")||"").trim();
+      if(tokenUrl){
+        try{
+          localStorage.setItem("atc_token",tokenUrl);
+          localStorage.setItem("ATC_TOKEN",tokenUrl);
+        }catch(e){}
+        return tokenUrl;
+      }
+      return String(localStorage.getItem("atc_token")||localStorage.getItem("ATC_TOKEN")||"").trim();
+    }
+    function volverAlPanel(){
+      const token=obtenerTokenActual();
+      const qs=token?`&token=${encodeURIComponent(token)}`:"";
+      window.location.href=`/?form=panelSelector${qs}`;
+    }
+    function actualizarLogoTema(theme){
+      const logo=document.getElementById("logoAtcTema");
+      if(!logo)return;
+      const srcDark=logo.dataset.logoDark||"/shared-static/img/logo-atc.png";
+      const srcLight=logo.dataset.logoLight||srcDark;
+      logo.src=theme==="light"?srcLight:srcDark;
+    }
+    function aplicarTema(theme){
+      const t=theme==="light"?"light":"dark";
+      document.body.setAttribute("data-theme",t);
+      actualizarLogoTema(t);
+      try{localStorage.setItem(THEME_STORAGE_KEY,t)}catch(e){}
+      const b=document.getElementById("btnThemeToggle");
+      if(b){
+        const esClaro=t==="light";
+        b.textContent=esClaro?"Modo oscuro":"Modo claro";
+        b.setAttribute("aria-label",esClaro?"Cambiar a modo oscuro":"Cambiar a modo claro");
+      }
+    }
+    function alternarTema(){
+      const actual=document.body.getAttribute("data-theme")==="light"?"light":"dark";
+      aplicarTema(actual==="light"?"dark":"light");
+    }
+    function inicializarTema(){
+      let guardado="";
+      try{guardado=localStorage.getItem(THEME_STORAGE_KEY)||""}catch(e){}
+      const preferLight=window.matchMedia&&window.matchMedia("(prefers-color-scheme: light)").matches;
+      aplicarTema(guardado|| (preferLight?"light":"dark"));
+    }
+
+    function actualizarBotonPuestoActivo(puesto){
+      document.querySelectorAll("#gridPuestos .boton-puesto").forEach(b=>b.classList.toggle("activo",String(b.dataset.puesto||"")===String(puesto||"")))
+    }
+    function crearBotonesPuestos(){const grid=document.getElementById("gridPuestos");grid.innerHTML="";for(let i=1;i<=TOTAL_PUESTOS;i++){const b=document.createElement("button");b.className="boton-puesto";b.dataset.puesto=String(i);b.textContent=i===30?"Solo clientes con alarma":String(i);b.onclick=()=>mostrarFormularioPuesto(i);grid.appendChild(b)}}
+
+    function mostrarFormularioPuesto(puesto){
+      const id=`formulario-puesto-${puesto}`;const ex=document.getElementById(id);if(ex){ex.remove();puestoActivo=null;actualizarBotonPuestoActivo(null);return}
+      document.querySelectorAll('[id^="formulario-puesto-"]').forEach(n=>n.remove());
+      const nombre=puesto===30?"Solo clientes con alarma":`Puesto ${puesto}`;
+      puestoActivo=String(puesto);
+      actualizarBotonPuestoActivo(puestoActivo);
+      const div=document.createElement("div");div.className="formulario-puesto";div.id=id;div.dataset.puesto=String(puesto);
+      div.innerHTML=`<h3 class="titulo-formulario-puesto">Incidencias - ${nombre}</h3><div class="tabla-scroll tabla-incidencias-nueva"><table><thead><tr><th>Cliente</th><th>Tipo de Incidencia</th><th>Descripción</th><th>Quitar</th></tr></thead><tbody class="tbody-${puesto}"></tbody></table></div><button class="btn" onclick="agregarIncidencia(${puesto})">Agregar Otra Incidencia</button>`;
+      document.getElementById("formulariosContenedor").appendChild(div);agregarIncidencia(puesto);inyectarListaPuesto(div,puesto,nombre);renderListaPuestoSeleccionado();setTimeout(()=>div.scrollIntoView({behavior:"smooth",block:"start"}),120)
+    }
+
+    function inyectarListaPuesto(formDiv,puesto,nombre){
+      if(!formDiv)return;
+      const wrap=document.createElement("div");wrap.className="lista-puesto-wrap";
+      wrap.innerHTML=`<h4 class="lista-puesto-titulo">Pendientes / En Proceso de ${nombre}</h4><div class="tabla-scroll"><table class="tabla-mini"><thead><tr><th>ODT</th><th>Fecha</th><th>Cliente</th><th>Tipo</th><th>Estado</th></tr></thead><tbody id="tbody-lista-puesto-${puesto}"></tbody></table></div>`;
+      formDiv.appendChild(wrap);
+    }
+
+    function obtenerIncidenciasPorPuestoSeleccionado(puesto){
+      const puestoTxt=String(puesto||"").trim();
+      return (todasIncidenciasPendientes||[]).filter(r=>{
+        const puestoRaw=String(r?.[2]||"").trim();
+        const tipo=String(r?.[4]||"").toLowerCase();
+        if(tipo==="mantención preventiva"||tipo==="mantencion preventiva")return false;
+        return puestoRaw===puestoTxt;
+      })
+    }
+
+    function renderListaPuestoSeleccionado(){
+      if(!puestoActivo)return;
+      const tbody=document.getElementById(`tbody-lista-puesto-${puestoActivo}`);
+      if(!tbody)return;
+      const rows=obtenerIncidenciasPorPuestoSeleccionado(puestoActivo);
+      tbody.innerHTML="";
+      if(!rows.length){
+        const tr=document.createElement("tr");
+        tr.innerHTML='<td colspan="5" class="lista-puesto-vacia">Sin incidencias pendientes o en proceso para este puesto.</td>';
+        tbody.appendChild(tr);
+        return;
+      }
+      rows.forEach(r=>{const tr=document.createElement("tr");tr.innerHTML=`<td>${String(r?.[0]||"")}</td><td>${String(r?.[1]||"")}</td><td>${String(r?.[3]||"")}</td><td>${String(r?.[4]||"")}</td><td>${String(r?.[8]||"")}</td>`;tbody.appendChild(tr)})
+    }
+
+    function crearSelectCliente(){const s=document.createElement("select");s.name="cliente";s.innerHTML='<option value="">Seleccionar cliente...</option>';(listaClientesGlobal||[]).forEach(c=>{const o=document.createElement("option");o.value=c;o.textContent=c;s.appendChild(o)});return s}
+    function crearSelectTipo(){const s=document.createElement("select");s.name="tipoIncidencia";s.innerHTML='<option value="">Seleccionar tipo...</option>';TIPOS_INCIDENCIA.forEach(t=>{const o=document.createElement("option");o.value=t;o.textContent=t;s.appendChild(o)});return s}
+    function claveTipoIncidencia(tipo){const t=String(tipo||"").toLowerCase();if(t.includes("desconex"))return"desconexion";if(t.includes("visual"))return"visual";if(t.includes("hora"))return"hora";return"otro"}
+    function normalizarTexto(v){return String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ").trim().toLowerCase()}
+    function claveDuplicado(sucursal,tipo){return `${normalizarTexto(sucursal)}|${normalizarTexto(tipo)}`}
+
+    function cargarContactosSucursal(selectContacto,sucursal){
+      selectContacto.innerHTML='<option value="">Seleccionar contacto de emergencia...</option>';
+      (contactosPorSucursal[sucursal]||[]).forEach(c=>{const nombre=(c.nombre||"").trim(),tel=(c.telefono||"").trim(),prio=(c.prioridad||"").trim();const txt=`${nombre||"Sin nombre"} - ${tel||"Sin teléfono"} - Prioridad ${prio||"-"}`;const o=document.createElement("option");o.value=txt;o.textContent=txt;selectContacto.appendChild(o)});
+      const o=document.createElement("option");o.value="__otros__";o.textContent="Otros...";selectContacto.appendChild(o)
+    }
+
+    function agregarIncidencia(puesto){
+      const tbody=document.querySelector(`.tbody-${puesto}`);if(!tbody)return;const gid=`g${Date.now()}_${uidInc++}`;
+      const tr=document.createElement("tr");tr.dataset.group=gid;tr.className="fila-main";
+      const tdCliente=document.createElement("td"),selectCliente=crearSelectCliente();selectCliente.classList.add("select2");tdCliente.appendChild(selectCliente);tr.appendChild(tdCliente);
+      const tdTipo=document.createElement("td"),selectTipo=crearSelectTipo();tdTipo.appendChild(selectTipo);tr.appendChild(tdTipo);
+      const tdDesc=document.createElement("td"),ta=document.createElement("textarea");ta.name="descripcion";ta.rows=2;ta.placeholder="Descripción...";ta.readOnly=true;tdDesc.appendChild(ta);tr.appendChild(tdDesc);
+      const tdQ=document.createElement("td"),bq=document.createElement("button");bq.type="button";bq.className="btn-danger";bq.setAttribute("aria-label","Quitar incidencia");bq.innerHTML='<svg class="icon-default" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 297 297" xml:space="preserve"><path d="M221.227 32.615H191V9.884C191 4.426 186.575 0 181.116 0h-65.231c-5.458 0-9.884 4.425-9.884 9.884v22.732H75.773c-19.301 0-35.004 15.703-35.004 35.004v23.803c0 5.458 4.425 9.884 9.884 9.884h6.967l11.124 186.399A9.883 9.883 0 0 0 78.61 297h139.78a9.884 9.884 0 0 0 9.866-9.295l11.124-186.399h6.967c5.458 0 9.884-4.425 9.884-9.884V67.619c0-19.301-15.703-35.004-35.004-35.004m-95.459-12.848h45.464v12.849h-45.464zM89.693 277.233h-1.772L77.452 101.8h12.241zm31.451 0H109.46V101.306h11.684zm34.946 0h-15.179V101.8h15.179zm31.45 0h-11.684V101.306h11.684zm21.539 0h-1.772V101.8h12.241zm27.384-195.694H60.537v-13.92c0-8.401 6.835-15.236 15.236-15.236h145.453c8.402 0 15.237 6.835 15.237 15.236z"/></svg><svg class="icon-hover" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 297 297" xml:space="preserve"><path d="M248.596 80.468c-3.988-8.124-10.903-14.209-19.467-17.133l-27.689-9.453 7.109-20.824c1.707-5-.962-10.437-5.962-12.144L142.833.512a9.57 9.57 0 0 0-12.146 5.963l-7.109 20.823-27.69-9.454c-17.676-6.036-36.974 3.438-43.012 21.118l-7.444 21.804a9.57 9.57 0 0 0 5.962 12.146l46.897 16.011H57.694a9.566 9.566 0 0 0-9.55 10.136L59.42 288.003A9.57 9.57 0 0 0 68.97 297h135.3a9.567 9.567 0 0 0 9.55-8.997l9.336-156.45 7.502 2.561a9.6 9.6 0 0 0 3.092.516 9.57 9.57 0 0 0 9.053-6.478l7.444-21.805c2.924-8.564 2.338-17.756-1.651-25.879M79.697 277.866h-1.715l-10.134-169.81h11.849zM145.704 21.71l41.647 14.219-4.018 11.77-41.647-14.219zM110.14 277.866H98.831v-169.81h11.309zm33.826 0h-14.692v-169.81h14.692zm30.442.001h-11.309V111.049l11.309 3.861zm20.849-.001h-1.715V121.442l10.83 3.698zm36.883-177.701-4.353 12.751L66.631 57.895l4.354-12.75c2.628-7.695 11.03-11.818 18.722-9.193l133.241 45.491a14.65 14.65 0 0 1 8.474 7.457 14.65 14.65 0 0 1 .718 11.265"/></svg>';bq.onclick=()=>tbody.querySelectorAll(`tr[data-group="${gid}"]`).forEach(r=>r.remove());tdQ.appendChild(bq);tr.appendChild(tdQ);
+      const trExtra=document.createElement("tr");trExtra.dataset.group=gid;trExtra.style.display="none";const tdExtra=document.createElement("td");tdExtra.colSpan=4;trExtra.appendChild(tdExtra);
+      const trCon=document.createElement("tr");trCon.dataset.group=gid;trCon.className="fila-contacto";trCon.style.display="none";const tdCon=document.createElement("td");tdCon.colSpan=4;
+      const selectCon=document.createElement("select");selectCon.name="contacto";selectCon.innerHTML='<option value="">Seleccionar contacto de emergencia...</option>';tdCon.appendChild(selectCon);
+      const inp=document.createElement("input");inp.type="text";inp.placeholder="Escribir contacto manualmente (nombre y teléfono)...";inp.style.display="none";inp.style.marginTop="8px";tdCon.appendChild(inp);trCon.appendChild(tdCon);
+      tbody.appendChild(tr);tbody.appendChild(trExtra);tbody.appendChild(trCon);
+      setTimeout(()=>{$(selectCliente).select2({width:"resolve",placeholder:"Seleccionar cliente...",allowClear:true})},0);
+
+      let prefijoFijo="";
+      ta.addEventListener("keydown",(e)=>{
+        if(!prefijoFijo)return;
+        const ini=Number(ta.selectionStart||0),fin=Number(ta.selectionEnd||0);
+        if((e.key==="Backspace"&&ini<=prefijoFijo.length&&fin<=prefijoFijo.length)||(e.key==="Delete"&&ini<prefijoFijo.length)){e.preventDefault()}
+      });
+      ta.addEventListener("input",()=>{
+        if(!prefijoFijo)return;
+        if(!ta.value.startsWith(prefijoFijo)){
+          const resto=ta.value.replace(prefijoFijo,"");
+          ta.value=`${prefijoFijo}${resto}`;
+        }
+        const pos=Number(ta.selectionStart||0);
+        if(pos<prefijoFijo.length)ta.setSelectionRange(ta.value.length,ta.value.length);
+      });
+
+      function aplicarPrefijo(prefijo,permiteEscribir){
+        prefijoFijo=String(prefijo||"");
+        ta.value=prefijoFijo;
+        ta.readOnly=!permiteEscribir;
+        if(permiteEscribir){ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length)}
+      }
+      function limpiarDescripcionBloqueada(){prefijoFijo="";ta.value="";ta.readOnly=true}
+
+      function visContacto(){const cl=String(selectCliente.value||"").trim(),ti=String(selectTipo.value||"").trim();trCon.style.display=(!cl||!ti||claveTipoIncidencia(ti)==="hora")?"none":""}
+      $(selectCliente).on("change",function(){const suc=String(this.value||$(this).val()||"").trim();if(suc)cargarContactosSucursal(selectCon,suc);visContacto()});
+      selectCon.addEventListener("change",()=>inp.style.display=selectCon.value==="__otros__"?"block":"none");
+
+      selectTipo.addEventListener("change",()=>{
+        tdExtra.innerHTML="";trExtra.style.display="none";limpiarDescripcionBloqueada();
+        const clave=claveTipoIncidencia(selectTipo.value);
+
+        if(clave==="desconexion"){
+          trExtra.style.display="";
+          tdExtra.innerHTML='<div style="margin-bottom:6px"><b>Problema de:</b></div>';
+          const selDesc=document.createElement("select");selDesc.name="especificacionDesconexion";
+          selDesc.innerHTML='<option value="">Seleccionar...</option><option value="Internet">Internet</option><option value="Electricidad">Electricidad</option><option value="Se Desconoce">Se Desconoce</option>';
+          tdExtra.appendChild(selDesc);
+          selDesc.addEventListener("change",()=>{
+            const v=String(selDesc.value||"").trim();
+            if(!v){limpiarDescripcionBloqueada();return}
+            const prefijo=v==="Se Desconoce"?"Desconocida de: ":`Debido a ${v.toLowerCase()} de: `;
+            aplicarPrefijo(prefijo,true);
+          });
+        }else if(clave==="visual"){
+          trExtra.style.display="";
+          tdExtra.innerHTML='<div style="margin-bottom:6px"><b>Especificamente:</b></div>';
+          const selVisual=document.createElement("select");selVisual.name="especificacionVisual";selVisual.innerHTML='<option value="">Seleccionar...</option>';
+          ESPECIFICACIONES_VISUAL.forEach(op=>{const o=document.createElement("option");o.value=op;o.textContent=op;selVisual.appendChild(o)});
+          tdExtra.appendChild(selVisual);
+          selVisual.addEventListener("change",()=>{
+            const v=String(selVisual.value||"").trim();
+            if(!v){limpiarDescripcionBloqueada();return}
+            aplicarPrefijo(`${v}: `,true);
+          });
+        }else{
+          prefijoFijo="";ta.readOnly=false;
+        }
+        visContacto();
+      });
+    }
+function obtenerIncidenciasDesdeForm(){
+      const inc=[];
+      const token=obtenerTokenActual();
+      document.querySelectorAll('[id^="formulario-puesto-"]').forEach(form=>{
+        const puesto=form.dataset.puesto||"";
+        form.querySelectorAll("tr.fila-main").forEach(f=>{
+          const gid=f.dataset.group;
+          const cliente=String(f.querySelector('select[name="cliente"]')?.value||"").trim();
+          const tipo=String(f.querySelector('select[name="tipoIncidencia"]')?.value||"").trim();
+          let desc=String(f.querySelector('textarea[name="descripcion"]')?.value||"").trim();
+
+          const filaCon=form.querySelector(`tr.fila-contacto[data-group="${gid}"]`);
+          const sel=filaCon?.querySelector('select[name="contacto"]');
+          const im=filaCon?.querySelector("input[type='text']");
+          let contacto="";
+          if(sel){
+            if(sel.value==="__otros__")contacto=String(im?.value||"").trim();
+            else if(sel.value)contacto=String(sel.value).trim();
+          }
+
+          if(!cliente&&!tipo&&!desc)return;
+          if(!cliente||!tipo)throw new Error("Debes seleccionar cliente y tipo de incidencia.");
+
+          const claveTipo=claveTipoIncidencia(tipo);
+          if(claveTipo==="desconexion"&&!desc)throw new Error(`Debes indicar el tipo de desconexión para "${cliente}".`);
+          if(claveTipo==="visual"&&!desc)throw new Error(`Debes seleccionar la especificación de Problema de Visual para "${cliente}".`);
+          if(!desc)throw new Error(`Debes completar la descripción para "${cliente}".`);
+
+          if(claveTipo!=="hora"&&!contacto)throw new Error(`Debes seleccionar contacto de emergencia para "${cliente}".`);
+          if(contacto)desc+=`\nContacto: ${contacto}`;
+          inc.push({puesto:puesto==="30"?"30":puesto,cliente,tipoIncidencia:tipo,descripcion:desc,estado:"Pendiente",token});
+        })
+      });
+      return inc
+    }
+    function detectarConflictosRegistro(incidencias){
+      const existentesPorClave=new Map();
+      (todasIncidenciasPendientes||[]).forEach(r=>{
+        const sucursal=String(r?.[3]||"").trim();
+        const tipo=String(r?.[4]||"").trim();
+        if(!sucursal||!tipo)return;
+        const k=claveDuplicado(sucursal,tipo);
+        if(!existentesPorClave.has(k))existentesPorClave.set(k,[]);
+        existentesPorClave.get(k).push({
+          odt:String(r?.[0]||"-"),
+          sucursal,
+          tipo,
+          estado:String(r?.[8]||""),
+          descripcion:String(r?.[6]||"")
+        });
+      });
+
+      const yaIngresadasEnLote=new Map();
+      const conflictos=[];
+      const aprobadas=[];
+
+      incidencias.forEach((nueva,idx)=>{
+        const k=claveDuplicado(nueva?.cliente,nueva?.tipoIncidencia);
+        const similares=[...(existentesPorClave.get(k)||[])];
+        if(yaIngresadasEnLote.has(k)){
+          yaIngresadasEnLote.get(k).forEach((ant,j)=>{
+            similares.push({
+              odt:`Lote actual #${j+1}`,
+              sucursal:ant.cliente,
+              tipo:ant.tipoIncidencia,
+              estado:"Pendiente de registro",
+              descripcion:String(ant.descripcion||"")
+            });
+          });
+        }
+
+        if(similares.length)conflictos.push({idx,nueva,similares});
+        else aprobadas.push(nueva);
+
+        if(!yaIngresadasEnLote.has(k))yaIngresadasEnLote.set(k,[]);
+        yaIngresadasEnLote.get(k).push(nueva);
+      });
+
+      return {conflictos,aprobadas};
+    }
+    function cerrarConflictos(){document.getElementById("modalConflictos").style.display="none";conflictosPendientes=[];incidenciasAprobadasSinConflicto=[];seleccionConflictos=[]}
+    function seleccionConflicto(i,val,btn){
+      seleccionConflictos[i]=val;
+      const c=btn.closest(".conf-card");
+      if(!c)return;
+      c.classList.remove("conf-accepted","conf-rejected");
+      c.classList.add(val?"conf-accepted":"conf-rejected");
+      c.querySelectorAll(".conf-choice").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      const est=c.querySelector(".conf-decision");
+      if(est){
+        est.textContent=val?"Se registrará esta incidencia":"Se rechazará esta incidencia";
+        est.className=`conf-decision ${val?"ok":"no"}`;
+      }
+    }
+    function mostrarConflictos(conflictos,aprobadas){
+      conflictosPendientes=conflictos;incidenciasAprobadasSinConflicto=aprobadas;seleccionConflictos=Array(conflictos.length).fill(null);
+      const resumen=document.getElementById("conflictosResumen");
+      if(resumen)resumen.textContent=`${conflictos.length} ODT Repetidas · ${aprobadas.length} ODT No repetidas`;
+      const cont=document.getElementById("contenedorConflictos");cont.innerHTML="";
+      conflictos.forEach((it,idx)=>{
+        const card=document.createElement("div");
+        card.className="conf-card";
+        const sim=it.similares.map(s=>`<div class="conf-sim-item"><p class="conf-line"><b>ODT:</b> ${escapeHtml(s.odt)}</p><p class="conf-line"><b>Sucursal:</b> ${escapeHtml(s.sucursal)}</p><p class="conf-line"><b>Tipo:</b> ${escapeHtml(s.tipo)}</p><p class="conf-line"><b>Estado:</b> ${escapeHtml(s.estado)}</p><div class="conf-desc">${aLineas(s.descripcion)}</div></div>`).join("");
+        card.innerHTML=`<div class="conf-row"><section class="conf-section"><h4>Nuevo registro</h4><p class="conf-line"><b>Sucursal:</b> ${escapeHtml(it.nueva.cliente)}</p><p class="conf-line"><b>Tipo:</b> ${escapeHtml(it.nueva.tipoIncidencia)}</p><div class="conf-desc">${aLineas(it.nueva.descripcion)}</div></section><section class="conf-section"><h4>Incidencias similares activas</h4><div class="conf-sim-list">${sim}</div></section></div><div class="conf-actions"><button class="btn conf-choice btn-conf-ok" onclick="seleccionConflicto(${idx},true,this)">Registrar igual</button><button class="btn conf-choice btn-conf-no" onclick="seleccionConflicto(${idx},false,this)">Rechazar</button></div><div class="conf-note">Decide si esta incidencia se registra o se rechaza.</div><div class="conf-decision">Pendiente de decisión</div>`;
+        cont.appendChild(card)
+      });
+      document.getElementById("modalConflictos").style.display="flex"
+    }
+
+    async function finalizarSeleccionIncidencias(){
+      if(seleccionConflictos.some(v=>v===null)){alert("Debes decidir cada incidencia en conflicto antes de continuar.");return}
+      const sel=conflictosPendientes.map((c,i)=>seleccionConflictos[i]?c.nueva:null).filter(Boolean);
+      const aRegistrar=[...incidenciasAprobadasSinConflicto,...sel];
+      if(!aRegistrar.length){cerrarConflictos();setMensaje("No se registraron incidencias: todas fueron rechazadas por el operador.",false);return}
+      cerrarConflictos();
+      await enviarIncidenciasAlServidor(aRegistrar)
+    }
+
+    async function enviarIncidenciasAlServidor(incidencias){
+      const b=document.getElementById("btnRegistrarTodo");b.disabled=true;b.textContent="Registrando...";
+      try{
+        const data=await api("/api/incidencias/multiples",{method:"POST",body:JSON.stringify(incidencias)});
+        const odts=Array.isArray(data?.odts)?data.odts.filter(Boolean):[];
+        document.getElementById("formulariosContenedor").innerHTML="";
+        puestoActivo=null;
+        actualizarBotonPuestoActivo(null);
+        setMensaje(odts.length?`Incidencias registradas en Registro: ${odts.join(", ")}.`:"Incidencias registradas exitosamente.");
+        try{await cargarIncidenciasPendientes()}catch(err){setMensaje(`Incidencias registradas, pero no se pudo refrescar la tabla: ${err.message}`,false)}
+      }finally{b.disabled=false;b.textContent="Registrar Todas las Incidencias"}
+    }
+
+    async function registrarTodasLasIncidencias(){
+      try{
+        const incidencias=obtenerIncidenciasDesdeForm();if(!incidencias.length){alert("Debes completar al menos una incidencia.");return}
+        const {conflictos,aprobadas}=detectarConflictosRegistro(incidencias);
+        if(conflictos.length){mostrarConflictos(conflictos,aprobadas);return}
+        await enviarIncidenciasAlServidor(incidencias)
+      }catch(err){alert(err.message||"Error al registrar incidencias.")}
+    }
+
+    async function cargarIncidenciasPendientes(){
+      const data=await api("/api/incidencias/puesto");
+      const todas=Array.isArray(data)?data:[];
+      ultimasIncidenciasSolucionadas=construirTickerSolucionadas(todas);
+      todasIncidenciasPendientes=todas.filter(r=>["pendiente","en proceso"].includes(String(r?.[8]||"").toLowerCase()));
+      filtrarIncidenciasPendientes();
+      renderListaPuestoSeleccionado();
+      renderNoticiasSolucionadas();
+    }
+    function filtrarIncidenciasPendientes(){
+      const txt=String(document.getElementById("inputBusquedaIncidencias").value||"").toLowerCase().trim(),tbody=document.querySelector("#tablaIncidenciasPendientes tbody");tbody.innerHTML="";if(!txt)return;
+      const rows=todasIncidenciasPendientes.filter(r=>{const cl=String(r?.[3]||"").toLowerCase(),ti=String(r?.[4]||"").toLowerCase();if(ti==="mantención preventiva"||ti==="mantencion preventiva")return false;return cl.includes(txt)});
+      rows.forEach(r=>{const tr=document.createElement("tr"),puestoRaw=String(r?.[2]||"").trim(),puesto=puestoRaw==="30"?"Solo clientes con alarma":(puestoRaw?`Puesto ${puestoRaw}`:"SERV. TÉCNICO"),estado=String(r?.[8]||"").toLowerCase(),odt=String(r?.[0]||"");let boton="";if(estado==="pendiente")boton=`<button class="btn" style="margin-top:0;padding:6px 10px" onclick="marcarComoSolucionado('${odt.replace(/'/g,"\\\\'")}')">✔</button>`;tr.innerHTML=`<td>${odt}</td><td>${String(r?.[1]||"")}</td><td>${puesto}</td><td>${String(r?.[3]||"")}</td><td>${String(r?.[4]||"")}</td><td class="derivacion">${String(r?.[5]||"")}</td><td>${String(r?.[6]||"")}</td><td>${String(r?.[8]||"")}</td><td>${boton}</td>`;tbody.appendChild(tr)})
+    }
+
+    async function marcarComoSolucionado(odt){if(!odt)return;try{const now=new Date(),iso=new Date(now.getTime()-now.getTimezoneOffset()*6e4).toISOString().slice(0,19);await api(`/api/incidencias/cerrar-encargado?odt=${encodeURIComponent(odt)}&fecha_cierre=${encodeURIComponent(iso)}`,{method:"POST"});setMensaje("Incidencia marcada como solucionada.");await cargarIncidenciasPendientes()}catch(err){setMensaje(err.message||"No se pudo cerrar la incidencia.",false)}}
+
+    async function abrirPopupRegistrarTarea(){
+      try{
+        const [clientes,tipos]=await Promise.all([api("/api/clientes-soporte"),api("/api/tareas/tipos")]);
+        llenarDatalist("listaClientes",clientes||[]);mapaTipos=tipos||{};
+        const tipo=document.getElementById("tipoTarea");tipo.innerHTML='<option value="">-- Seleccionar --</option>';
+        Object.keys(mapaTipos).forEach(t=>{const o=document.createElement("option");o.value=t;o.textContent=t;tipo.appendChild(o)});
+        document.getElementById("especificacion").innerHTML='<option value="">-- Seleccionar --</option>';
+        document.getElementById("especificacion").disabled=true;
+        document.getElementById("popupRegistrarTarea").style.display="flex";
+      }catch(err){alert(err.message||"No se pudo abrir el registro de tarea.")}
+    }
+    function cerrarPopupRegistrarTarea(){document.getElementById("popupRegistrarTarea").style.display="none";document.getElementById("formRegistrarTarea").reset()}
+    document.getElementById("tipoTarea").addEventListener("change",function(){const esp=document.getElementById("especificacion");esp.innerHTML="";esp.disabled=true;const l=mapaTipos[this.value];if(!l||!l.length)return;esp.innerHTML='<option value="">-- Seleccionar --</option>';l.forEach(it=>{const o=document.createElement("option");o.value=it;o.textContent=it;esp.appendChild(o)});esp.disabled=false});
+    document.getElementById("formRegistrarTarea").addEventListener("submit",async function(){const payload={cliente:this.cliente.value.trim(),tipoTarea:this.tipoTarea.value,especificacion:this.especificacion.value,descripcion:this.descripcion.value.trim(),solicitante:this.tecnico.value.trim(),estado:"Pendiente",token:localStorage.getItem("ATC_TOKEN")||""};if(!payload.cliente||!payload.tipoTarea||!payload.especificacion||!payload.descripcion){alert("Completa todos los campos obligatorios.");return}try{await api("/api/tareas",{method:"POST",body:JSON.stringify(payload)});cerrarPopupRegistrarTarea();alert("Tarea registrada correctamente.")}catch(err){alert(err.message||"No se pudo registrar la tarea.")}})
+
+    async function bootstrap(){
+      inicializarTema();
+      crearBotonesPuestos();
+      try{const [listasInc,contactos]=await Promise.all([api("/api/listas/incidencias"),api("/api/contactos/sucursal")]);listaClientesGlobal=listasInc?.clientes||[];contactosPorSucursal=contactos||{};llenarDatalist("listaClientes",listaClientesGlobal)}catch(err){setMensaje(`Error al cargar listas: ${err.message}`,false)}
+      try{await cargarIncidenciasPendientes()}catch(err){setMensaje(`Error al cargar incidencias pendientes: ${err.message}`,false)}
+    }
+    window.addEventListener("load",bootstrap);
+  </script>
+{% include "_client_notes_widget.html" %}
+<script src="/static/auth-guard.js"></script>
+</body>
+</html>

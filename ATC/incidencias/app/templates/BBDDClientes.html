@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BBDD Clientes — ATC</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy-1: #0b1420;
+      --navy-2: #162538;
+      --navy-3: #1e3248;
+      --orange: #ff7a2b;
+      --orange-2: #ff9448;
+      --bg: #f0f4f8;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --label: #374151;
+    }
+
+    html, body { height: 100%; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── HEADER ── */
+    .page-header {
+      flex-shrink: 0;
+      background: linear-gradient(135deg, var(--navy-1) 0%, var(--navy-2) 60%, var(--navy-3) 100%);
+      padding: 13px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      box-shadow: 0 2px 16px rgba(0,0,0,.22);
+      z-index: 50;
+    }
+
+    .header-brand { display: flex; align-items: center; gap: 12px; }
+    .header-brand img { height: 38px; width: auto; object-fit: contain; }
+    .header-brand-text strong { display: block; font-size: 14px; font-weight: 800; color: #fff; }
+    .header-brand-text span { font-size: 11px; color: rgba(255,255,255,.55); }
+
+    .header-actions { display: flex; align-items: center; gap: 12px; }
+    .session-user {
+      display: inline-flex;
+      align-items: center;
+      min-height: 36px;
+      padding: 0 4px;
+      color: rgba(255,255,255,.92);
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .btn-back {
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 13px; border-radius: 10px;
+      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14);
+      color: rgba(255,255,255,.82); font-size: 13px; font-weight: 700;
+      text-decoration: none; transition: background .18s; white-space: nowrap;
+    }
+    .btn-back:hover { background: rgba(255,255,255,.14); }
+
+    /* ── LAYOUT ── */
+    .workspace {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      overflow: hidden;
+    }
+
+    /* ── SIDEBAR (list) ── */
+    .sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .sidebar-top {
+      flex-shrink: 0;
+      padding: 16px 14px 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .sidebar-top-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 10px;
+    }
+
+    .search-wrap {
+      position: relative;
+    }
+
+    .search-wrap svg {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      pointer-events: none;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 9px 12px 9px 34px;
+      font-size: 13px;
+      font-family: inherit;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg);
+      color: var(--text);
+      transition: border-color .18s, box-shadow .18s;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--orange);
+      box-shadow: 0 0 0 3px rgba(255,122,43,.1);
+      background: #fff;
+    }
+
+    .sidebar-count {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 8px;
+      text-align: right;
+    }
+
+    .client-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 8px;
+    }
+
+    .client-list::-webkit-scrollbar { width: 4px; }
+    .client-list::-webkit-scrollbar-track { background: transparent; }
+    .client-list::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+
+    .client-item {
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background .14s;
+      border: 1.5px solid transparent;
+      margin-bottom: 3px;
+    }
+
+    .client-item:hover { background: #f1f5f9; }
+
+    .client-item.active {
+      background: #fff5ef;
+      border-color: rgba(255,122,43,.35);
+    }
+
+    .client-item-name {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.3;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .client-item.active .client-item-name { color: var(--orange); }
+
+    .client-item-sub {
+      font-size: 11.5px;
+      color: var(--muted);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .list-empty {
+      padding: 40px 16px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    /* ── DETAIL PANEL ── */
+    .detail-panel {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .detail-panel-inner {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 32px 48px;
+    }
+
+    .detail-panel-inner::-webkit-scrollbar { width: 5px; }
+    .detail-panel-inner::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+
+    /* Empty state */
+    .empty-state {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      color: var(--muted);
+      text-align: center;
+      padding: 40px;
+    }
+
+    .empty-state-icon {
+      width: 64px; height: 64px;
+      border-radius: 18px;
+      background: #f1f5f9;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .empty-state h3 { font-size: 17px; font-weight: 700; color: var(--text); }
+    .empty-state p { font-size: 13px; max-width: 280px; line-height: 1.5; }
+
+    /* Detail header */
+    .detail-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .detail-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+    }
+
+    .detail-id-badge {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--muted);
+      background: #f1f5f9;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px 10px;
+      margin-top: 4px;
+      display: inline-block;
+    }
+
+    .btn-save {
+      padding: 10px 22px;
+      background: linear-gradient(135deg, var(--orange) 0%, var(--orange-2) 100%);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 13.5px;
+      font-weight: 800;
+      font-family: inherit;
+      cursor: pointer;
+      transition: opacity .18s, transform .12s, box-shadow .18s;
+      box-shadow: 0 4px 14px rgba(255,122,43,.28);
+      white-space: nowrap;
+    }
+
+    .btn-save:hover { opacity: .9; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(255,122,43,.36); }
+    .btn-save:disabled { background: #94a3b8; box-shadow: none; cursor: not-allowed; transform: none; }
+
+    /* Fields */
+    .fields-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px 20px;
+    }
+
+    .field { display: flex; flex-direction: column; }
+
+    .field label {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--label);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin-bottom: 6px;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+      padding: 9px 12px;
+      font-size: 13.5px;
+      font-family: inherit;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--text);
+      transition: border-color .18s, box-shadow .18s;
+      appearance: auto;
+    }
+
+    .field input:focus,
+    .field select:focus {
+      outline: none;
+      border-color: var(--orange);
+      box-shadow: 0 0 0 3px rgba(255,122,43,.1);
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #fff;
+      box-shadow: 0 8px 24px rgba(0,0,0,.18);
+      transform: translateY(80px);
+      opacity: 0;
+      transition: transform .28s cubic-bezier(.34,1.56,.64,1), opacity .24s;
+      z-index: 999;
+      pointer-events: none;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { background: #16a34a; }
+    .toast.error   { background: #dc2626; }
+
+    /* Skeleton loader */
+    .skeleton {
+      background: linear-gradient(90deg, #f1f5f9 25%, #e8edf2 50%, #f1f5f9 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 8px;
+      height: 44px;
+    }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+    @media (max-width: 900px) {
+      .workspace { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+      .sidebar { border-right: none; border-bottom: 1px solid var(--border); max-height: 280px; }
+      .detail-panel-inner { padding: 20px 18px 40px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="page-header">
+    <div class="header-brand">
+      <img src="/shared-static/img/logo-atc.png" alt="ATC">
+      <div class="header-brand-text">
+        <strong>Alguien Te Cuida</strong>
+        <span>Base de Datos — Clientes</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="session-user" id="usuarioActual">Usuario: Cargando...</div>
+      <a id="btnVolver" href="#" class="btn-back">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Volver al panel
+      </a>
+    </div>
+  </header>
+
+  <div class="workspace">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-top">
+        <p class="sidebar-top-title">Clientes</p>
+        <div class="search-wrap">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="searchInput" class="search-input" type="text" placeholder="Buscar por nombre, RUT..." oninput="filtrarLista()">
+        </div>
+        <p class="sidebar-count" id="sidebarCount"></p>
+      </div>
+      <div class="client-list" id="clientList">
+        <div class="list-empty">Cargando...</div>
+      </div>
+    </aside>
+
+    <!-- DETAIL -->
+    <section class="detail-panel">
+      <div class="detail-panel-inner" id="detailPanel">
+        <div class="empty-state">
+          <div class="empty-state-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <h3>Selecciona un cliente</h3>
+          <p>Elige un cliente de la lista para ver y editar sus datos.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const qsToken = new URLSearchParams(window.location.search).get("token") || "";
+    const withToken = (url) => {
+      const sep = url.includes("?") ? "&" : "?";
+      return qsToken ? `${url}${sep}token=${encodeURIComponent(qsToken)}` : url;
+    };
+    document.getElementById("btnVolver").href = withToken("/venta/panel-selector");
+
+    async function cargarUsuarioActual() {
+      const el = document.getElementById("usuarioActual");
+      if (!el || !qsToken) return;
+      try {
+        const response = await fetch(`/api/usuario-actual?token=${encodeURIComponent(qsToken)}`);
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data?.detail || "No se pudo cargar el usuario actual.");
+        const nombre = String(data?.usuario || data?.nombre || data?.username || "").trim();
+        el.textContent = nombre ? `Usuario: ${nombre}` : "Usuario: Sesión activa";
+      } catch (_err) {
+        el.textContent = "Usuario: Sesión activa";
+      }
+    }
+
+    let allHeaders = [];
+    let allRows = [];
+    let activeRowIndex = null;
+
+    /* ── TOAST ── */
+    function showToast(msg, type = "success") {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.className = `toast ${type} show`;
+      setTimeout(() => { t.classList.remove("show"); }, 3000);
+    }
+
+    /* ── LOAD DATA ── */
+    async function init() {
+      try {
+        const res = await fetch(withToken('/api/venta/clientes/tabla'));
+        if (!res.ok) throw new Error('No se pudo cargar la tabla');
+        const payload = await res.json();
+        allHeaders = payload.headers || [];
+        allRows = payload.rows || [];
+        renderList(allRows);
+      } catch (err) {
+        document.getElementById("clientList").innerHTML =
+          `<div class="list-empty">${err.message || 'Error cargando datos.'}</div>`;
+      }
+    }
+
+    /* ── RENDER LIST ── */
+    function renderList(rows) {
+      const container = document.getElementById("clientList");
+      const count = document.getElementById("sidebarCount");
+      if (!rows.length) {
+        container.innerHTML = '<div class="list-empty">Sin resultados</div>';
+        count.textContent = "";
+        return;
+      }
+      count.textContent = `${rows.length} registro${rows.length !== 1 ? 's' : ''}`;
+      container.innerHTML = rows.map((row, i) => {
+        const globalIndex = allRows.indexOf(row);
+        const name = row[2] || row[1] || `Registro ${row[0]}`;
+        const sub  = row[1] || "";
+        return `<div class="client-item${activeRowIndex === globalIndex ? ' active' : ''}"
+                     data-index="${globalIndex}"
+                     onclick="selectClient(${globalIndex})">
+          <div class="client-item-name">${escHTML(name)}</div>
+          ${sub ? `<div class="client-item-sub">${escHTML(sub)}</div>` : ''}
+        </div>`;
+      }).join('');
+    }
+
+    /* ── FILTER LIST ── */
+    function filtrarLista() {
+      const q = document.getElementById("searchInput").value.trim().toLowerCase();
+      if (!q) { renderList(allRows); return; }
+      const filtered = allRows.filter(row =>
+        row.some(cell => String(cell || '').toLowerCase().includes(q))
+      );
+      renderList(filtered);
+    }
+
+    /* ── SELECT CLIENT ── */
+    function selectClient(index) {
+      activeRowIndex = index;
+      // Re-render list to update active state
+      filtrarLista();
+      renderDetail(index);
+    }
+
+    /* ── FIELD TYPE MAP (by column index) ── */
+    // 0=ID 1=RUT 2=Cliente 3=Giro 4=Direccion 5=Region 6=Comuna
+    // 7=EmailFacturas 8=NombreRepresentante 9=RUTRepresentante 10=Telefono 11=EmailRepresentante 12=Ejecutivo
+    const CLIENT_FIELD_TYPES = {
+      5: 'select-region',
+      6: 'select-comuna',
+      7: 'email',
+      11: 'email',
+    };
+
+    function buildFieldInput(index, j, header, value) {
+      const ft = CLIENT_FIELD_TYPES[j] || 'text';
+      const id = `field-${index}-${j}`;
+      const base = `id="${id}" data-original="${escAttr(value)}" data-col="${j}"`;
+      if (ft === 'select-region' || ft === 'select-comuna') {
+        const onChange = ft === 'select-region'
+          ? `onchange="onRegionChange(${index})"` : "";
+        return `<select ${base} ${onChange}><option value="${escAttr(value)}">${escHTML(value)||'Cargando...'}</option></select>`;
+      }
+      if (ft === 'email') {
+        return `<input type="email" ${base} value="${escAttr(value)}">`;
+      }
+      return `<input type="text" ${base} value="${escAttr(value)}">`;
+    }
+
+    /* ── RENDER DETAIL ── */
+    function renderDetail(index) {
+      const row = allRows[index];
+      const panel = document.getElementById("detailPanel");
+
+      const name = row[2] || row[1] || `Registro ${row[0]}`;
+      const rowId = row[0];
+
+      let fieldsHTML = '<div class="fields-grid">';
+      allHeaders.forEach((header, j) => {
+        if (j === 0) return;
+        fieldsHTML += `
+          <div class="field">
+            <label>${escHTML(header)}</label>
+            ${buildFieldInput(index, j, header, String(row[j] || ''))}
+          </div>`;
+      });
+      fieldsHTML += '</div>';
+
+      panel.innerHTML = `
+        <div class="detail-header">
+          <div>
+            <div class="detail-title">${escHTML(name)}</div>
+            <span class="detail-id-badge">ID ${escHTML(String(rowId))}</span>
+          </div>
+          <button class="btn-save" id="btnSave" onclick="guardarCliente(${index})" type="button">
+            Guardar cambios
+          </button>
+        </div>
+        ${fieldsHTML}
+      `;
+
+      // async load selects
+      const regionJ = 5, comunaJ = 6;
+      loadRegionesSelect(`field-${index}-${regionJ}`, String(row[regionJ]||''), index, comunaJ, String(row[comunaJ]||''));
+    }
+
+    /* ── REGION / COMUNA LOADERS ── */
+    async function loadRegionesSelect(selId, currentRegion, index, comunaJ, currentComuna) {
+      const sel = document.getElementById(selId);
+      if (!sel) return;
+      try {
+        const res = await fetch(withToken('/api/venta/catalogo/regiones'));
+        if (!res.ok) throw new Error("No se pudo cargar regiones");
+        const data = await res.json();
+        const regiones = Array.isArray(data.regiones) ? data.regiones : [];
+        if (!regiones.length) throw new Error("Catalogo de regiones vacio");
+        const opts = regiones.map(r =>
+          `<option value="${escAttr(r)}"${r===currentRegion?' selected':''}>${escHTML(r)}</option>`
+        ).join('');
+        sel.innerHTML = `<option value="">Seleccionar región</option>${opts}`;
+        if (currentRegion) sel.value = currentRegion;
+        sel.dataset.original = currentRegion;
+      } catch { sel.innerHTML = `<option value="${escAttr(currentRegion)}">${escHTML(currentRegion)||'No se pudieron cargar regiones'}</option>`; }
+      // now load comunas
+      if (currentRegion) loadComunasSelect(`field-${index}-${comunaJ}`, currentRegion, currentComuna);
+    }
+
+    async function loadComunasSelect(selId, region, currentComuna) {
+      const sel = document.getElementById(selId);
+      if (!sel) return;
+      sel.innerHTML = '<option value="">Cargando...</option>';
+      if (!region) { sel.innerHTML = '<option value="">Selecciona región primero</option>'; return; }
+      try {
+        const res = await fetch(withToken(`/api/venta/catalogo/comunas?region=${encodeURIComponent(region)}`));
+        if (!res.ok) throw new Error("No se pudo cargar comunas");
+        const data = await res.json();
+        const comunas = Array.isArray(data.comunas) ? data.comunas : [];
+        if (!comunas.length) throw new Error("Catalogo de comunas vacio");
+        const opts = comunas.map(c =>
+          `<option value="${escAttr(c)}"${c===currentComuna?' selected':''}>${escHTML(c)}</option>`
+        ).join('');
+        sel.innerHTML = `<option value="">Seleccionar comuna</option>${opts}`;
+        if (currentComuna) sel.value = currentComuna;
+        sel.dataset.original = currentComuna;
+      } catch { sel.innerHTML = `<option value="${escAttr(currentComuna)}">${escHTML(currentComuna)||'No se pudieron cargar comunas'}</option>`; }
+    }
+
+    function onRegionChange(index) {
+      const regionSel = document.getElementById(`field-${index}-5`);
+      const comunaSel = document.getElementById(`field-${index}-6`);
+      if (!regionSel || !comunaSel) return;
+      const region = regionSel.value;
+      loadComunasSelect(`field-${index}-6`, region, '');
+    }
+
+    /* ── SAVE ── */
+    async function guardarCliente(index) {
+      const row = allRows[index];
+      const rowId = Number(row[0]);
+      const btn = document.getElementById("btnSave");
+
+      // Collect current values (ID first, then editable fields)
+      const values = [String(rowId)];
+      allHeaders.forEach((_, j) => {
+        if (j === 0) return;
+        const input = document.getElementById(`field-${index}-${j}`);
+        values.push(input ? input.value : String(row[j] || ''));
+      });
+
+      btn.disabled = true;
+      btn.textContent = "Guardando...";
+
+      try {
+        const res = await fetch(withToken('/api/venta/clientes/tabla/guardar-fila'), {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ row_id: rowId, values })
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({detail: 'No se pudo guardar'}));
+          throw new Error(typeof err.detail === 'string' ? err.detail : 'No se pudo guardar');
+        }
+
+        // Update local data
+        allRows[index] = values;
+        allHeaders.forEach((_, j) => {
+          if (j === 0) return;
+          const input = document.getElementById(`field-${index}-${j}`);
+          if (input) {
+            input.dataset.original = input.value;
+          }
+        });
+
+        showToast("Guardado correctamente ✓", "success");
+        btn.textContent = "Guardar cambios";
+        btn.disabled = false;
+
+        // Refresh list item name
+        filtrarLista();
+      } catch (error) {
+        showToast(error.message || 'Error al guardar', 'error');
+        btn.disabled = false;
+        btn.textContent = "Guardar cambios";
+      }
+    }
+
+    function escHTML(str) {
+      return String(str || '').replace(/[&<>"']/g, c =>
+        ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])
+      );
+    }
+    function escAttr(str) {
+      return String(str || '').replace(/"/g, '&quot;');
+    }
+
+    cargarUsuarioActual();
+    init();
+  </script>
+<script src="/static/auth-guard.js"></script>
+</body>
+</html>

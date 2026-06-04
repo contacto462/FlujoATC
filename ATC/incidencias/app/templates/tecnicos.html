@@ -1,0 +1,2691 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Registros de Tecnicos</title>
+  <style>
+    :root {
+      --bg-1: #09181c;
+      --bg-2: #10262d;
+      --bg-3: #163840;
+      --panel-bg: rgba(9, 22, 26, 0.94);
+      --panel-border: rgba(255, 255, 255, 0.10);
+      --text-main: #f4f8f9;
+      --text-soft: #b9cbd1;
+      --cell-bg: rgba(8, 18, 22, 0.96);
+      --cell-alt: rgba(12, 27, 32, 0.96);
+      --cell-border: rgba(188, 207, 214, 0.10);
+      --field-bg: #091217;
+      --field-border: rgba(194, 210, 218, 0.20);
+      --orange-1: #ff6e23;
+      --orange-2: #ff8b33;
+      --orange-3: #e85d14;
+      --success: #34d399;
+      --danger: #f87171;
+      --shadow: 0 22px 50px rgba(0, 0, 0, 0.24);
+    }
+
+    html, body {
+      min-height: 100%;
+    }
+
+    body {
+      font-family: "Segoe UI", sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      padding: 34px 36px 44px;
+      color: var(--text-main);
+      background:
+        radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.05), transparent 24%),
+        radial-gradient(circle at 82% 12%, rgba(255, 125, 53, 0.08), transparent 18%),
+        linear-gradient(145deg, var(--bg-1) 0%, var(--bg-2) 42%, var(--bg-3) 100%);
+      background-attachment: fixed;
+    }
+
+    .loader {
+      border: 4px solid rgba(255, 255, 255, 0.10);
+      border-top: 4px solid var(--orange-2);
+      border-radius: 50%;
+      width: 34px;
+      height: 34px;
+      animation: spin 0.9s linear infinite;
+      margin: 10px auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .encabezado-principal {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 18px;
+      max-width: 1220px;
+      margin: 0 auto 22px;
+      padding: 18px 22px;
+      border-radius: 26px;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      box-shadow: var(--shadow);
+    }
+
+    .marca-principal {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    .logo-principal {
+      height: 72px;
+      width: auto;
+      object-fit: contain;
+      flex: 0 0 auto;
+    }
+
+    .titulo-central {
+      margin: 0;
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+    }
+
+    .subtitulo {
+      margin: 4px 0 0;
+      color: var(--text-soft);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .sesion-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 10px;
+    }
+
+    #sesionInfo {
+      font-weight: 700;
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      padding: 8px 14px;
+    }
+
+    .toolbar-panel,
+    .ruta-panel,
+    .tabla-shell {
+      max-width: 1220px;
+      margin: 0 auto 22px;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .toolbar-panel {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      padding: 16px 18px;
+      flex-wrap: wrap;
+    }
+
+    .ruta-panel {
+      padding: 18px 20px;
+    }
+
+    .ruta-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .ruta-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .ruta-subtitle {
+      margin: 6px 0 0;
+      color: var(--text-soft);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .ruta-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .ruta-status {
+      color: var(--text-soft);
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+
+    .ruta-resumen {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .ruta-metric {
+      border-radius: 14px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .ruta-metric-label {
+      display: block;
+      font-size: 12px;
+      color: var(--text-soft);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .ruta-metric-value {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .ruta-lista {
+      display: grid;
+      gap: 10px;
+    }
+
+    .ruta-item {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(7, 18, 22, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .ruta-item-stop {
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--orange-3) 0%, var(--orange-2) 100%);
+      color: white;
+    }
+
+    .ruta-item-main {
+      min-width: 0;
+    }
+
+    .ruta-item-top {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 3px;
+    }
+
+    .ruta-item-odt {
+      font-size: 12px;
+      font-weight: 800;
+      color: #ffd1b0;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .ruta-item-cliente {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+      line-height: 1.35;
+    }
+
+    .ruta-item-dir {
+      font-size: 13px;
+      color: var(--text-soft);
+      line-height: 1.45;
+    }
+
+    .ruta-item-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toolbar-panel label {
+      font-weight: 700;
+      color: var(--text-soft);
+    }
+
+    .tabla-shell {
+      padding: 14px;
+    }
+
+    .tabla-scroll {
+      overflow-x: auto;
+      border-radius: 18px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: transparent;
+      border-radius: 18px;
+      overflow: hidden;
+      font-size: 14px;
+      table-layout: fixed;
+      min-width: 980px;
+    }
+
+    th, td {
+      padding: 12px 10px;
+      text-align: center;
+      border: 1px solid var(--cell-border);
+      vertical-align: middle;
+      word-break: normal;
+      overflow-wrap: anywhere;
+    }
+
+    #tablaRegistro th:nth-child(1),
+    #tablaRegistro td:nth-child(1) { width: 64px; }
+    #tablaRegistro th:nth-child(2),
+    #tablaRegistro td:nth-child(2) { width: 132px; }
+    #tablaRegistro th:nth-child(3),
+    #tablaRegistro td:nth-child(3) { width: 120px; }
+    #tablaRegistro th:nth-child(4),
+    #tablaRegistro td:nth-child(4) { width: 160px; }
+    #tablaRegistro th:nth-child(6),
+    #tablaRegistro td:nth-child(6) { width: 92px; }
+    #tablaRegistro th:nth-child(7),
+    #tablaRegistro td:nth-child(7) { width: 92px; }
+
+    .detalle-resumen {
+      text-align: left;
+      line-height: 1.35;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .odt-detalle-completo {
+      margin: 0 0 12px;
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-soft);
+      line-height: 1.45;
+      white-space: normal;
+      word-break: break-word;
+    }
+
+    th {
+      background: linear-gradient(135deg, var(--orange-3) 0%, var(--orange-2) 100%);
+      color: white;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    td {
+      background: var(--cell-bg);
+      color: var(--text-main);
+    }
+
+    tbody tr:nth-child(even) td {
+      background: var(--cell-alt);
+    }
+
+    select, input, textarea, button {
+      font-size: 14px;
+      box-sizing: border-box;
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    select, input, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      margin-top: 6px;
+      color: #fff;
+      background: var(--field-bg);
+      border: 1px solid var(--field-border);
+      border-radius: 12px;
+    }
+
+    select:focus, input:focus, textarea:focus {
+      outline: none;
+      border-color: rgba(255, 139, 51, 0.54);
+      box-shadow: 0 0 0 3px rgba(255, 110, 35, 0.12);
+    }
+
+    select {
+      color-scheme: dark;
+    }
+
+    button {
+      padding: 10px 16px;
+      background: #111b1f;
+      color: white;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    button:hover {
+      background: #1a272c;
+      transform: translateY(-1px);
+    }
+
+    .btn-primario {
+      background: linear-gradient(135deg, var(--orange-1) 0%, var(--orange-2) 100%);
+      box-shadow: 0 12px 24px rgba(255, 110, 35, 0.20);
+    }
+
+    .btn-primario:hover {
+      background: linear-gradient(135deg, #ff7d3a 0%, #ff9a52 100%);
+    }
+
+    .btn-secundario {
+      width: auto;
+      margin: 0;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .cliente-link {
+      color: #8fd8ff;
+      cursor: pointer;
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    .cliente-link:hover {
+      color: #ffffff;
+      text-decoration: underline;
+    }
+
+    .pantalla-carga-inicial,
+    #modalFinalizar,
+    #modalProgreso,
+    #modalEnProceso {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.62);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      backdrop-filter: blur(5px);
+    }
+
+    .pantalla-carga-inicial {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 700px;
+      margin: 20px auto;
+      background: var(--panel-bg);
+      color: var(--text-main);
+      padding: 24px;
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 34px 72px rgba(0, 0, 0, 0.42);
+      position: relative;
+    }
+
+    .modal-card h3 {
+      margin: 0 0 16px;
+      text-align: center;
+      color: var(--text-main);
+      font-size: 24px;
+    }
+
+    .modal-close-btn {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      width: auto;
+      height: auto;
+      border: none;
+      border-radius: 0;
+      background: transparent;
+      color: #fff;
+      font-size: 30px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: none;
+      padding: 0 2px;
+    }
+
+    .modal-close-btn:hover {
+      background: transparent;
+      transform: none;
+      box-shadow: none;
+      color: #ffd8c2;
+    }
+
+    .modal-card.modal-progreso {
+      max-width: 320px;
+      text-align: center;
+    }
+
+    .modal-card.modal-en-proceso {
+      max-width: 760px;
+    }
+
+    .modal-actions {
+      margin-top: 14px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    #modalFinalizar {
+      align-items: flex-start;
+      overflow-y: auto;
+    }
+
+    #modalFinalizar .modal-card {
+      max-width: 920px;
+      max-height: calc(100vh - 44px);
+      overflow-y: auto;
+    }
+
+    .cierre-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px 14px;
+    }
+
+    .cierre-field-full {
+      grid-column: 1 / -1;
+    }
+
+    .cierre-field label,
+    .cierre-field legend {
+      display: block;
+      color: var(--text-main);
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .cierre-fieldset {
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-radius: 16px;
+      padding: 12px;
+      margin: 0;
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .cierre-checks {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .cierre-check,
+    .material-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-soft);
+      font-size: 13px;
+    }
+
+    .cierre-check input,
+    .material-row input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+    }
+
+    .materiales-lista {
+      display: grid;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .material-row {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) 92px 120px;
+      align-items: center;
+      padding: 8px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .material-row input,
+    .material-row select {
+      margin-top: 0;
+    }
+
+    .material-name {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .material-name span {
+      overflow-wrap: anywhere;
+    }
+
+    .cierre-help {
+      margin: 6px 0 0;
+      color: var(--text-soft);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .cierre-error {
+      margin: 10px 0 0;
+      min-height: 18px;
+      color: var(--danger);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .infoSucursal {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 18px;
+      margin-top: 18px;
+      font-size: 14px;
+      text-align: left;
+      color: var(--text-main);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    .infoSucursal h4 {
+      font-size: 18px;
+      margin: 0 0 14px;
+      text-align: center;
+      color: var(--text-main);
+    }
+
+    .infoSucursal p {
+      margin: 10px 0;
+      color: var(--text-soft);
+      line-height: 1.5;
+    }
+
+    .infoSucursal strong {
+      color: #ffffff;
+    }
+
+    .infoSucursal a {
+      color: #8fd8ff;
+    }
+
+    .infoSucursal-cargando,
+    .info-vacio,
+    .info-error {
+      text-align: center;
+    }
+
+    .info-error {
+      color: #ffd1d1;
+    }
+
+    .hdr-incidencias {
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      margin-top: 18px;
+      text-align: center;
+      color: var(--text-main);
+    }
+
+    .lista-incidencias {
+      list-style: none;
+      padding-left: 0;
+      margin: 10px 0 0;
+    }
+
+    .inc-item {
+      margin-bottom: 10px;
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .inc-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .inc-fecha {
+      cursor: text;
+      font-weight: 700;
+      color: var(--text-main);
+      text-decoration: none;
+    }
+
+    .inc-problema {
+      color: var(--text-soft);
+    }
+
+    .inc-obs {
+      display: block;
+      white-space: pre-line;
+      margin-top: 8px;
+      background: rgba(0, 0, 0, 0.18);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 10px;
+      border-radius: 12px;
+      color: var(--text-main);
+    }
+
+    .btn-ver-mas {
+      margin-top: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .imagenes-lista {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .imagen-item {
+      flex: 1 1 120px;
+      text-align: center;
+    }
+
+    .imagen-item a {
+      display: inline-block;
+      margin: 6px 0;
+    }
+
+    .action-buttons {
+      text-align: center;
+      margin-top: 16px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    #mensajeExito {
+      display: none;
+      text-align: center;
+      color: var(--success);
+      margin-top: 20px;
+      font-weight: 700;
+    }
+
+    @media screen and (max-width: 900px) {
+      body {
+        padding: 18px;
+      }
+
+      .encabezado-principal {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+
+      .marca-principal {
+        justify-content: center;
+        flex-direction: column;
+      }
+
+      .sesion-panel {
+        align-items: center;
+      }
+
+      .titulo-central {
+        font-size: 30px;
+      }
+
+      .ruta-resumen {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .cierre-grid,
+      .cierre-checks,
+      .material-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media screen and (max-width: 768px) {
+      .ruta-item {
+        grid-template-columns: 1fr;
+      }
+
+      .ruta-item-actions {
+        flex-direction: row;
+      }
+
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+
+      thead {
+        display: none;
+      }
+
+      tbody tr {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 18px;
+        margin-bottom: 18px;
+        padding: 10px;
+        box-shadow: 0 18px 34px rgba(0, 0, 0, 0.18);
+      }
+
+      tbody td {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        border-bottom: 1px solid var(--cell-border);
+      }
+
+      tbody td::before {
+        content: attr(data-label);
+        font-weight: 700;
+        font-size: 13px;
+        text-align: left;
+        color: var(--text-soft);
+        flex: 1;
+      }
+
+      tbody td:last-child {
+        border-bottom: none;
+      }
+
+      tbody td span,
+      tbody td a {
+        flex: 2;
+        text-align: right;
+        word-break: break-word;
+      }
+    }
+
+    .foto-upload-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 20px;
+      margin-top: 6px;
+      border-radius: 16px;
+      border: 2px dashed rgba(255, 139, 51, 0.40);
+      background: rgba(255, 110, 35, 0.06);
+      color: var(--text-main);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: none;
+      transition: border-color .18s, background .18s;
+    }
+
+    .foto-upload-btn:hover {
+      border-color: rgba(255, 139, 51, 0.70);
+      background: rgba(255, 110, 35, 0.12);
+      transform: none;
+      box-shadow: none;
+    }
+
+    .foto-thumb-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .foto-thumb {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.12);
+      flex: 0 0 auto;
+    }
+
+    .foto-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .foto-thumb-del {
+      position: absolute;
+      top: 3px;
+      right: 3px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(0,0,0,.75);
+      border: none;
+      color: white;
+      font-size: 16px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+      box-shadow: none;
+    }
+
+    .foto-thumb-del:hover {
+      background: rgba(248, 113, 113, .90);
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* ── ODT SECTIONS ── */
+    .odt-sections-wrap {
+      max-width: 1220px;
+      margin: 0 auto 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .odt-section {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .odt-section-hdr {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 15px 20px;
+      cursor: pointer;
+      user-select: none;
+      border-bottom: 1px solid var(--panel-border);
+    }
+
+    .odt-section-label {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--text-main);
+      flex: 1;
+    }
+
+    .odt-section-count {
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(255, 110, 35, .18);
+      color: var(--orange-2);
+      border-radius: 999px;
+      padding: 3px 11px;
+    }
+
+    .odt-section-chevron {
+      color: var(--text-soft);
+      flex-shrink: 0;
+      transition: transform .2s;
+    }
+
+    .odt-section-body {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .odt-card {
+      border-bottom: 1px solid rgba(255, 255, 255, .05);
+    }
+
+    .odt-card:last-child {
+      border-bottom: none;
+    }
+
+    .odt-card-main {
+      padding: 14px 18px;
+      cursor: pointer;
+      transition: background .14s;
+    }
+
+    .odt-card-main:hover {
+      background: rgba(255, 255, 255, .03);
+    }
+
+    .odt-card-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .odt-card-odt {
+      font-size: 13px;
+      font-weight: 800;
+      color: #ffd1b0;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    .odt-badge {
+      font-size: 10px;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 3px 10px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      white-space: nowrap;
+    }
+
+    .badge-proceso  { background: rgba(52, 211, 153, .15); color: #34d399; }
+    .badge-pendiente { background: rgba(251, 191, 36, .15); color: #fbbf24; }
+    .badge-terminado { background: rgba(100, 116, 139, .15); color: #94a3b8; }
+
+    .odt-card-cliente {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+      line-height: 1.3;
+      margin-bottom: 5px;
+    }
+
+    .odt-card-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-soft);
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .odt-card-prioridad {
+      font-size: 11px;
+      color: var(--orange-2);
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    .odt-card-detail {
+      padding: 16px 18px;
+      border-top: 1px solid rgba(255, 255, 255, .06);
+      background: rgba(0, 0, 0, .12);
+    }
+
+    /* ── WIZARD STEPS ── */
+    .wizard-progress {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin: 0 0 20px;
+      flex-wrap: nowrap;
+      overflow: hidden;
+    }
+
+    .wizard-step-dot {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      font-size: 11px;
+      font-weight: 800;
+      background: rgba(255, 255, 255, .08);
+      color: var(--text-soft);
+      border: 1.5px solid rgba(255, 255, 255, .12);
+      flex-shrink: 0;
+      transition: all .2s;
+    }
+
+    .wizard-step-dot.active {
+      background: var(--orange-1);
+      color: #fff;
+      border-color: var(--orange-1);
+      box-shadow: 0 0 0 3px rgba(255, 110, 35, .22);
+    }
+
+    .wizard-step-dot.done {
+      background: rgba(52, 211, 153, .18);
+      color: #34d399;
+      border-color: #34d399;
+    }
+
+    .wizard-step-line {
+      flex: 1;
+      height: 2px;
+      background: rgba(255, 255, 255, .08);
+      border-radius: 2px;
+      max-width: 24px;
+    }
+
+    .wizard-step-line.done {
+      background: rgba(52, 211, 153, .45);
+    }
+
+    .wizard-step-label {
+      text-align: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 18px;
+    }
+
+    .wizard-step-sublabel {
+      font-size: 11px;
+      color: var(--text-soft);
+      font-weight: 400;
+    }
+
+    .cierre-step { display: none; }
+    .cierre-step.active { display: block; }
+
+    .wizard-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .atras-slider {
+      background: #f87171;
+      border-radius: 12px;
+      height: 40px;
+      width: 37px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: absolute;
+      left: 4px;
+      top: 4px;
+      z-index: 10;
+      transition: width .5s;
+    }
+
+    #btnWizardAtras:hover .atras-slider {
+      width: 140px;
+    }
+
+    .siguiente-slider {
+      background: #4ade80;
+      border-radius: 12px;
+      height: 40px;
+      width: 37px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: absolute;
+      right: 4px;
+      top: 4px;
+      z-index: 10;
+      transition: width .5s;
+    }
+
+    #btnWizardSiguiente:hover .siguiente-slider {
+      width: 140px;
+    }
+  </style>
+</head>
+<body>
+  <div class="encabezado-principal">
+    <div class="marca-principal">
+    <img src="/shared-static/img/logo-atc.png" alt="Logo ATC" class="logo-principal">
+    <div>
+      <h3 class="titulo-central">Registros de Tecnicos</h3>
+      <p class="subtitulo">Gestiona tu cola de trabajo, revisa antecedentes y cierra ODT de forma responsable.</p>
+    </div>
+    </div>
+    <div class="sesion-panel">
+      <span id="sesionInfo"></span>
+      <button type="button" class="btn-secundario" onclick="cerrarSesion()">Cerrar sesion</button>
+    </div>
+  </div>
+
+  <div id="pantallaCargaInicial" class="pantalla-carga-inicial">
+    <div class="loader"></div>
+    <p id="mensajeCarga" class="subtitulo">Cargando tabla...</p>
+  </div>
+
+  <div class="toolbar-panel">
+    <select id="filtroEstado" onchange="filtrarPorEstado()" style="max-width:200px;margin:0;display:inline-block;">
+      <option value="Todos">Todos</option>
+      <option value="En Proceso" selected>En Proceso</option>
+      <option value="Pendiente">Pendiente</option>
+      <option value="Terminado">Terminado</option>
+    </select>
+    <button type="button" class="btn-secundario" id="btnRutaGoogle" onclick="abrirRutaGoogleMaps()" disabled>Ver Ruta en Google Maps</button>
+    <button type="button" class="btn-secundario" id="btnRutaWaze" onclick="abrirRutaWaze()" disabled>Ir a próxima parada en Waze</button>
+    <button type="button" class="btn-secundario" onclick="abrirBandejaRendiciones()">Rendiciones</button>
+  </div>
+
+  <div class="odt-sections-wrap">
+    <div id="odtSections"></div>
+    <datalist id="listaClientes"></datalist>
+    <datalist id="listaProblemas"></datalist>
+    <datalist id="listaEstados"></datalist>
+    <datalist id="listaTecnicos"></datalist>
+  </div>
+
+  <div id="modalFinalizar">
+    <div id="modalContent" class="modal-card">
+      <button type="button" class="modal-close-btn" aria-label="Cerrar modal finalizar" onclick="cerrarModalFinalizar()">&times;</button>
+      <h3>Cierre técnico</h3>
+      <p id="modalFinalizarOdt" style="margin:0 0 14px;color:var(--text-soft);font-weight:700;font-size:13px;"></p>
+
+      <!-- Indicador de pasos -->
+      <div class="wizard-progress" id="wizardProgress"></div>
+      <div class="wizard-step-label" id="wizardStepLabel"></div>
+
+      <!-- Paso 1: Diagnóstico -->
+      <div class="cierre-step" data-step="1">
+        <div class="cierre-field" style="margin-bottom:14px;">
+          <label for="responsableCierre">Responsable del problema</label>
+          <select id="responsableCierre" required>
+            <option value="">Seleccionar...</option>
+            <option value="ATC">ATC</option>
+            <option value="Cliente">Cliente</option>
+          </select>
+        </div>
+        <div class="cierre-field">
+          <label for="causaCierre">Causa raiz</label>
+          <select id="causaCierre" required disabled>
+            <option value="">Selecciona responsable primero</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Paso 2: Acción -->
+      <div class="cierre-step" data-step="2">
+        <div class="cierre-field" style="margin-bottom:14px;">
+          <label for="accionCierre">Accion realizada</label>
+          <select id="accionCierre" required></select>
+        </div>
+        <div class="cierre-field">
+          <label for="resultadoCierre">Resultado final</label>
+          <select id="resultadoCierre" required></select>
+        </div>
+      </div>
+
+      <!-- Paso 3: Pruebas -->
+      <div class="cierre-step" data-step="3">
+        <fieldset class="cierre-fieldset" style="width:100%;">
+          <legend>Pruebas realizadas</legend>
+          <div id="pruebasCierre" class="cierre-checks"></div>
+        </fieldset>
+      </div>
+
+      <!-- Paso 4: Materiales -->
+      <div class="cierre-step" data-step="4">
+        <fieldset class="cierre-fieldset" style="width:100%;">
+          <legend>Materiales usados</legend>
+          <label class="cierre-check" style="margin-bottom:10px;">
+            <input type="checkbox" id="materialesSinUso" />
+            <span>No se usaron materiales</span>
+          </label>
+          <div id="materialesCierre" class="materiales-lista"></div>
+        </fieldset>
+      </div>
+
+      <!-- Paso 5: Observación -->
+      <div class="cierre-step" data-step="5">
+        <div class="cierre-field">
+          <label for="observacion">Observacion final breve</label>
+          <textarea id="observacion" placeholder="Describe el contexto que deba quedar para lectura humana..." required style="min-height:120px;"></textarea>
+        </div>
+      </div>
+
+      <!-- Paso 6: Fotos -->
+      <div class="cierre-step" data-step="6">
+        <div class="cierre-field">
+          <label>Fotos de cierre</label>
+          <input type="file" id="fotoInputCierre" accept="image/*" multiple style="display:none" />
+          <button type="button" class="foto-upload-btn" onclick="document.getElementById('fotoInputCierre').click()">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <span id="fotoUploadLabel">Seleccionar fotos</span>
+          </button>
+          <div id="fotoThumbGrid" class="foto-thumb-grid"></div>
+          <p id="fotosCierreHelp" class="cierre-help">Debes adjuntar al menos una foto y maximo dos.</p>
+        </div>
+      </div>
+
+      <div id="cierreError" class="cierre-error"></div>
+
+      <div class="wizard-nav">
+        <button type="button" id="btnWizardAtras" onclick="anteriorPaso()"
+          style="background:#111b1f;width:148px;height:48px;border-radius:16px;border:none;cursor:pointer;position:relative;font-size:15px;font-weight:700;color:#fff;flex-shrink:0;">
+          <div class="atras-slider">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" height="20px" width="20px">
+              <path d="M224 480h640a32 32 0 1 1 0 64H224a32 32 0 0 1 0-64z" fill="#fff"></path>
+              <path d="m237.248 512 265.408 265.344a32 32 0 0 1-45.312 45.312l-288-288a32 32 0 0 1 0-45.312l288-288a32 32 0 1 1 45.312 45.312L237.248 512z" fill="#fff"></path>
+            </svg>
+          </div>
+          <span style="position:relative;z-index:1;padding-left:8px;">Atrás</span>
+        </button>
+        <button type="button" id="btnWizardSiguiente" onclick="siguientePaso()"
+          style="background:#111b1f;width:148px;height:48px;border-radius:16px;border:none;cursor:pointer;position:relative;font-size:15px;font-weight:700;color:#fff;flex-shrink:0;">
+          <div class="siguiente-slider">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" height="20px" width="20px">
+              <path d="M800 480H160a32 32 0 1 0 0 64h640a32 32 0 0 0 0-64z" fill="#fff"></path>
+              <path d="m786.752 512-265.408 265.344a32 32 0 0 0 45.312 45.312l288-288a32 32 0 0 0 0-45.312l-288-288a32 32 0 1 0-45.312 45.312L786.752 512z" fill="#fff"></path>
+            </svg>
+          </div>
+          <span id="lblWizardSiguiente" style="position:relative;z-index:1;padding-right:44px;">Siguiente</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalProgreso">
+    <div class="contenido modal-card modal-progreso">
+      <p id="mensajeEstado" style="font-weight:bold;font-size:16px;color:var(--text-main);">Procesando...</p>
+      <div class="loader" style="margin-top:15px;"></div>
+    </div>
+  </div>
+
+  <div id="mensajeExito">Registro guardado correctamente.</div>
+
+  <div id="modalEnProceso">
+    <div class="modal-card modal-en-proceso">
+      <button type="button" class="modal-close-btn" aria-label="Cerrar modal pendiente" onclick="cerrarModalEnProceso()">&times;</button>
+      <h3>Informacion En Proceso</h3>
+      <p id="modalEnProcesoOdt" style="margin:0 0 12px;color:var(--text-soft);font-weight:700;"></p>
+      <label><b>Grado de avance (%)</b></label>
+      <input type="number" id="gradoAvance" min="0" max="100" placeholder="Ej: 50" />
+      <label style="margin-top:10px;"><b>Observacion</b></label>
+      <textarea id="observacionEnProceso" placeholder="Describe el estado actual..." rows="4"></textarea>
+      <div class="modal-actions">
+        <button class="btn-secundario" type="button" onclick="cerrarModalEnProceso()">Cancelar</button>
+        <button class="btn-primario" onclick="guardarEstadoEnProceso()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tecnicoActual = {{ tecnico|tojson }};
+    const tokenSesion = {{ token|tojson }};
+
+    function leerCookie(nombre) {
+      const prefijo = `${nombre}=`;
+      return document.cookie
+        .split(";")
+        .map((parte) => parte.trim())
+        .find((parte) => parte.startsWith(prefijo))
+        ?.slice(prefijo.length) || "";
+    }
+
+    let tokenActivo = String(
+      tokenSesion ||
+      localStorage.getItem("atc_token") ||
+      decodeURIComponent(leerCookie("atc_token") || "")
+    ).trim();
+    let currentODT = "";
+    let listasGlobales = {};
+    let selectedFiles = [];
+    let clienteActivo = null;
+    let cantidadRegistrosActual = 0;
+    let odtToReopen = "";
+    let clienteToReopen = "";
+    let reopenedEstado = "";
+    let odtModalFinalizar = "";
+    let odtModalEnProceso = "";
+    let cierreActualEsMantencion = false;
+    let cierreStepActual = 1;
+    let cierreStepMap = [1, 2, 3, 4, 5, 6];
+    const CIERRE_PASO_LABELS_FULL = ["Diagnóstico", "Acción", "Pruebas", "Materiales", "Observación", "Fotos"];
+    const CIERRE_PASO_LABELS_MANT = ["Observación", "Fotos"];
+    const RUTA_ORIGEN_BASE = "1 Oriente 1180, Viña del Mar, Chile";
+    const MANTENCION_MAX_IMAGENES_CIERRE = 80;
+    const MANTENCION_MAX_BYTES_IMAGEN = 10 * 1024 * 1024;
+    let registrosTecnicoFull = [];
+    let rutaActualOptima = [];
+    let rutaGoogleActual = "";
+    let rutaWazeActual = "";
+    let actualizacionAutomaticaEnCurso = false;
+    let actualizacionAutomaticaTimer = null;
+    const AUTO_REFRESH_MS = 30000;
+    const tecnicoFiltrado = (typeof tecnicoActual !== "undefined" ? String(tecnicoActual || "") : "").trim().toLowerCase();
+    const CAUSAS_CIERRE = {
+      ATC: [
+        ["instalacion_deficiente", "Instalacion deficiente"],
+        ["configuracion_incorrecta", "Configuracion incorrecta"],
+        ["material_instalado_defectuoso", "Material instalado defectuoso"],
+        ["mantenimiento_insuficiente", "Mantenimiento insuficiente"],
+        ["diagnostico_previo_incompleto", "Diagnostico previo incompleto"],
+        ["otro", "Otro"],
+      ],
+      Cliente: [
+        ["manipulacion_cliente", "Manipulacion del cliente"],
+        ["problema_electrico_cliente", "Problema electrico del cliente"],
+        ["red_internet_cliente", "Red/internet del cliente"],
+        ["infraestructura_cliente", "Infraestructura del cliente"],
+        ["dano_terceros", "Dano de terceros"],
+        ["otro", "Otro"],
+      ],
+    };
+    const ACCIONES_CIERRE = [
+      ["reconexion", "Reconexion"],
+      ["reconfiguracion", "Reconfiguracion"],
+      ["reemplazo_material", "Reemplazo de material"],
+      ["ajuste_fisico", "Ajuste fisico"],
+      ["limpieza", "Limpieza"],
+      ["cambio_cableado", "Cambio de cableado"],
+      ["cambio_fuente", "Cambio de fuente"],
+      ["validacion_sin_intervencion", "Validacion sin intervencion"],
+      ["otro", "Otro"],
+    ];
+    const RESULTADOS_CIERRE = [
+      ["operativo", "Operativo"],
+      ["operativo_con_observacion", "Operativo con observacion"],
+      ["requiere_seguimiento", "Requiere seguimiento"],
+      ["requiere_cotizacion_visita_adicional", "Requiere cotizacion/visita adicional"],
+    ];
+    const PRUEBAS_CIERRE = [
+      ["camaras_ok", "Camaras OK"],
+      ["grabacion_ok", "Grabacion OK"],
+      ["audio_ok", "Audio OK"],
+      ["red_ok", "Red OK"],
+      ["energia_ok", "Energia OK"],
+    ];
+    const MATERIALES_CIERRE = [
+      ["cable_utp", "Cable UTP", "metro"],
+      ["conector_rj45", "Conector RJ45", "unidad"],
+      ["balun", "Balun", "unidad"],
+      ["fuente_12v", "Fuente 12V", "unidad"],
+      ["transformador", "Transformador", "unidad"],
+      ["camara", "Camara", "unidad"],
+      ["nvr_dvr", "NVR/DVR", "unidad"],
+      ["disco_duro", "Disco duro", "unidad"],
+      ["switch_poe", "Switch/PoE", "unidad"],
+      ["microfono", "Microfono", "unidad"],
+      ["parlante", "Parlante", "unidad"],
+      ["canaleta", "Canaleta", "metro"],
+      ["caja_estanca", "Caja estanca", "unidad"],
+      ["tornilleria_fijaciones", "Tornilleria/fijaciones", "set"],
+      ["otro", "Otro", "unidad"],
+    ];
+
+    function escapeHTML(str) {
+      return String(str || "").replace(/[&<>\"']/g, (m) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#39;",
+      }[m]));
+    }
+
+    function normalizarTexto(str) {
+      return String(str || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
+    }
+
+    function esMantencionPreventiva(valor) {
+      return normalizarTexto(valor) === "mantencion preventiva";
+    }
+
+    function registroTecnicoPorOdt(odt) {
+      const odtLimpia = String(odt || "").trim();
+      return (registrosTecnicoFull || []).find((item) => String(item?.odt || "").trim() === odtLimpia) || null;
+    }
+
+    function configurarFotosCierre(esMantencion) {
+      selectedFiles = [];
+      renderFotoThumbs();
+      const label = document.getElementById("fotoUploadLabel");
+      const help = document.getElementById("fotosCierreHelp");
+      if (esMantencion) {
+        if (label) label.textContent = `Seleccionar fotos (máx. ${MANTENCION_MAX_IMAGENES_CIERRE})`;
+        if (help) help.textContent = `Mantención preventiva: adjunta entre 1 y ${MANTENCION_MAX_IMAGENES_CIERRE} imágenes. Máximo 10 MB por imagen.`;
+      } else {
+        if (label) label.textContent = "Seleccionar fotos (máx. 2)";
+        if (help) help.textContent = "Debes adjuntar al menos una foto y máximo dos.";
+      }
+    }
+
+    function renderFotoThumbs() {
+      const grid = document.getElementById("fotoThumbGrid");
+      if (!grid) return;
+      grid.innerHTML = "";
+      selectedFiles.forEach((file, idx) => {
+        const url = URL.createObjectURL(file);
+        const wrap = document.createElement("div");
+        wrap.className = "foto-thumb";
+        const img = document.createElement("img");
+        img.src = url;
+        img.alt = `foto ${idx + 1}`;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "foto-thumb-del";
+        btn.textContent = "×";
+        btn.addEventListener("click", () => eliminarFoto(idx));
+        wrap.appendChild(img);
+        wrap.appendChild(btn);
+        grid.appendChild(wrap);
+      });
+    }
+
+    function eliminarFoto(idx) {
+      selectedFiles.splice(idx, 1);
+      renderFotoThumbs();
+    }
+
+    function onFotoInputChange(input) {
+      const maxFotos = cierreActualEsMantencion ? MANTENCION_MAX_IMAGENES_CIERRE : 2;
+      const nuevos = Array.from(input.files || []);
+      const disponibles = maxFotos - selectedFiles.length;
+      if (disponibles <= 0) {
+        alert(`Ya alcanzaste el máximo de ${maxFotos} foto${maxFotos !== 1 ? "s" : ""}.`);
+        input.value = "";
+        return;
+      }
+      const agregadas = nuevos.slice(0, disponibles);
+      if (nuevos.length > disponibles) {
+        alert(`Solo se pueden agregar ${disponibles} foto${disponibles !== 1 ? "s" : ""} más. Se tomaron las primeras ${disponibles}.`);
+      }
+      selectedFiles = selectedFiles.concat(agregadas);
+      input.value = "";
+      renderFotoThumbs();
+    }
+
+    function esElementoDeEdicion(elemento) {
+      if (!elemento) return false;
+      const tag = String(elemento.tagName || "").toLowerCase();
+      return (
+        tag === "input" ||
+        tag === "textarea" ||
+        tag === "select" ||
+        elemento.isContentEditable === true
+      );
+    }
+
+    function estaVisible(id) {
+      const modal = document.getElementById(id);
+      return modal && window.getComputedStyle(modal).display !== "none";
+    }
+
+    function hayModalVisible() {
+      return ["modalFinalizar", "modalProgreso", "modalEnProceso"].some((id) => estaVisible(id));
+    }
+
+    function hayFormularioConDatosTemporales() {
+      if (!estaVisible("modalFinalizar") && !estaVisible("modalEnProceso")) return false;
+      const observacion = document.getElementById("observacion");
+      const avance = document.getElementById("gradoAvance");
+      const observacionEnProceso = document.getElementById("observacionEnProceso");
+      return Boolean(
+        String(observacion?.value || "").trim() ||
+        String(avance?.value || "").trim() ||
+        String(observacionEnProceso?.value || "").trim() ||
+        selectedFiles.length > 0
+      );
+    }
+
+    function hayDetalleOdtAbierto() {
+      return Boolean(document.querySelector(".odt-card-detail[style*='block']"));
+    }
+
+    function toggleInfoSucursalCard(card, cliente, observacion, estado, odt) {
+      const detail = card.querySelector(".odt-card-detail");
+      if (!detail) return;
+      if (detail.style.display !== "none" && currentODT === odt) {
+        detail.style.display = "none";
+        odtToReopen = ""; clienteToReopen = ""; currentODT = ""; clienteActivo = null;
+        return;
+      }
+      document.querySelectorAll(".odt-card-detail").forEach((d) => { d.style.display = "none"; });
+      mostrarInfoSucursalCard(card, cliente, observacion, estado, odt);
+    }
+
+    async function mostrarInfoSucursalCard(card, cliente, observacion = "", estado = "", odt = "") {
+      const detail = card.querySelector(".odt-card-detail");
+      if (!detail) return;
+      currentODT = odt; clienteActivo = cliente;
+      odtToReopen = odt; clienteToReopen = cliente; reopenedEstado = estado;
+      detail.style.display = "block";
+      detail.innerHTML = '<div style="text-align:center;padding:20px;"><div class="loader"></div></div>';
+      try {
+        const [detalleSucursal, incidencias, imagenesTablaResp] = await Promise.all([
+          api(`/api/sucursal/detalle?odt=${encodeURIComponent(odt)}`),
+          api(`/api/sucursal/incidencias?cliente=${encodeURIComponent(cliente)}`),
+          api(`/api/incidencias/imagenes-tabla?odt=${encodeURIComponent(odt)}`),
+        ]);
+        const imagenes = Array.isArray(imagenesTablaResp?.imagenes) ? imagenesTablaResp.imagenes : [];
+        const sucursalData = { ...(detalleSucursal || {}) };
+        if ((!sucursalData.latitud || !sucursalData.longitud) && sucursalData.direccion) {
+          const geo = await geocodificarDireccionCliente(sucursalData.direccion);
+          if (geo.latitud && geo.longitud) { sucursalData.latitud = geo.latitud; sucursalData.longitud = geo.longitud; }
+        }
+        let html = '<div class="infoSucursal fade-in">';
+        const detalleHtml = detalleCompletoHTML(observacion);
+        if (detalleHtml) html += '<h4>Detalle Completo ODT</h4>' + `<div class="odt-detalle-completo">${detalleHtml}</div>`;
+        html += '<h4>Detalles de la Sucursal</h4>';
+        html += `<p><strong>Direccion:</strong> ${escapeHTML(sucursalData?.direccion || "No disponible")}</p>`;
+        const contacto = [sucursalData?.contacto || "", sucursalData?.telefono || ""].filter(Boolean).join(" - ");
+        html += `<p><strong>Contacto:</strong> ${escapeHTML(contacto || "No disponible")}</p>`;
+        html += `<p><strong>Correo:</strong> ${escapeHTML(sucursalData?.correo || "No disponible")}</p>`;
+        if (sucursalData?.latitud && sucursalData?.longitud) {
+          html += `<p><strong>Navegacion:</strong><br><a href="https://www.google.com/maps?q=${encodeURIComponent(sucursalData.latitud)},${encodeURIComponent(sucursalData.longitud)}" target="_blank">Google Maps</a> | <a href="https://waze.com/ul?ll=${encodeURIComponent(sucursalData.latitud)},${encodeURIComponent(sucursalData.longitud)}&navigate=yes" target="_blank">Waze</a></p>`;
+        } else {
+          const links = construirLinksNavegacionPorDireccion(sucursalData?.direccion || "", cliente);
+          if (links.google) html += `<p><strong>Navegacion:</strong><br><a href="${escapeHTML(links.google)}" target="_blank">Google Maps</a> | <a href="${escapeHTML(links.waze)}" target="_blank">Waze</a></p>`;
+        }
+        if (sucursalData?.layout) html += `<p><strong>Layout:</strong> <a href="${escapeHTML(sucursalData.layout)}" target="_blank">Ver Layout</a></p>`;
+        html += '<h4 class="hdr-incidencias">Historial de Incidencias</h4>';
+        html += '<div class="historial-incidencias" style="display:none;">';
+        const incVis = 5;
+        const incFilt = (Array.isArray(incidencias) ? incidencias : []).filter((inc) => {
+          const t = normalizarTexto(inc?.problema || "");
+          return !t.includes("mantencion") && !t.includes("mantención");
+        });
+        if (!incFilt.length) {
+          html += '<p class="info-vacio">No hay incidencias relevantes</p>';
+        } else {
+          html += `<ul class="lista-incidencias" data-total="${incFilt.length}">`;
+          incFilt.forEach((inc, idx) => {
+            const vis = idx >= incFilt.length - incVis ? "block" : "none";
+            html += `<li class="inc-item" style="display:${vis};">` +
+              `<div class="inc-row"><span class="inc-fecha">Fecha: ${escapeHTML(inc?.fecha || "Sin fecha")}</span>` +
+              (inc?.problema ? `<span class="inc-problema">- ${escapeHTML(inc.problema)}</span>` : "") + "</div>" +
+              `<div class="inc-obs">${escapeHTML(inc?.texto || "")}</div></li>`;
+          });
+          html += "</ul>";
+          if (incFilt.length > incVis) html += '<div style="text-align:center;margin-top:10px;"><button class="btn-ver-mas" onclick="verMasIncidencias(this)">Ver mas</button></div>';
+        }
+        html += "</div>";
+        if (imagenes.length > 0) {
+          html += '<div style="margin-top:15px;"><p><strong>Imagenes Incidencia</strong></p><div class="imagenes-lista">';
+          imagenes.forEach((url, idx) => { html += `<div class="imagen-item"><a href="${escapeHTML(url)}" target="_blank">Imagen ${idx + 1}</a></div>`; });
+          html += "</div></div>";
+        }
+        html += '<div class="action-buttons">' +
+          '<button id="btnEnProcesoSucursal" type="button">Pendiente</button>' +
+          '<button id="btnFinalizarSucursal" class="btn-primario" type="button">Finalizar</button>' +
+          '<button id="btnRendicionSucursal" type="button">Rendicion Gastos</button>' +
+          '</div></div>';
+        detail.innerHTML = html;
+        const odtAcc = String(odt || "").trim();
+        detail.querySelector("#btnEnProcesoSucursal")?.addEventListener("click", () => marcarEnProceso(odtAcc));
+        detail.querySelector("#btnFinalizarSucursal")?.addEventListener("click", () => abrirModalFinalizar(odtAcc));
+        detail.querySelector("#btnRendicionSucursal")?.addEventListener("click", () => abrirFormularioRendicionPorODT(odtAcc));
+        detail.querySelector(".hdr-incidencias")?.addEventListener("click", () => {
+          const cont = detail.querySelector(".historial-incidencias");
+          if (cont) cont.style.display = cont.style.display === "none" ? "block" : "none";
+        });
+        if (estadoCanonico(estado) === "Terminado") {
+          const btnFin = detail.querySelector("#btnFinalizarSucursal");
+          if (btnFin) { btnFin.textContent = "Finalizado"; btnFin.disabled = true; btnFin.style.backgroundColor = "#2ecc71"; btnFin.style.cursor = "not-allowed"; }
+        }
+      } catch (err) {
+        detail.innerHTML = `<div class="infoSucursal info-error">Error: ${escapeHTML(err.message)}</div>`;
+      }
+    }
+
+    function debePausarActualizacionAutomatica() {
+      return (
+        hayModalVisible() ||
+        hayFormularioConDatosTemporales() ||
+        hayDetalleOdtAbierto() ||
+        esElementoDeEdicion(document.activeElement)
+      );
+    }
+
+    function llenarSelectOpciones(select, opciones, placeholder = "Seleccionar...") {
+      if (!select) return;
+      select.innerHTML = `<option value="">${escapeHTML(placeholder)}</option>`;
+      opciones.forEach(([value, label]) => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = label;
+        select.appendChild(option);
+      });
+    }
+
+    function actualizarCausasCierre() {
+      const responsable = document.getElementById("responsableCierre")?.value || "";
+      const causa = document.getElementById("causaCierre");
+      if (!causa) return;
+      if (!responsable || !CAUSAS_CIERRE[responsable]) {
+        causa.disabled = true;
+        llenarSelectOpciones(causa, [], "Selecciona responsable primero");
+        return;
+      }
+      causa.disabled = false;
+      llenarSelectOpciones(causa, CAUSAS_CIERRE[responsable], "Seleccionar causa...");
+    }
+
+    function renderPruebasCierre() {
+      const cont = document.getElementById("pruebasCierre");
+      if (!cont) return;
+      cont.innerHTML = "";
+      PRUEBAS_CIERRE.forEach(([value, label]) => {
+        const item = document.createElement("label");
+        item.className = "cierre-check";
+        item.innerHTML = `<input type="checkbox" value="${escapeHTML(value)}" /> <span>${escapeHTML(label)}</span>`;
+        cont.appendChild(item);
+      });
+    }
+
+    function renderMaterialesCierre() {
+      const cont = document.getElementById("materialesCierre");
+      if (!cont) return;
+      cont.innerHTML = "";
+      MATERIALES_CIERRE.forEach(([codigo, nombre, unidad]) => {
+        const row = document.createElement("div");
+        row.className = "material-row";
+        row.dataset.codigo = codigo;
+        row.dataset.nombre = nombre;
+        row.innerHTML = `
+          <label class="material-name">
+            <input type="checkbox" class="material-check" value="${escapeHTML(codigo)}" />
+            <span>${escapeHTML(nombre)}</span>
+          </label>
+          <input type="number" class="material-cantidad" min="0" step="0.01" placeholder="Cant." disabled />
+          <select class="material-unidad" disabled>
+            <option value="${escapeHTML(unidad)}">${escapeHTML(unidad)}</option>
+            <option value="unidad">unidad</option>
+            <option value="metro">metro</option>
+            <option value="set">set</option>
+          </select>
+        `;
+        const check = row.querySelector(".material-check");
+        const cantidad = row.querySelector(".material-cantidad");
+        const unidadSel = row.querySelector(".material-unidad");
+        check.addEventListener("change", () => {
+          cantidad.disabled = !check.checked;
+          unidadSel.disabled = !check.checked;
+          if (!check.checked) cantidad.value = "";
+          if (check.checked && !cantidad.value) cantidad.value = "1";
+        });
+        cont.appendChild(row);
+      });
+    }
+
+    function setMaterialesSinUsoActivo(activo) {
+      document.querySelectorAll("#materialesCierre .material-row").forEach((row) => {
+        const check = row.querySelector(".material-check");
+        const cantidad = row.querySelector(".material-cantidad");
+        const unidad = row.querySelector(".material-unidad");
+        if (!check || !cantidad || !unidad) return;
+        check.disabled = activo;
+        if (activo) {
+          check.checked = false;
+          cantidad.value = "";
+          cantidad.disabled = true;
+          unidad.disabled = true;
+        }
+      });
+    }
+
+    function inicializarFormularioCierre() {
+      llenarSelectOpciones(document.getElementById("accionCierre"), ACCIONES_CIERRE, "Seleccionar accion...");
+      llenarSelectOpciones(document.getElementById("resultadoCierre"), RESULTADOS_CIERRE, "Seleccionar resultado...");
+      actualizarCausasCierre();
+      renderPruebasCierre();
+      renderMaterialesCierre();
+      document.getElementById("responsableCierre")?.addEventListener("change", actualizarCausasCierre);
+      document.getElementById("materialesSinUso")?.addEventListener("change", (event) => {
+        setMaterialesSinUsoActivo(event.target.checked);
+      });
+      const fotoInput = document.getElementById("fotoInputCierre");
+      if (fotoInput) fotoInput.addEventListener("change", () => onFotoInputChange(fotoInput));
+    }
+
+    function resetFormularioCierre() {
+      document.getElementById("responsableCierre").value = "";
+      actualizarCausasCierre();
+      document.getElementById("accionCierre").value = "";
+      document.getElementById("resultadoCierre").value = "";
+      document.getElementById("observacion").value = "";
+      document.getElementById("cierreError").textContent = "";
+      document.querySelectorAll("#pruebasCierre input[type='checkbox']").forEach((input) => {
+        input.checked = false;
+      });
+      const sinUso = document.getElementById("materialesSinUso");
+      sinUso.checked = false;
+      setMaterialesSinUsoActivo(false);
+      document.querySelectorAll("#materialesCierre .material-row").forEach((row) => {
+        row.querySelector(".material-check").checked = false;
+        row.querySelector(".material-cantidad").value = "";
+        row.querySelector(".material-cantidad").disabled = true;
+        row.querySelector(".material-unidad").disabled = true;
+      });
+      configurarFotosCierre(cierreActualEsMantencion);
+      cierreStepMap = cierreActualEsMantencion ? [5, 6] : [1, 2, 3, 4, 5, 6];
+      cierreStepActual = 1;
+      irAPaso(1);
+    }
+
+    function renderWizardProgress(wizardPaso) {
+      const progress = document.getElementById("wizardProgress");
+      const label = document.getElementById("wizardStepLabel");
+      if (!progress) return;
+      const labels = cierreActualEsMantencion ? CIERRE_PASO_LABELS_MANT : CIERRE_PASO_LABELS_FULL;
+      const total = cierreStepMap.length;
+      let html = "";
+      for (let i = 1; i <= total; i++) {
+        if (i > 1) html += `<div class="wizard-step-line${i <= wizardPaso ? " done" : ""}"></div>`;
+        const cls = i === wizardPaso ? "active" : i < wizardPaso ? "done" : "";
+        const inner = i < wizardPaso ? "✓" : i;
+        html += `<div class="wizard-step-dot ${cls}" title="${labels[i-1]}">${inner}</div>`;
+      }
+      progress.innerHTML = html;
+      if (label) label.innerHTML = `<strong>${labels[wizardPaso - 1]}</strong> <span class="wizard-step-sublabel">— Paso ${wizardPaso} de ${total}</span>`;
+    }
+
+    function irAPaso(wizardPaso) {
+      cierreStepActual = wizardPaso;
+      const actualStep = cierreStepMap[wizardPaso - 1];
+      document.querySelectorAll(".cierre-step").forEach((el) => {
+        el.classList.toggle("active", Number(el.dataset.step) === actualStep);
+      });
+      renderWizardProgress(wizardPaso);
+      document.getElementById("cierreError").textContent = "";
+
+      const btnAtras = document.getElementById("btnWizardAtras");
+      const btnSig = document.getElementById("btnWizardSiguiente");
+      if (btnAtras) btnAtras.style.visibility = wizardPaso === 1 ? "hidden" : "visible";
+      if (btnSig) {
+        const lbl = document.getElementById("lblWizardSiguiente");
+        if (wizardPaso === cierreStepMap.length) {
+          if (lbl) lbl.textContent = "Guardar";
+          btnSig.onclick = guardarYFinalizar;
+        } else {
+          if (lbl) lbl.textContent = "Siguiente";
+          btnSig.onclick = siguientePaso;
+        }
+      }
+    }
+
+    function validarPasoActual() {
+      const err = document.getElementById("cierreError");
+      const actualStep = cierreStepMap[cierreStepActual - 1];
+      switch (actualStep) {
+        case 1:
+          if (!document.getElementById("responsableCierre").value) { err.textContent = "Selecciona el responsable del problema."; return false; }
+          if (!document.getElementById("causaCierre").value)        { err.textContent = "Selecciona la causa raiz."; return false; }
+          break;
+        case 2:
+          if (!document.getElementById("accionCierre").value)    { err.textContent = "Selecciona la accion realizada."; return false; }
+          if (!document.getElementById("resultadoCierre").value) { err.textContent = "Selecciona el resultado final."; return false; }
+          break;
+        case 3:
+          if (!document.querySelectorAll("#pruebasCierre input:checked").length) { err.textContent = "Selecciona al menos una prueba realizada."; return false; }
+          break;
+        case 4: {
+          const sinUso = document.getElementById("materialesSinUso").checked;
+          const conMat = document.querySelectorAll("#materialesCierre .material-check:checked").length > 0;
+          if (!sinUso && !conMat) { err.textContent = "Agrega materiales o marca que no se usaron materiales."; return false; }
+          const invalido = Array.from(document.querySelectorAll("#materialesCierre .material-row")).some((row) => {
+            const check = row.querySelector(".material-check");
+            if (!check?.checked) return false;
+            const cant = Number(row.querySelector(".material-cantidad")?.value || 0);
+            return cant <= 0;
+          });
+          if (invalido) { err.textContent = "Cada material seleccionado debe tener cantidad mayor a 0."; return false; }
+          break;
+        }
+        case 5:
+          if (!document.getElementById("observacion").value.trim()) { err.textContent = "Ingresa una observacion final breve."; return false; }
+          break;
+      }
+      err.textContent = "";
+      return true;
+    }
+
+    function siguientePaso() {
+      if (!validarPasoActual()) return;
+      if (cierreStepActual < cierreStepMap.length) irAPaso(cierreStepActual + 1);
+    }
+
+    function anteriorPaso() {
+      if (cierreStepActual > 1) irAPaso(cierreStepActual - 1);
+    }
+
+    function collectDiagnosticoCierre() {
+      const responsableCierre = document.getElementById("responsableCierre").value;
+      const causaCierre = document.getElementById("causaCierre").value;
+      const accionCierre = document.getElementById("accionCierre").value;
+      const resultadoCierre = document.getElementById("resultadoCierre").value;
+      const observacion = document.getElementById("observacion").value.trim();
+      const pruebasCierre = Array.from(document.querySelectorAll("#pruebasCierre input:checked")).map((input) => input.value);
+      const materialesSinUso = document.getElementById("materialesSinUso").checked;
+      const materiales = [];
+
+      document.querySelectorAll("#materialesCierre .material-row").forEach((row) => {
+        const check = row.querySelector(".material-check");
+        if (!check?.checked) return;
+        materiales.push({
+          codigo: check.value,
+          nombre: row.dataset.nombre || check.value,
+          cantidad: row.querySelector(".material-cantidad").value,
+          unidad: row.querySelector(".material-unidad").value,
+        });
+      });
+
+      if (!cierreActualEsMantencion) {
+        if (!responsableCierre) throw new Error("Selecciona si el problema fue responsabilidad de ATC o Cliente.");
+        if (!causaCierre) throw new Error("Selecciona la causa raiz.");
+        if (!accionCierre) throw new Error("Selecciona la accion realizada.");
+        if (!resultadoCierre) throw new Error("Selecciona el resultado final.");
+        if (!pruebasCierre.length) throw new Error("Selecciona al menos una prueba realizada.");
+        if (!materialesSinUso && !materiales.length) throw new Error("Agrega materiales o marca que no se usaron materiales.");
+        if (materiales.some((m) => !m.cantidad || Number(m.cantidad) <= 0)) {
+          throw new Error("Cada material seleccionado debe tener cantidad mayor a 0.");
+        }
+      }
+      if (!observacion) throw new Error("Ingresa una observacion final breve.");
+
+      return {
+        observacion,
+        responsableCierre,
+        causaCierre,
+        accionCierre,
+        resultadoCierre,
+        pruebasCierre,
+        materiales,
+        materialesSinUso,
+        requiereSeguimiento: ["requiere_seguimiento", "requiere_cotizacion_visita_adicional"].includes(resultadoCierre),
+      };
+    }
+
+    function normalizarDireccion(str) {
+      return normalizarTexto(str).replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+    }
+
+    function extraerNumeroDireccion(str) {
+      const m = String(str || "").match(/\b(\d{2,6})\b/);
+      return m ? m[1] : "";
+    }
+
+    function parseCoords(latRaw, lngRaw) {
+      const lat = Number(String(latRaw || "").replace(",", "."));
+      const lng = Number(String(lngRaw || "").replace(",", "."));
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+      return { latitud: lat.toFixed(6), longitud: lng.toFixed(6) };
+    }
+
+    async function geocodificarDireccionCliente(direccion) {
+      const texto = String(direccion || "");
+      const match = texto.match(/(-?\d{1,2}(?:[.,]\d+)?)[,\s]+(-?\d{1,3}(?:[.,]\d+)?)/);
+      if (!match) return {};
+      return parseCoords(match[1], match[2]) || {};
+    }
+
+    function construirLinksNavegacionPorDireccion(direccion, cliente = "") {
+      const dir = String(direccion || "").trim();
+      const cli = String(cliente || "").trim();
+      const query = [dir, cli, "Chile"].filter(Boolean).join(", ");
+      if (!query) return { google: "", waze: "" };
+      return {
+        google: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`,
+        waze: `https://waze.com/ul?q=${encodeURIComponent(query)}&navigate=yes`,
+      };
+    }
+
+    function renderRutaOptima(resultado) {
+      const btnGoogle = document.getElementById("btnRutaGoogle");
+      const btnWaze = document.getElementById("btnRutaWaze");
+
+      rutaActualOptima = Array.isArray(resultado?.paradas) ? resultado.paradas : [];
+      rutaGoogleActual = String(resultado?.google_maps_url || "").trim();
+      rutaWazeActual = String(resultado?.waze_url || "").trim();
+
+      if (!rutaActualOptima.length || !rutaGoogleActual) {
+        btnGoogle.disabled = true;
+        btnWaze.disabled = !rutaWazeActual;
+        return;
+      }
+
+      btnGoogle.disabled = false;
+      btnWaze.disabled = !rutaWazeActual;
+    }
+
+    async function recalcularRutaVisible() {
+      const tecnicoQ = tecnicoActual ? `?tecnico=${encodeURIComponent(tecnicoActual)}` : "";
+      const resultado = await api(`/api/tecnicos/ruta-optima${tecnicoQ}`);
+      renderRutaOptima(resultado);
+    }
+
+    function abrirRutaGoogleMaps() {
+      if (!rutaGoogleActual) {
+        alert("No hay ruta disponible para abrir en Google Maps.");
+        return;
+      }
+      window.open(rutaGoogleActual, "_blank");
+    }
+
+    function abrirRutaWaze() {
+      if (!rutaWazeActual) {
+        alert("No hay una próxima parada disponible para abrir en Waze.");
+        return;
+      }
+      window.open(rutaWazeActual, "_blank");
+    }
+
+    function estadoCanonico(estado) {
+      const e = normalizarTexto(estado);
+      if (!e) return "Pendiente";
+      if (e.includes("proceso")) return "En Proceso";
+      if (e.includes("termin") || e.includes("final")) return "Terminado";
+      if (e.includes("pend")) return "Pendiente";
+      return String(estado || "Pendiente").trim();
+    }
+
+    function limpiarDetalleObservacion(valor) {
+      return String(valor || "")
+        .replace(/\r\n/g, "\n")
+        .replace(/\r/g, "\n")
+        .split("\n")
+        .map((x) => x.trim())
+        .filter(Boolean)
+        .join(" | ")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+    }
+
+    function detalleCompletoDesdeFila(fila) {
+      const partes = [
+        limpiarDetalleObservacion(fila?.[6] || ""),   // Registro operaciones
+        limpiarDetalleObservacion(fila?.[15] || ""),  // Gestión soporte
+        limpiarDetalleObservacion(fila?.[16] || ""),  // Gestión servicio técnico
+      ];
+
+      const vistos = new Set();
+      const unicos = [];
+      partes.forEach((p) => {
+        if (!p) return;
+        const key = normalizarTexto(p);
+        if (vistos.has(key)) return;
+        vistos.add(key);
+        unicos.push(p);
+      });
+
+      return unicos.join(" | ");
+    }
+
+    function resumenDetalleTabla(texto, maxLen = 140) {
+      const limpio = limpiarDetalleObservacion(texto);
+      if (!limpio) return "";
+      if (limpio.length <= maxLen) return limpio;
+      return `${limpio.slice(0, maxLen - 1).trim()}…`;
+    }
+
+    function detalleCompletoHTML(texto) {
+      const limpio = limpiarDetalleObservacion(texto);
+      if (!limpio) return "";
+      const partes = limpio.split(" | ").map((p) => p.trim()).filter(Boolean);
+      if (!partes.length) return "";
+      return partes.map((p) => escapeHTML(p)).join("<br>");
+    }
+
+    async function api(url, options = {}) {
+      const opts = {
+        headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+        ...options,
+      };
+      const response = await fetch(url, opts);
+      const contentType = response.headers.get("content-type") || "";
+      const payload = contentType.includes("application/json") ? await response.json() : await response.text();
+      if (!response.ok) {
+        const detail = typeof payload === "string" ? payload : payload?.detail || JSON.stringify(payload);
+        throw new Error(detail || `HTTP ${response.status}`);
+      }
+      return payload;
+    }
+
+    async function cerrarSesion() {
+      try {
+        if (tokenActivo) {
+          await fetch(`/api/logout?token=${encodeURIComponent(tokenActivo)}`, { method: "POST" });
+        }
+      } catch (_) {
+        // Ignorado: igual forzamos redireccion al login.
+      }
+      localStorage.removeItem("atc_token");
+      document.cookie = "atc_token=; path=/; max-age=0; samesite=lax";
+      window.location.href = "/?form=login&next=auto";
+    }
+
+    async function validarSesionActiva() {
+      const candidatos = Array.from(new Set([
+        String(tokenActivo || "").trim(),
+        String(tokenSesion || "").trim(),
+        String(localStorage.getItem("atc_token") || "").trim(),
+        decodeURIComponent(leerCookie("atc_token") || ""),
+      ].filter(Boolean)));
+
+      if (!candidatos.length) {
+        window.location.href = "/?form=login&next=tecnicos";
+        return false;
+      }
+
+      for (const tokenCandidato of candidatos) {
+        try {
+          const data = await api(`/api/usuario-actual?token=${encodeURIComponent(tokenCandidato)}`);
+          const usuario = String(data?.usuario || "").trim();
+          if (!usuario || usuario === "Desconocido") continue;
+
+          tokenActivo = tokenCandidato;
+          localStorage.setItem("atc_token", tokenActivo);
+          const url = new URL(window.location.href);
+          if (url.searchParams.get("token") !== tokenActivo) {
+            url.searchParams.set("token", tokenActivo);
+            window.history.replaceState({}, "", url.toString());
+          }
+          document.getElementById("sesionInfo").textContent = `${usuario}`;
+          return true;
+        } catch (_) {
+          // Probamos el siguiente token disponible.
+        }
+      }
+
+      localStorage.removeItem("atc_token");
+      localStorage.removeItem("ATC_TOKEN");
+      document.cookie = "atc_token=; path=/; max-age=0; samesite=lax";
+      window.location.href = "/?form=login&next=tecnicos";
+      return false;
+    }
+
+    function llenarDatalist(id, valores) {
+      const datalist = document.getElementById(id);
+      if (!datalist) return;
+      datalist.innerHTML = "";
+      if (!Array.isArray(valores)) return;
+      valores.forEach((valor) => {
+        const opt = document.createElement("option");
+        opt.value = valor;
+        datalist.appendChild(opt);
+      });
+    }
+
+    function toRegistrosTecnico(incidencias) {
+      return (Array.isArray(incidencias) ? incidencias : [])
+        .filter((fila) => {
+          const derivacion = normalizarTexto(fila?.[5] || "");
+          const estado = estadoCanonico(fila?.[8] || "");
+          const esTerminado =
+            estado === "Terminado" ||
+            derivacion.includes("finalizado") ||
+            derivacion.includes("terminado") ||
+            derivacion.includes("repetida");
+          if (!derivacion.includes("servicio tecnico") && !esTerminado) return false;
+          if (!tecnicoFiltrado) return true;
+          const asignados = normalizarTexto(`${fila?.[7] || ""} ${fila?.[10] || ""} ${fila?.[6] || ""}`);
+          return asignados.includes(tecnicoFiltrado);
+        })
+        .map((fila) => [
+          fila?.[0] || "", // ODT
+          fila?.[1] || "", // Fecha
+          fila?.[3] || "", // Cliente/Sucursal
+          fila?.[4] || "", // Servicio
+          detalleCompletoDesdeFila(fila), // Detalle completo (operaciones + soporte + servicio)
+          estadoCanonico(fila?.[8] || ""), // Estado
+          fila?.[12] || "", // Prioridad
+        ]);
+    }
+
+    async function cargarTablaPrincipal() {
+      const tecnicoQ = tecnicoActual ? `?tecnico=${encodeURIComponent(tecnicoActual)}` : "";
+      const incidencias = await api(`/api/incidencias/puesto${tecnicoQ}`);
+      const todos = toRegistrosTecnico(incidencias);
+      registrosTecnicoFull = (Array.isArray(incidencias) ? incidencias : [])
+        .filter((fila) => {
+          const derivacion = normalizarTexto(fila?.[5] || "");
+          const estado = estadoCanonico(fila?.[8] || "");
+          const esTerminado =
+            estado === "Terminado" ||
+            derivacion.includes("finalizado") ||
+            derivacion.includes("terminado") ||
+            derivacion.includes("repetida");
+          if (!derivacion.includes("servicio tecnico") && !esTerminado) return false;
+          if (!tecnicoFiltrado) return true;
+          const asignados = normalizarTexto(`${fila?.[7] || ""} ${fila?.[10] || ""} ${fila?.[6] || ""}`);
+          return asignados.includes(tecnicoFiltrado);
+        })
+        .map((fila) => ({
+          odt: fila?.[0] || "",
+          fecha: fila?.[1] || "",
+          cliente: fila?.[3] || "",
+          servicio: fila?.[4] || "",
+          estado: estadoCanonico(fila?.[8] || ""),
+          prioridad: fila?.[12] || "",
+          direccion: fila?.[13] || "",
+        }));
+      cargarRegistrosEnTabla(todos);
+      cantidadRegistrosActual = todos.length;
+      recalcularRutaVisible();
+    }
+
+    window.onload = async function () {
+      const cargaInicial = document.getElementById("pantallaCargaInicial");
+      const mensajeCarga = document.getElementById("mensajeCarga");
+      inicializarFormularioCierre();
+
+      const sesionOk = await validarSesionActiva();
+      if (!sesionOk) return;
+
+      if (typeof tecnicoActual !== "undefined" && tecnicoActual) {
+        mensajeCarga.textContent = `Cargando tabla de ${tecnicoActual}...`;
+      }
+
+      try {
+        await cargarTablaPrincipal();
+        const listas = await api("/api/listas/bbdd");
+        listasGlobales = listas || {};
+        llenarDatalist("listaClientes", listasGlobales.clientes || listasGlobales.sucursales || []);
+        llenarDatalist("listaProblemas", listasGlobales.problemas || []);
+        llenarDatalist("listaEstados", listasGlobales.estados || ["Pendiente", "En Proceso", "Terminado"]);
+        llenarDatalist("listaTecnicos", listasGlobales.tecnicos || []);
+      } catch (err) {
+        alert(`Error cargando tecnicos: ${err.message}`);
+      } finally {
+        if (cargaInicial) {
+          setTimeout(() => {
+            cargaInicial.style.display = "none";
+          }, 400);
+        }
+      }
+
+      // If there was an open detail, re-open it after the table refresh
+      if (odtToReopen && clienteToReopen) {
+        const card = document.querySelector(`.odt-card[data-odt="${CSS.escape(odtToReopen)}"]`);
+        if (card) await mostrarInfoSucursalCard(card, clienteToReopen, "", reopenedEstado, odtToReopen);
+      }
+
+      iniciarActualizacionAutomatica();
+    };
+
+    function cargarRegistrosEnTabla(registros) {
+      const contenedor = document.getElementById("odtSections");
+      contenedor.innerHTML = "";
+
+      const registrosFiltrados = (Array.isArray(registros) ? registros : []).filter((fila) => {
+        return /^[MVIST]/i.test(String(fila?.[0] || ""));
+      });
+
+      registrosFiltrados.sort((a, b) => {
+        const pa = Number.isFinite(parseInt(a?.[6], 10)) ? parseInt(a[6], 10) : 999;
+        const pb = Number.isFinite(parseInt(b?.[6], 10)) ? parseInt(b[6], 10) : 999;
+        return pa - pb;
+      });
+
+      const ORDER = ["En Proceso", "Pendiente", "Terminado"];
+      const grupos = { "En Proceso": [], "Pendiente": [], "Terminado": [] };
+      registrosFiltrados.forEach((fila) => {
+        const est = estadoCanonico(fila?.[5] || "");
+        (grupos[est] || grupos["Pendiente"]).push(fila);
+      });
+
+      ORDER.forEach((status) => {
+        const items = grupos[status] || [];
+        if (!items.length) return;
+
+        const badgeClass = status === "En Proceso" ? "badge-proceso" : status === "Terminado" ? "badge-terminado" : "badge-pendiente";
+        const startOpen = status !== "Terminado";
+
+        const section = document.createElement("div");
+        section.className = "odt-section";
+        section.dataset.status = status;
+
+        const hdr = document.createElement("div");
+        hdr.className = "odt-section-hdr";
+        hdr.onclick = () => toggleSeccion(hdr);
+        hdr.innerHTML = `
+          <span class="odt-section-label">${escapeHTML(status)}</span>
+          <span class="odt-section-count">${items.length}</span>
+          <svg class="odt-section-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            style="${startOpen ? "" : "transform:rotate(-90deg)"}"><polyline points="6 9 12 15 18 9"/></svg>
+        `;
+
+        const body = document.createElement("div");
+        body.className = "odt-section-body";
+        if (!startOpen) body.style.display = "none";
+
+        items.forEach((fila) => {
+          const odt = String(fila?.[0] || "");
+          const cliente = String(fila?.[2] || "");
+          const servicio = String(fila?.[3] || "");
+          const fecha = String(fila?.[1] || "");
+          const estadoFila = estadoCanonico(fila?.[5] || "");
+          const prio = String(fila?.[6] || "");
+          const detalleTxt = String(fila?.[4] || "");
+
+          const card = document.createElement("div");
+          card.className = "odt-card";
+          card.dataset.odt = odt;
+          card.dataset.estado = estadoFila;
+
+          const main = document.createElement("div");
+          main.className = "odt-card-main";
+          main.innerHTML = `
+            <div class="odt-card-row">
+              <span class="odt-card-odt">${escapeHTML(odt)}</span>
+              <span class="odt-badge ${badgeClass}">${escapeHTML(estadoFila)}</span>
+            </div>
+            <div class="odt-card-cliente">${escapeHTML(cliente)}</div>
+            <div class="odt-card-meta">
+              <span>${escapeHTML(servicio)}</span>
+              <span>${escapeHTML(fecha)}</span>
+            </div>
+            ${prio ? `<div class="odt-card-prioridad">Prioridad: ${escapeHTML(prio)}</div>` : ""}
+          `;
+          main.onclick = () => toggleInfoSucursalCard(card, cliente, detalleTxt, estadoFila, odt);
+
+          const detail = document.createElement("div");
+          detail.className = "odt-card-detail";
+          detail.style.display = "none";
+
+          card.appendChild(main);
+          card.appendChild(detail);
+          body.appendChild(card);
+        });
+
+        section.appendChild(hdr);
+        section.appendChild(body);
+        contenedor.appendChild(section);
+      });
+
+      cantidadRegistrosActual = registrosFiltrados.length;
+      filtrarPorEstado();
+    }
+
+    function toggleSeccion(hdr) {
+      const body = hdr.nextElementSibling;
+      const chevron = hdr.querySelector(".odt-section-chevron");
+      const isOpen = body.style.display !== "none";
+      body.style.display = isOpen ? "none" : "";
+      if (chevron) chevron.style.transform = isOpen ? "rotate(-90deg)" : "";
+    }
+
+    function filtrarPorEstado() {
+      const filtro = document.getElementById("filtroEstado").value;
+      document.querySelectorAll(".odt-section").forEach((section) => {
+        section.style.display = (filtro === "Todos" || section.dataset.status === filtro) ? "" : "none";
+      });
+    }
+
+
+    function verMasIncidencias(btn) {
+      const contenedor = btn.closest(".infoSucursal");
+      const items = contenedor ? contenedor.querySelectorAll(".inc-item") : [];
+      let mostradas = 0;
+
+      items.forEach((item) => {
+        if (item.style.display === "none" && mostradas < 5) {
+          item.style.display = "block";
+          mostradas += 1;
+        }
+      });
+
+      const quedanOcultas = Array.from(items).some((item) => item.style.display === "none");
+      if (!quedanOcultas) btn.style.display = "none";
+    }
+
+    function abrirModalFinalizar(odt = currentODT) {
+      const odtSeleccionada = String(odt || "").trim();
+      if (!odtSeleccionada) {
+        alert("No hay ODT activa.");
+        return;
+      }
+      odtModalFinalizar = odtSeleccionada;
+      const registro = registroTecnicoPorOdt(odtSeleccionada);
+      cierreActualEsMantencion = esMantencionPreventiva(registro?.servicio || "");
+      const modal = document.getElementById("modalFinalizar");
+      if (modal) {
+        resetFormularioCierre();
+        modal.dataset.odt = odtSeleccionada;
+        const label = document.getElementById("modalFinalizarOdt");
+        if (label) label.textContent = `ODT a finalizar: ${odtSeleccionada}`;
+        modal.style.display = "flex";
+      }
+    }
+
+    function cerrarModalFinalizar() {
+      const modal = document.getElementById("modalFinalizar");
+      if (!modal) return;
+      modal.style.display = "none";
+      modal.dataset.odt = "";
+      const label = document.getElementById("modalFinalizarOdt");
+      if (label) label.textContent = "";
+      odtModalFinalizar = "";
+      cierreActualEsMantencion = false;
+      resetFormularioCierre();
+    }
+
+    async function guardarYFinalizar() {
+      const btnGuardar = document.querySelector("#modalFinalizar button:last-of-type");
+      const cierreError = document.getElementById("cierreError");
+      const modal = document.getElementById("modalProgreso");
+      const estado = document.getElementById("mensajeEstado");
+      const odtCierre = String(
+        odtModalFinalizar || document.getElementById("modalFinalizar")?.dataset?.odt || ""
+      ).trim();
+
+      const fotosBase64 = [];
+      let leidos = 0;
+      const archivosSeleccionados = [...selectedFiles];
+      const totalArchivos = archivosSeleccionados.length;
+
+      if (!odtCierre) {
+        alert("No hay ODT activa para finalizar.");
+        return;
+      }
+
+      let diagnostico;
+      try {
+        diagnostico = collectDiagnosticoCierre();
+        cierreError.textContent = "";
+      } catch (err) {
+        cierreError.textContent = err.message || "Completa los datos de cierre.";
+        return;
+      }
+
+      if (totalArchivos < 1) {
+        cierreError.textContent = "Debes adjuntar al menos UNA foto para cerrar la ODT.";
+        return;
+      }
+
+      if (cierreActualEsMantencion && totalArchivos > MANTENCION_MAX_IMAGENES_CIERRE) {
+        cierreError.textContent = `Solo puedes adjuntar hasta ${MANTENCION_MAX_IMAGENES_CIERRE} imagenes para mantencion.`;
+        return;
+      }
+
+      if (!cierreActualEsMantencion && totalArchivos > 2) {
+        cierreError.textContent = "Solo se permiten HASTA DOS fotos para cerrar la ODT.";
+        return;
+      }
+
+      const archivoInvalido = archivosSeleccionados.find((file) => !String(file.type || "").toLowerCase().startsWith("image/"));
+      if (archivoInvalido) {
+        cierreError.textContent = `${archivoInvalido.name || "Un archivo"} no es una imagen valida.`;
+        return;
+      }
+
+      const archivoPesado = archivosSeleccionados.find((file) => Number(file.size || 0) > MANTENCION_MAX_BYTES_IMAGEN);
+      if (archivoPesado) {
+        cierreError.textContent = `${archivoPesado.name || "Una imagen"} supera el limite de 10 MB.`;
+        return;
+      }
+
+      btnGuardar.disabled = true;
+      btnGuardar.textContent = "Guardando...";
+      modal.style.display = "flex";
+      estado.textContent = "Enviando solicitud...";
+
+      try {
+        if (cierreActualEsMantencion) {
+          const formData = new FormData();
+          formData.append("odt", odtCierre);
+          formData.append("token", tokenActivo || "");
+          formData.append("diagnostico", JSON.stringify(diagnostico));
+          archivosSeleccionados.forEach((file) => formData.append("files", file, file.name || "imagen.jpg"));
+
+          const res = await fetch("/api/incidencias/cierre-mantencion", {
+            method: "POST",
+            body: formData,
+          });
+          const contentType = res.headers.get("content-type") || "";
+          const payload = contentType.includes("application/json") ? await res.json() : await res.text();
+          if (!res.ok) {
+            const detail = typeof payload === "string" ? payload : payload?.detail || JSON.stringify(payload);
+            throw new Error(detail || `HTTP ${res.status}`);
+          }
+
+          estado.textContent = payload?.message || "ODT cerrada. Las imagenes se estan subiendo a Drive en segundo plano.";
+          btnGuardar.textContent = "Guardar y Finalizar";
+          btnGuardar.disabled = false;
+          cerrarModalFinalizar();
+          setTimeout(async () => {
+            modal.style.display = "none";
+            await cargarTablaPrincipal();
+          }, 900);
+          return;
+        }
+
+        await api("/api/incidencias/cerrar", {
+          method: "POST",
+          body: JSON.stringify({ odt: odtCierre, ...diagnostico }),
+        });
+
+        estado.textContent = "Procesando fotos...";
+
+        await new Promise((resolve, reject) => {
+          if (archivosSeleccionados.length === 0) { resolve(); return; }
+          archivosSeleccionados.forEach((archivo) => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              fotosBase64.push(event.target.result);
+              leidos += 1;
+              if (leidos === totalArchivos) resolve();
+            };
+            reader.onerror = () => reject(new Error("No se pudo leer una imagen"));
+            reader.readAsDataURL(archivo);
+          });
+        });
+
+        estado.textContent = "Guardando imagenes...";
+        const cierreResp = await api("/api/incidencias/finalizar-completo", {
+          method: "POST",
+          body: JSON.stringify({ odt: odtCierre, ...diagnostico, fotosBase64 }),
+        });
+
+        if (cierreResp?.drive_enabled && cierreResp?.drive_ok === false) {
+          const msg = cierreResp?.drive_error || "No se pudo generar informe en Drive.";
+          alert(`ODT cerrada, pero fallo Drive: ${msg}`);
+        }
+        if (cierreResp?.drive_queued) {
+          estado.textContent = "ODT cerrada. Informe generandose en segundo plano.";
+        } else {
+          estado.textContent = "Finalizacion enviada con exito.";
+        }
+
+        btnGuardar.textContent = "Guardar y Finalizar";
+        btnGuardar.disabled = false;
+        cerrarModalFinalizar();
+
+        setTimeout(async () => {
+          modal.style.display = "none";
+          await cargarTablaPrincipal();
+        }, 700);
+      } catch (err) {
+        modal.style.display = "none";
+        btnGuardar.disabled = false;
+        btnGuardar.textContent = "Guardar y Finalizar";
+        alert(`Error al finalizar: ${err.message}`);
+      }
+    }
+
+    function marcarEnProceso(odt = currentODT) {
+      const odtSeleccionada = String(odt || "").trim();
+      if (!odtSeleccionada) {
+        alert("No hay ODT activa.");
+        return;
+      }
+      odtModalEnProceso = odtSeleccionada;
+      const modal = document.getElementById("modalEnProceso");
+      if (modal) {
+        modal.dataset.odt = odtSeleccionada;
+        const label = document.getElementById("modalEnProcesoOdt");
+        if (label) label.textContent = `ODT a actualizar: ${odtSeleccionada}`;
+        document.getElementById("gradoAvance").value = "";
+        document.getElementById("observacionEnProceso").value = "";
+        modal.style.display = "flex";
+      }
+    }
+
+    function cerrarModalEnProceso() {
+      const modal = document.getElementById("modalEnProceso");
+      if (!modal) return;
+      modal.style.display = "none";
+      modal.dataset.odt = "";
+      const label = document.getElementById("modalEnProcesoOdt");
+      if (label) label.textContent = "";
+      odtModalEnProceso = "";
+    }
+
+    async function guardarEstadoEnProceso() {
+      const avance = document.getElementById("gradoAvance").value.trim();
+      const obs = document.getElementById("observacionEnProceso").value.trim();
+      const odtProceso = String(
+        odtModalEnProceso || document.getElementById("modalEnProceso")?.dataset?.odt || ""
+      ).trim();
+
+      if (!odtProceso) {
+        alert("No hay ODT activa para actualizar.");
+        return;
+      }
+
+      if (!avance || Number.isNaN(Number(avance)) || Number(avance) < 0 || Number(avance) > 100) {
+        alert("Ingresa un grado de avance valido entre 0 y 100.");
+        return;
+      }
+
+      if (!obs) {
+        alert("Debes ingresar una observacion.");
+        return;
+      }
+
+      try {
+        await api("/api/incidencias/en-proceso", {
+          method: "POST",
+          body: JSON.stringify({
+            odt: odtProceso,
+            avance: Number(avance),
+            observacion: obs,
+            token: tokenActivo || "",
+          }),
+        });
+        cerrarModalEnProceso();
+        await cargarTablaPrincipal();
+      } catch (err) {
+        alert(`Error guardando En Proceso: ${err.message}`);
+      }
+    }
+
+    async function abrirFormularioRendicionPorODT(odt) {
+      const cliente = clienteActivo || "";
+      const tecnico = tecnicoActual || "";
+
+      if (!odt || !cliente || !tecnico) {
+        alert("No se puede abrir el formulario. Faltan datos.");
+        return;
+      }
+
+      try {
+        const qToken = tokenActivo ? `&token=${encodeURIComponent(tokenActivo)}` : "";
+        const url = `/?form=formularioViatico` +
+                    `&odt=${encodeURIComponent(odt)}` +
+                    `&tecnico=${encodeURIComponent(tecnico)}` +
+                    `&cliente=${encodeURIComponent(cliente)}` +
+                    qToken;
+
+        window.open(url, "_blank");
+      } catch (err) {
+        alert(`No se pudo abrir rendicion: ${err.message}`);
+      }
+    }
+
+    function abrirBandejaRendiciones() {
+      const q = tokenActivo ? `&token=${encodeURIComponent(tokenActivo)}` : "";
+      window.location.href = `/?form=rendicionesTecnico${q}`;
+    }
+
+    function iniciarActualizacionAutomatica() {
+      if (actualizacionAutomaticaTimer) {
+        clearInterval(actualizacionAutomaticaTimer);
+      }
+
+      actualizacionAutomaticaTimer = setInterval(async () => {
+        if (actualizacionAutomaticaEnCurso || debePausarActualizacionAutomatica()) return;
+
+        actualizacionAutomaticaEnCurso = true;
+        try {
+          const ok = await validarSesionActiva();
+          if (!ok) return;
+          if (debePausarActualizacionAutomatica()) return;
+          await cargarTablaPrincipal();
+        } catch (_) {
+          // Silencioso para no interrumpir a tecnico.
+        } finally {
+          actualizacionAutomaticaEnCurso = false;
+        }
+      }, AUTO_REFRESH_MS);
+    }
+
+    document.addEventListener("click", (event) => {
+      const modalFinalizar = document.getElementById("modalFinalizar");
+      const modalEnProceso = document.getElementById("modalEnProceso");
+      if (event.target === modalFinalizar) {
+        cerrarModalFinalizar();
+      } else if (event.target === modalEnProceso) {
+        cerrarModalEnProceso();
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      const modalFinalizar = document.getElementById("modalFinalizar");
+      const modalEnProceso = document.getElementById("modalEnProceso");
+      if (modalFinalizar && modalFinalizar.style.display === "flex") {
+        cerrarModalFinalizar();
+        return;
+      }
+      if (modalEnProceso && modalEnProceso.style.display === "flex") {
+        cerrarModalEnProceso();
+      }
+    });
+
+    function initMap() {}
+  </script>
+<script src="/static/auth-guard.js"></script>
+</body>
+</html>

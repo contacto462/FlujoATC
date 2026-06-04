@@ -1,0 +1,1239 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Control de Protocolos</title>
+  <style>
+    :root{
+      --bg-1:#08161a;
+      --bg-2:#0d2127;
+      --bg-3:#13333a;
+      --panel:rgba(8,22,26,.93);
+      --line:rgba(255,255,255,.10);
+      --text:#f4f8f9;
+      --muted:#bfd0d6;
+      --field:#071118;
+      --field-b:rgba(194,210,218,.2);
+      --orange-1:#ff6f24;
+      --orange-2:#ff8f3d;
+      --ok:#34d399;
+      --err:#ff7b7b;
+    }
+
+    *{box-sizing:border-box}
+
+    body{
+      margin:0;
+      padding:24px 18px 34px;
+      font-family:"Segoe UI",sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at 15% 18%,rgba(255,255,255,.05),transparent 26%),
+        radial-gradient(circle at 84% 10%,rgba(255,126,52,.12),transparent 22%),
+        linear-gradient(145deg,var(--bg-1) 0%,var(--bg-2) 42%,var(--bg-3) 100%);
+      min-height:100vh;
+    }
+
+    .shell{max-width:1280px;margin:0 auto}
+
+    .head{
+      border:1px solid var(--line);
+      border-radius:22px;
+      background:var(--panel);
+      padding:16px 18px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:14px;
+    }
+
+    .head h1{margin:0;font-size:2rem;letter-spacing:-.02em}
+    .head p{margin:5px 0 0;color:var(--muted)}
+
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+
+    .btn{
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:rgba(255,255,255,.05);
+      color:var(--text);
+      padding:10px 14px;
+      font-weight:700;
+      cursor:pointer;
+      text-decoration:none;
+      transition:.2s ease;
+    }
+    .btn:hover{transform:translateY(-1px)}
+
+    .btn-main{
+      background:linear-gradient(135deg,var(--orange-1),var(--orange-2));
+      border:none;
+      color:#fff;
+      box-shadow:0 10px 18px rgba(255,122,55,.25);
+    }
+
+    .tabs{
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:var(--panel);
+      padding:8px;
+      display:flex;
+      gap:8px;
+      margin-bottom:12px;
+    }
+
+    .tab-btn{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      color:var(--muted);
+      border-radius:11px;
+      padding:10px 14px;
+      font-weight:800;
+      cursor:pointer;
+      letter-spacing:.01em;
+    }
+
+    .tab-btn.active{
+      border:none;
+      color:#fff;
+      background:linear-gradient(135deg,var(--orange-1),var(--orange-2));
+      box-shadow:0 10px 16px rgba(255,122,55,.24);
+    }
+
+    .tab-view{display:none}
+    .tab-view.active{display:block}
+
+    .panel{
+      border:1px solid var(--line);
+      border-radius:20px;
+      background:var(--panel);
+      padding:14px;
+    }
+
+    .panel h2{margin:0 0 10px;font-size:1.24rem}
+
+    .row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+    .row-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    .chip-stack{display:flex;flex-direction:column;gap:8px}
+    .chip-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+    .chip-row > div{display:flex;flex-direction:column}
+    .registro-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;align-items:start}
+    .registro-grid > div{display:flex;flex-direction:column}
+    .span-4{grid-column:1/-1}
+    .protocolo-exitoso-slot{grid-column:2/span 2}
+
+    label{
+      display:block;
+      margin-bottom:5px;
+      font-size:.84rem;
+      color:var(--muted);
+      font-weight:700;
+    }
+
+    input,select,textarea{
+      width:100%;
+      background:var(--field);
+      border:1px solid var(--field-b);
+      border-radius:10px;
+      color:#fff;
+      padding:9px 10px;
+      font:inherit;
+    }
+    .smart-field{
+      position:relative;
+    }
+    .smart-field input{
+      padding-right:40px;
+    }
+    .smart-toggle{
+      position:absolute;
+      top:4px;
+      right:4px;
+      width:32px;
+      height:32px;
+      border:1px solid rgba(255,255,255,.14);
+      border-radius:8px;
+      background:rgba(255,255,255,.05);
+      color:var(--muted);
+      cursor:pointer;
+      font-weight:800;
+      line-height:1;
+    }
+    .smart-toggle:hover{
+      color:#fff;
+      background:rgba(255,255,255,.10);
+    }
+    .smart-menu{
+      position:absolute;
+      top:calc(100% + 4px);
+      left:0;
+      right:0;
+      z-index:50;
+      max-height:240px;
+      overflow:auto;
+      border:1px solid var(--line);
+      border-radius:10px;
+      background:#0b1a21;
+      box-shadow:0 14px 22px rgba(0,0,0,.35);
+      padding:4px;
+    }
+    .smart-option{
+      width:100%;
+      text-align:left;
+      border:none;
+      border-radius:8px;
+      background:transparent;
+      color:#fff;
+      padding:8px 9px;
+      cursor:pointer;
+    }
+    .smart-option:hover,
+    .smart-option.active{
+      background:rgba(255,143,61,.20);
+    }
+    .smart-empty{
+      color:var(--muted);
+      font-size:.83rem;
+      padding:8px 9px;
+    }
+    select.yn-select{transition:background-color .16s ease,border-color .16s ease,color .16s ease}
+    select.yn-select.yn-si{
+      background:rgba(46,160,67,.24);
+      border-color:rgba(46,160,67,.95);
+      color:#ecfff3;
+    }
+    select.yn-select.yn-no{
+      background:rgba(220,53,69,.24);
+      border-color:rgba(220,53,69,.95);
+      color:#ffeef1;
+    }
+    select.yn-select option{
+      background:var(--field);
+      color:#fff;
+    }
+    select.yn-select.yn-si option,
+    select.yn-select.yn-no option{
+      background:var(--field);
+      color:#fff;
+    }
+
+    textarea{min-height:88px;resize:vertical}
+    .small{font-size:.81rem;color:var(--muted)}
+    .msg{min-height:20px;margin-top:10px;font-weight:700}
+    .ok{color:var(--ok)}
+    .err{color:var(--err)}
+
+    .toolbar{
+      margin-bottom:8px;
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:8px;
+    }
+
+    .toolbar .field{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .date-field{
+      position:relative;
+    }
+    .date-field input[type="date"]{
+      padding-right:44px;
+      appearance:none;
+      -webkit-appearance:none;
+    }
+    .date-field input[type="date"]::-webkit-calendar-picker-indicator{
+      opacity:0;
+      width:0;
+      margin:0;
+      padding:0;
+    }
+    .date-picker-btn{
+      position:absolute;
+      right:3px;
+      top:3px;
+      bottom:3px;
+      width:36px;
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:8px;
+      background:rgba(255,255,255,.05);
+      color:var(--muted);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+    }
+    .date-picker-btn:hover{
+      background:rgba(255,255,255,.09);
+      color:#fff;
+    }
+    .date-picker-btn svg{
+      width:15px;
+      height:15px;
+      stroke:currentColor;
+      fill:none;
+      stroke-width:2;
+      stroke-linecap:round;
+      stroke-linejoin:round;
+    }
+
+    .toolbar-actions{
+      grid-column:1/-1;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .badge{
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.05);
+      font-weight:700;
+      font-size:.82rem;
+      color:var(--muted);
+    }
+
+    .table-wrap{
+      overflow:auto;
+      max-height:70vh;
+      border:1px solid var(--line);
+      border-radius:14px;
+    }
+
+    table{width:100%;border-collapse:collapse}
+
+    th,td{
+      border:1px solid rgba(255,255,255,.08);
+      padding:8px 7px;
+      font-size:.85rem;
+      vertical-align:middle;
+      text-align:center;
+    }
+
+    th{
+      position:sticky;
+      top:0;
+      z-index:2;
+      background:linear-gradient(180deg,#264f64 0%,#1c4257 100%);
+      white-space:nowrap;
+    }
+
+    tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+
+    td.obs{
+      max-width:380px;
+      min-width:260px;
+      white-space:pre-wrap;
+      line-height:1.36;
+    }
+
+    .btn-detail{
+      padding:6px 10px;
+      font-size:.78rem;
+      border-radius:9px;
+      font-weight:700;
+    }
+    .btn-header{
+      border:1px solid rgba(77,143,173,.55);
+      background:linear-gradient(180deg,#264f64 0%,#1c4257 100%);
+      color:#f3f9fc;
+      box-shadow:0 10px 18px rgba(23,63,84,.28);
+    }
+    .btn[disabled]{
+      opacity:.55;
+      cursor:not-allowed;
+      transform:none;
+    }
+    .sel-col{
+      width:92px;
+      min-width:92px;
+      text-align:center;
+      vertical-align:middle;
+    }
+    input.row-selector{
+      width:18px;
+      height:18px;
+      padding:0;
+      margin:0;
+      border:1px solid var(--field-b);
+      border-radius:4px;
+      background:var(--field);
+      cursor:pointer;
+      accent-color:var(--orange-1);
+    }
+    .detail-actions{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-top:10px;
+      flex-wrap:wrap;
+    }
+
+    .modal[hidden]{display:none}
+    .modal{
+      position:fixed;
+      inset:0;
+      z-index:90;
+      background:rgba(2,10,12,.78);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:10px;
+    }
+    .modal-card{
+      width:min(96vw,1760px);
+      max-height:90vh;
+      overflow:auto;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:var(--panel);
+      padding:12px;
+    }
+    .modal-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      margin-bottom:8px;
+    }
+    .modal-head h3{margin:0;font-size:1.08rem}
+    .detail-table-wrap{max-height:68vh}
+    .detail-table{width:100%;border-collapse:collapse}
+    .detail-table th,.detail-table td{font-size:.84rem}
+    .detail-table th,.detail-table td{min-width:110px}
+    .detail-table td{white-space:pre-wrap;word-break:break-word;line-height:1.38}
+    .detail-table .detail-wide{min-width:220px}
+    .detail-table td.yn-cell-si{
+      background:rgba(46,160,67,.24);
+      color:#ecfff3;
+      font-weight:700;
+    }
+    .detail-table td.yn-cell-no{
+      background:rgba(220,53,69,.24);
+      color:#ffeef1;
+      font-weight:700;
+    }
+
+    @media (max-width: 1120px){
+      .row{grid-template-columns:1fr 1fr}
+      .chip-row{grid-template-columns:1fr 1fr}
+      .toolbar{grid-template-columns:1fr 1fr}
+      .registro-grid{grid-template-columns:1fr 1fr}
+      .protocolo-exitoso-slot{grid-column:auto}
+    }
+
+    @media (max-width: 760px){
+      .head{flex-direction:column;align-items:flex-start}
+      .row,.row-2,.chip-row,.toolbar{grid-template-columns:1fr}
+      .registro-grid{grid-template-columns:1fr}
+      .tabs{flex-direction:column}
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="head">
+      <div>
+        <h1>Control de Protocolos</h1>
+        <p>Modulo unificado: registrar y visualizar todos los registros en una sola pagina.</p>
+      </div>
+      <div class="actions">
+        <a class="btn" href="/?form=panelSelector&token={{ token|default('') }}">Volver al panel</a>
+        <a class="btn" href="/?form=login&next=auto">Cambiar sesion</a>
+      </div>
+    </section>
+
+    <section class="tabs">
+      <button type="button" id="tabBtnRegistro" class="tab-btn active" onclick="switchTab('registro')">Registrar</button>
+      <button type="button" id="tabBtnTodos" class="tab-btn" onclick="switchTab('todos')">Ver todos</button>
+    </section>
+
+    <section id="viewRegistro" class="tab-view active">
+      <section class="panel">
+        <h2>Nuevo Registro</h2>
+        <form id="frmProtocolo" onsubmit="return false;" autocomplete="off">
+          <div class="registro-grid">
+            <div class="span-4">
+              <label>Operador</label>
+              <input id="operador" list="dlOperadores" placeholder="Nombre operador" />
+              <datalist id="dlOperadores"></datalist>
+            </div>
+            <div>
+              <label>Cliente</label>
+              <div class="smart-field">
+                <input id="cliente" required placeholder="Buscar cliente..." autocomplete="off" />
+                <button type="button" class="smart-toggle" data-smart-toggle="cliente" aria-label="Mostrar clientes">&#9662;</button>
+                <div id="clienteMenu" class="smart-menu" hidden></div>
+              </div>
+            </div>
+            <div>
+              <label>Sucursal</label>
+              <div class="smart-field">
+                <input id="sucursal" required placeholder="Buscar sucursal..." autocomplete="off" />
+                <button type="button" class="smart-toggle" data-smart-toggle="sucursal" aria-label="Mostrar sucursales">&#9662;</button>
+                <div id="sucursalMenu" class="smart-menu" hidden></div>
+              </div>
+            </div>
+            <div>
+              <label>Tipo de protocolo</label>
+              <select id="tipoProtocolo">
+                <option value="">Seleccionar...</option>
+                <option>Preventivo</option>
+                <option>Intrusivo</option>
+              </select>
+            </div>
+
+            <div>
+              <label>Puesto</label>
+              <input id="puesto" placeholder="Del 1 al 30" />
+            </div>
+
+            <div><label>Detectado</label><select id="detectado" class="yn-select"><option></option><option>SI</option><option>NO</option></select></div>
+            <div><label>Efectivo</label><select id="efectivo" class="yn-select"><option></option><option>SI</option><option>NO</option></select></div>
+            <div><label>Sirena</label><select id="sirena" class="yn-select"><option></option><option>SI</option><option>NO</option></select></div>
+            <div><label>Voz</label><select id="voz" class="yn-select"><option></option><option>SI</option><option>NO</option></select></div>
+            <div><label>Carabineros</label><select id="carabineros" class="yn-select"><option></option><option>SI</option><option>NO</option></select></div>
+            <div><label>Alpha3</label><select id="alpha3" class="yn-select"><option></option><option>SI</option><option>NO</option></select></div>
+            <div><label>Informado</label><select id="informado" class="yn-select"><option></option><option>SI</option><option>NO</option></select></div>
+            <div><label>Bitacora</label><select id="bitacora" class="yn-select"><option></option><option>SI</option><option>NO</option></select></div>
+            <div class="protocolo-exitoso-slot"><label>Protocolo Exitoso</label><select id="protocoloExitoso" class="yn-select"><option></option><option>SI</option><option>NO</option></select></div>
+
+            <div class="span-4">
+              <label>Observaciones</label>
+              <textarea id="observaciones" placeholder="Detalle operativo..."></textarea>
+              <div class="small">El backend guarda observacion original y observacion formalizada.</div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
+            <button class="btn btn-main" type="button" onclick="guardarRegistro()">Guardar registro</button>
+          </div>
+          <div id="msgRegistro" class="msg"></div>
+        </form>
+      </section>
+    </section>
+
+    <section id="viewTodos" class="tab-view">
+      <section class="panel">
+        <h2>Todos los Registros</h2>
+
+        <div class="toolbar">
+          <div class="field">
+            <label>Cliente</label>
+            <input id="fltCliente" placeholder="Todos" />
+          </div>
+          <div class="field">
+            <label>Sucursal</label>
+            <input id="fltSucursal" placeholder="Todas" />
+          </div>
+          <div class="field">
+            <label>Tipo protocolo</label>
+            <select id="fltTipo">
+              <option value="">Todos</option>
+              <option>Preventivo</option>
+              <option>Intrusivo</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Desde</label>
+            <div class="date-field">
+              <input id="fltFechaDesde" type="date" />
+              <button type="button" class="date-picker-btn" onclick="abrirCalendario('fltFechaDesde')" aria-label="Abrir calendario desde">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="17" rx="2"></rect>
+                  <line x1="16" y1="2.5" x2="16" y2="6"></line>
+                  <line x1="8" y1="2.5" x2="8" y2="6"></line>
+                  <line x1="3" y1="9" x2="21" y2="9"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Hasta</label>
+            <div class="date-field">
+              <input id="fltFechaHasta" type="date" />
+              <button type="button" class="date-picker-btn" onclick="abrirCalendario('fltFechaHasta')" aria-label="Abrir calendario hasta">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="17" rx="2"></rect>
+                  <line x1="16" y1="2.5" x2="16" y2="6"></line>
+                  <line x1="8" y1="2.5" x2="8" y2="6"></line>
+                  <line x1="3" y1="9" x2="21" y2="9"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Texto libre (observacion/operador)</label>
+            <input id="fltTexto" placeholder="Buscar..." />
+          </div>
+
+          <div class="toolbar-actions">
+            <div class="badge" id="lblTotal">Total: 0</div>
+            <div style="display:flex;gap:8px">
+              <button type="button" class="btn" onclick="limpiarFiltros()">Limpiar</button>
+              <button type="button" class="btn btn-main" onclick="cargarRegistros(true)">Aplicar filtros</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table id="tblRegistros">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Fecha</th>
+                <th>Encargado</th>
+                <th>Grupo</th>
+                <th>Cliente</th>
+                <th>Sucursal</th>
+                <th>Tipo</th>
+                <th>Puesto</th>
+                <th>Operador</th>
+                <th>Observacion</th>
+                <th>Seleccionar</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="detail-actions">
+          <div class="badge" id="lblSeleccionados">Seleccionados: 0</div>
+          <button id="btnVerDetalleSeleccionados" type="button" class="btn btn-header btn-detail" onclick="abrirDetalleSeleccionados()" disabled>Ver detalle seleccionados</button>
+        </div>
+        <div id="msgTodos" class="msg"></div>
+      </section>
+    </section>
+
+    <div id="detalleModal" class="modal" hidden onclick="closeDetalleFromBackdrop(event)">
+      <div class="modal-card">
+        <div class="modal-head">
+          <h3 id="detalleTitulo">Detalle de registros</h3>
+          <button type="button" class="btn" onclick="cerrarDetalleRegistro()">Cerrar</button>
+        </div>
+        <div class="table-wrap detail-table-wrap">
+          <table class="detail-table">
+            <thead>
+              <tr id="detalleHeadRow"></tr>
+            </thead>
+            <tbody id="detalleBodyRows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const token = {{ token|default("")|tojson }};
+    const detalleOrden = [
+      ["id", "ID"],
+      ["fecha", "Fecha"],
+      ["encargado", "Encargado"],
+      ["grupo", "Grupo"],
+      ["cliente", "Cliente"],
+      ["sucursal", "Sucursal"],
+      ["tipo_protocolo", "Tipo protocolo"],
+      ["puesto", "Puesto"],
+      ["operador", "Operador"],
+      ["detectado", "Detectado"],
+      ["efectivo", "Efectivo"],
+      ["sirena", "Sirena"],
+      ["voz", "Voz"],
+      ["carabineros", "Carabineros"],
+      ["alpha3", "Alpha3"],
+      ["informado", "Informado"],
+      ["bitacora", "Bitacora"],
+      ["protocolo_exitoso", "Protocolo Exitoso"],
+      ["observaciones_raw", "Observacion original"],
+      ["observaciones_formal", "Observacion formalizada"],
+    ];
+    const detalleLabels = Object.fromEntries(detalleOrden);
+    const detalleCamposOcultos = new Set(["protocolo", "observaciones", "created_at", "updated_at"]);
+    const selectedRegistroIds = new Set();
+    let clienteSucursalesMap = {};
+    let clientesCatalogo = [];
+    let sucursalesActuales = [];
+    const SMART_MENU_LIMIT = 120;
+
+    async function api(url, options = {}) {
+      const res = await fetch(url, {
+        headers: { "Content-Type": "application/json" },
+        ...options
+      });
+      const ct = res.headers.get("content-type") || "";
+      const payload = ct.includes("application/json") ? await res.json() : await res.text();
+      if (!res.ok) {
+        const msg = typeof payload === "string" ? payload : payload?.detail || JSON.stringify(payload);
+        throw new Error(msg || ("HTTP " + res.status));
+      }
+      return payload;
+    }
+
+    function switchTab(tab) {
+      const regBtn = document.getElementById("tabBtnRegistro");
+      const allBtn = document.getElementById("tabBtnTodos");
+      const regView = document.getElementById("viewRegistro");
+      const allView = document.getElementById("viewTodos");
+
+      const isRegistro = tab === "registro";
+      regBtn.classList.toggle("active", isRegistro);
+      allBtn.classList.toggle("active", !isRegistro);
+      regView.classList.toggle("active", isRegistro);
+      allView.classList.toggle("active", !isRegistro);
+
+      if (!isRegistro && !window.__allLoadedOnce) {
+        cargarRegistros(false);
+      }
+    }
+
+    function fillDatalist(id, values) {
+      const dl = document.getElementById(id);
+      if (!dl) return;
+      dl.innerHTML = "";
+      (values || []).forEach(v => {
+        if (!v) return;
+        const o = document.createElement("option");
+        o.value = String(v);
+        dl.appendChild(o);
+      });
+    }
+
+    function fillSelectOptions(id, values, placeholder = "Seleccionar...") {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      sel.innerHTML = "";
+      const base = document.createElement("option");
+      base.value = "";
+      base.textContent = placeholder;
+      sel.appendChild(base);
+      (values || []).forEach(v => {
+        const txt = String(v || "").trim();
+        if (!txt) return;
+        const opt = document.createElement("option");
+        opt.value = txt;
+        opt.textContent = txt;
+        sel.appendChild(opt);
+      });
+    }
+
+    function normalizarClienteKey(v) {
+      return String(v || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLowerCase();
+    }
+
+    function construirClienteSucursalesMap(rawMap) {
+      const out = {};
+      if (!rawMap || typeof rawMap !== "object") return out;
+      Object.entries(rawMap).forEach(([cliente, sucursales]) => {
+        const key = normalizarClienteKey(cliente);
+        if (!key) return;
+        const lista = Array.isArray(sucursales) ? sucursales : [];
+        out[key] = Array.from(
+          new Set(
+            lista
+              .map(v => String(v || "").trim())
+              .filter(Boolean)
+          )
+        ).sort((a, b) => a.localeCompare(b, "es"));
+      });
+      return out;
+    }
+
+    function actualizarSucursalesPorCliente() {
+      const clienteEl = document.getElementById("cliente");
+      const sucursalEl = document.getElementById("sucursal");
+      if (!clienteEl || !sucursalEl) return;
+
+      const key = normalizarClienteKey(clienteEl.value);
+      const opciones = key ? (clienteSucursalesMap[key] || []) : [];
+      sucursalesActuales = Array.isArray(opciones) ? [...opciones] : [];
+
+      const actual = String(sucursalEl.value || "").trim();
+      if (actual && (!Array.isArray(opciones) || !opciones.includes(actual))) {
+        sucursalEl.value = "";
+      }
+      renderSmartMenu("sucursal", sucursalesActuales, sucursalEl.value || "");
+      closeSmartMenu("sucursal");
+    }
+
+    function getSmartInputId(kind) {
+      return kind === "cliente" ? "cliente" : "sucursal";
+    }
+
+    function getSmartMenuId(kind) {
+      return kind === "cliente" ? "clienteMenu" : "sucursalMenu";
+    }
+
+    function getSmartOptions(kind) {
+      return kind === "cliente" ? clientesCatalogo : sucursalesActuales;
+    }
+
+    function findCanonicalOption(options, rawValue) {
+      const raw = String(rawValue || "").trim();
+      if (!raw) return "";
+      const norm = normalizarClienteKey(raw);
+      const exact = (options || []).find(v => normalizarClienteKey(v) === norm);
+      return exact ? String(exact) : "";
+    }
+
+    function matchesSmartSearch(optionText, query) {
+      const q = normalizarClienteKey(query);
+      if (!q) return true;
+      const txt = normalizarClienteKey(optionText);
+      if (!txt) return false;
+      return q.split(" ").every(token => token && txt.includes(token));
+    }
+
+    function rankSmartOption(optionText, query) {
+      const txt = normalizarClienteKey(optionText);
+      const q = normalizarClienteKey(query);
+      if (!q) return 3;
+      if (txt.startsWith(q)) return 0;
+      if (txt.includes(" " + q)) return 1;
+      return 2;
+    }
+
+    function closeSmartMenu(kind) {
+      const menu = document.getElementById(getSmartMenuId(kind));
+      if (menu) menu.hidden = true;
+    }
+
+    function closeAllSmartMenus(exceptKind = "") {
+      ["cliente", "sucursal"].forEach(kind => {
+        if (kind !== exceptKind) closeSmartMenu(kind);
+      });
+    }
+
+    function renderSmartMenu(kind, options, query = "") {
+      const menu = document.getElementById(getSmartMenuId(kind));
+      if (!menu) return;
+      const list = Array.isArray(options) ? options : [];
+      const filtered = list
+        .filter(opt => matchesSmartSearch(opt, query))
+        .sort((a, b) => {
+          const rank = rankSmartOption(a, query) - rankSmartOption(b, query);
+          if (rank !== 0) return rank;
+          return String(a).localeCompare(String(b), "es");
+        })
+        .slice(0, SMART_MENU_LIMIT);
+
+      menu.innerHTML = "";
+      if (!filtered.length) {
+        const empty = document.createElement("div");
+        empty.className = "smart-empty";
+        empty.textContent = "Sin resultados";
+        menu.appendChild(empty);
+        menu.hidden = false;
+        return;
+      }
+
+      filtered.forEach(opt => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "smart-option";
+        btn.textContent = String(opt);
+        btn.addEventListener("mousedown", (ev) => ev.preventDefault());
+        btn.addEventListener("click", () => {
+          const input = document.getElementById(getSmartInputId(kind));
+          if (!input) return;
+          input.value = String(opt);
+          closeSmartMenu(kind);
+          if (kind === "cliente") actualizarSucursalesPorCliente();
+        });
+        menu.appendChild(btn);
+      });
+      menu.hidden = false;
+    }
+
+    function validateSmartInput(kind) {
+      const input = document.getElementById(getSmartInputId(kind));
+      if (!input) return;
+      const options = getSmartOptions(kind);
+      const canonical = findCanonicalOption(options, input.value);
+      input.value = canonical || "";
+      if (kind === "cliente") actualizarSucursalesPorCliente();
+    }
+
+    function initSmartSearch(kind) {
+      const input = document.getElementById(getSmartInputId(kind));
+      const menu = document.getElementById(getSmartMenuId(kind));
+      const toggle = document.querySelector(`[data-smart-toggle="${kind}"]`);
+      if (!input || !menu || !toggle) return;
+
+      input.addEventListener("focus", () => {
+        closeAllSmartMenus(kind);
+        renderSmartMenu(kind, getSmartOptions(kind), input.value || "");
+      });
+      input.addEventListener("input", () => {
+        closeAllSmartMenus(kind);
+        renderSmartMenu(kind, getSmartOptions(kind), input.value || "");
+        if (kind === "cliente" && !findCanonicalOption(clientesCatalogo, input.value)) {
+          const sucursalEl = document.getElementById("sucursal");
+          if (sucursalEl) sucursalEl.value = "";
+          sucursalesActuales = [];
+          closeSmartMenu("sucursal");
+        }
+      });
+      input.addEventListener("blur", () => {
+        setTimeout(() => validateSmartInput(kind), 120);
+      });
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          closeSmartMenu(kind);
+          return;
+        }
+        if (event.key === "Enter") {
+          const firstOption = menu.querySelector(".smart-option");
+          if (firstOption) {
+            event.preventDefault();
+            firstOption.click();
+          }
+        }
+      });
+
+      toggle.addEventListener("click", () => {
+        const isHidden = menu.hidden;
+        closeAllSmartMenus(kind);
+        if (isHidden) {
+          renderSmartMenu(kind, getSmartOptions(kind), input.value || "");
+          input.focus();
+        } else {
+          closeSmartMenu(kind);
+        }
+      });
+    }
+
+    function validarClienteSucursalSeleccion() {
+      const cliente = String(document.getElementById("cliente")?.value || "").trim();
+      const sucursal = String(document.getElementById("sucursal")?.value || "").trim();
+      if (!cliente) throw new Error("Selecciona un cliente.");
+      const clienteCanon = findCanonicalOption(clientesCatalogo, cliente);
+      if (!clienteCanon) throw new Error("Cliente no valido. Selecciona uno desde la busqueda.");
+      document.getElementById("cliente").value = clienteCanon;
+      actualizarSucursalesPorCliente();
+
+      if (!sucursal) throw new Error("Selecciona una sucursal.");
+      const sucursalCanon = findCanonicalOption(sucursalesActuales, sucursal);
+      if (!sucursalCanon) throw new Error("Sucursal no valida para ese cliente.");
+      document.getElementById("sucursal").value = sucursalCanon;
+    }
+
+    function setMsg(id, text, ok = true) {
+      const el = document.getElementById(id);
+      el.textContent = text || "";
+      el.className = "msg " + (ok ? "ok" : "err");
+    }
+
+    function abrirCalendario(id) {
+      const input = document.getElementById(id);
+      if (!input) return;
+      if (typeof input.showPicker === "function") {
+        input.showPicker();
+        return;
+      }
+      input.focus();
+      input.click();
+    }
+
+    function paintSiNoState(selectEl) {
+      if (!selectEl) return;
+      const val = (selectEl.value || "").trim().toUpperCase();
+      selectEl.classList.remove("yn-si", "yn-no");
+      if (val === "SI") selectEl.classList.add("yn-si");
+      else if (val === "NO") selectEl.classList.add("yn-no");
+    }
+
+    function initSiNoColoring() {
+      const ids = ["detectado", "efectivo", "sirena", "voz", "carabineros", "alpha3", "informado", "bitacora", "protocoloExitoso"];
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener("change", () => paintSiNoState(el));
+        paintSiNoState(el);
+      });
+    }
+
+    function htmlSafe(v) {
+      return String(v || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function prettyKey(key) {
+      return String(key || "")
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    function formatDetalleValue(v) {
+      const txt = String(v ?? "").trim();
+      return txt ? htmlSafe(txt) : "-";
+    }
+
+    function detalleSiNoClass(v) {
+      const txt = String(v ?? "").trim().toUpperCase();
+      if (txt === "SI") return "yn-cell-si";
+      if (txt === "NO") return "yn-cell-no";
+      return "";
+    }
+
+    function refreshSeleccionDetalleUI() {
+      const total = selectedRegistroIds.size;
+      const lbl = document.getElementById("lblSeleccionados");
+      const btn = document.getElementById("btnVerDetalleSeleccionados");
+      if (lbl) lbl.textContent = "Seleccionados: " + total;
+      if (btn) btn.disabled = total === 0;
+    }
+
+    function toggleRegistroSeleccion(regId, checked) {
+      const id = String(regId ?? "").trim();
+      if (!id) return;
+      if (checked) selectedRegistroIds.add(id);
+      else selectedRegistroIds.delete(id);
+      refreshSeleccionDetalleUI();
+    }
+
+    function abrirDetalleSeleccionados() {
+      const rows = window.__rowsCurrent || [];
+      const seleccionados = rows.filter(r => selectedRegistroIds.has(String(r.id)));
+      if (!seleccionados.length) {
+        setMsg("msgTodos", "Selecciona al menos un registro para ver detalle.", false);
+        refreshSeleccionDetalleUI();
+        return;
+      }
+
+      const usados = new Set();
+      const keysOrdenados = [];
+      detalleOrden.forEach(([key]) => {
+        const exists = seleccionados.some(r => Object.prototype.hasOwnProperty.call(r, key));
+        if (!exists) return;
+        usados.add(key);
+        keysOrdenados.push(key);
+      });
+      seleccionados.forEach(row => {
+        Object.keys(row).forEach(key => {
+          if (detalleCamposOcultos.has(key)) return;
+          if (usados.has(key)) return;
+          usados.add(key);
+          keysOrdenados.push(key);
+        });
+      });
+
+      let headHtml = "";
+      keysOrdenados.forEach(key => {
+        const label = detalleLabels[key] || prettyKey(key);
+        const wideClass = key.includes("observaciones") ? "detail-wide" : "";
+        headHtml += `<th class="${wideClass}">${htmlSafe(label)}</th>`;
+      });
+
+      let rowsHtml = "";
+      seleccionados.forEach(row => {
+        let rowHtml = "";
+        keysOrdenados.forEach(key => {
+          const wideClass = key.includes("observaciones") ? "detail-wide" : "";
+          const ynClass = detalleSiNoClass(row[key]);
+          const cellClass = [wideClass, ynClass].filter(Boolean).join(" ");
+          rowHtml += `<td class="${cellClass}">${formatDetalleValue(row[key])}</td>`;
+        });
+        rowsHtml += `<tr>${rowHtml}</tr>`;
+      });
+
+      document.getElementById("detalleHeadRow").innerHTML = headHtml;
+      document.getElementById("detalleBodyRows").innerHTML = rowsHtml;
+      document.getElementById("detalleTitulo").textContent = "Detalle de registros (" + seleccionados.length + ")";
+      document.getElementById("detalleModal").hidden = false;
+      document.body.style.overflow = "hidden";
+    }
+
+    function cerrarDetalleRegistro() {
+      const modal = document.getElementById("detalleModal");
+      modal.hidden = true;
+      document.body.style.overflow = "";
+    }
+
+    function closeDetalleFromBackdrop(event) {
+      if (event.target.id === "detalleModal") {
+        cerrarDetalleRegistro();
+      }
+    }
+
+    function renderRegistros(rows) {
+      const tbody = document.querySelector("#tblRegistros tbody");
+      window.__rowsCurrent = rows || [];
+      const visibles = new Set((rows || []).map(r => String(r.id)));
+      Array.from(selectedRegistroIds).forEach(id => {
+        if (!visibles.has(id)) selectedRegistroIds.delete(id);
+      });
+      tbody.innerHTML = "";
+      (rows || []).forEach((r) => {
+        const regId = String(r.id);
+        const isChecked = selectedRegistroIds.has(regId);
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${htmlSafe(r.id)}</td>
+          <td>${htmlSafe(r.fecha)}</td>
+          <td>${htmlSafe(r.encargado)}</td>
+          <td>${htmlSafe(r.grupo)}</td>
+          <td>${htmlSafe(r.cliente)}</td>
+          <td>${htmlSafe(r.sucursal)}</td>
+          <td>${htmlSafe(r.tipo_protocolo)}</td>
+          <td>${htmlSafe(r.puesto)}</td>
+          <td>${htmlSafe(r.operador)}</td>
+          <td class="obs">${htmlSafe(r.observaciones)}</td>
+          <td class="sel-col"><input type="checkbox" class="row-selector" data-reg-id="${htmlSafe(regId)}" ${isChecked ? "checked" : ""} /></td>
+        `;
+        tbody.appendChild(tr);
+      });
+      tbody.querySelectorAll(".row-selector").forEach(el => {
+        el.addEventListener("change", (event) => {
+          const input = event.target;
+          toggleRegistroSeleccion(input.getAttribute("data-reg-id"), input.checked);
+        });
+      });
+      document.getElementById("lblTotal").textContent = "Total: " + (rows || []).length;
+      refreshSeleccionDetalleUI();
+    }
+
+    async function cargarListas() {
+      const data = await api("/api/protocolos/listas");
+      clientesCatalogo = Array.from(new Set(
+        (data.clientes || [])
+          .map(v => String(v || "").trim())
+          .filter(Boolean)
+      )).sort((a, b) => a.localeCompare(b, "es"));
+      clienteSucursalesMap = construirClienteSucursalesMap(data.cliente_sucursales || {});
+      const clienteEl = document.getElementById("cliente");
+      const sucursalEl = document.getElementById("sucursal");
+      if (clienteEl) clienteEl.value = "";
+      if (sucursalEl) sucursalEl.value = "";
+      sucursalesActuales = [];
+      fillDatalist("dlOperadores", data.operadores || []);
+      actualizarSucursalesPorCliente();
+    }
+
+    function limpiarFiltros() {
+      document.getElementById("fltCliente").value = "";
+      document.getElementById("fltSucursal").value = "";
+      document.getElementById("fltTipo").value = "";
+      document.getElementById("fltFechaDesde").value = "";
+      document.getElementById("fltFechaHasta").value = "";
+      document.getElementById("fltTexto").value = "";
+      cargarRegistros(false);
+    }
+
+    async function cargarRegistros(fromFilters) {
+      try {
+        const cliente = (document.getElementById("fltCliente").value || "").trim();
+        const sucursal = (document.getElementById("fltSucursal").value || "").trim();
+        const tipo = (document.getElementById("fltTipo").value || "").trim();
+        const fechaDesde = (document.getElementById("fltFechaDesde").value || "").trim();
+        const fechaHasta = (document.getElementById("fltFechaHasta").value || "").trim();
+        const texto = (document.getElementById("fltTexto").value || "").trim().toLowerCase();
+
+        const qs = new URLSearchParams();
+        qs.set("limit", "0");
+        if (cliente) qs.set("cliente", cliente);
+        if (sucursal) qs.set("sucursal", sucursal);
+        if (tipo) qs.set("tipo_protocolo", tipo);
+        if (fechaDesde) qs.set("fecha_desde", fechaDesde);
+        if (fechaHasta) qs.set("fecha_hasta", fechaHasta + " 23:59:59");
+
+        const rows = await api("/api/protocolos/registros?" + qs.toString());
+        let filtered = rows || [];
+        if (texto) {
+          filtered = filtered.filter(r => {
+            const hay = ((r.observaciones || "") + " " + (r.operador || "")).toLowerCase();
+            return hay.includes(texto);
+          });
+        }
+
+        renderRegistros(filtered);
+        window.__allLoadedOnce = true;
+        if (fromFilters) {
+          setMsg("msgTodos", "Filtros aplicados. Registros visibles: " + filtered.length, true);
+        }
+      } catch (err) {
+        setMsg("msgTodos", err.message || "No se pudieron cargar los registros.", false);
+      }
+    }
+
+    function resetFormularioRegistro() {
+      const form = document.getElementById("frmProtocolo");
+      if (form) form.reset();
+      initSiNoColoring();
+      actualizarSucursalesPorCliente();
+    }
+
+    async function guardarRegistro() {
+      try {
+        validarClienteSucursalSeleccion();
+        const payload = {
+          token: token,
+          cliente: document.getElementById("cliente").value.trim(),
+          sucursal: document.getElementById("sucursal").value.trim(),
+          tipoProtocolo: document.getElementById("tipoProtocolo").value.trim(),
+          detectado: document.getElementById("detectado").value.trim(),
+          efectivo: document.getElementById("efectivo").value.trim(),
+          sirena: document.getElementById("sirena").value.trim(),
+          voz: document.getElementById("voz").value.trim(),
+          carabineros: document.getElementById("carabineros").value.trim(),
+          alpha3: document.getElementById("alpha3").value.trim(),
+          informado: document.getElementById("informado").value.trim(),
+          bitacora: document.getElementById("bitacora").value.trim(),
+          protocoloExitoso: document.getElementById("protocoloExitoso").value.trim(),
+          puesto: document.getElementById("puesto").value.trim(),
+          operador: document.getElementById("operador").value.trim(),
+          observaciones: document.getElementById("observaciones").value.trim()
+        };
+
+        const data = await api("/api/protocolos/registro", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+
+        if (data && data.observacion_formal) {
+          document.getElementById("observaciones").value = data.observacion_formal;
+        }
+
+        setMsg("msgRegistro", "Registro guardado correctamente.");
+        resetFormularioRegistro();
+      } catch (err) {
+        setMsg("msgRegistro", err.message || "No se pudo guardar.", false);
+      }
+    }
+
+    window.addEventListener("load", async () => {
+      initSiNoColoring();
+      initSmartSearch("cliente");
+      initSmartSearch("sucursal");
+      document.addEventListener("click", (event) => {
+        if (!event.target.closest(".smart-field")) {
+          closeAllSmartMenus();
+        }
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") cerrarDetalleRegistro();
+      });
+      try {
+        await cargarListas();
+      } catch (err) {
+        setMsg("msgRegistro", err.message || "Error inicializando modulo.", false);
+      }
+    });
+  </script>
+<script src="/static/auth-guard.js"></script>
+</body>
+</html>

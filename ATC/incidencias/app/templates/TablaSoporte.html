@@ -1,0 +1,1187 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Tabla Soporte — ODS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:           #f7f8fa;
+  --surface:      #ffffff;
+  --surface-alt:  #fafbfc;
+  --surface-hover:#f3f4f6;
+  --border:       #e5e7eb;
+  --border-soft:  #f1f5f9;
+  --border-strong:#d1d5db;
+
+  --text:         #111827;
+  --text-soft:    #4b5563;
+  --text-muted:   #6b7280;
+  --text-faint:   #9ca3af;
+  --label:        #6b7280;
+  --placeholder:  #9ca3af;
+
+  --accent:       #7fc497;
+  --accent-hover: #5fb07f;
+  --accent-strong:#166534;
+  --accent-soft:  rgba(127,196,151,.14);
+
+  --header-bg:    #7fc497;
+  --header-border:#5fb07f;
+  --header-text:  #ffffff;
+
+  --link:         #2563eb;
+
+  --ok-bg:    rgba(127,196,151,.16);
+  --ok-fg:    #166534;
+  --ok-bd:    rgba(127,196,151,.40);
+  --warn-bg:  #fffbeb;
+  --warn-fg:  #92400e;
+  --warn-bd:  rgba(146,64,14,.20);
+  --pend-bg:  #f8fafc;
+  --pend-fg:  #475569;
+  --pend-bd:  #e5e7eb;
+  --info-bg:  rgba(127,196,151,.16);
+  --info-fg:  #166534;
+  --info-bd:  rgba(127,196,151,.40);
+
+  --shadow-sm: 0 1px 2px rgba(15,23,42,.04);
+  --shadow-md: 0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
+  --shadow-lg: 0 18px 36px rgba(15,23,42,.10);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { min-height: 100%; height: 100%; }
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: -0.005em;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "cv11", "ss01", "ss03";
+  overflow: hidden;
+}
+
+.content-shell {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* ── Header ─────────────────────────────────────────────── */
+.header {
+  position: sticky; top: 0; z-index: 50;
+  background: linear-gradient(180deg, #0b1424 0%, #111c2f 100%);
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 20px 30px;
+  min-height: 108px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  flex-shrink: 0;
+}
+.header-logo {
+  height: 68px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,.30));
+}
+.header-title {
+  flex: 1;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  line-height: 1.25;
+}
+.header-title small {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: rgba(255,255,255,.72);
+  margin-top: 6px;
+  letter-spacing: 0;
+  line-height: 1.45;
+}
+.header-actions { display: flex; gap: 10px; align-items: center; }
+.session-user {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 4px;
+  color: rgba(255,255,255,.92);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.volver-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 8px 14px;
+  border-radius: 7px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.04);
+  color: rgba(255,255,255,.92);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: none;
+  transition: background .15s, border-color .15s, color .15s;
+  cursor: pointer;
+}
+.volver-link:hover {
+  background: rgba(255,255,255,.08);
+  border-color: rgba(255,255,255,.22);
+}
+
+/* ── Buttons ────────────────────────────────────────────── */
+.btn {
+  appearance: none;
+  padding: 8px 14px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+  border: 1px solid transparent;
+  outline: none;
+  font-family: inherit;
+  letter-spacing: -.005em;
+  line-height: 1.3;
+}
+.btn-ghost {
+  background: rgba(255,255,255,.04);
+  border-color: rgba(255,255,255,.12);
+  color: rgba(255,255,255,.92);
+}
+.btn-ghost:hover {
+  background: rgba(255,255,255,.08);
+  border-color: rgba(255,255,255,.22);
+}
+.btn-light {
+  background: var(--surface);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+.btn-light:hover { background: var(--surface-hover); border-color: var(--text-faint); }
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent-hover);
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(22,101,52,.15), 0 2px 6px rgba(127,196,151,.35);
+}
+.btn-primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-strong);
+  box-shadow: 0 1px 2px rgba(22,101,52,.20), 0 4px 10px rgba(127,196,151,.45);
+}
+.btn-primary:disabled { opacity: .55; cursor: not-allowed; }
+
+/* ── Filters ────────────────────────────────────────────── */
+.filters {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 11px 22px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  box-shadow: 0 1px 0 var(--border);
+}
+.search-box {
+  flex: 1; min-width: 240px;
+  padding: 9px 12px 9px 34px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: #fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'/><path d='m21 21-4.3-4.3'/></svg>") no-repeat 11px center;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  outline: none;
+  font-family: inherit;
+  transition: border-color .15s, box-shadow .15s;
+}
+.search-box::placeholder { color: var(--placeholder); font-weight: 500; }
+.search-box:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(127,196,151,.20);
+}
+.filtro {
+  padding: 9px 30px 9px 12px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: #fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>") no-repeat right 10px center;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+  transition: border-color .15s, box-shadow .15s;
+  appearance: none;
+  -webkit-appearance: none;
+  min-width: 150px;
+}
+.filtro:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(127,196,151,.20);
+}
+.counter {
+  display: inline-flex; align-items: center;
+  padding: 6px 12px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12.5px;
+  color: var(--text-soft);
+  font-weight: 700;
+  letter-spacing: .02em;
+  white-space: nowrap;
+}
+
+/* ── Loading ─────────────────────────────────────────────── */
+#cargando {
+  text-align: center;
+  padding: 56px 20px;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ── Table wrapper ──────────────────────────────────────── */
+.tabla-container {
+  flex: 1;
+  background: var(--surface);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 13px;
+}
+
+/* THEAD */
+thead th {
+  background: var(--header-bg);
+  color: var(--header-text);
+  font-weight: 700;
+  font-size: 10.5px;
+  padding: 10px 8px;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--header-border);
+  line-height: 1.35;
+  vertical-align: middle;
+}
+/* Espaciado entre encabezado y primer registro */
+tbody tr:first-child td { padding-top: 12px; }
+thead th.th-terminado { vertical-align: middle; padding-bottom: 10px; }
+
+/* Filtro embebido en el encabezado Terminado */
+.filtro-th {
+  margin-top: 8px;
+  display: block;
+}
+.filtro-th select {
+  width: 100%;
+  min-height: 30px;
+  padding: 4px 22px 4px 9px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>") no-repeat right 6px center;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  text-transform: none;
+  letter-spacing: 0;
+  transition: border-color .15s, box-shadow .15s;
+}
+.filtro-th select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(127,196,151,.20);
+}
+
+/* TBODY */
+tbody tr {
+  border-bottom: 1px solid #e2e8f0;
+  transition: background .18s, box-shadow .18s;
+  box-shadow: inset 3px 0 0 #cbd5e1;
+}
+tbody tr:nth-child(even):not(.fila-detalles):not(.modal-subida) { background: #fafbfc; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover:not(.fila-detalles):not(.modal-subida) {
+  background: #f1f5fb;
+  box-shadow:
+    inset 3px 0 0 #cbd5e1,
+    0 1px 0 rgba(15,23,42,.04);
+}
+tbody tr.fila-anulada {
+  opacity: .50;
+  background: #fef2f2 !important;
+  box-shadow: inset 3px 0 0 #dc2626;
+  pointer-events: none;
+}
+tbody tr.fila-anulada:hover { background: #fef2f2 !important; }
+
+td {
+  padding: 12px 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  text-align: center;
+  color: var(--text);
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: none;
+  line-height: 1.45;
+  vertical-align: middle;
+}
+
+/* Codigo / ejecutivo links */
+.cliente-link {
+  display: inline-block;
+  font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  font-weight: 700;
+  font-size: 12.5px;
+  color: #0f172a;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  letter-spacing: .015em;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background .15s, color .15s;
+}
+.cliente-link:hover {
+  background: var(--info-bg);
+  color: var(--info-fg);
+}
+
+/* Botones de estado */
+.boton {
+  appearance: none;
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  outline: none;
+  font-family: inherit;
+  letter-spacing: .015em;
+  text-transform: none;
+  line-height: 1.35;
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  transition: background .15s, border-color .15s, transform .15s, box-shadow .15s;
+}
+.boton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(15,23,42,.07);
+}
+.boton:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
+.boton.completado {
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+  border-color: var(--ok-bd);
+}
+.boton.pendiente {
+  background: var(--pend-bg);
+  color: var(--pend-fg);
+  border-color: var(--pend-bd);
+}
+.boton.si {
+  background: var(--info-bg);
+  color: var(--info-fg);
+  border-color: var(--info-bd);
+}
+.boton.no {
+  background: #fff7ed;
+  color: #9a3412;
+  border-color: rgba(154,52,18,.22);
+}
+
+/* Number input */
+.input-number {
+  width: 100%;
+  max-width: 78px;
+  padding: 7px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  text-align: center;
+  background: #fff;
+  color: var(--text);
+  font-family: inherit;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.input-number:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(127,196,151,.20);
+}
+
+/* Filtro en thead (deprecado, ahora va en barra superior; protejo por si queda) */
+.filtro-container { display: none; }
+
+/* Fila de detalle (expandido) */
+tr.fila-detalles td {
+  padding: 4px 14px 20px;
+  background: var(--surface);
+  text-align: left;
+}
+tr.fila-detalles {
+  background: var(--surface) !important;
+  box-shadow: none !important;
+}
+.detalles-card {
+  margin: 14px auto;
+  max-width: 920px;
+  background: var(--surface-alt);
+  padding: 20px 26px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 0 rgba(15,23,42,.04);
+  text-align: left;
+  color: var(--text);
+  line-height: 1.6;
+  font-size: 13.5px;
+  font-weight: 500;
+}
+.detalles-card h4 {
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -.015em;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.detalles-card p { margin: 6px 0; font-size: 13.5px; }
+.detalles-card b { color: var(--text-soft); font-weight: 700; }
+.detalles-card a {
+  color: var(--info-fg);
+  text-decoration: none;
+  font-weight: 600;
+  border-bottom: 1px dashed currentColor;
+}
+.detalles-card a:hover { color: var(--accent); }
+.detalles-card hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+.detalles-card .actions-row { display: flex; gap: 10px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+.detalles-card .btn-card {
+  appearance: none;
+  padding: 8px 15px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  font-family: inherit;
+  letter-spacing: -.005em;
+  transition: background .15s, border-color .15s;
+}
+.detalles-card .btn-card:hover { background: var(--surface-alt); border-color: var(--border-strong); }
+.detalles-card .btn-card.primary { background: var(--text); border-color: var(--text); color: #fff; }
+.detalles-card .btn-card.primary:hover { background: #1e293b; border-color: #1e293b; }
+.detalles-card .btn-card.success {
+  background: var(--accent);
+  border-color: var(--accent-hover);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(22,101,52,.15), 0 2px 6px rgba(127,196,151,.35);
+}
+.detalles-card .btn-card.success:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-strong);
+}
+
+/* Modal subida */
+tr.modal-subida td {
+  padding: 4px 14px 20px;
+  background: var(--surface);
+  text-align: left;
+}
+tr.modal-subida {
+  background: var(--surface) !important;
+  box-shadow: none !important;
+}
+.upload-card {
+  margin: 14px auto;
+  max-width: 720px;
+  background: var(--surface-alt);
+  padding: 22px 26px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 0 rgba(15,23,42,.04);
+  text-align: left;
+}
+.upload-card h4 {
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 800;
+  text-align: center;
+  color: var(--text);
+  letter-spacing: -.015em;
+}
+.upload-row {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 10px;
+}
+.upload-row label.file-trigger {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 9px 15px;
+  background: #fff;
+  color: var(--info-fg);
+  border: 1px solid var(--info-bd);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -.005em;
+  min-width: 170px;
+  white-space: nowrap;
+  transition: background .15s, border-color .15s;
+}
+.upload-row label.file-trigger:hover {
+  background: var(--info-bg);
+  border-color: var(--accent);
+}
+.upload-row .file-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.upload-actions {
+  display: flex; justify-content: center; gap: 10px; margin-top: 14px;
+}
+.upload-actions button {
+  appearance: none;
+  padding: 9px 17px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -.005em;
+  cursor: pointer;
+  border: 1px solid transparent;
+  font-family: inherit;
+  transition: background .15s, border-color .15s;
+}
+.upload-actions .btn-subir {
+  background: var(--accent);
+  border-color: var(--accent-hover);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(22,101,52,.15), 0 2px 6px rgba(127,196,151,.35);
+}
+.upload-actions .btn-subir:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-strong);
+}
+.upload-actions .btn-subir:disabled { opacity: .55; cursor: not-allowed; }
+.upload-actions .btn-cancel { background: #fff; border-color: var(--border); color: var(--text-soft); }
+.upload-actions .btn-cancel:hover { background: var(--surface-alt); border-color: var(--border-strong); }
+
+/* Tabla bidireccional de cámaras */
+.tabla-camaras-wrap {
+  display: inline-block;
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  padding: 14px;
+  position: relative;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+.tabla-camaras-wrap table { width: auto; border-collapse: collapse; table-layout: auto; font-size: 12px; }
+.tabla-camaras-wrap th,
+.tabla-camaras-wrap td {
+  border: 1px solid #1e293b;
+  padding: 0;
+  text-align: center;
+  height: 32px;
+  min-width: 64px;
+}
+.tabla-camaras-wrap thead th { background: #111c2f; color: #cbd5e1; font-weight: 600; font-size: 11px; padding: 6px 8px; position: static; }
+.tabla-camaras-wrap td.celda-id {
+  cursor: pointer;
+  font-size: 11.5px;
+  color: #94a3b8;
+  background: transparent;
+  transition: background .15s;
+}
+.tabla-camaras-wrap td.celda-id:hover { background: rgba(59,130,246,.12); }
+.tabla-camaras-wrap td.celda-id.activa {
+  background: #2563eb;
+  color: #fff;
+  font-weight: 600;
+}
+.tabla-camaras-wrap td.label {
+  background: #111c2f;
+  color: #cbd5e1;
+  font-weight: 600;
+  font-size: 11.5px;
+}
+.tabla-camaras-wrap .btn-add {
+  width: 24px; height: 24px;
+  border-radius: 999px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #e2e8f0;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  font-size: 15px;
+  user-select: none;
+  transition: background .15s, border-color .15s;
+}
+.tabla-camaras-wrap .btn-add:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+.tabla-camaras-wrap .btn-add.equipo {
+  position: absolute;
+  right: -32px; top: 50%;
+  transform: translateY(-50%);
+}
+.tabla-camaras-wrap .btn-add.camara {
+  margin-top: 10px;
+}
+
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <img class="header-logo" src="/static/img/logo-atc.png" alt="ATC"
+       onerror="this.style.display='none'"/>
+  <div class="header-title">
+    Tabla Soporte — ODS
+    <small>Seguimiento de configuración y cierre de servicio por orden</small>
+  </div>
+  <div class="header-actions">
+    <div class="session-user" id="usuarioActual">Sesion: Cargando...</div>
+    <a class="volver-link" href="/panel?area=soporte">Volver</a>
+  </div>
+</header>
+
+<div class="content-shell" id="pageContentScroll">
+<!-- Filters -->
+<div class="filters">
+  <input type="text" class="search-box" id="searchBox"
+    placeholder="Buscar por código, cliente, RUT, ejecutivo…"
+    oninput="filtrarTabla()"/>
+  <span class="counter" id="counter">Cargando…</span>
+</div>
+
+<!-- Table -->
+<div class="tabla-container" id="contenedor-tabla" style="display:none;">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:4%">Código</th>
+        <th style="width:4.5%">Fecha</th>
+        <th style="width:5%">Ejecutivo</th>
+        <th style="width:4.5%">RUT</th>
+        <th style="width:4.5%">Sucursal</th>
+        <th style="width:5%">Dirección Sucursal</th>
+        <th style="width:4.5%">Tipo Servicio</th>
+        <th style="width:4%">Tipo Plan</th>
+        <th style="width:5.5%">Instalación Finalizada</th>
+        <th style="width:5.5%">Configuración Cámaras</th>
+        <th style="width:5.5%">Posicionamiento Imagen</th>
+        <th style="width:5.5%">Enlace con Servidor</th>
+        <th style="width:5.5%">Configuración IVS</th>
+        <th style="width:5.5%">Plan de Grabación</th>
+        <th style="width:5.5%">Requiere Puesto Nuevo</th>
+        <th style="width:5.5%">N° Central Asignado</th>
+        <th style="width:5.5%">Configuración Cliente</th>
+        <th style="width:5.5%">V°B Final de Servicio</th>
+        <th style="width:6%" class="th-terminado">
+          Terminado
+          <div class="filtro-th">
+            <select id="filtro-terminado" onchange="filtrarTabla()">
+              <option value="Pendiente" selected>Pendientes</option>
+              <option value="Todos">Todos</option>
+              <option value="Finalizado">Terminados</option>
+            </select>
+          </div>
+        </th>
+      </tr>
+    </thead>
+    <tbody id="tabla-datos"></tbody>
+  </table>
+</div>
+
+<div id="cargando">Cargando datos…</div>
+
+</div>
+
+<script>
+  const token = new URLSearchParams(window.location.search).get("token") || localStorage.getItem("atc_token") || "";
+  let obtenerIDsGlobal = () => [];
+
+  async function cargarUsuarioActual() {
+    const el = document.getElementById("usuarioActual");
+    if (!el || !token) return;
+    try {
+      const res = await fetch(`/api/usuario-actual?token=${encodeURIComponent(token)}`, { credentials: "include" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error("No se pudo cargar usuario");
+      el.textContent = data?.usuario || "Desconocido";
+    } catch (_err) {
+      el.textContent = "Desconocido";
+    }
+  }
+
+  function volverPanel() { location.href = "/panel?area=soporte"; }
+
+  /* ===== API helpers ===== */
+  async function apiGet(url) {
+    const res = await fetch(url, { credentials: "include" });
+    if (res.status === 401) { window.location.href = "/?form=login&next=auto"; throw new Error("401"); }
+    if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.detail || `HTTP ${res.status}`); }
+    return res.json();
+  }
+
+  async function apiPost(url, body) {
+    const res = await fetch(url, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (res.status === 401) { window.location.href = "/?form=login&next=auto"; throw new Error("401"); }
+    if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.detail || `HTTP ${res.status}`); }
+    return res.json();
+  }
+
+  /* ===== Campo mapping (tabla index → field name) ===== */
+  const campoReal = {
+    8:  "instalacion_finalizada",
+    9:  "configuracion_camaras",
+    10: "posicionamiento_imagen",
+    11: "enlace_servidor",
+    12: "configuracion_ivs",
+    13: "plan_grabacion",
+    16: "configuracion_cliente",
+    17: "vb_final_servicio",
+    18: "finalizado",
+  };
+
+  /* ===== Load table ===== */
+  async function cargarDatosTablaSoporteTecnico() {
+    try {
+      const datos = await apiGet("/api/soporte-tecnico/ods-filas");
+      mostrarDatosEnTabla(datos);
+    } catch (err) {
+      if (err.message !== "401") {
+        document.getElementById("cargando").textContent = "Error al cargar datos: " + err.message;
+      }
+    }
+  }
+
+  function filtrarTabla() {
+    const filtro = document.getElementById("filtro-terminado").value;
+    const txt = (document.getElementById("searchBox")?.value || "").toLowerCase();
+    let vis = 0;
+    document.querySelectorAll("#tabla-datos tr").forEach(fila => {
+      if (fila.classList.contains("fila-detalles") || fila.classList.contains("modal-subida")) return;
+      const estado = (fila.cells[18] && fila.cells[18].textContent.trim()) || "";
+      const texto = fila.textContent.toLowerCase();
+      const matchTxt = !txt || texto.includes(txt);
+      const matchEst = (filtro === "Todos" || estado === filtro);
+      const show = matchTxt && matchEst;
+      fila.style.display = show ? "" : "none";
+      if (show) vis++;
+    });
+    const counter = document.getElementById("counter");
+    if (counter) counter.textContent = `${vis} ODS`;
+  }
+
+  function mostrarDatosEnTabla(datos) {
+    const cuerpoTabla = document.getElementById("tabla-datos");
+    cuerpoTabla.innerHTML = "";
+
+    datos.forEach((fila) => {
+      const tr = document.createElement("tr");
+      const tipoServicio = (fila[6] || "").toString().toLowerCase();
+      const esTelevigilancia = tipoServicio.includes("televigilancia");
+      const instalacionFinalizada = fila[8];
+
+      if ((fila[19] || "").toLowerCase() === "anulada") {
+        tr.classList.add("fila-anulada");
+      }
+
+      fila.forEach((celda, idx) => {
+        if (idx === 19) return;
+        const td = document.createElement("td");
+
+        if (idx === 0) {
+          const link = document.createElement("span");
+          link.textContent = celda || "Sin Código";
+          link.className = "cliente-link";
+          link.onclick = () => abrirDetalle(tr, fila, esTelevigilancia);
+          td.appendChild(link);
+
+        } else if (idx === 2) {
+          const enlace = document.createElement("a");
+          enlace.href = "#";
+          enlace.className = "cliente-link";
+          enlace.textContent = celda || "Subir Archivos";
+          enlace.onclick = (e) => { e.preventDefault(); abrirModalSubida(tr, fila); };
+          td.appendChild(enlace);
+
+        } else if (idx === 14) {
+          const cont = document.createElement("div");
+          cont.style.cssText = "display:flex;justify-content:center;gap:6px;";
+          let estadoActual = (celda || "").toString().trim().toLowerCase();
+          ["si", "no"].forEach(opcion => {
+            const btn = document.createElement("button");
+            btn.textContent = opcion.toUpperCase();
+            btn.classList.add("boton", opcion);
+            btn.dataset.opcion = opcion;
+            btn.style.opacity = estadoActual === opcion ? "1" : "0.4";
+            btn.onclick = async () => {
+              const yaSeleccionado = estadoActual === opcion;
+              const nuevoValor = yaSeleccionado ? "" : (opcion === "si" ? "Si" : "No");
+              Array.from(cont.children).forEach(b => b.style.opacity = "1");
+              estadoActual = yaSeleccionado ? "" : opcion;
+              if (!yaSeleccionado) {
+                Array.from(cont.children).forEach(b => {
+                  b.style.opacity = b.dataset.opcion === opcion ? "1" : "0.4";
+                });
+              }
+              try {
+                await apiPost("/api/soporte-tecnico/ods/actualizar-valor", { codigo: fila[0], campo: "requiere_puesto_nuevo", valor: nuevoValor });
+              } catch (err) { alert("Error: " + err.message); }
+            };
+            cont.appendChild(btn);
+          });
+          td.appendChild(cont);
+
+        } else if (idx === 15) {
+          const input = document.createElement("input");
+          input.type = "number";
+          input.value = celda || "";
+          input.classList.add("input-number");
+          input.onchange = async () => {
+            try {
+              await apiPost("/api/soporte-tecnico/ods/actualizar-valor", { codigo: fila[0], campo: "numero_central_asignado", valor: input.value });
+              await apiPost("/api/soporte-tecnico/ods/notificar-termino", { codigo: fila[0] });
+            } catch (err) { alert("Error: " + err.message); }
+          };
+          td.appendChild(input);
+
+        } else if (
+          (idx >= 9 && idx <= 13) || (idx >= 16 && idx <= 18)
+        ) {
+          const btn = document.createElement("button");
+          const estadoActual = (celda && celda !== "Pendiente") ? "Finalizado" : "Pendiente";
+          btn.textContent = estadoActual;
+          btn.classList.add("boton", estadoActual === "Finalizado" ? "completado" : "pendiente");
+
+          const instPendiente = !instalacionFinalizada || instalacionFinalizada === "" || instalacionFinalizada.toLowerCase() === "pendiente";
+          if (!esTelevigilancia && instPendiente) {
+            btn.disabled = true;
+            btn.title = "Debe estar finalizada la instalación";
+          } else {
+            btn.onclick = async () => {
+              const nuevo = btn.textContent === "Pendiente";
+              btn.textContent = nuevo ? "Finalizado" : "Pendiente";
+              btn.classList.toggle("pendiente");
+              btn.classList.toggle("completado");
+              const campo = campoReal[idx];
+              try {
+                await apiPost("/api/soporte-tecnico/ods/actualizar-estado", { codigo: fila[0], campo, valor: nuevo });
+                if (idx === 18 && nuevo) {
+                  await apiPost("/api/soporte-tecnico/ods/notificar-termino", { codigo: fila[0] });
+                }
+              } catch (err) {
+                btn.textContent = nuevo ? "Pendiente" : "Finalizado";
+                btn.classList.toggle("pendiente");
+                btn.classList.toggle("completado");
+                alert("Error: " + err.message);
+              }
+            };
+          }
+          td.appendChild(btn);
+
+        } else if (idx === 8) {
+          td.textContent = celda || "Pendiente";
+        } else {
+          td.textContent = celda || "Pendiente";
+        }
+
+        tr.appendChild(td);
+      });
+
+      cuerpoTabla.appendChild(tr);
+    });
+
+    document.getElementById("cargando").style.display = "none";
+    document.getElementById("contenedor-tabla").style.display = "";
+    filtrarTabla();
+  }
+
+  /* ===== Detalle ODT ===== */
+  async function abrirDetalle(filaPrincipal, fila, esTelevigilancia) {
+    const filaExistente = filaPrincipal.nextElementSibling;
+    if (filaExistente && filaExistente.classList.contains("fila-detalles")) {
+      filaExistente.remove();
+      return;
+    }
+    try {
+      const info = await apiGet(`/api/soporte-tecnico/ods/${encodeURIComponent(fila[0])}/detalle`);
+      const detalle = document.createElement("div");
+      detalle.className = "detalles-card";
+      detalle.innerHTML = `
+        <h4>Información completa ODT — ${fila[0] || ""}</h4>
+        <p><b>Cámaras a Instalar:</b> ${info.camarasInstalar}</p>
+        <p><b>Cámaras a Vigilar:</b> ${info.camarasVigilar}</p>
+        <p><b>Días de Grabación:</b> ${info.diasGrabacion}</p>
+        <p><b>Materiales:</b><br>${info.materiales}</p>
+        <p><b>Contacto:</b> ${info.contactoNombre} (${info.contactoTelefono})</p>
+        <p><b>Layout:</b> ${info.layout ? `<a href="${info.layout}" target="_blank">Ver Layout</a>` : "No disponible"}</p>
+        <p><b>Observación:</b> ${info.observacion || "Sin observaciones"}</p>
+        ${esTelevigilancia ? `
+          <hr>
+          <div class="actions-row">
+            <button id="btn-toggle-tabla-${fila[0]}" class="btn-card primary">
+              Registrar IDs de Cámaras Instaladas
+            </button>
+          </div>
+          <div id="contenedor-tabla-camaras-${fila[0]}" style="display:none;margin-top:15px;"></div>
+          <div class="actions-row">
+            <button id="btn-guardar-ids-${fila[0]}" class="btn-card success">
+              Guardar IDs de Cámaras
+            </button>
+          </div>
+        ` : ""}
+      `;
+
+      const filaDetalle = document.createElement("tr");
+      filaDetalle.className = "fila-detalles";
+      const tdDetalle = document.createElement("td");
+      tdDetalle.colSpan = 19;
+      tdDetalle.appendChild(detalle);
+      filaDetalle.appendChild(tdDetalle);
+      filaPrincipal.insertAdjacentElement("afterend", filaDetalle);
+
+      if (esTelevigilancia) {
+        const btn = document.getElementById(`btn-toggle-tabla-${fila[0]}`);
+        const cont = document.getElementById(`contenedor-tabla-camaras-${fila[0]}`);
+        const btnGuardar = document.getElementById(`btn-guardar-ids-${fila[0]}`);
+
+        btn.onclick = async () => {
+          const visible = cont.style.display === "block";
+          cont.style.display = visible ? "none" : "block";
+          if (!visible && cont.innerHTML === "") {
+            try {
+              const ids = await apiGet(`/api/soporte-tecnico/ods/${encodeURIComponent(fila[0])}/camaras`);
+              iniciarTablaBidireccional(cont.id, ids);
+            } catch (err) { alert("Error cargando cámaras: " + err.message); }
+          }
+        };
+
+        btnGuardar.onclick = async () => {
+          const ids = obtenerIDsGlobal();
+          if (ids.length === 0) { alert("⚠️ Debes seleccionar al menos una cámara"); return; }
+          try {
+            const res = await apiPost("/api/soporte-tecnico/ods/guardar-camaras", {
+              odt: fila[0], ids,
+              idCliente: info.idCliente, idSucursal: info.idSucursal,
+              razonSocial: info.razonSocial, sucursal: info.sucursal, direccion: info.direccion,
+            });
+            alert("✅ " + res.mensaje);
+          } catch (err) { alert("❌ Error: " + err.message); }
+        };
+      }
+    } catch (err) {
+      if (err.message !== "401") alert("Error cargando detalle: " + err.message);
+    }
+  }
+
+  /* ===== Modal subida de imágenes ===== */
+  function abrirModalSubida(tr, fila) {
+    const filaAbierta = tr.nextElementSibling;
+    if (filaAbierta && filaAbierta.classList.contains("modal-subida")) { filaAbierta.remove(); return; }
+    document.querySelector(".modal-subida")?.remove();
+
+    const filaDetalle = document.createElement("tr");
+    filaDetalle.className = "modal-subida";
+    const tdModal = document.createElement("td");
+    tdModal.colSpan = 19;
+    tdModal.innerHTML = `
+      <div class="upload-card">
+        <h4>Subir imágenes para <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-weight:700;">${fila[0]}</span></h4>
+        <div id="contenedor-inputs-${fila[0]}"></div>
+        <div class="upload-actions">
+          <button id="btn-cancelar-${fila[0]}" class="btn-cancel">Cancelar</button>
+          <button id="btn-subir-${fila[0]}" class="btn-subir">Subir</button>
+        </div>
+      </div>
+    `;
+    filaDetalle.appendChild(tdModal);
+    tr.insertAdjacentElement("afterend", filaDetalle);
+
+    const contenedor = document.getElementById(`contenedor-inputs-${fila[0]}`);
+
+    function agregarInputArchivo() {
+      const wrapper = document.createElement("div");
+      wrapper.className = "upload-row";
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/*";
+      input.style.display = "none";
+      const inputId = `file-${fila[0]}-${Date.now()}`;
+      input.id = inputId;
+      const label = document.createElement("label");
+      label.htmlFor = inputId;
+      label.className = "file-trigger";
+      label.textContent = "📎 Seleccionar imagen";
+      const span = document.createElement("span");
+      span.className = "file-name";
+      span.textContent = "Sin archivo seleccionado";
+      input.addEventListener("change", () => {
+        if (input.files.length) { span.textContent = input.files[0].name; agregarInputArchivo(); }
+      });
+      wrapper.append(label, input, span);
+      contenedor.appendChild(wrapper);
+    }
+    agregarInputArchivo();
+
+    document.getElementById(`btn-cancelar-${fila[0]}`).onclick = () => filaDetalle.remove();
+    document.getElementById(`btn-subir-${fila[0]}`).onclick = async () => {
+      const btnSubir = document.getElementById(`btn-subir-${fila[0]}`);
+      const inputs = contenedor.querySelectorAll("input[type='file']");
+      const archivos = [];
+      inputs.forEach(inp => { if (inp.files.length) archivos.push(inp.files[0]); });
+      if (!archivos.length) { alert("Debes seleccionar al menos una imagen."); return; }
+      btnSubir.disabled = true;
+      btnSubir.textContent = "Subiendo...";
+      const convertidos = await Promise.all(archivos.map((file, i) => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve({ nombre: `IMAGEN${i + 1}`, mimeType: file.type, base64: reader.result.split(",")[1] });
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      })));
+      try {
+        const res = await apiPost("/api/soporte-tecnico/ods/upload-imagenes", { odt: fila[0], archivos: convertidos });
+        alert(`✅ ${res.guardadas} imagen(es) subida(s)`);
+        filaDetalle.remove();
+      } catch (err) {
+        alert("❌ Error al subir archivos: " + err.message);
+        btnSubir.disabled = false;
+        btnSubir.textContent = "Subir";
+      }
+    };
+  }
+
+  /* ===== Tabla bidireccional cámaras ===== */
+  function iniciarTablaBidireccional(contenedorId, idsGuardados = []) {
+    const contenedor = document.getElementById(contenedorId);
+    if (!contenedor) return;
+
+    let totalCamaras = 8;
+    let totalEquipos = 2;
+
+    if (idsGuardados.length) {
+      const maxCam = Math.max(...idsGuardados.map(i => +i.split("_")[1]));
+      if (maxCam > 16) totalCamaras = 32;
+      else if (maxCam > 8) totalCamaras = 16;
+    }
+
+    const estado = {};
+    idsGuardados.forEach(id => estado[id] = true);
+
+    function render() {
+      contenedor.innerHTML = `
+        <div class="tabla-camaras-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="min-width:44px;">#</th>
+                ${Array.from({ length: totalEquipos }, (_, e) => `<th>${e + 1}</th>`).join("")}
+              </tr>
+            </thead>
+            <tbody>
+              ${Array.from({ length: totalCamaras }, (_, c) => `
+                <tr>
+                  <td class="label">${c + 1}</td>
+                  ${Array.from({ length: totalEquipos }, (_, e) => {
+                    const key = `${e + 1}_${c + 1}`;
+                    const activo = estado[key];
+                    return `<td class="celda-id ${activo ? "activa" : ""}" data-key="${key}">${activo ? key : ""}</td>`;
+                  }).join("")}
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+          <div id="btn-add-equipo" class="btn-add equipo">+</div>
+          <div style="display:flex;justify-content:center;">
+            <div id="btn-add-camara" class="btn-add camara">+</div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById("btn-add-equipo").onclick = () => { totalEquipos++; render(); };
+      document.getElementById("btn-add-camara").onclick = () => {
+        if (totalCamaras === 8) totalCamaras = 16;
+        else if (totalCamaras === 16) totalCamaras = 32;
+        else return alert("Máximo 32 cámaras");
+        render();
+      };
+      contenedor.querySelectorAll(".celda-id").forEach(celda => {
+        celda.onclick = () => { const key = celda.dataset.key; estado[key] = !estado[key]; render(); };
+      });
+    }
+
+    obtenerIDsGlobal = () => Object.keys(estado).filter(k => estado[k]);
+    render();
+  }
+
+  window.onload = () => {
+    cargarUsuarioActual();
+    cargarDatosTablaSoporteTecnico();
+  };
+</script>
+</body>
+</html>

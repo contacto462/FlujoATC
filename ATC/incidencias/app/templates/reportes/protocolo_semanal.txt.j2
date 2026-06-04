@@ -1,0 +1,34 @@
+INFORME SEMANAL DE PROTOCOLOS
+ATC - Alguien Te Cuida - Control Operativo
+
+Codigo de informe: {{ codigo_informe }}
+Fecha de emision: {{ fecha_emision }}
+
+ALCANCE DEL INFORME
+Cliente: {{ cliente }}
+Sucursal: {{ sucursal }}
+Periodo evaluado: {{ periodo_inicio }} al {{ periodo_fin }}
+Total de protocolos registrados: {{ total_registros }}
+Preventivos: {{ total_preventivo }}
+Intrusivos: {{ total_intrusivo }}
+Protocolos exitosos (SI): {{ total_exitosos }}
+
+RESUMEN EJECUTIVO
+{{ resumen_ejecutivo }}
+
+DETALLE CRONOLOGICO
+{% if detalle_lineas %}
+{% for linea in detalle_lineas -%}
+- {{ linea }}
+{% endfor %}
+{% else -%}
+- Sin registros en el periodo informado.
+{% endif %}
+
+CONCLUSIONES OPERATIVAS
+{{ conclusiones }}
+
+TRAZABILIDAD Y CIERRE
+- Tipo de informe: Semanal (lunes, semana anterior).
+- Generado automaticamente por modulo Control de Protocolos.
+- Documento emitido para control de gestion y seguimiento operativo.
