@@ -921,6 +921,21 @@ def _require_area_access(db: Session, user: User, area_code: str) -> None:
     if not _department_has_area(user.department, area_code):
         raise HTTPException(status_code=403, detail="No tienes acceso a esta area.")
 
+
+def _can_access_bitacora(db: Session, user: User) -> bool:
+    if getattr(user, "is_admin", False):
+        return True
+    areas = _active_user_areas(db, user.id)
+    return any(str(area.get("area_code") or "").strip() != "tecnicos" for area in areas)
+
+
+def _require_bitacora_access(db: Session, user: User) -> None:
+    if not _can_access_bitacora(db, user):
+        raise HTTPException(
+            status_code=403,
+            detail="La bitacora no esta disponible para usuarios con acceso solo Tecnico.",
+        )
+
 def _active_users_in_area(db: Session, area_code: str) -> list[User]:
     users = db.query(User).filter(User.is_active == True).order_by(User.name.asc()).all()
     return [u for u in users if _department_has_area(u.department, area_code)]
@@ -1253,6 +1268,7 @@ def seleccionar_area_page(
             "request": request,
             "user": current_user,
             "areas": _area_card_options(areas),
+            "bitacora_enabled": _can_access_bitacora(db, current_user),
         },
     )
 
