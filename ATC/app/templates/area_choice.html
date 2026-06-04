@@ -115,7 +115,14 @@
     .area-venta,
     .area-finanzas,
     .area-administracion,
-    .area-operaciones { --area-accent: var(--accent); }
+    .area-operaciones,
+    .area-bitacora { --area-accent: var(--accent); }
+
+    .card-link {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+    }
 
     button {
       width: 100%;
@@ -218,13 +225,20 @@
           </form>
           {% endif %}
         {% endfor %}
+        {% if bitacora_enabled %}
+          <div class="area-bitacora">
+            <a class="card-link" href="/bitacora">
+              <button type="button">
+                <span class="icon">B</span>
+                <span class="title">Bitacora</span>
+              </button>
+            </a>
+          </div>
+        {% endif %}
       </div>
     </section>
 
     <section class="foot">
-      {% if bitacora_enabled %}
-      <a class="logout" href="/bitacora">Abrir bitacora</a>
-      {% endif %}
       <a class="logout" href="/logout">Cerrar sesion</a>
     </section>
   </main>
