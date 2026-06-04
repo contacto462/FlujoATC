@@ -25,12 +25,12 @@
       --sidebar-border: rgba(255,255,255,.09);
       --sidebar-text: rgba(255,255,255,.92);
       --sidebar-muted: rgba(255,255,255,.64);
-      --primary: #2563eb;
-      --primary-hover: #1d4ed8;
-      --primary-soft: rgba(37,99,235,.12);
-      --accent: #7fc497;
-      --accent-hover: #5fb07f;
-      --accent-soft: rgba(127,196,151,.14);
+      --primary: #f59e0b;
+      --primary-hover: #d97706;
+      --primary-soft: rgba(245,158,11,.14);
+      --accent: #111827;
+      --accent-hover: #000000;
+      --accent-soft: rgba(17,24,39,.14);
       --shadow: 0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
       --shadow-lg: 0 18px 36px rgba(15,23,42,.10);
       --radius: 8px;
@@ -59,7 +59,7 @@
     .page {
       height: 100vh;
       display: grid;
-      grid-template-columns: 292px minmax(0, 1fr);
+      grid-template-columns: 260px minmax(0, 1fr);
       background: var(--bg);
     }
 
@@ -131,65 +131,6 @@
       box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
     }
 
-    .session-card {
-      margin-top: 16px;
-      padding: 14px;
-      border-radius: var(--radius-xl);
-      background: var(--sidebar-chip);
-      border: 1px solid var(--sidebar-border);
-      box-shadow: 0 10px 28px rgba(0,0,0,.18);
-    }
-
-    .session-label {
-      color: var(--sidebar-muted);
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      font-size: 11px;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-
-    .session-name {
-      font-size: 15px;
-      font-weight: 700;
-      color: #fff;
-      line-height: 1.35;
-    }
-
-    .session-role {
-      margin-top: 3px;
-      color: var(--sidebar-muted);
-      font-size: 12.5px;
-    }
-
-    .session-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-top: 14px;
-    }
-
-    .sidebar-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 36px;
-      padding: 0 12px;
-      border-radius: 8px;
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.04);
-      color: var(--sidebar-text);
-      text-decoration: none;
-      font-size: 12.5px;
-      font-weight: 600;
-      transition: background .15s ease, border-color .15s ease;
-    }
-
-    .sidebar-btn:hover {
-      background: rgba(255,255,255,.08);
-      border-color: rgba(255,255,255,.22);
-    }
-
     .content {
       min-width: 0;
       min-height: 0;
@@ -199,46 +140,38 @@
       gap: 14px;
     }
 
-    .topbar {
-      background: linear-gradient(180deg, #0b1424 0%, #111c2f 100%);
-      border: 1px solid rgba(255,255,255,.04);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-lg);
-      padding: 18px 22px;
-      color: #fff;
+    .content-top {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
+      justify-content: flex-end;
+      align-items: flex-start;
+      gap: 12px;
       flex-shrink: 0;
     }
 
-    .topbar h1 {
-      margin: 0;
-      font-size: 20px;
-      font-weight: 700;
-      letter-spacing: -.02em;
-      line-height: 1.2;
-    }
-
-    .topbar p {
-      margin: 6px 0 0;
-      color: rgba(255,255,255,.72);
-      font-size: 13.5px;
-      line-height: 1.45;
-    }
-
-    .topbar-badge {
-      display: inline-flex;
+    .content-session {
+      display: flex;
       align-items: center;
-      padding: 8px 12px;
-      border-radius: 999px;
-      background: rgba(255,255,255,.07);
-      border: 1px solid rgba(255,255,255,.10);
-      font-size: 12px;
+      gap: 10px;
+    }
+
+    .content-session-info {
+      text-align: right;
+    }
+
+    .content-session-label {
+      color: var(--text-faint);
+      font-size: 11px;
       font-weight: 700;
-      color: rgba(255,255,255,.88);
-      white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .content-session-name {
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-top: 2px;
     }
 
     .panel {
@@ -323,30 +256,30 @@
       background: var(--accent);
       color: #fff;
       border-color: var(--accent-hover);
-      box-shadow: 0 1px 2px rgba(22,101,52,.15), 0 2px 6px rgba(127,196,151,.35);
+      box-shadow: 0 1px 2px rgba(15,23,42,.18), 0 2px 6px rgba(17,24,39,.28);
     }
 
     .btn-primary:hover {
       background: var(--accent-hover);
-      border-color: #166534;
+      border-color: #000000;
     }
 
     .btn-info {
       background: var(--primary-soft);
-      border-color: rgba(37,99,235,.18);
+      border-color: rgba(245,158,11,.24);
       color: var(--primary);
     }
 
     .btn-info:hover {
-      background: rgba(37,99,235,.16);
-      border-color: rgba(37,99,235,.28);
+      background: rgba(245,158,11,.22);
+      border-color: rgba(245,158,11,.34);
     }
 
     .panel-body {
       padding: 18px 20px 20px;
       min-height: 0;
       overflow: auto;
-      background: var(--surface-alt);
+      background: var(--surface);
     }
 
     .filters {
@@ -409,15 +342,17 @@
 
     .news-list {
       display: grid;
-      gap: 14px;
+      gap: 0;
     }
 
     .news-item {
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 18px 18px 16px;
-      box-shadow: var(--shadow);
+      padding: 18px 0 16px;
+      border-top: 1px solid #eef2f7;
+    }
+
+    .news-item:first-child {
+      border-top: 0;
+      padding-top: 6px;
     }
 
     .news-item h3 {
@@ -519,12 +454,9 @@
     }
 
     .empty {
-      background: #fff;
-      border: 1px dashed var(--border-strong);
-      border-radius: 12px;
-      padding: 28px 18px;
+      padding: 18px 0 6px;
       color: var(--text-muted);
-      text-align: center;
+      text-align: left;
       font-size: 14px;
     }
 
@@ -548,7 +480,6 @@
       body { overflow: auto; }
       .page { height: auto; }
       .content { padding: 12px; }
-      .topbar,
       .panel-head,
       .panel-body { padding-left: 16px; padding-right: 16px; }
       .filters,
@@ -557,9 +488,12 @@
       .nav {
         grid-template-columns: 1fr;
       }
-      .topbar {
-        flex-direction: column;
-        align-items: flex-start;
+      .content-top {
+        justify-content: stretch;
+      }
+      .content-session {
+        width: 100%;
+        justify-content: space-between;
       }
       .panel-head {
         flex-direction: column;
@@ -572,7 +506,6 @@
     <aside class="sidebar">
       <div class="brand">
         <img src="/static/img/logo-atc.png" alt="ATC - Alguien Te Cuida" />
-        <div class="brand-copy">Bitacora operativa integrada al ecosistema ATC con acceso unificado.</div>
       </div>
 
       <nav class="nav" aria-label="Bitacora">
@@ -586,25 +519,18 @@
         <button class="nav-btn" type="button" data-panel-target="mensaje-masivo">Mensaje Masivo</button>
       </nav>
 
-      <section class="session-card">
-        <div class="session-label">Sesion activa</div>
-        <div class="session-name">{{ user.name or user.username }}</div>
-        <div class="session-role">Acceso corporativo unificado</div>
-        <div class="session-actions">
-          <a class="sidebar-btn" href="/seleccionar-area">Cambiar area</a>
-          <a class="sidebar-btn" href="/logout">Cerrar sesion</a>
-        </div>
-      </section>
     </aside>
 
     <section class="content">
-      <header class="topbar">
-        <div>
-          <h1>Bitacora ATC</h1>
-          <p>Modulo central para noticias, registros operativos y seguimiento por empresa o sucursal.</p>
+      <div class="content-top">
+        <div class="content-session">
+          <div class="content-session-info">
+            <div class="content-session-label">Sesion activa</div>
+            <div class="content-session-name">{{ user.name or user.username }}</div>
+          </div>
+          <a class="btn btn-light" href="/seleccionar-area">Volver</a>
         </div>
-        <div class="topbar-badge">BBDD unificada + Login ATC</div>
-      </header>
+      </div>
 
       <section class="panel active" data-panel="noticias">
         <div class="panel-head">
