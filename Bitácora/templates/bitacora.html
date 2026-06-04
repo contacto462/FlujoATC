@@ -45,6 +45,7 @@
       line-height: 1.5;
       letter-spacing: 0;
       overflow: hidden;
+      overflow-x: hidden;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       text-rendering: optimizeLegibility;
@@ -89,8 +90,10 @@
       display: grid;
       gap: 2px;
       min-height: 0;
-      overflow: auto;
+      overflow: visible;
       width: 100%;
+      position: relative;
+      z-index: 30;
     }
 
     .nav-item {
@@ -115,6 +118,37 @@
       transform: translateY(0);
     }
 
+    .nav-parent {
+      width: 100%;
+      color: var(--sidebar-text);
+      padding: 13px 18px;
+      text-align: left;
+      font-size: 14px;
+      font-weight: 600;
+      position: relative;
+      user-select: none;
+      transition: background .16s ease, transform .16s ease, box-shadow .16s ease;
+      transform: translateY(0);
+    }
+
+    .nav-parent.has-children::after {
+      content: "›";
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 18px;
+      color: rgba(255,255,255,.78);
+      pointer-events: none;
+    }
+
+    .nav-item:hover .nav-parent,
+    .nav-item:focus-within .nav-parent {
+      background: linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(0,0,0,.14);
+    }
+
     .nav-btn:hover {
       background: linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
       border-color: transparent;
@@ -129,29 +163,14 @@
       box-shadow: 0 8px 18px rgba(0,0,0,.16);
     }
 
-    .nav-btn.has-children {
-      padding-right: 40px;
-    }
-
-    .nav-btn.has-children::after {
-      content: "›";
-      position: absolute;
-      right: 16px;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 18px;
-      color: rgba(255,255,255,.78);
-      pointer-events: none;
-    }
-
     .submenu {
       position: absolute;
       left: 100%;
       top: 0;
       min-width: 250px;
-      background: rgba(0,0,0,.96);
+      background: linear-gradient(180deg, var(--sidebar-top) 0%, var(--sidebar-bottom) 100%);
       color: #ffffff;
-      border: 1px solid rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.06);
       box-shadow: 0 18px 40px rgba(0,0,0,.28);
       padding: 10px 0;
       opacity: 0;
@@ -579,7 +598,7 @@
           <button class="nav-btn" type="button" data-panel-target="administrar-puestos">Administrar puestos</button>
         </div>
         <div class="nav-item">
-          <button class="nav-btn has-children" type="button" data-panel-target="registro">Registro</button>
+          <div class="nav-parent has-children">Registro</div>
           <div class="submenu" aria-label="Submenú de registro">
             <button type="button" data-panel-target="registro-usuario">Registro de Usuario</button>
             <button type="button" data-panel-target="registro-empresa">Registro de Empresa</button>
@@ -588,7 +607,7 @@
           </div>
         </div>
         <div class="nav-item">
-          <button class="nav-btn has-children" type="button" data-panel-target="busqueda">Búsqueda</button>
+          <div class="nav-parent has-children">Búsqueda</div>
           <div class="submenu" aria-label="Submenú de búsqueda">
             <button type="button" data-panel-target="busqueda-empresa">Búsqueda por Empresa</button>
             <button type="button" data-panel-target="busqueda-rut">Búsqueda por RUT</button>
@@ -669,47 +688,6 @@
             <div class="box">
               <h3>Estado actual</h3>
               <p>Contenedor listo para conectar con formularios y datos reales cuando definamos la lógica del módulo.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel" data-panel="registro">
-        <div class="panel-head">
-          <div>
-            <h2>Registro</h2>
-            <p>Formulario base para nuevos registros dentro de la bitácora.</p>
-          </div>
-        </div>
-        <div class="panel-body">
-          <div class="form-grid">
-            <div class="field">
-              <label>Empresa</label>
-              <select>
-                <option>Selecciona una empresa</option>
-                {% for empresa in empresas %}
-                <option>{{ empresa }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="field">
-              <label>Sucursal</label>
-              <input type="text" placeholder="Nombre de sucursal" />
-            </div>
-            <div class="field full">
-              <label>Detalle</label>
-              <textarea placeholder="Escribe aquí el registro..."></textarea>
-            </div>
-            <div class="field">
-              <label>Publicar por</label>
-              <input type="text" value="{{ user.name or user.username }}" />
-            </div>
-            <div class="field">
-              <label>Estado</label>
-              <select>
-                <option>Borrador</option>
-                <option>Publicado</option>
-              </select>
             </div>
           </div>
         </div>
@@ -799,32 +777,6 @@
             <div class="field">
               <label>Cargo</label>
               <input type="text" placeholder="Cargo" />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel" data-panel="busqueda">
-        <div class="panel-head">
-          <div>
-            <h2>Búsqueda</h2>
-            <p>Espacio para filtrar registros por empresa, sucursal o texto libre.</p>
-          </div>
-        </div>
-        <div class="panel-body">
-          <div class="form-grid">
-            <div class="field">
-              <label>Texto</label>
-              <input type="text" placeholder="Buscar por palabra clave" />
-            </div>
-            <div class="field">
-              <label>Empresa</label>
-              <select>
-                <option>Todas</option>
-                {% for empresa in empresas %}
-                <option>{{ empresa }}</option>
-                {% endfor %}
-              </select>
             </div>
           </div>
         </div>
