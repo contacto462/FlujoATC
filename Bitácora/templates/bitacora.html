@@ -1,9 +1,9 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bitácora ATC</title>
+  <title>BitÃ¡cora ATC</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -22,8 +22,8 @@
       --sidebar-top: #0b1424;
       --sidebar-bottom: #111c2f;
       --sidebar-text: rgba(255,255,255,.92);
-      --primary: #f4a672;
-      --primary-hover: #e89254;
+      --primary: #de7b36;
+      --primary-hover: #c96a2d;
       --accent: #0b1424;
       --accent-hover: #111c2f;
       --shadow: 0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
@@ -132,7 +132,7 @@
     }
 
     .nav-parent.has-children::after {
-      content: "›";
+      content: "â€º";
       position: absolute;
       right: 16px;
       top: 50%;
@@ -536,6 +536,58 @@
       font-size: 14px;
     }
 
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(11, 20, 36, 0.48);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 88px 24px 24px;
+      z-index: 120;
+    }
+
+    .modal {
+      width: min(900px, calc(100vw - 48px));
+      background: #ffffff;
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      border-radius: 10px;
+      box-shadow: 0 22px 48px rgba(15, 23, 42, 0.24);
+      overflow: hidden;
+    }
+
+    .modal-head {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      background: #ffffff;
+    }
+
+    .modal-head h3 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .modal-body {
+      padding: 16px;
+      background: #ffffff;
+    }
+
+    .modal-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.15fr) 120px;
+      gap: 16px;
+      align-items: end;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding-top: 16px;
+    }
+
     @media (max-width: 1120px) {
       .page {
         grid-template-columns: 1fr;
@@ -567,6 +619,7 @@
       .filters,
       .placeholder-grid,
       .form-grid,
+      .modal-grid,
       .nav {
         grid-template-columns: 1fr;
       }
@@ -590,7 +643,7 @@
         <img src="/static/img/logo-atc.png" alt="ATC - Alguien Te Cuida" />
       </div>
 
-      <nav class="nav" aria-label="Bitácora">
+      <nav class="nav" aria-label="BitÃ¡cora">
         <div class="nav-item">
           <button class="nav-btn active" type="button" data-panel-target="noticias">Noticias</button>
         </div>
@@ -599,7 +652,7 @@
         </div>
         <div class="nav-item">
           <div class="nav-parent has-children">Registro</div>
-          <div class="submenu" aria-label="Submenú de registro">
+          <div class="submenu" aria-label="SubmenÃº de registro">
             <button type="button" data-panel-target="registro-usuario">Registro de Usuario</button>
             <button type="button" data-panel-target="registro-empresa">Registro de Empresa</button>
             <button type="button" data-panel-target="registro-sucursal">Registro de Sucursal</button>
@@ -607,21 +660,21 @@
           </div>
         </div>
         <div class="nav-item">
-          <div class="nav-parent has-children">Búsqueda</div>
-          <div class="submenu" aria-label="Submenú de búsqueda">
-            <button type="button" data-panel-target="busqueda-empresa">Búsqueda por Empresa</button>
-            <button type="button" data-panel-target="busqueda-rut">Búsqueda por RUT</button>
+          <div class="nav-parent has-children">BÃºsqueda</div>
+          <div class="submenu" aria-label="SubmenÃº de bÃºsqueda">
+            <button type="button" data-panel-target="busqueda-empresa">BÃºsqueda por Empresa</button>
+            <button type="button" data-panel-target="busqueda-rut">BÃºsqueda por RUT</button>
             <button type="button" data-panel-target="busqueda-exportar">Exportar sucursales</button>
           </div>
         </div>
         <div class="nav-item">
-          <button class="nav-btn" type="button" data-panel-target="registro-observacion">Registro de Observación</button>
+          <button class="nav-btn" type="button" data-panel-target="registro-observacion">Registro de ObservaciÃ³n</button>
         </div>
         <div class="nav-item">
-          <button class="nav-btn" type="button" data-panel-target="bitacora-empresa">Bitácora Empresa</button>
+          <button class="nav-btn" type="button" data-panel-target="bitacora-empresa">BitÃ¡cora Empresa</button>
         </div>
         <div class="nav-item">
-          <button class="nav-btn" type="button" data-panel-target="bitacora-diaria">Bitácora Diaria</button>
+          <button class="nav-btn" type="button" data-panel-target="bitacora-diaria">BitÃ¡cora Diaria</button>
         </div>
         <div class="nav-item">
           <button class="nav-btn" type="button" data-panel-target="mensaje-masivo">Mensaje Masivo</button>
@@ -633,7 +686,7 @@
       <div class="content-top">
         <div class="content-session">
           <div class="content-session-info">
-            <div class="content-session-label">Sesión activa</div>
+            <div class="content-session-label">SesiÃ³n activa</div>
             <div class="content-session-name">{{ user.name or user.username }}</div>
           </div>
           <a class="btn btn-light" href="/seleccionar-area">Volver</a>
@@ -647,7 +700,7 @@
           </div>
           <div class="toolbar">
             <button type="button" class="btn btn-info">Ver noticias expiradas</button>
-            <button type="button" class="btn btn-primary">Agregar noticia</button>
+            <button type="button" class="btn btn-primary" id="openNewsModal">Agregar noticia</button>
           </div>
         </div>
         <div class="panel-body">
@@ -667,7 +720,7 @@
           </div>
 
           <div id="results" class="news-list">
-            <div class="empty">Aún no hay noticias cargadas en pantalla.</div>
+            <div class="empty">AÃºn no hay noticias cargadas en pantalla.</div>
           </div>
         </div>
       </section>
@@ -682,12 +735,12 @@
         <div class="panel-body">
           <div class="placeholder-grid">
             <div class="box">
-              <h3>Acciones rápidas</h3>
+              <h3>Acciones rÃ¡pidas</h3>
               <p>Crear, editar o desactivar puestos operativos desde una sola vista consistente con las tablas actuales.</p>
             </div>
             <div class="box">
               <h3>Estado actual</h3>
-              <p>Contenedor listo para conectar con formularios y datos reales cuando definamos la lógica del módulo.</p>
+              <p>Contenedor listo para conectar con formularios y datos reales cuando definamos la lÃ³gica del mÃ³dulo.</p>
             </div>
           </div>
         </div>
@@ -697,7 +750,7 @@
         <div class="panel-head">
           <div>
             <h2>Registro de Usuario</h2>
-            <p>Formulario base para creación de usuarios dentro de la bitácora.</p>
+            <p>Formulario base para creaciÃ³n de usuarios dentro de la bitÃ¡cora.</p>
           </div>
         </div>
         <div class="panel-body">
@@ -718,13 +771,13 @@
         <div class="panel-head">
           <div>
             <h2>Registro de Empresa</h2>
-            <p>Alta inicial de empresas para el ecosistema de bitácora.</p>
+            <p>Alta inicial de empresas para el ecosistema de bitÃ¡cora.</p>
           </div>
         </div>
         <div class="panel-body">
           <div class="form-grid">
             <div class="field">
-              <label>Razón social</label>
+              <label>RazÃ³n social</label>
               <input type="text" placeholder="Nombre de la empresa" />
             </div>
             <div class="field">
@@ -739,7 +792,7 @@
         <div class="panel-head">
           <div>
             <h2>Registro de Sucursal</h2>
-            <p>Creación de sucursales asociadas a una empresa existente.</p>
+            <p>CreaciÃ³n de sucursales asociadas a una empresa existente.</p>
           </div>
         </div>
         <div class="panel-body">
@@ -785,8 +838,8 @@
       <section class="panel" data-panel="busqueda-empresa">
         <div class="panel-head">
           <div>
-            <h2>Búsqueda por Empresa</h2>
-            <p>Consulta rápida por nombre de empresa.</p>
+            <h2>BÃºsqueda por Empresa</h2>
+            <p>Consulta rÃ¡pida por nombre de empresa.</p>
           </div>
         </div>
         <div class="panel-body">
@@ -805,7 +858,7 @@
       <section class="panel" data-panel="busqueda-rut">
         <div class="panel-head">
           <div>
-            <h2>Búsqueda por RUT</h2>
+            <h2>BÃºsqueda por RUT</h2>
             <p>Consulta de empresa o sucursal a partir del RUT.</p>
           </div>
         </div>
@@ -821,12 +874,12 @@
         <div class="panel-head">
           <div>
             <h2>Exportar sucursales</h2>
-            <p>Generación de salidas para sucursales filtradas.</p>
+            <p>GeneraciÃ³n de salidas para sucursales filtradas.</p>
           </div>
         </div>
         <div class="panel-body">
           <div class="box">
-            <h3>Exportación</h3>
+            <h3>ExportaciÃ³n</h3>
             <p>Este bloque queda listo para conectar exportaciones a Excel, CSV u otros formatos.</p>
           </div>
         </div>
@@ -835,7 +888,7 @@
       <section class="panel" data-panel="registro-observacion">
         <div class="panel-head">
           <div>
-            <h2>Registro de Observación</h2>
+            <h2>Registro de ObservaciÃ³n</h2>
             <p>Formulario dedicado a observaciones operativas y seguimiento interno.</p>
           </div>
         </div>
@@ -855,8 +908,8 @@
               <input type="text" placeholder="Sucursal" />
             </div>
             <div class="field full">
-              <label>Observación</label>
-              <textarea placeholder="Ingresa la observación correspondiente"></textarea>
+              <label>ObservaciÃ³n</label>
+              <textarea placeholder="Ingresa la observaciÃ³n correspondiente"></textarea>
             </div>
           </div>
         </div>
@@ -865,7 +918,7 @@
       <section class="panel" data-panel="bitacora-empresa">
         <div class="panel-head">
           <div>
-            <h2>Bitácora Empresa</h2>
+            <h2>BitÃ¡cora Empresa</h2>
             <p>Resumen por empresa con sus sucursales asociadas desde la BBDD unificada.</p>
           </div>
         </div>
@@ -881,12 +934,12 @@
               </thead>
               <tbody>
                 <tr>
-                  <td>Catálogo unificado</td>
+                  <td>CatÃ¡logo unificado</td>
                   <td>Consulta</td>
                   <td>bbdd_sucursales</td>
                 </tr>
                 <tr>
-                  <td>Sesión</td>
+                  <td>SesiÃ³n</td>
                   <td>Login compartido</td>
                   <td>ATC</td>
                 </tr>
@@ -899,14 +952,14 @@
       <section class="panel" data-panel="bitacora-diaria">
         <div class="panel-head">
           <div>
-            <h2>Bitácora Diaria</h2>
-            <p>Vista lista para registrar novedades del día con el mismo lenguaje visual del sistema.</p>
+            <h2>BitÃ¡cora Diaria</h2>
+            <p>Vista lista para registrar novedades del dÃ­a con el mismo lenguaje visual del sistema.</p>
           </div>
         </div>
         <div class="panel-body">
           <div class="box">
-            <h3>Próximo paso</h3>
-            <p>Podemos conectar esta sección a una tabla propia de bitácora diaria y ordenar entradas por fecha, empresa y sucursal.</p>
+            <h3>PrÃ³ximo paso</h3>
+            <p>Podemos conectar esta secciÃ³n a una tabla propia de bitÃ¡cora diaria y ordenar entradas por fecha, empresa y sucursal.</p>
           </div>
         </div>
       </section>
@@ -915,7 +968,7 @@
         <div class="panel-head">
           <div>
             <h2>Mensaje Masivo</h2>
-            <p>Base para envíos generales segmentados por empresa o sucursal.</p>
+            <p>Base para envÃ­os generales segmentados por empresa o sucursal.</p>
           </div>
         </div>
         <div class="panel-body">
@@ -935,13 +988,52 @@
             </div>
             <div class="field full">
               <label>Mensaje</label>
-              <textarea placeholder="Redacta aquí el mensaje masivo"></textarea>
+              <textarea placeholder="Redacta aquÃ­ el mensaje masivo"></textarea>
             </div>
           </div>
         </div>
       </section>
     </section>
   </main>
+
+  <div class="modal-overlay" id="newsModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="newsModalTitle">
+      <div class="modal-head">
+        <h3 id="newsModalTitle">Agregar noticia</h3>
+      </div>
+      <div class="modal-body">
+        <div class="modal-grid">
+          <div class="field">
+            <label for="modalEmpresaSelect">Seleccione empresa</label>
+            <select id="modalEmpresaSelect">
+              <option value="">Seleccione empresa</option>
+              {% for empresa in empresas %}
+              <option value="{{ empresa }}">{{ empresa }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label for="modalSucursalSelect">Nombre Sucursal</label>
+            <select id="modalSucursalSelect" disabled>
+              <option value="">Seleccione una sucursal</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="modalFechaFin">Fecha fin noticia</label>
+            <input id="modalFechaFin" type="date" />
+          </div>
+          <div class="field full">
+            <label for="modalMensaje">Mensaje</label>
+            <textarea id="modalMensaje" placeholder="Escribe aquÃ­ el contenido de la noticia"></textarea>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-primary">Guardar</button>
+          <button type="button" class="btn btn-info" id="closeNewsModal">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script>
     (function () {
@@ -950,6 +1042,11 @@
       const select = document.getElementById("empresaSelect");
       const status = document.getElementById("status");
       const results = document.getElementById("results");
+      const openNewsModalButton = document.getElementById("openNewsModal");
+      const closeNewsModalButton = document.getElementById("closeNewsModal");
+      const newsModal = document.getElementById("newsModal");
+      const modalEmpresaSelect = document.getElementById("modalEmpresaSelect");
+      const modalSucursalSelect = document.getElementById("modalSucursalSelect");
 
       function esc(value) {
         return String(value || "")
@@ -996,6 +1093,29 @@
         `).join("");
       }
 
+      function fillSucursalOptions(target, rows) {
+        if (!target) {
+          return;
+        }
+        const items = Array.isArray(rows) ? rows : [];
+        target.innerHTML = `
+          <option value="">Seleccione una sucursal</option>
+          ${items.map((row) => `<option value="${esc(row.nombre_sucursal || "")}">${esc(row.nombre_sucursal || "Sin sucursal")}</option>`).join("")}
+        `;
+        target.disabled = !items.length;
+      }
+
+      async function fetchSucursales(empresa) {
+        const response = await fetch(`/api/bitacora/sucursales?empresa=${encodeURIComponent(empresa)}`, {
+          headers: { Accept: "application/json" }
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.detail || "No se pudo cargar la bitácora.");
+        }
+        return payload;
+      }
+
       async function loadSucursales() {
         const empresa = (select.value || "").trim();
         if (!empresa) {
@@ -1006,13 +1126,7 @@
 
         status.textContent = "Cargando sucursales...";
         try {
-          const response = await fetch(`/api/bitacora/sucursales?empresa=${encodeURIComponent(empresa)}`, {
-            headers: { "Accept": "application/json" }
-          });
-          const payload = await response.json();
-          if (!response.ok) {
-            throw new Error(payload.detail || "No se pudo cargar la bitácora.");
-          }
+          const payload = await fetchSucursales(empresa);
           status.textContent = `${payload.total || 0} sucursal(es) encontradas para ${empresa}.`;
           renderRows(payload.sucursales || [], empresa);
         } catch (error) {
@@ -1021,8 +1135,60 @@
         }
       }
 
+      function openNewsModal() {
+        if (!newsModal) {
+          return;
+        }
+        newsModal.hidden = false;
+      }
+
+      function closeNewsModal() {
+        if (!newsModal) {
+          return;
+        }
+        newsModal.hidden = true;
+      }
+
       if (select) {
         select.addEventListener("change", loadSucursales);
+      }
+
+      if (openNewsModalButton) {
+        openNewsModalButton.addEventListener("click", openNewsModal);
+      }
+
+      if (closeNewsModalButton) {
+        closeNewsModalButton.addEventListener("click", closeNewsModal);
+      }
+
+      if (newsModal) {
+        newsModal.addEventListener("click", (event) => {
+          if (event.target === newsModal) {
+            closeNewsModal();
+          }
+        });
+      }
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && newsModal && !newsModal.hidden) {
+          closeNewsModal();
+        }
+      });
+
+      if (modalEmpresaSelect) {
+        modalEmpresaSelect.addEventListener("change", async () => {
+          const empresa = (modalEmpresaSelect.value || "").trim();
+          fillSucursalOptions(modalSucursalSelect, []);
+          if (!empresa) {
+            return;
+          }
+          try {
+            const payload = await fetchSucursales(empresa);
+            fillSucursalOptions(modalSucursalSelect, payload.sucursales || []);
+          } catch (error) {
+            fillSucursalOptions(modalSucursalSelect, []);
+          }
+        });
       }
 
       openPanel("noticias");
@@ -1030,3 +1196,4 @@
   </script>
 </body>
 </html>
+
