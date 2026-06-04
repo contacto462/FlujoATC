@@ -29,9 +29,9 @@
       --primary-hover: #e89254;
       --primary-soft: rgba(244,166,114,.12);
       --primary-strong: #c2410c;
-      --accent: #111827;
-      --accent-hover: #000000;
-      --accent-soft: rgba(17,24,39,.14);
+      --accent: #0b1424;
+      --accent-hover: #111c2f;
+      --accent-soft: rgba(11,20,36,.14);
       --shadow: 0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
       --shadow-lg: 0 18px 36px rgba(15,23,42,.10);
       --radius: 8px;
@@ -50,7 +50,7 @@
       font-size: 13.5px;
       font-weight: 500;
       line-height: 1.5;
-      letter-spacing: -0.005em;
+      letter-spacing: 0;
       overflow: hidden;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
@@ -68,7 +68,7 @@
       background: linear-gradient(180deg, var(--sidebar-top) 0%, var(--sidebar-bottom) 100%);
       color: var(--sidebar-text);
       border-right: 1px solid rgba(255,255,255,.06);
-      padding: 20px 18px 18px;
+      padding: 20px 0 18px;
       display: flex;
       flex-direction: column;
       min-height: 0;
@@ -76,7 +76,7 @@
     }
 
     .brand {
-      padding: 4px 6px 18px;
+      padding: 4px 18px 18px;
       border-bottom: 1px solid rgba(255,255,255,.08);
       margin-bottom: 18px;
       display: flex;
@@ -101,10 +101,11 @@
 
     .nav {
       display: grid;
-      gap: 6px;
+      gap: 2px;
       min-height: 0;
       overflow: auto;
-      padding-right: 2px;
+      padding-right: 0;
+      width: 100%;
     }
 
     .nav-btn {
@@ -113,26 +114,29 @@
       border: 1px solid transparent;
       background: transparent;
       color: var(--sidebar-text);
-      border-radius: 10px;
-      padding: 12px 14px;
+      border-radius: 0;
+      padding: 13px 18px;
       text-align: left;
       font: inherit;
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
-      transition: background .15s ease, border-color .15s ease, transform .15s ease, color .15s ease;
+      transition: background .16s ease, border-color .16s ease, transform .16s ease, color .16s ease, box-shadow .16s ease;
+      transform: translateY(0);
     }
 
     .nav-btn:hover {
-      background: rgba(255,255,255,.06);
-      border-color: rgba(255,255,255,.08);
-      transform: translateX(2px);
+      background: linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
+      border-color: transparent;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(0,0,0,.14);
     }
 
     .nav-btn.active {
       background: linear-gradient(135deg, rgba(255,255,255,.18), rgba(255,255,255,.08));
-      border-color: rgba(255,255,255,.16);
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
+      border-color: transparent;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(0,0,0,.16);
     }
 
     .content {
@@ -213,7 +217,7 @@
       margin: 0;
       font-size: 18px;
       font-weight: 700;
-      letter-spacing: -.015em;
+      letter-spacing: 0;
       color: var(--text);
       line-height: 1.25;
     }
@@ -349,6 +353,10 @@
       flex-wrap: wrap;
       gap: 10px;
       justify-content: flex-end;
+    }
+
+    .top-actions:empty {
+      display: none;
     }
 
     .news-list {
@@ -547,7 +555,6 @@
         <div class="panel-head">
           <div>
             <h2>Noticias</h2>
-            <p>Vista principal de la bitacora. Esta seccion se abre por defecto al entrar al modulo.</p>
           </div>
           <div class="toolbar">
             <button type="button" class="btn btn-info">Ver noticias expiradas</button>
@@ -567,10 +574,7 @@
               <div id="status" class="status">Selecciona una empresa para cargar sucursales y mostrar las noticias relacionadas.</div>
             </div>
 
-            <div class="top-actions">
-              <a class="btn btn-light" href="/bitacora">Limpiar</a>
-              <a class="btn btn-light" href="/seleccionar-area">Volver a areas</a>
-            </div>
+            <div class="top-actions"></div>
           </div>
 
           <div id="results" class="news-list">
