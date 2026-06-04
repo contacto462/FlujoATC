@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bitacora ATC</title>
+  <title>Bitácora ATC</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -21,30 +21,23 @@
       --text-faint: #9ca3af;
       --sidebar-top: #0b1424;
       --sidebar-bottom: #111c2f;
-      --sidebar-chip: rgba(255,255,255,.05);
-      --sidebar-border: rgba(255,255,255,.09);
       --sidebar-text: rgba(255,255,255,.92);
-      --sidebar-muted: rgba(255,255,255,.64);
       --primary: #f4a672;
       --primary-hover: #e89254;
-      --primary-soft: rgba(244,166,114,.12);
-      --primary-strong: #c2410c;
       --accent: #0b1424;
       --accent-hover: #111c2f;
-      --accent-soft: rgba(11,20,36,.14);
       --shadow: 0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
-      --shadow-lg: 0 18px 36px rgba(15,23,42,.10);
       --radius: 8px;
       --radius-lg: 12px;
-      --radius-xl: 14px;
     }
 
     * { box-sizing: border-box; }
     [hidden] { display: none !important; }
     html, body { height: 100%; }
+
     body {
       margin: 0;
-      font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       background: var(--bg);
       color: var(--text);
       font-size: 13.5px;
@@ -92,19 +85,16 @@
       filter: drop-shadow(0 2px 6px rgba(0,0,0,.30));
     }
 
-    .brand-copy {
-      margin-top: 10px;
-      color: var(--sidebar-muted);
-      font-size: 12.5px;
-      line-height: 1.45;
-    }
-
     .nav {
       display: grid;
       gap: 2px;
       min-height: 0;
       overflow: auto;
-      padding-right: 0;
+      width: 100%;
+    }
+
+    .nav-item {
+      position: relative;
       width: 100%;
     }
 
@@ -137,6 +127,68 @@
       border-color: transparent;
       transform: translateY(-1px);
       box-shadow: 0 8px 18px rgba(0,0,0,.16);
+    }
+
+    .nav-btn.has-children {
+      padding-right: 40px;
+    }
+
+    .nav-btn.has-children::after {
+      content: "›";
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 18px;
+      color: rgba(255,255,255,.78);
+      pointer-events: none;
+    }
+
+    .submenu {
+      position: absolute;
+      left: 100%;
+      top: 0;
+      min-width: 250px;
+      background: rgba(0,0,0,.96);
+      color: #ffffff;
+      border: 1px solid rgba(255,255,255,.08);
+      box-shadow: 0 18px 40px rgba(0,0,0,.28);
+      padding: 10px 0;
+      opacity: 0;
+      visibility: hidden;
+      transform: translate(10px, 0);
+      transition: opacity .14s ease, transform .14s ease, visibility .14s ease;
+      z-index: 20;
+    }
+
+    .nav-item:hover .submenu,
+    .nav-item:focus-within .submenu,
+    .nav-item.submenu-open .submenu {
+      opacity: 1;
+      visibility: visible;
+      transform: translate(0, 0);
+    }
+
+    .submenu a,
+    .submenu button {
+      display: block;
+      width: 100%;
+      padding: 12px 22px;
+      background: transparent;
+      border: 0;
+      color: #ffffff;
+      text-align: left;
+      text-decoration: none;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color .14s ease, color .14s ease;
+    }
+
+    .submenu a:hover,
+    .submenu button:hover {
+      background: rgba(255,255,255,.08);
     }
 
     .content {
@@ -220,13 +272,6 @@
       letter-spacing: 0;
       color: var(--text);
       line-height: 1.25;
-    }
-
-    .panel-head p {
-      margin: 6px 0 0;
-      color: var(--text-muted);
-      font-size: 13px;
-      line-height: 1.45;
     }
 
     .toolbar {
@@ -346,13 +391,6 @@
       margin-top: 8px;
       color: var(--text-muted);
       font-size: 13px;
-    }
-
-    .top-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      justify-content: flex-end;
     }
 
     .top-actions:empty {
@@ -493,6 +531,12 @@
       .nav {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
+
+      .submenu {
+        left: 0;
+        top: calc(100% + 4px);
+        min-width: 100%;
+      }
     }
 
     @media (max-width: 820px) {
@@ -527,24 +571,50 @@
         <img src="/static/img/logo-atc.png" alt="ATC - Alguien Te Cuida" />
       </div>
 
-      <nav class="nav" aria-label="Bitacora">
-        <button class="nav-btn active" type="button" data-panel-target="noticias">Noticias</button>
-        <button class="nav-btn" type="button" data-panel-target="administrar-puestos">Administrar puestos</button>
-        <button class="nav-btn" type="button" data-panel-target="registro">Registro</button>
-        <button class="nav-btn" type="button" data-panel-target="busqueda">Busqueda</button>
-        <button class="nav-btn" type="button" data-panel-target="registro-observacion">Registro de Observacion</button>
-        <button class="nav-btn" type="button" data-panel-target="bitacora-empresa">Bitacora Empresa</button>
-        <button class="nav-btn" type="button" data-panel-target="bitacora-diaria">Bitacora Diaria</button>
-        <button class="nav-btn" type="button" data-panel-target="mensaje-masivo">Mensaje Masivo</button>
+      <nav class="nav" aria-label="Bitácora">
+        <div class="nav-item">
+          <button class="nav-btn active" type="button" data-panel-target="noticias">Noticias</button>
+        </div>
+        <div class="nav-item">
+          <button class="nav-btn" type="button" data-panel-target="administrar-puestos">Administrar puestos</button>
+        </div>
+        <div class="nav-item">
+          <button class="nav-btn has-children" type="button" data-panel-target="registro">Registro</button>
+          <div class="submenu" aria-label="Submenú de registro">
+            <button type="button" data-panel-target="registro-usuario">Registro de Usuario</button>
+            <button type="button" data-panel-target="registro-empresa">Registro de Empresa</button>
+            <button type="button" data-panel-target="registro-sucursal">Registro de Sucursal</button>
+            <button type="button" data-panel-target="registro-empleado">Registro de Empleado</button>
+          </div>
+        </div>
+        <div class="nav-item">
+          <button class="nav-btn has-children" type="button" data-panel-target="busqueda">Búsqueda</button>
+          <div class="submenu" aria-label="Submenú de búsqueda">
+            <button type="button" data-panel-target="busqueda-empresa">Búsqueda por Empresa</button>
+            <button type="button" data-panel-target="busqueda-rut">Búsqueda por RUT</button>
+            <button type="button" data-panel-target="busqueda-exportar">Exportar sucursales</button>
+          </div>
+        </div>
+        <div class="nav-item">
+          <button class="nav-btn" type="button" data-panel-target="registro-observacion">Registro de Observación</button>
+        </div>
+        <div class="nav-item">
+          <button class="nav-btn" type="button" data-panel-target="bitacora-empresa">Bitácora Empresa</button>
+        </div>
+        <div class="nav-item">
+          <button class="nav-btn" type="button" data-panel-target="bitacora-diaria">Bitácora Diaria</button>
+        </div>
+        <div class="nav-item">
+          <button class="nav-btn" type="button" data-panel-target="mensaje-masivo">Mensaje Masivo</button>
+        </div>
       </nav>
-
     </aside>
 
     <section class="content">
       <div class="content-top">
         <div class="content-session">
           <div class="content-session-info">
-            <div class="content-session-label">Sesion activa</div>
+            <div class="content-session-label">Sesión activa</div>
             <div class="content-session-name">{{ user.name or user.username }}</div>
           </div>
           <a class="btn btn-light" href="/seleccionar-area">Volver</a>
@@ -578,7 +648,7 @@
           </div>
 
           <div id="results" class="news-list">
-            <div class="empty">Aun no hay noticias cargadas en pantalla.</div>
+            <div class="empty">Aún no hay noticias cargadas en pantalla.</div>
           </div>
         </div>
       </section>
@@ -593,12 +663,12 @@
         <div class="panel-body">
           <div class="placeholder-grid">
             <div class="box">
-              <h3>Acciones rapidas</h3>
+              <h3>Acciones rápidas</h3>
               <p>Crear, editar o desactivar puestos operativos desde una sola vista consistente con las tablas actuales.</p>
             </div>
             <div class="box">
               <h3>Estado actual</h3>
-              <p>Contenedor listo para conectar con formularios y datos reales cuando definamos la logica del modulo.</p>
+              <p>Contenedor listo para conectar con formularios y datos reales cuando definamos la lógica del módulo.</p>
             </div>
           </div>
         </div>
@@ -608,7 +678,7 @@
         <div class="panel-head">
           <div>
             <h2>Registro</h2>
-            <p>Formulario base para nuevos registros dentro de la bitacora.</p>
+            <p>Formulario base para nuevos registros dentro de la bitácora.</p>
           </div>
         </div>
         <div class="panel-body">
@@ -628,7 +698,7 @@
             </div>
             <div class="field full">
               <label>Detalle</label>
-              <textarea placeholder="Escribe aqui el registro..."></textarea>
+              <textarea placeholder="Escribe aquí el registro..."></textarea>
             </div>
             <div class="field">
               <label>Publicar por</label>
@@ -645,10 +715,99 @@
         </div>
       </section>
 
+      <section class="panel" data-panel="registro-usuario">
+        <div class="panel-head">
+          <div>
+            <h2>Registro de Usuario</h2>
+            <p>Formulario base para creación de usuarios dentro de la bitácora.</p>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="form-grid">
+            <div class="field">
+              <label>Nombre</label>
+              <input type="text" placeholder="Nombre del usuario" />
+            </div>
+            <div class="field">
+              <label>Correo</label>
+              <input type="text" placeholder="correo@empresa.cl" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="registro-empresa">
+        <div class="panel-head">
+          <div>
+            <h2>Registro de Empresa</h2>
+            <p>Alta inicial de empresas para el ecosistema de bitácora.</p>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="form-grid">
+            <div class="field">
+              <label>Razón social</label>
+              <input type="text" placeholder="Nombre de la empresa" />
+            </div>
+            <div class="field">
+              <label>RUT</label>
+              <input type="text" placeholder="12.345.678-9" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="registro-sucursal">
+        <div class="panel-head">
+          <div>
+            <h2>Registro de Sucursal</h2>
+            <p>Creación de sucursales asociadas a una empresa existente.</p>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="form-grid">
+            <div class="field">
+              <label>Empresa</label>
+              <select>
+                <option>Selecciona una empresa</option>
+                {% for empresa in empresas %}
+                <option>{{ empresa }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="field">
+              <label>Sucursal</label>
+              <input type="text" placeholder="Nombre de la sucursal" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="registro-empleado">
+        <div class="panel-head">
+          <div>
+            <h2>Registro de Empleado</h2>
+            <p>Alta de empleados vinculados a empresa o sucursal.</p>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="form-grid">
+            <div class="field">
+              <label>Nombre</label>
+              <input type="text" placeholder="Nombre del empleado" />
+            </div>
+            <div class="field">
+              <label>Cargo</label>
+              <input type="text" placeholder="Cargo" />
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="panel" data-panel="busqueda">
         <div class="panel-head">
           <div>
-            <h2>Busqueda</h2>
+            <h2>Búsqueda</h2>
             <p>Espacio para filtrar registros por empresa, sucursal o texto libre.</p>
           </div>
         </div>
@@ -671,10 +830,60 @@
         </div>
       </section>
 
+      <section class="panel" data-panel="busqueda-empresa">
+        <div class="panel-head">
+          <div>
+            <h2>Búsqueda por Empresa</h2>
+            <p>Consulta rápida por nombre de empresa.</p>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="field">
+            <label>Empresa</label>
+            <select>
+              <option>Selecciona una empresa</option>
+              {% for empresa in empresas %}
+              <option>{{ empresa }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="busqueda-rut">
+        <div class="panel-head">
+          <div>
+            <h2>Búsqueda por RUT</h2>
+            <p>Consulta de empresa o sucursal a partir del RUT.</p>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="field">
+            <label>RUT</label>
+            <input type="text" placeholder="12.345.678-9" />
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="busqueda-exportar">
+        <div class="panel-head">
+          <div>
+            <h2>Exportar sucursales</h2>
+            <p>Generación de salidas para sucursales filtradas.</p>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="box">
+            <h3>Exportación</h3>
+            <p>Este bloque queda listo para conectar exportaciones a Excel, CSV u otros formatos.</p>
+          </div>
+        </div>
+      </section>
+
       <section class="panel" data-panel="registro-observacion">
         <div class="panel-head">
           <div>
-            <h2>Registro de Observacion</h2>
+            <h2>Registro de Observación</h2>
             <p>Formulario dedicado a observaciones operativas y seguimiento interno.</p>
           </div>
         </div>
@@ -694,8 +903,8 @@
               <input type="text" placeholder="Sucursal" />
             </div>
             <div class="field full">
-              <label>Observacion</label>
-              <textarea placeholder="Ingresa la observacion correspondiente"></textarea>
+              <label>Observación</label>
+              <textarea placeholder="Ingresa la observación correspondiente"></textarea>
             </div>
           </div>
         </div>
@@ -704,7 +913,7 @@
       <section class="panel" data-panel="bitacora-empresa">
         <div class="panel-head">
           <div>
-            <h2>Bitacora Empresa</h2>
+            <h2>Bitácora Empresa</h2>
             <p>Resumen por empresa con sus sucursales asociadas desde la BBDD unificada.</p>
           </div>
         </div>
@@ -720,12 +929,12 @@
               </thead>
               <tbody>
                 <tr>
-                  <td>Catalogo unificado</td>
+                  <td>Catálogo unificado</td>
                   <td>Consulta</td>
                   <td>bbdd_sucursales</td>
                 </tr>
                 <tr>
-                  <td>Sesion</td>
+                  <td>Sesión</td>
                   <td>Login compartido</td>
                   <td>ATC</td>
                 </tr>
@@ -738,14 +947,14 @@
       <section class="panel" data-panel="bitacora-diaria">
         <div class="panel-head">
           <div>
-            <h2>Bitacora Diaria</h2>
-            <p>Vista lista para registrar novedades del dia con el mismo lenguaje visual del sistema.</p>
+            <h2>Bitácora Diaria</h2>
+            <p>Vista lista para registrar novedades del día con el mismo lenguaje visual del sistema.</p>
           </div>
         </div>
         <div class="panel-body">
           <div class="box">
-            <h3>Proximo paso</h3>
-            <p>Podemos conectar esta seccion a una tabla propia de bitacora diaria y ordenar entradas por fecha, empresa y sucursal.</p>
+            <h3>Próximo paso</h3>
+            <p>Podemos conectar esta sección a una tabla propia de bitácora diaria y ordenar entradas por fecha, empresa y sucursal.</p>
           </div>
         </div>
       </section>
@@ -754,7 +963,7 @@
         <div class="panel-head">
           <div>
             <h2>Mensaje Masivo</h2>
-            <p>Base para envios generales segmentados por empresa o sucursal.</p>
+            <p>Base para envíos generales segmentados por empresa o sucursal.</p>
           </div>
         </div>
         <div class="panel-body">
@@ -774,7 +983,7 @@
             </div>
             <div class="field full">
               <label>Mensaje</label>
-              <textarea placeholder="Redacta aqui el mensaje masivo"></textarea>
+              <textarea placeholder="Redacta aquí el mensaje masivo"></textarea>
             </div>
           </div>
         </div>
@@ -827,10 +1036,10 @@
             <p class="branch">Sucursal: ${esc(row.nombre_sucursal || "Sin sucursal")}</p>
             <p class="copy">
               Registro disponible para <strong>${esc(row.nombre_sucursal || "esta sucursal")}</strong>.
-              Direccion: ${esc(row.direccion_sucursal || "-")}.
-              Comuna: ${esc(row.comuna || "-")}. Region: ${esc(row.region || "-")}.
+              Dirección: ${esc(row.direccion_sucursal || "-")}.
+              Comuna: ${esc(row.comuna || "-")}. Región: ${esc(row.region || "-")}.
             </p>
-            <div class="news-meta">Publicado por {{ (user.name or user.username)|e }} · item ${index + 1}</div>
+            <div class="news-meta">Publicado por {{ (user.name or user.username)|e }} · ítem ${index + 1}</div>
           </article>
         `).join("");
       }
@@ -839,7 +1048,7 @@
         const empresa = (select.value || "").trim();
         if (!empresa) {
           status.textContent = "Selecciona una empresa para cargar sucursales y mostrar las noticias relacionadas.";
-          renderEmpty("Aun no hay noticias cargadas en pantalla.");
+          renderEmpty("Aún no hay noticias cargadas en pantalla.");
           return;
         }
 
@@ -850,13 +1059,13 @@
           });
           const payload = await response.json();
           if (!response.ok) {
-            throw new Error(payload.detail || "No se pudo cargar la bitacora.");
+            throw new Error(payload.detail || "No se pudo cargar la bitácora.");
           }
           status.textContent = `${payload.total || 0} sucursal(es) encontradas para ${empresa}.`;
           renderRows(payload.sucursales || [], empresa);
         } catch (error) {
-          status.textContent = error.message || "No se pudo cargar la bitacora.";
-          renderEmpty("Ocurrio un problema consultando la base unificada.");
+          status.textContent = error.message || "No se pudo cargar la bitácora.";
+          renderEmpty("Ocurrió un problema consultando la base unificada.");
         }
       }
 

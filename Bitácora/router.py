@@ -29,14 +29,14 @@ def _decode_cookie_token(token: str) -> str:
             raise ValueError("Token sin sub")
         return str(username)
     except (JWTError, ValueError) as exc:
-        raise HTTPException(status_code=401, detail="Token invalido") from exc
+        raise HTTPException(status_code=401, detail="Token inválido") from exc
 
 
 def _require_bitacora_access(user: User) -> None:
     if not can_access_bitacora(user):
         raise HTTPException(
             status_code=403,
-            detail="La bitacora no esta disponible para usuarios con acceso solo Tecnico.",
+            detail="La bitácora no está disponible para usuarios con acceso solo Técnico.",
         )
 
 
