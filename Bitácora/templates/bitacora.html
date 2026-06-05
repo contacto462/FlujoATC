@@ -516,6 +516,102 @@
       box-shadow: var(--shadow);
     }
 
+    .users-layout {
+      display: grid;
+      gap: 16px;
+    }
+
+    .users-toolbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: end;
+    }
+
+    .users-toolbar-main {
+      display: grid;
+      gap: 12px;
+    }
+
+    .users-toolbar-meta {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    .users-check {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-soft);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .users-check input {
+      width: 14px;
+      height: 14px;
+      accent-color: var(--primary);
+    }
+
+    .users-toolbar-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 12px;
+    }
+
+    .btn-export {
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: #ffffff;
+      border: 1px solid var(--border-strong);
+      color: var(--text-soft);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .users-table table {
+      min-width: 980px;
+    }
+
+    .users-table th {
+      background: #2f2f31;
+      color: #ffffff;
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: .02em;
+    }
+
+    .users-table td {
+      color: var(--text-soft);
+      font-size: 13px;
+    }
+
+    .users-table .icon-cell {
+      width: 72px;
+      text-align: center;
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    .users-table .status-active {
+      color: #1f2937;
+      font-weight: 600;
+    }
+
+    .users-modal {
+      width: min(900px, calc(100vw - 48px));
+    }
+
+    .users-modal-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px 30px;
+      align-items: end;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
@@ -714,20 +810,7 @@
           </div>
         </div>
         <div class="panel-body">
-          <div class="filters">
-            <div class="field">
-              <label for="empresaSelect">Empresa</label>
-              <select id="empresaSelect">
-                <option value="">Selecciona una empresa</option>
-                {% for empresa in empresas %}
-                <option value="{{ empresa }}">{{ empresa }}</option>
-                {% endfor %}
-              </select>
-              <div id="status" class="status">Selecciona una empresa para cargar sucursales y mostrar las noticias relacionadas.</div>
-            </div>
-
-            <div class="top-actions"></div>
-          </div>
+          <div id="status" class="status" hidden></div>
 
           <div id="results" class="news-list">
             <div class="empty">Aún no hay noticias cargadas en pantalla.</div>
