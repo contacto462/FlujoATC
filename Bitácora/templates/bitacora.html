@@ -607,15 +607,19 @@
       gap: 18px;
     }
 
+    .company-search-content[hidden] {
+      display: none !important;
+    }
+
     .company-search-top {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 16px;
-      padding: 14px 16px 18px;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      background: #fff;
-      box-shadow: var(--shadow);
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
     }
 
     .company-search-grid {
@@ -679,6 +683,99 @@
 
     .company-card-body {
       padding: 0 16px 12px;
+    }
+
+    .search-select {
+      position: relative;
+    }
+
+    .search-select-trigger {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      padding: 10px 36px 10px 12px;
+      font: inherit;
+      font-size: 13px;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .search-select-trigger::placeholder {
+      color: var(--text-muted);
+    }
+
+    .search-select::after {
+      content: "";
+      position: absolute;
+      right: 12px;
+      top: 42px;
+      width: 8px;
+      height: 8px;
+      border-right: 1.5px solid var(--text-muted);
+      border-bottom: 1.5px solid var(--text-muted);
+      transform: rotate(45deg);
+      pointer-events: none;
+    }
+
+    .search-select-menu {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(100% + 6px);
+      z-index: 40;
+      background: #fff;
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16);
+      overflow: hidden;
+    }
+
+    .search-select-menu[hidden] {
+      display: none !important;
+    }
+
+    .search-select-filter {
+      width: calc(100% - 12px);
+      margin: 6px;
+      border: 2px solid #1f2937;
+      border-radius: 4px;
+      padding: 7px 9px;
+      font: inherit;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .search-select-options {
+      max-height: 240px;
+      overflow: auto;
+      border-top: 1px solid var(--border);
+    }
+
+    .search-select-option {
+      display: block;
+      width: 100%;
+      border: 0;
+      background: #fff;
+      color: var(--text);
+      text-align: left;
+      padding: 10px 12px;
+      font: inherit;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .search-select-option:hover,
+    .search-select-option.is-active {
+      background: #5a8ee6;
+      color: #fff;
+    }
+
+    .search-select-empty {
+      padding: 10px 12px;
+      color: var(--text-muted);
+      font-size: 13px;
     }
 
     table {
@@ -894,7 +991,7 @@
       <section class="panel" data-panel="administrar-puestos">
         <div class="panel-head">
           <div>
-            <h2>Administrar puestos callate</h2>
+            <h2>Administrar puestos</h2>
             <p>Base inicial para gestionar puestos por empresa y sucursal dentro del ecosistema ATC.</p>
           </div>
         </div>
@@ -977,29 +1074,40 @@
         <div class="panel-head">
           <div>
             <h2>Búsqueda por Empresa</h2>
-            <p>Consulta operativa por empresa y sucursal con datos reales de la BBDD unificada.</p>
           </div>
         </div>
         <div class="panel-body">
           <div class="company-search-shell">
             <div class="company-search-top">
               <div class="field">
-                <label for="busquedaEmpresaSelect">Seleccione empresa</label>
-                <select id="busquedaEmpresaSelect">
-                  <option value="">Selecciona una empresa</option>
-                  {% for empresa in empresas %}
-                  <option value="{{ empresa }}">{{ empresa }}</option>
-                  {% endfor %}
-                </select>
+                <label for="busquedaEmpresaTrigger">Seleccione empresa</label>
+                <div class="search-select" id="busquedaEmpresaSelect">
+                  <input id="busquedaEmpresaTrigger" class="search-select-trigger" type="text" value="" placeholder="Seleccione empresa" readonly />
+                  <div class="search-select-menu" id="busquedaEmpresaMenu" hidden>
+                    <input id="busquedaEmpresaFilter" class="search-select-filter" type="text" value="" />
+                    <div class="search-select-options" id="busquedaEmpresaOptions">
+                      {% for empresa in empresas %}
+                      <button type="button" class="search-select-option" data-value="{{ empresa }}">{{ empresa }}</button>
+                      {% endfor %}
+                    </div>
+                  </div>
+                </div>
               </div>
               <div class="field">
-                <label for="busquedaSucursalSelect">Nombre sucursal</label>
-                <select id="busquedaSucursalSelect" disabled>
-                  <option value="">Seleccione una sucursal</option>
-                </select>
+                <label for="busquedaSucursalTrigger">Nombre sucursal</label>
+                <div class="search-select" id="busquedaSucursalSelect">
+                  <input id="busquedaSucursalTrigger" class="search-select-trigger" type="text" value="" placeholder="Seleccione sucursal" readonly />
+                  <div class="search-select-menu" id="busquedaSucursalMenu" hidden>
+                    <input id="busquedaSucursalFilter" class="search-select-filter" type="text" value="" />
+                    <div class="search-select-options" id="busquedaSucursalOptions">
+                      <div class="search-select-empty">Seleccione una empresa primero</div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
+            <div class="company-search-content" id="companySearchContent" hidden>
             <div class="company-search-grid">
               <div class="company-card">
                 <div class="company-card-head">
@@ -1093,6 +1201,7 @@
                   </tbody>
                 </table>
               </div>
+            </div>
             </div>
           </div>
         </div>
@@ -1326,7 +1435,16 @@
       const hideDisabledUsers = document.getElementById("hideDisabledUsers");
       const userRows = Array.from(document.querySelectorAll("[data-user-row]"));
       const busquedaEmpresaSelect = document.getElementById("busquedaEmpresaSelect");
+      const busquedaEmpresaTrigger = document.getElementById("busquedaEmpresaTrigger");
+      const busquedaEmpresaMenu = document.getElementById("busquedaEmpresaMenu");
+      const busquedaEmpresaFilter = document.getElementById("busquedaEmpresaFilter");
+      const busquedaEmpresaOptions = document.getElementById("busquedaEmpresaOptions");
       const busquedaSucursalSelect = document.getElementById("busquedaSucursalSelect");
+      const busquedaSucursalTrigger = document.getElementById("busquedaSucursalTrigger");
+      const busquedaSucursalMenu = document.getElementById("busquedaSucursalMenu");
+      const busquedaSucursalFilter = document.getElementById("busquedaSucursalFilter");
+      const busquedaSucursalOptions = document.getElementById("busquedaSucursalOptions");
+      const companySearchContent = document.getElementById("companySearchContent");
       const companyCardTitle = document.getElementById("companyCardTitle");
       const companyDetailBody = document.getElementById("companyDetailBody");
       const companyEmergencyBody = document.getElementById("companyEmergencyBody");
@@ -1334,6 +1452,9 @@
       const companyNoticiasBody = document.getElementById("companyNoticiasBody");
       const companyAuthorizedBody = document.getElementById("companyAuthorizedBody");
       let newsView = "activas";
+      let selectedEmpresa = "";
+      let selectedSucursal = "";
+      let sucursalOptions = [];
 
       function esc(value) {
         return String(value || "")
@@ -1423,16 +1544,74 @@
         `).join("");
       }
 
-      function fillSucursalOptions(target, rows) {
-        if (!target) {
+      function renderSearchOptions(container, items, emptyMessage = "Sin resultados") {
+        if (!container) {
           return;
         }
-        const items = Array.isArray(rows) ? rows : [];
-        target.innerHTML = `
-          <option value="">Seleccione una sucursal</option>
-          ${items.map((row) => `<option value="${esc(row.nombre_sucursal || "")}">${esc(row.nombre_sucursal || "Sin sucursal")}</option>`).join("")}
-        `;
-        target.disabled = !items.length;
+        if (!items.length) {
+          container.innerHTML = `<div class="search-select-empty">${esc(emptyMessage)}</div>`;
+          return;
+        }
+        container.innerHTML = items.map((item, index) => `
+          <button type="button" class="search-select-option${index === 0 ? " is-active" : ""}" data-value="${esc(item.value)}">${esc(item.label)}</button>
+        `).join("");
+      }
+
+      function filterSearchOptions(container, filterValue) {
+        if (!container) {
+          return;
+        }
+        const value = (filterValue || "").trim().toLowerCase();
+        const options = Array.from(container.querySelectorAll(".search-select-option"));
+        let visibleCount = 0;
+        options.forEach((option) => {
+          const matches = !value || option.textContent.toLowerCase().includes(value);
+          option.hidden = !matches;
+          if (matches) {
+            visibleCount += 1;
+          }
+        });
+        let empty = container.querySelector(".search-select-empty");
+        if (!visibleCount) {
+          if (!empty) {
+            empty = document.createElement("div");
+            empty.className = "search-select-empty";
+            empty.textContent = "Sin resultados";
+            container.appendChild(empty);
+          }
+        } else if (empty) {
+          empty.remove();
+        }
+      }
+
+      function openSearchMenu(menu, filterInput) {
+        if (!menu) {
+          return;
+        }
+        menu.hidden = false;
+        if (filterInput) {
+          filterInput.value = "";
+          filterSearchOptions(menu.querySelector(".search-select-options"), "");
+          setTimeout(() => filterInput.focus(), 0);
+        }
+      }
+
+      function closeSearchMenu(menu) {
+        if (menu) {
+          menu.hidden = true;
+        }
+      }
+
+      function fillSucursalOptions(rows) {
+        sucursalOptions = (Array.isArray(rows) ? rows : []).map((row) => ({
+          value: String(row.nombre_sucursal || ""),
+          label: String(row.nombre_sucursal || "Sin sucursal"),
+        }));
+        renderSearchOptions(
+          busquedaSucursalOptions,
+          sucursalOptions,
+          selectedEmpresa ? "No hay sucursales disponibles" : "Seleccione una empresa primero"
+        );
       }
 
       function renderSimpleRows(target, rows, emptyCols = 2) {
@@ -1477,6 +1656,14 @@
       }
 
       function renderBusquedaEmpresa(payload) {
+        const hasSelection = Boolean(payload?.empresa) && Boolean(payload?.sucursal_actual);
+        if (companySearchContent) {
+          companySearchContent.hidden = !hasSelection;
+        }
+        if (!hasSelection) {
+          return;
+        }
+
         const detail = payload?.detalle || {};
         const emergencyContacts = Array.isArray(payload?.contactos_emergencia) ? payload.contactos_emergencia : [];
         const indicaciones = Array.isArray(payload?.indicaciones_especiales) ? payload.indicaciones_especiales : [];
@@ -1562,9 +1749,13 @@
       }
 
       async function loadBusquedaEmpresa(preferredSucursal = "") {
-        const empresa = (busquedaEmpresaSelect?.value || "").trim();
+        const empresa = (preferredSucursal ? selectedEmpresa : selectedEmpresa).trim();
         if (!empresa) {
-          fillSucursalOptions(busquedaSucursalSelect, []);
+          fillSucursalOptions([]);
+          selectedSucursal = "";
+          if (busquedaSucursalTrigger) {
+            busquedaSucursalTrigger.value = "";
+          }
           renderBusquedaEmpresa(null);
           return;
         }
@@ -1581,11 +1772,16 @@
           if (!response.ok) {
             throw new Error(payload.detail || "No se pudo cargar la búsqueda por empresa.");
           }
-          fillSucursalOptions(busquedaSucursalSelect, payload.sucursales || []);
-          if (busquedaSucursalSelect) {
-            busquedaSucursalSelect.value = payload.sucursal_actual || "";
+          fillSucursalOptions(payload.sucursales || []);
+          if (preferredSucursal) {
+            selectedSucursal = payload.sucursal_actual || "";
+            if (busquedaSucursalTrigger) {
+              busquedaSucursalTrigger.value = selectedSucursal;
+            }
+            renderBusquedaEmpresa(payload);
+          } else {
+            renderBusquedaEmpresa(null);
           }
-          renderBusquedaEmpresa(payload);
         } catch (error) {
           renderBusquedaEmpresa(null);
         }
@@ -1771,16 +1967,83 @@
         });
       }
 
-      if (busquedaEmpresaSelect) {
-        busquedaEmpresaSelect.addEventListener("change", () => {
+      if (busquedaEmpresaTrigger) {
+        busquedaEmpresaTrigger.addEventListener("click", () => {
+          openSearchMenu(busquedaEmpresaMenu, busquedaEmpresaFilter);
+        });
+      }
+
+      if (busquedaSucursalTrigger) {
+        busquedaSucursalTrigger.addEventListener("click", () => {
+          if (!selectedEmpresa) {
+            return;
+          }
+          openSearchMenu(busquedaSucursalMenu, busquedaSucursalFilter);
+        });
+      }
+
+      if (busquedaEmpresaFilter) {
+        busquedaEmpresaFilter.addEventListener("input", () => {
+          filterSearchOptions(busquedaEmpresaOptions, busquedaEmpresaFilter.value);
+        });
+      }
+
+      if (busquedaSucursalFilter) {
+        busquedaSucursalFilter.addEventListener("input", () => {
+          filterSearchOptions(busquedaSucursalOptions, busquedaSucursalFilter.value);
+        });
+      }
+
+      if (busquedaEmpresaOptions) {
+        busquedaEmpresaOptions.addEventListener("click", (event) => {
+          const option = event.target.closest(".search-select-option");
+          if (!option) {
+            return;
+          }
+          selectedEmpresa = (option.dataset.value || "").trim();
+          selectedSucursal = "";
+          if (busquedaEmpresaTrigger) {
+            busquedaEmpresaTrigger.value = selectedEmpresa;
+          }
+          if (busquedaSucursalTrigger) {
+            busquedaSucursalTrigger.value = "";
+          }
+          closeSearchMenu(busquedaEmpresaMenu);
+          fillSucursalOptions([]);
           loadBusquedaEmpresa("");
         });
       }
 
-      if (busquedaSucursalSelect) {
-        busquedaSucursalSelect.addEventListener("change", () => {
-          loadBusquedaEmpresa((busquedaSucursalSelect.value || "").trim());
+      if (busquedaSucursalOptions) {
+        busquedaSucursalOptions.addEventListener("click", (event) => {
+          const option = event.target.closest(".search-select-option");
+          if (!option) {
+            return;
+          }
+          selectedSucursal = (option.dataset.value || "").trim();
+          if (busquedaSucursalTrigger) {
+            busquedaSucursalTrigger.value = selectedSucursal;
+          }
+          closeSearchMenu(busquedaSucursalMenu);
+          loadBusquedaEmpresa(selectedSucursal);
         });
+      }
+
+      document.addEventListener("click", (event) => {
+        if (busquedaEmpresaSelect && !busquedaEmpresaSelect.contains(event.target)) {
+          closeSearchMenu(busquedaEmpresaMenu);
+        }
+        if (busquedaSucursalSelect && !busquedaSucursalSelect.contains(event.target)) {
+          closeSearchMenu(busquedaSucursalMenu);
+        }
+      });
+
+      if (busquedaEmpresaTrigger) {
+        busquedaEmpresaTrigger.value = "";
+      }
+
+      if (busquedaSucursalTrigger) {
+        busquedaSucursalTrigger.value = "";
       }
 
       openPanel("noticias");
