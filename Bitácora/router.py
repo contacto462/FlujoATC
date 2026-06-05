@@ -40,6 +40,23 @@ def _require_bitacora_access(user: User) -> None:
         )
 
 
+def _bitacora_users(db: Session) -> list[dict[str, str | bool | int]]:
+    users = db.query(User).order_by(User.name.asc(), User.username.asc()).all()
+    return [
+        {
+            "id": user.id,
+            "name": str(user.name or "").strip(),
+            "username": str(user.username or "").strip(),
+            "email": "",
+            "user_type": "Administrador" if getattr(user, "is_admin", False) else "Operador",
+            "status": "Activado" if bool(getattr(user, "is_active", False)) else "Desactivado",
+            "is_active": bool(getattr(user, "is_active", False)),
+        }
+        for user in users
+        if can_access_bitacora(user)
+    ]
+
+
 def get_current_user_bitacora(
     request: Request,
     db: Session = Depends(get_db),
@@ -91,6 +108,7 @@ def bitacora_page(
         )
     ).mappings().all()
     empresas = [str(row.get("empresa") or "").strip() for row in empresas_rows if str(row.get("empresa") or "").strip()]
+    bitacora_users = _bitacora_users(db)
 
     return templates.TemplateResponse(
         request,
@@ -99,6 +117,7 @@ def bitacora_page(
             "request": request,
             "user": current_user,
             "empresas": empresas,
+            "bitacora_users": bitacora_users,
         },
     )
 
