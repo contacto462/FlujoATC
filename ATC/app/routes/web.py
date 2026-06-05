@@ -4597,6 +4597,10 @@ def update_requester_internal_name(
     incidencias_db: Session = Depends(get_incidencias_db),
     current_user: User = Depends(get_current_user_web),
 ):
+    # Solo el administrador de soporte puede cambiar el nombre del cliente.
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Solo el administrador puede cambiar el nombre del cliente.")
+
     # Guarda alias interno del cliente para todo el equipo.
     requester = db.query(Requester).filter(Requester.id == requester_id).first()
     if not requester:
@@ -5604,10 +5608,6 @@ def delete_ticket(
 
 ):
 
-    if not current_user.is_admin:
-
-        raise HTTPException(status_code=403, detail="Solo administradores")
-
     ticket = db.get(Ticket, ticket_id)
 
     if not ticket:
@@ -5643,10 +5643,6 @@ def restore_from_trash(
     current_user: User = Depends(get_current_user_web),
 
 ):
-
-    if not current_user.is_admin:
-
-        raise HTTPException(status_code=403)
 
     ticket = db.get(Ticket, ticket_id)
 

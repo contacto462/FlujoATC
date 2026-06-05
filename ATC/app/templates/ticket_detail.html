@@ -3354,7 +3354,7 @@ body.is-inline-image-resizing{
     {% endif %}
 
     <!-- ELIMINAR -->
-    {% if user.is_admin and not ticket.is_deleted %}
+    {% if not ticket.is_deleted %}
     <form method="POST" action="/dashboard/tickets/{{ ticket.id }}/delete">
       <button type="submit" class="action-btn action-danger cta-moderation" {% if ticket_locked %}disabled{% endif %}>
         Mover a Papelera
@@ -3427,6 +3427,7 @@ body.is-inline-image-resizing{
           <div class="requester-alias-current">
             {{ requester_info.internal_name if requester_info.internal_name else "Sin definir" }}
           </div>
+          {% if user.is_admin %}
           <details class="requester-alias-collapse">
             <summary class="requester-alias-toggle">
               <svg class="requester-alias-chevron" viewBox="0 0 24 24" aria-hidden="true">
@@ -3455,6 +3456,7 @@ body.is-inline-image-resizing{
             <p class="requester-alias-help">Visible para todos los tecnicos.</p>
             <script id="requesterNameCatalogData" type="application/json">{{ requester_name_catalog|tojson }}</script>
           </details>
+          {% endif %}
         </div>
         <div class="k">Correo</div>
         <div class="v">{{ requester_info.email if requester_info.email else "-" }}</div>
