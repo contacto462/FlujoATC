@@ -1106,32 +1106,29 @@
         </div>
         <div class="panel-body">
           <div class="company-search-shell">
-            <div class="company-card company-search-filters">
-              <h3 class="company-search-heading">Buscar por Empresa</h3>
-              <div class="company-search-top">
-                <div class="field">
-                  <label for="busquedaEmpresaTrigger">Seleccione empresa</label>
-                  <div class="search-select" id="busquedaEmpresaSelect">
-                    <input id="busquedaEmpresaTrigger" class="search-select-trigger" type="text" value="" placeholder="Seleccione empresa" readonly />
-                    <div class="search-select-menu" id="busquedaEmpresaMenu" hidden>
-                      <input id="busquedaEmpresaFilter" class="search-select-filter" type="text" value="" />
-                      <div class="search-select-options" id="busquedaEmpresaOptions">
-                        {% for empresa in empresas %}
-                        <button type="button" class="search-select-option" data-value="{{ empresa }}">{{ empresa }}</button>
-                        {% endfor %}
-                      </div>
+            <div class="company-search-top">
+              <div class="field">
+                <label for="busquedaEmpresaTrigger">Seleccione empresa</label>
+                <div class="search-select" id="busquedaEmpresaSelect">
+                  <input id="busquedaEmpresaTrigger" class="search-select-trigger" type="text" value="" placeholder="Seleccione empresa" readonly />
+                  <div class="search-select-menu" id="busquedaEmpresaMenu" hidden>
+                    <input id="busquedaEmpresaFilter" class="search-select-filter" type="text" value="" />
+                    <div class="search-select-options" id="busquedaEmpresaOptions">
+                      {% for empresa in empresas %}
+                      <button type="button" class="search-select-option" data-value="{{ empresa }}">{{ empresa }}</button>
+                      {% endfor %}
                     </div>
                   </div>
                 </div>
-                <div class="field">
-                  <label for="busquedaSucursalTrigger">Nombre sucursal</label>
-                  <div class="search-select" id="busquedaSucursalSelect">
-                    <input id="busquedaSucursalTrigger" class="search-select-trigger" type="text" value="" placeholder="Seleccione sucursal" readonly />
-                    <div class="search-select-menu" id="busquedaSucursalMenu" hidden>
-                      <input id="busquedaSucursalFilter" class="search-select-filter" type="text" value="" />
-                      <div class="search-select-options" id="busquedaSucursalOptions">
-                        <div class="search-select-empty">Seleccione una empresa primero</div>
-                      </div>
+              </div>
+              <div class="field">
+                <label for="busquedaSucursalTrigger">Nombre sucursal</label>
+                <div class="search-select" id="busquedaSucursalSelect">
+                  <input id="busquedaSucursalTrigger" class="search-select-trigger" type="text" value="" placeholder="Seleccione sucursal" readonly />
+                  <div class="search-select-menu" id="busquedaSucursalMenu" hidden>
+                    <input id="busquedaSucursalFilter" class="search-select-filter" type="text" value="" />
+                    <div class="search-select-options" id="busquedaSucursalOptions">
+                      <div class="search-select-empty">Seleccione una empresa primero</div>
                     </div>
                   </div>
                 </div>
@@ -1143,7 +1140,6 @@
                 <div class="company-card">
                   <div class="company-card-head">
                     <h3 id="companyCardTitle">Sucursal</h3>
-                    <span class="company-title-mark" aria-hidden="true"></span>
                   </div>
                   <div class="company-card-body">
                     <table class="detail-table">
