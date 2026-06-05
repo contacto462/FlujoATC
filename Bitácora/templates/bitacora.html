@@ -1450,7 +1450,7 @@
 
       function renderBusquedaEmpresa(payload) {
         const detail = payload?.detalle || {};
-        const emergency = payload?.contacto_emergencia || {};
+        const emergencyContacts = Array.isArray(payload?.contactos_emergencia) ? payload.contactos_emergencia : [];
         const indicaciones = Array.isArray(payload?.indicaciones_especiales) ? payload.indicaciones_especiales : [];
         const noticias = Array.isArray(payload?.noticias) ? payload.noticias : [];
 
@@ -1491,11 +1491,19 @@
         }
 
         if (companyEmergencyBody) {
-          companyEmergencyBody.innerHTML = `
-            <tr><td>Nombre</td><td>${esc(emergency.nombre || "-")}</td></tr>
-            <tr><td>Celular</td><td>${esc(emergency.celular || "-")}</td></tr>
-            <tr><td>Prioridad</td><td>${esc(emergency.prioridad || "-")}</td></tr>
-          `;
+          if (!emergencyContacts.length) {
+            companyEmergencyBody.innerHTML = `
+              <tr><td>Nombre</td><td>-</td></tr>
+              <tr><td>Celular</td><td>-</td></tr>
+              <tr><td>Prioridad</td><td>-</td></tr>
+            `;
+          } else {
+            companyEmergencyBody.innerHTML = emergencyContacts.map((item) => `
+              <tr><td>Nombre</td><td>${esc(item.nombre || "-")}</td></tr>
+              <tr><td>Celular</td><td>${esc(item.celular || "-")}</td></tr>
+              <tr><td>Prioridad</td><td>${esc(item.prioridad || "-")}</td></tr>
+            `).join("");
+          }
         }
 
         renderSimpleRows(

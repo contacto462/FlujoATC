@@ -308,7 +308,7 @@ def bitacora_busqueda_empresa_api(
             "sucursal_actual": "",
             "sucursales": [],
             "detalle": {},
-            "contacto_emergencia": {"nombre": "-", "celular": "-", "prioridad": "-"},
+            "contactos_emergencia": [],
             "indicaciones_especiales": [],
             "noticias": [],
             "guardias": [],
@@ -327,6 +327,97 @@ def bitacora_busqueda_empresa_api(
         sucursales_rows[0],
     )
     selected_sucursal = _detail_value(selected_row, "nombre_sucursal")
+
+    venta_row = incidencias_db.execute(
+        text(
+            """
+            SELECT
+                codigo,
+                tipo_plan,
+                numero_camaras_instalar,
+                numero_camaras_vigilar
+            FROM venta_ods
+            WHERE LOWER(TRIM(razon_social)) = LOWER(TRIM(:empresa))
+               OR LOWER(TRIM(nombre_sucursal)) = LOWER(TRIM(:sucursal))
+            ORDER BY updated_at DESC NULLS LAST, created_at DESC NULLS LAST, id DESC
+            LIMIT 1
+            """
+        ),
+        {"empresa": empresa_limpia, "sucursal": selected_sucursal},
+    ).mappings().first()
+
+    tecnico_row = None
+    if venta_row and venta_row.get("codigo"):
+        tecnico_row = incidencias_db.execute(
+            text(
+                """
+                SELECT camaras_registradas
+                FROM servicio_tecnico_ventas_odt
+                WHERE odt = :odt
+                ORDER BY id DESC
+                LIMIT 1
+                """
+            ),
+            {"odt": str(venta_row.get("codigo"))},
+        ).mappings().first()
+
+    cliente_row = incidencias_db.execute(
+        text(
+            """
+            SELECT telefono
+            FROM bbdd_clientes
+            WHERE LOWER(TRIM(cliente)) = LOWER(TRIM(:empresa))
+               OR LOWER(TRIM(rut)) = LOWER(TRIM(:rut))
+            ORDER BY id DESC
+            LIMIT 1
+            """
+        ),
+        {"empresa": empresa_limpia, "rut": _detail_value(selected_row, "rut")},
+    ).mappings().first()
+
+    emergency_rows = incidencias_db.execute(
+        text(
+            """
+            SELECT
+                COALESCE(NULLIF(TRIM(nombre), ''), '-') AS nombre,
+                COALESCE(NULLIF(TRIM(telefono), ''), '-') AS celular,
+                '-' AS prioridad
+            FROM sucursal_contactos_emergencia
+            WHERE sucursal_id = :sucursal_id
+            ORDER BY id ASC
+            """
+        ),
+        {"sucursal_id": selected_row.get("id")},
+    ).mappings().all()
+
+    if not emergency_rows:
+        emergency_rows = incidencias_db.execute(
+            text(
+                """
+                SELECT
+                    COALESCE(NULLIF(TRIM(nombre), ''), '-') AS nombre,
+                    COALESCE(NULLIF(TRIM(celular), ''), '-') AS celular,
+                    COALESCE(NULLIF(TRIM(prioridad::text), ''), '-') AS prioridad
+                FROM contactos_emergencia
+                WHERE LOWER(TRIM(sucursal)) = LOWER(TRIM(:sucursal))
+                ORDER BY prioridad ASC NULLS LAST, id ASC
+                """
+            ),
+            {"sucursal": selected_sucursal},
+        ).mappings().all()
+
+    layout_row = incidencias_db.execute(
+        text(
+            """
+            SELECT imagenes
+            FROM mantenciones_imagenes_sucursal
+            WHERE LOWER(TRIM(sucursal)) = LOWER(TRIM(:sucursal))
+            ORDER BY updated_at DESC NULLS LAST, id DESC
+            LIMIT 1
+            """
+        ),
+        {"sucursal": selected_sucursal},
+    ).mappings().first()
 
     noticias_rows = incidencias_db.execute(
         text(
@@ -349,7 +440,7 @@ def bitacora_busqueda_empresa_api(
     ).mappings().all()
 
     detalle = {
-        "tipo_vigilancia": "-",
+        "tipo_vigilancia": _first_non_empty(venta_row.get("tipo_plan") if venta_row else None),
         "horario_apertura": _detail_value(selected_row, "horario_apertura"),
         "horario_cierre": _detail_value(selected_row, "horario_cierre"),
         "empresa": _detail_value(selected_row, "nombre_empresa"),
@@ -357,15 +448,18 @@ def bitacora_busqueda_empresa_api(
         "nombre_sucursal": _detail_value(selected_row, "nombre_sucursal"),
         "direccion": _detail_value(selected_row, "direccion_sucursal"),
         "referencia_ubicacion": _detail_value(selected_row, "referencia_ubicacion"),
-        "contacto": "-",
+        "contacto": _first_non_empty(cliente_row.get("telefono") if cliente_row else None),
         "correo": _detail_value(selected_row, "email_facturas"),
         "plan_cuadrante": "-",
         "carabineros": "-",
         "bomberos": "-",
         "seguridad_ciudadana": "-",
         "fecha_inicio": _detail_value(selected_row, "created_at"),
-        "camaras_contratadas": "-",
-        "camaras_televigiladas": "-",
+        "camaras_contratadas": _first_non_empty(venta_row.get("numero_camaras_instalar") if venta_row else None),
+        "camaras_televigiladas": _first_non_empty(
+            venta_row.get("numero_camaras_vigilar") if venta_row else None,
+            tecnico_row.get("camaras_registradas") if tecnico_row else None,
+        ),
         "horario_habil": _detail_value(selected_row, "dias_funcionamiento"),
         "horario_no_habil": "-",
         "compania_electricidad": _detail_value(selected_row, "proveedor_electricidad"),
@@ -374,7 +468,7 @@ def bitacora_busqueda_empresa_api(
         "internet_atc": "-",
         "telefono_porton": "-",
         "telefono_recepcion": "-",
-        "plano_camaras": "-",
+        "plano_camaras": _first_non_empty(layout_row.get("imagenes") if layout_row else None),
     }
 
     return {
@@ -382,7 +476,14 @@ def bitacora_busqueda_empresa_api(
         "sucursal_actual": selected_sucursal,
         "sucursales": sucursales,
         "detalle": detalle,
-        "contacto_emergencia": {"nombre": "-", "celular": "-", "prioridad": "-"},
+        "contactos_emergencia": [
+            {
+                "nombre": _first_non_empty(row.get("nombre")),
+                "celular": _first_non_empty(row.get("celular")),
+                "prioridad": _first_non_empty(row.get("prioridad")),
+            }
+            for row in emergency_rows
+        ],
         "indicaciones_especiales": [],
         "noticias": [_serialize_noticia(row) for row in noticias_rows],
         "guardias": [],
