@@ -1318,6 +1318,29 @@ def launcher_panel(
 
 # ======================================================
 
+
+def _apply_ticket_search(query, term: str):
+    """Filtra tickets por asunto, cliente (nombre/alias/correo) o ID."""
+    term = (term or "").strip()
+    if not term:
+        return query
+
+    like = f"%{term}%"
+    clauses = [
+        Ticket.subject.ilike(like),
+        Ticket.requester.has(Requester.name.ilike(like)),
+        Ticket.requester.has(Requester.internal_name.ilike(like)),
+        Ticket.requester.has(Requester.email.ilike(like)),
+    ]
+
+    # Permite buscar por ID con o sin "#" (p.ej. "360" o "#360").
+    ticket_id_term = term.lstrip("#").strip()
+    if ticket_id_term.isdigit():
+        clauses.append(Ticket.id == int(ticket_id_term))
+
+    return query.filter(or_(*clauses))
+
+
 @router.get("/dashboard", response_class=HTMLResponse)
 def dashboard(
     request: Request,
@@ -1463,7 +1486,7 @@ def dashboard(
             query = query.filter(or_(*scope_clauses))
 
     if q:
-        query = query.filter(Ticket.subject.ilike(f"%{q}%"))
+        query = _apply_ticket_search(query, q)
 
     if user_filters != ["all"]:
         user_clauses = []
@@ -1733,7 +1756,7 @@ def etapa_board(
 
     search_value = (q or "").strip()
     if search_value:
-        query = query.filter(Ticket.subject.ilike(f"%{search_value}%"))
+        query = _apply_ticket_search(query, search_value)
 
     tickets = query.order_by(Ticket.updated_at.desc(), Ticket.id.desc()).all()
 
