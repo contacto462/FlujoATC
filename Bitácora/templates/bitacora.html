@@ -264,6 +264,10 @@
       overflow: hidden;
     }
 
+    .panel[data-panel="busqueda-empresa"] {
+      overflow: visible;
+    }
+
     .panel.active {
       display: flex;
       flex-direction: column;
@@ -369,6 +373,10 @@
       min-height: 0;
       overflow: auto;
       background: var(--surface);
+    }
+
+    .panel[data-panel="busqueda-empresa"] .panel-body {
+      overflow: visible;
     }
 
     .filters {
@@ -605,6 +613,8 @@
     .company-search-shell {
       display: grid;
       gap: 18px;
+      position: relative;
+      z-index: 5;
     }
 
     .company-search-content[hidden] {
@@ -710,7 +720,7 @@
       content: "";
       position: absolute;
       right: 12px;
-      top: 42px;
+      top: calc(50% - 4px);
       width: 8px;
       height: 8px;
       border-right: 1.5px solid var(--text-muted);
