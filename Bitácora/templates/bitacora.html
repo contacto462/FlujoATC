@@ -797,12 +797,12 @@
             <h2>Noticias</h2>
           </div>
           <div class="toolbar">
-            <button type="button" class="btn btn-info">Ver noticias expiradas</button>
+            <button type="button" class="btn btn-info" id="toggleExpiredNews">Ver noticias expiradas</button>
             <button type="button" class="btn btn-primary" id="openNewsModal">Agregar noticia</button>
           </div>
         </div>
         <div class="panel-body">
-          <div id="status" class="status" hidden></div>
+          <div id="status" class="status"></div>
 
           <div id="results" class="news-list">
             <div class="empty">Aún no hay noticias cargadas en pantalla.</div>
@@ -1070,7 +1070,7 @@
           </div>
         </div>
         <div class="modal-actions">
-          <button type="button" class="btn btn-primary">Guardar</button>
+          <button type="button" class="btn btn-primary" id="saveNewsButton">Guardar</button>
           <button type="button" class="btn btn-info" id="closeNewsModal">Cancelar</button>
         </div>
       </div>
@@ -1122,20 +1122,24 @@
       const buttons = Array.from(document.querySelectorAll("[data-panel-target]"));
       const panels = Array.from(document.querySelectorAll("[data-panel]"));
       const navItems = Array.from(document.querySelectorAll(".nav-item"));
-      const select = document.getElementById("empresaSelect");
       const status = document.getElementById("status");
       const results = document.getElementById("results");
+      const toggleExpiredNewsButton = document.getElementById("toggleExpiredNews");
       const openNewsModalButton = document.getElementById("openNewsModal");
       const closeNewsModalButton = document.getElementById("closeNewsModal");
+      const saveNewsButton = document.getElementById("saveNewsButton");
       const newsModal = document.getElementById("newsModal");
+      const modalEmpresaSelect = document.getElementById("modalEmpresaSelect");
+      const modalSucursalSelect = document.getElementById("modalSucursalSelect");
+      const modalFechaFin = document.getElementById("modalFechaFin");
+      const modalMensaje = document.getElementById("modalMensaje");
       const openUserModalButton = document.getElementById("openUserModal");
       const closeUserModalButton = document.getElementById("closeUserModal");
       const userModal = document.getElementById("userModal");
       const userSearchInput = document.getElementById("userSearchInput");
       const hideDisabledUsers = document.getElementById("hideDisabledUsers");
       const userRows = Array.from(document.querySelectorAll("[data-user-row]"));
-      const modalEmpresaSelect = document.getElementById("modalEmpresaSelect");
-      const modalSucursalSelect = document.getElementById("modalSucursalSelect");
+      let newsView = "activas";
 
       function esc(value) {
         return String(value || "")
@@ -1144,6 +1148,23 @@
           .replace(/>/g, "&gt;")
           .replace(/\"/g, "&quot;")
           .replace(/'/g, "&#39;");
+      }
+
+      function formatDateTime(value) {
+        if (!value) {
+          return "-";
+        }
+        const date = new Date(String(value).replace(" ", "T"));
+        if (Number.isNaN(date.getTime())) {
+          return esc(value);
+        }
+        return new Intl.DateTimeFormat("es-CL", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }).format(date);
       }
 
       function openPanel(name) {
@@ -1191,21 +1212,19 @@
         results.innerHTML = `<div class="empty">${esc(message)}</div>`;
       }
 
-      function renderRows(rows, empresa) {
+      function renderNoticias(rows) {
         if (!Array.isArray(rows) || !rows.length) {
-          renderEmpty("Esta empresa no tiene sucursales registradas.");
+          renderEmpty(newsView === "expiradas" ? "No hay noticias expiradas." : "Aún no hay noticias activas.");
           return;
         }
-        results.innerHTML = rows.map((row, index) => `
+        results.innerHTML = rows.map((row) => `
           <article class="news-item">
-            <h3>Empresa: ${esc(row.nombre_empresa || empresa || "-")}</h3>
+            <h3>Empresa: ${esc(row.nombre_empresa || "-")}</h3>
             <p class="branch">Sucursal: ${esc(row.nombre_sucursal || "Sin sucursal")}</p>
-            <p class="copy">
-              Registro disponible para <strong>${esc(row.nombre_sucursal || "esta sucursal")}</strong>.
-              Dirección: ${esc(row.direccion_sucursal || "-")}.
-              Comuna: ${esc(row.comuna || "-")}. Región: ${esc(row.region || "-")}.
-            </p>
-            <div class="news-meta">Publicado por {{ (user.name or user.username)|e }} · ítem ${index + 1}</div>
+            <p class="copy">${esc(row.mensaje || "")}</p>
+            <div class="news-meta">
+              Registró ${esc(row.usuario_registra || "-")} · ${formatDateTime(row.fecha_registro)} · Fin: ${formatDateTime(row.fecha_fin_noticia)}
+            </div>
           </article>
         `).join("");
       }
@@ -1233,22 +1252,38 @@
         return payload;
       }
 
-      async function loadSucursales() {
-        const empresa = (select.value || "").trim();
-        if (!empresa) {
-          status.textContent = "Selecciona una empresa para cargar sucursales y mostrar las noticias relacionadas.";
-          renderEmpty("Aún no hay noticias cargadas en pantalla.");
-          return;
-        }
-
-        status.textContent = "Cargando sucursales...";
+      async function loadNoticias() {
+        status.textContent = newsView === "expiradas" ? "Cargando noticias expiradas..." : "Cargando noticias activas...";
         try {
-          const payload = await fetchSucursales(empresa);
-          status.textContent = `${payload.total || 0} sucursal(es) encontradas para ${empresa}.`;
-          renderRows(payload.sucursales || [], empresa);
+          const response = await fetch(`/api/bitacora/noticias?estado=${encodeURIComponent(newsView)}`, {
+            headers: { Accept: "application/json" }
+          });
+          const payload = await response.json();
+          if (!response.ok) {
+            throw new Error(payload.detail || "No se pudieron cargar las noticias.");
+          }
+          toggleExpiredNewsButton.textContent = newsView === "expiradas" ? "Ver noticias activas" : "Ver noticias expiradas";
+          status.textContent = `${payload.total || 0} noticia(s) ${newsView === "expiradas" ? "expiradas" : "activas"}.`;
+          renderNoticias(payload.noticias || []);
         } catch (error) {
-          status.textContent = error.message || "No se pudo cargar la bitácora.";
-          renderEmpty("Ocurrió un problema consultando la base unificada.");
+          status.textContent = error.message || "No se pudieron cargar las noticias.";
+          renderEmpty("Ocurrió un problema consultando las noticias.");
+        }
+      }
+
+      function resetNewsForm() {
+        if (modalEmpresaSelect) {
+          modalEmpresaSelect.value = "";
+        }
+        if (modalSucursalSelect) {
+          modalSucursalSelect.innerHTML = '<option value="">Seleccione una sucursal</option>';
+          modalSucursalSelect.disabled = true;
+        }
+        if (modalFechaFin) {
+          modalFechaFin.value = "";
+        }
+        if (modalMensaje) {
+          modalMensaje.value = "";
         }
       }
 
@@ -1264,6 +1299,49 @@
           return;
         }
         newsModal.hidden = true;
+      }
+
+      async function saveNews() {
+        const nombre_empresa = (modalEmpresaSelect?.value || "").trim();
+        const nombre_sucursal = (modalSucursalSelect?.value || "").trim();
+        const fecha_fin_noticia = (modalFechaFin?.value || "").trim();
+        const mensaje = (modalMensaje?.value || "").trim();
+
+        if (!nombre_empresa || !nombre_sucursal || !fecha_fin_noticia || !mensaje) {
+          status.textContent = "Debes completar empresa, sucursal, fecha fin y mensaje.";
+          return;
+        }
+
+        saveNewsButton.disabled = true;
+        status.textContent = "Guardando noticia...";
+        try {
+          const response = await fetch("/api/bitacora/noticias", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json"
+            },
+            body: JSON.stringify({
+              nombre_empresa,
+              nombre_sucursal,
+              fecha_fin_noticia,
+              mensaje
+            })
+          });
+          const payload = await response.json();
+          if (!response.ok) {
+            throw new Error(payload.detail || "No se pudo guardar la noticia.");
+          }
+          newsView = "activas";
+          resetNewsForm();
+          closeNewsModal();
+          status.textContent = "Noticia guardada correctamente.";
+          await loadNoticias();
+        } catch (error) {
+          status.textContent = error.message || "No se pudo guardar la noticia.";
+        } finally {
+          saveNewsButton.disabled = false;
+        }
       }
 
       function filterUsers() {
@@ -1295,8 +1373,11 @@
         userModal.hidden = true;
       }
 
-      if (select) {
-        select.addEventListener("change", loadSucursales);
+      if (toggleExpiredNewsButton) {
+        toggleExpiredNewsButton.addEventListener("click", async () => {
+          newsView = newsView === "activas" ? "expiradas" : "activas";
+          await loadNoticias();
+        });
       }
 
       if (openNewsModalButton) {
@@ -1305,6 +1386,10 @@
 
       if (closeNewsModalButton) {
         closeNewsModalButton.addEventListener("click", closeNewsModal);
+      }
+
+      if (saveNewsButton) {
+        saveNewsButton.addEventListener("click", saveNews);
       }
 
       if (openUserModalButton) {
@@ -1368,11 +1453,10 @@
 
       openPanel("noticias");
       filterUsers();
+      loadNoticias();
     })();
   </script>
 </body>
 </html>
-
-
 
 
