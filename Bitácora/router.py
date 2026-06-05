@@ -311,7 +311,7 @@ def bitacora_busqueda_empresa_api(
             "contactos_emergencia": [],
             "indicaciones_especiales": [],
             "noticias": [],
-            "guardias": [],
+            "personas_autorizadas": [],
         }
 
     sucursales = [
@@ -380,8 +380,10 @@ def bitacora_busqueda_empresa_api(
             """
             SELECT
                 COALESCE(NULLIF(TRIM(nombre), ''), '-') AS nombre,
+                COALESCE(NULLIF(TRIM(rut), ''), '-') AS rut,
                 COALESCE(NULLIF(TRIM(telefono), ''), '-') AS celular,
-                '-' AS prioridad
+                '-' AS prioridad,
+                COALESCE(NULLIF(TRIM(email), ''), '-') AS email
             FROM sucursal_contactos_emergencia
             WHERE sucursal_id = :sucursal_id
             ORDER BY id ASC
@@ -390,21 +392,23 @@ def bitacora_busqueda_empresa_api(
         {"sucursal_id": selected_row.get("id")},
     ).mappings().all()
 
-    if not emergency_rows:
-        emergency_rows = incidencias_db.execute(
-            text(
-                """
-                SELECT
-                    COALESCE(NULLIF(TRIM(nombre), ''), '-') AS nombre,
-                    COALESCE(NULLIF(TRIM(celular), ''), '-') AS celular,
-                    COALESCE(NULLIF(TRIM(prioridad::text), ''), '-') AS prioridad
-                FROM contactos_emergencia
-                WHERE LOWER(TRIM(sucursal)) = LOWER(TRIM(:sucursal))
-                ORDER BY prioridad ASC NULLS LAST, id ASC
-                """
-            ),
-            {"sucursal": selected_sucursal},
-        ).mappings().all()
+    personas_autorizadas_rows = incidencias_db.execute(
+        text(
+            """
+            SELECT
+                COALESCE(NULLIF(TRIM(nombre), ''), '-') AS nombre,
+                COALESCE(NULLIF(TRIM(rut), ''), '-') AS rut,
+                COALESCE(NULLIF(TRIM(telefono), ''), '-') AS celular,
+                COALESCE(NULLIF(TRIM(email), ''), '-') AS email,
+                COALESCE(NULLIF(TRIM(clave_verde), ''), '-') AS clave_verde,
+                COALESCE(NULLIF(TRIM(clave_roja), ''), '-') AS clave_roja
+            FROM sucursal_personas_autorizadas
+            WHERE sucursal_id = :sucursal_id
+            ORDER BY id ASC
+            """
+        ),
+        {"sucursal_id": selected_row.get("id")},
+    ).mappings().all()
 
     layout_row = incidencias_db.execute(
         text(
@@ -479,14 +483,26 @@ def bitacora_busqueda_empresa_api(
         "contactos_emergencia": [
             {
                 "nombre": _first_non_empty(row.get("nombre")),
+                "rut": _first_non_empty(row.get("rut")),
                 "celular": _first_non_empty(row.get("celular")),
                 "prioridad": _first_non_empty(row.get("prioridad")),
+                "email": _first_non_empty(row.get("email")),
             }
             for row in emergency_rows
         ],
         "indicaciones_especiales": [],
         "noticias": [_serialize_noticia(row) for row in noticias_rows],
-        "guardias": [],
+        "personas_autorizadas": [
+            {
+                "nombre": _first_non_empty(row.get("nombre")),
+                "rut": _first_non_empty(row.get("rut")),
+                "celular": _first_non_empty(row.get("celular")),
+                "email": _first_non_empty(row.get("email")),
+                "clave_verde": _first_non_empty(row.get("clave_verde")),
+                "clave_roja": _first_non_empty(row.get("clave_roja")),
+            }
+            for row in personas_autorizadas_rows
+        ],
     }
 
 

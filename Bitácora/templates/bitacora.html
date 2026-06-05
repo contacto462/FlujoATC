@@ -1067,6 +1067,33 @@
                 </table>
               </div>
             </div>
+
+            <div class="company-card">
+              <div class="company-card-body">
+                <table class="simple-table">
+                  <thead>
+                    <tr>
+                      <th>Nombre</th>
+                      <th>RUT</th>
+                      <th>Celular</th>
+                      <th>Información</th>
+                      <th>Clave verde</th>
+                      <th>Clave roja</th>
+                    </tr>
+                  </thead>
+                  <tbody id="companyAuthorizedBody">
+                    <tr>
+                      <td>-</td>
+                      <td>-</td>
+                      <td>-</td>
+                      <td>-</td>
+                      <td>-</td>
+                      <td>-</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -1305,6 +1332,7 @@
       const companyEmergencyBody = document.getElementById("companyEmergencyBody");
       const companyIndicacionesBody = document.getElementById("companyIndicacionesBody");
       const companyNoticiasBody = document.getElementById("companyNoticiasBody");
+      const companyAuthorizedBody = document.getElementById("companyAuthorizedBody");
       let newsView = "activas";
 
       function esc(value) {
@@ -1453,6 +1481,7 @@
         const emergencyContacts = Array.isArray(payload?.contactos_emergencia) ? payload.contactos_emergencia : [];
         const indicaciones = Array.isArray(payload?.indicaciones_especiales) ? payload.indicaciones_especiales : [];
         const noticias = Array.isArray(payload?.noticias) ? payload.noticias : [];
+        const personasAutorizadas = Array.isArray(payload?.personas_autorizadas) ? payload.personas_autorizadas : [];
 
         if (companyCardTitle) {
           companyCardTitle.textContent = payload?.sucursal_actual || "Sucursal";
@@ -1494,14 +1523,16 @@
           if (!emergencyContacts.length) {
             companyEmergencyBody.innerHTML = `
               <tr><td>Nombre</td><td>-</td></tr>
+              <tr><td>RUT</td><td>-</td></tr>
               <tr><td>Celular</td><td>-</td></tr>
-              <tr><td>Prioridad</td><td>-</td></tr>
+              <tr><td>Correo</td><td>-</td></tr>
             `;
           } else {
             companyEmergencyBody.innerHTML = emergencyContacts.map((item) => `
               <tr><td>Nombre</td><td>${esc(item.nombre || "-")}</td></tr>
+              <tr><td>RUT</td><td>${esc(item.rut || "-")}</td></tr>
               <tr><td>Celular</td><td>${esc(item.celular || "-")}</td></tr>
-              <tr><td>Prioridad</td><td>${esc(item.prioridad || "-")}</td></tr>
+              <tr><td>Correo</td><td>${esc(item.email || "-")}</td></tr>
             `).join("");
           }
         }
@@ -1515,6 +1546,20 @@
           companyNoticiasBody,
           noticias.map((item) => `<tr><td>${formatDateTime(item.fecha_registro)}</td><td>${esc(item.mensaje || "-")}</td></tr>`),
           2
+        );
+        renderSimpleRows(
+          companyAuthorizedBody,
+          personasAutorizadas.map((item) => `
+            <tr>
+              <td>${esc(item.nombre || "-")}</td>
+              <td>${esc(item.rut || "-")}</td>
+              <td>${esc(item.celular || "-")}</td>
+              <td>${esc(item.email || "-")}</td>
+              <td>${esc(item.clave_verde || "-")}</td>
+              <td>${esc(item.clave_roja || "-")}</td>
+            </tr>
+          `),
+          6
         );
       }
 
