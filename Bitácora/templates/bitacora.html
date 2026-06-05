@@ -268,6 +268,16 @@
       overflow: visible;
     }
 
+    .panel[data-panel="busqueda-empresa"] .panel-head {
+      padding: 22px 20px 8px;
+      border-bottom: 0;
+    }
+
+    .panel[data-panel="busqueda-empresa"] .panel-head h2 {
+      font-size: 17px;
+      font-weight: 600;
+    }
+
     .panel.active {
       display: flex;
       flex-direction: column;
@@ -377,6 +387,7 @@
 
     .panel[data-panel="busqueda-empresa"] .panel-body {
       overflow: visible;
+      padding: 0 20px 20px;
     }
 
     .filters {
@@ -612,7 +623,7 @@
 
     .company-search-shell {
       display: grid;
-      gap: 18px;
+      gap: 12px;
       position: relative;
       z-index: 5;
     }
@@ -624,7 +635,7 @@
     .company-search-top {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 16px;
+      gap: 28px;
       padding: 0;
       border: 0;
       border-radius: 0;
@@ -702,10 +713,10 @@
     .search-select-trigger {
       width: 100%;
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 4px;
       background: #fff;
       color: var(--text);
-      padding: 10px 36px 10px 12px;
+      padding: 8px 34px 8px 12px;
       font: inherit;
       font-size: 13px;
       cursor: pointer;
@@ -720,13 +731,22 @@
       content: "";
       position: absolute;
       right: 12px;
-      top: calc(50% - 4px);
+      top: calc(50% - 6px);
       width: 8px;
       height: 8px;
       border-right: 1.5px solid var(--text-muted);
       border-bottom: 1.5px solid var(--text-muted);
       transform: rotate(45deg);
       pointer-events: none;
+    }
+
+    .panel[data-panel="busqueda-empresa"] .field label {
+      margin-bottom: 6px;
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0;
+      text-transform: none;
     }
 
     .search-select-menu {
