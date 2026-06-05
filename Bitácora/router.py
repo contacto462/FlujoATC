@@ -124,6 +124,20 @@ def _list_noticias(db: Session, estado: Literal["activas", "expiradas"]) -> list
     return [_serialize_noticia(row) for row in rows]
 
 
+def _detail_value(row: dict, key: str) -> str:
+    value = row.get(key)
+    text_value = str(value or "").strip()
+    return text_value or "-"
+
+
+def _first_non_empty(*values: object) -> str:
+    for value in values:
+        text_value = str(value or "").strip()
+        if text_value:
+            return text_value
+    return "-"
+
+
 def get_current_user_bitacora(
     request: Request,
     db: Session = Depends(get_db),
@@ -243,6 +257,136 @@ def bitacora_noticias_api(
     _require_bitacora_access(current_user)
     noticias = _list_noticias(incidencias_db, estado)
     return {"estado": estado, "total": len(noticias), "noticias": noticias}
+
+
+@router.get("/api/bitacora/busqueda-empresa")
+def bitacora_busqueda_empresa_api(
+    empresa: str = Query(...),
+    sucursal: str = Query(default=""),
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    _require_bitacora_access(current_user)
+    _ensure_bitacora_noticias_table(incidencias_db)
+
+    empresa_limpia = str(empresa or "").strip()
+    sucursal_limpia = str(sucursal or "").strip()
+    if not empresa_limpia:
+        raise HTTPException(status_code=400, detail="Debes indicar una empresa.")
+
+    sucursales_rows = incidencias_db.execute(
+        text(
+            """
+            SELECT
+                id,
+                COALESCE(TRIM(rut), '') AS rut,
+                COALESCE(TRIM(nombre_empresa), '') AS nombre_empresa,
+                COALESCE(TRIM(nombre_sucursal), '') AS nombre_sucursal,
+                COALESCE(TRIM(direccion_sucursal), '') AS direccion_sucursal,
+                COALESCE(TRIM(region), '') AS region,
+                COALESCE(TRIM(comuna), '') AS comuna,
+                COALESCE(TRIM(referencia_ubicacion), '') AS referencia_ubicacion,
+                COALESCE(TRIM(email_facturas), '') AS email_facturas,
+                COALESCE(TRIM(proveedor_internet), '') AS proveedor_internet,
+                COALESCE(TRIM(proveedor_electricidad), '') AS proveedor_electricidad,
+                COALESCE(TRIM(nro_proveedor_electricidad), '') AS nro_proveedor_electricidad,
+                COALESCE(TRIM(horario_apertura), '') AS horario_apertura,
+                COALESCE(TRIM(horario_cierre), '') AS horario_cierre,
+                COALESCE(TRIM(dias_funcionamiento), '') AS dias_funcionamiento,
+                created_at
+            FROM bbdd_sucursales
+            WHERE LOWER(TRIM(nombre_empresa)) = LOWER(TRIM(:empresa))
+            ORDER BY nombre_sucursal ASC, id ASC
+            """
+        ),
+        {"empresa": empresa_limpia},
+    ).mappings().all()
+
+    if not sucursales_rows:
+        return {
+            "empresa": empresa_limpia,
+            "sucursal_actual": "",
+            "sucursales": [],
+            "detalle": {},
+            "contacto_emergencia": {"nombre": "-", "celular": "-", "prioridad": "-"},
+            "indicaciones_especiales": [],
+            "noticias": [],
+            "guardias": [],
+        }
+
+    sucursales = [
+        {
+            "id": row.get("id"),
+            "nombre_sucursal": _detail_value(row, "nombre_sucursal"),
+        }
+        for row in sucursales_rows
+    ]
+
+    selected_row = next(
+        (row for row in sucursales_rows if _detail_value(row, "nombre_sucursal").casefold() == sucursal_limpia.casefold()),
+        sucursales_rows[0],
+    )
+    selected_sucursal = _detail_value(selected_row, "nombre_sucursal")
+
+    noticias_rows = incidencias_db.execute(
+        text(
+            """
+            SELECT
+                id,
+                nombre_empresa,
+                nombre_sucursal,
+                usuario_registra,
+                fecha_registro,
+                fecha_fin_noticia,
+                mensaje
+            FROM bitacora_noticias
+            WHERE LOWER(TRIM(nombre_empresa)) = LOWER(TRIM(:empresa))
+              AND LOWER(TRIM(nombre_sucursal)) = LOWER(TRIM(:sucursal))
+            ORDER BY fecha_registro DESC, id DESC
+            """
+        ),
+        {"empresa": empresa_limpia, "sucursal": selected_sucursal},
+    ).mappings().all()
+
+    detalle = {
+        "tipo_vigilancia": "-",
+        "horario_apertura": _detail_value(selected_row, "horario_apertura"),
+        "horario_cierre": _detail_value(selected_row, "horario_cierre"),
+        "empresa": _detail_value(selected_row, "nombre_empresa"),
+        "rut": _detail_value(selected_row, "rut"),
+        "nombre_sucursal": _detail_value(selected_row, "nombre_sucursal"),
+        "direccion": _detail_value(selected_row, "direccion_sucursal"),
+        "referencia_ubicacion": _detail_value(selected_row, "referencia_ubicacion"),
+        "contacto": "-",
+        "correo": _detail_value(selected_row, "email_facturas"),
+        "plan_cuadrante": "-",
+        "carabineros": "-",
+        "bomberos": "-",
+        "seguridad_ciudadana": "-",
+        "fecha_inicio": _detail_value(selected_row, "created_at"),
+        "camaras_contratadas": "-",
+        "camaras_televigiladas": "-",
+        "horario_habil": _detail_value(selected_row, "dias_funcionamiento"),
+        "horario_no_habil": "-",
+        "compania_electricidad": _detail_value(selected_row, "proveedor_electricidad"),
+        "numero_cliente_electricidad": _detail_value(selected_row, "nro_proveedor_electricidad"),
+        "proveedor_internet_cliente": _detail_value(selected_row, "proveedor_internet"),
+        "internet_atc": "-",
+        "telefono_porton": "-",
+        "telefono_recepcion": "-",
+        "plano_camaras": "-",
+    }
+
+    return {
+        "empresa": empresa_limpia,
+        "sucursal_actual": selected_sucursal,
+        "sucursales": sucursales,
+        "detalle": detalle,
+        "contacto_emergencia": {"nombre": "-", "celular": "-", "prioridad": "-"},
+        "indicaciones_especiales": [],
+        "noticias": [_serialize_noticia(row) for row in noticias_rows],
+        "guardias": [],
+    }
 
 
 @router.post("/api/bitacora/noticias")

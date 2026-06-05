@@ -602,6 +602,85 @@
       align-items: end;
     }
 
+    .company-search-shell {
+      display: grid;
+      gap: 18px;
+    }
+
+    .company-search-top {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      padding: 14px 16px 18px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+
+    .company-search-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.8fr) minmax(320px, .9fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .company-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .company-card-head {
+      padding: 18px 18px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .company-card-head h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .detail-table,
+    .simple-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+    }
+
+    .detail-table td,
+    .simple-table td,
+    .simple-table th {
+      padding: 10px 14px;
+      border-bottom: 1px solid #eef2f7;
+      font-size: 13px;
+      color: var(--text-soft);
+      vertical-align: top;
+    }
+
+    .detail-table td:first-child,
+    .simple-table th {
+      width: 42%;
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .simple-table th {
+      text-align: left;
+      background: transparent;
+      text-transform: none;
+      letter-spacing: 0;
+      font-size: 13px;
+    }
+
+    .company-card-body {
+      padding: 0 16px 12px;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
@@ -706,7 +785,9 @@
       }
 
       .users-toolbar,
-      .users-modal-grid {
+      .users-modal-grid,
+      .company-search-top,
+      .company-search-grid {
         grid-template-columns: 1fr;
       }
 
@@ -896,18 +977,96 @@
         <div class="panel-head">
           <div>
             <h2>Búsqueda por Empresa</h2>
-            <p>Consulta rápida por nombre de empresa.</p>
+            <p>Consulta operativa por empresa y sucursal con datos reales de la BBDD unificada.</p>
           </div>
         </div>
         <div class="panel-body">
-          <div class="field">
-            <label>Empresa</label>
-            <select>
-              <option>Selecciona una empresa</option>
-              {% for empresa in empresas %}
-              <option>{{ empresa }}</option>
-              {% endfor %}
-            </select>
+          <div class="company-search-shell">
+            <div class="company-search-top">
+              <div class="field">
+                <label for="busquedaEmpresaSelect">Seleccione empresa</label>
+                <select id="busquedaEmpresaSelect">
+                  <option value="">Selecciona una empresa</option>
+                  {% for empresa in empresas %}
+                  <option value="{{ empresa }}">{{ empresa }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="field">
+                <label for="busquedaSucursalSelect">Nombre sucursal</label>
+                <select id="busquedaSucursalSelect" disabled>
+                  <option value="">Seleccione una sucursal</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="company-search-grid">
+              <div class="company-card">
+                <div class="company-card-head">
+                  <h3 id="companyCardTitle">Sucursal</h3>
+                </div>
+                <div class="company-card-body">
+                  <table class="detail-table">
+                    <tbody id="companyDetailBody">
+                      <tr><td>Tipo vigilancia</td><td>-</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="company-card">
+                <div class="company-card-head">
+                  <h3>Contacto de Emergencia</h3>
+                </div>
+                <div class="company-card-body">
+                  <table class="detail-table">
+                    <tbody id="companyEmergencyBody">
+                      <tr><td>Nombre</td><td>-</td></tr>
+                      <tr><td>Celular</td><td>-</td></tr>
+                      <tr><td>Prioridad</td><td>-</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="company-card">
+              <div class="company-card-head">
+                <h3>Indicaciones especiales</h3>
+              </div>
+              <div class="company-card-body">
+                <table class="simple-table">
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Mensaje</th>
+                    </tr>
+                  </thead>
+                  <tbody id="companyIndicacionesBody">
+                    <tr><td>-</td><td>-</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="company-card">
+              <div class="company-card-head">
+                <h3>Noticias</h3>
+              </div>
+              <div class="company-card-body">
+                <table class="simple-table">
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Mensaje</th>
+                    </tr>
+                  </thead>
+                  <tbody id="companyNoticiasBody">
+                    <tr><td>-</td><td>-</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -1139,6 +1298,13 @@
       const userSearchInput = document.getElementById("userSearchInput");
       const hideDisabledUsers = document.getElementById("hideDisabledUsers");
       const userRows = Array.from(document.querySelectorAll("[data-user-row]"));
+      const busquedaEmpresaSelect = document.getElementById("busquedaEmpresaSelect");
+      const busquedaSucursalSelect = document.getElementById("busquedaSucursalSelect");
+      const companyCardTitle = document.getElementById("companyCardTitle");
+      const companyDetailBody = document.getElementById("companyDetailBody");
+      const companyEmergencyBody = document.getElementById("companyEmergencyBody");
+      const companyIndicacionesBody = document.getElementById("companyIndicacionesBody");
+      const companyNoticiasBody = document.getElementById("companyNoticiasBody");
       let newsView = "activas";
 
       function esc(value) {
@@ -1241,6 +1407,17 @@
         target.disabled = !items.length;
       }
 
+      function renderSimpleRows(target, rows, emptyCols = 2) {
+        if (!target) {
+          return;
+        }
+        if (!Array.isArray(rows) || !rows.length) {
+          target.innerHTML = `<tr>${Array.from({ length: emptyCols }, () => "<td>-</td>").join("")}</tr>`;
+          return;
+        }
+        target.innerHTML = rows.join("");
+      }
+
       async function fetchSucursales(empresa) {
         const response = await fetch(`/api/bitacora/sucursales?empresa=${encodeURIComponent(empresa)}`, {
           headers: { Accept: "application/json" }
@@ -1268,6 +1445,98 @@
         } catch (error) {
           status.textContent = error.message || "No se pudieron cargar las noticias.";
           renderEmpty("Ocurrió un problema consultando las noticias.");
+        }
+      }
+
+      function renderBusquedaEmpresa(payload) {
+        const detail = payload?.detalle || {};
+        const emergency = payload?.contacto_emergencia || {};
+        const indicaciones = Array.isArray(payload?.indicaciones_especiales) ? payload.indicaciones_especiales : [];
+        const noticias = Array.isArray(payload?.noticias) ? payload.noticias : [];
+
+        if (companyCardTitle) {
+          companyCardTitle.textContent = payload?.sucursal_actual || "Sucursal";
+        }
+
+        if (companyDetailBody) {
+          const detailRows = [
+            ["Tipo vigilancia", detail.tipo_vigilancia],
+            ["Horario apertura", detail.horario_apertura],
+            ["Horario cierre", detail.horario_cierre],
+            ["Empresa", detail.empresa],
+            ["RUT", detail.rut],
+            ["Nombre sucursal", detail.nombre_sucursal],
+            ["Dirección", detail.direccion],
+            ["Referencia ubicación", detail.referencia_ubicacion],
+            ["Contacto", detail.contacto],
+            ["Correo", detail.correo],
+            ["Plan cuadrante", detail.plan_cuadrante],
+            ["Carabineros", detail.carabineros],
+            ["Bomberos", detail.bomberos],
+            ["Seguridad ciudadana", detail.seguridad_ciudadana],
+            ["Fecha inicio", detail.fecha_inicio],
+            ["Cámaras contratadas", detail.camaras_contratadas],
+            ["Cámaras televigiladas", detail.camaras_televigiladas],
+            ["Horario hábil", detail.horario_habil],
+            ["Horario no hábil", detail.horario_no_habil],
+            ["Compañía de electricidad", detail.compania_electricidad],
+            ["Número cliente electricidad", detail.numero_cliente_electricidad],
+            ["Proveedor internet cliente", detail.proveedor_internet_cliente],
+            ["Internet ATC", detail.internet_atc],
+            ["Teléfono portón", detail.telefono_porton],
+            ["Teléfono recepción", detail.telefono_recepcion],
+            ["Plano de cámaras", detail.plano_camaras],
+          ];
+          companyDetailBody.innerHTML = detailRows.map(([label, value]) => `<tr><td>${esc(label)}</td><td>${esc(value || "-")}</td></tr>`).join("");
+        }
+
+        if (companyEmergencyBody) {
+          companyEmergencyBody.innerHTML = `
+            <tr><td>Nombre</td><td>${esc(emergency.nombre || "-")}</td></tr>
+            <tr><td>Celular</td><td>${esc(emergency.celular || "-")}</td></tr>
+            <tr><td>Prioridad</td><td>${esc(emergency.prioridad || "-")}</td></tr>
+          `;
+        }
+
+        renderSimpleRows(
+          companyIndicacionesBody,
+          indicaciones.map((item) => `<tr><td>${esc(item.fecha || "-")}</td><td>${esc(item.mensaje || "-")}</td></tr>`),
+          2
+        );
+        renderSimpleRows(
+          companyNoticiasBody,
+          noticias.map((item) => `<tr><td>${formatDateTime(item.fecha_registro)}</td><td>${esc(item.mensaje || "-")}</td></tr>`),
+          2
+        );
+      }
+
+      async function loadBusquedaEmpresa(preferredSucursal = "") {
+        const empresa = (busquedaEmpresaSelect?.value || "").trim();
+        if (!empresa) {
+          fillSucursalOptions(busquedaSucursalSelect, []);
+          renderBusquedaEmpresa(null);
+          return;
+        }
+
+        try {
+          const query = new URLSearchParams({ empresa });
+          if (preferredSucursal) {
+            query.set("sucursal", preferredSucursal);
+          }
+          const response = await fetch(`/api/bitacora/busqueda-empresa?${query.toString()}`, {
+            headers: { Accept: "application/json" }
+          });
+          const payload = await response.json();
+          if (!response.ok) {
+            throw new Error(payload.detail || "No se pudo cargar la búsqueda por empresa.");
+          }
+          fillSucursalOptions(busquedaSucursalSelect, payload.sucursales || []);
+          if (busquedaSucursalSelect) {
+            busquedaSucursalSelect.value = payload.sucursal_actual || "";
+          }
+          renderBusquedaEmpresa(payload);
+        } catch (error) {
+          renderBusquedaEmpresa(null);
         }
       }
 
@@ -1451,12 +1720,23 @@
         });
       }
 
+      if (busquedaEmpresaSelect) {
+        busquedaEmpresaSelect.addEventListener("change", () => {
+          loadBusquedaEmpresa("");
+        });
+      }
+
+      if (busquedaSucursalSelect) {
+        busquedaSucursalSelect.addEventListener("change", () => {
+          loadBusquedaEmpresa((busquedaSucursalSelect.value || "").trim());
+        });
+      }
+
       openPanel("noticias");
       filterUsers();
       loadNoticias();
+      renderBusquedaEmpresa(null);
     })();
   </script>
 </body>
 </html>
-
-
