@@ -753,23 +753,16 @@
           <button class="nav-btn active" type="button" data-panel-target="noticias">Noticias</button>
         </div>
         <div class="nav-item">
-          <button class="nav-btn" type="button" data-panel-target="administrar-puestos">Administrar puestos</button>
+          <button class="nav-btn" type="button" data-panel-target="administrar-puestos">Administrar puestos PEND. TAHIRA</button>
         </div>
         <div class="nav-item">
-          <div class="nav-parent has-children">Registro</div>
-          <div class="submenu" aria-label="Submenú de registro">
-            <button type="button" data-panel-target="registro-usuario">Registro de Usuario</button>
-            <button type="button" data-panel-target="registro-empresa">Registro de Empresa</button>
-            <button type="button" data-panel-target="registro-sucursal">Registro de Sucursal</button>
-            <button type="button" data-panel-target="registro-empleado">Registro de Empleado</button>
-          </div>
+          <button class="nav-btn" type="button" data-panel-target="registro-usuario">Registro Usuario</button>
         </div>
         <div class="nav-item">
           <div class="nav-parent has-children">Búsqueda</div>
           <div class="submenu" aria-label="Submenú de búsqueda">
             <button type="button" data-panel-target="busqueda-empresa">Búsqueda por Empresa</button>
             <button type="button" data-panel-target="busqueda-rut">Búsqueda por RUT</button>
-            <button type="button" data-panel-target="busqueda-exportar">Exportar sucursales</button>
           </div>
         </div>
         <div class="nav-item">
@@ -899,74 +892,6 @@
         </div>
       </section>
 
-      <section class="panel subpanel" data-panel="registro-empresa">
-        <div class="panel-head">
-          <div>
-            <h2>Registro de Empresa</h2>
-            <p>Alta inicial de empresas para el ecosistema de bitácora.</p>
-          </div>
-        </div>
-        <div class="panel-body">
-          <div class="form-grid">
-            <div class="field">
-              <label>Razón social</label>
-              <input type="text" placeholder="Nombre de la empresa" />
-            </div>
-            <div class="field">
-              <label>RUT</label>
-              <input type="text" placeholder="12.345.678-9" />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel subpanel" data-panel="registro-sucursal">
-        <div class="panel-head">
-          <div>
-            <h2>Registro de Sucursal</h2>
-            <p>Creación de sucursales asociadas a una empresa existente.</p>
-          </div>
-        </div>
-        <div class="panel-body">
-          <div class="form-grid">
-            <div class="field">
-              <label>Empresa</label>
-              <select>
-                <option>Selecciona una empresa</option>
-                {% for empresa in empresas %}
-                <option>{{ empresa }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="field">
-              <label>Sucursal</label>
-              <input type="text" placeholder="Nombre de la sucursal" />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel subpanel" data-panel="registro-empleado">
-        <div class="panel-head">
-          <div>
-            <h2>Registro de Empleado</h2>
-            <p>Alta de empleados vinculados a empresa o sucursal.</p>
-          </div>
-        </div>
-        <div class="panel-body">
-          <div class="form-grid">
-            <div class="field">
-              <label>Nombre</label>
-              <input type="text" placeholder="Nombre del empleado" />
-            </div>
-            <div class="field">
-              <label>Cargo</label>
-              <input type="text" placeholder="Cargo" />
-            </div>
-          </div>
-        </div>
-      </section>
-
       <section class="panel subpanel" data-panel="busqueda-empresa">
         <div class="panel-head">
           <div>
@@ -998,21 +923,6 @@
           <div class="field">
             <label>RUT</label>
             <input type="text" placeholder="12.345.678-9" />
-          </div>
-        </div>
-      </section>
-
-      <section class="panel subpanel" data-panel="busqueda-exportar">
-        <div class="panel-head">
-          <div>
-            <h2>Exportar sucursales</h2>
-            <p>Generación de salidas para sucursales filtradas.</p>
-          </div>
-        </div>
-        <div class="panel-body">
-          <div class="box">
-            <h3>Exportación</h3>
-            <p>Este bloque queda listo para conectar exportaciones a Excel, CSV u otros formatos.</p>
           </div>
         </div>
       </section>

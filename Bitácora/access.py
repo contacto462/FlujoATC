@@ -5,9 +5,11 @@ import unicodedata
 from ATC.app.models.user import User
 
 
-_TECHNICAL_ONLY_DEPARTMENTS = {
+_BITACORA_EXCLUDED_SINGLE_DEPARTMENTS = {
     "tecnico",
     "tecnicos",
+    "comercial",
+    "comerciales",
 }
 
 
@@ -33,4 +35,4 @@ def can_access_bitacora(user: User | None) -> bool:
     if not departments:
         return True
 
-    return any(item not in _TECHNICAL_ONLY_DEPARTMENTS for item in departments)
+    return any(item not in _BITACORA_EXCLUDED_SINGLE_DEPARTMENTS for item in departments)
