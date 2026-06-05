@@ -242,7 +242,7 @@ def send_initial_email_auto_reply(
         <div style="padding:28px;">
           <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">Hola {requester_name},</p>
           <p style="margin:0 0 14px;font-size:16px;line-height:1.7;">Le confirmamos que su solicitud fue recibida correctamente e ingresó a nuestra plataforma de soporte.</p>
-          <p style="margin:0 0 14px;font-size:16px;line-height:1.7;">Nuestro equipo revisará su caso y le responderá a la brevedad. Puede responder este mismo correo para agregar más antecedentes si lo necesita.</p>
+          <p style="margin:0 0 14px;font-size:16px;line-height:1.7;">Nuestro equipo revisará su caso y se contactará con usted a la brevedad. No responda este correo ni duplique la solicitud, esto podría causar retrasos en la atención.</p>
           <p style="margin:22px 0 0;font-size:15px;line-height:1.7;">Gracias por contactar con el Soporte de Alguien te cuida.</p>
         </div>
       </div>

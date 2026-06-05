@@ -2559,35 +2559,40 @@ body.dark-mode .ticket-date{
   gap:12px;
   pointer-events:none;
 }
-/* ── Uiverse card notification ── */
+/* ── Notificacion corporativa ── */
 .live-alert{
   width:fit-content;
-  min-width:260px;
-  max-width:340px;
-  background-color:#f2f3f7;
-  border-radius:0.75em;
+  min-width:300px;
+  max-width:380px;
+  background:#e9edf3;
+  border:1px solid var(--border-strong);
+  border-radius:12px;
   cursor:default;
-  transition:ease .2s;
-  box-shadow:1em 1em 1em #d8dae0b1, -0.75em -0.75em 1em #ffffff;
-  border:1.5px solid #f2f3f7;
+  box-shadow:var(--shadow);
   pointer-events:auto;
-  animation:liveAlertIn .22s ease-out;
+  overflow:hidden;
+  transition:box-shadow .18s ease;
+  animation:liveAlertIn .2s ease-out;
+}
+/* En modo oscuro mantiene la superficie del tema. */
+body.dark-mode .live-alert{
+  background:var(--surface);
+  border-color:var(--border);
 }
 .live-alert:hover{
-  background-color:#d3ddf1;
-  border:1.5px solid var(--primary);
+  box-shadow:var(--shadow-hover);
 }
 .live-alert .la-container{
-  margin:1.25em 2em 1.375em 1.375em;
   display:flex;
   flex-direction:row;
-  gap:0.75em;
+  align-items:stretch;
+  gap:14px;
+  padding:14px 16px;
 }
 .live-alert .la-ind{
-  width:0.625em;
-  height:0.625em;
-  border-radius:0.5em;
-  margin:0.375em 0;
+  width:3px;
+  align-self:stretch;
+  border-radius:3px;
   flex-shrink:0;
 }
 .live-alert.ticket .la-ind{ background-color:#f97316; }
@@ -2595,52 +2600,63 @@ body.dark-mode .ticket-date{
 .live-alert .la-right{
   display:flex;
   flex-direction:column;
-  gap:0.875em;
+  gap:12px;
+  flex:1;
+  min-width:0;
 }
 .live-alert .la-text{
   display:flex;
   flex-direction:column;
-  gap:0.25em;
-  color:#333;
+  gap:3px;
 }
 .live-alert .la-text strong{
   font-weight:600;
-  font-size:14px;
-  color:#000;
+  font-size:13.5px;
+  letter-spacing:.01em;
+  color:var(--text);
 }
 .live-alert .la-text span{
-  font-size:13px;
-  color:#777;
+  font-size:12.5px;
+  line-height:1.45;
+  color:var(--muted);
 }
 .live-alert .la-actions{
   display:flex;
   flex-direction:row;
-  gap:1em;
+  gap:8px;
   align-items:center;
+  justify-content:flex-end;
 }
 .live-alert .la-dismiss{
   background:transparent;
   border:none;
-  font-size:13px;
-  font-weight:400;
-  color:#666;
+  font-size:12.5px;
+  font-weight:500;
+  color:var(--muted);
   cursor:pointer;
-  padding:0;
+  padding:6px 10px;
+  border-radius:7px;
   font-family:inherit;
+  transition:background .15s ease, color .15s ease;
+}
+.live-alert .la-dismiss:hover{
+  background:var(--border);
+  color:var(--text);
 }
 .live-alert .la-action{
-  background:transparent;
+  background:var(--primary);
   border:none;
-  font-size:13px;
+  font-size:12.5px;
   font-weight:600;
-  color:var(--primary);
+  color:#ffffff;
   cursor:pointer;
-  padding:0;
+  padding:6px 14px;
+  border-radius:7px;
   font-family:inherit;
+  transition:filter .15s ease;
 }
-.live-alert .la-dismiss:hover,
 .live-alert .la-action:hover{
-  text-decoration:underline;
+  filter:brightness(1.07);
 }
 .live-alert.closing{
   opacity:0;
@@ -3906,9 +3922,12 @@ initDashboardPagerJump();
         const delta = Math.max(1, afterStats.total - beforeStats.total);
         window.showLiveAlert({
           tone: "ticket",
-          title: delta > 1 ? `${delta} tickets nuevos` : "Ticket nuevo",
-          message: `Detectado ticket #${afterStats.maxId} en la bandeja actual.`,
-          actionLabel: "Ver arriba",
+          title: delta > 1 ? `${delta} tickets nuevos` : "Nuevo ticket",
+          message:
+            delta > 1
+              ? `Se registraron ${delta} tickets nuevos (último #${afterStats.maxId}).`
+              : `Se registró el ticket #${afterStats.maxId} en la bandeja.`,
+          actionLabel: "Ver recientes",
           onAction: () => window.scrollTo({ top: 0, behavior: "smooth" }),
         });
       }
