@@ -383,7 +383,7 @@
     }
 
     .panel[data-panel="busqueda-empresa"] .panel-body {
-      overflow: visible;
+      overflow: auto;
       border-bottom-left-radius: var(--radius-lg);
       border-bottom-right-radius: var(--radius-lg);
       background: var(--surface);
@@ -622,7 +622,8 @@
 
     .company-search-shell {
       display: grid;
-      gap: 0;
+      gap: 18px;
+      align-content: start;
     }
 
     .company-search-content[hidden] {
@@ -649,6 +650,8 @@
       border-radius: 12px;
       box-shadow: var(--shadow);
       overflow: hidden;
+      height: fit-content;
+      align-self: start;
     }
 
     .company-card-head {
@@ -1103,29 +1106,32 @@
         </div>
         <div class="panel-body">
           <div class="company-search-shell">
-            <div class="company-search-top">
-              <div class="field">
-                <label for="busquedaEmpresaTrigger">Seleccione empresa</label>
-                <div class="search-select" id="busquedaEmpresaSelect">
-                  <input id="busquedaEmpresaTrigger" class="search-select-trigger" type="text" value="" placeholder="Seleccione empresa" readonly />
-                  <div class="search-select-menu" id="busquedaEmpresaMenu" hidden>
-                    <input id="busquedaEmpresaFilter" class="search-select-filter" type="text" value="" />
-                    <div class="search-select-options" id="busquedaEmpresaOptions">
-                      {% for empresa in empresas %}
-                      <button type="button" class="search-select-option" data-value="{{ empresa }}">{{ empresa }}</button>
-                      {% endfor %}
+            <div class="company-card company-search-filters">
+              <h3 class="company-search-heading">Buscar por Empresa</h3>
+              <div class="company-search-top">
+                <div class="field">
+                  <label for="busquedaEmpresaTrigger">Seleccione empresa</label>
+                  <div class="search-select" id="busquedaEmpresaSelect">
+                    <input id="busquedaEmpresaTrigger" class="search-select-trigger" type="text" value="" placeholder="Seleccione empresa" readonly />
+                    <div class="search-select-menu" id="busquedaEmpresaMenu" hidden>
+                      <input id="busquedaEmpresaFilter" class="search-select-filter" type="text" value="" />
+                      <div class="search-select-options" id="busquedaEmpresaOptions">
+                        {% for empresa in empresas %}
+                        <button type="button" class="search-select-option" data-value="{{ empresa }}">{{ empresa }}</button>
+                        {% endfor %}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-              <div class="field">
-                <label for="busquedaSucursalTrigger">Nombre sucursal</label>
-                <div class="search-select" id="busquedaSucursalSelect">
-                  <input id="busquedaSucursalTrigger" class="search-select-trigger" type="text" value="" placeholder="Seleccione sucursal" readonly />
-                  <div class="search-select-menu" id="busquedaSucursalMenu" hidden>
-                    <input id="busquedaSucursalFilter" class="search-select-filter" type="text" value="" />
-                    <div class="search-select-options" id="busquedaSucursalOptions">
-                      <div class="search-select-empty">Seleccione una empresa primero</div>
+                <div class="field">
+                  <label for="busquedaSucursalTrigger">Nombre sucursal</label>
+                  <div class="search-select" id="busquedaSucursalSelect">
+                    <input id="busquedaSucursalTrigger" class="search-select-trigger" type="text" value="" placeholder="Seleccione sucursal" readonly />
+                    <div class="search-select-menu" id="busquedaSucursalMenu" hidden>
+                      <input id="busquedaSucursalFilter" class="search-select-filter" type="text" value="" />
+                      <div class="search-select-options" id="busquedaSucursalOptions">
+                        <div class="search-select-empty">Seleccione una empresa primero</div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1133,15 +1139,51 @@
             </div>
 
             <div class="company-search-content" id="companySearchContent" hidden>
-            <div class="company-search-grid">
+              <div class="company-search-grid">
+                <div class="company-card">
+                  <div class="company-card-head">
+                    <h3 id="companyCardTitle">Sucursal</h3>
+                    <span class="company-title-mark" aria-hidden="true"></span>
+                  </div>
+                  <div class="company-card-body">
+                    <table class="detail-table">
+                      <tbody id="companyDetailBody">
+                        <tr><td>Tipo vigilancia</td><td>-</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div class="company-card">
+                  <div class="company-card-head">
+                    <h3>Contacto de Emergencia</h3>
+                  </div>
+                  <div class="company-card-body">
+                    <table class="detail-table">
+                      <tbody id="companyEmergencyBody">
+                        <tr><td>Nombre</td><td>-</td></tr>
+                        <tr><td>Celular</td><td>-</td></tr>
+                        <tr><td>Prioridad</td><td>-</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
               <div class="company-card">
                 <div class="company-card-head">
-                  <h3 id="companyCardTitle">Sucursal</h3>
+                  <h3>Indicaciones especiales</h3>
                 </div>
                 <div class="company-card-body">
-                  <table class="detail-table">
-                    <tbody id="companyDetailBody">
-                      <tr><td>Tipo vigilancia</td><td>-</td></tr>
+                  <table class="simple-table">
+                    <thead>
+                      <tr>
+                        <th>Fecha</th>
+                        <th>Mensaje</th>
+                      </tr>
+                    </thead>
+                    <tbody id="companyIndicacionesBody">
+                      <tr><td>-</td><td>-</td></tr>
                     </tbody>
                   </table>
                 </div>
@@ -1149,84 +1191,49 @@
 
               <div class="company-card">
                 <div class="company-card-head">
-                  <h3>Contacto de Emergencia</h3>
+                  <h3>Noticias</h3>
                 </div>
                 <div class="company-card-body">
-                  <table class="detail-table">
-                    <tbody id="companyEmergencyBody">
-                      <tr><td>Nombre</td><td>-</td></tr>
-                      <tr><td>Celular</td><td>-</td></tr>
-                      <tr><td>Prioridad</td><td>-</td></tr>
+                  <table class="simple-table">
+                    <thead>
+                      <tr>
+                        <th>Fecha</th>
+                        <th>Mensaje</th>
+                      </tr>
+                    </thead>
+                    <tbody id="companyNoticiasBody">
+                      <tr><td>-</td><td>-</td></tr>
                     </tbody>
                   </table>
                 </div>
               </div>
-            </div>
 
-            <div class="company-card">
-              <div class="company-card-head">
-                <h3>Indicaciones especiales</h3>
+              <div class="company-card">
+                <div class="company-card-body">
+                  <table class="simple-table">
+                    <thead>
+                      <tr>
+                        <th>Nombre</th>
+                        <th>RUT</th>
+                        <th>Celular</th>
+                        <th>Información</th>
+                        <th>Clave verde</th>
+                        <th>Clave roja</th>
+                      </tr>
+                    </thead>
+                    <tbody id="companyAuthorizedBody">
+                      <tr>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
-              <div class="company-card-body">
-                <table class="simple-table">
-                  <thead>
-                    <tr>
-                      <th>Fecha</th>
-                      <th>Mensaje</th>
-                    </tr>
-                  </thead>
-                  <tbody id="companyIndicacionesBody">
-                    <tr><td>-</td><td>-</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div class="company-card">
-              <div class="company-card-head">
-                <h3>Noticias</h3>
-              </div>
-              <div class="company-card-body">
-                <table class="simple-table">
-                  <thead>
-                    <tr>
-                      <th>Fecha</th>
-                      <th>Mensaje</th>
-                    </tr>
-                  </thead>
-                  <tbody id="companyNoticiasBody">
-                    <tr><td>-</td><td>-</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div class="company-card">
-              <div class="company-card-body">
-                <table class="simple-table">
-                  <thead>
-                    <tr>
-                      <th>Nombre</th>
-                      <th>RUT</th>
-                      <th>Celular</th>
-                      <th>Información</th>
-                      <th>Clave verde</th>
-                      <th>Clave roja</th>
-                    </tr>
-                  </thead>
-                  <tbody id="companyAuthorizedBody">
-                    <tr>
-                      <td>-</td>
-                      <td>-</td>
-                      <td>-</td>
-                      <td>-</td>
-                      <td>-</td>
-                      <td>-</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
             </div>
           </div>
         </div>
