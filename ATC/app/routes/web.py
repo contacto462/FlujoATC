@@ -60,6 +60,7 @@ from ATC.app.core.config import settings
 from ATC.app.core.security import create_access_token, verify_password
 
 from ATC.app.core.text import decode_mime_words
+from ATC.app.core.signatures import signature_html_for_user
 from ATC.app.services.ticket_status_service import apply_ticket_status_change, mark_first_agent_reply
 from ATC.app.services.user_service import UserService
 from ATC.app.services.automation_service import RULE_EMAIL_AUTO_REPLY, send_initial_email_auto_reply
@@ -4376,6 +4377,7 @@ def ticket_detail(
             "odt_derivacion_tipo": odt_derivacion_tipo,
             "correos_enviados": correos_enviados,
             "correos_count": correos_count,
+            "user_signature": signature_html_for_user(current_user),
         },
     )
 

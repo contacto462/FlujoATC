@@ -3103,7 +3103,7 @@ body.is-inline-image-resizing{
                   class="gmail-editor"
                   contenteditable="{% if ticket_locked or (requires_reception and not can_reply) %}false{% else %}true{% endif %}"
                   data-placeholder="{% if ticket_locked %}Ticket finalizado. La respuesta quedo bloqueada.{% elif requires_reception and not can_reply %}Primero envia 'Recepcion de solicitud'.{% else %}Escribe una respuesta...{% endif %}"
-                ></div>
+                >{% if not ticket_locked and not (requires_reception and not can_reply) and user_signature %}<div><br></div>{{ user_signature|safe }}{% endif %}</div>
                 <div id="inlineImageResizeToolbar" class="gmail-image-resize-toolbar hidden" role="toolbar" aria-label="Tamano de imagen">
                   <button type="button" class="gmail-image-size-btn" data-image-size="small">Pequena</button>
                   <button type="button" class="gmail-image-size-btn active" data-image-size="fit">Ajustar</button>
