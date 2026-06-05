@@ -1,6 +1,7 @@
 ﻿from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -15,6 +16,9 @@ from ATC.app.services.ticket_status_service import apply_ticket_status_change
 
 RULE_PENDING_AUTO_CLOSE = "pending_auto_close"
 RULE_EMAIL_AUTO_REPLY = "email_auto_reply"
+
+# Ruta absoluta del logo (la cuenta no depende del directorio de trabajo).
+_LOGO_ATC_PATH = str(Path(__file__).resolve().parents[2] / "static" / "img" / "logo-atc.png")
 
 
 def log_automation_event(
@@ -225,9 +229,9 @@ def send_initial_email_auto_reply(
           <table role="presentation" cellspacing="0" cellpadding="0" width="100%" style="border-collapse:collapse;">
             <tr>
               <td style="vertical-align:top;padding-right:16px;">
-                <div style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;opacity:.82;">Soporte ATC</div>
-                <h1 style="margin:10px 0 0;font-size:27px;line-height:1.2;">Hemos recibido su solicitud</h1>
-                <p style="margin:10px 0 0;font-size:15px;line-height:1.6;opacity:.92;">Ticket #{ticket.id}</p>
+                <div style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#e2e8f0;">Soporte ATC</div>
+                <h1 style="margin:10px 0 0;font-size:27px;line-height:1.2;color:#ffffff;">Hemos recibido su solicitud</h1>
+                <p style="margin:10px 0 0;font-size:15px;line-height:1.6;color:#dbeafe;">Ticket #{ticket.id}</p>
               </td>
               <td align="right" style="vertical-align:top;">
                 <img src="cid:{logo_cid}" alt="ATC" style="display:block;width:110px;max-width:110px;height:auto;">
@@ -237,27 +241,40 @@ def send_initial_email_auto_reply(
         </div>
         <div style="padding:28px;">
           <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">Hola {requester_name},</p>
-          <p style="margin:0 0 14px;font-size:16px;line-height:1.7;">Le confirmamos que su solicitud fue recibida correctamente e ingresÃ³ a nuestra plataforma de soporte.</p>
-          <p style="margin:0 0 14px;font-size:16px;line-height:1.7;">Nuestro equipo revisarÃ¡ su caso y le responderÃ¡ a la brevedad. Puede responder este mismo correo para agregar mÃ¡s antecedentes si lo necesita.</p>
+          <p style="margin:0 0 14px;font-size:16px;line-height:1.7;">Le confirmamos que su solicitud fue recibida correctamente e ingresó a nuestra plataforma de soporte.</p>
+          <p style="margin:0 0 14px;font-size:16px;line-height:1.7;">Nuestro equipo revisará su caso y le responderá a la brevedad. Puede responder este mismo correo para agregar más antecedentes si lo necesita.</p>
           <p style="margin:22px 0 0;font-size:15px;line-height:1.7;">Gracias por contactar con el Soporte de Alguien te cuida.</p>
         </div>
       </div>
     </div>
     """
 
+    # Documento completo con color-scheme para que los clientes (Apple Mail,
+    # etc.) no inviertan los colores en modo oscuro y se respete el diseno.
+    email_html = (
+        '<!DOCTYPE html><html lang="es"><head>'
+        '<meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
+        '<meta name="color-scheme" content="light dark">'
+        '<meta name="supported-color-schemes" content="light dark">'
+        '</head><body style="margin:0;padding:0;background:#f8fafc;">'
+        f'{body}'
+        '</body></html>'
+    )
+
     from ATC.app.integrations.email_smtp import send_email_reply
 
     outgoing_message_id = send_email_reply(
         to=requester_email,
         subject=subject,
-        body=body,
+        body=email_html,
         in_reply_to=in_reply_to,
         references=references,
         ticket_id=ticket.id,
         inline_images=[
             {
                 "cid": logo_cid,
-                "path": "static/img/logo-atc.png",
+                "path": _LOGO_ATC_PATH,
             }
         ],
     )
