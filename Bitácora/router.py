@@ -380,10 +380,8 @@ def bitacora_busqueda_empresa_api(
             """
             SELECT
                 COALESCE(NULLIF(TRIM(nombre), ''), '-') AS nombre,
-                COALESCE(NULLIF(TRIM(rut), ''), '-') AS rut,
                 COALESCE(NULLIF(TRIM(telefono), ''), '-') AS celular,
-                '-' AS prioridad,
-                COALESCE(NULLIF(TRIM(email), ''), '-') AS email
+                '-' AS prioridad
             FROM sucursal_contactos_emergencia
             WHERE sucursal_id = :sucursal_id
             ORDER BY id ASC
@@ -483,10 +481,8 @@ def bitacora_busqueda_empresa_api(
         "contactos_emergencia": [
             {
                 "nombre": _first_non_empty(row.get("nombre")),
-                "rut": _first_non_empty(row.get("rut")),
                 "celular": _first_non_empty(row.get("celular")),
                 "prioridad": _first_non_empty(row.get("prioridad")),
-                "email": _first_non_empty(row.get("email")),
             }
             for row in emergency_rows
         ],

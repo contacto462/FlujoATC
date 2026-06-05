@@ -894,7 +894,7 @@
       <section class="panel" data-panel="administrar-puestos">
         <div class="panel-head">
           <div>
-            <h2>Administrar puestos</h2>
+            <h2>Administrar puestos callate</h2>
             <p>Base inicial para gestionar puestos por empresa y sucursal dentro del ecosistema ATC.</p>
           </div>
         </div>
@@ -1523,16 +1523,14 @@
           if (!emergencyContacts.length) {
             companyEmergencyBody.innerHTML = `
               <tr><td>Nombre</td><td>-</td></tr>
-              <tr><td>RUT</td><td>-</td></tr>
               <tr><td>Celular</td><td>-</td></tr>
-              <tr><td>Correo</td><td>-</td></tr>
+              <tr><td>Prioridad</td><td>-</td></tr>
             `;
           } else {
             companyEmergencyBody.innerHTML = emergencyContacts.map((item) => `
               <tr><td>Nombre</td><td>${esc(item.nombre || "-")}</td></tr>
-              <tr><td>RUT</td><td>${esc(item.rut || "-")}</td></tr>
               <tr><td>Celular</td><td>${esc(item.celular || "-")}</td></tr>
-              <tr><td>Correo</td><td>${esc(item.email || "-")}</td></tr>
+              <tr><td>Prioridad</td><td>${esc(item.prioridad || "-")}</td></tr>
             `).join("");
           }
         }
