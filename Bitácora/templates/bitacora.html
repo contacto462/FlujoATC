@@ -266,16 +266,13 @@
 
     .panel[data-panel="busqueda-empresa"] {
       overflow: visible;
+      border-radius: var(--radius-lg);
     }
 
     .panel[data-panel="busqueda-empresa"] .panel-head {
-      padding: 22px 20px 8px;
-      border-bottom: 0;
-    }
-
-    .panel[data-panel="busqueda-empresa"] .panel-head h2 {
-      font-size: 17px;
-      font-weight: 600;
+      border-top-left-radius: var(--radius-lg);
+      border-top-right-radius: var(--radius-lg);
+      background: var(--surface);
     }
 
     .panel.active {
@@ -293,8 +290,8 @@
       padding-top: 0;
     }
 
-    .content .panel:first-of-type {
-      margin-top: 18px;
+    .content .panel {
+      margin-top: 28px;
     }
 
     .panel-head {
@@ -387,7 +384,9 @@
 
     .panel[data-panel="busqueda-empresa"] .panel-body {
       overflow: visible;
-      padding: 0 20px 20px;
+      border-bottom-left-radius: var(--radius-lg);
+      border-bottom-right-radius: var(--radius-lg);
+      background: var(--surface);
     }
 
     .filters {
@@ -623,9 +622,7 @@
 
     .company-search-shell {
       display: grid;
-      gap: 12px;
-      position: relative;
-      z-index: 5;
+      gap: 0;
     }
 
     .company-search-content[hidden] {
@@ -635,12 +632,8 @@
     .company-search-top {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 28px;
+      gap: 14px;
       padding: 0;
-      border: 0;
-      border-radius: 0;
-      background: transparent;
-      box-shadow: none;
     }
 
     .company-search-grid {
@@ -708,15 +701,16 @@
 
     .search-select {
       position: relative;
+      z-index: 5;
     }
 
     .search-select-trigger {
       width: 100%;
       border: 1px solid var(--border);
-      border-radius: 4px;
+      border-radius: 8px;
       background: #fff;
       color: var(--text);
-      padding: 8px 34px 8px 12px;
+      padding: 10px 34px 10px 12px;
       font: inherit;
       font-size: 13px;
       cursor: pointer;
@@ -731,7 +725,7 @@
       content: "";
       position: absolute;
       right: 12px;
-      top: calc(50% - 6px);
+      top: calc(50% - 4px);
       width: 8px;
       height: 8px;
       border-right: 1.5px solid var(--text-muted);
@@ -740,25 +734,17 @@
       pointer-events: none;
     }
 
-    .panel[data-panel="busqueda-empresa"] .field label {
-      margin-bottom: 6px;
-      color: var(--text);
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0;
-      text-transform: none;
-    }
 
     .search-select-menu {
       position: absolute;
-      left: 0;
-      right: 0;
+      left: 3px;
+      right: 3px;
       top: calc(100% + 6px);
       z-index: 40;
       background: #fff;
-      border: 1px solid var(--border-strong);
+      border: 1px solid var(--border);
       border-radius: 8px;
-      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16);
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
       overflow: hidden;
     }
 
@@ -767,14 +753,19 @@
     }
 
     .search-select-filter {
-      width: calc(100% - 12px);
-      margin: 6px;
-      border: 2px solid #1f2937;
+      width: calc(100% - 24px);
+      margin: 8px 12px 6px;
+      border: 1px solid var(--border-strong);
       border-radius: 4px;
       padding: 7px 9px;
       font: inherit;
       font-size: 13px;
       outline: none;
+    }
+
+    .search-select-filter:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(222, 123, 54, 0.12);
     }
 
     .search-select-options {
