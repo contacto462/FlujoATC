@@ -1,0 +1,28 @@
+INFO:     127.0.0.1:59403 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59420 - "GET /dashboard HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:59420 - "GET /login HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:59420 - "GET /?form=login&next=auto HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59852 - "GET /dashboard HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:59852 - "GET /login HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:59852 - "GET /?form=login&next=auto HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60509 - "GET /dashboard HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:60509 - "GET /login HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:60509 - "GET /?form=login&next=auto HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60510 - "GET /dashboard HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:60510 - "GET /login HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:60510 - "GET /?form=login&next=auto HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60546 - "GET /dashboard HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:60546 - "GET /login HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:60546 - "GET /?form=login&next=auto HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60546 - "GET /dashboard HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:60546 - "GET /login HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:60546 - "GET /?form=login&next=auto HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60546 - "GET /api/login/usuarios?destino=auto HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60548 - "POST /api/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60548 - "GET /?form=tecnicos&token=544bf8e1-275b-4b5c-864b-8474a63d278b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60548 - "GET /static/auth-guard.js HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:60548 - "GET /api/usuario-actual?token=544bf8e1-275b-4b5c-864b-8474a63d278b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60548 - "GET /api/incidencias/puesto?tecnico=Bryan%20Alexander%20Rebolledo%20Hidalgo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60560 - "GET /api/listas/bbdd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60548 - "GET /api/tecnicos/ruta-optima?tecnico=Bryan%20Alexander%20Rebolledo%20Hidalgo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60548 - "GET /resumen-equipos-tecnicos HTTP/1.1" 200 OK
