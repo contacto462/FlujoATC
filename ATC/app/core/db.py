@@ -10,10 +10,9 @@ def _build_connect_args(database_url: str) -> dict:
     if database_url.startswith("sqlite"):
         return {"check_same_thread": False}
     if database_url.startswith("postgresql"):
-        from ATC.app.core.incidencias_config import settings as _inc
         options: list[str] = []
-        lock_ms = max(0, int(_inc.postgres_lock_timeout_ms or 0))
-        stmt_ms = max(0, int(_inc.postgres_statement_timeout_ms or 0))
+        lock_ms = max(0, int(settings.postgres_lock_timeout_ms or 0))
+        stmt_ms = max(0, int(settings.postgres_statement_timeout_ms or 0))
         if lock_ms:
             options.append(f"-c lock_timeout={lock_ms}")
         if stmt_ms:
