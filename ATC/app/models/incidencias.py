@@ -7,7 +7,8 @@ from typing import Optional
 from sqlalchemy import Boolean, DateTime, ForeignKey, Numeric, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from ATC.app.core.incidencias_db import Base
+from ATC.app.core.db import Base
+from ATC.app.models.user import User  # noqa: F401 — re-export; incidencias_service lo importa desde aquí
 
 
 class Registro(Base):
@@ -358,20 +359,6 @@ class MantencionImagenSucursal(Base):
     created_by: Mapped[Optional[str]] = mapped_column(String(180), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-
-class User(Base):
-    __tablename__ = "users"
-
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String(100), nullable=False)
-    username: Mapped[str] = mapped_column("user", String(50), unique=True, index=True, nullable=False)
-    hashed_password: Mapped[str] = mapped_column("password", String(255), nullable=False)
-    role: Mapped[str] = mapped_column(String(20), default="agent", nullable=False)
-    department: Mapped[Optional[str]] = mapped_column("departament", String(80), nullable=True, index=True)
-    is_active: Mapped[bool] = mapped_column("is_activate", Boolean, default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
 
 class LoginSession(Base):

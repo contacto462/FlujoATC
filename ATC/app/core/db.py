@@ -1,37 +1,52 @@
-﻿from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, DeclarativeBase
+from collections.abc import Generator
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+
 from ATC.app.core.config import settings
 
-engine = create_engine(
-    settings.DATABASE_URL,
-    pool_pre_ping=True,
-    connect_args={"connect_timeout": 2},
-)
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
-# AJUSTE SOPORTE REGISTRO SQL #
-_INCIDENCIAS_DATABASE_URL = settings.INCIDENCIAS_DATABASE_URL or settings.DATABASE_URL
-incidencias_engine = create_engine(
-    _INCIDENCIAS_DATABASE_URL,
-    pool_pre_ping=True,
-    connect_args={"connect_timeout": 2},
-)
-IncidenciasSessionLocal = sessionmaker(bind=incidencias_engine, autoflush=False, autocommit=False)
+def _build_connect_args(database_url: str) -> dict:
+    if database_url.startswith("sqlite"):
+        return {"check_same_thread": False}
+    if database_url.startswith("postgresql"):
+        from ATC.app.core.incidencias_config import settings as _inc
+        options: list[str] = []
+        lock_ms = max(0, int(_inc.postgres_lock_timeout_ms or 0))
+        stmt_ms = max(0, int(_inc.postgres_statement_timeout_ms or 0))
+        if lock_ms:
+            options.append(f"-c lock_timeout={lock_ms}")
+        if stmt_ms:
+            options.append(f"-c statement_timeout={stmt_ms}")
+        if options:
+            return {"options": " ".join(options)}
+    return {}
+
+
+def build_engine(database_url: str, **kwargs):
+    connect_args = _build_connect_args(database_url)
+    return create_engine(database_url, future=True, connect_args=connect_args, **kwargs)
+
+
+engine = build_engine(settings.DATABASE_URL, echo=False)
+SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
+
+# Aliases — backwards-compat durante la migración (Fase 2)
+incidencias_engine = engine
+IncidenciasSessionLocal = SessionLocal
+
 
 class Base(DeclarativeBase):
     pass
 
-def get_db():
+
+def get_db() -> Generator[Session, None, None]:
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
 
-# AJUSTE SOPORTE REGISTRO SQL #
-def get_incidencias_db():
-    db = IncidenciasSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+
+# Alias — web.py usa get_incidencias_db; misma BBDD, se unifica en Fase 4
+get_incidencias_db = get_db

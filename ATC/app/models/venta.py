@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy import DateTime, Index, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from ATC.app.core.incidencias_db import Base
+from ATC.app.core.db import Base
 
 
 class VentaCliente(Base):

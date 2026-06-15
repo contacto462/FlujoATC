@@ -148,7 +148,6 @@ TIPOS_Y_ESPECIFICACIONES = {
 
 def startup_incidencias() -> None:
     global _protocolos_weekly_worker_started
-    Base.metadata.create_all(bind=engine)
     _ensure_database_relationships()
     _ensure_registro_optional_columns()
     _ensure_administracion_odt_optional_columns()
