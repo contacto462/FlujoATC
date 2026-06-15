@@ -73,9 +73,7 @@ from ATC.app.schemas.incidencias import (
 
 PWD_CONTEXT = CryptContext(schemes=["bcrypt"], deprecated="auto")
 _ATC_ROOT = Path(__file__).resolve().parents[2]
-_INCIDENCIAS_ROOT = _ATC_ROOT / "incidencias"
-_INCIDENCIAS_APP_DIR = _INCIDENCIAS_ROOT / "app"
-IDENTITY_SEED_FILE = _INCIDENCIAS_ROOT / "sql" / "users_areas_seed.csv"
+IDENTITY_SEED_FILE = _ATC_ROOT / "app" / "data" / "users_areas_seed.csv"
 AREA_DESTINOS: dict[str, str] = {
     "auto": "",
     "loginunico": "",
@@ -532,7 +530,7 @@ def seed_default_identity_data(db: Session) -> None:
 class IncidenciasService:
     MANTENCION_CIERRE_MAX_IMAGENES = 80
     MANTENCION_CIERRE_MAX_BYTES = 10 * 1024 * 1024
-    MANTENCION_CIERRE_UPLOADS_DIR = _INCIDENCIAS_ROOT / "uploads" / "cierres_mantencion"
+    MANTENCION_CIERRE_UPLOADS_DIR = _ATC_ROOT / "uploads" / "cierres_mantencion"
 
     CAUSAS_CIERRE: dict[str, set[str]] = {
         "ATC": {

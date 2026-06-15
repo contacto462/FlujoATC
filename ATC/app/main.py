@@ -37,7 +37,6 @@ from ATC.app.routes.whatsapp_webhook import router as whatsapp_router
 from ATC.app.routes.requesters import router as requesters_router
 from ATC.app.routes.public import router as public_router
 from ATC.app.modules.client_notes import router as client_notes_router
-from ATC.app.modules.incidencias import register_incidencias_module
 from ATC.app.modules.unified_access import router as unified_access_router
 from ATC.app.routes.incidencias import router as incidencias_router, startup_incidencias
 from ATC.app.routes.venta import router as venta_router
@@ -70,10 +69,8 @@ from pathlib import Path
 
 _ATC_ROOT = Path(__file__).resolve().parents[1]
 _UPLOADS_DIR = _ATC_ROOT / "uploads"
-_APP_STATIC_DIR = Path(__file__).resolve().parent / "static"   # ATC/app/static (unificado Fase 4)
-_STATIC_DIR = _ATC_ROOT / "static"                             # ATC/static (imágenes compartidas)
-_INCIDENCIAS_ROOT = _ATC_ROOT / "incidencias"
-_INCIDENCIAS_UPLOADS_DIR = _INCIDENCIAS_ROOT / "uploads"       # uploads de incidencias (Fase 5 mueve)
+_APP_STATIC_DIR = Path(__file__).resolve().parent / "static"
+_STATIC_DIR = _ATC_ROOT / "static"
 
 
 class _UvicornAccessNoiseFilter(logging.Filter):
@@ -141,7 +138,7 @@ _STATIC_DIR.mkdir(parents=True, exist_ok=True)
 # =========================
 app.mount(
     "/uploads",
-    MultiDirectoryStaticFiles([_INCIDENCIAS_UPLOADS_DIR, _UPLOADS_DIR]),
+    StaticFiles(directory=str(_UPLOADS_DIR)),
     name="uploads",
 )
 app.mount(
@@ -310,7 +307,6 @@ app.include_router(client_notes_router)
 app.include_router(bitacora_router)
 app.include_router(incidencias_router)
 app.include_router(venta_router)
-register_incidencias_module(app)
 
 # =========================
 # INCLUIR ROUTER WEB (DASHBOARD)

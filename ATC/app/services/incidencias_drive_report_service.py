@@ -952,7 +952,7 @@ def download_support_drive_file_bytes(*, file_id: str) -> tuple[bytes, str, str]
 
 @lru_cache(maxsize=1)
 def _protocolos_template_env() -> Environment:
-    template_dir = _ATC_ROOT / "incidencias" / "app" / "templates" / "reportes"
+    template_dir = _ATC_ROOT / "app" / "templates" / "reportes"
     return Environment(
         loader=FileSystemLoader(str(template_dir)),
         autoescape=False,

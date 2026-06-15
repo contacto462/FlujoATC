@@ -26,7 +26,13 @@ tener ya la respuesta y evita leer muchos archivos. Mapa:
 
 ## Código
 
-- Helpdesk: `ATC/app/` · Incidencias/Venta: `ATC/incidencias/app/`
+Todo el código vive en **`ATC/app/`** (ya no hay carpeta `ATC/incidencias/`):
+
+- Rutas: `ATC/app/routes/` — `web.py` (Helpdesk), `incidencias.py`, `venta.py`, `tickets.py`, etc.
+- Modelos: `ATC/app/models/` — `user.py`, `incidencias.py`, `venta.py`, etc.
+- Servicios: `ATC/app/services/` — `incidencias_service.py`, `venta_service.py`, etc.
+- Config única: `ATC/app/core/config.py` · DB única: `ATC/app/core/db.py`
+- Templates: `ATC/app/templates/` (unificado) · Static: `ATC/app/static/`
 - Workers Celery: `ATC/app/workers/` · Integraciones (correo/WhatsApp): `ATC/app/integrations/`
 
 ## Levantar el server (macOS)

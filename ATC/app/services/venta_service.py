@@ -63,8 +63,7 @@ PROVEEDORES_ELECTRICIDAD = [
 ]
 
 _ATC_ROOT = Path(__file__).resolve().parents[2]
-_INCIDENCIAS_ROOT = _ATC_ROOT / "incidencias"
-VENTA_UPLOADS_DIR = _INCIDENCIAS_ROOT / "uploads" / "venta_ods"
+VENTA_UPLOADS_DIR = _ATC_ROOT / "uploads" / "venta_ods"
 
 
 def normalize_rut(value: str) -> str:
@@ -571,7 +570,7 @@ def _save_ods_file(codigo: str, payload: VentaODSArchivoRequest | None) -> str |
     file_name = _safe_filename(payload.nombre or "archivo.bin")
     path = folder / file_name
     path.write_bytes(content)
-    return str(path.relative_to(_INCIDENCIAS_ROOT)).replace("\\", "/")
+    return str(path.relative_to(_ATC_ROOT)).replace("\\", "/")
 
 
 def _upsert_ods_archivo(
