@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from Bitácora.access import can_access_bitacora
+from ATC.app.routes.bitacora_access import can_access_bitacora
 from ATC.app.core.config import settings
 from ATC.app.core.db import get_db, get_incidencias_db
 from ATC.app.models.user import User
@@ -20,7 +20,7 @@ from ATC.app.services.user_service import UserService
 
 
 router = APIRouter(tags=["bitacora"])
-templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent / "templates"))
+templates = Jinja2Templates(directory=str(Path(__file__).resolve().parents[1] / "templates"))
 COOKIE_NAME = "access_token"
 
 

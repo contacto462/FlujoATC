@@ -42,7 +42,7 @@ from ATC.app.routes.incidencias import router as incidencias_router, startup_inc
 from ATC.app.routes.venta import router as venta_router
 from ATC.app.models import incidencias as _incidencias_models  # noqa
 from ATC.app.models import venta as _venta_models  # noqa
-from Bitácora.router import router as bitacora_router
+from ATC.app.routes.bitacora import router as bitacora_router
 
 # =========================
 # IMPORTAR ROUTER WEB (CRM)
