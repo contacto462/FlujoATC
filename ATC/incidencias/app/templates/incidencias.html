@@ -31,6 +31,7 @@
     .boton-puesto{min-width:56px;height:50px;padding:0 14px;font-size:14px;font-weight:800;color:#fff;border:none;border-radius:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;white-space:nowrap;background:rgba(255,255,255,.06);box-shadow:0 10px 18px rgba(0,0,0,.18);transition:transform .18s ease,background-color .18s ease,box-shadow .18s ease}
     .boton-puesto:hover{background:linear-gradient(135deg,var(--orange-1) 0%,var(--orange-2) 100%);transform:translateY(-2px);box-shadow:0 14px 24px rgba(255,110,35,.24)}
     .boton-puesto.activo{background:linear-gradient(135deg,var(--orange-1) 0%,var(--orange-2) 100%);color:#fff;transform:translateY(-1px);box-shadow:0 0 0 2px rgba(255,196,150,.34),0 14px 24px rgba(255,110,35,.26)}
+    .boton-puesto.oficina-atc{min-width:136px;padding:0 18px}
     .alerta-importante{background:rgba(156,26,26,.18);border:1px solid rgba(255,112,112,.24);color:#ffd2d2;padding:14px 16px;font-weight:600;text-align:center;margin:0 auto 18px;max-width:860px;border-radius:16px;box-shadow:0 14px 24px rgba(0,0,0,.16)}
     .formulario-puesto{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:22px;padding:20px;margin:0 auto 20px;max-width:1040px;box-shadow:0 18px 34px rgba(0,0,0,.18)}
     .titulo-formulario-puesto{margin:0 0 10px;font-size:22px;font-weight:800;color:var(--text-main)}
@@ -135,6 +136,8 @@
     .modal-obs-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
     .modal-obs-meta{margin:6px 0 0;color:var(--text-soft);font-size:13px;line-height:1.5}
     .modal-obs-body{padding:14px 16px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);font-size:14px;line-height:1.7;color:var(--text-main);white-space:pre-wrap;word-break:break-word}
+    .modal-sub{margin:6px 0 0;color:var(--text-soft);font-size:13px;line-height:1.45}
+    .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;flex-wrap:wrap}
     .noticia-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:auto;padding-top:14px}
     .noticia-odt{font-size:12px;font-weight:700;color:var(--text-soft);letter-spacing:.08em;text-transform:uppercase}
     .noticia-nav{display:flex;align-items:center;gap:10px}
@@ -482,6 +485,21 @@
     </div>
   </div>
 
+  <div id="popupOficinaATC" class="modal">
+    <div class="modal-content" style="max-width:520px">
+      <h3 style="margin-top:0;text-align:center">Nuevo Ticket Interno</h3>
+      <p class="modal-sub" style="text-align:center">Crea un ticket interno para seguimiento de Oficina ATC.</p>
+      <form id="formOficinaATC" onsubmit="return false;">
+        <label>Asunto</label><input type="text" name="subject" required />
+        <label style="margin-top:10px;display:block">Descripci&oacute;n</label><textarea name="content" rows="5" placeholder="Describe el contexto, impacto y lo necesario para seguir el caso..." required></textarea>
+        <div class="modal-actions">
+          <button type="button" onclick="cerrarPopupOficinaATC()">Cancelar</button>
+          <button type="submit">Crear ticket</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div id="modalConflictos" class="modal">
     <div class="modal-content">
       <div class="conf-head">
@@ -517,6 +535,16 @@
     let mapaTipos={},listaClientesGlobal=[],contactosPorSucursal={},todasIncidenciasPendientes=[],ultimasIncidenciasSolucionadas=[],conflictosPendientes=[],incidenciasAprobadasSinConflicto=[],seleccionConflictos=[],uidInc=0,puestoActivo=null,indiceNoticiaActual=0,noticiasAutoTimer=null;
 
     async function api(url,options={}){const res=await fetch(url,{headers:{"Content-Type":"application/json"},...options});const ct=res.headers.get("content-type")||"";const payload=ct.includes("application/json")?await res.json():await res.text();if(!res.ok){const detail=typeof payload==="string"?payload:payload?.detail||JSON.stringify(payload);throw new Error(detail||`HTTP ${res.status}`)}return payload}
+    async function apiForm(url,formData){
+      const res=await fetch(url,{method:"POST",body:formData});
+      const ct=res.headers.get("content-type")||"";
+      const payload=ct.includes("application/json")?await res.json():await res.text();
+      if(!res.ok){
+        const detail=typeof payload==="string"?payload:payload?.detail||JSON.stringify(payload);
+        throw new Error(detail||`HTTP ${res.status}`);
+      }
+      return payload;
+    }
     function setMensaje(msg,ok=true){const el=document.getElementById("mensaje");el.style.color=ok?"#27ae60":"#c62828";el.textContent=msg||"";if(msg){setTimeout(()=>{if(el.textContent===msg)el.textContent=""},5000)}}
     function llenarDatalist(id,valores){const dl=document.getElementById(id);dl.innerHTML="";(valores||[]).forEach(v=>{if(!v)return;const o=document.createElement("option");o.value=String(v);dl.appendChild(o)})}
     function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
@@ -708,7 +736,7 @@
     function actualizarBotonPuestoActivo(puesto){
       document.querySelectorAll("#gridPuestos .boton-puesto").forEach(b=>b.classList.toggle("activo",String(b.dataset.puesto||"")===String(puesto||"")))
     }
-    function crearBotonesPuestos(){const grid=document.getElementById("gridPuestos");grid.innerHTML="";for(let i=1;i<=TOTAL_PUESTOS;i++){const b=document.createElement("button");b.className="boton-puesto";b.dataset.puesto=String(i);b.textContent=i===30?"Solo clientes con alarma":String(i);b.onclick=()=>mostrarFormularioPuesto(i);grid.appendChild(b)}}
+    function crearBotonesPuestos(){const grid=document.getElementById("gridPuestos");grid.innerHTML="";for(let i=1;i<=TOTAL_PUESTOS;i++){const b=document.createElement("button");b.className="boton-puesto";b.dataset.puesto=String(i);b.textContent=i===30?"Solo clientes con alarma":String(i);b.onclick=()=>mostrarFormularioPuesto(i);grid.appendChild(b)}const oficina=document.createElement("button");oficina.className="boton-puesto oficina-atc";oficina.type="button";oficina.textContent="Oficina ATC";oficina.onclick=abrirPopupOficinaATC;grid.appendChild(oficina)}
 
     function mostrarFormularioPuesto(puesto){
       const id=`formulario-puesto-${puesto}`;const ex=document.getElementById(id);if(ex){ex.remove();puestoActivo=null;actualizarBotonPuestoActivo(null);return}
@@ -1010,8 +1038,49 @@ function obtenerIncidenciasDesdeForm(){
       }catch(err){alert(err.message||"No se pudo abrir el registro de tarea.")}
     }
     function cerrarPopupRegistrarTarea(){document.getElementById("popupRegistrarTarea").style.display="none";document.getElementById("formRegistrarTarea").reset()}
+    function abrirPopupOficinaATC(){
+      const modal=document.getElementById("popupOficinaATC");
+      if(!modal)return;
+      modal.style.display="flex";
+      const firstField=modal.querySelector('input[name="subject"]');
+      if(firstField)setTimeout(()=>firstField.focus(),50);
+    }
+    function cerrarPopupOficinaATC(){
+      const modal=document.getElementById("popupOficinaATC");
+      if(!modal)return;
+      modal.style.display="none";
+      document.getElementById("formOficinaATC").reset();
+    }
     document.getElementById("tipoTarea").addEventListener("change",function(){const esp=document.getElementById("especificacion");esp.innerHTML="";esp.disabled=true;const l=mapaTipos[this.value];if(!l||!l.length)return;esp.innerHTML='<option value="">-- Seleccionar --</option>';l.forEach(it=>{const o=document.createElement("option");o.value=it;o.textContent=it;esp.appendChild(o)});esp.disabled=false});
     document.getElementById("formRegistrarTarea").addEventListener("submit",async function(){const payload={cliente:this.cliente.value.trim(),tipoTarea:this.tipoTarea.value,especificacion:this.especificacion.value,descripcion:this.descripcion.value.trim(),solicitante:this.tecnico.value.trim(),estado:"Pendiente",token:localStorage.getItem("ATC_TOKEN")||""};if(!payload.cliente||!payload.tipoTarea||!payload.especificacion||!payload.descripcion){alert("Completa todos los campos obligatorios.");return}try{await api("/api/tareas",{method:"POST",body:JSON.stringify(payload)});cerrarPopupRegistrarTarea();alert("Tarea registrada correctamente.")}catch(err){alert(err.message||"No se pudo registrar la tarea.")}})
+    document.getElementById("formOficinaATC").addEventListener("submit",async function(){
+      const subject=String(this.subject.value||"").trim();
+      const content=String(this.content.value||"").trim();
+      if(!subject||!content){
+        alert("Completa asunto y descripcion.");
+        return;
+      }
+      const formData=new FormData();
+      formData.append("subject",subject);
+      formData.append("content",content);
+      formData.append("token",obtenerTokenActual());
+      try{
+        const data=await apiForm("/dashboard/tickets/oficina-atc/create",formData);
+        cerrarPopupOficinaATC();
+        setMensaje(`Ticket interno creado correctamente${data?.ticket_id?` (#${data.ticket_id})`:""}.`);
+      }catch(err){
+        alert(err.message||"No se pudo crear el ticket interno.");
+      }
+    });
+
+    const popupOficinaATC=document.getElementById("popupOficinaATC");
+    if(popupOficinaATC){
+      popupOficinaATC.addEventListener("click",function(e){if(e.target===this)cerrarPopupOficinaATC()});
+    }
+    const popupRegistrarTarea=document.getElementById("popupRegistrarTarea");
+    if(popupRegistrarTarea){
+      popupRegistrarTarea.addEventListener("click",function(e){if(e.target===this)cerrarPopupRegistrarTarea()});
+    }
 
     async function bootstrap(){
       inicializarTema();

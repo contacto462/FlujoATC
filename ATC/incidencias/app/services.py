@@ -15,6 +15,7 @@ import urllib.error
 import urllib.request
 import uuid
 import unicodedata
+import zipfile
 from dataclasses import dataclass
 from datetime import datetime, time, timedelta, timezone
 from email.message import EmailMessage
@@ -23,6 +24,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, quote_plus, urlsplit
 from zoneinfo import ZoneInfo
+import xml.etree.ElementTree as ET
 
 from passlib.context import CryptContext
 from sqlalchemy import func, or_, select, text
@@ -50,11 +52,14 @@ from ATC.incidencias.app.models import (
     Rendicion,
     RendicionPago,
     RendicionViaticoCap,
+    SucursalBBDD,
+    SucursalPersonaAutorizada,
     ServicioTecnicoVentaODT,
     SyncOutbox,
     Tarea,
     User,
     VentaODS,
+    VentaODSArchivo,
 )
 from ATC.incidencias.app.schemas import (
     ContactoDestinoRequest,
@@ -260,6 +265,88 @@ SUCURSALES_EXTRA_MANTENCION: list[str] = [
     "Quintero",
     "Concon",
 ]
+MATERIALES_EXCEL_CACHE_LOCK = threading.Lock()
+MATERIALES_EXCEL_CACHE: dict[str, Any] = {
+    "path": None,
+    "mtime": None,
+    "items": None,
+}
+
+
+def _cell_value_from_xlsx(cell: ET.Element, shared_strings: list[str], ns: dict[str, str]) -> str:
+    cell_type = cell.attrib.get("t", "")
+    value = cell.findtext("a:v", default="", namespaces=ns) or ""
+    if cell_type == "s" and value:
+        try:
+            return shared_strings[int(value)]
+        except (ValueError, IndexError):
+            return ""
+    if cell_type == "inlineStr":
+        return "".join(part.text or "" for part in cell.iterfind(".//a:t", ns))
+    if value:
+        return value
+    is_el = cell.find("a:is", ns)
+    if is_el is not None:
+        return "".join(part.text or "" for part in is_el.iterfind(".//a:t", ns))
+    return ""
+
+
+def _read_xlsx_shared_strings(zf: zipfile.ZipFile, ns: dict[str, str]) -> list[str]:
+    if "xl/sharedStrings.xml" not in zf.namelist():
+        return []
+    root = ET.fromstring(zf.read("xl/sharedStrings.xml"))
+    shared_strings: list[str] = []
+    for si in root.findall("a:si", ns):
+        shared_strings.append("".join(part.text or "" for part in si.iterfind(".//a:t", ns)))
+    return shared_strings
+
+
+def _resolve_xlsx_sheet_targets(zf: zipfile.ZipFile, ns: dict[str, str]) -> list[str]:
+    workbook = ET.fromstring(zf.read("xl/workbook.xml"))
+    rels: dict[str, str] = {}
+    rels_path = "xl/_rels/workbook.xml.rels"
+    if rels_path in zf.namelist():
+        rels_root = ET.fromstring(zf.read(rels_path))
+        rel_ns = {"r": "http://schemas.openxmlformats.org/package/2006/relationships"}
+        for rel in rels_root.findall("r:Relationship", rel_ns):
+            rels[rel.attrib.get("Id", "")] = rel.attrib.get("Target", "")
+
+    targets: list[str] = []
+    sheets = workbook.find("a:sheets", ns)
+    if sheets is None:
+        return targets
+    for sheet in sheets.findall("a:sheet", ns):
+        rel_id = sheet.attrib.get("{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id", "")
+        target = rels.get(rel_id, "")
+        if not target:
+            continue
+        if target.startswith("/"):
+            target = target.lstrip("/")
+        elif not target.startswith("xl/"):
+            target = f"xl/{target}"
+        targets.append(target)
+    return targets
+
+
+def _inferir_unidad_material(nombre: str) -> str:
+    texto = unicodedata.normalize("NFD", str(nombre or "").strip().lower())
+    texto = "".join(c for c in texto if unicodedata.category(c) != "Mn")
+    if any(
+        clave in texto
+        for clave in (
+            "cable",
+            "corrugado",
+            "tuberia",
+            "piola",
+            "cinta",
+            "canaleta",
+            "manguera",
+            "metro",
+        )
+    ):
+        return "metro"
+    return "unidad"
+
 KNOWN_REGISTRO_BLOCKING_QUERY = "ALTER TABLE registro DROP COLUMN IF EXISTS foto_2"
 LOGGER = logging.getLogger(__name__)
 TICKET_STATUS_ABIERTO = "open"
@@ -461,6 +548,24 @@ class IncidenciasService:
             "dano_terceros",
             "otro",
         },
+        "Proveedor Externo": {
+            "falla_proveedor_servicio",
+            "corte_programado_proveedor",
+            "equipo_proveedor_defectuoso",
+            "otro",
+        },
+        "Internet": {
+            "corte_internet_zona",
+            "intermitencia_enlace",
+            "falla_router_modem",
+            "otro",
+        },
+        "Otro": {
+            "fuerza_mayor",
+            "vandalismo",
+            "causa_no_determinada",
+            "otro",
+        },
     }
     ACCIONES_CIERRE = {
         "reconexion",
@@ -501,6 +606,142 @@ class IncidenciasService:
     def __init__(self, db: Session):
         self.db = db
         self._direcciones_csv_cache: dict[str, str] | None = None
+
+    def _ruta_excel_materiales(self) -> Path:
+        candidatos: list[Path] = []
+        raw = str(getattr(settings, "materiales_excel_path", "") or "").strip()
+        if raw:
+            candidatos.append(Path(raw).expanduser())
+        home = Path.home()
+        candidatos.extend(
+            [
+                home / "Desktop" / "Hoja de cálculo sin título.xlsx",
+                home / "Desktop" / "Hoja de calculo sin titulo.xlsx",
+            ]
+        )
+        desktop = home / "Desktop"
+        if desktop.exists():
+            objetivo = self._normalizar_texto("Hoja de cálculo sin título")
+            for archivo in desktop.glob("*.xlsx"):
+                nombre_norm = self._normalizar_texto(archivo.stem)
+                if objetivo in nombre_norm or nombre_norm in objetivo:
+                    candidatos.append(archivo)
+
+        for candidato in candidatos:
+            if candidato.exists() and candidato.is_file():
+                return candidato
+        return candidatos[0] if candidatos else home / "Desktop" / "Hoja de cálculo sin título.xlsx"
+
+    def _cargar_catalogo_materiales_excel(self) -> list[dict[str, str]]:
+        ruta = self._ruta_excel_materiales()
+        try:
+            mtime = ruta.stat().st_mtime
+        except FileNotFoundError as exc:
+            raise ValueError(f"No se encontro el Excel de materiales en: {ruta}") from exc
+
+        with MATERIALES_EXCEL_CACHE_LOCK:
+            cache_path = MATERIALES_EXCEL_CACHE.get("path")
+            cache_mtime = MATERIALES_EXCEL_CACHE.get("mtime")
+            cache_items = MATERIALES_EXCEL_CACHE.get("items")
+            if cache_path == str(ruta) and cache_mtime == mtime and isinstance(cache_items, list):
+                return cache_items
+
+        ns = {"a": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+        materiales: list[dict[str, str]] = []
+        vistos: set[str] = set()
+
+        try:
+            with zipfile.ZipFile(ruta) as zf:
+                shared_strings = _read_xlsx_shared_strings(zf, ns)
+                targets = _resolve_xlsx_sheet_targets(zf, ns)
+                for target in targets:
+                    if target not in zf.namelist():
+                        continue
+                    root = ET.fromstring(zf.read(target))
+                    sheet_data = root.find("a:sheetData", ns)
+                    if sheet_data is None:
+                        continue
+                    for row in sheet_data.findall("a:row", ns):
+                        celdas = []
+                        for cell in row.findall("a:c", ns):
+                            value = _cell_value_from_xlsx(cell, shared_strings, ns).strip()
+                            if value:
+                                celdas.append(value)
+                        if not celdas:
+                            continue
+                        nombre = " ".join(celdas).strip()
+                        if not nombre:
+                            continue
+                        if self._normalizar_texto(nombre) == "materiales":
+                            continue
+                        nombre_norm = self._normalizar_texto(nombre)
+                        if not nombre_norm or nombre_norm in vistos:
+                            continue
+                        vistos.add(nombre_norm)
+                        idx = len(materiales) + 1
+                        materiales.append(
+                            {
+                                "codigo": f"mat_{idx:03d}",
+                                "nombre": nombre,
+                                "unidad_sugerida": _inferir_unidad_material(nombre),
+                                "nombre_normalizado": nombre_norm,
+                            }
+                        )
+        except zipfile.BadZipFile as exc:
+            raise ValueError(f"El archivo de materiales no es un .xlsx valido: {ruta}") from exc
+        except Exception as exc:
+            raise ValueError(f"No se pudo leer el Excel de materiales: {exc}") from exc
+
+        with MATERIALES_EXCEL_CACHE_LOCK:
+            MATERIALES_EXCEL_CACHE["path"] = str(ruta)
+            MATERIALES_EXCEL_CACHE["mtime"] = mtime
+            MATERIALES_EXCEL_CACHE["items"] = materiales
+        return materiales
+
+    def buscar_materiales_excel(self, consulta: str = "", limite: int = 10) -> dict[str, Any]:
+        q = self._normalizar_texto(consulta)
+        if not q:
+            return {"query": "", "total": 0, "items": []}
+
+        limite = max(1, min(int(limite or 10), 20))
+        catalogo = self._cargar_catalogo_materiales_excel()
+        tokens = [t for t in q.split() if t]
+
+        from difflib import SequenceMatcher
+
+        resultados: list[dict[str, Any]] = []
+        for item in catalogo:
+            nombre_norm = item.get("nombre_normalizado", "")
+            if not nombre_norm:
+                continue
+            score = 0.0
+            if nombre_norm == q:
+                score += 1000
+            if nombre_norm.startswith(q):
+                score += 400
+            if q in nombre_norm:
+                score += 250
+            if tokens:
+                matches = sum(1 for token in tokens if token in nombre_norm)
+                score += matches * 120
+                if nombre_norm.startswith(tokens[0]):
+                    score += 40
+            score += SequenceMatcher(None, q, nombre_norm).ratio() * 100
+            if score <= 0:
+                continue
+            resultados.append(
+                {
+                    "codigo": item["codigo"],
+                    "nombre": item["nombre"],
+                    "unidadSugerida": item["unidad_sugerida"],
+                    "score": round(score, 2),
+                }
+            )
+
+        resultados.sort(key=lambda x: (-float(x.get("score") or 0), self._normalizar_texto(x.get("nombre"))))
+        total = len(resultados)
+        resultados = resultados[:limite]
+        return {"query": consulta, "total": total, "items": resultados}
 
     def _terminate_known_registro_lockers(self) -> int:
         rows = self.db.execute(
@@ -2584,8 +2825,9 @@ class IncidenciasService:
                 raise RuntimeError(f"No hay columnas compatibles para insertar en {schema}.{table}.")
 
             placeholders = [f":{c}" for c in insert_cols]
+            quoted_cols = ", ".join(f'"{c}"' for c in insert_cols)
             sql_insert = text(
-                f'INSERT INTO "{schema}"."{table}" ({", ".join([f"""\"{c}\"""" for c in insert_cols])}) '
+                f'INSERT INTO "{schema}"."{table}" ({quoted_cols}) '
                 f'VALUES ({", ".join(placeholders)})'
             )
             conn.execute(sql_insert, params)
@@ -3205,11 +3447,13 @@ class IncidenciasService:
             except Exception:
                 return s
 
+        tecnico_norm = self._normalizar_texto(tecnico or "")
         rows = self._run_registro_query(
             lambda: self.db.scalars(select(Registro).order_by(Registro.id.asc())).all(),
             "cargar las incidencias por puesto",
         )
         out: list[list[Any]] = []
+        odts_vistas: set[str] = set()
         for r in rows:
             sucursal = str(r.cliente or "").strip()
             direccion = str(r.direccion or "").strip() or self._direccion_cliente(sucursal)
@@ -3239,6 +3483,70 @@ class IncidenciasService:
                 obs_soporte,
                 obs_servicio,
                 str(getattr(r, "observacion_final", "") or "").strip(),
+            ])
+            odt_key = self._normalizar_texto(r.odt)
+            if odt_key and (not tecnico_norm or self._fila_aplica_a_tecnico(r, tecnico_norm)):
+                odts_vistas.add(odt_key)
+
+        try:
+            rows_venta = (
+                self.db.execute(
+                    select(VentaODS, ServicioTecnicoVentaODT, AdministracionODT)
+                    .outerjoin(
+                        ServicioTecnicoVentaODT,
+                        func.lower(func.trim(ServicioTecnicoVentaODT.odt)) == func.lower(func.trim(VentaODS.codigo)),
+                    )
+                    .outerjoin(
+                        AdministracionODT,
+                        func.lower(func.trim(AdministracionODT.odt)) == func.lower(func.trim(VentaODS.codigo)),
+                    )
+                    .where(VentaODS.estado != "Anulada")
+                    .order_by(VentaODS.created_at.asc(), VentaODS.id.asc())
+                )
+                .all()
+            )
+        except Exception:
+            rows_venta = []
+
+        for ods, st, adm in rows_venta:
+            tecnico_venta = str(getattr(st, "tecnico_a_cargo", "") or getattr(adm, "tecnico", "") or "").strip()
+            acompanante_venta = str(getattr(st, "acompanante", "") or getattr(adm, "acompanante", "") or "").strip()
+            if not tecnico_venta and not acompanante_venta:
+                continue
+
+            odt_key = self._normalizar_texto(ods.codigo)
+            if odt_key and odt_key in odts_vistas:
+                continue
+
+            estado_venta = str(ods.estado or "").strip() or "Pendiente"
+            estado_visible = "Terminado" if bool(getattr(st, "finalizado", False)) else "En Proceso"
+            fecha_ref = (
+                getattr(st, "fecha_recepcion_solicitud_instalacion", None)
+                or getattr(st, "updated_at", None)
+                or ods.created_at
+            )
+            fecha_cierre = getattr(st, "fecha_cierre", None)
+            if not isinstance(fecha_cierre, datetime):
+                fecha_cierre = None
+            out.append([
+                ods.codigo or "",
+                _fmt_fecha(fecha_ref),
+                "",
+                ods.nombre_sucursal or ods.razon_social or "",
+                ods.tipo_servicio or "",
+                "Servicio Tecnico",
+                ods.observacion or ods.consideraciones or "",
+                tecnico_venta,
+                estado_visible,
+                ods.id,
+                acompanante_venta,
+                _fmt_fecha(fecha_cierre),
+                "",
+                ods.direccion_sucursal or "",
+                "",
+                "",
+                "",
+                estado_venta,
             ])
         return self._filtrar_incidencias_para_tecnico(out, tecnico)
 
@@ -3428,13 +3736,37 @@ class IncidenciasService:
             .replace(" ", "_")
         )
 
+    def _normalizar_codigos_cierre(self, valor: Any) -> list[str]:
+        items = valor if isinstance(valor, (list, tuple, set)) else [valor]
+        normalizados: list[str] = []
+        vistos: set[str] = set()
+        for item in items:
+            codigo = self._normalizar_codigo_cierre(item)
+            if not codigo or codigo in vistos:
+                continue
+            vistos.add(codigo)
+            normalizados.append(codigo)
+        return normalizados
+
+    @staticmethod
+    def _formatear_lista_cierre(valores: list[str]) -> str:
+        return " | ".join(v for v in valores if str(v or "").strip())
+
     def _normalizar_responsable_cierre(self, valor: Any) -> str:
         responsable = self._normalizar_texto(valor)
         if responsable == "atc":
             return "ATC"
         if responsable == "cliente":
             return "Cliente"
-        raise ValueError("Debes seleccionar si el problema fue responsabilidad de ATC o del Cliente.")
+        if responsable in {"proveedor externo", "externo", "proveedor_externo"}:
+            return "Proveedor Externo"
+        if responsable == "internet":
+            return "Internet"
+        if responsable == "otro":
+            return "Otro"
+        raise ValueError(
+            "Debes seleccionar el responsable del problema: ATC, Cliente, Proveedor Externo, Internet u Otro."
+        )
 
     def _normalizar_materiales_cierre(
         self,
@@ -3443,6 +3775,12 @@ class IncidenciasService:
     ) -> list[dict[str, Any]]:
         if materiales_sin_uso:
             return []
+
+        catalogo = self._cargar_catalogo_materiales_excel()
+        catalogo_por_codigo = {item["codigo"]: item for item in catalogo}
+        catalogo_por_nombre = {
+            item["nombre_normalizado"]: item for item in catalogo if item.get("nombre_normalizado")
+        }
 
         normalizados: list[dict[str, Any]] = []
         for item in materiales or []:
@@ -3458,7 +3796,18 @@ class IncidenciasService:
                 cantidad = 0
             if not codigo and not nombre and cantidad <= 0:
                 continue
-            if codigo not in self.MATERIALES_CIERRE:
+            if codigo in catalogo_por_codigo:
+                nombre = nombre or catalogo_por_codigo[codigo]["nombre"]
+                if unidad == "unidad":
+                    unidad = catalogo_por_codigo[codigo]["unidad_sugerida"] or unidad
+            elif not codigo and nombre:
+                item_catalogo = catalogo_por_nombre.get(self._normalizar_texto(nombre))
+                if item_catalogo:
+                    codigo = item_catalogo["codigo"]
+                    nombre = item_catalogo["nombre"]
+                    if unidad == "unidad":
+                        unidad = item_catalogo["unidad_sugerida"] or unidad
+            elif codigo not in self.MATERIALES_CIERRE:
                 raise ValueError("Hay un material no valido en el cierre.")
             if codigo == "otro" and not nombre:
                 raise ValueError("Indica el nombre del material marcado como Otro.")
@@ -3490,8 +3839,8 @@ class IncidenciasService:
         requiere_seguimiento: bool = False,
     ) -> dict[str, Any]:
         responsable = self._normalizar_responsable_cierre(responsable_cierre)
-        causa = self._normalizar_codigo_cierre(causa_cierre)
-        accion = self._normalizar_codigo_cierre(accion_cierre)
+        causas = self._normalizar_codigos_cierre(causa_cierre)
+        acciones = self._normalizar_codigos_cierre(accion_cierre)
         resultado = self._normalizar_codigo_cierre(resultado_cierre)
         pruebas = sorted(
             {
@@ -3501,9 +3850,13 @@ class IncidenciasService:
             }
         )
 
-        if causa not in self.CAUSAS_CIERRE[responsable]:
+        if not causas:
+            raise ValueError("Selecciona al menos una causa valida para el responsable elegido.")
+        if any(causa not in self.CAUSAS_CIERRE[responsable] for causa in causas):
             raise ValueError("Selecciona una causa valida para el responsable elegido.")
-        if accion not in self.ACCIONES_CIERRE:
+        if not acciones:
+            raise ValueError("Selecciona al menos una accion realizada valida.")
+        if any(accion not in self.ACCIONES_CIERRE for accion in acciones):
             raise ValueError("Selecciona una accion realizada valida.")
         if resultado not in self.RESULTADOS_CIERRE:
             raise ValueError("Selecciona un resultado final valido.")
@@ -3520,8 +3873,8 @@ class IncidenciasService:
 
         return {
             "responsable_cierre": responsable,
-            "causa_cierre": causa,
-            "accion_cierre": accion,
+            "causa_cierre": causas,
+            "accion_cierre": acciones,
             "resultado_cierre": resultado,
             "pruebas_cierre": pruebas,
             "materiales": materiales_norm,
@@ -3531,8 +3884,8 @@ class IncidenciasService:
 
     def _aplicar_diagnostico_cierre(self, row: Registro, diagnostico: dict[str, Any]) -> None:
         row.responsable_cierre = diagnostico["responsable_cierre"]
-        row.causa_cierre = diagnostico["causa_cierre"]
-        row.accion_cierre = diagnostico["accion_cierre"]
+        row.causa_cierre = self._formatear_lista_cierre(diagnostico["causa_cierre"])
+        row.accion_cierre = self._formatear_lista_cierre(diagnostico["accion_cierre"])
         row.resultado_cierre = diagnostico["resultado_cierre"]
         row.pruebas_cierre = json.dumps(diagnostico["pruebas_cierre"], ensure_ascii=False)
         row.materiales = json.dumps(
@@ -3555,8 +3908,8 @@ class IncidenciasService:
             )
         return (
             f"Responsable: {diagnostico.get('responsable_cierre')}; "
-            f"Causa: {diagnostico.get('causa_cierre')}; "
-            f"Accion: {diagnostico.get('accion_cierre')}; "
+            f"Causa: {self._formatear_lista_cierre(diagnostico.get('causa_cierre') or [])}; "
+            f"Accion: {self._formatear_lista_cierre(diagnostico.get('accion_cierre') or [])}; "
             f"Resultado: {diagnostico.get('resultado_cierre')}; "
             f"Pruebas: {', '.join(diagnostico.get('pruebas_cierre') or [])}; "
             f"Materiales: {materiales_txt or 'Sin materiales'}"
@@ -3640,8 +3993,8 @@ class IncidenciasService:
         observacion: str,
         *,
         responsable_cierre: str,
-        causa_cierre: str,
-        accion_cierre: str,
+        causa_cierre: Any,
+        accion_cierre: Any,
         resultado_cierre: str,
         pruebas_cierre: list[Any] | None = None,
         materiales: list[Any] | None = None,
@@ -3722,8 +4075,8 @@ class IncidenciasService:
         observacion: str,
         *,
         responsable_cierre: str,
-        causa_cierre: str,
-        accion_cierre: str,
+        causa_cierre: Any,
+        accion_cierre: Any,
         resultado_cierre: str,
         pruebas_cierre: list[Any] | None = None,
         materiales: list[Any] | None = None,
@@ -3816,6 +4169,28 @@ class IncidenciasService:
                 filtradas.append(fila)
         return filtradas
 
+    def _fila_aplica_a_tecnico(self, fila: Registro, tecnico_norm: str) -> bool:
+        if not tecnico_norm:
+            return True
+
+        derivacion = self._normalizar_texto(getattr(fila, "derivacion", "") or "")
+        estado = self._normalizar_texto(getattr(fila, "estado", "") or "")
+        es_terminada = (
+            "termin" in estado
+            or "final" in estado
+            or "finalizado" in derivacion
+            or "terminado" in derivacion
+            or "repetida" in derivacion
+        )
+        if "servicio tecnico" not in derivacion and not es_terminada:
+            return False
+
+        tecnico_txt = self._normalizar_texto(getattr(fila, "tecnicos", "") or "")
+        acomp_txt = self._normalizar_texto(getattr(fila, "acompanante", "") or "")
+        obs_txt = self._normalizar_texto(getattr(fila, "observacion", "") or "")
+        asignados = f"{tecnico_txt} {acomp_txt} {obs_txt}".strip()
+        return tecnico_norm in asignados
+
     def _buscar_cliente_por_odt(self, odt: str) -> str:
         odt_limpia = (odt or "").strip()
         if not odt_limpia:
@@ -3859,7 +4234,8 @@ class IncidenciasService:
         return ""
 
     def obtener_datos_sucursal_con_coordenadas(self, odt: str) -> dict[str, str]:
-        cliente = self._buscar_cliente_por_odt(odt)
+        odt_limpia = str(odt or "").strip()
+        cliente = self._buscar_cliente_por_odt(odt_limpia)
         salida = {
             "cliente": cliente or "",
             "direccion": "",
@@ -3870,8 +4246,98 @@ class IncidenciasService:
             "longitud": "",
             "layout": "",
             "observacion": "",
+            "camaras_total": 0,
+            "camaras_instaladas": 0,
+            "camaras_pendientes": 0,
+            "estado_cierre": "",
         }
-        if not cliente:
+
+        def _contar_registros_camaras(raw: Any) -> int:
+            if raw in (None, "", [], (), {}):
+                return 0
+            if isinstance(raw, (list, tuple, set)):
+                return len(raw)
+            texto = str(raw or "").strip()
+            if not texto:
+                return 0
+            try:
+                parsed = json.loads(texto)
+            except Exception:
+                parsed = [part.strip() for part in re.split(r"[,\n|;]+", texto) if part.strip()]
+            if isinstance(parsed, (list, tuple, set)):
+                return len(parsed)
+            return 1 if str(parsed or "").strip() else 0
+
+        venta_row = None
+        try:
+            venta_row = (
+                self.db.query(VentaODS)
+                .filter(func.lower(func.trim(VentaODS.codigo)) == odt_limpia.lower())
+                .first()
+            )
+        except Exception:
+            venta_row = None
+
+        if venta_row:
+            venta_cliente = str(venta_row.nombre_sucursal or venta_row.razon_social or "").strip()
+            if venta_cliente:
+                salida["cliente"] = venta_cliente
+                cliente = venta_cliente
+            salida["direccion"] = str(venta_row.direccion_sucursal or "").strip()
+            salida["observacion"] = str(venta_row.observacion or venta_row.consideraciones or "").strip()
+            try:
+                archivos = self.db.query(VentaODSArchivo).filter(VentaODSArchivo.ods_id == venta_row.id).all()
+                for archivo in archivos:
+                    tipo = str(archivo.tipo_documento or "").strip().lower()
+                    if tipo == "layout" and not salida["layout"]:
+                        salida["layout"] = str(archivo.ruta_archivo or "").strip()
+            except Exception:
+                self.db.rollback()
+
+            try:
+                st_row = self.db.scalar(
+                    select(ServicioTecnicoVentaODT).where(
+                        func.lower(func.trim(ServicioTecnicoVentaODT.odt)) == odt_limpia.lower()
+                    )
+                )
+                total_camaras = max(int(venta_row.numero_camaras_instalar or 0), 0)
+                instaladas_camaras = total_camaras if bool(st_row and (st_row.instalacion_finalizada or st_row.finalizado)) else min(
+                    total_camaras,
+                    _contar_registros_camaras(getattr(st_row, "camaras_registradas", None)) if st_row else 0,
+                )
+                salida["camaras_total"] = total_camaras
+                salida["camaras_instaladas"] = instaladas_camaras
+                salida["camaras_pendientes"] = max(total_camaras - instaladas_camaras, 0)
+                salida["estado_cierre"] = "Finalizado" if bool(st_row and (st_row.instalacion_finalizada or st_row.finalizado)) else "Pendiente"
+            except Exception:
+                self.db.rollback()
+
+            sucursal_nombre = str(venta_row.nombre_sucursal or venta_row.razon_social or cliente or "").strip()
+            if sucursal_nombre:
+                try:
+                    sucursal_row = self.db.scalar(
+                        select(SucursalBBDD).where(
+                            func.lower(func.trim(SucursalBBDD.nombre_sucursal))
+                            == sucursal_nombre.lower()
+                        )
+                    )
+                    if sucursal_row:
+                        persona = self.db.scalar(
+                            select(SucursalPersonaAutorizada)
+                            .where(SucursalPersonaAutorizada.sucursal_id == sucursal_row.id)
+                            .order_by(SucursalPersonaAutorizada.id.asc())
+                        )
+                        if persona:
+                            if not salida["contacto"]:
+                                salida["contacto"] = str(persona.nombre or "").strip()
+                            if not salida["telefono"]:
+                                salida["telefono"] = str(persona.telefono or "").strip()
+                            if not salida["correo"]:
+                                salida["correo"] = str(persona.email or "").strip()
+                except Exception:
+                    self.db.rollback()
+
+        if not cliente and not venta_row:
             return salida
 
         row_reg = self.db.scalar(select(Registro).where(Registro.odt == (odt or "").strip()))
@@ -3881,8 +4347,10 @@ class IncidenciasService:
         row = self.db.scalar(select(ClienteBBDD).where(ClienteBBDD.cliente == cliente))
         if row:
             salida["direccion"] = salida["direccion"] or (row.direccion or "")
-            salida["contacto"] = row.nombre_representante or ""
-            salida["correo"] = row.email_representante or ""
+            if not salida["contacto"]:
+                salida["contacto"] = row.nombre_representante or ""
+            if not salida["correo"]:
+                salida["correo"] = row.email_representante or ""
 
         for table_name in ["bbdd_clientes", "catalogo_clientes"]:
             try:
@@ -4388,20 +4856,74 @@ class IncidenciasService:
         if not odt_limpia:
             raise ValueError("ODT invalida")
 
+        usuario_token = ""
+        if (token or "").strip():
+            usuario_token = str(self.get_usuario_actual((token or "").strip()) or "").strip()
+            if usuario_token == "Desconocido":
+                usuario_token = ""
+
         row = self.db.scalar(select(Registro).where(Registro.odt == odt_limpia))
         if not row:
-            raise ValueError(f"No se encontro la ODT {odt_limpia}")
+            venta_row = self.db.scalar(select(VentaODS).where(func.lower(func.trim(VentaODS.codigo)) == odt_limpia.lower()))
+            if not venta_row:
+                raise ValueError(f"No se encontro la ODT {odt_limpia}")
+            st_row = self.db.scalar(
+                select(ServicioTecnicoVentaODT).where(
+                    func.lower(func.trim(ServicioTecnicoVentaODT.odt)) == odt_limpia.lower()
+                )
+            )
+            row = Registro(
+                odt=odt_limpia,
+                fecha_registro=datetime.utcnow(),
+                puesto=None,
+                cliente=str(venta_row.nombre_sucursal or venta_row.razon_social or "").strip() or str(venta_row.razon_social or "").strip(),
+                problema=str(venta_row.tipo_servicio or "").strip() or "Servicio Tecnico",
+                detalle_problema=str(venta_row.observacion or venta_row.consideraciones or "").strip() or None,
+                derivacion=str(venta_row.tipo_servicio or "").strip() or "Servicio Tecnico",
+                observacion=str(venta_row.observacion or venta_row.consideraciones or "").strip() or None,
+                observacion_soporte=None,
+                observacion_servicio=None,
+                tecnicos=str(getattr(st_row, "tecnico_a_cargo", "") or "").strip() or usuario_token or None,
+                acompanante=str(getattr(st_row, "acompanante", "") or "").strip() or None,
+                estado="En Proceso",
+                dias_ejecucion=None,
+                fecha_cierre=None,
+                fecha_derivacion_area=datetime.utcnow(),
+                fecha_derivacion_tecnico=datetime.utcnow(),
+                direccion=str(venta_row.direccion_sucursal or "").strip() or None,
+                observacion_final=None,
+                observacion_pendiente=None,
+                prioridad=None,
+                materiales=None,
+                responsable_cierre=None,
+                causa_cierre=None,
+                accion_cierre=None,
+                resultado_cierre=None,
+                pruebas_cierre=None,
+                requiere_seguimiento=None,
+                porcentaje_avance=None,
+                foto_1=None,
+                foto_2=None,
+                foto_3=None,
+                drive_cierre_folder_id=None,
+                drive_cierre_folder_url=None,
+                pdf_url=None,
+            )
+            self.db.add(row)
+            self.db.flush()
 
         avance_num = max(0, min(100, int(avance)))
         marca = datetime.utcnow().strftime("%d/%m/%Y %H:%M")
         usuario = (self.get_usuario_actual((token or "").strip()) if (token or "").strip() else "").strip()
         if not usuario or usuario == "Desconocido":
-            usuario = str(getattr(row, "tecnicos", "") or "").strip() or str(getattr(row, "acompanante", "") or "").strip()
+            usuario = str(getattr(row, "tecnicos", "") or "").strip() or str(getattr(row, "acompanante", "") or "").strip() or usuario_token
         if not usuario:
             usuario = "Usuario no identificado"
         nota = f"[{usuario} - {marca}] {observacion.strip()} (Avance: {avance_num}%)"
 
-        row.estado = "Pendiente"
+        row.estado = "En Proceso"
+        if not str(getattr(row, "tecnicos", "") or "").strip() and usuario_token:
+            row.tecnicos = usuario_token
         row.porcentaje_avance = f"{avance_num}%"
         base = (getattr(row, "observacion_pendiente", "") or "").strip()
         row.observacion_pendiente = f"{base}\n{nota}".strip() if base else nota
@@ -4647,8 +5169,8 @@ class IncidenciasService:
         observacion: str = "",
         *,
         responsable_cierre: str,
-        causa_cierre: str,
-        accion_cierre: str,
+        causa_cierre: Any,
+        accion_cierre: Any,
         resultado_cierre: str,
         pruebas_cierre: list[Any] | None = None,
         materiales: list[Any] | None = None,
@@ -4683,8 +5205,8 @@ class IncidenciasService:
             self._normalizar_texto(getattr(row, "estado", "") or "") == "terminado"
             and str(getattr(row, "observacion_final", "") or "").strip() == obs_cierre
             and str(getattr(row, "responsable_cierre", "") or "").strip() == diagnostico["responsable_cierre"]
-            and str(getattr(row, "causa_cierre", "") or "").strip() == diagnostico["causa_cierre"]
-            and str(getattr(row, "accion_cierre", "") or "").strip() == diagnostico["accion_cierre"]
+            and str(getattr(row, "causa_cierre", "") or "").strip() == self._formatear_lista_cierre(diagnostico["causa_cierre"])
+            and str(getattr(row, "accion_cierre", "") or "").strip() == self._formatear_lista_cierre(diagnostico["accion_cierre"])
             and str(getattr(row, "resultado_cierre", "") or "").strip() == diagnostico["resultado_cierre"]
         )
 

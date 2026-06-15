@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class LoginRequest(BaseModel):
@@ -52,13 +52,23 @@ class CerrarIncidenciaRequest(BaseModel):
     odt: str
     observacion: str
     responsable_cierre: str = Field(alias="responsableCierre")
-    causa_cierre: str = Field(alias="causaCierre")
-    accion_cierre: str = Field(alias="accionCierre")
+    causa_cierre: list[str] = Field(default_factory=list, alias="causaCierre")
+    accion_cierre: list[str] = Field(default_factory=list, alias="accionCierre")
     resultado_cierre: str = Field(alias="resultadoCierre")
     pruebas_cierre: list[str] = Field(default_factory=list, alias="pruebasCierre")
     materiales: list[dict] = Field(default_factory=list)
     materiales_sin_uso: bool = Field(default=False, alias="materialesSinUso")
     requiere_seguimiento: bool = Field(default=False, alias="requiereSeguimiento")
+
+    @field_validator("causa_cierre", "accion_cierre", mode="before")
+    @classmethod
+    def _coerce_lista_cierre(cls, value):
+        if value is None:
+            return []
+        if isinstance(value, (list, tuple, set)):
+            return [str(v).strip() for v in value if str(v).strip()]
+        texto = str(value).strip()
+        return [texto] if texto else []
 
 
 class FinalizarIncidenciaRequest(BaseModel):
@@ -66,13 +76,23 @@ class FinalizarIncidenciaRequest(BaseModel):
     observacion: str
     fotos_base64: list[str] = Field(default_factory=list, alias="fotosBase64")
     responsable_cierre: str = Field(alias="responsableCierre")
-    causa_cierre: str = Field(alias="causaCierre")
-    accion_cierre: str = Field(alias="accionCierre")
+    causa_cierre: list[str] = Field(default_factory=list, alias="causaCierre")
+    accion_cierre: list[str] = Field(default_factory=list, alias="accionCierre")
     resultado_cierre: str = Field(alias="resultadoCierre")
     pruebas_cierre: list[str] = Field(default_factory=list, alias="pruebasCierre")
     materiales: list[dict] = Field(default_factory=list)
     materiales_sin_uso: bool = Field(default=False, alias="materialesSinUso")
     requiere_seguimiento: bool = Field(default=False, alias="requiereSeguimiento")
+
+    @field_validator("causa_cierre", "accion_cierre", mode="before")
+    @classmethod
+    def _coerce_lista_cierre(cls, value):
+        if value is None:
+            return []
+        if isinstance(value, (list, tuple, set)):
+            return [str(v).strip() for v in value if str(v).strip()]
+        texto = str(value).strip()
+        return [texto] if texto else []
 
 
 class EnProcesoRequest(BaseModel):

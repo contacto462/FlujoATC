@@ -6115,6 +6115,68 @@ def create_ticket(
     return RedirectResponse("/dashboard", status_code=303)
 
 
+@router.post("/dashboard/tickets/oficina-atc/create")
+def create_internal_ticket_from_incidencias(
+    subject: str = Form(...),
+    content: str = Form(...),
+    current_user: User = Depends(get_current_user_web),
+    db: Session = Depends(get_db),
+):
+    if not getattr(current_user, "is_admin", False) and not (
+        _department_has_area(current_user.department, "incidencias")
+        or _department_has_area(current_user.department, "soporte")
+    ):
+        raise HTTPException(status_code=403, detail="No tienes acceso a esta area.")
+
+    subject = (subject or "").strip()
+    content = (content or "").strip()
+    if not subject:
+        raise HTTPException(status_code=400, detail="Debes ingresar un asunto.")
+    if not content:
+        raise HTTPException(status_code=400, detail="Debes ingresar una descripcion.")
+
+    requester = db.query(Requester).filter(Requester.name == current_user.name).first()
+    if not requester:
+        requester = Requester(name=current_user.name)
+        db.add(requester)
+        db.commit()
+        db.refresh(requester)
+
+    ticket = Ticket(
+        subject=subject,
+        requester_id=requester.id,
+        assigned_to_id=None,
+        priority="",
+        status="open",
+        source="internal",
+        is_deleted=False,
+        is_spam=False,
+        reopen_count=0,
+    )
+    db.add(ticket)
+    db.commit()
+    db.refresh(ticket)
+
+    message = Message(
+        ticket_id=ticket.id,
+        sender_id=current_user.id,
+        sender_type="agent",
+        channel="internal",
+        content=content,
+        is_internal_note=False,
+    )
+    db.add(message)
+    db.commit()
+
+    return JSONResponse(
+        {
+            "ok": True,
+            "ticket_id": ticket.id,
+            "subject": ticket.subject,
+        }
+    )
+
+
 # ============================================================
 # TABLA SOPORTE TECNICO ODS - INSTALACIONES
 # ============================================================
@@ -6242,6 +6304,18 @@ def materiales_page(
         "materiales.html",
         {"request": request, "user": current_user},
     )
+
+
+@router.get("/api/materiales/buscar")
+def api_materiales_buscar(
+    q: str = "",
+    limit: int = 10,
+    db: Session = Depends(get_incidencias_db),
+):
+    try:
+        return IncidenciasService(db).buscar_materiales_excel(q, limit)
+    except ValueError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
 @router.get("/api/soporte-tecnico/ods-filas")
@@ -6469,14 +6543,16 @@ def st_ods_actualizar_valor(
 def st_ods_guardar_camaras(
     payload: dict,
     db: Session = Depends(get_incidencias_db),
-    current_user: User = Depends(get_current_user_web),
 ):
-    _ = current_user
+    service = IncidenciasService(db)
     _ensure_st_campos(db)
     codigo = str(payload.get("odt") or payload.get("codigo") or "").strip()
     ids = payload.get("ids") or []
+    token = str(payload.get("token") or "").strip()
     if not codigo:
         raise HTTPException(status_code=400, detail="Codigo ODT requerido")
+    if token and not service.usuario_logueado_por_token(token):
+        raise HTTPException(status_code=401, detail="No autenticado")
     ids_json = json.dumps(ids, ensure_ascii=False)
     eid = db.execute(text(
         "SELECT id FROM servicio_tecnico_ventas_odt WHERE LOWER(TRIM(odt)) = LOWER(TRIM(:c)) LIMIT 1"

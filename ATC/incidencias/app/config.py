@@ -68,6 +68,11 @@ class Settings(BaseSettings):
         default_factory=lambda: (os.getenv("HELPDESK_BASE_URL") or "").rstrip("/"),
         description="URL base del Helpdesk para redirigir usuarios de soporte desde el login unico.",
     )
+    materiales_excel_path: str = Field(
+        default_factory=lambda: os.getenv("MATERIALES_EXCEL_PATH")
+        or str(Path.home() / "Desktop" / "Hoja de cálculo sin título.xlsx"),
+        description="Ruta al Excel con el catálogo de materiales para el buscador de cierre.",
+    )
     venta_catalogo_base_url: str = Field(
         default_factory=lambda: (os.getenv("VENTA_CATALOGO_BASE_URL") or "").rstrip("/"),
         description="Base URL de la API externa de regiones/comunas para Venta.",
@@ -226,6 +231,29 @@ class Settings(BaseSettings):
     google_drive_protocolos_folder_id: str = Field(
         default_factory=lambda: os.getenv("GOOGLE_DRIVE_PROTOCOLOS_FOLDER_ID") or "1beVaXbf23FTHlBa2FfO1mnz55RcKf_iW",
     )
+
+    # Dashboard Servicio Tecnico (indicadores parametrizables)
+    servicio_sla_dias: int = Field(
+        default_factory=lambda: int(os.getenv("SERVICIO_SLA_DIAS") or "3"),
+        description="Dias maximos para cerrar una ODT dentro de SLA.",
+    )
+    servicio_odt_antigua_dias: int = Field(
+        default_factory=lambda: int(os.getenv("SERVICIO_ODT_ANTIGUA_DIAS") or "14"),
+        description="Dias abiertos a partir de los cuales una ODT pendiente se considera antigua.",
+    )
+    servicio_reincidencia_ventana_dias: int = Field(
+        default_factory=lambda: int(os.getenv("SERVICIO_REINCIDENCIA_VENTANA_DIAS") or "7"),
+        description="Ventana (dias) para detectar reincidencias por sucursal.",
+    )
+    servicio_instalacion_mala_dias: int = Field(
+        default_factory=lambda: int(os.getenv("SERVICIO_INSTALACION_MALA_DIAS") or "15"),
+        description="Caida antes de estos dias => calidad de instalacion Mala.",
+    )
+    servicio_instalacion_regular_dias: int = Field(
+        default_factory=lambda: int(os.getenv("SERVICIO_INSTALACION_REGULAR_DIAS") or "30"),
+        description="Caida antes de estos dias (y despues del umbral malo) => calidad Regular.",
+    )
+
     @field_validator("database_url", mode="before")
     @classmethod
     def normalize_db_url(cls, value: str) -> str:

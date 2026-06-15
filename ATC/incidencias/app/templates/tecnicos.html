@@ -573,34 +573,106 @@
 
     .materiales-lista {
       display: grid;
-      gap: 8px;
-      margin-top: 8px;
+      gap: 10px;
+      margin-top: 10px;
     }
 
-    .material-row {
+    .materiales-buscador {
       display: grid;
-      grid-template-columns: minmax(180px, 1fr) 92px 120px;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .materiales-buscador input {
+      width: 100%;
+      margin-top: 0;
+    }
+
+    .materiales-resultados {
+      display: grid;
+      gap: 8px;
+    }
+
+    .material-resultado {
+      display: grid;
+      gap: 4px;
+      width: 100%;
+      text-align: left;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(10, 19, 23, 0.96);
+      color: var(--text-main);
+      cursor: pointer;
+      transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+    }
+
+    .material-resultado:hover,
+    .material-resultado:focus-visible {
+      transform: translateY(-1px);
+      border-color: rgba(255, 142, 64, 0.42);
+      background: rgba(14, 24, 29, 0.98);
+      outline: none;
+    }
+
+    .material-resultado strong {
+      font-size: 13px;
+      line-height: 1.35;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .material-resultado small {
+      color: var(--text-soft);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .material-seleccionado {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) 96px 118px auto;
       align-items: center;
-      padding: 8px;
-      border-radius: 12px;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 14px;
       background: rgba(0, 0, 0, 0.12);
       border: 1px solid rgba(255, 255, 255, 0.06);
     }
 
-    .material-row input,
-    .material-row select {
+    .material-seleccionado input,
+    .material-seleccionado select {
       margin-top: 0;
     }
 
-    .material-name {
-      display: flex;
-      align-items: center;
-      gap: 8px;
+    .material-seleccionado-nombre {
+      display: grid;
+      gap: 2px;
       min-width: 0;
     }
 
-    .material-name span {
+    .material-seleccionado-nombre span {
       overflow-wrap: anywhere;
+    }
+
+    .material-seleccionado-accion {
+      width: 34px;
+      height: 34px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-main);
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .material-vacio {
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px dashed rgba(255, 255, 255, 0.12);
+      color: var(--text-soft);
+      background: rgba(255, 255, 255, 0.03);
+      font-size: 13px;
     }
 
     .cierre-help {
@@ -641,6 +713,14 @@
       margin: 10px 0;
       color: var(--text-soft);
       line-height: 1.5;
+    }
+
+    .info-camaras-pendiente {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .infoSucursal strong {
@@ -786,7 +866,7 @@
 
       .cierre-grid,
       .cierre-checks,
-      .material-row {
+      .material-seleccionado {
         grid-template-columns: 1fr;
       }
     }
@@ -1229,21 +1309,22 @@
             <option value="">Seleccionar...</option>
             <option value="ATC">ATC</option>
             <option value="Cliente">Cliente</option>
+            <option value="Proveedor Externo">Proveedor Externo</option>
+            <option value="Internet">Internet</option>
+            <option value="Otro">Otro</option>
           </select>
         </div>
         <div class="cierre-field">
-          <label for="causaCierre">Causa raiz</label>
-          <select id="causaCierre" required disabled>
-            <option value="">Selecciona responsable primero</option>
-          </select>
+          <label>Causa raiz</label>
+          <div id="causaCierre" class="cierre-checks cierre-checks-multiselect" aria-live="polite"></div>
         </div>
       </div>
 
       <!-- Paso 2: Acción -->
       <div class="cierre-step" data-step="2">
         <div class="cierre-field" style="margin-bottom:14px;">
-          <label for="accionCierre">Accion realizada</label>
-          <select id="accionCierre" required></select>
+          <label>Accion realizada</label>
+          <div id="accionCierre" class="cierre-checks cierre-checks-multiselect"></div>
         </div>
         <div class="cierre-field">
           <label for="resultadoCierre">Resultado final</label>
@@ -1267,6 +1348,15 @@
             <input type="checkbox" id="materialesSinUso" />
             <span>No se usaron materiales</span>
           </label>
+          <div class="materiales-buscador">
+            <input
+              type="text"
+              id="materialesBusqueda"
+              autocomplete="off"
+              placeholder="Buscar material en la BBDD del Excel..."
+            />
+            <div id="materialesResultados" class="materiales-resultados"></div>
+          </div>
           <div id="materialesCierre" class="materiales-lista"></div>
         </fieldset>
       </div>
@@ -1334,8 +1424,9 @@
       <button type="button" class="modal-close-btn" aria-label="Cerrar modal pendiente" onclick="cerrarModalEnProceso()">&times;</button>
       <h3>Informacion En Proceso</h3>
       <p id="modalEnProcesoOdt" style="margin:0 0 12px;color:var(--text-soft);font-weight:700;"></p>
-      <label><b>Grado de avance (%)</b></label>
+      <label><b id="lblModalEnProcesoAvance">Grado de avance (%)</b></label>
       <input type="number" id="gradoAvance" min="0" max="100" placeholder="Ej: 50" />
+      <p id="modalEnProcesoAyuda" class="cierre-help">Usa este valor para registrar el avance en porcentaje.</p>
       <label style="margin-top:10px;"><b>Observacion</b></label>
       <textarea id="observacionEnProceso" placeholder="Describe el estado actual..." rows="4"></textarea>
       <div class="modal-actions">
@@ -1373,9 +1464,13 @@
     let reopenedEstado = "";
     let odtModalFinalizar = "";
     let odtModalEnProceso = "";
+    let odtModalEnProcesoCamarasTotal = 0;
     let cierreActualEsMantencion = false;
     let cierreStepActual = 1;
     let cierreStepMap = [1, 2, 3, 4, 5, 6];
+    let materialesSeleccionados = [];
+    let materialesBusquedaTimer = null;
+    let materialesResultadosActuales = [];
     const CIERRE_PASO_LABELS_FULL = ["Diagnóstico", "Acción", "Pruebas", "Materiales", "Observación", "Fotos"];
     const CIERRE_PASO_LABELS_MANT = ["Observación", "Fotos"];
     const RUTA_ORIGEN_BASE = "1 Oriente 1180, Viña del Mar, Chile";
@@ -1389,6 +1484,13 @@
     let actualizacionAutomaticaTimer = null;
     const AUTO_REFRESH_MS = 30000;
     const tecnicoFiltrado = (typeof tecnicoActual !== "undefined" ? String(tecnicoActual || "") : "").trim().toLowerCase();
+
+    function sincronizarTokenCookie(token) {
+      const limpio = String(token || "").trim();
+      if (!limpio) return;
+      document.cookie = `atc_token=${encodeURIComponent(limpio)}; path=/; samesite=lax`;
+    }
+
     const CAUSAS_CIERRE = {
       ATC: [
         ["instalacion_deficiente", "Instalacion deficiente"],
@@ -1404,6 +1506,24 @@
         ["red_internet_cliente", "Red/internet del cliente"],
         ["infraestructura_cliente", "Infraestructura del cliente"],
         ["dano_terceros", "Dano de terceros"],
+        ["otro", "Otro"],
+      ],
+      "Proveedor Externo": [
+        ["falla_proveedor_servicio", "Falla del proveedor de servicio"],
+        ["corte_programado_proveedor", "Corte programado del proveedor"],
+        ["equipo_proveedor_defectuoso", "Equipo del proveedor defectuoso"],
+        ["otro", "Otro"],
+      ],
+      Internet: [
+        ["corte_internet_zona", "Corte de internet en la zona"],
+        ["intermitencia_enlace", "Intermitencia del enlace"],
+        ["falla_router_modem", "Falla de router/modem"],
+        ["otro", "Otro"],
+      ],
+      Otro: [
+        ["fuerza_mayor", "Fuerza mayor"],
+        ["vandalismo", "Vandalismo"],
+        ["causa_no_determinada", "Causa no determinada"],
         ["otro", "Otro"],
       ],
     };
@@ -1618,6 +1738,15 @@
           if (links.google) html += `<p><strong>Navegacion:</strong><br><a href="${escapeHTML(links.google)}" target="_blank">Google Maps</a> | <a href="${escapeHTML(links.waze)}" target="_blank">Waze</a></p>`;
         }
         if (sucursalData?.layout) html += `<p><strong>Layout:</strong> <a href="${escapeHTML(sucursalData.layout)}" target="_blank">Ver Layout</a></p>`;
+        const estadoCierreSucursal = estadoCanonico(estado);
+        const camarasTotal = Number(sucursalData?.camaras_total || 0);
+        const camarasInstaladas = Number(sucursalData?.camaras_instaladas || 0);
+        const camarasPendientes = Number(sucursalData?.camaras_pendientes || Math.max(camarasTotal - camarasInstaladas, 0));
+        if (camarasTotal > 0 && estadoCierreSucursal !== "Terminado") {
+          html += `<p class="info-camaras-pendiente"><strong>Cámaras:</strong> ${escapeHTML(String(camarasInstaladas))} de ${escapeHTML(String(camarasTotal))} instaladas` +
+            (camarasPendientes > 0 ? ` · Pendientes: ${escapeHTML(String(camarasPendientes))}` : "") +
+            `</p>`;
+        }
         html += '<h4 class="hdr-incidencias">Historial de Incidencias</h4>';
         html += '<div class="historial-incidencias" style="display:none;">';
         const incVis = 5;
@@ -1688,17 +1817,40 @@
       });
     }
 
+    function renderChecksMultiselect(contenedor, opciones, seleccionados = [], placeholder = "") {
+      if (!contenedor) return;
+      contenedor.innerHTML = "";
+      const seleccionadosSet = new Set((seleccionados || []).map((item) => String(item || "")));
+      if (!Array.isArray(opciones) || !opciones.length) {
+        contenedor.innerHTML = `<div class="material-vacio">${escapeHTML(placeholder || "No hay opciones disponibles.")}</div>`;
+        return;
+      }
+      opciones.forEach(([value, label]) => {
+        const id = `${contenedor.id || "multi"}_${value}`;
+        const item = document.createElement("label");
+        item.className = "cierre-check";
+        item.style.alignItems = "flex-start";
+        item.innerHTML = `
+          <input type="checkbox" id="${escapeHTML(id)}" value="${escapeHTML(value)}" ${seleccionadosSet.has(String(value)) ? "checked" : ""} />
+          <span>${escapeHTML(label)}</span>
+        `;
+        contenedor.appendChild(item);
+      });
+    }
+
+    function obtenerValoresMultiselect(contenedorId) {
+      return Array.from(document.querySelectorAll(`#${contenedorId} input[type="checkbox"]:checked`)).map((input) => input.value);
+    }
+
     function actualizarCausasCierre() {
       const responsable = document.getElementById("responsableCierre")?.value || "";
       const causa = document.getElementById("causaCierre");
       if (!causa) return;
       if (!responsable || !CAUSAS_CIERRE[responsable]) {
-        causa.disabled = true;
-        llenarSelectOpciones(causa, [], "Selecciona responsable primero");
+        renderChecksMultiselect(causa, [], [], "Selecciona responsable primero");
         return;
       }
-      causa.disabled = false;
-      llenarSelectOpciones(causa, CAUSAS_CIERRE[responsable], "Seleccionar causa...");
+      renderChecksMultiselect(causa, CAUSAS_CIERRE[responsable], []);
     }
 
     function renderPruebasCierre() {
@@ -1713,66 +1865,171 @@
       });
     }
 
-    function renderMaterialesCierre() {
+    function renderAccionesCierre() {
+      const cont = document.getElementById("accionCierre");
+      if (!cont) return;
+      renderChecksMultiselect(cont, ACCIONES_CIERRE, []);
+    }
+
+    function materialUnidadPorDefecto(material) {
+      return String(material?.unidadSugerida || material?.unidad || "unidad").trim() || "unidad";
+    }
+
+    function renderMaterialesResultados(items = [], consulta = "") {
+      const cont = document.getElementById("materialesResultados");
+      if (!cont) return;
+      cont.innerHTML = "";
+      materialesResultadosActuales = Array.isArray(items) ? items : [];
+      const q = String(consulta || "").trim();
+      if (!q) {
+        cont.innerHTML = '<div class="material-vacio">Empieza escribiendo para buscar materiales en el Excel.</div>';
+        return;
+      }
+      if (!materialesResultadosActuales.length) {
+        cont.innerHTML = '<div class="material-vacio">No hay coincidencias para esa búsqueda.</div>';
+        return;
+      }
+      materialesResultadosActuales.forEach((material) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "material-resultado";
+        btn.innerHTML = `
+          <strong>${escapeHTML(material.nombre || material.codigo || "")}</strong>
+          <small>Se agregará como ${escapeHTML(materialUnidadPorDefecto(material))}. Toca para añadirlo.</small>
+        `;
+        btn.addEventListener("click", () => agregarMaterialSeleccionado(material));
+        cont.appendChild(btn);
+      });
+    }
+
+    async function buscarMaterialesCierre(consulta) {
+      const q = String(consulta || "").trim();
+      if (materialesBusquedaTimer) {
+        clearTimeout(materialesBusquedaTimer);
+        materialesBusquedaTimer = null;
+      }
+      if (q.length < 2) {
+        renderMaterialesResultados([], q);
+        return;
+      }
+      materialesBusquedaTimer = setTimeout(async () => {
+        try {
+          const data = await api(`/api/materiales/buscar?q=${encodeURIComponent(q)}&limit=10`);
+          renderMaterialesResultados(Array.isArray(data?.items) ? data.items : [], q);
+        } catch (err) {
+          renderMaterialesResultados([], q);
+          const cont = document.getElementById("materialesResultados");
+          if (cont) cont.innerHTML = `<div class="material-vacio">No se pudo buscar el Excel de materiales: ${escapeHTML(err.message || "error")}</div>`;
+        }
+      }, 180);
+    }
+
+    function agregarMaterialSeleccionado(material) {
+      if (!material || !material.codigo) return;
+      if (materialesSeleccionados.some((item) => item.codigo === material.codigo)) {
+        return;
+      }
+      materialesSeleccionados.push({
+        codigo: String(material.codigo || "").trim(),
+        nombre: String(material.nombre || material.codigo || "").trim(),
+        cantidad: "1",
+        unidad: materialUnidadPorDefecto(material),
+      });
+      renderMaterialesSeleccionados();
+    }
+
+    function actualizarMaterialSeleccionado(codigo, campo, valor) {
+      const item = materialesSeleccionados.find((entry) => entry.codigo === codigo);
+      if (!item) return;
+      item[campo] = valor;
+    }
+
+    function eliminarMaterialSeleccionado(codigo) {
+      materialesSeleccionados = materialesSeleccionados.filter((item) => item.codigo !== codigo);
+      renderMaterialesSeleccionados();
+    }
+
+    function renderMaterialesSeleccionados() {
       const cont = document.getElementById("materialesCierre");
       if (!cont) return;
       cont.innerHTML = "";
-      MATERIALES_CIERRE.forEach(([codigo, nombre, unidad]) => {
+      if (!materialesSeleccionados.length) {
+        cont.innerHTML = '<div class="material-vacio">Todavía no agregas materiales.</div>';
+        return;
+      }
+      materialesSeleccionados.forEach((material) => {
         const row = document.createElement("div");
-        row.className = "material-row";
-        row.dataset.codigo = codigo;
-        row.dataset.nombre = nombre;
+        row.className = "material-seleccionado";
+        row.dataset.codigo = material.codigo;
         row.innerHTML = `
-          <label class="material-name">
-            <input type="checkbox" class="material-check" value="${escapeHTML(codigo)}" />
-            <span>${escapeHTML(nombre)}</span>
-          </label>
-          <input type="number" class="material-cantidad" min="0" step="0.01" placeholder="Cant." disabled />
-          <select class="material-unidad" disabled>
-            <option value="${escapeHTML(unidad)}">${escapeHTML(unidad)}</option>
+          <div class="material-seleccionado-nombre">
+            <strong>${escapeHTML(material.nombre)}</strong>
+            <span>Referencia: ${escapeHTML(material.codigo)}</span>
+          </div>
+          <input type="number" class="material-cantidad" min="0" step="0.01" placeholder="Cant." value="${escapeHTML(material.cantidad || "1")}" />
+          <select class="material-unidad">
             <option value="unidad">unidad</option>
             <option value="metro">metro</option>
             <option value="set">set</option>
           </select>
+          <button type="button" class="material-seleccionado-accion" aria-label="Quitar material">×</button>
         `;
-        const check = row.querySelector(".material-check");
         const cantidad = row.querySelector(".material-cantidad");
-        const unidadSel = row.querySelector(".material-unidad");
-        check.addEventListener("change", () => {
-          cantidad.disabled = !check.checked;
-          unidadSel.disabled = !check.checked;
-          if (!check.checked) cantidad.value = "";
-          if (check.checked && !cantidad.value) cantidad.value = "1";
-        });
+        const unidad = row.querySelector(".material-unidad");
+        const btnEliminar = row.querySelector(".material-seleccionado-accion");
+        if (unidad) {
+          unidad.value = String(material.unidad || "unidad");
+          unidad.addEventListener("change", () => actualizarMaterialSeleccionado(material.codigo, "unidad", unidad.value));
+        }
+        if (cantidad) {
+          cantidad.addEventListener("input", () => actualizarMaterialSeleccionado(material.codigo, "cantidad", cantidad.value));
+          cantidad.addEventListener("change", () => actualizarMaterialSeleccionado(material.codigo, "cantidad", cantidad.value));
+        }
+        btnEliminar?.addEventListener("click", () => eliminarMaterialSeleccionado(material.codigo));
         cont.appendChild(row);
       });
     }
 
     function setMaterialesSinUsoActivo(activo) {
-      document.querySelectorAll("#materialesCierre .material-row").forEach((row) => {
-        const check = row.querySelector(".material-check");
-        const cantidad = row.querySelector(".material-cantidad");
-        const unidad = row.querySelector(".material-unidad");
-        if (!check || !cantidad || !unidad) return;
-        check.disabled = activo;
-        if (activo) {
-          check.checked = false;
-          cantidad.value = "";
-          cantidad.disabled = true;
-          unidad.disabled = true;
-        }
+      const buscador = document.getElementById("materialesBusqueda");
+      const resultados = document.getElementById("materialesResultados");
+      if (buscador) {
+        buscador.disabled = activo;
+        if (activo) buscador.value = "";
+      }
+      if (resultados) {
+        resultados.style.pointerEvents = activo ? "none" : "auto";
+        resultados.style.opacity = activo ? "0.55" : "1";
+      }
+      document.querySelectorAll("#materialesCierre input, #materialesCierre select, #materialesCierre button").forEach((el) => {
+        el.disabled = activo;
       });
+      if (activo) {
+        materialesSeleccionados = [];
+        materialesResultadosActuales = [];
+        renderMaterialesResultados([], "");
+        renderMaterialesSeleccionados();
+      } else {
+        renderMaterialesSeleccionados();
+      }
     }
 
     function inicializarFormularioCierre() {
-      llenarSelectOpciones(document.getElementById("accionCierre"), ACCIONES_CIERRE, "Seleccionar accion...");
       llenarSelectOpciones(document.getElementById("resultadoCierre"), RESULTADOS_CIERRE, "Seleccionar resultado...");
       actualizarCausasCierre();
       renderPruebasCierre();
-      renderMaterialesCierre();
-      document.getElementById("responsableCierre")?.addEventListener("change", actualizarCausasCierre);
+      renderAccionesCierre();
+      renderMaterialesResultados([], "");
+      renderMaterialesSeleccionados();
+      document.getElementById("responsableCierre")?.addEventListener("change", () => {
+        actualizarCausasCierre();
+      });
       document.getElementById("materialesSinUso")?.addEventListener("change", (event) => {
         setMaterialesSinUsoActivo(event.target.checked);
+      });
+      document.getElementById("materialesBusqueda")?.addEventListener("input", (event) => {
+        if (document.getElementById("materialesSinUso")?.checked) return;
+        buscarMaterialesCierre(event.target.value);
       });
       const fotoInput = document.getElementById("fotoInputCierre");
       if (fotoInput) fotoInput.addEventListener("change", () => onFotoInputChange(fotoInput));
@@ -1781,7 +2038,7 @@
     function resetFormularioCierre() {
       document.getElementById("responsableCierre").value = "";
       actualizarCausasCierre();
-      document.getElementById("accionCierre").value = "";
+      renderAccionesCierre();
       document.getElementById("resultadoCierre").value = "";
       document.getElementById("observacion").value = "";
       document.getElementById("cierreError").textContent = "";
@@ -1791,12 +2048,12 @@
       const sinUso = document.getElementById("materialesSinUso");
       sinUso.checked = false;
       setMaterialesSinUsoActivo(false);
-      document.querySelectorAll("#materialesCierre .material-row").forEach((row) => {
-        row.querySelector(".material-check").checked = false;
-        row.querySelector(".material-cantidad").value = "";
-        row.querySelector(".material-cantidad").disabled = true;
-        row.querySelector(".material-unidad").disabled = true;
-      });
+      materialesSeleccionados = [];
+      materialesResultadosActuales = [];
+      const buscador = document.getElementById("materialesBusqueda");
+      if (buscador) buscador.value = "";
+      renderMaterialesResultados([], "");
+      renderMaterialesSeleccionados();
       configurarFotosCierre(cierreActualEsMantencion);
       cierreStepMap = cierreActualEsMantencion ? [5, 6] : [1, 2, 3, 4, 5, 6];
       cierreStepActual = 1;
@@ -1850,10 +2107,10 @@
       switch (actualStep) {
         case 1:
           if (!document.getElementById("responsableCierre").value) { err.textContent = "Selecciona el responsable del problema."; return false; }
-          if (!document.getElementById("causaCierre").value)        { err.textContent = "Selecciona la causa raiz."; return false; }
+          if (!obtenerValoresMultiselect("causaCierre").length)    { err.textContent = "Selecciona al menos una causa raiz."; return false; }
           break;
         case 2:
-          if (!document.getElementById("accionCierre").value)    { err.textContent = "Selecciona la accion realizada."; return false; }
+          if (!obtenerValoresMultiselect("accionCierre").length) { err.textContent = "Selecciona al menos una accion realizada."; return false; }
           if (!document.getElementById("resultadoCierre").value) { err.textContent = "Selecciona el resultado final."; return false; }
           break;
         case 3:
@@ -1861,14 +2118,9 @@
           break;
         case 4: {
           const sinUso = document.getElementById("materialesSinUso").checked;
-          const conMat = document.querySelectorAll("#materialesCierre .material-check:checked").length > 0;
+          const conMat = materialesSeleccionados.length > 0;
           if (!sinUso && !conMat) { err.textContent = "Agrega materiales o marca que no se usaron materiales."; return false; }
-          const invalido = Array.from(document.querySelectorAll("#materialesCierre .material-row")).some((row) => {
-            const check = row.querySelector(".material-check");
-            if (!check?.checked) return false;
-            const cant = Number(row.querySelector(".material-cantidad")?.value || 0);
-            return cant <= 0;
-          });
+          const invalido = materialesSeleccionados.some((item) => Number(String(item.cantidad || 0).replace(",", ".")) <= 0);
           if (invalido) { err.textContent = "Cada material seleccionado debe tener cantidad mayor a 0."; return false; }
           break;
         }
@@ -1891,29 +2143,23 @@
 
     function collectDiagnosticoCierre() {
       const responsableCierre = document.getElementById("responsableCierre").value;
-      const causaCierre = document.getElementById("causaCierre").value;
-      const accionCierre = document.getElementById("accionCierre").value;
+      const causaCierre = obtenerValoresMultiselect("causaCierre");
+      const accionCierre = obtenerValoresMultiselect("accionCierre");
       const resultadoCierre = document.getElementById("resultadoCierre").value;
       const observacion = document.getElementById("observacion").value.trim();
       const pruebasCierre = Array.from(document.querySelectorAll("#pruebasCierre input:checked")).map((input) => input.value);
       const materialesSinUso = document.getElementById("materialesSinUso").checked;
-      const materiales = [];
-
-      document.querySelectorAll("#materialesCierre .material-row").forEach((row) => {
-        const check = row.querySelector(".material-check");
-        if (!check?.checked) return;
-        materiales.push({
-          codigo: check.value,
-          nombre: row.dataset.nombre || check.value,
-          cantidad: row.querySelector(".material-cantidad").value,
-          unidad: row.querySelector(".material-unidad").value,
-        });
-      });
+      const materiales = materialesSeleccionados.map((item) => ({
+        codigo: String(item.codigo || "").trim(),
+        nombre: String(item.nombre || item.codigo || "").trim(),
+        cantidad: String(item.cantidad || "").trim(),
+        unidad: String(item.unidad || "unidad").trim() || "unidad",
+      }));
 
       if (!cierreActualEsMantencion) {
-        if (!responsableCierre) throw new Error("Selecciona si el problema fue responsabilidad de ATC o Cliente.");
-        if (!causaCierre) throw new Error("Selecciona la causa raiz.");
-        if (!accionCierre) throw new Error("Selecciona la accion realizada.");
+        if (!responsableCierre) throw new Error("Selecciona el responsable del problema (ATC, Cliente, Proveedor Externo, Internet u Otro).");
+        if (!causaCierre.length) throw new Error("Selecciona al menos una causa raiz.");
+        if (!accionCierre.length) throw new Error("Selecciona al menos una accion realizada.");
         if (!resultadoCierre) throw new Error("Selecciona el resultado final.");
         if (!pruebasCierre.length) throw new Error("Selecciona al menos una prueba realizada.");
         if (!materialesSinUso && !materiales.length) throw new Error("Agrega materiales o marca que no se usaron materiales.");
@@ -2116,6 +2362,7 @@
 
           tokenActivo = tokenCandidato;
           localStorage.setItem("atc_token", tokenActivo);
+          sincronizarTokenCookie(tokenActivo);
           const url = new URL(window.location.href);
           if (url.searchParams.get("token") !== tokenActivo) {
             url.searchParams.set("token", tokenActivo);
@@ -2558,8 +2805,60 @@
         if (label) label.textContent = `ODT a actualizar: ${odtSeleccionada}`;
         document.getElementById("gradoAvance").value = "";
         document.getElementById("observacionEnProceso").value = "";
+        odtModalEnProcesoCamarasTotal = 0;
+        modal.dataset.camarasTotal = "";
+        const lblAvance = document.getElementById("lblModalEnProcesoAvance");
+        const help = document.getElementById("modalEnProcesoAyuda");
+        if (lblAvance) lblAvance.textContent = "Grado de avance (%)";
+        if (help) help.textContent = "Usa este valor para registrar el avance en porcentaje.";
         modal.style.display = "flex";
       }
+
+      api(`/api/sucursal/detalle?odt=${encodeURIComponent(odtSeleccionada)}`)
+        .then((detalle) => {
+          const modalEnProceso = document.getElementById("modalEnProceso");
+          if (!modalEnProceso || String(modalEnProceso.dataset.odt || "").trim() !== odtSeleccionada) return;
+          const total = Number(detalle?.camaras_total || 0);
+          if (!total || total <= 0) {
+            odtModalEnProcesoCamarasTotal = 0;
+            return;
+          }
+          odtModalEnProcesoCamarasTotal = total;
+          const instaladas = Math.max(0, Number(detalle?.camaras_instaladas || 0) || 0);
+          const input = document.getElementById("gradoAvance");
+          const lblAvance = document.getElementById("lblModalEnProcesoAvance");
+          const help = document.getElementById("modalEnProcesoAyuda");
+          if (modalEnProceso) modalEnProceso.dataset.camarasTotal = String(total);
+          if (lblAvance) lblAvance.textContent = "Cámaras instaladas";
+          if (help) help.textContent = `Esta ODT tiene ${total} cámara${total === 1 ? "" : "s"} a instalar. Ingresa cuántas lleva instaladas ahora.`;
+        if (input) {
+          input.min = "0";
+          input.max = String(total);
+          input.step = "1";
+          input.placeholder = `Ej: ${Math.min(instaladas || 1, total)}`;
+          input.value = String(instaladas || "");
+          input.oninput = () => {
+            const max = Number(input.max || total || 0) || 0;
+            const val = Number(input.value || 0);
+            if (!max) return;
+            if (Number.isNaN(val) || val < 0) {
+              input.value = "0";
+              return;
+            }
+            if (val > max) input.value = String(max);
+          };
+          input.onblur = () => {
+            const max = Number(input.max || total || 0) || 0;
+            if (!max) return;
+            const val = Number(input.value || 0);
+            if (Number.isNaN(val) || val < 0) input.value = "0";
+            else if (val > max) input.value = String(max);
+          };
+        }
+      })
+      .catch(() => {
+        odtModalEnProcesoCamarasTotal = 0;
+      });
     }
 
     function cerrarModalEnProceso() {
@@ -2567,24 +2866,46 @@
       if (!modal) return;
       modal.style.display = "none";
       modal.dataset.odt = "";
+      modal.dataset.camarasTotal = "";
       const label = document.getElementById("modalEnProcesoOdt");
       if (label) label.textContent = "";
+      const lblAvance = document.getElementById("lblModalEnProcesoAvance");
+      const help = document.getElementById("modalEnProcesoAyuda");
+      if (lblAvance) lblAvance.textContent = "Grado de avance (%)";
+      if (help) help.textContent = "Usa este valor para registrar el avance en porcentaje.";
+      const input = document.getElementById("gradoAvance");
+      if (input) {
+        input.min = "0";
+        input.max = "100";
+        input.step = "1";
+        input.placeholder = "Ej: 50";
+      }
+      odtModalEnProcesoCamarasTotal = 0;
       odtModalEnProceso = "";
     }
 
     async function guardarEstadoEnProceso() {
-      const avance = document.getElementById("gradoAvance").value.trim();
+      const avanceInput = document.getElementById("gradoAvance");
+      const avance = String(avanceInput?.value || "").trim();
       const obs = document.getElementById("observacionEnProceso").value.trim();
       const odtProceso = String(
         odtModalEnProceso || document.getElementById("modalEnProceso")?.dataset?.odt || ""
       ).trim();
+      const totalCamaras = Number(
+        odtModalEnProcesoCamarasTotal || document.getElementById("modalEnProceso")?.dataset?.camarasTotal || 0
+      ) || 0;
 
       if (!odtProceso) {
         alert("No hay ODT activa para actualizar.");
         return;
       }
 
-      if (!avance || Number.isNaN(Number(avance)) || Number(avance) < 0 || Number(avance) > 100) {
+      if (totalCamaras > 0) {
+        if (!avance || Number.isNaN(Number(avance)) || Number(avance) < 0 || Number(avance) > totalCamaras) {
+          alert(`Ingresa una cantidad valida entre 0 y ${totalCamaras}.`);
+          return;
+        }
+      } else if (!avance || Number.isNaN(Number(avance)) || Number(avance) < 0 || Number(avance) > 100) {
         alert("Ingresa un grado de avance valido entre 0 y 100.");
         return;
       }
@@ -2595,11 +2916,26 @@
       }
 
       try {
+        const avanceNum = totalCamaras > 0
+          ? Math.min(totalCamaras, Math.max(0, Number(avance) || 0))
+          : Math.max(0, Number(avance) || 0);
+        if (totalCamaras > 0) {
+          sincronizarTokenCookie(tokenActivo || tokenSesion || localStorage.getItem("atc_token") || "");
+          const ids = Array.from({ length: Math.max(0, Math.min(totalCamaras, avanceNum)) }, (_, idx) => idx + 1);
+          await api("/api/soporte-tecnico/ods/guardar-camaras", {
+            method: "POST",
+            body: JSON.stringify({
+              codigo: odtProceso,
+              ids,
+              token: tokenActivo || tokenSesion || "",
+            }),
+          });
+        }
         await api("/api/incidencias/en-proceso", {
           method: "POST",
           body: JSON.stringify({
             odt: odtProceso,
-            avance: Number(avance),
+            avance: totalCamaras > 0 ? Math.round((avanceNum / totalCamaras) * 100) : avanceNum,
             observacion: obs,
             token: tokenActivo || "",
           }),

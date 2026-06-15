@@ -14,7 +14,7 @@ from zoneinfo import ZoneInfo
 from fastapi import Body, Depends, FastAPI, File, Form, HTTPException, Query, Request, Response, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import inspect, text
+from sqlalchemy import MetaData, Table, inspect, select, text
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
@@ -387,6 +387,13 @@ def _support_requesters_table_name() -> str:
     if schema and settings.support_db_url.startswith("postgresql"):
         return f'"{schema}"."requesters"'
     return "requesters"
+
+
+def _support_users_table_name() -> str:
+    schema = re.sub(r"[^A-Za-z0-9_]", "", settings.support_db_schema or "")
+    if schema and settings.support_db_url.startswith("postgresql"):
+        return f'"{schema}"."users"'
+    return "users"
 
 
 def _get_support_notes_engine():
@@ -869,6 +876,126 @@ def get_protocolos_service(db: Annotated[Session, Depends(get_db)]) -> Protocolo
     return ProtocolosService(db)
 
 
+@app.post("/dashboard/tickets/oficina-atc/create")
+def create_oficina_atc_ticket(
+    service: Annotated[IncidenciasService, Depends(get_service)],
+    subject: str = Form(...),
+    content: str = Form(...),
+    token: str = Form(""),
+) -> JSONResponse:
+    token_limpio = str(token or "").strip()
+    if not token_limpio:
+        raise HTTPException(status_code=401, detail="Sesion no valida.")
+
+    sesion = service.db.get(LoginSession, token_limpio)
+    if not sesion or sesion.expires_at <= datetime.utcnow() or not sesion.user_id:
+        raise HTTPException(status_code=401, detail="Sesion expirada o no valida.")
+
+    current_user = service.db.get(User, int(sesion.user_id))
+    if not current_user or not current_user.is_active:
+        raise HTTPException(status_code=401, detail="Usuario no valido.")
+
+    is_admin = str(current_user.role or "").strip().lower() == "admin"
+    allowed_areas = {"incidencias", "soporte"}
+    user_areas = set(service._area_codes_usuario(current_user))
+    if not is_admin and not (user_areas & allowed_areas):
+        raise HTTPException(status_code=403, detail="No tienes acceso a esta area.")
+
+    subject = re.sub(r"\s+", " ", (subject or "").strip())
+    content = (content or "").strip()
+    if not subject:
+        raise HTTPException(status_code=400, detail="Debes ingresar un asunto.")
+    if not content:
+        raise HTTPException(status_code=400, detail="Debes ingresar una descripcion.")
+
+    support_engine = _get_support_notes_engine()
+    if support_engine is None:
+        raise HTTPException(status_code=503, detail="SUPPORT_DB_URL no esta configurado.")
+
+    requester_name = re.sub(r"\s+", " ", (current_user.name or "").strip()) or "Incidencias"
+
+    try:
+        schema = settings.support_db_schema if settings.support_db_url.startswith("postgresql") else None
+        metadata = MetaData(schema=schema)
+        requesters = Table("requesters", metadata, autoload_with=support_engine)
+        tickets = Table("tickets", metadata, autoload_with=support_engine)
+        messages = Table("messages", metadata, autoload_with=support_engine)
+        users = Table("users", metadata, autoload_with=support_engine)
+
+        with support_engine.begin() as conn:
+            requester_id = conn.execute(
+                select(requesters.c.id)
+                .where(requesters.c.name == requester_name)
+                .order_by(requesters.c.id.asc())
+                .limit(1)
+            ).scalar()
+            if not requester_id:
+                requester_values = {"name": requester_name[:100]}
+                if "internal_name" in requesters.c:
+                    requester_values["internal_name"] = requester_name[:120]
+                if "email" in requesters.c:
+                    requester_values["email"] = None
+                requester_result = conn.execute(requesters.insert().values(**requester_values))
+                requester_id = requester_result.inserted_primary_key[0] if requester_result.inserted_primary_key else None
+                if not requester_id:
+                    requester_id = conn.execute(
+                        select(requesters.c.id)
+                        .where(requesters.c.name == requester_name[:100])
+                        .order_by(requesters.c.id.desc())
+                        .limit(1)
+                    ).scalar()
+            if not requester_id:
+                raise HTTPException(status_code=500, detail="No se pudo crear el requester interno.")
+
+            user_filters = []
+            if "name" in users.c:
+                user_filters.append(users.c.name == current_user.name)
+            if "user" in users.c:
+                user_filters.append(users.c["user"] == current_user.username)
+            support_user_id = None
+            if user_filters:
+                condition = user_filters[0]
+                for extra_filter in user_filters[1:]:
+                    condition = condition | extra_filter
+                support_user_id = conn.execute(select(users.c.id).where(condition).limit(1)).scalar()
+
+            ticket_values = {
+                "subject": subject,
+                "requester_id": int(requester_id),
+                "assigned_to_id": None,
+                "priority": "",
+                "status": "open",
+                "source": "internal",
+                "is_deleted": False,
+                "is_spam": False,
+                "reopen_count": 0,
+            }
+            ticket_values = {key: value for key, value in ticket_values.items() if key in tickets.c}
+            ticket_result = conn.execute(tickets.insert().values(**ticket_values))
+            ticket_id = ticket_result.inserted_primary_key[0] if ticket_result.inserted_primary_key else None
+            if not ticket_id:
+                ticket_id = conn.execute(select(tickets.c.id).order_by(tickets.c.id.desc()).limit(1)).scalar()
+            if not ticket_id:
+                raise HTTPException(status_code=500, detail="No se pudo crear el ticket interno.")
+
+            message_values = {
+                "ticket_id": int(ticket_id),
+                "sender_type": "agent",
+                "sender_id": int(support_user_id) if support_user_id else None,
+                "channel": "internal",
+                "content": content,
+                "is_internal_note": False,
+            }
+            message_values = {key: value for key, value in message_values.items() if key in messages.c}
+            conn.execute(messages.insert().values(**message_values))
+
+        return JSONResponse({"ok": True, "ticket_id": int(ticket_id), "subject": subject})
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"No se pudo crear el ticket interno: {exc}") from exc
+
+
 def _protocolos_weekly_worker_loop() -> None:
     tz = ZoneInfo(settings.timezone or "America/Santiago")
     ultimo_dia_protocolo = ""
@@ -1244,6 +1371,18 @@ def obtener_listas_bbdd(service: Annotated[IncidenciasService, Depends(get_servi
     return service.obtener_listas_bbdd()
 
 
+@app.get("/api/materiales/buscar")
+def buscar_materiales(
+    q: str = "",
+    limit: int = 10,
+    service: Annotated[IncidenciasService, Depends(get_service)] = None,
+):
+    try:
+        return service.buscar_materiales_excel(q, limit)
+    except ValueError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
 @app.get("/api/listas/incidencias")
 def obtener_listas_incidencias(service: Annotated[IncidenciasService, Depends(get_service)]):
     return service.obtener_listas_incidencias()
@@ -1537,14 +1676,22 @@ async def cerrar_mantencion_con_imagenes(
             raise HTTPException(status_code=400, detail=f"{upload.filename or 'archivo'} esta vacio.")
         staged_files.append(target)
 
+    def _coerce_lista(valor: object) -> list[str]:
+        if isinstance(valor, list):
+            return [str(v).strip() for v in valor if str(v).strip()]
+        if isinstance(valor, tuple):
+            return [str(v).strip() for v in valor if str(v).strip()]
+        texto = str(valor or "").strip()
+        return [texto] if texto else []
+
     try:
         return service.cerrar_mantencion_con_imagenes_staging(
             odt=odt_limpia,
             staged_files=staged_files,
             observacion=str(data.get("observacion") or ""),
             responsable_cierre=str(data.get("responsableCierre") or ""),
-            causa_cierre=str(data.get("causaCierre") or ""),
-            accion_cierre=str(data.get("accionCierre") or ""),
+            causa_cierre=_coerce_lista(data.get("causaCierre")),
+            accion_cierre=_coerce_lista(data.get("accionCierre")),
             resultado_cierre=str(data.get("resultadoCierre") or ""),
             pruebas_cierre=data.get("pruebasCierre") or [],
             materiales=data.get("materiales") or [],
@@ -2206,28 +2353,130 @@ def servicio_indicadores_page(request: Request):
 @app.get("/api/servicio/kpis-data")
 def servicio_kpis_data(db: Annotated[Session, Depends(get_db)]):
     from sqlalchemy import select as sa_select
-    from ATC.incidencias.app.models import Registro
+    from ATC.incidencias.app.models import Registro, ServicioTecnicoVentaODT, VentaODS
+
+    def _contar_camaras_registradas(raw: object) -> int:
+        if raw in (None, "", [], (), {}):
+            return 0
+        if isinstance(raw, (list, tuple, set)):
+            items = list(raw)
+        else:
+            texto = str(raw).strip()
+            if not texto:
+                return 0
+            try:
+                parsed = json.loads(texto)
+            except Exception:
+                parsed = [part.strip() for part in re.split(r"[,\n|;]+", texto) if part.strip()]
+            if isinstance(parsed, list):
+                items = parsed
+            elif isinstance(parsed, tuple):
+                items = list(parsed)
+            elif isinstance(parsed, set):
+                items = list(parsed)
+            elif parsed in (None, ""):
+                items = []
+            else:
+                items = [parsed]
+        total = 0
+        for item in items:
+            if isinstance(item, dict):
+                total += 1
+            elif str(item or "").strip():
+                total += 1
+        return total
+
+    def _porcentaje_a_instaladas(raw: object, total: int) -> int:
+        if not raw or total <= 0:
+            return 0
+        texto = str(raw).strip().replace("%", "")
+        if not texto:
+            return 0
+        try:
+            pct = float(texto.replace(",", "."))
+        except Exception:
+            return 0
+        if pct <= 0:
+            return 0
+        if pct > 100:
+            pct = 100
+        return max(0, min(total, int(round(total * pct / 100.0))))
+
     registros = db.scalars(sa_select(Registro).order_by(Registro.fecha_registro.desc())).all()
-    return [
-        {
-            "odt": r.odt,
-            "fecha_registro": r.fecha_registro.isoformat() if r.fecha_registro else None,
-            "fecha_cierre": r.fecha_cierre.isoformat() if r.fecha_cierre else None,
-            "fecha_derivacion_tecnico": r.fecha_derivacion_tecnico.isoformat() if r.fecha_derivacion_tecnico else None,
-            "cliente": r.cliente or "",
-            "problema": r.problema or "",
-            "estado": r.estado or "",
-            "tecnicos": r.tecnicos or "",
-            "acompanante": r.acompanante or "",
-            "dias_ejecucion": r.dias_ejecucion,
-            "responsable_cierre": r.responsable_cierre or "",
-            "causa_cierre": r.causa_cierre or "",
-            "accion_cierre": r.accion_cierre or "",
-            "resultado_cierre": r.resultado_cierre or "",
-            "pruebas_cierre": r.pruebas_cierre or "",
-            "materiales": r.materiales or "",
-            "requiere_seguimiento": bool(r.requiere_seguimiento),
-            "observacion_final": r.observacion_final or "",
-        }
-        for r in registros
-    ]
+    avance_por_odt: dict[str, Registro] = {}
+    for reg in registros:
+        odt_key = str(getattr(reg, "odt", "") or "").strip().upper()
+        if odt_key and odt_key not in avance_por_odt:
+            avance_por_odt[odt_key] = reg
+
+    # Avance de instalación de cámaras: ODS de venta en etapa de servicio técnico
+    # con cámaras contratadas (venta_ods."Cámaras a instalar")
+    avance_rows = db.execute(
+        sa_select(ServicioTecnicoVentaODT, VentaODS)
+        .outerjoin(VentaODS, VentaODS.codigo == ServicioTecnicoVentaODT.odt)
+        .where(VentaODS.numero_camaras_instalar.is_not(None))
+        .where(VentaODS.numero_camaras_instalar > 0)
+        .order_by(VentaODS.created_at.desc())
+    ).all()
+    avance_camaras = []
+    for st, v in avance_rows:
+        total = int(v.numero_camaras_instalar or 0)
+        finalizada = bool(st and (st.instalacion_finalizada or st.finalizado))
+        instaladas_registradas = _contar_camaras_registradas(getattr(st, "camaras_registradas", None)) if st else 0
+        if not instaladas_registradas:
+            reg = avance_por_odt.get(str(st.odt or v.codigo or "").strip().upper())
+            if reg:
+                instaladas_registradas = _porcentaje_a_instaladas(getattr(reg, "porcentaje_avance", None), total)
+        instaladas = total if finalizada else min(total, instaladas_registradas)
+        avance_camaras.append(
+            {
+                "ods": st.odt if st else (v.codigo or ""),
+                "cliente": v.razon_social or "",
+                "sucursal": v.nombre_sucursal or "",
+                "direccion": v.direccion_sucursal or "",
+                "camaras_total": total,
+                "camaras_instaladas": instaladas,
+                "camaras_pendientes": max(total - instaladas, 0),
+                "finalizada": finalizada,
+                "estado_cierre": "Finalizado" if finalizada else "Pendiente",
+                "fecha_inicio": getattr(st, "fecha_inicio_instalacion", "") if st else "",
+                "fecha_fin": getattr(st, "fecha_fin_instalacion", "") if st else "",
+                "tecnico": getattr(st, "tecnico_a_cargo", "") if st else "",
+            }
+        )
+    return {
+        "avance_camaras": avance_camaras,
+        "config": {
+            "sla_dias": settings.servicio_sla_dias,
+            "odt_antigua_dias": settings.servicio_odt_antigua_dias,
+            "reincidencia_ventana_dias": settings.servicio_reincidencia_ventana_dias,
+            "instalacion_mala_dias": settings.servicio_instalacion_mala_dias,
+            "instalacion_regular_dias": settings.servicio_instalacion_regular_dias,
+        },
+        "registros": [
+            {
+                "odt": r.odt,
+                "fecha_registro": r.fecha_registro.isoformat() if r.fecha_registro else None,
+                "fecha_cierre": r.fecha_cierre.isoformat() if r.fecha_cierre else None,
+                "fecha_derivacion_area": r.fecha_derivacion_area.isoformat() if r.fecha_derivacion_area else None,
+                "fecha_derivacion_tecnico": r.fecha_derivacion_tecnico.isoformat() if r.fecha_derivacion_tecnico else None,
+                "cliente": r.cliente or "",
+                "direccion": r.direccion or "",
+                "puesto": r.puesto or "",
+                "problema": r.problema or "",
+                "estado": r.estado or "",
+                "tecnicos": r.tecnicos or "",
+                "acompanante": r.acompanante or "",
+                "dias_ejecucion": r.dias_ejecucion,
+                "responsable_cierre": r.responsable_cierre or "",
+                "causa_cierre": r.causa_cierre or "",
+                "accion_cierre": r.accion_cierre or "",
+                "resultado_cierre": r.resultado_cierre or "",
+                "pruebas_cierre": r.pruebas_cierre or "",
+                "materiales": r.materiales or "",
+                "requiere_seguimiento": bool(r.requiere_seguimiento),
+                "observacion_final": r.observacion_final or "",
+            }
+            for r in registros
+        ],
+    }
