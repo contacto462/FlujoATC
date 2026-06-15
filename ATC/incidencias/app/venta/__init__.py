@@ -1,3 +1,3 @@
-﻿from ATC.incidencias.app.venta.routes import router
+﻿from ATC.app.routes.venta import router
 
 

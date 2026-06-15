@@ -7,7 +7,7 @@ from typing import Optional
 from sqlalchemy import Boolean, DateTime, ForeignKey, Numeric, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from ATC.incidencias.app.database import Base
+from ATC.app.core.incidencias_db import Base
 
 
 class Registro(Base):

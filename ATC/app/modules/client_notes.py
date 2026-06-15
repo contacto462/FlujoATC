@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from ATC.app.core.db import get_db
 from ATC.app.routes import web as helpdesk_web
-from ATC.incidencias.app import main as incidencias_main
+from ATC.app.routes import incidencias as incidencias_main
 
 
 router = APIRouter(tags=["client-notes"])

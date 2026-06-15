@@ -11,17 +11,16 @@ from pathlib import Path
 from typing import Annotated
 from zoneinfo import ZoneInfo
 
-from fastapi import Body, Depends, FastAPI, File, Form, HTTPException, Query, Request, Response, UploadFile
+from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Query, Request, Response, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from fastapi.staticfiles import StaticFiles
 from sqlalchemy import MetaData, Table, inspect, select, text
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from ATC.incidencias.app.database import Base, SessionLocal, build_engine, engine, get_db
-from ATC.incidencias.app.config import settings
-from ATC.incidencias.app.models import LoginSession, User
-from ATC.incidencias.app.schemas import (
+from ATC.app.core.incidencias_db import Base, SessionLocal, build_engine, engine, get_db
+from ATC.app.core.incidencias_config import settings
+from ATC.app.models.incidencias import LoginSession, User
+from ATC.app.schemas.incidencias import (
     CerrarIncidenciaRequest,
     DerivarTecnicoRequest,
     EditarIncidenciaTablaRequest,
@@ -36,39 +35,17 @@ from ATC.incidencias.app.schemas import (
     RendicionRequest,
     TareaManualRequest,
 )
-from ATC.incidencias.app.services import AREA_PANEL_DESTINOS, IncidenciasService, seed_default_identity_data
-from ATC.incidencias.app.drive_report_service import download_support_drive_file_bytes
-from ATC.incidencias.app.protocolos_service import ProtocolosService
-from ATC.incidencias.app.venta.routes import router as venta_router
+from ATC.app.services.incidencias_service import AREA_PANEL_DESTINOS, IncidenciasService, seed_default_identity_data
+from ATC.app.services.incidencias_drive_report_service import download_support_drive_file_bytes
+from ATC.app.services.protocolos_service import ProtocolosService
 
 
-BASE_DIR = Path(__file__).resolve().parent
-templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
-STATIC_DIR = BASE_DIR / "static"
-# ATC app vive ahora como hermano de incidencias dentro de ATC/.
-# BASE_DIR = ATC/incidencias/app  ->  parents[1] = ATC/
-ATC_STATIC_DIR = BASE_DIR.parents[1] / "static"
+INCIDENCIAS_APP_DIR = Path(__file__).resolve().parents[2] / "incidencias" / "app"
+templates = Jinja2Templates(directory=str(INCIDENCIAS_APP_DIR / "templates"))
 
-app = FastAPI(title="Incidencias API", version="1.0.0")
+router = APIRouter()
 LOGGER = logging.getLogger(__name__)
 _protocolos_weekly_worker_started = False
-
-if ATC_STATIC_DIR.exists():
-    app.mount("/shared-static", StaticFiles(directory=str(ATC_STATIC_DIR)), name="shared-static")
-if STATIC_DIR.exists():
-    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
-app.include_router(venta_router)
-
-
-@app.exception_handler(HTTPException)
-async def global_http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse | RedirectResponse:
-    if exc.status_code == 401 and not request.url.path.startswith("/api/"):
-        return RedirectResponse(url="/?form=login&next=auto", status_code=302)
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"detail": exc.detail},
-        headers=dict(exc.headers) if exc.headers else None,
-    )
 
 TIPOS_Y_ESPECIFICACIONES = {
     "GestiÃ³n de Grabaciones y Evidencia": [
@@ -169,8 +146,7 @@ TIPOS_Y_ESPECIFICACIONES = {
 }
 
 
-@app.on_event("startup")
-def startup() -> None:
+def startup_incidencias() -> None:
     global _protocolos_weekly_worker_started
     Base.metadata.create_all(bind=engine)
     _ensure_database_relationships()
@@ -528,7 +504,7 @@ def _support_collect_client_notes(conn, client_name: str) -> list[dict[str, str 
     return notes
 
 
-@app.get("/api/client-notes")
+@router.get("/api/client-notes")
 def get_client_internal_notes(client: str = Query("")) -> JSONResponse:
     client_name = re.sub(r"\s+", " ", (client or "").strip())
     if not client_name:
@@ -541,7 +517,7 @@ def get_client_internal_notes(client: str = Query("")) -> JSONResponse:
     return JSONResponse({"ok": True, "client": client_name, "notes": notes, "count": len(notes)})
 
 
-@app.post("/api/client-notes")
+@router.post("/api/client-notes")
 def add_client_internal_note(payload: dict = Body(...)) -> JSONResponse:
     client_name = re.sub(r"\s+", " ", str(payload.get("client", "") or "").strip())
     note_text = str(payload.get("note", "") or "").strip()
@@ -876,8 +852,8 @@ def get_protocolos_service(db: Annotated[Session, Depends(get_db)]) -> Protocolo
     return ProtocolosService(db)
 
 
-@app.post("/ticketera/tickets/oficina-atc/create")
-@app.post("/dashboard/tickets/oficina-atc/create")
+@router.post("/ticketera/tickets/oficina-atc/create")
+@router.post("/dashboard/tickets/oficina-atc/create")
 def create_oficina_atc_ticket(
     service: Annotated[IncidenciasService, Depends(get_service)],
     subject: str = Form(...),
@@ -1063,7 +1039,7 @@ def _protocolos_weekly_worker_loop() -> None:
         time.sleep(900)
 
 
-@app.get("/", response_class=HTMLResponse)
+@router.get("/", response_class=HTMLResponse)
 def do_get(
     request: Request,
     form: str = Query(default="login"),
@@ -1186,7 +1162,6 @@ def do_get(
         "pendientes": "pendientes.html",
         "tecnicos": "tecnicos.html",
         "coordinacion": "incidencias_coordinacion.html",
-        "resumen": "resumen.html",
         "formularioViatico": "formulario_viatico.html",
         "rendiciones": "rendiciones.html",
         "rendicionesTecnico": "rendiciones_tecnico.html",
@@ -1251,7 +1226,7 @@ def do_get(
     return resp
 
 
-@app.post("/api/login", response_model=LoginResponse)
+@router.post("/api/login", response_model=LoginResponse)
 def check_login(
     payload: LoginRequest,
     request: Request,
@@ -1277,17 +1252,17 @@ def check_login(
     return LoginResponse(**data)
 
 
-@app.post("/api/logout")
+@router.post("/api/logout")
 def logout(token: str, service: Annotated[IncidenciasService, Depends(get_service)]):
     return {"ok": service.logout(token)}
 
 
-@app.get("/api/usuario-actual")
+@router.get("/api/usuario-actual")
 def get_usuario_actual(token: str, service: Annotated[IncidenciasService, Depends(get_service)]):
     return {"usuario": service.get_usuario_actual(token)}
 
 
-@app.get("/sso/login")
+@router.get("/sso/login")
 def sso_login_standalone(
     request: Request,
     token: str = Query(default=""),
@@ -1321,7 +1296,7 @@ def sso_login_standalone(
     )
 
 
-@app.get("/resumen-equipos-tecnicos", response_class=HTMLResponse)
+@router.get("/resumen-equipos-tecnicos", response_class=HTMLResponse)
 def resumen_equipos_tecnicos_page(
     request: Request,
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
@@ -1341,7 +1316,7 @@ def resumen_equipos_tecnicos_page(
     return resp
 
 
-@app.get("/tabla-soporte", response_class=HTMLResponse)
+@router.get("/tabla-soporte", response_class=HTMLResponse)
 def tabla_soporte_local_page(
     request: Request,
     token: str = Query(default=""),
@@ -1356,7 +1331,7 @@ def tabla_soporte_local_page(
     )
 
 
-@app.get("/api/login/usuarios")
+@router.get("/api/login/usuarios")
 def get_usuarios_login(
     destino: str = "tecnicos",
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
@@ -1367,12 +1342,12 @@ def get_usuarios_login(
     }
 
 
-@app.get("/api/listas/bbdd")
+@router.get("/api/listas/bbdd")
 def obtener_listas_bbdd(service: Annotated[IncidenciasService, Depends(get_service)]):
     return service.obtener_listas_bbdd()
 
 
-@app.get("/api/materiales/buscar")
+@router.get("/api/materiales/buscar")
 def buscar_materiales(
     q: str = "",
     limit: int = 10,
@@ -1384,17 +1359,17 @@ def buscar_materiales(
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
-@app.get("/api/listas/incidencias")
+@router.get("/api/listas/incidencias")
 def obtener_listas_incidencias(service: Annotated[IncidenciasService, Depends(get_service)]):
     return service.obtener_listas_incidencias()
 
 
-@app.get("/api/catalogo-clientes")
+@router.get("/api/catalogo-clientes")
 def obtener_catalogo_clientes(service: Annotated[IncidenciasService, Depends(get_service)]):
     return service.obtener_catalogo_clientes()
 
 
-@app.get("/api/registros")
+@router.get("/api/registros")
 def obtener_registros(
     tecnico: str = "",
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
@@ -1405,7 +1380,7 @@ def obtener_registros(
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
-@app.get("/api/registros/administracion")
+@router.get("/api/registros/administracion")
 def obtener_registros_administracion(
     tecnico: str = "",
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
@@ -1416,7 +1391,7 @@ def obtener_registros_administracion(
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
-@app.get("/api/incidencias/puesto")
+@router.get("/api/incidencias/puesto")
 def obtener_incidencias_por_puesto(
     service: Annotated[IncidenciasService, Depends(get_service)],
     tecnico: str = "",
@@ -1427,7 +1402,7 @@ def obtener_incidencias_por_puesto(
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
-@app.get("/api/tecnicos/ruta-optima")
+@router.get("/api/tecnicos/ruta-optima")
 def obtener_ruta_optima_tecnico(
     service: Annotated[IncidenciasService, Depends(get_service)],
     tecnico: str = "",
@@ -1438,7 +1413,7 @@ def obtener_ruta_optima_tecnico(
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
-@app.get("/api/incidencias/coordinacion")
+@router.get("/api/incidencias/coordinacion")
 def obtener_incidencias_coordinacion(
     service: Annotated[IncidenciasService, Depends(get_service)],
 ):
@@ -1448,7 +1423,7 @@ def obtener_incidencias_coordinacion(
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
-@app.get("/api/sucursal/detalle")
+@router.get("/api/sucursal/detalle")
 def obtener_detalle_sucursal(
     odt: str,
     service: Annotated[IncidenciasService, Depends(get_service)],
@@ -1456,7 +1431,7 @@ def obtener_detalle_sucursal(
     return service.obtener_datos_sucursal_con_coordenadas(odt)
 
 
-@app.get("/api/sucursal/incidencias")
+@router.get("/api/sucursal/incidencias")
 def obtener_historial_sucursal(
     cliente: str,
     service: Annotated[IncidenciasService, Depends(get_service)],
@@ -1464,7 +1439,7 @@ def obtener_historial_sucursal(
     return service.obtener_ultimas_incidencias_sucursal(cliente)
 
 
-@app.get("/api/incidencias/imagenes")
+@router.get("/api/incidencias/imagenes")
 def obtener_imagenes_incidencia(
     odt: str,
     service: Annotated[IncidenciasService, Depends(get_service)],
@@ -1472,7 +1447,7 @@ def obtener_imagenes_incidencia(
     return service.obtener_imagenes_finalizacion(odt)
 
 
-@app.get("/api/incidencias/imagenes-tabla")
+@router.get("/api/incidencias/imagenes-tabla")
 def obtener_imagenes_tabla(
     odt: str,
     service: Annotated[IncidenciasService, Depends(get_service)],
@@ -1480,7 +1455,7 @@ def obtener_imagenes_tabla(
     return {"odt": odt, "imagenes": service.obtener_imagenes_tabla(odt)}
 
 
-@app.get("/api/incidencias/drive-image/{file_id}")
+@router.get("/api/incidencias/drive-image/{file_id}")
 def obtener_drive_image(
     file_id: str,
     request: Request,
@@ -1510,7 +1485,7 @@ def obtener_drive_image(
     return Response(content=content, media_type=mime_type or "application/octet-stream", headers=headers)
 
 
-@app.post("/api/incidencias/upload-image-tabla")
+@router.post("/api/incidencias/upload-image-tabla")
 async def subir_imagenes_tabla(
     odt: str = Form(...),
     token: str = Form(""),
@@ -1538,7 +1513,7 @@ async def subir_imagenes_tabla(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@app.post("/api/formulario")
+@router.post("/api/formulario")
 def enviar_formulario(
     payload: FormularioRegistro,
     service: Annotated[IncidenciasService, Depends(get_service)],
@@ -1550,7 +1525,7 @@ def enviar_formulario(
     return {"message": message}
 
 
-@app.post("/api/incidencias/nueva")
+@router.post("/api/incidencias/nueva")
 def guardar_incidencia_nueva(
     payload: IncidenciaNueva,
     service: Annotated[IncidenciasService, Depends(get_service)],
@@ -1562,7 +1537,7 @@ def guardar_incidencia_nueva(
     return {"odt": odt}
 
 
-@app.post("/api/incidencias/multiples")
+@router.post("/api/incidencias/multiples")
 def enviar_multiples_incidencias(
     payload: list[IncidenciaNueva],
     service: Annotated[IncidenciasService, Depends(get_service)],
@@ -1574,7 +1549,7 @@ def enviar_multiples_incidencias(
     return {"odts": odts}
 
 
-@app.post("/api/incidencias/cerrar")
+@router.post("/api/incidencias/cerrar")
 def cerrar_incidencia(
     payload: CerrarIncidenciaRequest,
     service: Annotated[IncidenciasService, Depends(get_service)],
@@ -1597,7 +1572,7 @@ def cerrar_incidencia(
     return {"result": ok}
 
 
-@app.post("/api/incidencias/finalizar-completo")
+@router.post("/api/incidencias/finalizar-completo")
 def finalizar_incidencia_completo(
     payload: FinalizarIncidenciaRequest,
     service: Annotated[IncidenciasService, Depends(get_service)],
@@ -1624,7 +1599,7 @@ def finalizar_incidencia_completo(
     return {"result": result}
 
 
-@app.post("/api/incidencias/cierre-mantencion")
+@router.post("/api/incidencias/cierre-mantencion")
 async def cerrar_mantencion_con_imagenes(
     odt: str = Form(...),
     token: str = Form(""),
@@ -1704,7 +1679,7 @@ async def cerrar_mantencion_con_imagenes(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@app.post("/api/incidencias/en-proceso")
+@router.post("/api/incidencias/en-proceso")
 def guardar_incidencia_en_proceso(
     payload: EnProcesoRequest,
     service: Annotated[IncidenciasService, Depends(get_service)],
@@ -1721,7 +1696,7 @@ def guardar_incidencia_en_proceso(
     return {"result": ok}
 
 
-@app.post("/api/incidencias/derivar-tecnico")
+@router.post("/api/incidencias/derivar-tecnico")
 def derivar_incidencia_tecnico(
     payload: DerivarTecnicoRequest,
     service: Annotated[IncidenciasService, Depends(get_service)],
@@ -1741,7 +1716,7 @@ def derivar_incidencia_tecnico(
     return {"ok": True}
 
 
-@app.patch("/api/incidencias/editar-tabla")
+@router.patch("/api/incidencias/editar-tabla")
 def editar_incidencia_tabla(
     payload: EditarIncidenciaTablaRequest,
     service: Annotated[IncidenciasService, Depends(get_service)],
@@ -1764,7 +1739,7 @@ def editar_incidencia_tabla(
     return result
 
 
-@app.post("/api/incidencias/cerrar-encargado")
+@router.post("/api/incidencias/cerrar-encargado")
 def cerrar_incidencia_encargado(
     odt: str,
     fecha_cierre: str,
@@ -1780,12 +1755,12 @@ def cerrar_incidencia_encargado(
     return {"ok": True}
 
 
-@app.get("/api/tecnicos/pendientes")
+@router.get("/api/tecnicos/pendientes")
 def obtener_tecnicos_pendientes(service: Annotated[IncidenciasService, Depends(get_service)]):
     return service.obtener_tecnicos_pendientes()
 
 
-@app.post("/api/mantencion/correctiva")
+@router.post("/api/mantencion/correctiva")
 def guardar_mantencion_correctiva(
     payload: dict,
     service: Annotated[IncidenciasService, Depends(get_service)],
@@ -1793,7 +1768,7 @@ def guardar_mantencion_correctiva(
     return {"result": service.guardar_mantencion_correctiva(payload)}
 
 
-@app.post("/api/mantencion/programada/quilpue/ejecutar")
+@router.post("/api/mantencion/programada/quilpue/ejecutar")
 def ejecutar_mantencion_programada_quilpue(
     fecha_referencia: str | None = None,
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
@@ -1810,7 +1785,7 @@ def ejecutar_mantencion_programada_quilpue(
     return service.programar_mantenciones_quilpue(fecha_referencia=ref, forzar=True)
 
 
-@app.post("/api/mantencion/programada/quintero/ejecutar")
+@router.post("/api/mantencion/programada/quintero/ejecutar")
 def ejecutar_mantencion_programada_quintero(
     fecha_referencia: str | None = None,
     limite: int | None = None,
@@ -1828,7 +1803,7 @@ def ejecutar_mantencion_programada_quintero(
     return service.programar_mantenciones_trimestrales_quintero(fecha_referencia=ref, forzar=True, limite=limite)
 
 
-@app.post("/api/mantencion/programada/concon/ejecutar")
+@router.post("/api/mantencion/programada/concon/ejecutar")
 def ejecutar_mantencion_programada_concon(
     fecha_referencia: str | None = None,
     limite: int | None = None,
@@ -1846,7 +1821,7 @@ def ejecutar_mantencion_programada_concon(
     return service.programar_mantenciones_trimestrales_concon(fecha_referencia=ref, forzar=True, limite=limite)
 
 
-@app.get("/api/mantencion/programada/plantilla")
+@router.get("/api/mantencion/programada/plantilla")
 def obtener_plantilla_mantencion_programada(
     sucursal: str,
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
@@ -1857,7 +1832,7 @@ def obtener_plantilla_mantencion_programada(
     return {"sucursal": sucursal, "imagenes": imagenes, "total_imagenes": len(imagenes)}
 
 
-@app.post("/api/mantencion/programada/plantilla")
+@router.post("/api/mantencion/programada/plantilla")
 def guardar_plantilla_mantencion_programada(
     payload: dict,
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
@@ -1870,7 +1845,7 @@ def guardar_plantilla_mantencion_programada(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@app.post("/api/mantencion/programada/plantilla-desde-odt")
+@router.post("/api/mantencion/programada/plantilla-desde-odt")
 def guardar_plantilla_mantencion_programada_desde_odt(
     payload: dict,
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
@@ -1886,12 +1861,12 @@ def guardar_plantilla_mantencion_programada_desde_odt(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@app.get("/api/contactos/sucursal")
+@router.get("/api/contactos/sucursal")
 def obtener_contactos_por_sucursal(service: Annotated[IncidenciasService, Depends(get_service)]):
     return service.obtener_contactos_por_sucursal()
 
 
-@app.post("/api/contacto-cliente/enviar-info")
+@router.post("/api/contacto-cliente/enviar-info")
 def enviar_info_contacto_cliente(
     payload: EnviarInformacionContactoRequest,
     service: Annotated[IncidenciasService, Depends(get_service)],
@@ -1902,12 +1877,12 @@ def enviar_info_contacto_cliente(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@app.get("/api/clientes-soporte")
+@router.get("/api/clientes-soporte")
 def obtener_clientes_soporte(service: Annotated[IncidenciasService, Depends(get_service)]):
     return service.obtener_clientes_soporte()
 
 
-@app.post("/api/sync/soporte/retry")
+@router.post("/api/sync/soporte/retry")
 def reintentar_sync_soporte(
     limit: int = 50,
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
@@ -1915,7 +1890,7 @@ def reintentar_sync_soporte(
     return service.sync_soporte_pendientes(limit)
 
 
-@app.get("/api/sync/soporte/outbox")
+@router.get("/api/sync/soporte/outbox")
 def estado_sync_soporte(
     limit: int = 100,
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
@@ -1923,19 +1898,19 @@ def estado_sync_soporte(
     return service.obtener_estado_sync_outbox(limit)
 
 
-@app.get("/api/tareas/tipos")
+@router.get("/api/tareas/tipos")
 def obtener_tipos_especificaciones():
     return TIPOS_Y_ESPECIFICACIONES
 
 
-@app.get("/api/protocolos/listas")
+@router.get("/api/protocolos/listas")
 def obtener_listas_protocolos(
     service: Annotated[ProtocolosService, Depends(get_protocolos_service)],
 ):
     return service.obtener_listas()
 
 
-@app.post("/api/protocolos/registro")
+@router.post("/api/protocolos/registro")
 def crear_registro_protocolo(
     payload: ProtocoloRegistroCreateRequest,
     service: Annotated[ProtocolosService, Depends(get_protocolos_service)],
@@ -1946,7 +1921,7 @@ def crear_registro_protocolo(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@app.get("/api/protocolos/registros")
+@router.get("/api/protocolos/registros")
 def listar_registros_protocolos(
     cliente: str = "",
     sucursal: str = "",
@@ -1969,7 +1944,7 @@ def listar_registros_protocolos(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@app.post("/api/protocolos/reportes/semanal/ejecutar")
+@router.post("/api/protocolos/reportes/semanal/ejecutar")
 def ejecutar_reportes_semanales_protocolos(
     forzar: bool = False,
     service: Annotated[ProtocolosService, Depends(get_protocolos_service)] = None,
@@ -1980,7 +1955,7 @@ def ejecutar_reportes_semanales_protocolos(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@app.get("/api/protocolos/informes")
+@router.get("/api/protocolos/informes")
 def listar_informes_protocolos(
     cliente: str = "",
     sucursal: str = "",
@@ -1999,7 +1974,7 @@ def listar_informes_protocolos(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@app.get("/api/protocolos/informes/{informe_id}/contactos")
+@router.get("/api/protocolos/informes/{informe_id}/contactos")
 def obtener_contactos_informe_protocolo(
     informe_id: int,
     service: Annotated[ProtocolosService, Depends(get_protocolos_service)] = None,
@@ -2010,7 +1985,7 @@ def obtener_contactos_informe_protocolo(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@app.post("/api/protocolos/informes/{informe_id}/enviar")
+@router.post("/api/protocolos/informes/{informe_id}/enviar")
 def enviar_informe_semanal_protocolo(
     informe_id: int,
     payload: dict = Body(default_factory=dict),
@@ -2022,7 +1997,7 @@ def enviar_informe_semanal_protocolo(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@app.post("/api/protocolos/informes/{informe_id}/rechazar")
+@router.post("/api/protocolos/informes/{informe_id}/rechazar")
 def rechazar_informe_semanal_protocolo(
     informe_id: int,
     payload: dict = Body(default_factory=dict),
@@ -2034,7 +2009,7 @@ def rechazar_informe_semanal_protocolo(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@app.delete("/api/protocolos/informes/{informe_id}")
+@router.delete("/api/protocolos/informes/{informe_id}")
 def eliminar_informe_protocolo(
     informe_id: int,
     service: Annotated[ProtocolosService, Depends(get_protocolos_service)] = None,
@@ -2045,12 +2020,12 @@ def eliminar_informe_protocolo(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@app.get("/api/derivaciones")
+@router.get("/api/derivaciones")
 def obtener_registros_derivaciones(service: Annotated[IncidenciasService, Depends(get_service)]):
     return service.obtener_registros_derivaciones()
 
 
-@app.post("/api/coordinacion/finalizar")
+@router.post("/api/coordinacion/finalizar")
 def finalizar_odt_coordinacion(
     payload: dict,
     service: Annotated[IncidenciasService, Depends(get_service)],
@@ -2067,7 +2042,7 @@ def finalizar_odt_coordinacion(
     return result
 
 
-@app.post("/api/coordinacion/observacion-final")
+@router.post("/api/coordinacion/observacion-final")
 def guardar_observacion_final_coordinacion(
     payload: dict,
     service: Annotated[IncidenciasService, Depends(get_service)],
@@ -2084,7 +2059,7 @@ def guardar_observacion_final_coordinacion(
     return result
 
 
-@app.post("/api/coordinacion/enviar-correo")
+@router.post("/api/coordinacion/enviar-correo")
 def enviar_correo_coordinacion(
     payload: EnviarInformacionContactoRequest,
     service: Annotated[IncidenciasService, Depends(get_service)],
@@ -2095,7 +2070,7 @@ def enviar_correo_coordinacion(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@app.post("/api/tareas")
+@router.post("/api/tareas")
 def registrar_tarea_manual(
     payload: TareaManualRequest,
     service: Annotated[IncidenciasService, Depends(get_service)],
@@ -2107,12 +2082,12 @@ def registrar_tarea_manual(
     return {"id": codigo}
 
 
-@app.get("/api/tareas")
+@router.get("/api/tareas")
 def obtener_tareas(service: Annotated[IncidenciasService, Depends(get_service)]):
     return service.obtener_registro_tareas()
 
 
-@app.patch("/api/tareas/{tarea_id}")
+@router.patch("/api/tareas/{tarea_id}")
 def actualizar_tarea(
     tarea_id: int,
     columna: str,
@@ -2126,7 +2101,7 @@ def actualizar_tarea(
     return {"ok": True}
 
 
-@app.post("/api/rendiciones")
+@router.post("/api/rendiciones")
 def registrar_rendicion(
     payload: RendicionRequest,
     service: Annotated[IncidenciasService, Depends(get_service)],
@@ -2137,12 +2112,12 @@ def registrar_rendicion(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@app.get("/api/rendiciones/url")
+@router.get("/api/rendiciones/url")
 def obtener_url_formulario_rendicion(request: Request):
     return {"url": str(request.base_url).rstrip("/")}
 
 
-@app.get("/api/rendiciones/duplicado")
+@router.get("/api/rendiciones/duplicado")
 def verificar_nro_documento_duplicado(
     nro_documento: str,
     service: Annotated[IncidenciasService, Depends(get_service)],
@@ -2150,7 +2125,7 @@ def verificar_nro_documento_duplicado(
     return {"duplicado": service.existe_nro_documento_duplicado(nro_documento)}
 
 
-@app.post("/api/rendiciones/upload-boleta")
+@router.post("/api/rendiciones/upload-boleta")
 async def subir_boleta_rendicion(
     file: UploadFile = File(...),
     tecnico: str = Form(""),
@@ -2180,7 +2155,7 @@ async def subir_boleta_rendicion(
     return {"url": url}
 
 
-@app.get("/api/rendiciones")
+@router.get("/api/rendiciones")
 def obtener_rendiciones(
     tecnico: str = "",
     pendientes: bool = False,
@@ -2189,7 +2164,7 @@ def obtener_rendiciones(
     return service.obtener_rendiciones(tecnico=tecnico, pendientes_only=pendientes)
 
 
-@app.patch("/api/rendiciones/{rendicion_id}")
+@router.patch("/api/rendiciones/{rendicion_id}")
 def marcar_rendicion(
     rendicion_id: int,
     accion: str,
@@ -2209,12 +2184,12 @@ def marcar_rendicion(
 
 # ---------- Finanzas: vistas de rendiciones ----------
 
-@app.get("/api/finanzas/consolidado")
+@router.get("/api/finanzas/consolidado")
 def finanzas_consolidado(service: Annotated[IncidenciasService, Depends(get_service)]):
     return service.obtener_consolidado()
 
 
-@app.get("/api/finanzas/viatico-especial")
+@router.get("/api/finanzas/viatico-especial")
 def finanzas_viatico_especial(
     codigo: str = "",
     personalizados: bool = False,
@@ -2223,7 +2198,7 @@ def finanzas_viatico_especial(
     return service.obtener_viatico_especial(codigo=codigo, personalizados=personalizados)
 
 
-@app.patch("/api/finanzas/viatico-cap/{codigo}")
+@router.patch("/api/finanzas/viatico-cap/{codigo}")
 def finanzas_set_viatico_cap(
     codigo: str,
     monto: float,
@@ -2238,12 +2213,12 @@ def finanzas_set_viatico_cap(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@app.get("/api/finanzas/pagos")
+@router.get("/api/finanzas/pagos")
 def finanzas_listar_pagos(service: Annotated[IncidenciasService, Depends(get_service)]):
     return service.obtener_pagos()
 
 
-@app.post("/api/finanzas/pagos")
+@router.post("/api/finanzas/pagos")
 def finanzas_registrar_pago(
     payload: dict,
     token: str = "",
@@ -2257,7 +2232,7 @@ def finanzas_registrar_pago(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@app.delete("/api/finanzas/pagos/{pago_id}")
+@router.delete("/api/finanzas/pagos/{pago_id}")
 def finanzas_eliminar_pago(
     pago_id: int,
     service: Annotated[IncidenciasService, Depends(get_service)],
@@ -2268,12 +2243,12 @@ def finanzas_eliminar_pago(
     return {"ok": True}
 
 
-@app.get("/api/finanzas/suma-pagos")
+@router.get("/api/finanzas/suma-pagos")
 def finanzas_suma_pagos(service: Annotated[IncidenciasService, Depends(get_service)]):
     return service.obtener_suma_pagos()
 
 
-@app.get("/api/planificacion")
+@router.get("/api/planificacion")
 def obtener_planificacion_total(
     mes: int,
     anio: int,
@@ -2284,7 +2259,7 @@ def obtener_planificacion_total(
     return service.obtener_planificacion_total(mes, anio, estado, tecnico)
 
 
-@app.get("/api/debug/db")
+@router.get("/api/debug/db")
 def debug_db(
     db: Annotated[Session, Depends(get_db)],
     service: Annotated[IncidenciasService, Depends(get_service)],
@@ -2342,7 +2317,7 @@ def debug_db(
     return out
 
 
-@app.get("/servicio/indicadores", response_class=HTMLResponse)
+@router.get("/servicio/indicadores", response_class=HTMLResponse)
 def servicio_indicadores_page(request: Request):
     return templates.TemplateResponse(
         request,
@@ -2351,10 +2326,10 @@ def servicio_indicadores_page(request: Request):
     )
 
 
-@app.get("/api/servicio/kpis-data")
+@router.get("/api/servicio/kpis-data")
 def servicio_kpis_data(db: Annotated[Session, Depends(get_db)]):
     from sqlalchemy import select as sa_select
-    from ATC.incidencias.app.models import Registro, ServicioTecnicoVentaODT, VentaODS
+    from ATC.app.models.incidencias import Registro, ServicioTecnicoVentaODT, VentaODS
 
     def _contar_camaras_registradas(raw: object) -> int:
         if raw in (None, "", [], (), {}):

@@ -8,8 +8,8 @@ from sqlalchemy.orm import Session
 from ATC.app.core.config import settings
 from ATC.app.core.db import get_db
 from ATC.app.services.user_service import UserService
-from ATC.incidencias.app.database import SessionLocal as IncidenciasSessionLocal
-from ATC.incidencias.app.services import IncidenciasService
+from ATC.app.core.incidencias_db import SessionLocal as IncidenciasSessionLocal
+from ATC.app.services.incidencias_service import IncidenciasService
 
 
 router = APIRouter(tags=["unified-access"])

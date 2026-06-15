@@ -11,14 +11,14 @@ from fastapi import HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from ATC.incidencias.app.config import settings
-from ATC.incidencias.app.drive_report_service import (
+from ATC.app.core.incidencias_config import settings
+from ATC.app.services.incidencias_drive_report_service import (
     DriveReportError,
     build_ods_folder_url,
     find_ods_drive_folder_id,
     upload_ods_files_to_drive,
 )
-from ATC.incidencias.app.models import (
+from ATC.app.models.incidencias import (
     AdministracionODT,
     ClienteBBDD,
     FinanzasODT,
@@ -31,8 +31,8 @@ from ATC.incidencias.app.models import (
     VentaODS,
     VentaODSArchivo,
 )
-from ATC.incidencias.app.services import IncidenciasService
-from ATC.incidencias.app.venta.schemas import VentaClienteCreateRequest, VentaODSArchivoRequest, VentaODSCreateRequest, VentaSucursalCreateRequest
+from ATC.app.services.incidencias_service import IncidenciasService
+from ATC.app.schemas.venta import VentaClienteCreateRequest, VentaODSArchivoRequest, VentaODSCreateRequest, VentaSucursalCreateRequest
 
 _log = logging.getLogger(__name__)
 
@@ -62,7 +62,9 @@ PROVEEDORES_ELECTRICIDAD = [
     "Otro",
 ]
 
-VENTA_UPLOADS_DIR = Path(__file__).resolve().parents[2] / "uploads" / "venta_ods"
+_ATC_ROOT = Path(__file__).resolve().parents[2]
+_INCIDENCIAS_ROOT = _ATC_ROOT / "incidencias"
+VENTA_UPLOADS_DIR = _INCIDENCIAS_ROOT / "uploads" / "venta_ods"
 
 
 def normalize_rut(value: str) -> str:
@@ -569,7 +571,7 @@ def _save_ods_file(codigo: str, payload: VentaODSArchivoRequest | None) -> str |
     file_name = _safe_filename(payload.nombre or "archivo.bin")
     path = folder / file_name
     path.write_bytes(content)
-    return str(path.relative_to(Path(__file__).resolve().parents[2])).replace("\\", "/")
+    return str(path.relative_to(_INCIDENCIAS_ROOT)).replace("\\", "/")
 
 
 def _upsert_ods_archivo(

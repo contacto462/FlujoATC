@@ -17,14 +17,14 @@ import requests
 from sqlalchemy import and_, func, select, text
 from sqlalchemy.orm import Session
 
-from ATC.incidencias.app.config import settings
-from ATC.incidencias.app.database import SessionLocal
-from ATC.incidencias.app.drive_report_service import (
+from ATC.app.core.incidencias_config import settings
+from ATC.app.core.incidencias_db import SessionLocal
+from ATC.app.services.incidencias_drive_report_service import (
     DriveReportError,
     create_protocol_individual_report_pdf,
     create_protocol_weekly_report_pdf,
 )
-from ATC.incidencias.app.models import (
+from ATC.app.models.incidencias import (
     ClienteBBDD,
     LoginSession,
     ProtocoloInforme,
@@ -34,7 +34,7 @@ from ATC.incidencias.app.models import (
     SucursalContactoEmergencia,
     SucursalPersonaAutorizada,
 )
-from ATC.incidencias.app.schemas import ProtocoloRegistroCreateRequest
+from ATC.app.schemas.incidencias import ProtocoloRegistroCreateRequest
 
 LOGGER = logging.getLogger(__name__)
 

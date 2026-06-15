@@ -39,6 +39,10 @@ from ATC.app.routes.public import router as public_router
 from ATC.app.modules.client_notes import router as client_notes_router
 from ATC.app.modules.incidencias import register_incidencias_module
 from ATC.app.modules.unified_access import router as unified_access_router
+from ATC.app.routes.incidencias import router as incidencias_router, startup_incidencias
+from ATC.app.routes.venta import router as venta_router
+from ATC.app.models import incidencias as _incidencias_models  # noqa
+from ATC.app.models import venta as _venta_models  # noqa
 from Bitácora.router import router as bitacora_router
 
 # =========================
@@ -146,12 +150,6 @@ app.mount(
 )
 app.mount("/shared-static", StaticFiles(directory=str(_STATIC_DIR)), name="shared-static")
 
-# =========================
-# CREAR TABLAS (SOLO DEV)
-# =========================
-Base.metadata.create_all(bind=engine)
-
-
 def ensure_users_unified_columns():
     try:
         with engine.begin() as conn:
@@ -189,10 +187,6 @@ def ensure_users_unified_columns():
                     column_names.add(column_name)
     except Exception as e:
         print("Error ensuring unified users columns:", e)
-
-
-ensure_users_unified_columns()
-
 
 FULL_AREA_CHOICE_DEPARTMENTS = "Soporte;Servicio Tecnico;Operador;Comercial;Finanzas;Administracion;Operaciones"
 USER_AREA_DEPARTMENT_OVERRIDES = [
@@ -271,10 +265,6 @@ def ensure_requesters_internal_name_column():
     except Exception as e:
         print("Error ensuring requesters.internal_name:", e)
 
-
-ensure_requesters_internal_name_column()
-
-
 def ensure_requesters_phone_column():
     try:
         with engine.begin() as conn:
@@ -287,10 +277,6 @@ def ensure_requesters_phone_column():
             print("Schema updated: requesters.phone")
     except Exception as e:
         print("Error ensuring requesters.phone:", e)
-
-
-ensure_requesters_phone_column()
-
 
 def ensure_messages_sender_identity_columns():
     # Guarda remitente por mensaje para distinguir respuestas de CC.
@@ -309,9 +295,6 @@ def ensure_messages_sender_identity_columns():
     except Exception as e:
         print("Error ensuring messages sender identity columns:", e)
 
-
-ensure_messages_sender_identity_columns()
-
 # =========================
 # INCLUIR ROUTERS API
 # =========================
@@ -324,6 +307,8 @@ app.include_router(public_router)
 app.include_router(unified_access_router)
 app.include_router(client_notes_router)
 app.include_router(bitacora_router)
+app.include_router(incidencias_router)
+app.include_router(venta_router)
 register_incidencias_module(app)
 
 # =========================
@@ -521,6 +506,11 @@ def automation_loop():
 @app.on_event("startup")
 def startup_tasks():
     _configure_access_log_noise_filter()
+    Base.metadata.create_all(bind=engine)
+    ensure_users_unified_columns()
+    ensure_requesters_internal_name_column()
+    ensure_requesters_phone_column()
+    ensure_messages_sender_identity_columns()
     normalize_requester_names()
     seed_default_users()
     ensure_configured_user_area_access()
@@ -528,3 +518,4 @@ def startup_tasks():
     # Iniciar thread de email
     threading.Thread(target=email_loop, daemon=True).start()
     threading.Thread(target=automation_loop, daemon=True).start()
+    startup_incidencias()

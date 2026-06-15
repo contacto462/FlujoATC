@@ -21,7 +21,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 
-from ATC.incidencias.app.config import settings
+from ATC.app.core.incidencias_config import settings
 
 
 _ATC_ROOT = Path(__file__).resolve().parents[2]
@@ -952,7 +952,7 @@ def download_support_drive_file_bytes(*, file_id: str) -> tuple[bytes, str, str]
 
 @lru_cache(maxsize=1)
 def _protocolos_template_env() -> Environment:
-    template_dir = Path(__file__).resolve().parent / "templates" / "reportes"
+    template_dir = _ATC_ROOT / "incidencias" / "app" / "templates" / "reportes"
     return Environment(
         loader=FileSystemLoader(str(template_dir)),
         autoescape=False,

@@ -3,7 +3,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
-from ATC.incidencias.app.config import settings
+from ATC.app.core.incidencias_config import settings
 
 
 class Base(DeclarativeBase):

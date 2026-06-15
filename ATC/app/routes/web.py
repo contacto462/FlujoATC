@@ -77,7 +77,7 @@ from ATC.app.services.sla_feedback_service import (
     get_or_create_ticket_sla_feedback,
     verify_sla_feedback_token,
 )
-from ATC.incidencias.app.services import IncidenciasService
+from ATC.app.services.incidencias_service import IncidenciasService
 from Bitácora.access import can_access_bitacora
 
 from ATC.app.models.ticket import Ticket

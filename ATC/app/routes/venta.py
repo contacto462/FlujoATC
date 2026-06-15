@@ -6,10 +6,10 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from pathlib import Path
 
-from ATC.incidencias.app.database import get_db
-from ATC.incidencias.app.schemas import LoginRequest
-from ATC.incidencias.app.services import IncidenciasService
-from ATC.incidencias.app.venta.schemas import (
+from ATC.app.core.incidencias_db import get_db
+from ATC.app.schemas.incidencias import LoginRequest
+from ATC.app.services.incidencias_service import IncidenciasService
+from ATC.app.schemas.venta import (
     VentaClienteCreateRequest,
     VentaClienteCreateResponse,
     VentaODSCreateRequest,
@@ -30,7 +30,7 @@ from ATC.incidencias.app.venta.schemas import (
     VentaSucursalCreateResponse,
     VentaSucursalTableUpdateRequest,
 )
-from ATC.incidencias.app.venta.service import (
+from ATC.app.services.venta_service import (
     VENTA_UPLOADS_DIR,
     create_cliente,
     create_ods,
@@ -74,7 +74,8 @@ from ATC.incidencias.app.venta.service import (
 )
 
 router = APIRouter(tags=["venta"])
-templates = Jinja2Templates(directory=str(Path(__file__).resolve().parents[1] / "templates"))
+INCIDENCIAS_APP_DIR = Path(__file__).resolve().parents[2] / "incidencias" / "app"
+templates = Jinja2Templates(directory=str(INCIDENCIAS_APP_DIR / "templates"))
 
 
 def get_service(db: Session = Depends(get_db)) -> IncidenciasService:
@@ -92,7 +93,7 @@ def require_venta_token(
 
 import re as _re_dept
 from sqlalchemy import text as _sql_text
-from ATC.incidencias.app.models import LoginSession as _LoginSession, User as _User
+from ATC.app.models.incidencias import LoginSession as _LoginSession, User as _User
 
 
 _DEPARTMENT_AREA_MAP = {
@@ -118,7 +119,7 @@ def _back_context_for_token(db: Session, token: str) -> tuple[bool, str]:
     Muestra el botón si el user tiene >1 área y vuelve al selector correcto
     preservando el token actual.
     """
-    from ATC.incidencias.app.config import settings as _settings
+    from ATC.app.core.incidencias_config import settings as _settings
     count = _count_areas_for_token(db, token)
     if count <= 1:
         return False, f"/seleccionar-area?token={token}" if token else "/seleccionar-area"
