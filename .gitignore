@@ -2,9 +2,15 @@
 *.json
 *.db
 backups/
+backup_bbdd/
 __pycache__/
 *.pyc
 auto_git.py
+
+# macOS
+.DS_Store
+# Logs del servidor
+*.log
 
 ATC/.env
 ATC/secrets/
