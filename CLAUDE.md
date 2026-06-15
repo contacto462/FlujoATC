@@ -32,7 +32,7 @@ tener ya la respuesta y evita leer muchos archivos. Mapa:
 ## Levantar el server (macOS)
 
 Ver `Documentación/30-Operaciones/Levantar Servidor.md`. Resumen: **no** usar los venvs de Windows;
-usar `.venv314` y `uvicorn ATC.app.main:app --host 127.0.0.1 --port 8000` (sin `--reload`).
+usar `.venv-backend` con Python **3.14.5** y `uvicorn ATC.app.main:app --host 127.0.0.1 --port 8000` (sin `--reload`).
 
 ## No tocar
 

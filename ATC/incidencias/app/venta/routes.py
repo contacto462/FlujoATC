@@ -152,7 +152,7 @@ def venta_clientes_page(
     request: Request,
     token: str = Depends(require_venta_token),
 ):
-    return templates.TemplateResponse(request, "RegistroCliente.html", {"request": request, "token": token})
+    return templates.TemplateResponse(request, "registro_cliente.html", {"request": request, "token": token})
 
 
 @router.get("/venta/sucursales", response_class=HTMLResponse)
@@ -160,7 +160,7 @@ def venta_sucursales_page(
     request: Request,
     token: str = Depends(require_venta_token),
 ):
-    return templates.TemplateResponse(request, "RegistroSucursal.html", {"request": request, "token": token})
+    return templates.TemplateResponse(request, "registro_sucursal.html", {"request": request, "token": token})
 
 
 @router.get("/venta/ods", response_class=HTMLResponse)
@@ -168,7 +168,7 @@ def venta_ods_page(
     request: Request,
     token: str = Depends(require_venta_token),
 ):
-    return templates.TemplateResponse(request, "RegistroODS.html", {"request": request, "token": token})
+    return templates.TemplateResponse(request, "registro_ods.html", {"request": request, "token": token})
 
 
 @router.get("/venta/bbdd-orden-servicio", response_class=HTMLResponse)
@@ -176,7 +176,7 @@ def venta_bbdd_orden_servicio_page(
     request: Request,
     token: str = Depends(require_venta_token),
 ):
-    return templates.TemplateResponse(request, "BBDDOrdenServicio.html", {"request": request, "token": token})
+    return templates.TemplateResponse(request, "bbdd_orden_servicio.html", {"request": request, "token": token})
 
 
 @router.get("/venta/administracion", response_class=HTMLResponse)
@@ -191,7 +191,7 @@ def venta_administracion_page(
     show_back_button, back_url = _back_context_for_token(db, token)
     return templates.TemplateResponse(
         request,
-        "panel_selector_administracion.html",
+        "seleccion_panel_administracion.html",
         {"request": request, "token": token, "show_back_button": show_back_button, "back_url": back_url},
     )
 
@@ -204,7 +204,7 @@ def venta_tabla_administracion_page(
 ):
     if not service.usuario_logueado_por_token(token):
         return RedirectResponse(url="/?form=login&next=auto", status_code=303)
-    return templates.TemplateResponse(request, "TablaAdministracion.html", {"request": request, "token": token})
+    return templates.TemplateResponse(request, "tabla_administracion_venta.html", {"request": request, "token": token})
 
 
 @router.get("/venta/administracion/login", response_class=HTMLResponse)
@@ -225,7 +225,7 @@ def venta_finanzas_page(
     show_back_button, back_url = _back_context_for_token(db, token)
     return templates.TemplateResponse(
         request,
-        "panel_selector_finanzas.html",
+        "seleccion_panel_finanzas.html",
         {"request": request, "token": token, "tecnico": tecnico, "show_back_button": show_back_button, "back_url": back_url},
     )
 
@@ -238,7 +238,7 @@ def venta_tabla_finanzas_page(
 ):
     if not service.usuario_logueado_por_token(token):
         return RedirectResponse(url="/?form=login&next=auto", status_code=303)
-    return templates.TemplateResponse(request, "TablaFinanzas.html", {"request": request, "token": token})
+    return templates.TemplateResponse(request, "tabla_finanzas_venta.html", {"request": request, "token": token})
 
 
 @router.get("/venta/finanzas/rendiciones", response_class=HTMLResponse)
@@ -310,7 +310,7 @@ def venta_panel_selector_page(
     show_back_button, back_url = _back_context_for_token(db, token)
     return templates.TemplateResponse(
         request,
-        "panel_selector_venta.html",
+        "seleccion_panel_venta.html",
         {
             "request": request,
             "token": token,
@@ -326,7 +326,7 @@ def venta_bbdd_clientes_page(
     request: Request,
     token: str = Depends(require_venta_token),
 ):
-    return templates.TemplateResponse(request, "BBDDClientes.html", {"request": request, "token": token})
+    return templates.TemplateResponse(request, "bbdd_clientes.html", {"request": request, "token": token})
 
 
 @router.get("/venta/bbdd-sucursales", response_class=HTMLResponse)
@@ -334,7 +334,7 @@ def venta_bbdd_sucursales_page(
     request: Request,
     token: str = Depends(require_venta_token),
 ):
-    return templates.TemplateResponse(request, "BBCCSucursal.html", {"request": request, "token": token})
+    return templates.TemplateResponse(request, "bbdd_sucursal.html", {"request": request, "token": token})
 
 
 @router.get("/venta/informacion-cliente", response_class=HTMLResponse)
@@ -342,7 +342,7 @@ def venta_informacion_cliente_page(
     request: Request,
     token: str = Depends(require_venta_token),
 ):
-    return templates.TemplateResponse(request, "InformacionCliente.html", {"request": request, "token": token})
+    return templates.TemplateResponse(request, "informacion_cliente.html", {"request": request, "token": token})
 
 
 @router.get("/venta/tabla-comercial", response_class=HTMLResponse)
@@ -350,7 +350,7 @@ def venta_tabla_comercial_page(
     request: Request,
     token: str = Depends(require_venta_token),
 ):
-    return templates.TemplateResponse(request, "TablaComercial.html", {"request": request, "token": token})
+    return templates.TemplateResponse(request, "tabla_comercial_venta.html", {"request": request, "token": token})
 
 
 @router.get("/api/venta/usuario-actual")
@@ -682,7 +682,7 @@ def venta_operaciones_page(
     show_back_button, back_url = _back_context_for_token(db, token)
     return templates.TemplateResponse(
         request,
-        "panel_selector_operaciones.html",
+        "seleccion_panel_operaciones.html",
         {
             "request": request,
             "token": token,
@@ -706,7 +706,7 @@ def venta_tabla_operaciones_page(
 ):
     if not service.usuario_logueado_por_token(token):
         return RedirectResponse(url="/?form=login&next=auto", status_code=303)
-    return templates.TemplateResponse(request, "TablaOperaciones.html", {"request": request, "token": token})
+    return templates.TemplateResponse(request, "tabla_operaciones_venta.html", {"request": request, "token": token})
 
 
 @router.get("/api/venta/operaciones-ods")

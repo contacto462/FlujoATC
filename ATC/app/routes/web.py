@@ -804,16 +804,6 @@ def _decode_cookie_token(token: str) -> str:
 
         raise HTTPException(status_code=401, detail="Token invÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡lido")
 
-def _verify_web_password(plain_password: str, stored_password: str) -> bool:
-    stored = str(stored_password or "")
-    incoming = str(plain_password or "")
-    if stored.startswith("plain:"):
-        return stored.removeprefix("plain:") == incoming
-    try:
-        return verify_password(incoming, stored)
-    except Exception:
-        return False
-
 DEPARTMENT_AREA_MAP = {
     "soporte": [("soporte", "Soporte", "Soporte")],
     "materiales": [("materiales", "Materiales", "Materiales")],
@@ -1091,10 +1081,7 @@ def home():
 @router.get("/login", response_class=HTMLResponse)
 
 def login_page(request: Request, db: Session = Depends(get_db)):
-    central_login = _incidencias_base_url()
-    if central_login:
-        return RedirectResponse(url=f"{central_login}/?form=login&next=auto", status_code=303)
-
+    # Usuario ya autenticado: directo a su area
     token = request.cookies.get(COOKIE_NAME)
     if token:
         try:
@@ -1105,46 +1092,16 @@ def login_page(request: Request, db: Session = Depends(get_db)):
         except Exception:
             pass
 
-    return templates.TemplateResponse(request, "login.html", {"request": request, "error": None})
-
-@router.post("/web/login")
-
-def web_login(
-
-    request: Request,
-
-    username: str = Form(...),
-
-    password: str = Form(...),
-
-    db: Session = Depends(get_db),
-
-):
-
-    user = UserService.find_by_login(db, username)
-
-    if not user or not user.is_active or not _verify_web_password(password, user.hashed_password):
-
-        # vuelve al form con error
-
-        return templates.TemplateResponse(
-            request,
-            "login.html",
-
-            {"request": request, "error": "Usuario o contraseÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â±a incorrectos"},
-
-            status_code=401,
-
-        )
-
-    token = create_access_token({"sub": user.username})
-
-    return _set_web_cookie(_redirect_for_authenticated_user(db, user), token)
+    # Login unico: siempre el login de Incidencias (/?form=login)
+    central_login = _incidencias_base_url()
+    prefix = central_login if central_login else ""
+    return RedirectResponse(url=f"{prefix}/?form=login&next=auto", status_code=303)
 
 _SSO_NEXT_ALLOWED_PREFIXES = (
     "/soporte",
     "/tickets",
     "/dashboard",
+    "/ticketera",
     "/tabla-soporte",
     "/materiales",
     "/seleccionar-area",
@@ -1218,6 +1175,24 @@ def logout():
     return resp
 
 
+@router.get("/dashboard", include_in_schema=False)
+def legacy_dashboard_root(request: Request):
+    query = request.url.query
+    target = "/ticketera"
+    if query:
+        target = f"{target}?{query}"
+    return RedirectResponse(url=target, status_code=303)
+
+
+@router.api_route("/dashboard/{rest_of_path:path}", methods=["GET", "POST"], include_in_schema=False)
+def legacy_dashboard_path(request: Request, rest_of_path: str):
+    query = request.url.query
+    target = f"/ticketera/{rest_of_path.lstrip('/')}"
+    if query:
+        target = f"{target}?{query}"
+    return RedirectResponse(url=target, status_code=303)
+
+
 @router.get("/area_choice", include_in_schema=False)
 @router.get("/area-choice", include_in_schema=False)
 def legacy_area_choice_redirect():
@@ -1251,7 +1226,7 @@ def seleccionar_area_page(
         return _redirect_for_authenticated_user(db, current_user)
     return templates.TemplateResponse(
         request,
-        "area_choice.html",
+        "seleccion_area.html",
         {
             "request": request,
             "user": current_user,
@@ -1299,7 +1274,7 @@ def launcher_panel(
         token = _create_unified_login_session(db, current_user, area_info)
     return templates.TemplateResponse(
         request,
-        "panel_selector.html",
+        "seleccion_panel_soporte.html",
         {
             "request": request,
             "user": current_user,
@@ -1341,8 +1316,8 @@ def _apply_ticket_search(query, term: str):
     return query.filter(or_(*clauses))
 
 
-@router.get("/dashboard", response_class=HTMLResponse)
-def dashboard(
+@router.get("/ticketera", response_class=HTMLResponse)
+def ticketera(
     request: Request,
     db: Session = Depends(get_db),
     incidencias_db: Session = Depends(get_incidencias_db),
@@ -1369,7 +1344,7 @@ def dashboard(
     users = _active_users_in_area(db, "soporte")
     valid_user_ids = {str(u.id) for u in users}
 
-    # AJUSTE DASHBOARD FILTROS MULTISELECT #
+    # AJUSTE TICKETING FILTROS MULTISELECT #
     def _normalize_multi_values(values: list[str], *, allowed: set[str]) -> list[str]:
         cleaned: list[str] = []
         for value in values:
@@ -1450,7 +1425,7 @@ def dashboard(
 
     query = db.query(Ticket)
 
-    # AJUSTE DASHBOARD FILTROS MULTISELECT #
+    # AJUSTE TICKETING FILTROS MULTISELECT #
     if scope_filters == ["all"]:
         query = query.filter(
             Ticket.is_deleted == False,
@@ -1593,7 +1568,7 @@ def dashboard(
     page_start = ((safe_page - 1) * page_size + 1) if total_filtered > 0 else 0
     page_end = min(safe_page * page_size, total_filtered) if total_filtered > 0 else 0
 
-    def build_dashboard_url(
+    def build_ticketera_url(
         *,
         scope_values: list[str] | None = None,
         source_values: list[str] | None = None,
@@ -1632,13 +1607,13 @@ def dashboard(
             params.append(("page", page_number))
 
         if not params:
-            return "/dashboard"
-        return f"/dashboard?{urlencode(params)}"
+            return "/ticketera"
+        return f"/ticketera?{urlencode(params)}"
 
-    prev_page_url = build_dashboard_url(page_number=safe_page - 1) if safe_page > 1 else None
-    next_page_url = build_dashboard_url(page_number=safe_page + 1) if safe_page < total_pages else None
-    first_page_url = build_dashboard_url(page_number=1) if safe_page > 1 else None
-    last_page_url = build_dashboard_url(page_number=total_pages) if safe_page < total_pages else None
+    prev_page_url = build_ticketera_url(page_number=safe_page - 1) if safe_page > 1 else None
+    next_page_url = build_ticketera_url(page_number=safe_page + 1) if safe_page < total_pages else None
+    first_page_url = build_ticketera_url(page_number=1) if safe_page > 1 else None
+    last_page_url = build_ticketera_url(page_number=total_pages) if safe_page < total_pages else None
 
     counts = {
         "all": db.query(Ticket).filter(
@@ -1700,7 +1675,7 @@ def dashboard(
 
     return templates.TemplateResponse(
         request,
-        "dashboard.html",
+        "ticketera.html",
         {
             "request": request,
             "user": current_user,
@@ -1807,7 +1782,7 @@ def soporte_page(
     # Vista importada desde el proyecto de Incidencias.
     return templates.TemplateResponse(
         request,
-        "soporte.html",
+        "incidencias_soporte.html",
         {
             "request": request,
             "user": current_user,
@@ -2545,7 +2520,7 @@ def soporte_obtener_registros_tabla(
     current_user: User = Depends(get_current_user_web),
 ):
     # AJUSTE SOPORTE REGISTRO SQL #
-    # Endpoint de compatibilidad para soporte.html (antes Google Apps Script).
+    # Endpoint de compatibilidad para incidencias_soporte.html (antes Google Apps Script).
     _ = current_user  # Mantiene autenticacion por cookie.
 
     _table, incidencias = _support_query_incidencias(db)
@@ -2578,7 +2553,7 @@ def soporte_obtener_registros_tabla(
             if image_url and image_url not in extra_images:
                 extra_images.append(image_url)
 
-        # Estructura compatible con soporte.html:
+        # Estructura compatible con incidencias_soporte.html:
         # [0..9] columnas + [10..12] reservadas + [13..15] metadatos tecnico + [16] imagenes soporte
         # + [17] observacion soporte + [18] observacion servicio tecnico.
         rows.append(
@@ -2805,7 +2780,7 @@ def soporte_actualizar_celda(
     db: Session = Depends(get_incidencias_db),
     current_user: User = Depends(get_current_user_web),
 ):
-    # Compatibilidad con doble-click de soporte.html.
+    # Compatibilidad con doble-click de incidencias_soporte.html.
     fila = int(payload.get("fila") or 0)
     columna = int(payload.get("columna") or 0)
     valor = str(payload.get("valor") or "").strip()
@@ -3427,7 +3402,7 @@ def soporte_usuario_actual(
     _ = token
     return current_user.name or current_user.username
 
-@router.post("/dashboard/tickets/{ticket_id}/stage")
+@router.post("/ticketera/tickets/{ticket_id}/stage")
 def update_ticket_stage(
     ticket_id: int,
     stage: str = Form(...),
@@ -3479,7 +3454,7 @@ def update_ticket_stage(
         }
     )
 
-@router.post("/dashboard/tickets/{ticket_id}/priority-json")
+@router.post("/ticketera/tickets/{ticket_id}/priority-json")
 def update_priority_json(
     ticket_id: int,
     priority: str = Form(...),
@@ -3511,7 +3486,7 @@ def update_priority_json(
         }
     )
 
-@router.post("/dashboard/tickets/{ticket_id}/assign-json")
+@router.post("/ticketera/tickets/{ticket_id}/assign-json")
 def assign_ticket_json(
     ticket_id: int,
     user_id: int | None = Form(None),
@@ -3647,7 +3622,7 @@ def get_ticket_alerts_latest(
 
                 "created_at_display": created_at_display,
 
-                "url": f"/dashboard/tickets/{row.id}",
+                "url": f"/ticketera/tickets/{row.id}",
 
                 "unread": row.id > last_seen_ticket_id,
 
@@ -3709,9 +3684,9 @@ def mark_ticket_alerts_as_read(
 
 @router.get("/tickets")
 def tickets_view(request: Request):
-    # tickets.html fue eliminado; el dashboard es la vista oficial de tickets.
+    # tickets.html fue eliminado; la ticketera es la vista oficial de tickets.
     qs = request.url.query
-    target = f"/dashboard?{qs}" if qs else "/dashboard"
+    target = f"/ticketera?{qs}" if qs else "/ticketera"
     return RedirectResponse(url=target, status_code=303)
 
 # ======================================================
@@ -4017,7 +3992,7 @@ def _enforce_status_transition_rules(ticket: Ticket, new_status: str) -> None:
         )
 
 
-@router.get("/dashboard/tickets/{ticket_id}", response_class=HTMLResponse)
+@router.get("/ticketera/tickets/{ticket_id}", response_class=HTMLResponse)
 def ticket_detail(
     request: Request,
     ticket_id: int,
@@ -4371,7 +4346,7 @@ def ticket_detail(
 
     return templates.TemplateResponse(
         request,
-        "ticket_detail.html",
+        "detalle_ticket.html",
         {
             "request": request,
             "user": current_user,
@@ -4533,14 +4508,14 @@ def add_requester_internal_note(
 
     return RedirectResponse(
 
-        url=f"/dashboard/tickets/{ticket_id}",
+        url=f"/ticketera/tickets/{ticket_id}",
 
         status_code=303,
 
     )
 
 
-@router.post("/dashboard/tickets/{ticket_id}/internal-notes/mark-read")
+@router.post("/ticketera/tickets/{ticket_id}/internal-notes/mark-read")
 def mark_internal_notes_as_read(
     ticket_id: int,
     db: Session = Depends(get_db),
@@ -4660,7 +4635,7 @@ def update_requester_internal_name(
     db.commit()
 
     return RedirectResponse(
-        url=f"/dashboard/tickets/{ticket_id}",
+        url=f"/ticketera/tickets/{ticket_id}",
         status_code=303,
     )
 
@@ -4670,7 +4645,7 @@ def update_requester_internal_name(
 
 # ======================================================
 
-@router.post("/dashboard/tickets/{ticket_id}/status")
+@router.post("/ticketera/tickets/{ticket_id}/status")
 
 def update_status(
 
@@ -4740,7 +4715,7 @@ def update_status(
 
     return RedirectResponse(
 
-        url=f"/dashboard/tickets/{ticket_id}",
+        url=f"/ticketera/tickets/{ticket_id}",
 
         status_code=303
 
@@ -4752,7 +4727,7 @@ def update_status(
 
 # ======================================================
 
-@router.post("/dashboard/tickets/{ticket_id}/assign-me")
+@router.post("/ticketera/tickets/{ticket_id}/assign-me")
 
 def assign_to_me(
 
@@ -4777,13 +4752,13 @@ def assign_to_me(
 
     return RedirectResponse(
 
-        url=f"/dashboard/tickets/{ticket_id}",
+        url=f"/ticketera/tickets/{ticket_id}",
 
         status_code=303,
 
     )
 
-@router.post("/dashboard/tickets/{ticket_id}/assign")
+@router.post("/ticketera/tickets/{ticket_id}/assign")
 
 def assign_ticket(
 
@@ -4806,14 +4781,14 @@ def assign_ticket(
 
     if _ticket_is_locked(ticket):
         return RedirectResponse(
-            url=f"/dashboard/tickets/{ticket_id}?service_error=El+ticket+ya+esta+resuelto+y+no+permite+cambios.",
+            url=f"/ticketera/tickets/{ticket_id}?service_error=El+ticket+ya+esta+resuelto+y+no+permite+cambios.",
             status_code=303,
         )
 
     support_user_ids = {u.id for u in _active_users_in_area(db, "soporte")}
     if user_id is not None and int(user_id) not in support_user_ids:
         return RedirectResponse(
-            url=f"/dashboard/tickets/{ticket_id}?service_error=Usuario+invalido",
+            url=f"/ticketera/tickets/{ticket_id}?service_error=Usuario+invalido",
             status_code=303,
         )
 
@@ -4823,14 +4798,14 @@ def assign_ticket(
 
     return RedirectResponse(
 
-        url=f"/dashboard/tickets/{ticket_id}",
+        url=f"/ticketera/tickets/{ticket_id}",
 
         status_code=303,
 
     )
 
 
-@router.post("/dashboard/tickets/{ticket_id}/mark-unread")
+@router.post("/ticketera/tickets/{ticket_id}/mark-unread")
 def mark_ticket_unread(
     ticket_id: int,
     db: Session = Depends(get_db),
@@ -4855,7 +4830,7 @@ def mark_ticket_unread(
 
 # ======================================================
 
-@router.post("/dashboard/tickets/{ticket_id}/priority")
+@router.post("/ticketera/tickets/{ticket_id}/priority")
 
 def update_priority(
 
@@ -4883,7 +4858,7 @@ def update_priority(
 
     if _ticket_is_locked(ticket):
         return RedirectResponse(
-            url=f"/dashboard/tickets/{ticket_id}?service_error=El+ticket+ya+esta+resuelto+y+no+permite+cambios.",
+            url=f"/ticketera/tickets/{ticket_id}?service_error=El+ticket+ya+esta+resuelto+y+no+permite+cambios.",
             status_code=303,
         )
 
@@ -4901,13 +4876,13 @@ def update_priority(
 
     return RedirectResponse(
 
-        url=f"/dashboard/tickets/{ticket_id}",
+        url=f"/ticketera/tickets/{ticket_id}",
 
         status_code=303
 
     )
 
-@router.post("/dashboard/tickets/{ticket_id}/quick-actions")
+@router.post("/ticketera/tickets/{ticket_id}/quick-actions")
 
 def update_quick_actions(
 
@@ -4937,7 +4912,7 @@ def update_quick_actions(
 
     if _ticket_is_locked(ticket):
         return RedirectResponse(
-            url=f"/dashboard/tickets/{ticket_id}?service_error=El+ticket+ya+esta+resuelto+y+no+permite+cambios.",
+            url=f"/ticketera/tickets/{ticket_id}?service_error=El+ticket+ya+esta+resuelto+y+no+permite+cambios.",
             status_code=303,
         )
 
@@ -4987,13 +4962,13 @@ def update_quick_actions(
 
     return RedirectResponse(
 
-        url=f"/dashboard/tickets/{ticket_id}",
+        url=f"/ticketera/tickets/{ticket_id}",
 
         status_code=303
 
     )
 
-@router.post("/dashboard/tickets/{ticket_id}/send-to-service")
+@router.post("/ticketera/tickets/{ticket_id}/send-to-service")
 def send_ticket_to_service(
     ticket_id: int,
     cliente: str = Form(""),
@@ -5014,15 +4989,15 @@ def send_ticket_to_service(
 
     if _ticket_is_locked(ticket):
         query = urlencode({"service_error": "El ticket ya esta resuelto y no permite cambios."})
-        return RedirectResponse(url=f"/dashboard/tickets/{ticket_id}?{query}", status_code=303)
+        return RedirectResponse(url=f"/ticketera/tickets/{ticket_id}?{query}", status_code=303)
 
     if ticket.is_deleted:
         query = urlencode({"service_error": "No se puede derivar un ticket en papelera."})
-        return RedirectResponse(url=f"/dashboard/tickets/{ticket_id}?{query}", status_code=303)
+        return RedirectResponse(url=f"/ticketera/tickets/{ticket_id}?{query}", status_code=303)
 
     if ticket.is_spam:
         query = urlencode({"service_error": "No se puede derivar un ticket marcado como spam."})
-        return RedirectResponse(url=f"/dashboard/tickets/{ticket_id}?{query}", status_code=303)
+        return RedirectResponse(url=f"/ticketera/tickets/{ticket_id}?{query}", status_code=303)
 
     requester_name = ""
     if ticket.requester and ticket.requester.display_name:
@@ -5037,7 +5012,7 @@ def send_ticket_to_service(
         derivacion_clean = "Cliente"
     else:
         query = urlencode({"service_error": "Derivacion invalida. Usa Servicio Técnico o Cliente."})
-        return RedirectResponse(url=f"/dashboard/tickets/{ticket_id}?{query}", status_code=303)
+        return RedirectResponse(url=f"/ticketera/tickets/{ticket_id}?{query}", status_code=303)
 
     cliente_clean = re.sub(r"\s+", " ", (cliente or "").strip())
     if not cliente_clean and derivacion_clean == "Servicio Técnico":
@@ -5076,7 +5051,7 @@ def send_ticket_to_service(
     problema_clean = problem_map.get(problema_key, "")
     if not problema_clean:
         query = urlencode({"service_error": "Tipo de problema invalido."})
-        return RedirectResponse(url=f"/dashboard/tickets/{ticket_id}?{query}", status_code=303)
+        return RedirectResponse(url=f"/ticketera/tickets/{ticket_id}?{query}", status_code=303)
 
     problema_detalle_raw = re.sub(r"\s+", " ", (problema_detalle or "").strip())
     problema_detalle_key = normalize_problem_key(problema_detalle_raw)
@@ -5089,7 +5064,7 @@ def send_ticket_to_service(
             problema_detalle_clean = visual_detail_map.get(problema_detalle_key, "")
         if not problema_detalle_clean:
             query = urlencode({"service_error": "Debes seleccionar el detalle del problema."})
-            return RedirectResponse(url=f"/dashboard/tickets/{ticket_id}?{query}", status_code=303)
+            return RedirectResponse(url=f"/ticketera/tickets/{ticket_id}?{query}", status_code=303)
 
     direccion_clean = re.sub(r"\s+", " ", (direccion or "").strip())
     tecnico_clean = re.sub(r"\s+", " ", (tecnico or "").strip())
@@ -5099,11 +5074,11 @@ def send_ticket_to_service(
 
     if not cliente_clean:
         query = urlencode({"service_error": "Debes indicar el cliente para crear la incidencia."})
-        return RedirectResponse(url=f"/dashboard/tickets/{ticket_id}?{query}", status_code=303)
+        return RedirectResponse(url=f"/ticketera/tickets/{ticket_id}?{query}", status_code=303)
 
     if not problema_clean:
         query = urlencode({"service_error": "Debes indicar el problema para crear la incidencia."})
-        return RedirectResponse(url=f"/dashboard/tickets/{ticket_id}?{query}", status_code=303)
+        return RedirectResponse(url=f"/ticketera/tickets/{ticket_id}?{query}", status_code=303)
 
     observation_prefix = ""
     if problema_clean == "Desconexión":
@@ -5173,7 +5148,7 @@ def send_ticket_to_service(
             str(exc or "No se pudo crear la incidencia").replace("\r", " ").replace("\n", " "),
         ).strip()
         query = urlencode({"service_error": f"No se pudo crear la incidencia: {error_text[:200]}"})
-        return RedirectResponse(url=f"/dashboard/tickets/{ticket_id}?{query}", status_code=303)
+        return RedirectResponse(url=f"/ticketera/tickets/{ticket_id}?{query}", status_code=303)
 
     correo_info = ""
     try:
@@ -5269,7 +5244,7 @@ def send_ticket_to_service(
         db.rollback()
 
     query = urlencode({"service_success": f"Incidencia creada y enviada a {derivacion_clean} (ODT: {odt_value}).{correo_info}"})
-    return RedirectResponse(url=f"/dashboard/tickets/{ticket_id}?{query}", status_code=303)
+    return RedirectResponse(url=f"/ticketera/tickets/{ticket_id}?{query}", status_code=303)
 
 # ======================================================
 
@@ -5277,7 +5252,7 @@ def send_ticket_to_service(
 
 # ======================================================
 
-@router.post("/dashboard/tickets/{ticket_id}/send-reception")
+@router.post("/ticketera/tickets/{ticket_id}/send-reception")
 def send_reception_notice(
     ticket_id: int,
     db: Session = Depends(get_db),
@@ -5289,20 +5264,20 @@ def send_reception_notice(
 
     if _ticket_is_locked(ticket):
         query = urlencode({"send_error": "El ticket ya esta resuelto y no permite cambios."})
-        return RedirectResponse(url=f"/dashboard/tickets/{ticket_id}?{query}", status_code=303)
+        return RedirectResponse(url=f"/ticketera/tickets/{ticket_id}?{query}", status_code=303)
 
     if (ticket.source or "").strip().lower() != "email":
         query = urlencode({"send_error": "La recepcion de solicitud solo aplica a tickets por email."})
-        return RedirectResponse(url=f"/dashboard/tickets/{ticket_id}?{query}", status_code=303)
+        return RedirectResponse(url=f"/ticketera/tickets/{ticket_id}?{query}", status_code=303)
 
     if _has_reception_sent(db, ticket_id):
-        return RedirectResponse(url=f"/dashboard/tickets/{ticket_id}", status_code=303)
+        return RedirectResponse(url=f"/ticketera/tickets/{ticket_id}", status_code=303)
 
     allowed_priorities = {"low", "medium", "high", "urgent"}
     priority_value = (ticket.priority or "").strip().lower()
     if priority_value not in allowed_priorities:
         query = urlencode({"send_error": "Debes seleccionar la prioridad antes de enviar la recepcion de solicitud."})
-        return RedirectResponse(url=f"/dashboard/tickets/{ticket_id}?{query}", status_code=303)
+        return RedirectResponse(url=f"/ticketera/tickets/{ticket_id}?{query}", status_code=303)
 
     latest_requester_email = (
         db.query(Message)
@@ -5326,19 +5301,19 @@ def send_reception_notice(
         )
         if not sent:
             query = urlencode({"send_error": "No se pudo enviar la recepcion de solicitud."})
-            return RedirectResponse(url=f"/dashboard/tickets/{ticket_id}?{query}", status_code=303)
+            return RedirectResponse(url=f"/ticketera/tickets/{ticket_id}?{query}", status_code=303)
         db.commit()
     except Exception as exc:
         db.rollback()
         error_detail = re.sub(r"\s+", " ", str(exc).replace("\r", " ").replace("\n", " ")).strip()
         error_detail = (error_detail or "error desconocido")[:220]
         query = urlencode({"send_error": f"No se pudo enviar la recepcion: {error_detail}"})
-        return RedirectResponse(url=f"/dashboard/tickets/{ticket_id}?{query}", status_code=303)
+        return RedirectResponse(url=f"/ticketera/tickets/{ticket_id}?{query}", status_code=303)
 
-    return RedirectResponse(url=f"/dashboard/tickets/{ticket_id}", status_code=303)
+    return RedirectResponse(url=f"/ticketera/tickets/{ticket_id}", status_code=303)
 
 
-@router.post("/dashboard/tickets/{ticket_id}/reply")
+@router.post("/ticketera/tickets/{ticket_id}/reply")
 def reply_ticket(
     ticket_id: int,
     content: str = Form(""),
@@ -5354,7 +5329,7 @@ def reply_ticket(
 
     if _ticket_is_locked(ticket):
         query = urlencode({"send_error": "El ticket ya esta resuelto y no permite cambios."})
-        return RedirectResponse(url=f"/dashboard/tickets/{ticket_id}?{query}", status_code=303)
+        return RedirectResponse(url=f"/ticketera/tickets/{ticket_id}?{query}", status_code=303)
 
     content = (content or "").strip()
     uploaded_count = len([f for f in (attachments or []) if f and (f.filename or "").strip()])
@@ -5367,7 +5342,7 @@ def reply_ticket(
     def _redirect_with_error(message: str) -> RedirectResponse:
         query = urlencode({"send_error": message})
         return RedirectResponse(
-            url=f"/dashboard/tickets/{ticket_id}?{query}",
+            url=f"/ticketera/tickets/{ticket_id}?{query}",
             status_code=303,
         )
 
@@ -5537,12 +5512,12 @@ def reply_ticket(
         error_detail = error_detail[:220]
         query = urlencode({"send_error": f"No se pudo enviar la respuesta: {error_detail}"})
         return RedirectResponse(
-            url=f"/dashboard/tickets/{ticket_id}?{query}",
+            url=f"/ticketera/tickets/{ticket_id}?{query}",
             status_code=303,
         )
 
     return RedirectResponse(
-        url=f"/dashboard/tickets/{ticket_id}",
+        url=f"/ticketera/tickets/{ticket_id}",
         status_code=303,
     )
 
@@ -5553,7 +5528,7 @@ def reply_ticket(
 
 # ======================================================
 
-@router.post("/dashboard/tickets/{ticket_id}/spam")
+@router.post("/ticketera/tickets/{ticket_id}/spam")
 
 def mark_spam(
 
@@ -5573,7 +5548,7 @@ def mark_spam(
 
     if _ticket_is_locked(ticket):
         query = urlencode({"service_error": "El ticket ya esta resuelto y no permite cambios."})
-        return RedirectResponse(url=f"/dashboard/tickets/{ticket_id}?{query}", status_code=303)
+        return RedirectResponse(url=f"/ticketera/tickets/{ticket_id}?{query}", status_code=303)
 
     ticket.is_spam = True
     ticket.is_deleted = False
@@ -5581,7 +5556,7 @@ def mark_spam(
 
     db.commit()
 
-    return RedirectResponse("/dashboard", status_code=303)
+    return RedirectResponse("/ticketera", status_code=303)
 
 # ======================================================
 
@@ -5589,7 +5564,7 @@ def mark_spam(
 
 # ======================================================
 
-@router.post("/dashboard/tickets/{ticket_id}/restore-spam")
+@router.post("/ticketera/tickets/{ticket_id}/restore-spam")
 
 def restore_from_spam(
 
@@ -5611,7 +5586,7 @@ def restore_from_spam(
 
     db.commit()
 
-    return RedirectResponse("/dashboard?view=spam", status_code=303)
+    return RedirectResponse("/ticketera?view=spam", status_code=303)
 
 # ======================================================
 
@@ -5619,7 +5594,7 @@ def restore_from_spam(
 
 # ======================================================
 
-@router.post("/dashboard/tickets/{ticket_id}/delete")
+@router.post("/ticketera/tickets/{ticket_id}/delete")
 
 def delete_ticket(
 
@@ -5639,7 +5614,7 @@ def delete_ticket(
 
     if _ticket_is_locked(ticket):
         query = urlencode({"service_error": "El ticket ya esta resuelto y no permite cambios."})
-        return RedirectResponse(url=f"/dashboard/tickets/{ticket_id}?{query}", status_code=303)
+        return RedirectResponse(url=f"/ticketera/tickets/{ticket_id}?{query}", status_code=303)
 
     ticket.is_deleted = True
     ticket.is_spam = False
@@ -5647,7 +5622,7 @@ def delete_ticket(
 
     db.commit()
 
-    return RedirectResponse("/dashboard", status_code=303)
+    return RedirectResponse("/ticketera", status_code=303)
 
 # ======================================================
 
@@ -5655,7 +5630,7 @@ def delete_ticket(
 
 # ======================================================
 
-@router.post("/dashboard/tickets/{ticket_id}/restore-trash")
+@router.post("/ticketera/tickets/{ticket_id}/restore-trash")
 
 def restore_from_trash(
 
@@ -5677,7 +5652,7 @@ def restore_from_trash(
 
     db.commit()
 
-    return RedirectResponse("/dashboard?view=trash", status_code=303)
+    return RedirectResponse("/ticketera?view=trash", status_code=303)
 
 @router.get("/panel-indicadores", response_class=HTMLResponse)
 
@@ -5875,7 +5850,7 @@ def panel_indicadores(
 
     return templates.TemplateResponse(
         request,
-        "panel_indicadores.html",
+        "dashboard_soporte.html",
 
         {
 
@@ -5929,7 +5904,7 @@ def panel_indicadores(
 
     )
 
-@router.get("/dashboard/tickets/new")
+@router.get("/ticketera/tickets/new")
 
 def new_ticket_form(
 
@@ -5959,7 +5934,7 @@ def new_ticket_form(
 
     )
 
-@router.post("/dashboard/tickets/create")
+@router.post("/ticketera/tickets/create")
 
 def create_ticket(
 
@@ -6106,16 +6081,16 @@ def create_ticket(
 
     # =====================================
 
-    # 5ÃƒÆ’Ã‚Â¯Ãƒâ€šÃ‚Â¸Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢Ãƒâ€ Ã¢â‚¬â„¢Ãƒâ€šÃ‚Â£ Redirigir al dashboard
+    # Redirigir a la ticketera
 
     # =====================================
 
     # ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒâ€šÃ‚Â Volvemos al inbox despuÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s de crear el ticket.
 
-    return RedirectResponse("/dashboard", status_code=303)
+    return RedirectResponse("/ticketera", status_code=303)
 
 
-@router.post("/dashboard/tickets/oficina-atc/create")
+@router.post("/ticketera/tickets/oficina-atc/create")
 def create_internal_ticket_from_incidencias(
     subject: str = Form(...),
     content: str = Form(...),
@@ -6271,7 +6246,7 @@ def tabla_soporte_page(
     _require_area_access(db, current_user, "soporte")
     return templates.TemplateResponse(
         request,
-        "TablaSoporte.html",
+        "tabla_soporte_tecnico_venta.html",
         {"request": request, "user": current_user},
     )
 
@@ -6667,5 +6642,3 @@ def st_ods_notificar_termino(
 ):
     _ = (payload, current_user)
     return {"ok": True}
-
-

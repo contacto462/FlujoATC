@@ -50,8 +50,9 @@ def list_tickets(db: Session = Depends(get_db)):
 
 
 # ==============================
-# DASHBOARD - DETALLE TICKET
+# TICKETERA - DETALLE TICKET
 # ==============================
+@router.get("/ticketera/{ticket_id}", response_class=HTMLResponse)
 @router.get("/dashboard/{ticket_id}", response_class=HTMLResponse)
 def ticket_detail(
     ticket_id: int,
@@ -73,7 +74,7 @@ def ticket_detail(
     )
 
     return templates.TemplateResponse(
-        "ticket_detail.html",
+        "detalle_ticket.html",
         {
             "request": request,
             "ticket": ticket,
@@ -103,7 +104,7 @@ def update_requester_notes(
     db.commit()
 
     return RedirectResponse(
-        url=f"/dashboard/tickets/{ticket_id}",
+        url=f"/ticketera/tickets/{ticket_id}",
         status_code=303
     )
 
@@ -138,6 +139,6 @@ def assign_ticket(
     db.commit()
 
     return RedirectResponse(
-        url=f"/tickets/dashboard/{ticket_id}",
+        url=f"/tickets/ticketera/{ticket_id}",
         status_code=303
     )

@@ -2695,7 +2695,7 @@ body.is-inline-image-resizing{
         
         <!-- SUBJECT + REGRESAR -->
         <div class="subject">
-          <a href="/dashboard" class="smallbtn" style="margin-right:12px;">
+          <a href="/ticketera" class="smallbtn" style="margin-right:12px;">
              Salir
           </a>
           <h1 style="display:inline;">{{ ticket.subject }}</h1>
@@ -2730,13 +2730,13 @@ body.is-inline-image-resizing{
           </div>
 
           {% if previous_ticket_id %}
-            <a href="/dashboard/tickets/{{ previous_ticket_id }}" class="smallbtn ticket-nav-btn">
+            <a href="/ticketera/tickets/{{ previous_ticket_id }}" class="smallbtn ticket-nav-btn">
               Anterior
             </a>
           {% endif %}
 
           {% if next_ticket_id %}
-            <a href="/dashboard/tickets/{{ next_ticket_id }}" class="smallbtn ticket-nav-btn">
+            <a href="/ticketera/tickets/{{ next_ticket_id }}" class="smallbtn ticket-nav-btn">
               Siguiente
             </a>
           {% endif %}
@@ -2785,7 +2785,7 @@ body.is-inline-image-resizing{
 
           <div class="kv">
             <span class="kv-k">Agente asignado</span>
-            <form class="assign-form" method="POST" action="/dashboard/tickets/{{ ticket.id }}/assign">
+            <form class="assign-form" method="POST" action="/ticketera/tickets/{{ ticket.id }}/assign">
               <select name="user_id" onchange="if(!this.disabled){this.form.submit()}" {% if ticket_locked %}disabled{% endif %}>
                 <option value="" disabled {% if not ticket.assigned_to_id %}selected{% endif %}>Sin asignar</option>
                 {% for u in assignable_users %}
@@ -3001,7 +3001,7 @@ body.is-inline-image-resizing{
 
               <div class="composer-workbench-actions">
             {% if requires_reception and not reception_sent %}
-              <form class="reception-form" method="POST" action="/dashboard/tickets/{{ ticket.id }}/send-reception">
+              <form class="reception-form" method="POST" action="/ticketera/tickets/{{ ticket.id }}/send-reception">
                 <button class="send reception-action" type="submit" {% if ticket_locked %}disabled{% endif %}>
                   Recepcion de solicitud
                 </button>
@@ -3028,7 +3028,7 @@ body.is-inline-image-resizing{
             <form
               id="replyForm"
               method="POST"
-              action="/dashboard/tickets/{{ ticket.id }}/reply"
+              action="/ticketera/tickets/{{ ticket.id }}/reply"
               enctype="multipart/form-data"
               data-ticket-source="{{ (ticket.source or '').strip().lower() }}"
             >
@@ -3338,7 +3338,7 @@ body.is-inline-image-resizing{
 
     <!-- SPAM -->
     {% if not ticket.is_spam and not ticket.is_deleted %}
-    <form method="POST" action="/dashboard/tickets/{{ ticket.id }}/spam">
+    <form method="POST" action="/ticketera/tickets/{{ ticket.id }}/spam">
       <button type="submit" class="action-btn action-warning cta-moderation" {% if ticket_locked %}disabled{% endif %}>
         Marcar como Spam
       </button>
@@ -3346,7 +3346,7 @@ body.is-inline-image-resizing{
     {% endif %}
 
     {% if ticket.is_spam %}
-    <form method="POST" action="/dashboard/tickets/{{ ticket.id }}/restore-spam">
+    <form method="POST" action="/ticketera/tickets/{{ ticket.id }}/restore-spam">
       <button type="submit" class="action-btn action-success cta-moderation">
         Restaurar de Spam
       </button>
@@ -3355,7 +3355,7 @@ body.is-inline-image-resizing{
 
     <!-- ELIMINAR -->
     {% if not ticket.is_deleted %}
-    <form method="POST" action="/dashboard/tickets/{{ ticket.id }}/delete">
+    <form method="POST" action="/ticketera/tickets/{{ ticket.id }}/delete">
       <button type="submit" class="action-btn action-danger cta-moderation" {% if ticket_locked %}disabled{% endif %}>
         Mover a Papelera
       </button>
@@ -3363,7 +3363,7 @@ body.is-inline-image-resizing{
     {% endif %}
 
     {% if ticket.is_deleted %}
-    <form method="POST" action="/dashboard/tickets/{{ ticket.id }}/restore-trash">
+    <form method="POST" action="/ticketera/tickets/{{ ticket.id }}/restore-trash">
       <button type="submit" class="action-btn action-success cta-moderation">
         Restaurar de Papelera
       </button>
@@ -3372,7 +3372,7 @@ body.is-inline-image-resizing{
 
     <div style="height:1px; background:var(--border); margin:2px 0;"></div>
 
-    <form method="POST" action="/dashboard/tickets/{{ ticket.id }}/quick-actions">
+    <form method="POST" action="/ticketera/tickets/{{ ticket.id }}/quick-actions">
       <div class="field" style="margin:0 0 12px;">
         <label>Estado</label>
         <select name="status" {% if ticket_locked %}disabled{% endif %}>
@@ -3552,7 +3552,7 @@ body.is-inline-image-resizing{
       <button id="closeServiceModalBtn" class="tool" type="button" aria-label="Cerrar derivación de ticket">&times;</button>
     </div>
     <div class="service-modal-body">
-      <form method="POST" action="/dashboard/tickets/{{ ticket.id }}/send-to-service">
+      <form method="POST" action="/ticketera/tickets/{{ ticket.id }}/send-to-service">
         <div class="service-grid">
           <div class="field service-full">
             <label>Derivacion</label>
@@ -4009,7 +4009,7 @@ body.is-inline-image-resizing{
         const source = normalizeAlertSource(alert.source);
         const sourceIcon = getAlertSourceIcon(source, alert.ticket_id);
         const anchor = document.createElement("a");
-        anchor.href = alert.url || `/dashboard/tickets/${alert.ticket_id}`;
+        anchor.href = alert.url || `/ticketera/tickets/${alert.ticket_id}`;
         anchor.className = "ticket-alert-item" + (alert.unread ? " unread" : "");
         anchor.innerHTML = `
           <div class="ticket-alert-line">
@@ -4119,12 +4119,12 @@ body.is-inline-image-resizing{
         if (!ticketId) return;
         markUnreadBtn.disabled = true;
         try {
-          const res = await fetch(`/dashboard/tickets/${ticketId}/mark-unread`, {
+          const res = await fetch(`/ticketera/tickets/${ticketId}/mark-unread`, {
             method: "POST",
             credentials: "same-origin",
           });
           if (!res.ok) throw new Error("HTTP " + res.status);
-          window.location.href = "/dashboard";
+          window.location.href = "/ticketera";
         } catch (err) {
           markUnreadBtn.disabled = false;
           alert("No se pudo marcar como no leído: " + (err.message || err));
@@ -5041,7 +5041,7 @@ body.is-inline-image-resizing{
       resetRequesterSections();
       requesterModal.classList.add("open");
       requesterModal.setAttribute("aria-hidden", "false");
-      fetch(`/dashboard/tickets/{{ ticket.id }}/internal-notes/mark-read`, {
+      fetch(`/ticketera/tickets/{{ ticket.id }}/internal-notes/mark-read`, {
         method: "POST",
         credentials: "same-origin",
       }).finally(() => {

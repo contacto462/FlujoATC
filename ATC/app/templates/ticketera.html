@@ -2945,7 +2945,7 @@ body.dark-mode .kpi.kpi-resolved{
 
       <!-- Buscador -->
       <div class="search-row">
-      <form class="search" method="GET" action="/dashboard">
+      <form class="search" method="GET" action="/ticketera">
         <div class="searchbox" role="search">
 
           <div class="icon" aria-hidden="true">
@@ -3024,7 +3024,7 @@ body.dark-mode .kpi.kpi-resolved{
         {% set manual_unread = (ticket_manually_unread|default({})).get(ticket.id) %}
         <div class="card {% if ticket_has_new_message.get(ticket.id) or manual_unread %}unread-ticket{% endif %}">
 
-          <div class="card-main clickable" onclick="location.href='/dashboard/tickets/{{ ticket.id }}{% if ticket_unseen_message_id.get(ticket.id) %}?focus_message_id={{ ticket_unseen_message_id.get(ticket.id) }}{% endif %}'">
+          <div class="card-main clickable" onclick="location.href='/ticketera/tickets/{{ ticket.id }}{% if ticket_unseen_message_id.get(ticket.id) %}?focus_message_id={{ ticket_unseen_message_id.get(ticket.id) }}{% endif %}'">
             {% if manual_unread and not ticket_has_new_message.get(ticket.id) %}
             <span class="ticket-new-message-dot ticket-manual-unread-dot" title="Marcado como no leído">
               <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -3268,7 +3268,7 @@ body.dark-mode .kpi.kpi-resolved{
       <button class="modal-close" type="button" onclick="closeFilterModal()" aria-label="Cerrar">&times;</button>
     </div>
 
-    <form class="filter-form" method="GET" action="/dashboard">
+    <form class="filter-form" method="GET" action="/ticketera">
       {% if q %}
         <input type="hidden" name="q" value="{{ q }}">
       {% endif %}
@@ -3337,7 +3337,7 @@ body.dark-mode .kpi.kpi-resolved{
       </div>
 
       <div class="filter-actions">
-        <a class="filter-reset" href="/dashboard">Limpiar filtros</a>
+        <a class="filter-reset" href="/ticketera">Limpiar filtros</a>
         <div class="filter-actions-right">
           <button type="button" class="btn-secondary" onclick="closeFilterModal()">Cancelar</button>
           <button type="submit" class="btn">Aplicar filtros</button>
@@ -3360,7 +3360,7 @@ body.dark-mode .kpi.kpi-resolved{
       <button class="modal-close" onclick="closeTicketModal()" aria-label="Cerrar">&times;</button>
     </div>
 
-    <form method="POST" action="/dashboard/tickets/create">
+    <form method="POST" action="/ticketera/tickets/create">
 
       <div class="field">
         <label>Asunto</label>
@@ -3484,12 +3484,12 @@ body.dark-mode .kpi.kpi-resolved{
 <script>
 (function () {
   const body = document.body;
-    // # AJUSTE POPUP DASHBOARD: logica de popup y tema igualada a Indicadores #
+    // # AJUSTE POPUP TICKETERA: logica de popup y tema igualada a Indicadores #
   const popup = document.getElementById("settingsPopup");
   const trigger = document.getElementById("settingsTrigger");
   const themeBtn = document.getElementById("themeToggle");
   const userActions = trigger ? trigger.closest(".user-actions") : null;
-  const themeKey = "helpdesk_dashboard_dark_mode";
+  const themeKey = "helpdesk_ticketera_dark_mode";
 
   if (!popup || !trigger || !themeBtn) return;
 

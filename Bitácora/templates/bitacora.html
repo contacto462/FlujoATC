@@ -217,6 +217,8 @@
       flex-direction: column;
       padding: 42px 18px 18px;
       gap: 14px;
+      overflow-y: auto;
+      overflow-x: hidden;
     }
 
     .content-top {
@@ -264,20 +266,31 @@
       overflow: hidden;
     }
 
-    .panel[data-panel="busqueda-empresa"] {
+    .panel.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel[data-panel="busqueda-empresa"].active {
+      display: block;
       overflow: visible;
-      border-radius: var(--radius-lg);
+      flex: 0 0 auto;
     }
 
     .panel[data-panel="busqueda-empresa"] .panel-head {
       border-top-left-radius: var(--radius-lg);
       border-top-right-radius: var(--radius-lg);
-      background: var(--surface);
     }
 
-    .panel.active {
-      display: flex;
-      flex-direction: column;
+    .panel[data-panel="busqueda-empresa"] .panel-body {
+      border-bottom-left-radius: var(--radius-lg);
+      border-bottom-right-radius: var(--radius-lg);
+      overflow: visible;
+    }
+
+    .panel[data-panel="busqueda-empresa"].has-open-select,
+    .panel[data-panel="busqueda-empresa"].has-open-select .panel-body {
+      overflow: visible;
     }
 
     .panel.subpanel .panel-head {
@@ -382,11 +395,414 @@
       background: var(--surface);
     }
 
-    .panel[data-panel="busqueda-empresa"] .panel-body {
-      overflow: auto;
-      border-bottom-left-radius: var(--radius-lg);
-      border-bottom-right-radius: var(--radius-lg);
-      background: var(--surface);
+    .buscar-empresa-card {
+      width: 100%;
+      background: transparent;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      padding: 0 0 42px;
+    }
+
+    .buscar-empresa-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 40px;
+      align-items: start;
+      margin-top: 32px;
+    }
+
+    .buscar-field label {
+      display: block;
+      margin: 0 0 12px;
+      color: #333333;
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .buscar-select {
+      position: relative;
+      z-index: 10;
+      font-size: 16px;
+      font-weight: 400;
+    }
+
+    .buscar-select.is-open {
+      z-index: 60;
+    }
+
+    .buscar-select-trigger {
+      position: relative;
+      width: 100%;
+      height: 45px;
+      border: 1px solid #aaaaaa;
+      border-radius: 4px;
+      background: #ffffff;
+      color: #444444;
+      padding: 10px 38px 10px 12px;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+      line-height: 22px;
+    }
+
+    .buscar-select-trigger::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      right: 12px;
+      width: 0;
+      height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 6px solid #8a8a8a;
+      transform: translateY(-35%);
+      pointer-events: none;
+    }
+
+    .buscar-select.is-open .buscar-select-trigger {
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    .buscar-select-menu {
+      position: absolute;
+      top: calc(100% - 1px);
+      left: 0;
+      right: 0;
+      z-index: 70;
+      background: #ffffff;
+      border: 1px solid #aaaaaa;
+      border-top: 0;
+      border-radius: 0 0 4px 4px;
+      box-shadow: none;
+      overflow: hidden;
+    }
+
+    .buscar-select-menu[hidden] {
+      display: none !important;
+    }
+
+    .buscar-select-filter-wrap {
+      padding: 6px;
+      background: #ffffff;
+    }
+
+    .buscar-select-filter {
+      width: 100%;
+      height: 34px;
+      border: 1px solid #006fe6;
+      border-radius: 3px;
+      padding: 4px 8px;
+      font: inherit;
+      outline: none;
+      box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+    }
+
+    .buscar-select-options {
+      max-height: 270px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      background: #ffffff;
+    }
+
+    .buscar-select-option {
+      display: block;
+      width: 100%;
+      min-height: 39px;
+      border: 0;
+      background: #ffffff;
+      color: #333333;
+      padding: 8px 9px;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .buscar-select-option:hover,
+    .buscar-select-option.is-active {
+      background: #5897fb;
+      color: #ffffff;
+    }
+
+    .buscar-select-empty {
+      padding: 9px;
+      color: #777777;
+      font: inherit;
+    }
+
+    .empresa-results {
+      display: grid;
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .empresa-results[hidden] {
+      display: none !important;
+    }
+
+    .empresa-summary {
+      display: grid;
+      grid-template-columns: minmax(260px, 1.1fr) repeat(3, minmax(150px, .55fr));
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .empresa-summary-main,
+    .empresa-stat,
+    .empresa-section {
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+    }
+
+    .empresa-summary-main {
+      padding: 16px 18px;
+    }
+
+    .empresa-kicker {
+      color: #64748b;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .empresa-summary-main h3 {
+      margin: 5px 0 8px;
+      color: #111827;
+      font-size: 18px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+
+    .empresa-summary-line {
+      margin: 0;
+      color: #475569;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .empresa-stat {
+      display: grid;
+      align-content: center;
+      gap: 4px;
+      min-height: 86px;
+      padding: 14px 16px;
+    }
+
+    .empresa-stat span {
+      color: #64748b;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .empresa-stat strong {
+      color: #111827;
+      font-size: 20px;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
+    .empresa-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .empresa-column {
+      display: grid;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    .empresa-section {
+      overflow: visible;
+      background: #ffffff;
+    }
+
+    .empresa-section-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid #e5e7eb;
+      background: #fbfcfd;
+    }
+
+    .empresa-section-head h3 {
+      margin: 0;
+      color: #111827;
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .empresa-section-head span {
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .empresa-info-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      padding: 14px 16px;
+    }
+
+    .empresa-info-item {
+      min-width: 0;
+      min-height: 74px;
+      padding: 12px 14px;
+      border: 1px solid #eef2f7;
+      border-radius: 8px;
+      background: #ffffff;
+    }
+
+    .empresa-info-item.is-wide {
+      grid-column: span 2;
+    }
+
+    .empresa-info-item.is-section-title {
+      grid-column: 1 / -1;
+      min-height: 0;
+      padding: 18px 0 8px;
+      border: 0;
+      background: transparent;
+    }
+
+    .empresa-info-item.is-section-title:first-child {
+      padding-top: 0;
+    }
+
+    .empresa-info-item.is-section-title span {
+      display: inline-flex;
+      align-items: center;
+      margin: 0;
+      color: #111827;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+
+    .empresa-info-item.is-section-title span::before {
+      content: "";
+      width: 4px;
+      height: 16px;
+      margin-right: 8px;
+      border-radius: 999px;
+      background: var(--primary);
+    }
+
+    .empresa-info-item.is-section-title strong {
+      display: none;
+    }
+
+    .empresa-info-item span {
+      display: block;
+      margin-bottom: 4px;
+      color: #64748b;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .empresa-info-item strong {
+      display: block;
+      color: #111827;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
+
+    .empresa-contact-list,
+    .empresa-timeline,
+    .empresa-authorized-list {
+      display: grid;
+      gap: 10px;
+      padding: 14px 16px;
+    }
+
+    .empresa-person-card,
+    .empresa-event {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 12px;
+      background: #ffffff;
+    }
+
+    .empresa-person-card.is-authorized {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) minmax(120px, .45fr) minmax(160px, .65fr);
+      gap: 12px;
+      align-items: center;
+    }
+
+    .empresa-person-card h4,
+    .empresa-event h4 {
+      margin: 0 0 6px;
+      color: #111827;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .empresa-person-meta,
+    .empresa-event-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      color: #475569;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .empresa-auth-flags {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .empresa-event p {
+      margin: 8px 0 0;
+      color: #334155;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .empresa-badge {
+      display: inline-flex;
+      min-width: 56px;
+      justify-content: center;
+      border-radius: 6px;
+      padding: 6px 10px;
+      color: #ffffff;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .empresa-badge.green {
+      background: #4caf50;
+    }
+
+    .empresa-badge.red {
+      background: #d9534f;
+    }
+
+    .empresa-empty {
+      padding: 16px;
+      color: #64748b;
+      font-size: 13px;
+      font-weight: 600;
     }
 
     .filters {
@@ -620,192 +1036,6 @@
       align-items: end;
     }
 
-    .company-search-shell {
-      display: grid;
-      gap: 18px;
-      align-content: start;
-    }
-
-    .company-search-content[hidden] {
-      display: none !important;
-    }
-
-    .company-search-top {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
-      padding: 0;
-    }
-
-    .company-search-grid {
-      display: grid;
-      grid-template-columns: minmax(0, 1.8fr) minmax(320px, .9fr);
-      gap: 18px;
-      align-items: start;
-    }
-
-    .company-card {
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      box-shadow: var(--shadow);
-      overflow: hidden;
-      height: fit-content;
-      align-self: start;
-    }
-
-    .company-card-head {
-      padding: 18px 18px 10px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .company-card-head h3 {
-      margin: 0;
-      font-size: 16px;
-      font-weight: 700;
-      color: var(--text);
-    }
-
-    .detail-table,
-    .simple-table {
-      width: 100%;
-      border-collapse: collapse;
-      background: #fff;
-    }
-
-    .detail-table td,
-    .simple-table td,
-    .simple-table th {
-      padding: 10px 14px;
-      border-bottom: 1px solid #eef2f7;
-      font-size: 13px;
-      color: var(--text-soft);
-      vertical-align: top;
-    }
-
-    .detail-table td:first-child,
-    .simple-table th {
-      width: 42%;
-      color: var(--text);
-      font-weight: 600;
-    }
-
-    .simple-table th {
-      text-align: left;
-      background: transparent;
-      text-transform: none;
-      letter-spacing: 0;
-      font-size: 13px;
-    }
-
-    .company-card-body {
-      padding: 0 16px 12px;
-    }
-
-    .search-select {
-      position: relative;
-      z-index: 5;
-    }
-
-    .search-select-trigger {
-      width: 100%;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: #fff;
-      color: var(--text);
-      padding: 10px 34px 10px 12px;
-      font: inherit;
-      font-size: 13px;
-      cursor: pointer;
-      text-align: left;
-    }
-
-    .search-select-trigger::placeholder {
-      color: var(--text-muted);
-    }
-
-    .search-select::after {
-      content: "";
-      position: absolute;
-      right: 12px;
-      top: calc(50% - 4px);
-      width: 8px;
-      height: 8px;
-      border-right: 1.5px solid var(--text-muted);
-      border-bottom: 1.5px solid var(--text-muted);
-      transform: rotate(45deg);
-      pointer-events: none;
-    }
-
-
-    .search-select-menu {
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: calc(100% + 6px);
-      z-index: 40;
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
-      overflow: hidden;
-    }
-
-    .search-select-menu[hidden] {
-      display: none !important;
-    }
-
-    .search-select-filter {
-      width: calc(100% - 24px);
-      margin: 10px 12px 8px;
-      border: 1px solid var(--border-strong);
-      border-radius: 6px;
-      padding: 7px 10px;
-      font: inherit;
-      font-size: 13px;
-      outline: none;
-    }
-
-    .search-select-filter:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 2px rgba(222, 123, 54, 0.12);
-    }
-
-    .search-select-options {
-      width: 100%;
-      max-height: 240px;
-      overflow-y: auto;
-      overflow-x: hidden;
-      border-top: 1px solid var(--border);
-    }
-
-    .search-select-option {
-      display: block;
-      width: 100%;
-      min-width: 100%;
-      border: 0;
-      background: #fff;
-      color: var(--text);
-      text-align: left;
-      padding: 10px 16px;
-      font: inherit;
-      font-size: 13px;
-      cursor: pointer;
-      box-sizing: border-box;
-    }
-
-    .search-select-option:hover,
-    .search-select-option.is-active {
-      background: #5a8ee6;
-      color: #fff;
-    }
-
-    .search-select-empty {
-      padding: 10px 16px;
-      color: var(--text-muted);
-      font-size: 13px;
-    }
-
     table {
       width: 100%;
       border-collapse: collapse;
@@ -911,9 +1141,15 @@
 
       .users-toolbar,
       .users-modal-grid,
-      .company-search-top,
-      .company-search-grid {
+      .buscar-empresa-grid,
+      .empresa-summary,
+      .empresa-layout,
+      .empresa-info-grid {
         grid-template-columns: 1fr;
+      }
+
+      .empresa-info-item.is-wide {
+        grid-column: auto;
       }
 
       .users-toolbar-actions {
@@ -943,6 +1179,15 @@
       }
       .panel-head {
         flex-direction: column;
+      }
+      .buscar-empresa-card {
+        padding: 0 0 28px;
+      }
+      .empresa-person-card.is-authorized {
+        grid-template-columns: 1fr;
+      }
+      .empresa-auth-flags {
+        justify-content: flex-start;
       }
     }
   </style>
@@ -1101,136 +1346,101 @@
       <section class="panel subpanel" data-panel="busqueda-empresa">
         <div class="panel-head">
           <div>
-            <h2>Búsqueda por Empresa</h2>
+            <h2>Buscar por Empresa</h2>
           </div>
         </div>
         <div class="panel-body">
-          <div class="company-search-shell">
-            <div class="company-search-top">
-              <div class="field">
-                <label for="busquedaEmpresaTrigger">Seleccione empresa</label>
-                <div class="search-select" id="busquedaEmpresaSelect">
-                  <input id="busquedaEmpresaTrigger" class="search-select-trigger" type="text" value="" placeholder="Seleccione empresa" readonly />
-                  <div class="search-select-menu" id="busquedaEmpresaMenu" hidden>
-                    <input id="busquedaEmpresaFilter" class="search-select-filter" type="text" value="" />
-                    <div class="search-select-options" id="busquedaEmpresaOptions">
+          <div class="buscar-empresa-card">
+            <div class="buscar-empresa-grid">
+              <div class="buscar-field">
+                <label for="buscarEmpresaTrigger">Seleccione empresa</label>
+                <div class="buscar-select" id="buscarEmpresaSelect">
+                  <button class="buscar-select-trigger" id="buscarEmpresaTrigger" type="button">Seleccione empresa</button>
+                  <div class="buscar-select-menu" id="buscarEmpresaMenu" hidden>
+                    <div class="buscar-select-filter-wrap">
+                      <input class="buscar-select-filter" id="buscarEmpresaFilter" type="text" autocomplete="off" />
+                    </div>
+                    <div class="buscar-select-options" id="buscarEmpresaOptions">
+                      <button class="buscar-select-option is-active" type="button" data-value="">Seleccione empresa</button>
                       {% for empresa in empresas %}
-                      <button type="button" class="search-select-option" data-value="{{ empresa }}">{{ empresa }}</button>
+                      <button class="buscar-select-option" type="button" data-value="{{ empresa|e }}">{{ empresa|e }}</button>
                       {% endfor %}
                     </div>
                   </div>
                 </div>
               </div>
-              <div class="field">
-                <label for="busquedaSucursalTrigger">Nombre sucursal</label>
-                <div class="search-select" id="busquedaSucursalSelect">
-                  <input id="busquedaSucursalTrigger" class="search-select-trigger" type="text" value="" placeholder="Seleccione sucursal" readonly />
-                  <div class="search-select-menu" id="busquedaSucursalMenu" hidden>
-                    <input id="busquedaSucursalFilter" class="search-select-filter" type="text" value="" />
-                    <div class="search-select-options" id="busquedaSucursalOptions">
-                      <div class="search-select-empty">Seleccione una empresa primero</div>
+
+              <div class="buscar-field">
+                <label for="buscarSucursalTrigger">Nombre Sucursal</label>
+                <div class="buscar-select" id="buscarSucursalSelect">
+                  <button class="buscar-select-trigger" id="buscarSucursalTrigger" type="button">Seleccione sucursal</button>
+                  <div class="buscar-select-menu" id="buscarSucursalMenu" hidden>
+                    <div class="buscar-select-filter-wrap">
+                      <input class="buscar-select-filter" id="buscarSucursalFilter" type="text" autocomplete="off" />
+                    </div>
+                    <div class="buscar-select-options" id="buscarSucursalOptions">
+                      <button class="buscar-select-option is-active" type="button" data-value="">Seleccione sucursal</button>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
 
-            <div class="company-search-content" id="companySearchContent" hidden>
-              <div class="company-search-grid">
-                <div class="company-card">
-                  <div class="company-card-head">
-                    <h3 id="companyCardTitle">Sucursal</h3>
-                  </div>
-                  <div class="company-card-body">
-                    <table class="detail-table">
-                      <tbody id="companyDetailBody">
-                        <tr><td>Tipo vigilancia</td><td>-</td></tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                <div class="company-card">
-                  <div class="company-card-head">
-                    <h3>Contacto de Emergencia</h3>
-                  </div>
-                  <div class="company-card-body">
-                    <table class="detail-table">
-                      <tbody id="companyEmergencyBody">
-                        <tr><td>Nombre</td><td>-</td></tr>
-                        <tr><td>Celular</td><td>-</td></tr>
-                        <tr><td>Prioridad</td><td>-</td></tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+          <div class="empresa-results" id="empresaResults" hidden>
+            <div class="empresa-summary">
+              <div class="empresa-summary-main">
+                <div class="empresa-kicker">Sucursal seleccionada</div>
+                <h3 id="empresaResumenSucursal">-</h3>
+                <p class="empresa-summary-line" id="empresaResumenDireccion">-</p>
               </div>
-
-              <div class="company-card">
-                <div class="company-card-head">
-                  <h3>Indicaciones especiales</h3>
-                </div>
-                <div class="company-card-body">
-                  <table class="simple-table">
-                    <thead>
-                      <tr>
-                        <th>Fecha</th>
-                        <th>Mensaje</th>
-                      </tr>
-                    </thead>
-                    <tbody id="companyIndicacionesBody">
-                      <tr><td>-</td><td>-</td></tr>
-                    </tbody>
-                  </table>
-                </div>
+              <div class="empresa-stat">
+                <span>Tipo vigilancia</span>
+                <strong id="empresaStatVigilancia">-</strong>
               </div>
-
-              <div class="company-card">
-                <div class="company-card-head">
-                  <h3>Noticias</h3>
-                </div>
-                <div class="company-card-body">
-                  <table class="simple-table">
-                    <thead>
-                      <tr>
-                        <th>Fecha</th>
-                        <th>Mensaje</th>
-                      </tr>
-                    </thead>
-                    <tbody id="companyNoticiasBody">
-                      <tr><td>-</td><td>-</td></tr>
-                    </tbody>
-                  </table>
-                </div>
+              <div class="empresa-stat">
+                <span>Horario</span>
+                <strong id="empresaStatHorario">-</strong>
               </div>
-
-              <div class="company-card">
-                <div class="company-card-body">
-                  <table class="simple-table">
-                    <thead>
-                      <tr>
-                        <th>Nombre</th>
-                        <th>RUT</th>
-                        <th>Celular</th>
-                        <th>Información</th>
-                        <th>Clave verde</th>
-                        <th>Clave roja</th>
-                      </tr>
-                    </thead>
-                    <tbody id="companyAuthorizedBody">
-                      <tr>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+              <div class="empresa-stat">
+                <span>Cámaras</span>
+                <strong id="empresaStatCamaras">-</strong>
               </div>
             </div>
+
+            <div class="empresa-layout">
+              <section class="empresa-section">
+                <div class="empresa-section-head">
+                  <h3>Información operacional de la sucursal</h3>
+                  <span id="empresaFichaMeta">Ficha completa</span>
+                </div>
+                <div class="empresa-info-grid" id="empresaFichaGrid"></div>
+              </section>
+
+              <section class="empresa-section">
+                <div class="empresa-section-head">
+                  <h3>Contactos de emergencia</h3>
+                  <span id="empresaContactosCount">0 contactos</span>
+                </div>
+                <div class="empresa-contact-list" id="empresaContactosList"></div>
+              </section>
+            </div>
+
+            <section class="empresa-section">
+              <div class="empresa-section-head">
+                <h3>Personas autorizadas</h3>
+                <span id="empresaAutorizadasCount">0 personas</span>
+              </div>
+              <div class="empresa-authorized-list" id="empresaAutorizadasList"></div>
+            </section>
+
+            <section class="empresa-section">
+              <div class="empresa-section-head">
+                <h3>Indicaciones especiales</h3>
+                <span id="empresaIndicacionesCount">0 registros</span>
+              </div>
+              <div class="empresa-timeline" id="empresaIndicacionesList"></div>
+            </section>
           </div>
         </div>
       </section>
@@ -1462,27 +1672,36 @@
       const userSearchInput = document.getElementById("userSearchInput");
       const hideDisabledUsers = document.getElementById("hideDisabledUsers");
       const userRows = Array.from(document.querySelectorAll("[data-user-row]"));
-      const busquedaEmpresaSelect = document.getElementById("busquedaEmpresaSelect");
-      const busquedaEmpresaTrigger = document.getElementById("busquedaEmpresaTrigger");
-      const busquedaEmpresaMenu = document.getElementById("busquedaEmpresaMenu");
-      const busquedaEmpresaFilter = document.getElementById("busquedaEmpresaFilter");
-      const busquedaEmpresaOptions = document.getElementById("busquedaEmpresaOptions");
-      const busquedaSucursalSelect = document.getElementById("busquedaSucursalSelect");
-      const busquedaSucursalTrigger = document.getElementById("busquedaSucursalTrigger");
-      const busquedaSucursalMenu = document.getElementById("busquedaSucursalMenu");
-      const busquedaSucursalFilter = document.getElementById("busquedaSucursalFilter");
-      const busquedaSucursalOptions = document.getElementById("busquedaSucursalOptions");
-      const companySearchContent = document.getElementById("companySearchContent");
-      const companyCardTitle = document.getElementById("companyCardTitle");
-      const companyDetailBody = document.getElementById("companyDetailBody");
-      const companyEmergencyBody = document.getElementById("companyEmergencyBody");
-      const companyIndicacionesBody = document.getElementById("companyIndicacionesBody");
-      const companyNoticiasBody = document.getElementById("companyNoticiasBody");
-      const companyAuthorizedBody = document.getElementById("companyAuthorizedBody");
+      const buscarEmpresaPanel = document.querySelector('[data-panel="busqueda-empresa"]');
+      const buscarEmpresaSelect = document.getElementById("buscarEmpresaSelect");
+      const buscarEmpresaTrigger = document.getElementById("buscarEmpresaTrigger");
+      const buscarEmpresaMenu = document.getElementById("buscarEmpresaMenu");
+      const buscarEmpresaFilter = document.getElementById("buscarEmpresaFilter");
+      const buscarEmpresaOptions = document.getElementById("buscarEmpresaOptions");
+      const buscarSucursalSelect = document.getElementById("buscarSucursalSelect");
+      const buscarSucursalTrigger = document.getElementById("buscarSucursalTrigger");
+      const buscarSucursalMenu = document.getElementById("buscarSucursalMenu");
+      const buscarSucursalFilter = document.getElementById("buscarSucursalFilter");
+      const buscarSucursalOptions = document.getElementById("buscarSucursalOptions");
+      const empresaResults = document.getElementById("empresaResults");
+      const empresaResumenSucursal = document.getElementById("empresaResumenSucursal");
+      const empresaResumenDireccion = document.getElementById("empresaResumenDireccion");
+      const empresaStatVigilancia = document.getElementById("empresaStatVigilancia");
+      const empresaStatHorario = document.getElementById("empresaStatHorario");
+      const empresaStatCamaras = document.getElementById("empresaStatCamaras");
+      const empresaFichaMeta = document.getElementById("empresaFichaMeta");
+      const empresaFichaGrid = document.getElementById("empresaFichaGrid");
+      const empresaIndicacionesCount = document.getElementById("empresaIndicacionesCount");
+      const empresaIndicacionesList = document.getElementById("empresaIndicacionesList");
+      const empresaContactosCount = document.getElementById("empresaContactosCount");
+      const empresaContactosList = document.getElementById("empresaContactosList");
+      const empresaAutorizadasCount = document.getElementById("empresaAutorizadasCount");
+      const empresaAutorizadasList = document.getElementById("empresaAutorizadasList");
+      const lastPanelStorageKey = "bitacora:last-panel";
       let newsView = "activas";
-      let selectedEmpresa = "";
-      let selectedSucursal = "";
-      let sucursalOptions = [];
+      let selectedBuscarEmpresa = "";
+      let selectedBuscarSucursal = "";
+      let buscarSucursalItems = [];
 
       function esc(value) {
         return String(value || "")
@@ -1511,12 +1730,30 @@
       }
 
       function openPanel(name) {
+        const targetName = panels.some((panel) => panel.dataset.panel === name) ? name : "noticias";
         buttons.forEach((button) => {
-          button.classList.toggle("active", button.dataset.panelTarget === name);
+          button.classList.toggle("active", button.dataset.panelTarget === targetName);
         });
         panels.forEach((panel) => {
-          panel.classList.toggle("active", panel.dataset.panel === name);
+          panel.classList.toggle("active", panel.dataset.panel === targetName);
         });
+        try {
+          localStorage.setItem(lastPanelStorageKey, targetName);
+        } catch (error) {
+          // localStorage can be unavailable in restricted browser modes.
+        }
+      }
+
+      function getInitialPanel() {
+        try {
+          const savedPanel = localStorage.getItem(lastPanelStorageKey);
+          if (savedPanel && panels.some((panel) => panel.dataset.panel === savedPanel)) {
+            return savedPanel;
+          }
+        } catch (error) {
+          // Ignore storage failures and use the default panel.
+        }
+        return "noticias";
       }
 
       function closeSubmenus() {
@@ -1572,38 +1809,38 @@
         `).join("");
       }
 
-      function renderSearchOptions(container, items, emptyMessage = "Sin resultados") {
+      function renderBuscarOptions(container, items, placeholder, selectedValue = "") {
         if (!container) {
           return;
         }
-        if (!items.length) {
-          container.innerHTML = `<div class="search-select-empty">${esc(emptyMessage)}</div>`;
-          return;
-        }
-        container.innerHTML = items.map((item, index) => `
-          <button type="button" class="search-select-option${index === 0 ? " is-active" : ""}" data-value="${esc(item.value)}">${esc(item.label)}</button>
-        `).join("");
+        const allItems = [{ value: "", label: placeholder }, ...items];
+        container.innerHTML = allItems.map((item) => {
+          const value = String(item.value || "");
+          const label = String(item.label || placeholder);
+          const active = value === selectedValue ? " is-active" : "";
+          return `<button class="buscar-select-option${active}" type="button" data-value="${esc(value)}">${esc(label)}</button>`;
+        }).join("");
       }
 
-      function filterSearchOptions(container, filterValue) {
+      function filterBuscarOptions(container, term) {
         if (!container) {
           return;
         }
-        const value = (filterValue || "").trim().toLowerCase();
-        const options = Array.from(container.querySelectorAll(".search-select-option"));
+        const cleanTerm = String(term || "").trim().toLowerCase();
+        const options = Array.from(container.querySelectorAll(".buscar-select-option"));
         let visibleCount = 0;
         options.forEach((option) => {
-          const matches = !value || option.textContent.toLowerCase().includes(value);
+          const matches = !cleanTerm || option.textContent.toLowerCase().includes(cleanTerm);
           option.hidden = !matches;
           if (matches) {
             visibleCount += 1;
           }
         });
-        let empty = container.querySelector(".search-select-empty");
+        let empty = container.querySelector(".buscar-select-empty");
         if (!visibleCount) {
           if (!empty) {
             empty = document.createElement("div");
-            empty.className = "search-select-empty";
+            empty.className = "buscar-select-empty";
             empty.textContent = "Sin resultados";
             container.appendChild(empty);
           }
@@ -1612,45 +1849,321 @@
         }
       }
 
-      function openSearchMenu(menu, filterInput) {
-        if (!menu) {
+      function closeBuscarSelect(select, menu) {
+        if (select) {
+          select.classList.remove("is-open");
+        }
+        if (menu) {
+          menu.hidden = true;
+        }
+        if (!document.querySelector(".buscar-select.is-open") && buscarEmpresaPanel) {
+          buscarEmpresaPanel.classList.remove("has-open-select");
+        }
+      }
+
+      function closeBuscarSelects() {
+        closeBuscarSelect(buscarEmpresaSelect, buscarEmpresaMenu);
+        closeBuscarSelect(buscarSucursalSelect, buscarSucursalMenu);
+      }
+
+      function openBuscarSelect(select, menu, filterInput, optionsContainer) {
+        closeBuscarSelects();
+        if (!select || !menu) {
           return;
+        }
+        select.classList.add("is-open");
+        if (buscarEmpresaPanel) {
+          buscarEmpresaPanel.classList.add("has-open-select");
         }
         menu.hidden = false;
         if (filterInput) {
           filterInput.value = "";
-          filterSearchOptions(menu.querySelector(".search-select-options"), "");
+          filterBuscarOptions(optionsContainer, "");
           setTimeout(() => filterInput.focus(), 0);
         }
       }
 
-      function closeSearchMenu(menu) {
-        if (menu) {
-          menu.hidden = true;
+      function setBuscarTrigger(trigger, value, placeholder) {
+        if (trigger) {
+          trigger.textContent = value || placeholder;
         }
       }
 
-      function fillSucursalOptions(rows) {
-        sucursalOptions = (Array.isArray(rows) ? rows : []).map((row) => ({
-          value: String(row.nombre_sucursal || ""),
-          label: String(row.nombre_sucursal || "Sin sucursal"),
-        }));
-        renderSearchOptions(
-          busquedaSucursalOptions,
-          sucursalOptions,
-          selectedEmpresa ? "No hay sucursales disponibles" : "Seleccione una empresa primero"
-        );
+      function cleanDisplay(value) {
+        if (Array.isArray(value)) {
+          return value.length ? `${value.length} registro(s)` : "-";
+        }
+        if (value && typeof value === "object") {
+          return "Registrado";
+        }
+        const text = String(value ?? "").trim();
+        if (!text || text === "-") {
+          return "-";
+        }
+        return text;
       }
 
-      function renderSimpleRows(target, rows, emptyCols = 2) {
+      function cleanInfoDisplay(value) {
+        const text = cleanDisplay(value);
+        return text === "-" ? "" : text;
+      }
+
+      function countText(count, singular, plural) {
+        return `${count} ${count === 1 ? singular : plural}`;
+      }
+
+      function renderEmpresaEmpty(message) {
+        return `<div class="empresa-empty">${esc(message)}</div>`;
+      }
+
+      function renderEmpresaInfoGrid(items) {
+        if (!empresaFichaGrid) {
+          return;
+        }
+        empresaFichaGrid.innerHTML = items.map((item) => {
+          if (item.type === "section") {
+            return `
+          <div class="empresa-info-item is-section-title">
+            <span>${esc(item.label)}</span>
+            <strong></strong>
+          </div>
+        `;
+          }
+          const className = item.wide ? "empresa-info-item is-wide" : "empresa-info-item";
+          return `
+          <div class="${className}">
+            <span>${esc(item.label)}</span>
+            <strong>${esc(cleanInfoDisplay(item.value))}</strong>
+          </div>
+        `;
+        }).join("");
+      }
+
+      function renderEmpresaContactos(rows) {
+        const items = Array.isArray(rows) ? rows : [];
+        if (empresaContactosCount) {
+          empresaContactosCount.textContent = countText(items.length, "contacto", "contactos");
+        }
+        if (!empresaContactosList) {
+          return;
+        }
+        if (!items.length) {
+          empresaContactosList.innerHTML = renderEmpresaEmpty("Sin contactos registrados.");
+          return;
+        }
+        empresaContactosList.innerHTML = items.map((item) => `
+          <article class="empresa-person-card">
+            <h4>${esc(cleanDisplay(item.nombre))}</h4>
+            <div class="empresa-person-meta">
+              <span>Celular: ${esc(cleanDisplay(item.celular))}</span>
+              <span>Prioridad: ${esc(cleanDisplay(item.prioridad))}</span>
+            </div>
+          </article>
+        `).join("");
+      }
+
+      function renderEmpresaEventos(target, counter, rows, emptyMessage, kind) {
+        const items = Array.isArray(rows) ? rows : [];
+        if (counter) {
+          counter.textContent = countText(items.length, "registro", "registros");
+        }
         if (!target) {
           return;
         }
-        if (!Array.isArray(rows) || !rows.length) {
-          target.innerHTML = `<tr>${Array.from({ length: emptyCols }, () => "<td>-</td>").join("")}</tr>`;
+        if (!items.length) {
+          target.innerHTML = renderEmpresaEmpty(emptyMessage);
           return;
         }
-        target.innerHTML = rows.join("");
+        target.innerHTML = items.map((item) => {
+          const date = kind === "noticia" ? formatDateTime(item.fecha_registro) : cleanDisplay(item.fecha);
+          const title = kind === "noticia" ? `Fin: ${formatDateTime(item.fecha_fin_noticia)}` : date;
+          return `
+            <article class="empresa-event">
+              <h4>${esc(date)}</h4>
+              <div class="empresa-event-meta"><span>${esc(title)}</span></div>
+              <p>${esc(cleanDisplay(item.mensaje))}</p>
+            </article>
+          `;
+        }).join("");
+      }
+
+      function renderEmpresaAutorizadas(rows) {
+        const items = Array.isArray(rows) ? rows : [];
+        if (empresaAutorizadasCount) {
+          empresaAutorizadasCount.textContent = countText(items.length, "persona", "personas");
+        }
+        if (!empresaAutorizadasList) {
+          return;
+        }
+        if (!items.length) {
+          empresaAutorizadasList.innerHTML = renderEmpresaEmpty("Sin personas autorizadas registradas.");
+          return;
+        }
+        empresaAutorizadasList.innerHTML = items.map((item) => `
+          <article class="empresa-person-card is-authorized">
+            <div>
+              <h4>${esc(cleanDisplay(item.nombre))}</h4>
+              <div class="empresa-person-meta">
+                <span>RUT: ${esc(cleanDisplay(item.rut))}</span>
+                <span>Info: ${esc(cleanDisplay(item.email))}</span>
+              </div>
+            </div>
+            <div class="empresa-person-meta">
+              <span>Celular: ${esc(cleanDisplay(item.celular))}</span>
+            </div>
+            <div class="empresa-auth-flags">
+              <span class="empresa-badge green">${esc(cleanDisplay(item.clave_verde))}</span>
+              <span class="empresa-badge red">${esc(cleanDisplay(item.clave_roja))}</span>
+            </div>
+          </article>
+        `).join("");
+      }
+
+      function renderEmpresaDetalle(payload) {
+        if (!empresaResults) {
+          return;
+        }
+        const hasSelection = Boolean(payload?.empresa) && Boolean(payload?.sucursal_actual);
+        empresaResults.hidden = !hasSelection;
+        if (!hasSelection) {
+          return;
+        }
+
+        const detail = payload.detalle || {};
+        const horario = [detail.horario_apertura, detail.horario_cierre].map(cleanInfoDisplay).filter(Boolean).join(" - ");
+        const camaras = [detail.camaras_televigiladas, detail.camaras_contratadas].map(cleanInfoDisplay);
+
+        if (empresaResumenSucursal) {
+          empresaResumenSucursal.textContent = cleanInfoDisplay(payload.sucursal_actual);
+        }
+        if (empresaResumenDireccion) {
+          empresaResumenDireccion.textContent = [detail.direccion, detail.referencia_ubicacion].map(cleanInfoDisplay).filter(Boolean).join(" · ");
+        }
+        if (empresaStatVigilancia) {
+          empresaStatVigilancia.textContent = cleanInfoDisplay(detail.tipo_vigilancia);
+        }
+        if (empresaStatHorario) {
+          empresaStatHorario.textContent = horario;
+        }
+        if (empresaStatCamaras) {
+          empresaStatCamaras.textContent = camaras.filter(Boolean).join(" / ");
+        }
+        if (empresaFichaMeta) {
+          empresaFichaMeta.textContent = cleanInfoDisplay(detail.empresa);
+        }
+
+        renderEmpresaInfoGrid([
+          { type: "section", label: "Identificación" },
+          { label: "Empresa", value: detail.empresa, wide: true },
+          { label: "RUT", value: detail.rut },
+          { label: "Nombre sucursal", value: detail.nombre_sucursal || payload.sucursal_actual },
+          { label: "Fecha inicio", value: detail.fecha_inicio },
+
+          { type: "section", label: "Ubicación y contacto" },
+          { label: "Direccion", value: detail.direccion, wide: true },
+          { label: "Referencia Ubicación", value: detail.referencia_ubicacion, wide: true },
+          { label: "Contacto", value: detail.contacto },
+          { label: "Correo", value: detail.correo, wide: true },
+
+          { type: "section", label: "Operación y vigilancia" },
+          { label: "Tipo vigilancia", value: detail.tipo_vigilancia },
+          { label: "Horario Apertura", value: detail.horario_apertura },
+          { label: "Horario Cierre", value: detail.horario_cierre },
+          { label: "Horario hábil", value: detail.horario_habil },
+          { label: "Horario no hábil", value: detail.horario_no_habil, wide: true },
+
+          { type: "section", label: "Seguridad pública" },
+          { label: "Plan cuadrante", value: detail.plan_cuadrante },
+          { label: "Carabineros", value: detail.carabineros },
+          { label: "Bomberos", value: detail.bomberos },
+          { label: "Seguridad ciudadana", value: detail.seguridad_ciudadana },
+
+          { type: "section", label: "Cámaras y accesos" },
+          { label: "Cámaras contratadas", value: detail.camaras_contratadas },
+          { label: "Cámaras televigiladas", value: detail.camaras_televigiladas },
+          { label: "Codigo P2P", value: detail.codigo_p2p },
+          { label: "Codigo DSS", value: detail.codigo_dss },
+          { label: "Teléfono portón", value: detail.telefono_porton },
+          { label: "Teléfono recepción", value: detail.telefono_recepcion },
+          { label: "Plano de camaras", value: detail.plano_camaras, wide: true },
+
+          { type: "section", label: "Electricidad e internet" },
+          { label: "Compañía de electricidad", value: detail.compania_electricidad, wide: true },
+          { label: "Numero cliente electricidad", value: detail.numero_cliente_electricidad },
+          { label: "Proveedor Internet cliente", value: detail.proveedor_internet_cliente, wide: true },
+          { label: "Internet ATC", value: detail.internet_atc },
+        ]);
+
+        renderEmpresaContactos(payload.contactos_emergencia || []);
+        renderEmpresaEventos(empresaIndicacionesList, empresaIndicacionesCount, payload.indicaciones_especiales || [], "Sin indicaciones especiales registradas.", "indicacion");
+        renderEmpresaAutorizadas(payload.personas_autorizadas || []);
+      }
+
+      function resetBuscarSucursal() {
+        selectedBuscarSucursal = "";
+        buscarSucursalItems = [];
+        setBuscarTrigger(buscarSucursalTrigger, "", "Seleccione sucursal");
+        renderBuscarOptions(buscarSucursalOptions, [], "Seleccione sucursal", "");
+        if (empresaResults) {
+          empresaResults.hidden = true;
+        }
+      }
+
+      async function loadBuscarSucursales(empresa) {
+        resetBuscarSucursal();
+        if (!empresa) {
+          return;
+        }
+        try {
+          const payload = await fetchEmpresaDetalle(empresa);
+          buscarSucursalItems = (payload.sucursales || []).map((row) => {
+            const value = String(row.nombre_sucursal || "").trim();
+            return { value, label: value || "Sin sucursal" };
+          });
+          selectedBuscarSucursal = String(payload.sucursal_actual || "").trim();
+          setBuscarTrigger(buscarSucursalTrigger, selectedBuscarSucursal, "Seleccione sucursal");
+          renderBuscarOptions(buscarSucursalOptions, buscarSucursalItems, "Seleccione sucursal", selectedBuscarSucursal);
+          renderEmpresaDetalle(payload);
+        } catch (error) {
+          buscarSucursalItems = [];
+          renderBuscarOptions(buscarSucursalOptions, [], "Seleccione sucursal", "");
+          if (empresaResults) {
+            empresaResults.hidden = true;
+          }
+        }
+      }
+
+      async function loadBuscarDetalleSucursal(sucursal) {
+        if (!selectedBuscarEmpresa || !sucursal) {
+          if (empresaResults) {
+            empresaResults.hidden = true;
+          }
+          return;
+        }
+        try {
+          const payload = await fetchEmpresaDetalle(selectedBuscarEmpresa, sucursal);
+          renderEmpresaDetalle(payload);
+        } catch (error) {
+          if (empresaResults) {
+            empresaResults.hidden = true;
+          }
+        }
+      }
+
+      function fillModalSucursalOptions(select, rows) {
+        if (!select) {
+          return;
+        }
+        if (!Array.isArray(rows) || !rows.length) {
+          select.innerHTML = '<option value="">Seleccione una sucursal</option>';
+          select.disabled = true;
+          return;
+        }
+        select.disabled = false;
+        select.innerHTML = '<option value="">Seleccione una sucursal</option>' + rows.map((row) => {
+          const value = String(row.nombre_sucursal || "").trim();
+          return `<option value="${esc(value)}">${esc(value || "Sin sucursal")}</option>`;
+        }).join("");
       }
 
       async function fetchSucursales(empresa) {
@@ -1660,6 +2173,21 @@
         const payload = await response.json();
         if (!response.ok) {
           throw new Error(payload.detail || "No se pudo cargar la bitácora.");
+        }
+        return payload;
+      }
+
+      async function fetchEmpresaDetalle(empresa, sucursal = "") {
+        const query = new URLSearchParams({ empresa });
+        if (sucursal) {
+          query.set("sucursal", sucursal);
+        }
+        const response = await fetch(`/api/bitacora/busqueda-empresa?${query.toString()}`, {
+          headers: { Accept: "application/json" }
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.detail || "No se pudo cargar la información de la empresa.");
         }
         return payload;
       }
@@ -1680,138 +2208,6 @@
         } catch (error) {
           status.textContent = error.message || "No se pudieron cargar las noticias.";
           renderEmpty("Ocurrió un problema consultando las noticias.");
-        }
-      }
-
-      function renderBusquedaEmpresa(payload) {
-        const hasSelection = Boolean(payload?.empresa) && Boolean(payload?.sucursal_actual);
-        if (companySearchContent) {
-          companySearchContent.hidden = !hasSelection;
-        }
-        if (!hasSelection) {
-          return;
-        }
-
-        const detail = payload?.detalle || {};
-        const emergencyContacts = Array.isArray(payload?.contactos_emergencia) ? payload.contactos_emergencia : [];
-        const indicaciones = Array.isArray(payload?.indicaciones_especiales) ? payload.indicaciones_especiales : [];
-        const noticias = Array.isArray(payload?.noticias) ? payload.noticias : [];
-        const personasAutorizadas = Array.isArray(payload?.personas_autorizadas) ? payload.personas_autorizadas : [];
-
-        if (companyCardTitle) {
-          companyCardTitle.textContent = payload?.sucursal_actual || "Sucursal";
-        }
-
-        if (companyDetailBody) {
-          const detailRows = [
-            ["Tipo vigilancia", detail.tipo_vigilancia],
-            ["Horario apertura", detail.horario_apertura],
-            ["Horario cierre", detail.horario_cierre],
-            ["Empresa", detail.empresa],
-            ["RUT", detail.rut],
-            ["Nombre sucursal", detail.nombre_sucursal],
-            ["Dirección", detail.direccion],
-            ["Referencia ubicación", detail.referencia_ubicacion],
-            ["Contacto", detail.contacto],
-            ["Correo", detail.correo],
-            ["Plan cuadrante", detail.plan_cuadrante],
-            ["Carabineros", detail.carabineros],
-            ["Bomberos", detail.bomberos],
-            ["Seguridad ciudadana", detail.seguridad_ciudadana],
-            ["Fecha inicio", detail.fecha_inicio],
-            ["Cámaras contratadas", detail.camaras_contratadas],
-            ["Cámaras televigiladas", detail.camaras_televigiladas],
-            ["Horario hábil", detail.horario_habil],
-            ["Horario no hábil", detail.horario_no_habil],
-            ["Compañía de electricidad", detail.compania_electricidad],
-            ["Número cliente electricidad", detail.numero_cliente_electricidad],
-            ["Proveedor internet cliente", detail.proveedor_internet_cliente],
-            ["Internet ATC", detail.internet_atc],
-            ["Teléfono portón", detail.telefono_porton],
-            ["Teléfono recepción", detail.telefono_recepcion],
-            ["Plano de cámaras", detail.plano_camaras],
-          ];
-          companyDetailBody.innerHTML = detailRows.map(([label, value]) => `<tr><td>${esc(label)}</td><td>${esc(value || "-")}</td></tr>`).join("");
-        }
-
-        if (companyEmergencyBody) {
-          if (!emergencyContacts.length) {
-            companyEmergencyBody.innerHTML = `
-              <tr><td>Nombre</td><td>-</td></tr>
-              <tr><td>Celular</td><td>-</td></tr>
-              <tr><td>Prioridad</td><td>-</td></tr>
-            `;
-          } else {
-            companyEmergencyBody.innerHTML = emergencyContacts.map((item) => `
-              <tr><td>Nombre</td><td>${esc(item.nombre || "-")}</td></tr>
-              <tr><td>Celular</td><td>${esc(item.celular || "-")}</td></tr>
-              <tr><td>Prioridad</td><td>${esc(item.prioridad || "-")}</td></tr>
-            `).join("");
-          }
-        }
-
-        renderSimpleRows(
-          companyIndicacionesBody,
-          indicaciones.map((item) => `<tr><td>${esc(item.fecha || "-")}</td><td>${esc(item.mensaje || "-")}</td></tr>`),
-          2
-        );
-        renderSimpleRows(
-          companyNoticiasBody,
-          noticias.map((item) => `<tr><td>${formatDateTime(item.fecha_registro)}</td><td>${esc(item.mensaje || "-")}</td></tr>`),
-          2
-        );
-        renderSimpleRows(
-          companyAuthorizedBody,
-          personasAutorizadas.map((item) => `
-            <tr>
-              <td>${esc(item.nombre || "-")}</td>
-              <td>${esc(item.rut || "-")}</td>
-              <td>${esc(item.celular || "-")}</td>
-              <td>${esc(item.email || "-")}</td>
-              <td>${esc(item.clave_verde || "-")}</td>
-              <td>${esc(item.clave_roja || "-")}</td>
-            </tr>
-          `),
-          6
-        );
-      }
-
-      async function loadBusquedaEmpresa(preferredSucursal = "") {
-        const empresa = (preferredSucursal ? selectedEmpresa : selectedEmpresa).trim();
-        if (!empresa) {
-          fillSucursalOptions([]);
-          selectedSucursal = "";
-          if (busquedaSucursalTrigger) {
-            busquedaSucursalTrigger.value = "";
-          }
-          renderBusquedaEmpresa(null);
-          return;
-        }
-
-        try {
-          const query = new URLSearchParams({ empresa });
-          if (preferredSucursal) {
-            query.set("sucursal", preferredSucursal);
-          }
-          const response = await fetch(`/api/bitacora/busqueda-empresa?${query.toString()}`, {
-            headers: { Accept: "application/json" }
-          });
-          const payload = await response.json();
-          if (!response.ok) {
-            throw new Error(payload.detail || "No se pudo cargar la búsqueda por empresa.");
-          }
-          fillSucursalOptions(payload.sucursales || []);
-          if (preferredSucursal) {
-            selectedSucursal = payload.sucursal_actual || "";
-            if (busquedaSucursalTrigger) {
-              busquedaSucursalTrigger.value = selectedSucursal;
-            }
-            renderBusquedaEmpresa(payload);
-          } else {
-            renderBusquedaEmpresa(null);
-          }
-        } catch (error) {
-          renderBusquedaEmpresa(null);
         }
       }
 
@@ -1962,6 +2358,7 @@
 
       document.addEventListener("keydown", (event) => {
         if (event.key === "Escape") {
+          closeBuscarSelects();
           if (newsModal && !newsModal.hidden) {
             closeNewsModal();
           }
@@ -1982,102 +2379,88 @@
       if (modalEmpresaSelect) {
         modalEmpresaSelect.addEventListener("change", async () => {
           const empresa = (modalEmpresaSelect.value || "").trim();
-          fillSucursalOptions(modalSucursalSelect, []);
+          fillModalSucursalOptions(modalSucursalSelect, []);
           if (!empresa) {
             return;
           }
           try {
             const payload = await fetchSucursales(empresa);
-            fillSucursalOptions(modalSucursalSelect, payload.sucursales || []);
+            fillModalSucursalOptions(modalSucursalSelect, payload.sucursales || []);
           } catch (error) {
-            fillSucursalOptions(modalSucursalSelect, []);
+            fillModalSucursalOptions(modalSucursalSelect, []);
           }
         });
       }
 
-      if (busquedaEmpresaTrigger) {
-        busquedaEmpresaTrigger.addEventListener("click", () => {
-          openSearchMenu(busquedaEmpresaMenu, busquedaEmpresaFilter);
+      if (buscarEmpresaTrigger) {
+        buscarEmpresaTrigger.addEventListener("click", () => {
+          openBuscarSelect(buscarEmpresaSelect, buscarEmpresaMenu, buscarEmpresaFilter, buscarEmpresaOptions);
         });
       }
 
-      if (busquedaSucursalTrigger) {
-        busquedaSucursalTrigger.addEventListener("click", () => {
-          if (!selectedEmpresa) {
-            return;
-          }
-          openSearchMenu(busquedaSucursalMenu, busquedaSucursalFilter);
+      if (buscarSucursalTrigger) {
+        buscarSucursalTrigger.addEventListener("click", () => {
+          openBuscarSelect(buscarSucursalSelect, buscarSucursalMenu, buscarSucursalFilter, buscarSucursalOptions);
         });
       }
 
-      if (busquedaEmpresaFilter) {
-        busquedaEmpresaFilter.addEventListener("input", () => {
-          filterSearchOptions(busquedaEmpresaOptions, busquedaEmpresaFilter.value);
+      if (buscarEmpresaFilter) {
+        buscarEmpresaFilter.addEventListener("input", () => {
+          filterBuscarOptions(buscarEmpresaOptions, buscarEmpresaFilter.value);
         });
       }
 
-      if (busquedaSucursalFilter) {
-        busquedaSucursalFilter.addEventListener("input", () => {
-          filterSearchOptions(busquedaSucursalOptions, busquedaSucursalFilter.value);
+      if (buscarSucursalFilter) {
+        buscarSucursalFilter.addEventListener("input", () => {
+          filterBuscarOptions(buscarSucursalOptions, buscarSucursalFilter.value);
         });
       }
 
-      if (busquedaEmpresaOptions) {
-        busquedaEmpresaOptions.addEventListener("click", (event) => {
-          const option = event.target.closest(".search-select-option");
+      if (buscarEmpresaOptions) {
+        buscarEmpresaOptions.addEventListener("click", (event) => {
+          const option = event.target.closest(".buscar-select-option");
           if (!option) {
             return;
           }
-          selectedEmpresa = (option.dataset.value || "").trim();
-          selectedSucursal = "";
-          if (busquedaEmpresaTrigger) {
-            busquedaEmpresaTrigger.value = selectedEmpresa;
-          }
-          if (busquedaSucursalTrigger) {
-            busquedaSucursalTrigger.value = "";
-          }
-          closeSearchMenu(busquedaEmpresaMenu);
-          fillSucursalOptions([]);
-          loadBusquedaEmpresa("");
+          selectedBuscarEmpresa = String(option.dataset.value || "").trim();
+          setBuscarTrigger(buscarEmpresaTrigger, selectedBuscarEmpresa, "Seleccione empresa");
+          Array.from(buscarEmpresaOptions.querySelectorAll(".buscar-select-option")).forEach((item) => {
+            item.classList.toggle("is-active", item === option);
+          });
+          closeBuscarSelect(buscarEmpresaSelect, buscarEmpresaMenu);
+          loadBuscarSucursales(selectedBuscarEmpresa);
         });
       }
 
-      if (busquedaSucursalOptions) {
-        busquedaSucursalOptions.addEventListener("click", (event) => {
-          const option = event.target.closest(".search-select-option");
+      if (buscarSucursalOptions) {
+        buscarSucursalOptions.addEventListener("click", (event) => {
+          const option = event.target.closest(".buscar-select-option");
           if (!option) {
             return;
           }
-          selectedSucursal = (option.dataset.value || "").trim();
-          if (busquedaSucursalTrigger) {
-            busquedaSucursalTrigger.value = selectedSucursal;
-          }
-          closeSearchMenu(busquedaSucursalMenu);
-          loadBusquedaEmpresa(selectedSucursal);
+          selectedBuscarSucursal = String(option.dataset.value || "").trim();
+          setBuscarTrigger(buscarSucursalTrigger, selectedBuscarSucursal, "Seleccione sucursal");
+          Array.from(buscarSucursalOptions.querySelectorAll(".buscar-select-option")).forEach((item) => {
+            item.classList.toggle("is-active", item === option);
+          });
+          closeBuscarSelect(buscarSucursalSelect, buscarSucursalMenu);
+          loadBuscarDetalleSucursal(selectedBuscarSucursal);
         });
       }
 
       document.addEventListener("click", (event) => {
-        if (busquedaEmpresaSelect && !busquedaEmpresaSelect.contains(event.target)) {
-          closeSearchMenu(busquedaEmpresaMenu);
+        if (buscarEmpresaSelect && !buscarEmpresaSelect.contains(event.target)) {
+          closeBuscarSelect(buscarEmpresaSelect, buscarEmpresaMenu);
         }
-        if (busquedaSucursalSelect && !busquedaSucursalSelect.contains(event.target)) {
-          closeSearchMenu(busquedaSucursalMenu);
+        if (buscarSucursalSelect && !buscarSucursalSelect.contains(event.target)) {
+          closeBuscarSelect(buscarSucursalSelect, buscarSucursalMenu);
         }
       });
 
-      if (busquedaEmpresaTrigger) {
-        busquedaEmpresaTrigger.value = "";
-      }
-
-      if (busquedaSucursalTrigger) {
-        busquedaSucursalTrigger.value = "";
-      }
-
-      openPanel("noticias");
+      resetBuscarSucursal();
+      openPanel(getInitialPanel());
       filterUsers();
       loadNoticias();
-      renderBusquedaEmpresa(null);
     })();
   </script>
 </body>

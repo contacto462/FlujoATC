@@ -1065,7 +1065,7 @@ function obtenerIncidenciasDesdeForm(){
       formData.append("content",content);
       formData.append("token",obtenerTokenActual());
       try{
-        const data=await apiForm("/dashboard/tickets/oficina-atc/create",formData);
+        const data=await apiForm("/ticketera/tickets/oficina-atc/create",formData);
         cerrarPopupOficinaATC();
         setMensaje(`Ticket interno creado correctamente${data?.ticket_id?` (#${data.ticket_id})`:""}.`);
       }catch(err){
@@ -1090,7 +1090,7 @@ function obtenerIncidenciasDesdeForm(){
     }
     window.addEventListener("load",bootstrap);
   </script>
-{% include "_client_notes_widget.html" %}
+{% include "notas_clientes_widget.html" %}
 <script src="/static/auth-guard.js"></script>
 </body>
 </html>

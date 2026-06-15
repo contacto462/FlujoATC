@@ -876,6 +876,7 @@ def get_protocolos_service(db: Annotated[Session, Depends(get_db)]) -> Protocolo
     return ProtocolosService(db)
 
 
+@app.post("/ticketera/tickets/oficina-atc/create")
 @app.post("/dashboard/tickets/oficina-atc/create")
 def create_oficina_atc_ticket(
     service: Annotated[IncidenciasService, Depends(get_service)],
@@ -1170,29 +1171,29 @@ def do_get(
         tecnico = service.get_usuario_actual(token)
     view_map = {
         "login": "login.html",
-        "panelSelector": "panel_selector.html",
-        "panelSelectorServicio": "panel_selector_servicio.html",
-        "panelSelectorCoordinacion": "panel_selector_coordinacion.html",
-        "panelSelectorAdministracion": "panel_selector_administracion.html",
-        "panelSelectorVenta": "panel_selector_venta.html",
-        "servicioTecnico": "tabla.html",
-        "stVentas": "TablaServicioTecnico.html",
-        "incidencias": "incidencias.html",
+        "panelSelector": "seleccion_panel_operadores.html",
+        "panelSelectorServicio": "seleccion_panel_soporte.html",
+        "panelSelectorCoordinacion": "seleccion_panel_coordinacion.html",
+        "panelSelectorAdministracion": "seleccion_panel_administracion.html",
+        "panelSelectorVenta": "seleccion_panel_venta.html",
+        "servicioTecnico": "incidencias_servicio_tecnico.html",
+        "stVentas": "tabla_servicio_tecnico_venta.html",
+        "incidencias": "incidencias_puestos.html",
         "cierreAperturaClientes": "cierre_apertura_clientes.html",
         "controlProtocolos": "control_protocolos.html",
         "tablaProtocolos": "tabla_protocolos.html",
         "envioProtocolosSemanales": "envio_protocolos_semanales.html",
         "pendientes": "pendientes.html",
         "tecnicos": "tecnicos.html",
-        "coordinacion": "coordinacion.html",
+        "coordinacion": "incidencias_coordinacion.html",
         "resumen": "resumen.html",
-        "formularioViatico": "formularioViatico.html",
+        "formularioViatico": "formulario_viatico.html",
         "rendiciones": "rendiciones.html",
         "rendicionesTecnico": "rendiciones_tecnico.html",
         "dashboardOperacional": "dashboardOperacional.html",
         "dashboardAnalitico": "dashboardAnalitico.html",
     }
-    tpl = view_map.get(form, "tabla.html")
+    tpl = view_map.get(form, "incidencias_servicio_tecnico.html")
     show_back_button = False
     back_url = f"/seleccionar-area?token={token}" if token else "/seleccionar-area"
     if form in {
@@ -1350,7 +1351,7 @@ def tabla_soporte_local_page(
         return RedirectResponse(url="/?form=login&next=auto", status_code=303)
     return templates.TemplateResponse(
         request,
-        "TablaSoporte.html",
+        "tabla_soporte_tecnico_venta.html",
         {"request": request, "token": token},
     )
 
@@ -2345,7 +2346,7 @@ def debug_db(
 def servicio_indicadores_page(request: Request):
     return templates.TemplateResponse(
         request,
-        "Panel_IndicadoresServicio.html",
+        "dashboard_servicio.html",
         {"request": request},
     )
 

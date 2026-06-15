@@ -510,7 +510,7 @@
                     </div>
                   </div>
                   <div class="ticket-actions">
-                    <a class="ticket-open" href="/dashboard/tickets/{{ ticket.id }}">Abrir</a>
+                    <a class="ticket-open" href="/ticketera/tickets/{{ ticket.id }}">Abrir</a>
                   </div>
                 </article>
               {% endfor %}
@@ -583,7 +583,7 @@
       async function persistStage(ticketId, stage) {
         const payload = new URLSearchParams();
         payload.set("stage", stage);
-        const response = await fetch(`/dashboard/tickets/${ticketId}/stage`, {
+        const response = await fetch(`/ticketera/tickets/${ticketId}/stage`, {
           method: "POST",
           credentials: "same-origin",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -607,7 +607,7 @@
       async function persistPriority(ticketId, priority) {
         const payload = new URLSearchParams();
         payload.set("priority", priority);
-        const response = await fetch(`/dashboard/tickets/${ticketId}/priority-json`, {
+        const response = await fetch(`/ticketera/tickets/${ticketId}/priority-json`, {
           method: "POST",
           credentials: "same-origin",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -622,7 +622,7 @@
       async function persistAssignee(ticketId, userId) {
         const payload = new URLSearchParams();
         payload.set("user_id", userId || "");
-        const response = await fetch(`/dashboard/tickets/${ticketId}/assign-json`, {
+        const response = await fetch(`/ticketera/tickets/${ticketId}/assign-json`, {
           method: "POST",
           credentials: "same-origin",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },

@@ -1748,7 +1748,7 @@ def get_comercial_todo(db: Session) -> dict:
         area_comercial = _area_estado(comercial_checks)
 
         # Servicio Tecnico o Instalacion solos no requieren registro en Alpha3 / Intranet
-        # (mismo criterio que TablaAdministracion.html: debeOcultarBoton).
+        # (mismo criterio que tabla_administracion_venta.html: debeOcultarBoton).
         omitir_registros = (
             len(tipos_lista) == 1
             and _normalize_text(tipos_lista[0]) in {"servicio tecnico", "instalacion"}

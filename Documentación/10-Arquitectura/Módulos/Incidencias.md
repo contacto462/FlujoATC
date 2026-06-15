@@ -43,7 +43,7 @@ actualizado: 2026-06-14
 - Correo / Drive / Telegram: integración externa (SMTP/API) según credenciales del entorno
 
 > [!note] Python en este equipo
-> El README original asume Windows (`.venv\Scripts\activate`, Python 3.12/3.13). En macOS se usa `.venv314` — ver [[Levantar Servidor]].
+> El README original asume Windows (`.venv\Scripts\activate`). En macOS se usa `.venv-backend` con Python **3.14.5** — ver [[Levantar Servidor]].
 
 ---
 > Migrado de `ATC/incidencias/README.md` (limpiado de marcadores de conflicto de Git).

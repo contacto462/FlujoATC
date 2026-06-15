@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Migración GAS -> Python + SQL
 
 Este proyecto adapta tu Google Apps Script a Python con FastAPI, reemplazando Google Sheets por SQL.
@@ -15,21 +14,19 @@ Este proyecto adapta tu Google Apps Script a Python con FastAPI, reemplazando Go
 - `sql/schema.sql`: DDL SQL explícito
 
 ## Ejecutar
-1. Crear entorno:
-   - `python -m venv .venv`
-   - `.venv\\Scripts\\activate`
-2. Actualizar herramientas de instalación (importante en Python 3.14):
-   - `python -m pip install --upgrade pip setuptools wheel`
-3. Instalar dependencias:
-   - `python -m pip install --prefer-binary -r requirements.txt`
-4. Opcional `.env`:
+1. Usar el entorno del repo con Python 3.14.5:
+   - `./.venv-backend/bin/python --version`
+2. Instalar dependencias:
+   - `./.venv-backend/bin/python -m pip install --upgrade pip setuptools wheel`
+   - `./.venv-backend/bin/python -m pip install --prefer-binary -r requirements.txt`
+3. Opcional `.env`:
    - `DATABASE_URL=postgresql+psycopg://user:pass@localhost:5432/incidencias`
-5. Iniciar API:
-   - `python -m uvicorn app.main:app --host 127.0.0.1 --port 8001`
+4. Iniciar API:
+   - `./.venv-backend/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8001`
 
 ## Nota Python
-- Recomendado: Python `3.12` o `3.13`.
-- Si usas `3.14`, instala siempre con `--prefer-binary` para evitar compilar `pydantic-core`.
+- Recomendado: Python `3.14.5`.
+- Si recreas el entorno, usa la misma versión del repo para evitar diferencias en SQLAlchemy/Pydantic.
 
 ## Tablas (antes Sheets)
 - `registro` (hoja `Registro`)
@@ -50,7 +47,3 @@ Este proyecto adapta tu Google Apps Script a Python con FastAPI, reemplazando Go
 - Tareas soporte: migrado.
 - Rendiciones base: migrado.
 - Correo/Drive/Telegram: dejar por integración externa (SMTP/API) según credenciales del entorno.
-=======
-# ATC
-Flujo ATC
->>>>>>> b6b74440aa1cf204510548ab1b4799a61fb314d3

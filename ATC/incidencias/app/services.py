@@ -3457,7 +3457,7 @@ class IncidenciasService:
         for r in rows:
             sucursal = str(r.cliente or "").strip()
             direccion = str(r.direccion or "").strip() or self._direccion_cliente(sucursal)
-            # Para tabla.html la observacion visible debe salir de "observacion"
+            # Para incidencias_servicio_tecnico.html la observacion visible debe salir de "observacion"
             # y no de "detalle_problema".
             detalle = str(r.observacion or "").strip()
             obs_pend = str(getattr(r, "observacion_pendiente", "") or "").strip()
