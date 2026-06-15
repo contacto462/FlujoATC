@@ -4,7 +4,7 @@ area: plataforma
 estado: activo
 tags:
   - arquitectura
-actualizado: 2026-06-14
+actualizado: 2026-06-15
 ---
 
 # Visión General · ATC
@@ -24,9 +24,9 @@ flowchart TD
     V -.misma BBDD.- DB
 ```
 
-- **[[Helpdesk]]** (`ATC/app`) — tickets, SLA + feedback, mensajes, solicitantes, correo IMAP/SMTP, paneles, analytics, Celery workers.
-- **[[Incidencias]]** (`ATC/incidencias/app`) — registro, clientes, sucursales, protocolos, rendiciones, tareas (migrado de Google Apps Script).
-- **[[Venta]]** — venta ODS, finanzas, administración, operaciones.
+- **[[Helpdesk]]** (`ATC/app/routes/web.py`, etc.) — tickets, SLA + feedback, mensajes, solicitantes, correo IMAP/SMTP, paneles, analytics, Celery workers.
+- **[[Incidencias]]** (`ATC/app/routes/incidencias.py`, `ATC/app/services/incidencias_service.py`, etc.) — registro, clientes, sucursales, protocolos, rendiciones, tareas (migrado de Google Apps Script).
+- **[[Venta]]** (`ATC/app/routes/venta.py`, `ATC/app/services/venta_service.py`, etc.) — venta ODS, finanzas, administración, operaciones.
 
 ## Áreas y redirección
 Cada usuario tiene un área principal en `[[user_areas]]` que define a qué panel entra. Detalle en [[Login Único y SSO]].

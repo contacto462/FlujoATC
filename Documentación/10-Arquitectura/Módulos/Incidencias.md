@@ -5,23 +5,23 @@ estado: activo
 tags:
   - modulo
   - modulo/incidencias
-actualizado: 2026-06-14
+actualizado: 2026-06-15
 ---
 
 # Módulo · Incidencias
 
 > [!abstract] Responsabilidad
-> Operación de incidencias y servicio técnico, migrado de Google Apps Script (Sheets → SQL). Código en `ATC/incidencias/app`. Incluye también el flujo de [[Venta]].
+> Operación de incidencias y servicio técnico, migrado de Google Apps Script (Sheets → SQL). Código unificado en `ATC/app/` (ya no existe `ATC/incidencias/`). Incluye también el flujo de [[Venta]].
 
 ## Stack
 - Python + FastAPI · SQLAlchemy ORM · PostgreSQL (base `ATC`)
 
 ## Estructura del código
-- `app/main.py` — router principal (equivalente a `doGet` + endpoints API)
-- `app/services.py` — lógica de negocio migrada desde GAS
-- `app/models.py` — tablas SQL (reemplazo de hojas)
-- `app/protocolos_service.py`, `app/drive_report_service.py`
-- `sql/schema.sql` — DDL explícito
+- `ATC/app/routes/incidencias.py` — router principal (`APIRouter`, equivalente al antiguo `doGet` + endpoints API)
+- `ATC/app/services/incidencias_service.py` — lógica de negocio migrada desde GAS
+- `ATC/app/services/protocolos_service.py`, `ATC/app/services/incidencias_drive_report_service.py`
+- `ATC/app/models/incidencias.py` — tablas SQL (reemplazo de hojas)
+- `ATC/app/templates/` — templates de incidencias (unificados con Helpdesk y Venta)
 
 ## Tablas (antes Sheets)
 - `[[registro]]` (hoja `Registro`)
