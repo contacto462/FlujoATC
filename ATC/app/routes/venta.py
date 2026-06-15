@@ -74,8 +74,7 @@ from ATC.app.services.venta_service import (
 )
 
 router = APIRouter(tags=["venta"])
-INCIDENCIAS_APP_DIR = Path(__file__).resolve().parents[2] / "incidencias" / "app"
-templates = Jinja2Templates(directory=str(INCIDENCIAS_APP_DIR / "templates"))
+templates = Jinja2Templates(directory=str(Path(__file__).resolve().parents[1] / "templates"))
 
 
 def get_service(db: Session = Depends(get_db)) -> IncidenciasService:
