@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Asignación por Equipo Técnico</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --surface: #ffffff;
+      --surface-soft: #f8fafc;
+      --line: #dbe3ee;
+      --line-strong: #c9d4e2;
+      --text: #172033;
+      --muted: #667085;
+      --muted-2: #8792a2;
+      --primary: #245b89;
+      --primary-soft: #e8f1f8;
+      --shadow: 0 18px 50px rgba(27, 39, 62, .10);
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(900px 420px at 12% -10%, rgba(36, 91, 137, .10), transparent 62%),
+        linear-gradient(180deg, #f7f9fc 0%, var(--bg) 100%);
+    }
+
+    .page {
+      width: min(1760px, calc(100% - 44px));
+      margin: 0 auto;
+      padding: 32px 0 42px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: 220px 1fr 220px;
+      align-items: center;
+      gap: 24px;
+      padding: 8px 28px 2px;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .brand-slot {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 3.2vw, 42px);
+      line-height: 1.08;
+      letter-spacing: -.025em;
+      color: #111827;
+      text-align: center;
+    }
+
+    .subtitle {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.55;
+      max-width: 760px;
+    }
+
+    .logo {
+      width: 142px;
+      height: auto;
+      object-fit: contain;
+      flex: 0 0 auto;
+      mix-blend-mode: multiply;
+    }
+
+    .board {
+      display: grid;
+      gap: 0;
+      margin-top: 22px;
+      align-items: stretch;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: 0 14px 36px rgba(28, 42, 68, .08);
+    }
+
+    .team-col {
+      min-width: 0;
+      border-right: 1px solid var(--line);
+      background: var(--surface);
+      overflow: hidden;
+    }
+
+    .team-col:last-child {
+      border-right: 0;
+    }
+
+    .team-head {
+      height: 132px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #ffffff, #f7f9fc);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .team-name {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      color: #174b73;
+      font-size: clamp(12px, .86vw, 16px);
+      line-height: 1.2;
+      font-weight: 800;
+      letter-spacing: 0;
+      overflow-wrap: anywhere;
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) 30px;
+      align-items: center;
+    }
+
+    .team-members {
+      display: grid;
+      gap: 7px;
+      align-content: center;
+      min-width: 0;
+    }
+
+    .team-member {
+      display: block;
+      width: 100%;
+    }
+
+    .team-member + .team-member {
+      margin-top: 7px;
+      padding-top: 7px;
+      border-top: 1px solid #d9e4ef;
+    }
+
+    .member-name {
+      display: block;
+    }
+
+    .team-plates {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      min-width: 0;
+      min-height: 30px;
+    }
+
+    .member-plate {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 70px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: #d9ebf6;
+      border: 1px solid #a9cadd;
+      color: #0f4f78;
+      box-shadow: 0 4px 10px rgba(23, 75, 115, .10);
+      font-size: clamp(10px, .66vw, 12px);
+      line-height: 1.15;
+      font-weight: 800;
+      letter-spacing: .04em;
+      white-space: nowrap;
+    }
+
+    .team-sub {
+      display: none;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: clamp(10px, .68vw, 12px);
+      line-height: 1.35;
+      font-weight: 600;
+      overflow-wrap: anywhere;
+    }
+
+    .odt-rows {
+      display: grid;
+      gap: 0;
+    }
+
+    .odt-row {
+      display: grid;
+      grid-template-columns: minmax(48px, .36fr) minmax(0, 1fr);
+      gap: 10px;
+      min-height: 74px;
+      padding: 12px 14px;
+      border-bottom: 1px solid #edf1f6;
+      background: #ffffff;
+    }
+
+    .odt-row:last-child {
+      border-bottom: 0;
+    }
+
+    .odt-row:hover {
+      background: #f8fbfe;
+    }
+
+    .odt-code {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      align-self: start;
+      min-height: 34px;
+      padding: 0 8px;
+      border-radius: 10px;
+      background: #edf4fb;
+      color: #174b73;
+      font-size: clamp(11px, .75vw, 14px);
+      font-weight: 800;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    .odt-main {
+      min-width: 0;
+    }
+
+    .branch {
+      color: #1f2937;
+      font-size: clamp(11px, .78vw, 14px);
+      line-height: 1.28;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+
+    .incident {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: clamp(10px, .68vw, 12px);
+      line-height: 1.35;
+      font-weight: 500;
+      overflow-wrap: anywhere;
+    }
+
+    .empty {
+      margin-top: 22px;
+      padding: 34px;
+      border: 1px dashed var(--line-strong);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, .74);
+      color: var(--muted);
+      text-align: center;
+      font-weight: 600;
+    }
+
+    @media (max-width: 760px) {
+      .page {
+        width: min(100% - 28px, 1480px);
+        padding-top: 18px;
+      }
+
+      .topbar {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        padding: 20px;
+      }
+
+      .logo {
+        width: 118px;
+      }
+
+      .board {
+        border-radius: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="topbar">
+      <div class="brand-slot">
+        <img class="logo" src="/shared-static/img/logo-atc2.jpeg" alt="ATC">
+      </div>
+      <h1>Asignación por Equipo Técnico</h1>
+      <div aria-hidden="true"></div>
+    </header>
+
+    {% if resumen.equipos %}
+      <section class="board" aria-label="Asignación por Equipo Técnico" style="grid-template-columns: repeat({{ resumen.equipos|length }}, minmax(0, 1fr));">
+        {% for equipo in resumen.equipos %}
+          <article class="team-col">
+            <header class="team-head">
+              <h2 class="team-name">
+                <span class="team-members">
+                  {% for miembro in equipo.miembros %}
+                    <span class="team-member">
+                      <span class="member-name">{{ miembro.nombre }}</span>
+                    </span>
+                  {% endfor %}
+                </span>
+                <span class="team-plates">
+                  {% for miembro in equipo.miembros %}
+                    {% if miembro.patente %}
+                      <span class="member-plate">{{ miembro.patente }}</span>
+                    {% endif %}
+                  {% endfor %}
+                </span>
+              </h2>
+            </header>
+
+            <div class="odt-rows">
+              {% if equipo.odts %}
+                {% for odt in equipo.odts %}
+                  <div class="odt-row">
+                    <span class="odt-code">{{ odt.odt or "-" }}</span>
+                    <div class="odt-main">
+                      <div class="branch">{{ odt.cliente or "-" }}</div>
+                      <div class="incident">{{ odt.problema or "-" }}</div>
+                    </div>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <div class="odt-row">
+                  <span class="odt-code">-</span>
+                  <div class="odt-main">
+                    <div class="branch">Sin ODT</div>
+                    <div class="incident">Sin asignaciones activas</div>
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+          </article>
+        {% endfor %}
+      </section>
+    {% else %}
+      <section class="empty">
+        No hay ODT derivadas a equipos técnicos durante el día de hoy.
+      </section>
+    {% endif %}
+  </main>
+  <script>
+    window.setTimeout(function () {
+      window.location.reload();
+    }, 1800000);
+  </script>
+</body>
+</html>

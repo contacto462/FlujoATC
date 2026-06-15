@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Servicio Técnico — ATC</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/servicio_dashboard/dashboard.css?v=9">
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts@4/dist/apexcharts.min.js"></script>
+</head>
+<body>
+
+<div class="loading" id="loading">
+  <div class="ring"></div>
+  <p>Cargando indicadores de Servicio Técnico…</p>
+</div>
+
+<div class="app">
+
+  <div class="main">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-brand">
+        <img src="/shared-static/img/logo-atc.png" alt="ATC — Alguien Te Cuida">
+        <div class="topbar-title">
+          <h1>Dashboard Servicio Técnico</h1>
+          <span>Control operativo de ODTs · <span id="lastUpdate">—</span></span>
+        </div>
+      </div>
+      <div class="topbar-spacer"></div>
+
+      <span class="chip-mock" id="mockChip">● Datos de demostración</span>
+      <input type="date" class="control" id="fDesde" title="Desde (vacío = histórico completo)">
+      <input type="date" class="control" id="fHasta" title="Hasta (vacío = histórico completo)">
+
+      <div class="filter-anchor" id="filterAnchor">
+        <button class="btn btn-icon" id="btnFilters" title="Filtros" aria-label="Filtros" aria-haspopup="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+          <span class="filter-count" id="filterCount" hidden>0</span>
+        </button>
+        <div class="filter-pop" id="filterPanel" hidden>
+          <div class="filter-pop-head">
+            <strong>Filtros</strong>
+            <span class="filter-meta" id="filterMeta">—</span>
+          </div>
+          <select class="control" id="fCliente"><option value="">Cliente: todos</option></select>
+          <select class="control" id="fEstado"><option value="">Estado: todos</option></select>
+          <select class="control" id="fTipo"><option value="">Tipo: todos</option></select>
+          <select class="control" id="fTecnico"><option value="">Técnico: todos</option></select>
+          <select class="control" id="fResponsable"><option value="">Responsable: todos</option></select>
+          <select class="control" id="fSla">
+            <option value="">SLA: todos</option>
+            <option value="cumplida">SLA cumplido</option>
+            <option value="incumplida">SLA incumplido</option>
+          </select>
+          <button class="btn btn-ghost" id="btnLimpiar">Limpiar filtros</button>
+        </div>
+      </div>
+
+      <button class="btn btn-icon" id="btnTheme" title="Cambiar tema" aria-label="Cambiar tema">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>
+      </button>
+      <button class="btn btn-icon" id="btnRefresh" title="Actualizar datos" aria-label="Actualizar datos">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/></svg>
+      </button>
+      <button class="btn btn-primary" id="btnExport">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        Exportar
+      </button>
+
+      <div class="session-user" id="usuarioActual" title="Sesión activa">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span id="usuarioActualNombre">Cargando…</span>
+      </div>
+      <a class="btn" id="btnVolver" href="/?form=panelSelectorServicio">Volver</a>
+    </header>
+
+    <!-- Pestañas de dashboard -->
+    <nav class="view-tabs">
+      <button class="view-tab active" data-view="viewServicio">Incidencias</button>
+      <button class="view-tab" data-view="viewInstalaciones">Instalaciones</button>
+    </nav>
+
+    <!-- ═════════ DASHBOARD 1 · SERVICIO ═════════ -->
+    <main class="content" id="viewServicio">
+
+      <!-- ═══ 1 · RESUMEN ═══ -->
+      <section class="block" id="resumen">
+        <div class="hero">
+          <div class="hero-top">
+            <div class="hero-title">
+              <h2>Resumen ejecutivo</h2>
+              <p>Estado operativo del área de Servicio Técnico: volumen, resolución, SLA y alertas activas del período seleccionado.</p>
+            </div>
+            <span class="hero-period">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+              <span id="heroPeriodo">—</span>
+            </span>
+          </div>
+          <div class="hero-stats">
+            <div class="hero-stat">
+              <div class="hs-label">Total ODT</div>
+              <div class="hs-value" id="hTotal">—</div>
+              <div class="hs-trend" id="hTotalTrend"></div>
+            </div>
+            <div class="hero-stat">
+              <div class="hs-label">Tasa de resolución</div>
+              <div class="hs-value" id="hTasa">—</div>
+              <div class="hs-trend" id="hTasaTrend"></div>
+            </div>
+            <div class="hero-stat">
+              <div class="hs-label">SLA técnico</div>
+              <div class="hs-value" id="hSla">—</div>
+              <div class="hs-trend" id="hSlaTrend"></div>
+            </div>
+            <div class="hero-stat">
+              <div class="hs-label">Tiempo prom. cierre</div>
+              <div class="hs-value" id="hTiempo">—</div>
+              <div class="hs-trend" id="hTiempoTrend"></div>
+            </div>
+            <div class="hero-stat">
+              <div class="hs-label">Reincidencias</div>
+              <div class="hs-value" id="hReinc">—</div>
+              <div class="hs-trend" id="hReincTrend"></div>
+            </div>
+            <div class="hero-stat">
+              <div class="hs-label">Alertas activas</div>
+              <div class="hs-value" id="hAlertas">—</div>
+              <div class="hs-trend" id="hAlertasTrend"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bloque analítico -->
+        <div class="grid-2-w" style="margin-top:14px">
+          <article class="card">
+            <div class="card-head">
+              <div><h3>Evolución mensual de ODT</h3><p>Volumen por estado y reincidencias, últimos 12 meses</p></div>
+              <span class="card-tag">Tendencia</span>
+            </div>
+            <div class="card-body"><div class="chart-host tall" id="chEvolucion"></div></div>
+          </article>
+          <article class="card">
+            <div class="card-head">
+              <div><h3>Estados de ODT</h3><p>Distribución del período</p></div>
+              <span class="card-tag">Estados</span>
+            </div>
+            <div class="card-body"><div class="chart-host tall" id="chEstados"></div></div>
+          </article>
+        </div>
+        <div class="grid-2" style="margin-top:14px">
+          <article class="card">
+            <div class="card-head">
+              <div><h3>Responsabilidad de fallas</h3><p>ATC · Cliente · Externo · Internet · Otro</p></div>
+            </div>
+            <div class="card-body"><div class="chart-host" id="chResp"></div></div>
+          </article>
+          <article class="card">
+            <div class="card-head">
+              <div><h3>Tipos de ODT</h3><p>Problemas más frecuentes</p></div>
+            </div>
+            <div class="card-body"><div class="chart-host" id="chTipos"></div></div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ═══ 2 · SLA ═══ -->
+      <section class="block" id="sla">
+        <div class="block-head">
+          <div>
+            <div class="block-kicker">SLA técnico</div>
+            <h2>Cumplimiento y tiempos de cierre</h2>
+            <p id="slaRegla">—</p>
+          </div>
+        </div>
+        <div class="grid-3">
+          <article class="card">
+            <div class="card-head">
+              <div><h3>Cumplimiento SLA</h3><p>ODT cerradas y vencidas del período</p></div>
+            </div>
+            <div class="card-body"><div class="chart-host" id="chSlaRadial"></div></div>
+            <div class="card-body pad" style="display:flex;gap:18px;justify-content:center;padding-top:0">
+              <span class="badge b-green">Dentro: <b id="slaDentro">—</b></span>
+              <span class="badge b-red">Fuera: <b id="slaFuera">—</b></span>
+              <span class="badge b-slate">En plazo: <b id="slaEnPlazo">—</b></span>
+            </div>
+          </article>
+          <article class="card">
+            <div class="card-head">
+              <div><h3>Evolución mensual del SLA</h3><p>% de cumplimiento por mes</p></div>
+            </div>
+            <div class="card-body"><div class="chart-host" id="chSlaMensual"></div></div>
+          </article>
+          <article class="card">
+            <div class="card-head">
+              <div><h3>Tiempo de cierre por tipo</h3><p>Días promedio por tipo de ODT</p></div>
+            </div>
+            <div class="card-body"><div class="chart-host" id="chTiempoTipo"></div></div>
+          </article>
+        </div>
+        <article class="card table-card" style="margin-top:14px">
+          <div class="table-toolbar">
+            <div><h3>ODT que superaron el tiempo esperado</h3><span class="sub" id="lblFueraPlazo">—</span></div>
+          </div>
+          <div class="table-wrap">
+            <table class="tbl">
+              <thead><tr><th>ODT</th><th>Cliente / Sucursal</th><th>Tipo</th><th>Estado</th><th>Técnico</th><th>Días</th></tr></thead>
+              <tbody id="tbFueraPlazo"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <!-- ═══ 3 · CLIENTES ═══ -->
+      <section class="block" id="clientes">
+        <div class="block-head">
+          <div>
+            <div class="block-kicker">Clientes</div>
+            <h2>Ranking de clientes y criticidad</h2>
+            <p>Carga técnica, tiempos, responsabilidad, reincidencias y SLA por cliente/sucursal.</p>
+          </div>
+        </div>
+        <article class="card table-card">
+          <div class="table-toolbar">
+            <div><h3>Ranking de clientes con más ODT</h3><span class="sub" id="lblClientes">—</span></div>
+            <div class="spacer"></div>
+            <div class="table-search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+              <input type="search" class="control" id="searchClientes" placeholder="Buscar cliente…">
+            </div>
+            <button class="btn" id="btnVerMas">Ver todos</button>
+          </div>
+          <div class="table-wrap">
+            <table class="tbl">
+              <thead><tr>
+                <th>#</th><th>Cliente / Sucursal</th><th>Total</th><th>Final.</th><th>Pend.</th><th>Proc.</th>
+                <th>T. cierre</th><th>% ATC</th><th>% Cliente</th><th>Reincid.</th><th>SLA</th><th>Criticidad</th>
+              </tr></thead>
+              <tbody id="tbClientes"></tbody>
+            </table>
+          </div>
+        </article>
+        <div class="grid-2" style="margin-top:14px">
+          <article class="card">
+            <div class="card-head">
+              <div><h3>Clientes críticos</h3><p>Clasificación automática por factores de riesgo</p></div>
+            </div>
+            <div class="card-body pad"><div class="rank" id="rankCriticos"></div></div>
+          </article>
+          <div class="note" style="align-self:start">
+            <b>Criticidad automática:</b> suma factores de riesgo — alto volumen de ODT, 2+ reincidencias, SLA bajo 70%, 3+ desconexiones y fallas tempranas tras instalación. 3+ factores = Crítico · 2 = Medio · 0–1 = Normal.
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══ 4 · REINCIDENCIAS ═══ -->
+      <section class="block" id="reincidencias">
+        <div class="block-head">
+          <div>
+            <div class="block-kicker">Criticidad</div>
+            <h2>Alertas de Reincidencia</h2>
+            <p>Sucursales con varias ODT en una misma semana · Amarillo: 2 · Naranja: 3 · Rojo: 4 o más.</p>
+          </div>
+          <div class="block-head-side"><span class="card-tag" id="lblAlertas">—</span></div>
+        </div>
+        <div class="alerts-grid" id="alertsGrid"></div>
+        <div class="note" style="margin-top:14px">
+          <b>Cómo leer esta sección:</b> una alerta se activa cuando un mismo cliente/sucursal acumula 2 o más ODT dentro de la misma semana (lunes a domingo).
+          El nivel sube con la cantidad: 2 ODT → Amarillo, 3 → Naranja, 4+ → Rojo. Cada tarjeta muestra las ODT involucradas con su estado actual,
+          el responsable diagnosticado y los técnicos que participaron. Una ODT individual se considera <b>reincidente</b> si el mismo cliente registró
+          otra ODT en los días previos según la ventana configurada.
+        </div>
+      </section>
+
+      <!-- ═══ 7 · DESCONEXIONES ═══ -->
+      <section class="block" id="desconexiones">
+        <div class="block-head">
+          <div>
+            <div class="block-kicker">Conectividad</div>
+            <h2>Desconexiones por cliente</h2>
+            <p id="lblDesconexiones">—</p>
+          </div>
+        </div>
+        <div class="grid-2-w">
+          <article class="card table-card">
+            <div class="table-toolbar">
+              <div><h3>Top 10 clientes con más desconexiones</h3></div>
+            </div>
+            <div class="table-wrap">
+              <table class="tbl">
+                <thead><tr><th>#</th><th>Cliente / Sucursal</th><th>Desc.</th><th>Prom. mensual</th><th>Última</th><th>Responsable</th><th>Estados</th><th>Reincid.</th></tr></thead>
+                <tbody id="tbDesconexiones"></tbody>
+              </table>
+            </div>
+          </article>
+          <article class="card">
+            <div class="card-head">
+              <div><h3>Evolución mensual</h3><p>Desconexiones por mes</p></div>
+            </div>
+            <div class="card-body"><div class="chart-host" id="chDesconexiones"></div></div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ═══ 8 · REPORTES ═══ -->
+      <section class="block" id="reportes">
+        <div class="block-head">
+          <div>
+            <div class="block-kicker">Backlog</div>
+            <h2>ODT pendientes antiguas</h2>
+            <p>ODT abiertas con antigüedad de 14 días o más.</p>
+          </div>
+        </div>
+        <article class="card table-card">
+          <div class="table-toolbar">
+            <div><h3>ODT abiertas más antiguas</h3><span class="sub" id="lblAntiguas">—</span></div>
+            <div class="spacer"></div>
+            <div class="table-search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+              <input type="search" class="control" id="searchAntiguas" placeholder="Buscar ODT o cliente…">
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="tbl">
+              <thead><tr><th>ODT</th><th>Cliente / Sucursal</th><th>Dirección</th><th>Creación</th><th>Días abierta</th><th>Estado</th><th>Técnico</th><th>Tipo</th></tr></thead>
+              <tbody id="tbAntiguas"></tbody>
+            </table>
+          </div>
+        </article>
+        <div class="note" style="margin-top:14px">
+          <b>Definiciones:</b> Finalizada = estado "Terminado" · Reincidente = otra ODT del mismo cliente dentro de la ventana configurada ·
+          SLA cumplido = ODT cerrada dentro del plazo objetivo (las abiertas en plazo no penalizan) ·
+          En este sistema cada registro de <b>cliente equivale a una sucursal/sede</b>.
+          El botón <b>Exportar</b> descarga el detalle filtrado en formato Excel (CSV) con columnas calculadas de SLA y reincidencia.
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ═════════ DASHBOARD 2 · INSTALACIONES ═════════ -->
+    <main class="content" id="viewInstalaciones" hidden>
+
+      <!-- ═══ 1 · AVANCE DE CÁMARAS ═══ -->
+      <section class="block" id="avance-camaras">
+        <div class="block-head">
+          <div>
+            <div class="block-kicker">Despliegue</div>
+            <h2>Avance de instalación de cámaras</h2>
+            <p>Progreso por ODS de venta: cámaras instaladas sobre las contratadas ("Cámaras a instalar"). Una instalación finalizada se considera con todas sus cámaras instaladas.</p>
+          </div>
+          <div class="block-head-side"><span class="card-tag" id="lblAvance">—</span></div>
+        </div>
+        <div class="grid-4" style="margin-bottom:14px">
+          <article class="kpi" style="--kpi-color:var(--accent);--kpi-soft:var(--accent-soft)">
+            <div class="kpi-top"><span class="kpi-label">ODT con cámaras</span></div>
+            <div class="kpi-value" id="camOdtTotal">—</div>
+          </article>
+          <article class="kpi" style="--kpi-color:var(--green);--kpi-soft:var(--green-soft)">
+            <div class="kpi-top"><span class="kpi-label">Cámaras contratadas</span></div>
+            <div class="kpi-value" id="camTotalContratadas">—</div>
+          </article>
+          <article class="kpi" style="--kpi-color:var(--blue);--kpi-soft:var(--blue-soft)">
+            <div class="kpi-top"><span class="kpi-label">Cámaras instaladas</span></div>
+            <div class="kpi-value" id="camTotalInstaladas">—</div>
+          </article>
+          <article class="kpi" style="--kpi-color:var(--amber);--kpi-soft:var(--amber-soft)">
+            <div class="kpi-top"><span class="kpi-label">Pendientes</span></div>
+            <div class="kpi-value" id="camTotalPendientes">—</div>
+          </article>
+        </div>
+        <article class="card">
+          <div class="card-body pad"><div class="cam-progress" id="camProgress"></div></div>
+        </article>
+      </section>
+
+      <!-- ═══ 2 · CALIDAD DE INSTALACIÓN ═══ -->
+      <section class="block" id="instalaciones">
+        <div class="block-head">
+          <div>
+            <div class="block-kicker">Calidad técnica</div>
+            <h2>Instalaciones y calidad de instalación</h2>
+            <p>Tiempo entre la instalación y la primera falla posterior del mismo cliente/sucursal.</p>
+          </div>
+          <div class="block-head-side"><span class="card-tag" id="instReglas">—</span></div>
+        </div>
+        <div class="grid-4">
+          <article class="kpi" style="--kpi-color:var(--accent);--kpi-soft:var(--accent-soft)">
+            <div class="kpi-top"><span class="kpi-label">Instalaciones</span></div>
+            <div class="kpi-value" id="instTotal">—</div>
+          </article>
+          <article class="kpi" style="--kpi-color:var(--green);--kpi-soft:var(--green-soft)">
+            <div class="kpi-top"><span class="kpi-label">Sin caída posterior</span></div>
+            <div class="kpi-value" id="instSin">—</div>
+          </article>
+          <article class="kpi" style="--kpi-color:var(--red);--kpi-soft:var(--red-soft)">
+            <div class="kpi-top"><span class="kpi-label">Con caída posterior</span></div>
+            <div class="kpi-value" id="instCon">—</div>
+          </article>
+          <article class="kpi" style="--kpi-color:var(--blue);--kpi-soft:var(--blue-soft)">
+            <div class="kpi-top"><span class="kpi-label">Tiempo prom. a 1ª caída</span></div>
+            <div class="kpi-value" id="instTiempo">—</div>
+          </article>
+        </div>
+        <article class="card table-card" style="margin-top:14px">
+          <div class="table-toolbar">
+            <div><h3>Detalle de instalaciones</h3><span class="sub" id="instVentanas">—</span></div>
+          </div>
+          <div class="table-wrap">
+            <table class="tbl">
+              <thead><tr><th>ODT</th><th>Cliente / Sucursal</th><th>Instalación</th><th>Técnico</th><th>1ª caída</th><th>Días a caída</th><th>Calidad</th></tr></thead>
+              <tbody id="tbInstalaciones"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<script type="module" src="/static/servicio_dashboard/js/main.js?v=7"></script>
+<script src="/static/auth-guard.js"></script>
+</body>
+</html>

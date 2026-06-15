@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pagos · Finanzas</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/finanzas_shared.css">
+<script>if(new URLSearchParams(location.search).get('embed')==='1')document.documentElement.classList.add('embed');</script>
+</head>
+<body>
+<main class="shell">
+  <header class="page-header">
+    <div class="brand">
+      <img src="/shared-static/img/logo-atc.png" alt="ATC" onerror="this.style.display='none'">
+      <div>
+        <h1>Pagos</h1>
+        <p class="subtitle">Registro de transferencias y pagos efectuados a tecnicos</p>
+      </div>
+    </div>
+    <nav class="actions">
+      <a class="btn" href="/venta/finanzas?token={{ token|default('') }}">Volver al panel</a>
+      <button class="btn btn-primary" type="button" onclick="abrirModal()">+ Nuevo pago</button>
+      <button class="btn" type="button" onclick="cargar()">Actualizar</button>
+    </nav>
+  </header>
+
+  <section class="panel">
+    <div class="filters">
+      <label for="fQ">Buscar</label>
+      <input id="fQ" type="search" placeholder="Codigo, tecnico, RUT, tipo pago...">
+    </div>
+    <div class="sheet-note">Hoja "Pagos": registro manual de transferencias y pagos efectuados.</div>
+  </section>
+
+  <section class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>ID</th><th>Codigo Diario</th><th>Tecnico</th><th>RUT</th>
+        <th>Tipo Pago</th><th>Fecha Pago</th>
+        <th style="text-align:right;">Monto</th>
+        <th>Creado por</th><th>Registro</th><th></th>
+      </tr></thead>
+      <tbody id="tbody"><tr><td class="empty-cell" colspan="10">Cargando...</td></tr></tbody>
+    </table>
+  </section>
+</main>
+
+<div id="modal" class="modal-bg" onclick="if(event.target===this)cerrarModal()">
+  <div class="modal">
+    <div class="modal-head">
+      <div><h3>Registrar pago</h3><p>Ingresa los datos del pago efectuado.</p></div>
+      <button class="btn btn-small" onclick="cerrarModal()">Cerrar</button>
+    </div>
+    <div class="modal-body">
+      <div class="field"><label>Codigo diario</label><input id="fCodigo" type="text" placeholder="Ej: 45867-MALA-MATERIALES"></div>
+      <div class="field"><label>Tecnico</label><input id="fTecnico" type="text" placeholder="Nombre completo"></div>
+      <div class="field"><label>RUT tecnico</label><input id="fRut" type="text" placeholder="12.345.678-9"></div>
+      <div class="field"><label>Tipo pago</label>
+        <select id="fTipoPago"><option>Transferencia</option><option>Efectivo</option><option>Cheque</option><option>Otro</option></select>
+      </div>
+      <div class="field"><label>Fecha pago</label><input id="fFecha" type="date"></div>
+      <div class="field"><label>Monto</label><input id="fMonto" type="number" min="0" step="100" placeholder="0"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn btn-primary" id="btnSave" onclick="guardar()">Guardar pago</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script>
+const tokenSesion = {{ token|tojson }};
+let data = [];
+function $(id){return document.getElementById(id);}
+function esc(t){const d=document.createElement("div");d.textContent=String(t||"");return d.innerHTML;}
+function clp(v){const n=Number(v);return Number.isFinite(n)?n.toLocaleString("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}):"$0";}
+function showToast(t,ok=true){const el=$("toast");el.className=ok?"":"error";el.textContent=t;el.style.display="block";clearTimeout(showToast._id);showToast._id=setTimeout(()=>{el.style.display="none";},2800);}
+async function api(url,opt={}){const r=await fetch(url,{headers:{"Content-Type":"application/json",...(opt.headers||{})},...opt});const ct=r.headers.get("content-type")||"";const p=ct.includes("application/json")?await r.json():await r.text();if(!r.ok){throw new Error(typeof p==="string"?p:(p?.detail||JSON.stringify(p)));}return p;}
+function filtered(){
+  const q=$("fQ").value.trim().toLowerCase();
+  if(!q) return data;
+  return data.filter(r=>[r.codigo,r.tecnico,r.rutTecnico,r.tipoPago].some(x=>String(x||"").toLowerCase().includes(q)));
+}
+function render(){
+  const rows=filtered();
+  if(!rows.length){$("tbody").innerHTML=`<tr><td class="empty-cell" colspan="10">Sin pagos registrados.</td></tr>`;return;}
+  $("tbody").innerHTML=rows.map(r=>`
+    <tr>
+      <td class="text-strong">${esc(r.id)}</td>
+      <td class="text-strong">${esc(r.codigo||"")}</td>
+      <td class="text-strong">${esc(r.tecnico||"")}</td>
+      <td>${esc(r.rutTecnico||"—")}</td>
+      <td>${esc(r.tipoPago||"")}</td>
+      <td>${esc(r.fechaPago||"")}</td>
+      <td class="right text-strong">${esc(clp(r.monto))}</td>
+      <td>${esc(r.creadoPor||"—")}</td>
+      <td>${esc(r.fechaRegistro||"")}</td>
+      <td><button class="btn btn-danger btn-small" data-del="${esc(r.id)}">Eliminar</button></td>
+    </tr>
+  `).join("");
+  $("tbody").querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",()=>eliminar(b.getAttribute("data-del"),b)));
+}
+function abrirModal(){
+  $("fCodigo").value="";$("fTecnico").value="";$("fRut").value="";$("fTipoPago").value="Transferencia";
+  $("fMonto").value="";$("fFecha").value=new Date().toISOString().slice(0,10);
+  $("modal").classList.add("open");setTimeout(()=>$("fCodigo").focus(),50);
+}
+function cerrarModal(){$("modal").classList.remove("open");}
+async function guardar(){
+  const payload={
+    codigo:$("fCodigo").value.trim(),
+    tecnico:$("fTecnico").value.trim(),
+    rutTecnico:$("fRut").value.trim(),
+    tipoPago:$("fTipoPago").value,
+    fechaPago:$("fFecha").value,
+    monto:Number($("fMonto").value||0),
+  };
+  if(!payload.codigo||!payload.tecnico||!payload.fechaPago||!payload.monto){showToast("Completa los campos obligatorios",false);return;}
+  const btn=$("btnSave");btn.disabled=true;btn.textContent="Guardando...";
+  try{
+    const tk=encodeURIComponent(tokenSesion||"");
+    await api(`/api/finanzas/pagos?token=${tk}`,{method:"POST",body:JSON.stringify(payload)});
+    showToast(`Pago ${payload.codigo} registrado.`);
+    cerrarModal();cargar();
+  }catch(err){showToast("Error: "+err.message,false);}
+  finally{btn.disabled=false;btn.textContent="Guardar pago";}
+}
+async function eliminar(id,btn){
+  if(!confirm(`Eliminar pago ${id}?`))return;
+  btn.disabled=true;
+  try{await api(`/api/finanzas/pagos/${encodeURIComponent(id)}`,{method:"DELETE"});showToast(`Pago ${id} eliminado.`);cargar();}
+  catch(err){btn.disabled=false;showToast("Error: "+err.message,false);}
+}
+async function cargar(){
+  try{data=await api("/api/finanzas/pagos");render();}
+  catch(err){$("tbody").innerHTML=`<tr><td class="empty-cell" colspan="10">Error: ${esc(err.message)}</td></tr>`;showToast("Error: "+err.message,false);}
+}
+$("fQ").addEventListener("input",render);
+cargar();
+</script>
+<script src="/static/auth-guard.js"></script>
+</body></html>

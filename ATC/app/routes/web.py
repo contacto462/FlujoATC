@@ -102,11 +102,7 @@ from datetime import datetime, timezone, timedelta
 router = APIRouter(tags=["web"])
 
 _ATC_APP_DIR = Path(__file__).resolve().parents[1]
-_TEMPLATES_DIRS = [str(_ATC_APP_DIR / "templates")]
-_INCIDENCIAS_TEMPLATES = _ATC_APP_DIR.parent / "incidencias" / "app" / "templates"
-if _INCIDENCIAS_TEMPLATES.is_dir():
-    _TEMPLATES_DIRS.append(str(_INCIDENCIAS_TEMPLATES))
-templates = Jinja2Templates(env=_Jinja2Env(loader=_FSLoader(_TEMPLATES_DIRS)))
+templates = Jinja2Templates(env=_Jinja2Env(loader=_FSLoader([str(_ATC_APP_DIR / "templates")])))
 
 COOKIE_NAME = "access_token"
 _UPLOADS_ROOT = _ATC_APP_DIR.parent / "uploads"

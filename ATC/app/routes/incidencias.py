@@ -40,7 +40,7 @@ from ATC.app.services.incidencias_drive_report_service import download_support_d
 from ATC.app.services.protocolos_service import ProtocolosService
 
 
-INCIDENCIAS_APP_DIR = Path(__file__).resolve().parents[2] / "incidencias" / "app"
+INCIDENCIAS_APP_DIR = Path(__file__).resolve().parents[1]
 templates = Jinja2Templates(directory=str(INCIDENCIAS_APP_DIR / "templates"))
 
 router = APIRouter()
@@ -1147,7 +1147,7 @@ def do_get(
     view_map = {
         "login": "login.html",
         "panelSelector": "seleccion_panel_operadores.html",
-        "panelSelectorServicio": "seleccion_panel_soporte.html",
+        "panelSelectorServicio": "seleccion_panel_servicio.html",
         "panelSelectorCoordinacion": "seleccion_panel_coordinacion.html",
         "panelSelectorAdministracion": "seleccion_panel_administracion.html",
         "panelSelectorVenta": "seleccion_panel_venta.html",
@@ -1260,39 +1260,6 @@ def logout(token: str, service: Annotated[IncidenciasService, Depends(get_servic
 def get_usuario_actual(token: str, service: Annotated[IncidenciasService, Depends(get_service)]):
     return {"usuario": service.get_usuario_actual(token)}
 
-
-@router.get("/sso/login")
-def sso_login_standalone(
-    request: Request,
-    token: str = Query(default=""),
-    service: Annotated[IncidenciasService, Depends(get_service)] = None,
-):
-    token_limpio = (token or "").strip()
-    if not token_limpio:
-        return RedirectResponse(url="/?form=login&next=auto", status_code=303)
-
-    sesion = service.db.get(LoginSession, token_limpio)
-    if not sesion or sesion.expires_at <= datetime.utcnow():
-        return RedirectResponse(url="/?form=login&next=auto", status_code=303)
-
-    user = service.db.get(User, int(sesion.user_id)) if sesion.user_id else None
-    if not user or not user.is_active:
-        return RedirectResponse(url="/?form=login&next=auto", status_code=303)
-
-    if len(service._area_codes_usuario(user)) > 1 and not (sesion.area_code or "").strip():
-        return RedirectResponse(url=f"/seleccionar-area?token={token_limpio}", status_code=303)
-
-    destino = AREA_PANEL_DESTINOS.get(sesion.area_code or "") or service._destino_principal_usuario(user)
-    if destino == "panelSelectorSoporte":
-        helpdesk = (settings.helpdesk_base_url or "").rstrip("/")
-        base = helpdesk if helpdesk else ""
-        return RedirectResponse(url=f"{base}/sso/login?token={token_limpio}&next=/panel?area=soporte", status_code=303)
-
-    app_url = str(request.base_url).rstrip("/")
-    return RedirectResponse(
-        url=service._redirect_panel_destino(app_url, destino, token_limpio),
-        status_code=303,
-    )
 
 
 @router.get("/resumen-equipos-tecnicos", response_class=HTMLResponse)

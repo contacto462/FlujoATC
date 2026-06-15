@@ -70,10 +70,10 @@ from pathlib import Path
 
 _ATC_ROOT = Path(__file__).resolve().parents[1]
 _UPLOADS_DIR = _ATC_ROOT / "uploads"
-_STATIC_DIR = _ATC_ROOT / "static"
+_APP_STATIC_DIR = Path(__file__).resolve().parent / "static"   # ATC/app/static (unificado Fase 4)
+_STATIC_DIR = _ATC_ROOT / "static"                             # ATC/static (imágenes compartidas)
 _INCIDENCIAS_ROOT = _ATC_ROOT / "incidencias"
-_INCIDENCIAS_UPLOADS_DIR = _INCIDENCIAS_ROOT / "uploads"
-_INCIDENCIAS_STATIC_DIR = _INCIDENCIAS_ROOT / "app" / "static"
+_INCIDENCIAS_UPLOADS_DIR = _INCIDENCIAS_ROOT / "uploads"       # uploads de incidencias (Fase 5 mueve)
 
 
 class _UvicornAccessNoiseFilter(logging.Filter):
@@ -133,6 +133,7 @@ async def _html_auth_redirect(request: _Req, exc: _HTTPExc):
 # CREAR CARPETAS NECESARIAS
 # =========================
 _UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+_APP_STATIC_DIR.mkdir(parents=True, exist_ok=True)
 _STATIC_DIR.mkdir(parents=True, exist_ok=True)
 
 # =========================
@@ -145,7 +146,7 @@ app.mount(
 )
 app.mount(
     "/static",
-    MultiDirectoryStaticFiles([_INCIDENCIAS_STATIC_DIR, _STATIC_DIR]),
+    MultiDirectoryStaticFiles([_APP_STATIC_DIR, _STATIC_DIR]),
     name="static",
 )
 app.mount("/shared-static", StaticFiles(directory=str(_STATIC_DIR)), name="shared-static")

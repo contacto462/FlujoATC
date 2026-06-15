@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registrar Sucursal — ATC</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy-1: #0b1420;
+      --navy-2: #162538;
+      --navy-3: #1e3248;
+      --orange: #ff7a2b;
+      --orange-2: #ff9448;
+      --surface: #ffffff;
+      --bg: #f0f4f8;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --label: #374151;
+      --entry: #f8fafc;
+      --radius: 9px;
+      --sidebar-w: 270px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+    }
+
+    /* ── SHELL ── */
+    .shell {
+      width: 100%;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(135deg, var(--navy-1) 0%, var(--navy-2) 55%, var(--navy-3) 100%);
+      padding: 22px 36px 20px;
+      position: relative;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -80px; right: -40px;
+      width: 260px; height: 260px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,122,43,.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-left h1 { font-size: 20px; font-weight: 800; color: #f4f8f9; letter-spacing: -.03em; }
+    .hero-left p  { font-size: 12.5px; color: #bed0d6; margin-top: 4px; }
+
+    .hero-notice {
+      background: rgba(255,122,43,.1);
+      border: 1px solid rgba(255,122,43,.22);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      max-width: 280px;
+    }
+    .hero-notice p { font-size: 11.5px; color: #ffc59a; line-height: 1.5; }
+
+    /* ── MAIN LAYOUT ── */
+    .main-layout {
+      display: grid;
+      grid-template-columns: var(--sidebar-w) 1fr;
+      flex: 1;
+      align-items: start;
+      background: var(--surface);
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 24px 0;
+    }
+    .sidebar-brand img {
+      width: 150px; height: 150px;
+      object-fit: contain;
+      opacity: .94;
+    }
+
+    .sidebar {
+      background: var(--navy-1);
+      padding: 0 0 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .sidebar-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      color: rgba(190,208,214,.38);
+      padding: 0 24px 6px;
+      margin-top: 4px;
+    }
+
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 500;
+      color: rgba(190,208,214,.65);
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: all .14s;
+      text-decoration: none;
+      line-height: 1.2;
+    }
+
+    .sidebar-item .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: rgba(190,208,214,.28);
+      flex-shrink: 0;
+      transition: background .14s, transform .14s;
+    }
+
+    .sidebar-item:hover { color: #f4f8f9; background: rgba(255,255,255,.06); }
+    .sidebar-item:hover .dot { background: rgba(190,208,214,.55); transform: scale(1.2); }
+
+    .sidebar-item.active {
+      color: #f4f8f9;
+      font-weight: 600;
+      border-left-color: var(--orange);
+      background: rgba(255,122,43,.09);
+    }
+    .sidebar-item.active .dot {
+      background: var(--orange);
+      box-shadow: 0 0 6px rgba(255,122,43,.5);
+    }
+
+    /* ── FORM CONTENT ── */
+    .form-content {
+      padding: 32px 40px 60px;
+      background: var(--surface);
+    }
+
+    /* ── SECTION ── */
+    .section { margin-bottom: 52px; scroll-margin-top: 24px; }
+    .section:last-of-type { margin-bottom: 0; }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.03em;
+      border-left: 4px solid var(--orange);
+      padding-left: 14px;
+    }
+
+    /* ── GRIDS ── */
+    .g2     { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .g3     { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .g-auto { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+
+    /* ── FIELD ── */
+    .f { display: flex; flex-direction: column; gap: 4px; }
+    .mt { margin-top: 12px; }
+
+    .f label { font-size: 11.5px; font-weight: 600; color: var(--label); }
+
+    .f input, .f select {
+      width: 100%;
+      padding: 9px 11px;
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+      appearance: none;
+    }
+
+    .f select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 11px center;
+      padding-right: 32px;
+      cursor: pointer;
+    }
+
+    .f input:focus, .f select:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(255,122,43,.13); }
+    .f input[readonly] { background: var(--entry); color: var(--muted); cursor: default; }
+    .f input::placeholder { color: #94a3b8; font-size: 12.5px; }
+
+    /* ── DAY CHIPS ── */
+    .days-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+    .day-chip { position: relative; }
+    .day-chip input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; }
+
+    .day-chip label {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 44px;
+      height: 34px;
+      padding: 0 10px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      background: var(--entry);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all .12s;
+      user-select: none;
+    }
+
+    .day-chip input:checked + label {
+      background: linear-gradient(135deg, var(--orange), var(--orange-2));
+      border-color: var(--orange);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(255,122,43,.3);
+    }
+
+    .day-chip label:hover { border-color: var(--orange); color: var(--orange); }
+
+    /* ── ENTRY CARDS ── */
+    .entry-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .entry-card {
+      background: var(--entry);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .entry-card .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .entry-card input {
+      width: 100%;
+      padding: 8px 10px;
+      font-size: 12.5px;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+
+    .entry-card input:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(255,122,43,.12); }
+    .entry-card input::placeholder { color: #94a3b8; }
+
+    .btn-add {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      padding: 9px;
+      font-size: 12.5px;
+      font-weight: 600;
+      font-family: inherit;
+      color: var(--orange);
+      background: transparent;
+      border: 1.5px dashed rgba(255,122,43,.35);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all .15s;
+      margin-top: 4px;
+    }
+    .btn-add:hover { background: rgba(255,122,43,.05); border-color: var(--orange); }
+
+    .field-label-sm {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--label);
+      margin-bottom: 8px;
+    }
+
+    /* ── SUBMIT ── */
+    .btn-submit {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, var(--orange) 0%, var(--orange-2) 100%);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      letter-spacing: -.01em;
+      box-shadow: 0 2px 8px rgba(255,122,43,.3), 0 6px 20px rgba(255,122,43,.18);
+      transition: opacity .15s, transform .12s;
+      margin-top: 20px;
+    }
+    .btn-submit:hover { opacity: .92; }
+    .btn-submit:active { transform: translateY(1px); }
+    .btn-submit:disabled { background: #94a3b8; box-shadow: none; cursor: not-allowed; }
+
+    @media (max-width: 700px) {
+      .hero { grid-template-columns: 1fr; padding: 20px 20px 16px; }
+      .hero-notice { max-width: 100%; }
+      .main-layout { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .form-content { padding: 24px 22px 40px; }
+      .g2, .g3, .g-auto { grid-template-columns: 1fr; }
+      .entry-card .row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-left">
+      <h1>Registrar Sucursal</h1>
+      <p>Complete los datos para registrar una nueva sucursal en el sistema.</p>
+    </div>
+    <div class="hero-notice">
+      <p>Verifica en BBDD Sucursal que no exista un registro duplicado antes de continuar.</p>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main-layout">
+
+    <!-- SIDEBAR -->
+    <nav class="sidebar">
+      <div class="sidebar-brand">
+        <img src="/shared-static/img/logo-atc.png" alt="ATC - Alguien Te Cuida">
+      </div>
+      <div class="sidebar-label">Formulario</div>
+      <a class="sidebar-item active" href="#sec-empresa"><span class="dot"></span>1. Empresa</a>
+      <a class="sidebar-item" href="#sec-sucursal"><span class="dot"></span>2. Sucursal</a>
+      <a class="sidebar-item" href="#sec-servicios"><span class="dot"></span>3. Servicios</a>
+      <a class="sidebar-item" href="#sec-horario"><span class="dot"></span>4. Horario</a>
+      <div class="sidebar-label">Personas</div>
+      <a class="sidebar-item" href="#sec-contactos"><span class="dot"></span>5. Contactos Emergencia</a>
+      <a class="sidebar-item" href="#sec-autorizados"><span class="dot"></span>6. Personas Autorizadas</a>
+      <a class="sidebar-item" href="#sec-guardias"><span class="dot"></span>7. Guardias</a>
+
+      <div style="margin-top:auto;padding:16px 20px 20px;">
+        <a id="btnVolver" href="#" style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);color:rgba(255,255,255,.75);font-size:13px;font-weight:700;text-decoration:none;transition:background .18s,color .18s;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Volver al panel
+        </a>
+      </div>
+    </nav>
+
+    <!-- FORM -->
+    <div class="form-content">
+      <form id="formularioSucursal">
+
+        <!-- 1. Empresa -->
+        <div class="section" id="sec-empresa">
+          <div class="section-head">
+            <span class="section-title">1. Identificación del Cliente</span>
+          </div>
+          <div class="g2">
+            <div class="f"><label>RUT Empresa</label><input type="text" id="rut" placeholder="12.345.678-9" required></div>
+            <div class="f"><label>Razón Social</label><input type="text" id="nombreEmpresa" placeholder="Se completará automáticamente" readonly></div>
+          </div>
+        </div>
+
+        <!-- 2. Sucursal -->
+        <div class="section" id="sec-sucursal">
+          <div class="section-head">
+            <span class="section-title">2. Datos de la Sucursal</span>
+          </div>
+          <div class="g2">
+            <div class="f"><label>Nombre Sucursal</label><input type="text" id="nombreSucursal" placeholder="Ej: Tienda Santiago Centro" required></div>
+            <div class="f"><label>Email Envío de Facturas</label><input type="email" id="emailFacturas" placeholder="facturacion@empresa.cl" required></div>
+          </div>
+          <div class="f mt"><label>Dirección</label><input type="text" id="direccionSucursal" placeholder="Calle, número" required></div>
+          <div class="f mt"><label>Referencia de Ubicación</label><input type="text" id="referenciaUbicacion" placeholder="Ej: Frente al Parque Central"></div>
+          <div class="g3 mt">
+            <div class="f"><label>Región</label><select id="region" required><option value="" disabled selected>Seleccionar</option></select></div>
+            <div class="f"><label>Comuna</label><select id="comuna" required><option value="" disabled selected>Seleccionar</option></select></div>
+            <div class="f"><!-- spacer --></div>
+          </div>
+          <div class="g2 mt">
+            <div class="f"><label>Latitud</label><input type="text" id="latitud" placeholder="-33.4569"></div>
+            <div class="f"><label>Longitud</label><input type="text" id="longitud" placeholder="-70.6483"></div>
+          </div>
+        </div>
+
+        <!-- 3. Servicios -->
+        <div class="section" id="sec-servicios">
+          <div class="section-head">
+            <span class="section-title">3. Proveedores</span>
+          </div>
+          <div class="g3">
+            <div class="f"><label>Proveedor Internet</label><select id="proveedorInternet" required><option value="" disabled selected>Seleccionar</option></select></div>
+            <div class="f"><label>Proveedor Electricidad</label><select id="proveedorElectricidad" required><option value="" disabled selected>Seleccionar</option></select></div>
+            <div class="f"><label>N° Cliente Electricidad</label><input type="text" id="nroProveedorElectricidad" placeholder="N° de contrato"></div>
+          </div>
+        </div>
+
+        <!-- 4. Horario -->
+        <div class="section" id="sec-horario">
+          <div class="section-head">
+            <span class="section-title">4. Horario de Funcionamiento</span>
+          </div>
+          <div class="g2">
+            <div class="f"><label>Apertura</label><input type="time" id="horarioApertura" required></div>
+            <div class="f"><label>Cierre</label><input type="time" id="horarioCierre" required></div>
+          </div>
+          <div style="margin-top:14px;">
+            <div class="field-label-sm">Días de funcionamiento</div>
+            <div class="days-row" id="diasFuncionamiento">
+              <div class="day-chip"><input type="checkbox" id="d-lun" value="Lunes"><label for="d-lun">Lun</label></div>
+              <div class="day-chip"><input type="checkbox" id="d-mar" value="Martes"><label for="d-mar">Mar</label></div>
+              <div class="day-chip"><input type="checkbox" id="d-mie" value="Miercoles"><label for="d-mie">Mié</label></div>
+              <div class="day-chip"><input type="checkbox" id="d-jue" value="Jueves"><label for="d-jue">Jue</label></div>
+              <div class="day-chip"><input type="checkbox" id="d-vie" value="Viernes"><label for="d-vie">Vie</label></div>
+              <div class="day-chip"><input type="checkbox" id="d-sab" value="Sabado"><label for="d-sab">Sáb</label></div>
+              <div class="day-chip"><input type="checkbox" id="d-dom" value="Domingo"><label for="d-dom">Dom</label></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Contactos emergencia -->
+        <div class="section" id="sec-contactos">
+          <div class="section-head">
+            <span class="section-title">5. Contactos de Emergencia</span>
+          </div>
+          <div class="entry-list" id="contactosEmergencia">
+            <div class="entry-card">
+              <div class="row">
+                <input type="text" name="nombreEmergencia[]" placeholder="Nombre">
+                <input type="text" name="rutEmergencia[]" placeholder="RUT">
+              </div>
+              <div class="row">
+                <input type="text" name="telefonoEmergencia[]" placeholder="Teléfono">
+                <input type="email" name="emailEmergencia[]" placeholder="Email">
+              </div>
+            </div>
+          </div>
+          <button type="button" class="btn-add" id="btnAgregarContacto">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Agregar Contacto
+          </button>
+        </div>
+
+        <!-- 6. Personas autorizadas -->
+        <div class="section" id="sec-autorizados">
+          <div class="section-head">
+            <span class="section-title">6. Personas Autorizadas</span>
+          </div>
+          <div class="entry-list" id="personasAutorizadas">
+            <div class="entry-card">
+              <div class="row">
+                <input type="text" name="nombreAutorizado[]" placeholder="Nombre">
+                <input type="text" name="rutAutorizado[]" placeholder="RUT">
+              </div>
+              <div class="row">
+                <input type="text" name="telefonoAutorizado[]" placeholder="Teléfono">
+                <input type="email" name="emailAutorizado[]" placeholder="Email">
+              </div>
+              <div class="row">
+                <input type="text" name="claveVerde[]" placeholder="Clave Verde">
+                <input type="text" name="claveRoja[]" placeholder="Clave Roja">
+              </div>
+            </div>
+          </div>
+          <button type="button" class="btn-add" id="btnAgregarPersona">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Agregar Persona
+          </button>
+        </div>
+
+        <!-- 7. Guardias -->
+        <div class="section" id="sec-guardias">
+          <div class="section-head">
+            <span class="section-title">7. Guardias Presenciales</span>
+          </div>
+          <div class="entry-list" id="guardiasContainer"></div>
+          <button type="button" class="btn-add" id="btnAgregarGuardia">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Agregar Guardia
+          </button>
+        </div>
+
+        <input type="hidden" id="latitudLongitud">
+        <button type="button" id="btnRegistrarSucursal" class="btn-submit">Registrar Sucursal</button>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const qsToken = new URLSearchParams(window.location.search).get("token") || "";
+  const withToken = (url) => { const sep = url.includes("?") ? "&" : "?"; return qsToken ? `${url}${sep}token=${encodeURIComponent(qsToken)}` : url; };
+  document.getElementById("btnVolver").href = withToken("/venta/panel-selector");
+  function formatearRUTInput(input) { let rut = String(input.value || "").trim().replace(/[^0-9Kk]/g, "").toUpperCase(); if (rut.length < 2) { input.value = rut; return; } input.value = `${rut.slice(0, -1)}-${rut.slice(-1)}`; }
+  function formatearRUTValue(value) { let rut = String(value || "").trim().replace(/[^0-9Kk]/g, "").toUpperCase(); if (rut.length < 2) return rut; return `${rut.slice(0, -1)}-${rut.slice(-1)}`; }
+  function limpiarRUT(rut) { return formatearRUTValue(rut); }
+  function formatearTelefono(input) { if (!input.value.startsWith("+569")) input.value = "+569"; input.value = "+569" + input.value.slice(4).replace(/\D/g, ""); if (input.value.length > 13) input.value = input.value.slice(0, 13); }
+  function getValue(id) { return document.getElementById(id)?.value.trim() || ""; }
+  async function cargarRegiones() {
+    const regionSelect = document.getElementById("region");
+    regionSelect.innerHTML = '<option value="" disabled selected>Cargando...</option>';
+    const response = await fetch(withToken("/api/venta/catalogo/regiones"));
+    if (!response.ok) { const err = await response.json().catch(() => ({})); regionSelect.innerHTML = '<option value="" disabled selected>Seleccionar</option>'; throw new Error(typeof err?.detail === "string" ? err.detail : "No se pudo cargar regiones."); }
+    const data = await response.json();
+    regionSelect.innerHTML = '<option value="" disabled selected>Seleccionar</option>';
+    (data.regiones || []).forEach(r => { const o = document.createElement("option"); o.value = r; o.textContent = r; regionSelect.appendChild(o); });
+  }
+  async function cargarComunas(region) {
+    const comunaSelect = document.getElementById("comuna");
+    comunaSelect.innerHTML = '<option value="" selected>Cargando...</option>';
+    const response = await fetch(withToken("/api/venta/catalogo/comunas?region=" + encodeURIComponent(region)));
+    if (!response.ok) { const err = await response.json().catch(() => ({})); comunaSelect.innerHTML = '<option value="" disabled selected>Seleccionar</option>'; throw new Error(typeof err?.detail === "string" ? err.detail : "No se pudo cargar comunas."); }
+    const data = await response.json();
+    const comunas = data.comunas || [];
+    comunaSelect.innerHTML = "";
+    comunas.forEach((c, i) => { const o = document.createElement("option"); o.value = c; o.textContent = c; if (i === 0) o.selected = true; comunaSelect.appendChild(o); });
+    if (!comunas.length) comunaSelect.innerHTML = '<option value="" disabled selected>Sin comunas disponibles</option>';
+  }
+  async function cargarProveedoresInternet() {
+    const response = await fetch(withToken("/api/venta/proveedores/internet"));
+    if (!response.ok) throw new Error("No se pudo cargar proveedores de internet.");
+    const data = await response.json();
+    const select = document.getElementById("proveedorInternet");
+    select.innerHTML = '<option value="" disabled selected>Seleccionar</option>';
+    (data.proveedores || []).forEach(p => { const o = document.createElement("option"); o.value = p; o.textContent = p; select.appendChild(o); });
+  }
+  async function cargarProveedoresElectricidad() {
+    const response = await fetch(withToken("/api/venta/proveedores/electricidad"));
+    if (!response.ok) throw new Error("No se pudo cargar proveedores de electricidad.");
+    const data = await response.json();
+    const select = document.getElementById("proveedorElectricidad");
+    select.innerHTML = '<option value="" disabled selected>Seleccionar</option>';
+    (data.proveedores || []).forEach(p => { const o = document.createElement("option"); o.value = p; o.textContent = p; select.appendChild(o); });
+  }
+  async function buscarClientePorRut(rut) { const response = await fetch(withToken("/api/venta/clientes/buscar-por-rut?rut=" + encodeURIComponent(rut))); if (!response.ok) throw new Error("No se pudo buscar la razon social."); return (await response.json()).nombre || ""; }
+  async function actualizarCoordenadas() {
+    const lat = getValue("latitud"); const lng = getValue("longitud");
+    if (lat && lng) { document.getElementById("latitudLongitud").value = `${lat}, ${lng}`; return; }
+    const direccion = getValue("direccionSucursal"); const comuna = getValue("comuna");
+    if (!direccion || !comuna) return;
+    const response = await fetch(withToken("/api/venta/coordenadas?direccion=" + encodeURIComponent(direccion) + "&comuna=" + encodeURIComponent(comuna)));
+    if (!response.ok) return;
+    const data = await response.json();
+    const latR = String(data.lat || "").trim(); const lngR = String(data.lng || "").trim();
+    if (latR && lngR) { document.getElementById("latitudLongitud").value = `${latR}, ${lngR}`; if (!lat) document.getElementById("latitud").value = latR; if (!lng) document.getElementById("longitud").value = lngR; }
+  }
+  function agregarContactoEmergencia() {
+    const container = document.getElementById("contactosEmergencia");
+    const card = document.createElement("div"); card.className = "entry-card";
+    card.innerHTML = `<div class="row"><input type="text" name="nombreEmergencia[]" placeholder="Nombre"><input type="text" name="rutEmergencia[]" placeholder="RUT"></div><div class="row"><input type="text" name="telefonoEmergencia[]" placeholder="Teléfono" value="+569"><input type="email" name="emailEmergencia[]" placeholder="Email"></div>`;
+    container.appendChild(card);
+  }
+  function agregarPersonaAutorizada() {
+    const container = document.getElementById("personasAutorizadas");
+    const card = document.createElement("div"); card.className = "entry-card";
+    card.innerHTML = `<div class="row"><input type="text" name="nombreAutorizado[]" placeholder="Nombre"><input type="text" name="rutAutorizado[]" placeholder="RUT"></div><div class="row"><input type="text" name="telefonoAutorizado[]" placeholder="Teléfono" value="+569"><input type="email" name="emailAutorizado[]" placeholder="Email"></div><div class="row"><input type="text" name="claveVerde[]" placeholder="Clave Verde"><input type="text" name="claveRoja[]" placeholder="Clave Roja"></div>`;
+    container.appendChild(card);
+  }
+  function agregarGuardia() {
+    const container = document.getElementById("guardiasContainer");
+    const card = document.createElement("div"); card.className = "entry-card";
+    card.innerHTML = `<div class="row"><input type="text" name="nombreGuardia[]" placeholder="Nombre"><input type="text" name="rutGuardia[]" placeholder="RUT"></div><div class="row"><input type="text" name="telefonoGuardia[]" placeholder="Teléfono" value="+569"><div style="display:flex;gap:6px;"><input type="time" name="horarioGuardiasDesde[]" style="flex:1;"><input type="time" name="horarioGuardiasHasta[]" style="flex:1;"></div></div>`;
+    container.appendChild(card);
+  }
+  function mapContactos(selector, config) { return Array.from(document.querySelectorAll(selector)).map(div => { const payload = {}; Object.entries(config).forEach(([key, css]) => { const input = div.querySelector(css); payload[key] = input ? input.value.trim() : ""; }); return payload; }); }
+  async function enviarFormulario() {
+    const boton = document.getElementById("btnRegistrarSucursal"); boton.disabled = true; boton.innerText = "Registrando...";
+    try {
+      const diasFuncionamiento = Array.from(document.querySelectorAll('#diasFuncionamiento input:checked')).map(c => c.value).join(", ");
+      const guardias = mapContactos('#guardiasContainer .entry-card', { nombre: 'input[name="nombreGuardia[]"]', rut: 'input[name="rutGuardia[]"]', telefono: 'input[name="telefonoGuardia[]"]', horarioDesde: 'input[name="horarioGuardiasDesde[]"]', horarioHasta: 'input[name="horarioGuardiasHasta[]"]' });
+      const contactosEmergencia = mapContactos('#contactosEmergencia .entry-card', { nombre: 'input[name="nombreEmergencia[]"]', rut: 'input[name="rutEmergencia[]"]', telefono: 'input[name="telefonoEmergencia[]"]', email: 'input[name="emailEmergencia[]"]' });
+      const personasAutorizadas = mapContactos('#personasAutorizadas .entry-card', { nombre: 'input[name="nombreAutorizado[]"]', rut: 'input[name="rutAutorizado[]"]', telefono: 'input[name="telefonoAutorizado[]"]', email: 'input[name="emailAutorizado[]"]', claveVerde: 'input[name="claveVerde[]"]', claveRoja: 'input[name="claveRoja[]"]' });
+      if (!contactosEmergencia.some(c => c.nombre && c.rut && c.telefono && c.email)) throw new Error("Debes completar al menos un contacto de emergencia con todos sus datos.");
+      const lat = getValue("latitud"); const lng = getValue("longitud");
+      const latitudLongitud = lat && lng ? `${lat}, ${lng}` : getValue("latitudLongitud");
+      const payload = { rut: limpiarRUT(getValue("rut")), nombreEmpresa: getValue("nombreEmpresa"), nombreSucursal: getValue("nombreSucursal"), direccionSucursal: getValue("direccionSucursal"), latitud: lat, longitud: lng, region: getValue("region"), comuna: getValue("comuna"), referenciaUbicacion: getValue("referenciaUbicacion"), proveedorInternet: getValue("proveedorInternet"), proveedorElectricidad: getValue("proveedorElectricidad"), nroProveedorElectricidad: getValue("nroProveedorElectricidad"), horarioApertura: getValue("horarioApertura"), horarioCierre: getValue("horarioCierre"), diasFuncionamiento, latitudLongitud, emailFacturas: getValue("emailFacturas"), contactosEmergencia, personasAutorizadas, guardias };
+      const response = await fetch(withToken("/api/venta/sucursales"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      if (!response.ok) { const err = await response.json().catch(() => ({ detail: "Error al registrar la sucursal." })); if (typeof err?.detail === "string") throw new Error(err.detail); if (Array.isArray(err?.detail) && err.detail.length > 0) { const first = err.detail[0]; const field = Array.isArray(first?.loc) ? first.loc[first.loc.length - 1] : ""; throw new Error(field ? `${field}: ${first?.msg || "valor invalido"}` : (first?.msg || "Error al registrar la sucursal.")); } throw new Error(err?.message || "Error al registrar la sucursal."); }
+      const data = await response.json();
+      alert(`Sucursal registrada con exito. ID ${data.sucursal_id || ""}`.trim());
+      window.location.reload();
+    } catch (error) { alert(error.message || "Error inesperado al registrar."); }
+    finally { boton.disabled = false; boton.innerText = "Registrar Sucursal"; }
+  }
+  document.addEventListener("input", function (event) {
+    const name = event.target.getAttribute("name");
+    if (["rutEmergencia[]", "rutAutorizado[]", "rutGuardia[]"].includes(name)) formatearRUTInput(event.target);
+    if (["telefonoEmergencia[]", "telefonoAutorizado[]", "telefonoGuardia[]"].includes(name)) formatearTelefono(event.target);
+  });
+  document.addEventListener("DOMContentLoaded", async function () {
+    const regionSelect = document.getElementById("region"); const comunaSelect = document.getElementById("comuna");
+    regionSelect.innerHTML = '<option value="" disabled selected>Cargando...</option>';
+    comunaSelect.innerHTML = '<option value="" disabled selected>Seleccionar</option>';
+    document.getElementById("rut").addEventListener("input", function () { formatearRUTInput(this); });
+    document.getElementById("rut").addEventListener("blur", async function () { const rut = this.value.trim(); if (!rut) return; try { document.getElementById("nombreEmpresa").value = await buscarClientePorRut(rut); } catch (error) { alert(error.message || "No se pudo buscar la razon social."); } });
+    document.getElementById("direccionSucursal").addEventListener("blur", () => { actualizarCoordenadas().catch(() => {}); });
+    document.getElementById("latitud").addEventListener("input", function () { const lng = getValue("longitud"); if (this.value.trim() && lng) document.getElementById("latitudLongitud").value = `${this.value.trim()}, ${lng}`; });
+    document.getElementById("longitud").addEventListener("input", function () { const lat = getValue("latitud"); if (lat && this.value.trim()) document.getElementById("latitudLongitud").value = `${lat}, ${this.value.trim()}`; });
+    regionSelect.addEventListener("change", function () { if (this.value) cargarComunas(this.value).catch(err => alert(err.message)); });
+    document.getElementById("comuna").addEventListener("change", () => { actualizarCoordenadas().catch(() => {}); });
+    document.getElementById("btnAgregarContacto").addEventListener("click", agregarContactoEmergencia);
+    document.getElementById("btnAgregarPersona").addEventListener("click", agregarPersonaAutorizada);
+    document.getElementById("btnAgregarGuardia").addEventListener("click", agregarGuardia);
+    document.getElementById("btnRegistrarSucursal").addEventListener("click", enviarFormulario);
+    document.querySelectorAll('input[name="telefonoEmergencia[]"], input[name="telefonoAutorizado[]"]').forEach(input => { input.value = "+569"; });
+    try { await cargarRegiones(); await Promise.all([cargarProveedoresInternet(), cargarProveedoresElectricidad()]); }
+    catch (error) { alert(error.message || "No se pudo inicializar el formulario."); }
+  });
+
+  (() => {
+    const sectionIds = ["sec-empresa","sec-sucursal","sec-servicios","sec-horario","sec-contactos","sec-autorizados","sec-guardias"];
+    const navLinks = {};
+    document.querySelectorAll("a.sidebar-item").forEach(a => {
+      const id = (a.getAttribute("href") || "").replace("#", "");
+      if (id) navLinks[id] = a;
+    });
+    function setActive(id) {
+      Object.values(navLinks).forEach(a => a.classList.remove("active"));
+      if (navLinks[id]) navLinks[id].classList.add("active");
+    }
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => { if (entry.isIntersecting) setActive(entry.target.id); });
+    }, { threshold: 0.25, rootMargin: "0px 0px -60% 0px" });
+    sectionIds.forEach(id => { const el = document.getElementById(id); if (el) observer.observe(el); });
+  })();
+</script>
+<script src="/static/auth-guard.js"></script>
+</body>
+</html>
