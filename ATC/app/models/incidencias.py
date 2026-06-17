@@ -12,7 +12,7 @@ from ATC.app.models.user import User  # noqa: F401 — re-export; incidencias_se
 
 
 class Registro(Base):
-    __tablename__ = "registro"
+    __tablename__ = "incidencias"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     odt: Mapped[str] = mapped_column(String(30), unique=True, index=True)
@@ -158,7 +158,7 @@ class SucursalGuardia(Base):
 
 
 class VentaODS(Base):
-    __tablename__ = "venta_ods"
+    __tablename__ = "venta_comercial"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     codigo: Mapped[str] = mapped_column(String(30), unique=True, index=True)
@@ -209,7 +209,7 @@ class VentaODSArchivo(Base):
     __tablename__ = "venta_ods_archivos"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    ods_id: Mapped[int] = mapped_column(ForeignKey("venta_ods.id", ondelete="CASCADE"), index=True)
+    ods_id: Mapped[int] = mapped_column(ForeignKey("venta_comercial.id", ondelete="CASCADE"), index=True)
     codigo_ods: Mapped[str] = mapped_column(String(30), index=True)
     tipo_documento: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
     servicio: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
@@ -221,20 +221,11 @@ class VentaODSArchivo(Base):
     ods: Mapped["VentaODS"] = relationship(back_populates="archivos")
 
 
-class CatalogoCliente(Base):
-    __tablename__ = "catalogo_clientes"
-
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    cliente: Mapped[str] = mapped_column(String(255), unique=True, index=True)
-    activo: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-
-
 class AdministracionODT(Base):
-    __tablename__ = "administracion_odt"
+    __tablename__ = "venta_administracion"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    odt: Mapped[str] = mapped_column(String(30), ForeignKey("venta_ods.codigo", ondelete="CASCADE"), unique=True, index=True)
+    odt: Mapped[str] = mapped_column(String(30), ForeignKey("venta_comercial.codigo", ondelete="CASCADE"), unique=True, index=True)
     tecnico: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     acompanante: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     fecha_derivacion: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
@@ -258,10 +249,10 @@ class AdministracionODT(Base):
 
 
 class FinanzasODT(Base):
-    __tablename__ = "finanzas_odt"
+    __tablename__ = "venta_finanzas"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    odt: Mapped[str] = mapped_column(String(30), ForeignKey("venta_ods.codigo", ondelete="CASCADE"), unique=True, index=True)
+    odt: Mapped[str] = mapped_column(String(30), ForeignKey("venta_comercial.codigo", ondelete="CASCADE"), unique=True, index=True)
     fecha_inicio_servicio: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
 
     recepcion_datos_facturacion: Mapped[bool] = mapped_column(default=False)
@@ -288,10 +279,10 @@ class FinanzasODT(Base):
 
 
 class ServicioTecnicoVentaODT(Base):
-    __tablename__ = "servicio_tecnico_ventas_odt"
+    __tablename__ = "venta_servicio_tecnico"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    odt: Mapped[str] = mapped_column(String(30), ForeignKey("venta_ods.codigo", ondelete="CASCADE"), unique=True, index=True)
+    odt: Mapped[str] = mapped_column(String(30), ForeignKey("venta_comercial.codigo", ondelete="CASCADE"), unique=True, index=True)
 
     recepcion_solicitud_instalacion: Mapped[bool] = mapped_column(default=False)
     fecha_recepcion_solicitud_instalacion: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
@@ -313,17 +304,6 @@ class ServicioTecnicoVentaODT(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
     ods_ref: Mapped["VentaODS"] = relationship(back_populates="servicio_tecnico")
-
-
-class ContactoEmergencia(Base):
-    __tablename__ = "contactos_emergencia"
-
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    sucursal: Mapped[str] = mapped_column(String(255), index=True)
-    nombre: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    celular: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
-    email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    prioridad: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
 
 
 class RegistroCorreoCliente(Base):
@@ -371,39 +351,6 @@ class LoginSession(Base):
     department: Mapped[Optional[str]] = mapped_column(String(80), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     expires_at: Mapped[datetime] = mapped_column(DateTime, index=True)
-
-
-class Tarea(Base):
-    __tablename__ = "tareas"
-
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    codigo: Mapped[str] = mapped_column(String(30), unique=True, index=True)
-    usuario_soporte: Mapped[str] = mapped_column(String(255))
-    fecha_creacion: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    cliente: Mapped[str] = mapped_column(String(255))
-    tipo_tarea: Mapped[str] = mapped_column(String(255))
-    especificacion: Mapped[str] = mapped_column(String(255))
-    descripcion: Mapped[str] = mapped_column(Text)
-    solicitante: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    estado: Mapped[str] = mapped_column(String(80), default="Pendiente")
-    tecnico_cierre: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    fecha_cierre: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    dias_ejecucion: Mapped[Optional[int]] = mapped_column(nullable=True)
-
-
-class SyncOutbox(Base):
-    __tablename__ = "sync_outbox"
-
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    event_type: Mapped[str] = mapped_column(String(80), index=True)
-    entity_key: Mapped[str] = mapped_column(String(80), index=True)
-    payload_json: Mapped[str] = mapped_column(Text)
-    status: Mapped[str] = mapped_column(String(20), default="pending", index=True)
-    attempts: Mapped[int] = mapped_column(default=0)
-    last_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
 
 class Rendicion(Base):
@@ -524,10 +471,10 @@ class ProtocoloInforme(Base):
 
 
 class OperacionesVentaODT(Base):
-    __tablename__ = "operaciones_venta_odt"
+    __tablename__ = "venta_operaciones"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    odt: Mapped[str] = mapped_column(String(30), ForeignKey("venta_ods.codigo", ondelete="CASCADE"), unique=True, index=True)
+    odt: Mapped[str] = mapped_column(String(30), ForeignKey("venta_comercial.codigo", ondelete="CASCADE"), unique=True, index=True)
 
     fecha_inicio_servicio: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
 

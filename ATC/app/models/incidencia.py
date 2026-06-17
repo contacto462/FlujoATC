@@ -9,7 +9,7 @@ from ATC.app.core.db import Base
 
 
 class Incidencia(Base):
-    __tablename__ = "incidencias"
+    __tablename__ = "incidencias_importadas"
     __table_args__ = (
         # Evita duplicados al reimportar el mismo archivo.
         UniqueConstraint("source_file", "source_row", name="uq_incidencias_source_row"),

@@ -27,6 +27,7 @@ from ATC.app.models.email_sync_state import EmailSyncState  # noqa
 from ATC.app.models.ticket_sla_feedback import TicketSlaFeedback  # noqa
 from ATC.app.models.ticket_sla_feedback_event import TicketSlaFeedbackEvent  # noqa
 from ATC.app.models.automation_log import AutomationLog  # noqa
+from ATC.app.models.inicio_turno import InicioTurnoGuardia, InicioTurnoRegistro  # noqa
 
 # =========================
 # IMPORTAR ROUTERS API
@@ -43,6 +44,7 @@ from ATC.app.routes.venta import router as venta_router
 from ATC.app.models import incidencias as _incidencias_models  # noqa
 from ATC.app.models import venta as _venta_models  # noqa
 from ATC.app.routes.bitacora import router as bitacora_router
+from ATC.app.routes.inicio_turno import router as inicio_turno_router, seed_default_inicio_turno_guardias
 
 # =========================
 # IMPORTAR ROUTER WEB (CRM)
@@ -255,26 +257,26 @@ def ensure_requesters_internal_name_column():
     try:
         with engine.begin() as conn:
             inspector = inspect(conn)
-            column_names = {column["name"] for column in inspector.get_columns("requesters")}
+            column_names = {column["name"] for column in inspector.get_columns("clientes")}
             if "internal_name" in column_names:
                 return
-            conn.execute(text("ALTER TABLE requesters ADD COLUMN internal_name VARCHAR(120)"))
-            print("Schema updated: requesters.internal_name")
+            conn.execute(text("ALTER TABLE clientes ADD COLUMN internal_name VARCHAR(120)"))
+            print("Schema updated: clientes.internal_name")
     except Exception as e:
-        print("Error ensuring requesters.internal_name:", e)
+        print("Error ensuring clientes.internal_name:", e)
 
 def ensure_requesters_phone_column():
     try:
         with engine.begin() as conn:
             inspector = inspect(conn)
-            column_names = {column["name"] for column in inspector.get_columns("requesters")}
+            column_names = {column["name"] for column in inspector.get_columns("clientes")}
             if "phone" in column_names:
                 return
-            conn.execute(text("ALTER TABLE requesters ADD COLUMN phone VARCHAR(32)"))
-            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_requesters_phone ON requesters (phone)"))
-            print("Schema updated: requesters.phone")
+            conn.execute(text("ALTER TABLE clientes ADD COLUMN phone VARCHAR(32)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_clientes_phone ON clientes (phone)"))
+            print("Schema updated: clientes.phone")
     except Exception as e:
-        print("Error ensuring requesters.phone:", e)
+        print("Error ensuring clientes.phone:", e)
 
 def ensure_messages_sender_identity_columns():
     # Guarda remitente por mensaje para distinguir respuestas de CC.
@@ -307,6 +309,7 @@ app.include_router(client_notes_router)
 app.include_router(bitacora_router)
 app.include_router(incidencias_router)
 app.include_router(venta_router)
+app.include_router(inicio_turno_router)
 
 # =========================
 # INCLUIR ROUTER WEB (DASHBOARD)
@@ -511,6 +514,11 @@ def startup_tasks():
     normalize_requester_names()
     seed_default_users()
     ensure_configured_user_area_access()
+    db = SessionLocal()
+    try:
+        seed_default_inicio_turno_guardias(db)
+    finally:
+        db.close()
 
     # Iniciar thread de email
     threading.Thread(target=email_loop, daemon=True).start()

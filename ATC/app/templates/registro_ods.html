@@ -14,6 +14,7 @@
       --navy-3: #1e3248;
       --orange: #ff7a2b;
       --orange-2: #ff9448;
+      --orange-dark: #e8691f;
       --surface: #ffffff;
       --bg: #f0f4f8;
       --border: #e2e8f0;
@@ -439,6 +440,166 @@
     .btn-submit:active { transform: translateY(1px); }
     .btn-submit:disabled { background: #94a3b8; box-shadow: none; cursor: not-allowed; }
 
+    /* -- SUCCESS MODAL -- */
+    .success-modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(11, 20, 32, .62);
+      backdrop-filter: blur(8px);
+    }
+
+    .success-modal-overlay.is-open {
+      display: flex;
+      animation: fadeIn .16s ease-out;
+    }
+
+    .success-modal {
+      width: min(440px, 100%);
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.24);
+      border-radius: 18px;
+      background: #fff;
+      box-shadow: 0 24px 70px rgba(11,20,32,.28);
+      animation: modalIn .2s ease-out;
+    }
+
+    .success-modal-top {
+      position: relative;
+      padding: 26px 28px 24px;
+      color: #fff;
+      background:
+        radial-gradient(circle at 88% 18%, rgba(255,255,255,.22), transparent 28%),
+        linear-gradient(145deg, var(--navy-1) 0%, var(--navy-2) 58%, var(--orange-dark) 155%);
+      overflow: hidden;
+    }
+
+    .success-modal-top::after {
+      content: "";
+      position: absolute;
+      right: -72px;
+      bottom: -76px;
+      width: 240px;
+      height: 240px;
+      background: url("/shared-static/img/logo-atc.png") center / contain no-repeat;
+      opacity: .18;
+      filter: blur(2px);
+      transform: rotate(-8deg) scale(1.18);
+    }
+
+    .success-icon {
+      position: relative;
+      width: 54px;
+      height: 54px;
+      margin-bottom: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      background: linear-gradient(135deg, var(--orange), var(--orange-2));
+      box-shadow: 0 12px 30px rgba(255,122,43,.34);
+    }
+
+    .success-modal h3 {
+      position: relative;
+      margin: 0 0 8px;
+      font-size: 24px;
+      line-height: 1.12;
+      letter-spacing: -.02em;
+    }
+
+    .success-modal-lead {
+      position: relative;
+      max-width: 330px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #dbe8ef;
+    }
+
+    .success-modal-body {
+      padding: 22px 28px 26px;
+      background: #fff;
+    }
+
+    .success-summary {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 22px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: #f8fafc;
+    }
+
+    .success-summary-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .success-summary-row strong {
+      max-width: 60%;
+      color: var(--text);
+      text-align: right;
+      word-break: break-word;
+    }
+
+    .success-modal-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .success-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform .12s, box-shadow .15s, background .15s;
+    }
+
+    .success-btn:active { transform: translateY(1px); }
+
+    .success-btn.primary {
+      border: 0;
+      color: #fff;
+      background: linear-gradient(135deg, var(--orange), var(--orange-2));
+      box-shadow: 0 8px 22px rgba(255,122,43,.26);
+    }
+
+    .success-btn.secondary {
+      border: 1px solid var(--border);
+      color: var(--text);
+      background: #fff;
+    }
+
+    .success-btn.primary:hover { box-shadow: 0 10px 28px rgba(255,122,43,.34); }
+    .success-btn.secondary:hover { background: #f8fafc; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes modalIn {
+      from { opacity: 0; transform: translateY(10px) scale(.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
     @media (max-width: 700px) {
       .hero { grid-template-columns: 1fr; padding: 20px 20px 16px; }
       .hero-notice { max-width: 100%; }
@@ -446,6 +607,7 @@
       .sidebar { display: none; }
       .form-content { padding: 24px 22px 40px; }
       .g2, .g3 { grid-template-columns: 1fr; }
+      .success-modal-actions { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -659,10 +821,48 @@
   </div>
 </div>
 
+<div class="success-modal-overlay" id="modalODSRegistrada" aria-hidden="true">
+  <div class="success-modal" role="dialog" aria-modal="true" aria-labelledby="successTitle" aria-describedby="successMessage">
+    <div class="success-modal-top">
+      <div class="success-icon" aria-hidden="true">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      </div>
+      <h3 id="successTitle">ODS registrada</h3>
+      <p class="success-modal-lead" id="successMessage">La orden de servicio fue creada correctamente y ya queda disponible para seguimiento operativo.</p>
+    </div>
+    <div class="success-modal-body">
+      <div class="success-summary" aria-label="Resumen de la ODS registrada">
+        <div class="success-summary-row"><span>Código ODS</span><strong id="successCodigoODS">-</strong></div>
+        <div class="success-summary-row"><span>Cliente</span><strong id="successClienteODS">-</strong></div>
+      </div>
+      <div class="success-modal-actions">
+        <a class="success-btn primary" id="btnVerODS" href="#">Ver BBDD ODS</a>
+        <a class="success-btn secondary" id="btnVolverPanelVenta" href="#">Volver</a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 const qsToken = new URLSearchParams(window.location.search).get("token") || "";
 const withToken = (url) => { const sep = url.includes("?") ? "&" : "?"; return qsToken ? `${url}${sep}token=${encodeURIComponent(qsToken)}` : url; };
 document.getElementById("btnVolver").href = withToken("/venta/panel-selector");
+document.getElementById("btnVerODS").href = withToken("/venta/bbdd-orden-servicio");
+document.getElementById("btnVolverPanelVenta").href = withToken("/venta/panel-selector");
+function abrirModalODSRegistrada(orden, payload) {
+  const modal = document.getElementById("modalODSRegistrada");
+  document.getElementById("successCodigoODS").textContent = orden?.codigo || "-";
+  document.getElementById("successClienteODS").textContent = payload?.razonSocial || payload?.rutCliente || "-";
+  modal.classList.add("is-open");
+  modal.setAttribute("aria-hidden", "false");
+  document.getElementById("btnVerODS").focus();
+}
+function cerrarModalODSRegistrada() {
+  const modal = document.getElementById("modalODSRegistrada");
+  modal.classList.remove("is-open");
+  modal.setAttribute("aria-hidden", "true");
+  document.getElementById("rutCliente").focus();
+}
 function formatearRUTInput(input) { let rut = String(input.value || "").trim().replace(/[^0-9Kk]/g, "").toUpperCase(); if (rut.length < 2) { input.value = rut; return; } input.value = `${rut.slice(0, -1)}-${rut.slice(-1)}`; }
 function obtenerTiposSeleccionados() { return Array.from(document.querySelectorAll('input[name="tipoServicio[]"]:checked')).map(c => c.value); }
 function obtenerValor(id) { return document.getElementById(id)?.value.trim() || ""; }
@@ -790,8 +990,7 @@ async function enviarFormulario() {
     const response = await fetch(withToken("/api/venta/ods"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     if (!response.ok) { const err = await response.json().catch(() => ({ detail: "Error al registrar la orden." })); let message = "Error al registrar la orden."; if (typeof err?.detail === "string") { message = err.detail; } else if (Array.isArray(err?.detail) && err.detail.length > 0) { const first = err.detail[0]; const field = Array.isArray(first?.loc) ? first.loc[first.loc.length - 1] : ""; message = field ? `${field}: ${first?.msg || "valor invalido"}` : (first?.msg || message); } throw new Error(message); }
     const data = await response.json();
-    alert(`Orden registrada con exito. Codigo: ${data.codigo}`);
-    window.location.reload();
+    abrirModalODSRegistrada(data, payload);
   } catch (error) { alert(error?.message || "No se pudo registrar la orden."); }
   finally { boton.textContent = textoOriginal; boton.disabled = false; }
 }
@@ -804,6 +1003,10 @@ document.addEventListener("DOMContentLoaded", async function () {
   document.querySelectorAll('input[name="requiereOC"]').forEach(r => r.addEventListener("change", () => actualizarCamposAdjuntar(obtenerTiposSeleccionados())));
   document.getElementById("btnRegistrarODS").addEventListener("click", enviarFormulario);
   document.getElementById("btnAgregarMaterial").addEventListener("click", () => agregarFilaMaterial());
+  document.getElementById("modalODSRegistrada").addEventListener("click", function (event) { if (event.target === this) cerrarModalODSRegistrada(); });
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && document.getElementById("modalODSRegistrada").classList.contains("is-open")) cerrarModalODSRegistrada();
+  });
   agregarFilaMaterial();
   try { actualizarVisibilidad(); }
   catch (error) { alert(error?.message || "No se pudo inicializar el formulario."); }

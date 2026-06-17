@@ -41,9 +41,7 @@ from ATC.app.services.incidencias_drive_report_service import (
 )
 from ATC.app.models.incidencias import (
     AdministracionODT,
-    CatalogoCliente,
     ClienteBBDD,
-    ContactoEmergencia,
     IncidenciaImagenTabla,
     MantencionImagenSucursal,
     LoginSession,
@@ -53,10 +51,9 @@ from ATC.app.models.incidencias import (
     RendicionPago,
     RendicionViaticoCap,
     SucursalBBDD,
+    SucursalContactoEmergencia,
     SucursalPersonaAutorizada,
     ServicioTecnicoVentaODT,
-    SyncOutbox,
-    Tarea,
     User,
     VentaODS,
     VentaODSArchivo,
@@ -67,7 +64,6 @@ from ATC.app.schemas.incidencias import (
     FormularioRegistro,
     IncidenciaNueva,
     RendicionRequest,
-    TareaManualRequest,
 )
 
 
@@ -2590,19 +2586,6 @@ class IncidenciasService:
             "source_file": "incidencias_sync",
         }
 
-    def _crear_outbox_sync(self, odt: str, payload: dict[str, Any]) -> SyncOutbox:
-        row = SyncOutbox(
-            event_type="incidencia_created",
-            entity_key=odt,
-            payload_json=json.dumps(payload, ensure_ascii=False),
-            status="pending",
-            attempts=0,
-        )
-        self.db.add(row)
-        self.db.commit()
-        self.db.refresh(row)
-        return row
-
     def _sync_to_support_api(self, payload: dict[str, Any]) -> None:
         raw_url = (settings.support_sync_api_url or "").strip()
         if not raw_url:
@@ -2833,37 +2816,6 @@ class IncidenciasService:
             )
             conn.execute(sql_insert, params)
 
-    def _sync_outbox_row(self, row: SyncOutbox) -> None:
-        mode = (settings.support_sync_mode or "off").lower()
-        payload = json.loads(row.payload_json or "{}")
-        try:
-            if mode == "api":
-                try:
-                    self._sync_to_support_api(payload)
-                except Exception as api_exc:
-                    # Fallback opcional: si API no existe/estÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ caÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­da, intenta inserciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n directa al SQL de soporte.
-                    if (settings.support_db_url or "").strip():
-                        try:
-                            self._sync_to_support_db(payload)
-                        except Exception as db_exc:
-                            raise RuntimeError(f"API: {api_exc} | DB fallback: {db_exc}") from db_exc
-                    else:
-                        raise
-            elif mode == "db":
-                self._sync_to_support_db(payload)
-            else:
-                raise RuntimeError(f"Modo de sync no soportado: {mode}")
-            row.status = "sent"
-            row.sent_at = datetime.utcnow()
-            row.last_error = None
-        except Exception as exc:
-            row.status = "failed"
-            row.last_error = str(exc)[:4000]
-        finally:
-            row.attempts = int(row.attempts or 0) + 1
-            row.updated_at = datetime.utcnow()
-            self.db.commit()
-
     def _registrar_sync_soporte_nueva(
         self,
         odt: str,
@@ -2879,57 +2831,13 @@ class IncidenciasService:
             if descripcion_registro is not None:
                 payload["observacion"] = descripcion_registro
                 payload["descripcion"] = descripcion_registro
-            row = self._crear_outbox_sync(odt, payload)
-            self._sync_outbox_row(row)
+            mode = (settings.support_sync_mode or "off").lower()
+            if mode == "api":
+                self._sync_to_support_api(payload)
+            elif mode == "db":
+                self._sync_to_support_db(payload)
         except Exception:
             self.db.rollback()
-
-    def sync_soporte_pendientes(self, limit: int = 50) -> dict[str, Any]:
-        if not self._support_sync_enabled():
-            return {"processed": 0, "sent": 0, "failed": 0, "disabled": True}
-
-        q_limit = max(1, min(int(limit or 50), 500))
-        rows = self.db.scalars(
-            select(SyncOutbox)
-            .where(SyncOutbox.event_type == "incidencia_created", SyncOutbox.status.in_(["pending", "failed"]))
-            .order_by(SyncOutbox.id.asc())
-            .limit(q_limit)
-        ).all()
-        sent = 0
-        failed = 0
-        for row in rows:
-            prev_status = row.status
-            self._sync_outbox_row(row)
-            if row.status == "sent":
-                sent += 1
-            elif row.status == "failed":
-                failed += 1
-            elif prev_status == "failed":
-                failed += 1
-        return {"processed": len(rows), "sent": sent, "failed": failed}
-
-    def obtener_estado_sync_outbox(self, limit: int = 100) -> list[dict[str, Any]]:
-        if not self._support_sync_enabled():
-            return []
-
-        q_limit = max(1, min(int(limit or 100), 500))
-        rows = self.db.scalars(select(SyncOutbox).order_by(SyncOutbox.id.desc()).limit(q_limit)).all()
-        out: list[dict[str, Any]] = []
-        for r in rows:
-            out.append(
-                {
-                    "id": r.id,
-                    "eventType": r.event_type,
-                    "entityKey": r.entity_key,
-                    "status": r.status,
-                    "attempts": r.attempts,
-                    "lastError": r.last_error,
-                    "createdAt": _to_ddmmyyyy_hhmm(r.created_at),
-                    "updatedAt": _to_ddmmyyyy_hhmm(r.updated_at),
-                    "sentAt": _to_ddmmyyyy_hhmm(r.sent_at),
-                }
-            )
-        return out
 
     def enviar_formulario(self, datos: FormularioRegistro) -> str:
         odt = datos.odt or self._proximo_odt("I")
@@ -3425,6 +3333,7 @@ class IncidenciasService:
 
     def obtener_listas_incidencias(self) -> dict[str, list[str]]:
         clientes = self.obtener_catalogo_clientes()
+        sucursales = self.obtener_catalogo_sucursales()
         problemas = [
             "DesconexiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n",
             "Problema de Parlante",
@@ -3432,7 +3341,7 @@ class IncidenciasService:
             "Hora y/o Fecha Cambiada",
             "Problema de Visual",
         ]
-        return {"clientes": clientes, "problemas": problemas}
+        return {"clientes": clientes, "sucursales": sucursales, "problemas": problemas}
 
 
     def obtener_incidencias_por_puesto(self, tecnico: str | None = None) -> list[list[Any]]:
@@ -6024,96 +5933,25 @@ class IncidenciasService:
 
     def obtener_clientes_soporte(self) -> list[str]:
         clientes_base = self.obtener_catalogo_clientes()
-        if clientes_base:
-            clientes = sorted({(r or "").strip() for r in clientes_base if (r or "").strip() and (r or "").strip().lower() != "oficina atc"})
-        else:
-            try:
-                rows_contacto = self.db.scalars(select(ContactoEmergencia.sucursal)).all()
-                clientes = sorted({(r or "").strip() for r in rows_contacto if (r or "").strip() and (r or "").strip().lower() != "oficina atc"})
-            except Exception:
-                clientes = []
+        clientes = sorted({(r or "").strip() for r in clientes_base if (r or "").strip() and (r or "").strip().lower() != "oficina atc"})
         return ["OFICINA ATC", *clientes]
+
     def obtener_catalogo_clientes(self) -> list[str]:
-        # En tu PostgreSQL (captura) existen columnas como:
-        # nombre_sucursal / nombre_cliente / rut_cliente.
-        # Priorizamos nombre_sucursal para poblar el selector "Cliente" en UI.
-        preferidas = ["nombre_sucursal", "nombre_cliente", "sucursal", "cliente"]
-        schema_preferido = (getattr(settings, "db_schema", None) or "public").strip()
-
-        def _schemas_catalogo() -> list[str]:
-            rows = self.db.execute(
-                text(
-                    """
-                    SELECT DISTINCT table_schema
-                    FROM information_schema.columns
-                    WHERE table_name = 'catalogo_clientes'
-                      AND table_schema NOT IN ('pg_catalog', 'information_schema')
-                    """
-                )
-            ).all()
-            schemas = [str(r[0]).strip() for r in rows if r and r[0]]
-            if not schemas:
-                return [schema_preferido]
-            # Priorizar schema configurado/esperado.
-            schemas.sort(key=lambda s: (0 if s == schema_preferido else 1, s))
-            return schemas
-
-        def _columnas_catalogo(schema_name: str) -> set[str]:
-            rows = self.db.execute(
-                text(
-                    """
-                    SELECT column_name
-                    FROM information_schema.columns
-                    WHERE table_schema = :schema_name
-                      AND table_name = 'catalogo_clientes'
-                    """
-                ),
-                {"schema_name": schema_name},
-            ).all()
-            return {str(r[0]).strip() for r in rows if r and r[0]}
-
-        try:
-            for schema_name in _schemas_catalogo():
-                cols = _columnas_catalogo(schema_name)
-                if not cols:
-                    continue
-
-                col_cliente = next((c for c in preferidas if c in cols), None)
-                if not col_cliente:
-                    continue
-
-                col_activo = "activo" if "activo" in cols else None
-                where_activo = f'AND "{col_activo}" = TRUE' if col_activo else ""
-
-                sql = text(
-                    f"""
-                    SELECT DISTINCT "{col_cliente}" AS cliente
-                    FROM "{schema_name}"."catalogo_clientes"
-                    WHERE "{col_cliente}" IS NOT NULL
-                      AND btrim(CAST("{col_cliente}" AS text)) <> ''
-                      {where_activo}
-                    ORDER BY 1
-                    """
-                )
-                rows = self.db.execute(sql).all()
-                clientes = [str(r[0]).strip() for r in rows if r[0] and str(r[0]).strip()]
-                if clientes:
-                    return clientes
-        except Exception:
-            pass
-
-        # fallback solo si no hay catalogo usable
         try:
             rows_bbdd = self.db.scalars(select(ClienteBBDD.cliente).order_by(ClienteBBDD.cliente.asc())).all()
-            clientes_bbdd = [r for r in rows_bbdd if r]
-            if clientes_bbdd:
-                return clientes_bbdd
+            return [r for r in rows_bbdd if r]
         except Exception:
-            pass
+            return []
 
+    def obtener_catalogo_sucursales(self) -> list[str]:
         try:
-            rows_contacto = self.db.scalars(select(ContactoEmergencia.sucursal).order_by(ContactoEmergencia.sucursal.asc())).all()
-            return sorted({r for r in rows_contacto if r})
+            rows = self.db.scalars(
+                select(SucursalBBDD.nombre_sucursal).order_by(func.lower(func.trim(SucursalBBDD.nombre_sucursal)).asc())
+            ).all()
+            return sorted(
+                {str(r).strip() for r in rows if str(r or "").strip()},
+                key=self._normalizar_texto,
+            )
         except Exception:
             return []
 
@@ -6212,7 +6050,33 @@ class IncidenciasService:
             for sucursal in data:
                 data[sucursal].sort(key=_priority_key)
 
-        # 1) Fuente principal: contactos_emergencia (si existe).
+        # 1) Fuente unificada: contactos de emergencia asociados a bbdd_sucursales.
+        try:
+            rows_emergencia = (
+                self.db.query(
+                    SucursalBBDD.id,
+                    SucursalBBDD.nombre_sucursal,
+                    SucursalContactoEmergencia.nombre,
+                    SucursalContactoEmergencia.telefono,
+                    SucursalContactoEmergencia.email,
+                )
+                .join(SucursalContactoEmergencia, SucursalContactoEmergencia.sucursal_id == SucursalBBDD.id)
+                .order_by(SucursalBBDD.id.asc(), SucursalContactoEmergencia.id.asc())
+                .all()
+            )
+            prioridades_por_sucursal: dict[int, int] = {}
+            for sucursal_id, sucursal, nombre, telefono, email in rows_emergencia:
+                sid = int(sucursal_id or 0)
+                prioridades_por_sucursal[sid] = prioridades_por_sucursal.get(sid, 0) + 1
+                _push(sucursal, nombre, telefono, email, str(prioridades_por_sucursal[sid]))
+        except Exception:
+            pass
+
+        if data:
+            _ordenar_por_prioridad()
+            return data
+
+        # 2) Fuente legacy: contactos_emergencia (si existe).
         try:
             for schema_name in _tablas_disponibles("contactos_emergencia"):
                 cols = _columnas(schema_name, "contactos_emergencia")
@@ -6251,7 +6115,7 @@ class IncidenciasService:
             _ordenar_por_prioridad()
             return data
 
-        # 2) Fallback: catalogo_clientes (cuando contactos estÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡n en la misma tabla).
+        # 3) Fallback: catalogo_clientes (cuando contactos estÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡n en la misma tabla).
         try:
             for schema_name in _tablas_disponibles("catalogo_clientes"):
                 cols = _columnas(schema_name, "catalogo_clientes")
@@ -6288,16 +6152,6 @@ class IncidenciasService:
         except Exception:
             pass
 
-        # 3) ÃƒÆ’Ã†â€™Ãƒâ€¦Ã‚Â¡ltimo fallback (modelo actual)
-        if data:
-            _ordenar_por_prioridad()
-            return data
-        try:
-            rows = self.db.scalars(select(ContactoEmergencia)).all()
-            for r in rows:
-                _push(r.sucursal, r.nombre or "", r.celular or "", r.email or "", r.prioridad or "")
-        except Exception:
-            pass
         _ordenar_por_prioridad()
         return data
 
@@ -6992,90 +6846,6 @@ class IncidenciasService:
                 ]
             )
         return out
-
-    # =========================
-    # TAREAS
-    # =========================
-    def registrar_tarea_manual(self, data: TareaManualRequest) -> str:
-        usuario = self.get_usuario_actual(data.token)
-        if usuario == "Desconocido":
-            raise ValueError("SesiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n invÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡lida o expirada")
-
-        ultimo = self.db.scalar(select(Tarea).order_by(Tarea.id.desc()))
-        siguiente = 1
-        if ultimo and ultimo.codigo:
-            match = re.match(r"T-(\d+)$", ultimo.codigo)
-            if match:
-                siguiente = int(match.group(1)) + 1
-        codigo = f"T-{siguiente}"
-
-        ahora = datetime.utcnow()
-        finalizada = data.estado.strip().lower() == "finalizado"
-        tarea = Tarea(
-            codigo=codigo,
-            usuario_soporte=usuario,
-            fecha_creacion=ahora,
-            cliente=data.cliente,
-            tipo_tarea=data.tipo_tarea,
-            especificacion=data.especificacion,
-            descripcion=data.descripcion,
-            solicitante=data.solicitante,
-            estado=data.estado,
-            tecnico_cierre=usuario if finalizada else None,
-            fecha_cierre=ahora if finalizada else None,
-            dias_ejecucion=0 if finalizada else None,
-        )
-        self.db.add(tarea)
-        self.db.commit()
-        return codigo
-
-    def obtener_registro_tareas(self) -> list[list[str]]:
-        rows = self.db.scalars(select(Tarea).order_by(Tarea.id.desc())).all()
-        out: list[list[str]] = []
-        for t in rows:
-            out.append(
-                [
-                    t.codigo,
-                    t.usuario_soporte,
-                    _to_ddmmyyyy_hhmm(t.fecha_creacion),
-                    t.cliente,
-                    t.tipo_tarea,
-                    t.especificacion,
-                    t.descripcion,
-                    t.solicitante or "",
-                    t.estado,
-                    t.tecnico_cierre or "",
-                    _to_ddmmyyyy_hhmm(t.fecha_cierre),
-                    str(t.dias_ejecucion or ""),
-                ]
-            )
-        return out
-
-    def actualizar_celda_tarea(self, fila_id: int, columna: str, valor: str, token: str) -> bool:
-        tarea = self.db.get(Tarea, fila_id)
-        if not tarea:
-            return False
-
-        columnas_validas = {
-            "cliente",
-            "tipo_tarea",
-            "especificacion",
-            "descripcion",
-            "solicitante",
-            "estado",
-        }
-        if columna not in columnas_validas:
-            raise ValueError(f"Columna invÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡lida: {columna}")
-        setattr(tarea, columna, valor)
-
-        if columna == "estado" and valor == "Finalizado" and not tarea.fecha_cierre:
-            ahora = datetime.utcnow()
-            tarea.tecnico_cierre = self.get_usuario_actual(token)
-            tarea.fecha_cierre = ahora
-            tarea.dias_ejecucion = (ahora.date() - tarea.fecha_creacion.date()).days
-
-        self.db.commit()
-        return True
 
     # =========================
     # RENDICIONES

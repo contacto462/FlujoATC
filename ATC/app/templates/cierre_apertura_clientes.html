@@ -4,451 +4,244 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Cierre y Apertura de Clientes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
     :root{
-      --bg-1:#07161b;
-      --bg-2:#0b2027;
-      --bg-3:#12333b;
-      --panel:rgba(5,19,25,.92);
-      --line:rgba(255,255,255,.12);
-      --text:#f3f8fa;
-      --muted:#b9cdd4;
-      --field:#08141b;
-      --field-b:rgba(194,210,218,.24);
-      --ok:#34d399;
-      --warn:#f59e0b;
+      --bg:#f7f8fa;
+      --surface:#ffffff;
+      --surface-alt:#fafbfc;
+      --surface-hover:#f3f4f6;
+      --row-hover:#fffefa;
+      --text:#111827;
+      --text-soft:#4b5563;
+      --muted:#6b7280;
+      --text-faint:#9ca3af;
+      --border:#e5e7eb;
+      --border-strong:#d1d5db;
+      --accent:#f4a672;
+      --accent-hover:#e89254;
+      --accent-strong:#c2410c;
+      --accent-soft:rgba(244,166,114,.14);
+      --header-bg:#94a3b8;
+      --header-border:#64748b;
+      --field-bg:#ffffff;
+      --field-border:#d1d5db;
+      --field-focus:#f4a672;
+      --warn:#92400e;
+      --warn-bg:#fffbeb;
+      --warn-bd:rgba(146,64,14,.20);
+      --success:#166534;
       --derco:#f97316;
       --kovacs:#3b82f6;
       --astara:#14b8a6;
+      --atlas:#a855f7;
+      --radius-sm:6px;
+      --radius:8px;
+      --radius-lg:12px;
+      --radius-xl:14px;
+      --shadow-sm:0 1px 2px rgba(15,23,42,.04);
+      --shadow-md:0 1px 3px rgba(15,23,42,.06),0 1px 2px rgba(15,23,42,.04);
+      --shadow-lg:0 18px 36px rgba(15,23,42,.10);
     }
 
     *{box-sizing:border-box}
-
+    html,body{min-height:100%}
     body{
       margin:0;
-      min-height:100vh;
-      padding:20px 16px 30px;
+      font-family:"Inter","Segoe UI",system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+      background:var(--bg);
       color:var(--text);
-      font-family:"Segoe UI",sans-serif;
-      background:
-        radial-gradient(circle at 12% 10%,rgba(255,255,255,.05),transparent 20%),
-        radial-gradient(circle at 84% 0%,rgba(249,115,22,.12),transparent 22%),
-        linear-gradient(150deg,var(--bg-1) 0%,var(--bg-2) 45%,var(--bg-3) 100%);
+      font-size:13.5px;
+      font-weight:500;
+      line-height:1.5;
+      letter-spacing:-.005em;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      text-rendering:optimizeLegibility;
     }
 
-    .shell{
-      max-width:1500px;
-      margin:0 auto;
-      display:flex;
-      flex-direction:column;
-      gap:12px;
+    .page-hero{
+      position:sticky;top:0;z-index:50;
+      display:flex;align-items:center;gap:18px;
+      min-height:96px;padding:18px 30px;
+      background:linear-gradient(180deg,#0b1424 0%,#111c2f 100%);
+      border-bottom:1px solid rgba(255,255,255,.06);
     }
+    .logo-atc{height:60px;width:auto;display:flex;align-items:center}
+    .logo-atc img{height:60px;width:auto;object-fit:contain;display:block;filter:drop-shadow(0 2px 6px rgba(0,0,0,.30))}
+    .hero-copy{flex:1;min-width:0;text-align:left}
+    .titulo-central{margin:0;font-size:20px;line-height:1.25;font-weight:700;letter-spacing:-.02em;color:#fff}
+    .hero-subtitle{margin:6px 0 0;font-size:13.5px;line-height:1.45;color:rgba(255,255,255,.72)}
+    .header-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .volver-link{
+      display:inline-flex;align-items:center;justify-content:center;
+      min-height:0;padding:8px 14px;border-radius:7px;
+      border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);
+      color:rgba(255,255,255,.92);font-size:13px;font-weight:600;
+      text-decoration:none;cursor:pointer;font-family:inherit;
+      transition:background-color .15s ease,border-color .15s ease;
+    }
+    .volver-link:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.22)}
 
-    .head{
-      border:1px solid var(--line);
-      border-radius:20px;
-      background:var(--panel);
-      padding:14px 16px;
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:12px;
-      flex-wrap:wrap;
-    }
-    .head-brand{
-      display:flex;
-      align-items:center;
-      gap:12px;
-      flex-wrap:wrap;
-    }
-    .head-logo{
-      width:108px;
-      height:56px;
-      object-fit:contain;
-      border-radius:10px;
-      border:1px solid rgba(255,255,255,.1);
-      background:rgba(255,255,255,.04);
-      padding:6px;
-      filter:drop-shadow(0 6px 14px rgba(0,0,0,.28));
-    }
+    .page-shell{max-width:1500px;margin:0 auto;padding:24px 28px 40px;display:flex;flex-direction:column;gap:20px}
 
-    h1{margin:0;font-size:1.95rem;line-height:1.1}
-    .subtitle{margin:6px 0 0;color:var(--muted)}
+    .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-md)}
 
-    .top-actions{display:flex;gap:8px;flex-wrap:wrap}
-
-    .btn{
-      border:1px solid var(--line);
-      border-radius:11px;
-      background:rgba(255,255,255,.05);
-      color:var(--text);
-      text-decoration:none;
-      padding:9px 12px;
-      font-size:.9rem;
-      font-weight:700;
-      cursor:pointer;
-      transition:.18s ease;
-    }
-    .btn:hover{transform:translateY(-1px)}
-    .btn-main{
-      border:none;
-      background:linear-gradient(135deg,#f97316,#fb923c);
-      box-shadow:0 10px 18px rgba(249,115,22,.26);
-      color:#fff;
-    }
-
-    .filters{
-      border:1px solid var(--line);
-      border-radius:18px;
-      background:var(--panel);
-      padding:12px;
-      display:grid;
-      grid-template-columns:repeat(3,minmax(0,1fr));
-      gap:8px;
-    }
-
-    .field{
-      display:flex;
-      flex-direction:column;
-      gap:4px;
-    }
-    .field label{
-      color:var(--muted);
-      font-size:.8rem;
-      font-weight:700;
-      text-transform:uppercase;
-      letter-spacing:.02em;
-    }
+    .filters{padding:20px;display:flex;flex-direction:column;gap:14px}
 
     input,select{
-      width:100%;
-      background:var(--field);
-      border:1px solid var(--field-b);
-      border-radius:10px;
-      color:var(--text);
-      padding:10px 11px;
-      font:inherit;
+      width:100%;padding:9px 11px;font-size:13px;border-radius:var(--radius-sm);
+      border:1px solid var(--field-border);box-sizing:border-box;color:var(--text);background:var(--field-bg);
+      outline:none;font-family:inherit;transition:border-color .15s ease,box-shadow .15s ease;
     }
+    input:focus,select:focus{border-color:var(--field-focus);box-shadow:0 0 0 3px rgba(244,166,114,.20)}
 
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;gap:8px;
+      padding:9px 16px;background:var(--surface);color:var(--text);border:1px solid var(--border-strong);
+      border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;
+      box-shadow:var(--shadow-sm);transition:background-color .15s ease,border-color .15s ease,transform .1s ease,box-shadow .15s ease;
+    }
+    .btn:hover{background:var(--surface-hover);border-color:var(--text-faint);transform:translateY(-1px)}
     .hint{
-      grid-column:1/-1;
-      border:1px dashed rgba(255,255,255,.2);
-      border-radius:11px;
-      padding:8px 10px;
-      color:var(--muted);
-      font-size:.84rem;
-      background:rgba(255,255,255,.03);
+      grid-column:1/-1;border:1px dashed var(--border-strong);border-radius:var(--radius);
+      padding:10px 12px;color:var(--muted);font-size:12.5px;background:var(--surface-alt);
     }
-    .client-boxes{
-      grid-column:1/-1;
-      display:grid;
-      grid-template-columns:repeat(3,minmax(0,1fr));
-      gap:8px;
-    }
+    .client-boxes{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
     .client-box{
-      border:1px solid rgba(255,255,255,.18);
-      border-radius:12px;
-      padding:10px 12px;
-      min-height:56px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      text-align:center;
-      background:rgba(255,255,255,.03);
-      color:#d9e6eb;
-      cursor:pointer;
-      font-size:.95rem;
-      font-weight:800;
-      letter-spacing:.02em;
-      transition:.18s ease;
+      border:1px solid var(--border-strong);border-radius:var(--radius);padding:10px 12px;min-height:44px;
+      display:flex;align-items:center;justify-content:center;text-align:center;
+      background:var(--surface);color:var(--text-soft);cursor:pointer;font-size:13px;font-weight:700;
+      letter-spacing:.02em;box-shadow:var(--shadow-sm);
+      transition:background-color .15s ease,border-color .15s ease,color .15s ease,transform .1s ease,box-shadow .15s ease;
     }
-    .client-box:hover{
-      transform:translateY(-1px);
-      background:rgba(255,255,255,.06);
-      color:#fff;
-    }
+    .client-box:hover{background:var(--surface-hover);border-color:var(--text-faint);color:var(--text);transform:translateY(-1px)}
     .client-box.active{
-      border-color:rgba(251,146,60,.75);
-      background:linear-gradient(135deg,#f97316,#fb923c);
-      color:#fff;
-      box-shadow:0 10px 18px rgba(249,115,22,.24);
+      border-color:var(--accent-hover);color:#fff;
+      background:linear-gradient(180deg,var(--accent) 0%,var(--accent-hover) 100%);
+      box-shadow:0 1px 2px rgba(194,65,12,.18),0 4px 10px rgba(244,166,114,.34);
     }
 
-    .clients{
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-    }
+    .clients{display:flex;flex-direction:column;gap:16px}
 
-    .client-card{
-      border:1px solid var(--line);
-      border-radius:18px;
-      background:var(--panel);
-      padding:12px;
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-    }
+    .client-card{padding:18px;display:flex;flex-direction:column;gap:14px}
 
     .client-card[data-client="derco"]{--client-color:var(--derco)}
     .client-card[data-client="kovacs"]{--client-color:var(--kovacs)}
     .client-card[data-client="astara"]{--client-color:var(--astara)}
+    .client-card[data-client="atlas"]{--client-color:var(--atlas)}
 
-    .client-head{
-      display:flex;
-      justify-content:space-between;
-      align-items:flex-start;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-    .client-title{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      font-weight:800;
-      font-size:1.05rem;
-    }
-    .dot{
-      width:11px;
-      height:11px;
-      border-radius:999px;
-      background:var(--client-color);
-      box-shadow:0 0 0 4px rgba(255,255,255,.08);
-      flex:0 0 11px;
-    }
-    .client-sub{
-      margin:4px 0 0;
-      color:var(--muted);
-      font-size:.86rem;
-    }
+    .client-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+    .client-title{display:flex;align-items:center;gap:8px;font-weight:800;font-size:16px;color:var(--text)}
+    .dot{width:10px;height:10px;border-radius:999px;background:var(--client-color);box-shadow:0 0 0 3px rgba(244,166,114,.10);flex:0 0 10px}
+    .client-sub{margin:4px 0 0;color:var(--muted);font-size:12.5px}
 
-    .client-tools{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      flex-wrap:wrap;
-    }
+    .client-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
     .btn-export{
-      border:1px solid rgba(255,255,255,.18);
-      background:linear-gradient(180deg,#20475d,#173749);
-      box-shadow:0 10px 18px rgba(9,33,45,.34);
-      color:#f2f8fb;
+      color:#fff;border-color:var(--header-border);font-weight:700;
+      background:linear-gradient(180deg,var(--header-bg) 0%,var(--header-border) 100%);
+      box-shadow:0 1px 2px rgba(71,85,105,.15),0 2px 6px rgba(148,163,184,.35);
     }
+    .btn-export:hover{background:linear-gradient(180deg,#a7b4c4 0%,#54647a 100%);border-color:#475569;box-shadow:0 1px 2px rgba(71,85,105,.20),0 4px 10px rgba(148,163,184,.45)}
 
-    .table-wrap{
-      overflow:auto;
-      border:1px solid var(--line);
-      border-radius:12px;
-      background:rgba(0,0,0,.16);
-    }
+    .table-wrap{overflow:auto;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);box-shadow:var(--shadow-sm)}
 
-    table{
-      width:100%;
-      border-collapse:collapse;
-      min-width:880px;
-    }
+    table{width:100%;border-collapse:collapse;min-width:880px;background:var(--surface);font-size:12.5px}
 
-    th,td{
-      border:1px solid rgba(255,255,255,.08);
-      text-align:center;
-      vertical-align:middle;
-      padding:8px 7px;
-      font-size:.87rem;
-    }
+    th,td{border-bottom:1px solid var(--border);text-align:center;vertical-align:middle;padding:10px 8px;font-size:12.5px}
 
     th{
-      background:linear-gradient(180deg,#2c5d77,#21495f);
-      font-weight:800;
-      white-space:nowrap;
+      background:linear-gradient(180deg,var(--header-bg) 0%,var(--header-hover,#64748b) 100%);
+      font-weight:700;color:#fff;white-space:nowrap;border-bottom:1px solid var(--header-border);
+      text-transform:uppercase;letter-spacing:.06em;font-size:10.5px;
     }
 
-    td.branch{
-      text-align:left;
-      font-weight:700;
-      min-width:260px;
-      background:rgba(255,255,255,.02);
-    }
+    tbody tr:nth-child(even) td{background:var(--surface-alt)}
+    tbody tr:hover td{background:var(--row-hover)}
 
-    .time-input{
-      width:100%;
-      min-width:130px;
-      text-align:center;
-      font-weight:700;
-      letter-spacing:.01em;
-    }
+    td.branch{text-align:left;font-weight:700;min-width:260px;color:var(--text)}
 
-    .preview{
-      border:1px solid rgba(255,255,255,.2);
-      border-radius:12px;
-      overflow:auto;
-      background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.015));
-    }
-    .preview-export{
-      min-width:980px;
-      background:
-        radial-gradient(circle at 88% 4%,rgba(255,255,255,.06),transparent 24%),
-        linear-gradient(180deg,rgba(255,255,255,.038),rgba(255,255,255,.014));
-    }
+    .time-input{width:100%;min-width:130px;text-align:center;font-weight:700;letter-spacing:.01em}
+
+    .preview{border:1px solid var(--border);border-radius:var(--radius);overflow:auto;background:var(--surface)}
+    .preview-export{min-width:980px;background:var(--surface)}
     .export-header{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:10px;
-      padding:12px 14px;
-      border-bottom:1px solid rgba(255,255,255,.12);
-      background:linear-gradient(180deg,#1e3f52,#173246);
+      display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:12px 14px;
+      border-bottom:1px solid var(--header-border);
+      background:linear-gradient(180deg,var(--header-bg) 0%,var(--header-hover,#64748b) 100%);
     }
-    .export-title{
-      margin:0;
-      font-size:1.02rem;
-      font-weight:800;
-      letter-spacing:.01em;
-    }
-    .export-sub{
-      margin:3px 0 0;
-      color:#d4e3e9;
-      font-size:.82rem;
-    }
-    .preview-head{
-      display:grid;
-      grid-template-columns:1.2fr .8fr .8fr;
-      min-width:980px;
-    }
+    .export-title{margin:0;font-size:15px;font-weight:800;letter-spacing:.01em;color:#fff}
+    .export-sub{margin:3px 0 0;color:rgba(255,255,255,.85);font-size:12px}
+    .preview-head{display:grid;grid-template-columns:1.2fr .8fr .8fr;min-width:980px}
 
     .preview-head div{
-      padding:10px 12px;
-      border-right:1px solid rgba(255,255,255,.12);
-      border-bottom:1px solid rgba(255,255,255,.12);
-      background:linear-gradient(180deg,#2c5d77,#21495f);
-      font-weight:800;
-      text-align:center;
-      white-space:nowrap;
+      padding:10px 12px;border-right:1px solid var(--header-border);border-bottom:1px solid var(--header-border);
+      background:linear-gradient(180deg,var(--header-bg) 0%,var(--header-hover,#64748b) 100%);
+      font-weight:800;text-align:center;white-space:nowrap;color:#fff;text-transform:uppercase;font-size:11px;letter-spacing:.04em;
     }
     .preview-head div:last-child{border-right:none}
 
-    .preview-row{
-      display:grid;
-      grid-template-columns:1.2fr .8fr .8fr;
-      min-width:980px;
-    }
+    .preview-row{display:grid;grid-template-columns:1.2fr .8fr .8fr;min-width:980px}
     .preview-row > div{
-      border-right:1px solid rgba(255,255,255,.08);
-      border-bottom:1px solid rgba(255,255,255,.08);
-      padding:9px 10px;
-      text-align:center;
-      min-height:40px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
+      border-right:1px solid var(--border);border-bottom:1px solid var(--border);
+      padding:9px 10px;text-align:center;min-height:40px;display:flex;align-items:center;justify-content:center;color:var(--text);
     }
-    .preview-row > div:first-child{
-      justify-content:flex-start;
-      text-align:left;
-      font-weight:700;
-      background:rgba(255,255,255,.02);
-    }
+    .preview-row > div:first-child{justify-content:flex-start;text-align:left;font-weight:700;background:var(--surface-alt)}
     .preview-row > div:last-child{border-right:none}
     .preview-row:last-child > div{border-bottom:none}
 
     .value-na{color:var(--warn);font-weight:800}
-    .value-time{color:var(--ok);font-weight:800}
-    .value-empty{color:#9eb2ba}
+    .value-time{color:var(--success);font-weight:800}
+    .value-empty{color:var(--text-faint)}
 
     .export-sheet{
-      position:fixed;
-      left:-10000px;
-      top:0;
-      width:1240px;
-      color:#f2f8fb;
-      padding:16px;
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,.14);
-      background:
-        radial-gradient(circle at 90% 4%,rgba(255,255,255,.06),transparent 30%),
-        linear-gradient(150deg,#071b24 0%,#0c2834 42%,#133949 100%);
-      box-shadow:0 24px 50px rgba(0,0,0,.38);
+      position:fixed;left:-10000px;top:0;width:1240px;color:var(--text);padding:18px;
+      border-radius:var(--radius-lg);border:1px solid var(--border);background:var(--surface);box-shadow:var(--shadow-lg);
     }
-    .export-brand{
-      display:flex;
-      justify-content:space-between;
-      align-items:flex-start;
-      gap:14px;
-      margin-bottom:10px;
-      padding:4px 2px;
-    }
-    .export-brand-left{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      min-width:0;
-    }
-    .export-logo{
-      width:120px;
-      height:56px;
-      object-fit:contain;
-      border-radius:10px;
-      background:rgba(255,255,255,.08);
-      border:1px solid rgba(255,255,255,.18);
-      padding:3px 8px;
-    }
-    .export-company{
-      margin:0;
-      font-size:.98rem;
-      font-weight:800;
-      letter-spacing:.01em;
-    }
-    .export-meta{
-      margin:4px 0 0;
-      color:#d2e3ea;
-      font-size:.82rem;
-    }
+    .export-brand{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:12px;padding:4px 2px}
+    .export-brand-left{display:flex;align-items:center;gap:10px;min-width:0}
+    .export-logo{width:120px;height:56px;object-fit:contain}
+    .export-company{margin:0;font-size:14px;font-weight:800;letter-spacing:.01em;color:var(--text)}
+    .export-meta{margin:6px 0 0;color:var(--text);font-size:13px;font-weight:700}
+    .export-periodo{display:inline-flex;align-items:center;margin-left:8px;padding:2px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent-strong);font-weight:800;font-size:12px}
+    .export-periodo.is-empty{background:var(--surface-alt);color:var(--muted);font-weight:600}
 
-    @media (max-width: 1250px){
-      .filters{grid-template-columns:repeat(2,minmax(0,1fr))}
-      .client-boxes{grid-template-columns:repeat(3,minmax(0,1fr))}
+    @media (max-width:1250px){
+      .client-boxes{grid-template-columns:repeat(2,minmax(0,1fr))}
     }
-
-    @media (max-width: 760px){
-      .filters{grid-template-columns:1fr}
+    @media (max-width:1100px){
+      .page-shell{padding:14px}
+      .page-hero{flex-direction:column;text-align:center;align-items:center;gap:10px;min-height:0;padding:18px 16px}
+      .hero-copy{text-align:center}
+      .titulo-central{font-size:18px}
+    }
+    @media (max-width:760px){
       .client-boxes{grid-template-columns:1fr}
-      .head{padding:12px}
-      h1{font-size:1.6rem}
     }
   </style>
 </head>
 <body>
-  <main class="shell">
-    <section class="head">
-      <div class="head-brand">
-        <img src="/shared-static/img/logo-atc.png" alt="ATC" class="head-logo" />
-        <div>
-          <h1>Cierre y Apertura de Clientes</h1>
-          <p class="subtitle">Panel oficial para control interno y plantilla profesional de envio a cliente (correo/WhatsApp).</p>
-        </div>
-      </div>
-      <div class="top-actions">
-        <a class="btn" href="/?form=panelSelector&token={{ token|default('') }}">Volver al panel</a>
-        <a class="btn" href="/?form=login&next=auto">Cambiar sesion</a>
-      </div>
-    </section>
+  <header class="page-hero">
+    <div class="logo-atc"><img src="/shared-static/img/logo-atc.png" alt="Logo ATC" /></div>
+    <div class="hero-copy">
+      <h1 class="titulo-central">Cierre y Apertura de Clientes</h1>
+      <p class="hero-subtitle">Panel oficial para control interno y plantilla profesional de envío a cliente (correo/WhatsApp).</p>
+    </div>
+    <div class="header-actions">
+      <a class="volver-link" href="/?form=panelSelector&token={{ token|default('') }}">Volver al panel</a>
+      <a class="volver-link" href="/?form=login&next=auto">Cambiar sesión</a>
+    </div>
+  </header>
 
-    <section class="filters">
-      <div class="field">
-        <label>Fecha cierre</label>
-        <input id="fechaCierre" type="date" />
-      </div>
-      <div class="field">
-        <label>Fecha apertura</label>
-        <input id="fechaApertura" type="date" />
-      </div>
-      <div class="field">
-        <label>Accion</label>
-        <button class="btn btn-main" type="button" id="btnAplicarFechas">Aplicar fechas a todos</button>
-      </div>
+  <div class="page-shell">
+    <section class="panel filters">
       <div class="client-boxes" id="clientBoxes">
         <button type="button" class="client-box" data-client="derco">DERCO</button>
         <button type="button" class="client-box" data-client="kovacs">KOVACS</button>
         <button type="button" class="client-box" data-client="astara">ASTARA</button>
+        <button type="button" class="client-box" data-client="atlas">ATLAS</button>
       </div>
       <div class="hint">
         Puedes escribir <b>hora</b> (ej. 19:34), <b>S/A</b> o <b>-</b>. Usa <b>Guardar imagen PNG</b> para generar la plantilla corporativa de envio.
@@ -456,7 +249,7 @@
     </section>
 
     <section class="clients" id="clientsContainer"></section>
-  </main>
+  </div>
 
   <script>
     const clientsConfig = [
@@ -499,20 +292,20 @@
           "Astara Longitudinal Taller",
         ],
       },
+      {
+        id: "atlas",
+        name: "Atlas",
+        branches: [
+          "Oficina",
+          "Bodega",
+          "OF - T - Pr",
+        ],
+      },
     ];
 
     const state = {
-      fechaCierre: "",
-      fechaApertura: "",
       rows: {},
     };
-
-    function toDisplayDate(value) {
-      if (!value) return "--/--/----";
-      const parts = value.split("-");
-      if (parts.length !== 3) return value;
-      return `${parts[2]}/${parts[1]}/${parts[0]}`;
-    }
 
     function normalizeCellValue(value) {
       const txt = String(value || "").trim();
@@ -542,7 +335,7 @@
 
     function renderClientCard(client) {
       const section = document.createElement("section");
-      section.className = "client-card";
+      section.className = "panel client-card";
       section.dataset.client = client.id;
       section.id = `client-${client.id}`;
 
@@ -594,8 +387,6 @@
       });
     }
 
-    function renderDateStamps() {}
-
     function getClientById(clientId) {
       return clientsConfig.find(c => c.id === clientId) || null;
     }
@@ -619,20 +410,20 @@
       const client = getClientById(clientId);
       if (!client) return null;
 
-      const cierre = toDisplayDate(state.fechaCierre);
-      const apertura = toDisplayDate(state.fechaApertura);
       const rowsHtml = buildPreviewRowsHtml(clientId);
-      const periodo = (state.fechaCierre || state.fechaApertura) ? `Periodo ${cierre} - ${apertura}` : "Periodo no definido";
+      const ahora = new Date();
+      const periodo = `${String(ahora.getDate()).padStart(2,"0")}/${String(ahora.getMonth()+1).padStart(2,"0")}/${ahora.getFullYear()} ${String(ahora.getHours()).padStart(2,"0")}:${String(ahora.getMinutes()).padStart(2,"0")}`;
+      const periodoClase = "export-periodo";
 
       const sheet = document.createElement("section");
       sheet.className = "export-sheet";
       sheet.innerHTML = `
         <div class="export-brand">
           <div class="export-brand-left">
-            <img src="/shared-static/img/logo-atc.png" alt="ATC" class="export-logo" />
+            <img src="/shared-static/img/logo-atc2.jpeg" alt="ATC" class="export-logo" />
             <div>
-              <p class="export-company">ATC - Alguien Te Cuida</p>
-              <p class="export-meta">Reporte de cierre y apertura · ${periodo}</p>
+              <p class="export-company">Alguien Te Cuida</p>
+              <p class="export-meta">Reporte de cierre y apertura<span class="${periodoClase}">${periodo}</span></p>
             </div>
           </div>
         </div>
@@ -692,7 +483,6 @@
       clientsConfig.forEach(client => {
         renderEditRows(client.id);
       });
-      renderDateStamps();
     }
 
     function filterClients(clientId) {
@@ -720,22 +510,6 @@
         const btn = event.target.closest(".client-box");
         if (!btn) return;
         applyClientFilter(btn.getAttribute("data-client"));
-      });
-
-      document.getElementById("btnAplicarFechas").addEventListener("click", () => {
-        state.fechaCierre = document.getElementById("fechaCierre").value;
-        state.fechaApertura = document.getElementById("fechaApertura").value;
-        renderDateStamps();
-      });
-
-      document.getElementById("fechaCierre").addEventListener("change", (event) => {
-        state.fechaCierre = event.target.value;
-        renderDateStamps();
-      });
-
-      document.getElementById("fechaApertura").addEventListener("change", (event) => {
-        state.fechaApertura = event.target.value;
-        renderDateStamps();
       });
 
       document.getElementById("clientsContainer").addEventListener("input", (event) => {

@@ -341,6 +341,24 @@ def _upload_bytes(drive, parent_id: str, file_name: str, payload: bytes, mime_ty
     }
 
 
+def _resolve_ods_upload_path(value: object) -> Path | None:
+    raw = _safe_text(value)
+    if not raw:
+        return None
+
+    path = Path(raw)
+    candidates = [path] if path.is_absolute() else [
+        Path.cwd() / path,
+        _ATC_ROOT / path,
+        _ATC_ROOT.parent / path,
+    ]
+
+    for candidate in candidates:
+        if candidate.exists() and candidate.is_file():
+            return candidate
+    return None
+
+
 def upload_ods_files_to_drive(
     codigo: str,
     rut: str,
@@ -391,11 +409,9 @@ def upload_ods_files_to_drive(
 
     results: list[dict] = []
     for f in files:
-        local = Path(str(f.get("path", "")))
-        if not local.is_absolute():
-            local = Path.cwd() / local
-        if not local.exists():
-            continue
+        local = _resolve_ods_upload_path(f.get("path"))
+        if local is None:
+            raise DriveReportError(f"No se encontro archivo local ODS: {_safe_text(f.get('path'))}")
 
         content = local.read_bytes()
         mime = str(f.get("mime") or "") or _guess_mime_and_ext(local.name)[0]

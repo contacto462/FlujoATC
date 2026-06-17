@@ -1702,6 +1702,7 @@
       let selectedBuscarEmpresa = "";
       let selectedBuscarSucursal = "";
       let buscarSucursalItems = [];
+      let empresasConSucursales = [];
 
       function esc(value) {
         return String(value || "")
@@ -1822,20 +1823,37 @@
         }).join("");
       }
 
-      function filterBuscarOptions(container, term) {
+      function filterBuscarOptions(container, term, isEmpresa = false) {
         if (!container) {
           return;
         }
         const cleanTerm = String(term || "").trim().toLowerCase();
         const options = Array.from(container.querySelectorAll(".buscar-select-option"));
         let visibleCount = 0;
+
         options.forEach((option) => {
-          const matches = !cleanTerm || option.textContent.toLowerCase().includes(cleanTerm);
+          let matches = false;
+          if (!cleanTerm) {
+            matches = true;
+          } else if (isEmpresa && empresasConSucursales.length > 0) {
+            const empresaName = option.textContent.trim();
+            const empresaData = empresasConSucursales.find((e) => e.empresa === empresaName);
+            if (empresaData) {
+              matches = empresaName.toLowerCase().includes(cleanTerm) ||
+                        (empresaData.sucursales || []).some((s) => s.toLowerCase().includes(cleanTerm));
+            } else {
+              matches = empresaName.toLowerCase().includes(cleanTerm);
+            }
+          } else {
+            matches = option.textContent.toLowerCase().includes(cleanTerm);
+          }
+
           option.hidden = !matches;
           if (matches) {
             visibleCount += 1;
           }
         });
+
         let empty = container.querySelector(".buscar-select-empty");
         if (!visibleCount) {
           if (!empty) {
@@ -2192,6 +2210,20 @@
         return payload;
       }
 
+      async function loadEmpresasConSucursales() {
+        try {
+          const response = await fetch("/api/bitacora/empresas-sucursales", {
+            headers: { Accept: "application/json" }
+          });
+          const payload = await response.json();
+          if (response.ok && Array.isArray(payload.empresas)) {
+            empresasConSucursales = payload.empresas;
+          }
+        } catch (error) {
+          // Silently ignore errors; fallback to basic search
+        }
+      }
+
       async function loadNoticias() {
         status.textContent = newsView === "expiradas" ? "Cargando noticias expiradas..." : "Cargando noticias activas...";
         try {
@@ -2395,6 +2427,7 @@
       if (buscarEmpresaTrigger) {
         buscarEmpresaTrigger.addEventListener("click", () => {
           openBuscarSelect(buscarEmpresaSelect, buscarEmpresaMenu, buscarEmpresaFilter, buscarEmpresaOptions);
+          loadEmpresasConSucursales();
         });
       }
 
@@ -2406,7 +2439,7 @@
 
       if (buscarEmpresaFilter) {
         buscarEmpresaFilter.addEventListener("input", () => {
-          filterBuscarOptions(buscarEmpresaOptions, buscarEmpresaFilter.value);
+          filterBuscarOptions(buscarEmpresaOptions, buscarEmpresaFilter.value, true);
         });
       }
 

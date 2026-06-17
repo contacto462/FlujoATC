@@ -328,118 +328,145 @@ def bitacora_busqueda_empresa_api(
     )
     selected_sucursal = _detail_value(selected_row, "nombre_sucursal")
 
-    venta_row = incidencias_db.execute(
-        text(
-            """
-            SELECT
-                codigo,
-                tipo_plan,
-                numero_camaras_instalar,
-                numero_camaras_vigilar
-            FROM venta_ods
-            WHERE LOWER(TRIM(razon_social)) = LOWER(TRIM(:empresa))
-               OR LOWER(TRIM(nombre_sucursal)) = LOWER(TRIM(:sucursal))
-            ORDER BY updated_at DESC NULLS LAST, created_at DESC NULLS LAST, id DESC
-            LIMIT 1
-            """
-        ),
-        {"empresa": empresa_limpia, "sucursal": selected_sucursal},
-    ).mappings().first()
+    venta_row = None
+    try:
+        venta_row = incidencias_db.execute(
+            text(
+                """
+                SELECT
+                    codigo,
+                    tipo_plan,
+                    numero_camaras_instalar,
+                    numero_camaras_vigilar
+                FROM venta_ods
+                WHERE LOWER(TRIM(razon_social)) = LOWER(TRIM(:empresa))
+                   OR LOWER(TRIM(nombre_sucursal)) = LOWER(TRIM(:sucursal))
+                ORDER BY updated_at DESC NULLS LAST, created_at DESC NULLS LAST, id DESC
+                LIMIT 1
+                """
+            ),
+            {"empresa": empresa_limpia, "sucursal": selected_sucursal},
+        ).mappings().first()
+    except Exception:
+        venta_row = None
 
     tecnico_row = None
     if venta_row and venta_row.get("codigo"):
-        tecnico_row = incidencias_db.execute(
+        try:
+            tecnico_row = incidencias_db.execute(
+                text(
+                    """
+                    SELECT camaras_registradas
+                    FROM servicio_tecnico_ventas_odt
+                    WHERE odt = :odt
+                    ORDER BY id DESC
+                    LIMIT 1
+                    """
+                ),
+                {"odt": str(venta_row.get("codigo"))},
+            ).mappings().first()
+        except Exception:
+            tecnico_row = None
+
+    cliente_row = None
+    try:
+        cliente_row = incidencias_db.execute(
             text(
                 """
-                SELECT camaras_registradas
-                FROM servicio_tecnico_ventas_odt
-                WHERE odt = :odt
+                SELECT telefono
+                FROM bbdd_clientes
+                WHERE LOWER(TRIM(cliente)) = LOWER(TRIM(:empresa))
+                   OR LOWER(TRIM(rut)) = LOWER(TRIM(:rut))
                 ORDER BY id DESC
                 LIMIT 1
                 """
             ),
-            {"odt": str(venta_row.get("codigo"))},
+            {"empresa": empresa_limpia, "rut": _detail_value(selected_row, "rut")},
         ).mappings().first()
+    except Exception:
+        cliente_row = None
 
-    cliente_row = incidencias_db.execute(
-        text(
-            """
-            SELECT telefono
-            FROM bbdd_clientes
-            WHERE LOWER(TRIM(cliente)) = LOWER(TRIM(:empresa))
-               OR LOWER(TRIM(rut)) = LOWER(TRIM(:rut))
-            ORDER BY id DESC
-            LIMIT 1
-            """
-        ),
-        {"empresa": empresa_limpia, "rut": _detail_value(selected_row, "rut")},
-    ).mappings().first()
+    emergency_rows = []
+    try:
+        emergency_rows = incidencias_db.execute(
+            text(
+                """
+                SELECT
+                    COALESCE(NULLIF(TRIM(nombre), ''), '-') AS nombre,
+                    COALESCE(NULLIF(TRIM(telefono), ''), '-') AS celular,
+                    '-' AS prioridad
+                FROM sucursal_contactos_emergencia
+                WHERE sucursal_id = :sucursal_id
+                ORDER BY id ASC
+                """
+            ),
+            {"sucursal_id": selected_row.get("id")},
+        ).mappings().all()
+    except Exception:
+        emergency_rows = []
 
-    emergency_rows = incidencias_db.execute(
-        text(
-            """
-            SELECT
-                COALESCE(NULLIF(TRIM(nombre), ''), '-') AS nombre,
-                COALESCE(NULLIF(TRIM(telefono), ''), '-') AS celular,
-                '-' AS prioridad
-            FROM sucursal_contactos_emergencia
-            WHERE sucursal_id = :sucursal_id
-            ORDER BY id ASC
-            """
-        ),
-        {"sucursal_id": selected_row.get("id")},
-    ).mappings().all()
+    personas_autorizadas_rows = []
+    try:
+        personas_autorizadas_rows = incidencias_db.execute(
+            text(
+                """
+                SELECT
+                    COALESCE(NULLIF(TRIM(nombre), ''), '-') AS nombre,
+                    COALESCE(NULLIF(TRIM(rut), ''), '-') AS rut,
+                    COALESCE(NULLIF(TRIM(telefono), ''), '-') AS celular,
+                    COALESCE(NULLIF(TRIM(email), ''), '-') AS email,
+                    COALESCE(NULLIF(TRIM(clave_verde), ''), '-') AS clave_verde,
+                    COALESCE(NULLIF(TRIM(clave_roja), ''), '-') AS clave_roja
+                FROM sucursal_personas_autorizadas
+                WHERE sucursal_id = :sucursal_id
+                ORDER BY id ASC
+                """
+            ),
+            {"sucursal_id": selected_row.get("id")},
+        ).mappings().all()
+    except Exception:
+        personas_autorizadas_rows = []
 
-    personas_autorizadas_rows = incidencias_db.execute(
-        text(
-            """
-            SELECT
-                COALESCE(NULLIF(TRIM(nombre), ''), '-') AS nombre,
-                COALESCE(NULLIF(TRIM(rut), ''), '-') AS rut,
-                COALESCE(NULLIF(TRIM(telefono), ''), '-') AS celular,
-                COALESCE(NULLIF(TRIM(email), ''), '-') AS email,
-                COALESCE(NULLIF(TRIM(clave_verde), ''), '-') AS clave_verde,
-                COALESCE(NULLIF(TRIM(clave_roja), ''), '-') AS clave_roja
-            FROM sucursal_personas_autorizadas
-            WHERE sucursal_id = :sucursal_id
-            ORDER BY id ASC
-            """
-        ),
-        {"sucursal_id": selected_row.get("id")},
-    ).mappings().all()
+    layout_row = None
+    try:
+        layout_row = incidencias_db.execute(
+            text(
+                """
+                SELECT imagenes
+                FROM mantenciones_imagenes_sucursal
+                WHERE LOWER(TRIM(sucursal)) = LOWER(TRIM(:sucursal))
+                ORDER BY updated_at DESC NULLS LAST, id DESC
+                LIMIT 1
+                """
+            ),
+            {"sucursal": selected_sucursal},
+        ).mappings().first()
+    except Exception:
+        layout_row = None
 
-    layout_row = incidencias_db.execute(
-        text(
-            """
-            SELECT imagenes
-            FROM mantenciones_imagenes_sucursal
-            WHERE LOWER(TRIM(sucursal)) = LOWER(TRIM(:sucursal))
-            ORDER BY updated_at DESC NULLS LAST, id DESC
-            LIMIT 1
-            """
-        ),
-        {"sucursal": selected_sucursal},
-    ).mappings().first()
-
-    noticias_rows = incidencias_db.execute(
-        text(
-            """
-            SELECT
-                id,
-                nombre_empresa,
-                nombre_sucursal,
-                usuario_registra,
-                fecha_registro,
-                fecha_fin_noticia,
-                mensaje
-            FROM bitacora_noticias
-            WHERE LOWER(TRIM(nombre_empresa)) = LOWER(TRIM(:empresa))
-              AND LOWER(TRIM(nombre_sucursal)) = LOWER(TRIM(:sucursal))
-            ORDER BY fecha_registro DESC, id DESC
-            """
-        ),
-        {"empresa": empresa_limpia, "sucursal": selected_sucursal},
-    ).mappings().all()
+    noticias_rows = []
+    try:
+        noticias_rows = incidencias_db.execute(
+            text(
+                """
+                SELECT
+                    id,
+                    nombre_empresa,
+                    nombre_sucursal,
+                    usuario_registra,
+                    fecha_registro,
+                    fecha_fin_noticia,
+                    mensaje
+                FROM bitacora_noticias
+                WHERE LOWER(TRIM(nombre_empresa)) = LOWER(TRIM(:empresa))
+                  AND LOWER(TRIM(nombre_sucursal)) = LOWER(TRIM(:sucursal))
+                ORDER BY fecha_registro DESC, id DESC
+                """
+            ),
+            {"empresa": empresa_limpia, "sucursal": selected_sucursal},
+        ).mappings().all()
+    except Exception:
+        noticias_rows = []
 
     detalle = {
         "tipo_vigilancia": _first_non_empty(venta_row.get("tipo_plan") if venta_row else None),
@@ -500,6 +527,46 @@ def bitacora_busqueda_empresa_api(
             for row in personas_autorizadas_rows
         ],
     }
+
+
+@router.get("/api/bitacora/empresas-sucursales")
+def bitacora_empresas_sucursales_api(
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    _require_bitacora_access(current_user)
+
+    rows = incidencias_db.execute(
+        text(
+            """
+            SELECT
+                DISTINCT TRIM(nombre_empresa) AS nombre_empresa,
+                TRIM(nombre_sucursal) AS nombre_sucursal
+            FROM bbdd_sucursales
+            WHERE COALESCE(TRIM(nombre_empresa), '') <> ''
+            ORDER BY nombre_empresa ASC, nombre_sucursal ASC
+            """
+        )
+    ).mappings().all()
+
+    empresas_dict = {}
+    for row in rows:
+        empresa = str(row.get("nombre_empresa") or "").strip()
+        sucursal = str(row.get("nombre_sucursal") or "").strip()
+        if empresa:
+            if empresa not in empresas_dict:
+                empresas_dict[empresa] = []
+            if sucursal:
+                empresas_dict[empresa].append(sucursal)
+
+    empresas_list = [
+        {
+            "empresa": empresa,
+            "sucursales": sorted(list(set(sucursales)))
+        }
+        for empresa, sucursales in sorted(empresas_dict.items())
+    ]
+    return {"empresas": empresas_list}
 
 
 @router.post("/api/bitacora/noticias")

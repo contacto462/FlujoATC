@@ -61,7 +61,7 @@ class Ticket(Base):
     # RELACIONES
     # =========================
     requester_id: Mapped[int] = mapped_column(
-        ForeignKey("requesters.id"),
+        ForeignKey("clientes.id"),
         nullable=False
     )
 

@@ -276,12 +276,173 @@
     .btn-submit:active { transform: translateY(1px); }
     .btn-submit:disabled { background: #94a3b8; box-shadow: none; cursor: not-allowed; }
 
+    /* -- SUCCESS MODAL -- */
+    .success-modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(11, 20, 32, .62);
+      backdrop-filter: blur(8px);
+    }
+
+    .success-modal-overlay.is-open {
+      display: flex;
+      animation: fadeIn .16s ease-out;
+    }
+
+    .success-modal {
+      width: min(440px, 100%);
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.24);
+      border-radius: 18px;
+      background: #fff;
+      box-shadow: 0 24px 70px rgba(11,20,32,.28);
+      animation: modalIn .2s ease-out;
+    }
+
+    .success-modal-top {
+      position: relative;
+      padding: 26px 28px 24px;
+      color: #fff;
+      background:
+        radial-gradient(circle at 88% 18%, rgba(255,255,255,.22), transparent 28%),
+        linear-gradient(145deg, var(--navy-1) 0%, var(--navy-2) 58%, var(--orange-dark) 155%);
+      overflow: hidden;
+    }
+
+    .success-modal-top::after {
+      content: "";
+      position: absolute;
+      right: -72px;
+      bottom: -76px;
+      width: 240px;
+      height: 240px;
+      background: url("/shared-static/img/logo-atc.png") center / contain no-repeat;
+      opacity: .18;
+      filter: blur(2px);
+      transform: rotate(-8deg) scale(1.18);
+    }
+
+    .success-icon {
+      position: relative;
+      width: 54px;
+      height: 54px;
+      margin-bottom: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      background: linear-gradient(135deg, var(--orange), var(--orange-2));
+      box-shadow: 0 12px 30px rgba(255,122,43,.34);
+    }
+
+    .success-modal h3 {
+      position: relative;
+      margin: 0 0 8px;
+      font-size: 24px;
+      line-height: 1.12;
+      letter-spacing: -.02em;
+    }
+
+    .success-modal-lead {
+      position: relative;
+      max-width: 330px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #dbe8ef;
+    }
+
+    .success-modal-body {
+      padding: 22px 28px 26px;
+      background: #fff;
+    }
+
+    .success-summary {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 22px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: #f8fafc;
+    }
+
+    .success-summary-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .success-summary-row strong {
+      max-width: 60%;
+      color: var(--text);
+      text-align: right;
+      word-break: break-word;
+    }
+
+    .success-modal-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .success-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform .12s, box-shadow .15s, background .15s;
+    }
+
+    .success-btn:active { transform: translateY(1px); }
+
+    .success-btn.primary {
+      border: 0;
+      color: #fff;
+      background: linear-gradient(135deg, var(--orange), var(--orange-2));
+      box-shadow: 0 8px 22px rgba(255,122,43,.26);
+    }
+
+    .success-btn.secondary {
+      border: 1px solid var(--border);
+      color: var(--text);
+      background: #fff;
+    }
+
+    .success-btn.primary:hover { box-shadow: 0 10px 28px rgba(255,122,43,.34); }
+    .success-btn.secondary:hover { background: #f8fafc; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes modalIn {
+      from { opacity: 0; transform: translateY(10px) scale(.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
     @media (max-width: 700px) {
       .shell { grid-template-columns: 1fr; }
       .panel-left { padding: 28px 24px; }
       .panel-left .step-list { display: none; }
       .panel-right { padding: 28px 24px 36px; max-height: none; }
       .g2, .g3, .g-wide { grid-template-columns: 1fr; }
+      .success-modal-actions { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -380,12 +541,50 @@
   </div>
 </div>
 
+<div class="success-modal-overlay" id="modalClienteRegistrado" aria-hidden="true">
+  <div class="success-modal" role="dialog" aria-modal="true" aria-labelledby="successTitle" aria-describedby="successMessage">
+    <div class="success-modal-top">
+      <div class="success-icon" aria-hidden="true">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      </div>
+      <h3 id="successTitle">Cliente registrado</h3>
+      <p class="success-modal-lead" id="successMessage">El nuevo cliente fue creado correctamente y ya queda disponible para la continuidad comercial.</p>
+    </div>
+    <div class="success-modal-body">
+      <div class="success-summary" aria-label="Resumen del cliente registrado">
+        <div class="success-summary-row"><span>Razón social</span><strong id="successRazonSocial">-</strong></div>
+        <div class="success-summary-row"><span>RUT empresa</span><strong id="successRut">-</strong></div>
+      </div>
+      <div class="success-modal-actions">
+        <a class="success-btn primary" id="btnRegistrarSucursal" href="#">Registrar Sucursal</a>
+        <a class="success-btn secondary" id="btnVolverPanelVenta" href="#">Volver</a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <input type="hidden" id="ejecutivoVenta">
 
 <script>
   const qsToken = new URLSearchParams(window.location.search).get("token") || "";
   const withToken = (url) => { const sep = url.includes("?") ? "&" : "?"; return qsToken ? `${url}${sep}token=${encodeURIComponent(qsToken)}` : url; };
   document.getElementById("btnVolver").href = withToken("/venta/panel-selector");
+  document.getElementById("btnRegistrarSucursal").href = withToken("/venta/sucursales");
+  document.getElementById("btnVolverPanelVenta").href = withToken("/venta/panel-selector");
+  function abrirModalClienteRegistrado(cliente) {
+    const modal = document.getElementById("modalClienteRegistrado");
+    document.getElementById("successRazonSocial").textContent = cliente.razonSocial || "-";
+    document.getElementById("successRut").textContent = cliente.rut || "-";
+    modal.classList.add("is-open");
+    modal.setAttribute("aria-hidden", "false");
+    document.getElementById("btnRegistrarSucursal").focus();
+  }
+  function cerrarModalClienteRegistrado() {
+    const modal = document.getElementById("modalClienteRegistrado");
+    modal.classList.remove("is-open");
+    modal.setAttribute("aria-hidden", "true");
+    document.getElementById("rut").focus();
+  }
   function formatearRUT(rut) {
     if (!rut) return "";
     const limpio = rut.replace(/[^0-9Kk]/g, "").toUpperCase();
@@ -464,7 +663,7 @@
         else if (err?.message) { message = err.message; }
         throw new Error(message);
       }
-      alert("Cliente registrado con exito.");
+      abrirModalClienteRegistrado(payload);
       document.getElementById("formularioClientes").reset();
       document.getElementById("telefono").value = "+569";
     } catch (error) { alert(error.message || "Error inesperado al registrar."); }
@@ -479,6 +678,10 @@
     document.getElementById("telefono").addEventListener("input", formatearTelefono);
     document.getElementById("telefono").addEventListener("keydown", evitarBorrarPrefijo);
     document.getElementById("btnRegistrar").addEventListener("click", enviarFormulario);
+    document.getElementById("modalClienteRegistrado").addEventListener("click", function (event) { if (event.target === this) cerrarModalClienteRegistrado(); });
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape" && document.getElementById("modalClienteRegistrado").classList.contains("is-open")) cerrarModalClienteRegistrado();
+    });
     const onRegionSelected = async function () { if (!this.value) return; try { await cargarComunas(this.value); } catch (err) { alert(err.message); } };
     regionSelect.addEventListener("change", onRegionSelected);
     regionSelect.addEventListener("input", onRegionSelected);

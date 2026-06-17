@@ -14,6 +14,7 @@
       --navy-3: #1e3248;
       --orange: #ff7a2b;
       --orange-2: #ff9448;
+      --orange-dark: #e8691f;
       --surface: #ffffff;
       --bg: #f0f4f8;
       --border: #e2e8f0;
@@ -161,23 +162,85 @@
 
     /* ── FORM CONTENT ── */
     .form-content {
-      padding: 32px 40px 60px;
+      padding: 26px 34px 42px;
       background: var(--surface);
     }
 
+    #formularioSucursal {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 30px 28px;
+      align-items: start;
+    }
+
     /* ── SECTION ── */
-    .section { margin-bottom: 52px; scroll-margin-top: 24px; }
+    .section {
+      min-width: 0;
+      margin-bottom: 0;
+      scroll-margin-top: 24px;
+    }
     .section:last-of-type { margin-bottom: 0; }
+
+    #sec-empresa {
+      grid-column: 1 / span 6;
+      grid-row: 1;
+    }
+
+    #sec-sucursal {
+      grid-column: 7 / span 6;
+      grid-row: 1;
+    }
+
+    #sec-servicios {
+      grid-column: 1 / span 6;
+      grid-row: 2;
+    }
+
+    #sec-horario {
+      grid-column: 7 / span 6;
+      grid-row: 2;
+    }
+
+    #sec-contactos {
+      grid-column: 1 / span 4;
+      grid-row: 3;
+    }
+
+    #sec-autorizados {
+      grid-column: 5 / span 4;
+      grid-row: 3;
+    }
+
+    #sec-guardias {
+      grid-column: 9 / span 4;
+      grid-row: 3;
+    }
+
+    #sec-empresa,
+    #sec-sucursal {
+      min-height: 238px;
+    }
+
+    #sec-servicios,
+    #sec-horario {
+      min-height: 178px;
+    }
+
+    #sec-contactos,
+    #sec-autorizados,
+    #sec-guardias {
+      min-height: 250px;
+    }
 
     .section-head {
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-bottom: 22px;
+      margin-bottom: 16px;
     }
 
     .section-title {
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 800;
       color: var(--text);
       letter-spacing: -.03em;
@@ -189,6 +252,14 @@
     .g2     { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .g3     { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
     .g-auto { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+
+    .branch-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .span-2 { grid-column: span 2; }
 
     /* ── FIELD ── */
     .f { display: flex; flex-direction: column; gap: 4px; }
@@ -319,6 +390,7 @@
 
     /* ── SUBMIT ── */
     .btn-submit {
+      grid-column: 1 / -1;
       width: 100%;
       padding: 13px;
       background: linear-gradient(135deg, var(--orange) 0%, var(--orange-2) 100%);
@@ -338,14 +410,215 @@
     .btn-submit:active { transform: translateY(1px); }
     .btn-submit:disabled { background: #94a3b8; box-shadow: none; cursor: not-allowed; }
 
+    /* -- SUCCESS MODAL -- */
+    .success-modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(11, 20, 32, .62);
+      backdrop-filter: blur(8px);
+    }
+
+    .success-modal-overlay.is-open {
+      display: flex;
+      animation: fadeIn .16s ease-out;
+    }
+
+    .success-modal {
+      width: min(440px, 100%);
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.24);
+      border-radius: 18px;
+      background: #fff;
+      box-shadow: 0 24px 70px rgba(11,20,32,.28);
+      animation: modalIn .2s ease-out;
+    }
+
+    .success-modal-top {
+      position: relative;
+      padding: 26px 28px 24px;
+      color: #fff;
+      background:
+        radial-gradient(circle at 88% 18%, rgba(255,255,255,.22), transparent 28%),
+        linear-gradient(145deg, var(--navy-1) 0%, var(--navy-2) 58%, var(--orange-dark) 155%);
+      overflow: hidden;
+    }
+
+    .success-modal-top::after {
+      content: "";
+      position: absolute;
+      right: -72px;
+      bottom: -76px;
+      width: 240px;
+      height: 240px;
+      background: url("/shared-static/img/logo-atc.png") center / contain no-repeat;
+      opacity: .18;
+      filter: blur(2px);
+      transform: rotate(-8deg) scale(1.18);
+    }
+
+    .success-icon {
+      position: relative;
+      width: 54px;
+      height: 54px;
+      margin-bottom: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      background: linear-gradient(135deg, var(--orange), var(--orange-2));
+      box-shadow: 0 12px 30px rgba(255,122,43,.34);
+    }
+
+    .success-modal h3 {
+      position: relative;
+      margin: 0 0 8px;
+      font-size: 24px;
+      line-height: 1.12;
+      letter-spacing: -.02em;
+    }
+
+    .success-modal-lead {
+      position: relative;
+      max-width: 330px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #dbe8ef;
+    }
+
+    .success-modal-body {
+      padding: 22px 28px 26px;
+      background: #fff;
+    }
+
+    .success-summary {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 22px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: #f8fafc;
+    }
+
+    .success-summary-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .success-summary-row strong {
+      max-width: 60%;
+      color: var(--text);
+      text-align: right;
+      word-break: break-word;
+    }
+
+    .success-modal-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .success-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform .12s, box-shadow .15s, background .15s;
+    }
+
+    .success-btn:active { transform: translateY(1px); }
+
+    .success-btn.primary {
+      border: 0;
+      color: #fff;
+      background: linear-gradient(135deg, var(--orange), var(--orange-2));
+      box-shadow: 0 8px 22px rgba(255,122,43,.26);
+    }
+
+    .success-btn.secondary {
+      border: 1px solid var(--border);
+      color: var(--text);
+      background: #fff;
+    }
+
+    .success-btn.primary:hover { box-shadow: 0 10px 28px rgba(255,122,43,.34); }
+    .success-btn.secondary:hover { background: #f8fafc; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes modalIn {
+      from { opacity: 0; transform: translateY(10px) scale(.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @media (max-width: 1180px) {
+      #sec-contactos {
+        grid-column: 1 / span 6;
+        grid-row: 3;
+      }
+
+      #sec-autorizados {
+        grid-column: 7 / span 6;
+        grid-row: 3;
+      }
+
+      #sec-guardias {
+        grid-column: 1 / -1;
+        grid-row: 4;
+      }
+    }
+
+    @media (max-width: 940px) {
+      #formularioSucursal { grid-template-columns: 1fr; }
+      #sec-empresa,
+      #sec-sucursal,
+      #sec-servicios,
+      #sec-horario,
+      #sec-contactos,
+      #sec-autorizados,
+      #sec-guardias,
+      .btn-submit { grid-column: 1; }
+    }
+
     @media (max-width: 700px) {
       .hero { grid-template-columns: 1fr; padding: 20px 20px 16px; }
       .hero-notice { max-width: 100%; }
       .main-layout { grid-template-columns: 1fr; }
       .sidebar { display: none; }
       .form-content { padding: 24px 22px 40px; }
+      #formularioSucursal { grid-template-columns: 1fr; gap: 26px; }
+      #sec-empresa,
+      #sec-sucursal,
+      #sec-servicios,
+      #sec-horario,
+      #sec-contactos,
+      #sec-autorizados,
+      #sec-guardias,
+      .btn-submit { grid-column: 1; }
       .g2, .g3, .g-auto { grid-template-columns: 1fr; }
+      .branch-grid { grid-template-columns: 1fr; }
+      .span-2 { grid-column: auto; }
       .entry-card .row { grid-template-columns: 1fr; }
+      .success-modal-actions { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -410,18 +683,13 @@
           <div class="section-head">
             <span class="section-title">2. Datos de la Sucursal</span>
           </div>
-          <div class="g2">
-            <div class="f"><label>Nombre Sucursal</label><input type="text" id="nombreSucursal" placeholder="Ej: Tienda Santiago Centro" required></div>
-            <div class="f"><label>Email Envío de Facturas</label><input type="email" id="emailFacturas" placeholder="facturacion@empresa.cl" required></div>
-          </div>
-          <div class="f mt"><label>Dirección</label><input type="text" id="direccionSucursal" placeholder="Calle, número" required></div>
-          <div class="f mt"><label>Referencia de Ubicación</label><input type="text" id="referenciaUbicacion" placeholder="Ej: Frente al Parque Central"></div>
-          <div class="g3 mt">
+          <div class="branch-grid">
+            <div class="f span-2"><label>Nombre Sucursal</label><input type="text" id="nombreSucursal" placeholder="Ej: Tienda Santiago Centro" required></div>
+            <div class="f span-2"><label>Email Envío de Facturas</label><input type="email" id="emailFacturas" placeholder="facturacion@empresa.cl" required></div>
+            <div class="f span-2"><label>Dirección</label><input type="text" id="direccionSucursal" placeholder="Calle, número" required></div>
+            <div class="f span-2"><label>Referencia de Ubicación</label><input type="text" id="referenciaUbicacion" placeholder="Ej: Frente al Parque Central"></div>
             <div class="f"><label>Región</label><select id="region" required><option value="" disabled selected>Seleccionar</option></select></div>
             <div class="f"><label>Comuna</label><select id="comuna" required><option value="" disabled selected>Seleccionar</option></select></div>
-            <div class="f"><!-- spacer --></div>
-          </div>
-          <div class="g2 mt">
             <div class="f"><label>Latitud</label><input type="text" id="latitud" placeholder="-33.4569"></div>
             <div class="f"><label>Longitud</label><input type="text" id="longitud" placeholder="-70.6483"></div>
           </div>
@@ -532,10 +800,48 @@
   </div>
 </div>
 
+<div class="success-modal-overlay" id="modalSucursalRegistrada" aria-hidden="true">
+  <div class="success-modal" role="dialog" aria-modal="true" aria-labelledby="successTitle" aria-describedby="successMessage">
+    <div class="success-modal-top">
+      <div class="success-icon" aria-hidden="true">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      </div>
+      <h3 id="successTitle">Sucursal registrada</h3>
+      <p class="success-modal-lead" id="successMessage">La nueva sucursal fue creada correctamente y ya queda disponible para continuar con la orden de servicio.</p>
+    </div>
+    <div class="success-modal-body">
+      <div class="success-summary" aria-label="Resumen de la sucursal registrada">
+        <div class="success-summary-row"><span>Sucursal</span><strong id="successNombreSucursal">-</strong></div>
+        <div class="success-summary-row"><span>Cliente</span><strong id="successCliente">-</strong></div>
+      </div>
+      <div class="success-modal-actions">
+        <a class="success-btn primary" id="btnRegistrarODS" href="#">Registrar ODS</a>
+        <a class="success-btn secondary" id="btnVolverPanelVenta" href="#">Volver</a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
   const qsToken = new URLSearchParams(window.location.search).get("token") || "";
   const withToken = (url) => { const sep = url.includes("?") ? "&" : "?"; return qsToken ? `${url}${sep}token=${encodeURIComponent(qsToken)}` : url; };
   document.getElementById("btnVolver").href = withToken("/venta/panel-selector");
+  document.getElementById("btnRegistrarODS").href = withToken("/venta/ods");
+  document.getElementById("btnVolverPanelVenta").href = withToken("/venta/panel-selector");
+  function abrirModalSucursalRegistrada(sucursal) {
+    const modal = document.getElementById("modalSucursalRegistrada");
+    document.getElementById("successNombreSucursal").textContent = sucursal.nombreSucursal || "-";
+    document.getElementById("successCliente").textContent = sucursal.nombreEmpresa || sucursal.rut || "-";
+    modal.classList.add("is-open");
+    modal.setAttribute("aria-hidden", "false");
+    document.getElementById("btnRegistrarODS").focus();
+  }
+  function cerrarModalSucursalRegistrada() {
+    const modal = document.getElementById("modalSucursalRegistrada");
+    modal.classList.remove("is-open");
+    modal.setAttribute("aria-hidden", "true");
+    document.getElementById("rut").focus();
+  }
   function formatearRUTInput(input) { let rut = String(input.value || "").trim().replace(/[^0-9Kk]/g, "").toUpperCase(); if (rut.length < 2) { input.value = rut; return; } input.value = `${rut.slice(0, -1)}-${rut.slice(-1)}`; }
   function formatearRUTValue(value) { let rut = String(value || "").trim().replace(/[^0-9Kk]/g, "").toUpperCase(); if (rut.length < 2) return rut; return `${rut.slice(0, -1)}-${rut.slice(-1)}`; }
   function limpiarRUT(rut) { return formatearRUTValue(rut); }
@@ -621,9 +927,10 @@
       const payload = { rut: limpiarRUT(getValue("rut")), nombreEmpresa: getValue("nombreEmpresa"), nombreSucursal: getValue("nombreSucursal"), direccionSucursal: getValue("direccionSucursal"), latitud: lat, longitud: lng, region: getValue("region"), comuna: getValue("comuna"), referenciaUbicacion: getValue("referenciaUbicacion"), proveedorInternet: getValue("proveedorInternet"), proveedorElectricidad: getValue("proveedorElectricidad"), nroProveedorElectricidad: getValue("nroProveedorElectricidad"), horarioApertura: getValue("horarioApertura"), horarioCierre: getValue("horarioCierre"), diasFuncionamiento, latitudLongitud, emailFacturas: getValue("emailFacturas"), contactosEmergencia, personasAutorizadas, guardias };
       const response = await fetch(withToken("/api/venta/sucursales"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       if (!response.ok) { const err = await response.json().catch(() => ({ detail: "Error al registrar la sucursal." })); if (typeof err?.detail === "string") throw new Error(err.detail); if (Array.isArray(err?.detail) && err.detail.length > 0) { const first = err.detail[0]; const field = Array.isArray(first?.loc) ? first.loc[first.loc.length - 1] : ""; throw new Error(field ? `${field}: ${first?.msg || "valor invalido"}` : (first?.msg || "Error al registrar la sucursal.")); } throw new Error(err?.message || "Error al registrar la sucursal."); }
-      const data = await response.json();
-      alert(`Sucursal registrada con exito. ID ${data.sucursal_id || ""}`.trim());
-      window.location.reload();
+      await response.json();
+      abrirModalSucursalRegistrada(payload);
+      document.getElementById("formularioSucursal").reset();
+      document.querySelectorAll('input[name="telefonoEmergencia[]"], input[name="telefonoAutorizado[]"]').forEach(input => { input.value = "+569"; });
     } catch (error) { alert(error.message || "Error inesperado al registrar."); }
     finally { boton.disabled = false; boton.innerText = "Registrar Sucursal"; }
   }
@@ -647,6 +954,10 @@
     document.getElementById("btnAgregarPersona").addEventListener("click", agregarPersonaAutorizada);
     document.getElementById("btnAgregarGuardia").addEventListener("click", agregarGuardia);
     document.getElementById("btnRegistrarSucursal").addEventListener("click", enviarFormulario);
+    document.getElementById("modalSucursalRegistrada").addEventListener("click", function (event) { if (event.target === this) cerrarModalSucursalRegistrada(); });
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape" && document.getElementById("modalSucursalRegistrada").classList.contains("is-open")) cerrarModalSucursalRegistrada();
+    });
     document.querySelectorAll('input[name="telefonoEmergencia[]"], input[name="telefonoAutorizado[]"]').forEach(input => { input.value = "+569"; });
     try { await cargarRegiones(); await Promise.all([cargarProveedoresInternet(), cargarProveedoresElectricidad()]); }
     catch (error) { alert(error.message || "No se pudo inicializar el formulario."); }

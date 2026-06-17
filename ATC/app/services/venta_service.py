@@ -6,9 +6,10 @@ import re
 import unicodedata
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from fastapi import HTTPException
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from ATC.app.core.incidencias_config import settings
@@ -94,6 +95,16 @@ def _repair_text_encoding(value: str) -> str:
         return text
 
 
+def _repair_payload_encoding(value: Any) -> Any:
+    if isinstance(value, str):
+        return _repair_text_encoding(value)
+    if isinstance(value, list):
+        return [_repair_payload_encoding(item) for item in value]
+    if isinstance(value, dict):
+        return {key: _repair_payload_encoding(item) for key, item in value.items()}
+    return value
+
+
 def rut_exists(db: Session, rut: str) -> bool:
     safe_rut = normalize_rut(rut)
     if not safe_rut:
@@ -174,23 +185,62 @@ def get_cliente_resumen_by_rut(db: Session, rut: str) -> dict:
         .all()
     )
 
-    return {
+    return _repair_payload_encoding({
+        "id": cliente.id,
+        "rutCliente": cliente.rut or "",
         "nombreCliente": cliente.cliente or "",
+        "giro": cliente.giro or "",
         "direccionCasaMatriz": cliente.direccion or "",
-        "comunaCasaMatriz": cliente.comuna or "",
+        "regionCasaMatriz": _canonical_region(cliente.region),
+        "comunaCasaMatriz": _canonical_comuna(cliente.region, cliente.comuna),
+        "emailFacturas": cliente.email_facturas or "",
         "nombreRepresentante": cliente.nombre_representante or "",
         "rutRepresentante": cliente.rut_representante or "",
+        "telefonoCliente": cliente.telefono or "",
         "emailRepresentante": cliente.email_representante or "",
+        "ejecutivo": cliente.ejecutivo_email or "",
+        "cliente": {
+            "id": cliente.id,
+            "rut": cliente.rut or "",
+            "razonSocial": cliente.cliente or "",
+            "giro": cliente.giro or "",
+            "direccion": cliente.direccion or "",
+            "region": _canonical_region(cliente.region),
+            "comuna": _canonical_comuna(cliente.region, cliente.comuna),
+            "emailFacturas": cliente.email_facturas or "",
+            "nombreRepresentante": cliente.nombre_representante or "",
+            "rutRepresentante": cliente.rut_representante or "",
+            "telefono": cliente.telefono or "",
+            "emailRepresentante": cliente.email_representante or "",
+            "ejecutivo": cliente.ejecutivo_email or "",
+        },
         "sucursales": [
             {
                 "id": sucursal.id,
+                "rut": sucursal.rut or "",
+                "nombreEmpresa": sucursal.nombre_empresa or "",
                 "nombre": sucursal.nombre_sucursal or "",
                 "direccion": sucursal.direccion_sucursal or "",
+                "region": _canonical_region(sucursal.region),
+                "comuna": _canonical_comuna(sucursal.region, sucursal.comuna),
+                "referenciaUbicacion": sucursal.referencia_ubicacion or "",
+                "latitud": sucursal.latitud or "",
+                "longitud": sucursal.longitud or "",
+                "latitudLongitud": sucursal.latitud_longitud or (
+                    f"{sucursal.latitud}, {sucursal.longitud}" if sucursal.latitud and sucursal.longitud else ""
+                ),
+                "emailFacturas": sucursal.email_facturas or "",
+                "proveedorInternet": sucursal.proveedor_internet or "",
+                "proveedorElectricidad": sucursal.proveedor_electricidad or "",
+                "numeroClienteElectricidad": sucursal.nro_proveedor_electricidad or "",
+                "horarioApertura": sucursal.horario_apertura or "",
+                "horarioCierre": sucursal.horario_cierre or "",
+                "diasFuncionamiento": sucursal.dias_funcionamiento or "",
                 "label": f"{sucursal.nombre_sucursal or 'Sucursal'} - {sucursal.direccion_sucursal or ''}".strip(" -"),
             }
             for sucursal in sucursales
         ],
-    }
+    })
 
 
 def get_cliente_sucursal_resumen(db: Session, rut: str, sucursal_id: int) -> dict:
@@ -203,11 +253,16 @@ def get_cliente_sucursal_resumen(db: Session, rut: str, sucursal_id: int) -> dic
     if not sucursal:
         raise HTTPException(status_code=404, detail="No se encontro la sucursal seleccionada para ese cliente.")
 
+    direccion_sucursal = str(sucursal.direccion_sucursal or "").strip()
+    nombre_sucursal = str(sucursal.nombre_sucursal or "").strip()
     ultima_ods = (
         db.query(VentaODS)
+        .filter(func.lower(func.trim(VentaODS.rut_cliente)) == safe_rut.lower())
         .filter(
-            func.lower(func.trim(VentaODS.rut_cliente)) == safe_rut.lower(),
-            func.lower(func.trim(VentaODS.direccion_sucursal)) == str(sucursal.direccion_sucursal or "").strip().lower(),
+            or_(
+                func.lower(func.trim(VentaODS.direccion_sucursal)) == direccion_sucursal.lower(),
+                func.lower(func.trim(VentaODS.nombre_sucursal)) == nombre_sucursal.lower(),
+            )
         )
         .order_by(VentaODS.id.desc())
         .first()
@@ -232,14 +287,32 @@ def get_cliente_sucursal_resumen(db: Session, rut: str, sucursal_id: int) -> dic
         .all()
     )
 
-    return {
+    return _repair_payload_encoding({
+        "id": sucursal.id,
+        "rutCliente": sucursal.rut or "",
+        "nombreEmpresa": sucursal.nombre_empresa or "",
+        "nombreSucursal": sucursal.nombre_sucursal or "",
+        "direccionSucursal": sucursal.direccion_sucursal or "",
+        "regionSucursal": _canonical_region(sucursal.region),
         "comunaSucursal": sucursal.comuna or "",
+        "emailFacturasSucursal": sucursal.email_facturas or "",
+        "latitud": sucursal.latitud or "",
+        "longitud": sucursal.longitud or "",
         "latitudLongitud": sucursal.latitud_longitud or (
             f"{sucursal.latitud}, {sucursal.longitud}" if sucursal.latitud and sucursal.longitud else ""
         ),
         "referenciaUbicacion": sucursal.referencia_ubicacion or "",
+        "codigoODS": ultima_ods.codigo or "" if ultima_ods else "",
+        "estadoODS": ultima_ods.estado or "" if ultima_ods else "",
         "cantidadCamaras": str(ultima_ods.numero_camaras_vigilar or ultima_ods.numero_camaras_instalar or "") if ultima_ods else "",
+        "camarasInstalar": str(ultima_ods.numero_camaras_instalar or "") if ultima_ods else "",
+        "camarasDesinstalar": str(ultima_ods.numero_camaras_desinstalar or "") if ultima_ods else "",
+        "camarasVigilar": str(ultima_ods.numero_camaras_vigilar or "") if ultima_ods else "",
         "diasGrabacion": str(ultima_ods.dias_grabacion or "") if ultima_ods else "",
+        "diasMonitoreoDesde": ultima_ods.dias_monitoreo_desde or "" if ultima_ods else "",
+        "diasMonitoreoHasta": ultima_ods.dias_monitoreo_hasta or "" if ultima_ods else "",
+        "diasMonitoreoAdicional": ultima_ods.dias_monitoreo_adicional or "" if ultima_ods else "",
+        "horarioMonitoreo": ultima_ods.horario_monitoreo or "" if ultima_ods else "",
         "proveedorInternet": sucursal.proveedor_internet or "",
         "proveedorElectricidad": sucursal.proveedor_electricidad or "",
         "numeroClienteElectricidad": sucursal.nro_proveedor_electricidad or "",
@@ -248,6 +321,56 @@ def get_cliente_sucursal_resumen(db: Session, rut: str, sucursal_id: int) -> dic
         "horarioCierre": sucursal.horario_cierre or "",
         "tipoServicio": ultima_ods.tipo_servicio.replace(" | ", ", ") if ultima_ods and ultima_ods.tipo_servicio else "",
         "tipoPlan": ultima_ods.tipo_plan or "" if ultima_ods else "",
+        "tipoCliente": ultima_ods.tipo_cliente or "" if ultima_ods else "",
+        "observacionODS": ultima_ods.observacion or "" if ultima_ods else "",
+        "materiales": ultima_ods.materiales or "" if ultima_ods else "",
+        "consideraciones": ultima_ods.consideraciones or "" if ultima_ods else "",
+        "aguaBano": ultima_ods.agua_bano or "" if ultima_ods else "",
+        "requiereOC": ultima_ods.requiere_oc or "" if ultima_ods else "",
+        "montosACobrar": ultima_ods.montos_a_cobrar or "" if ultima_ods else "",
+        "sucursal": {
+            "id": sucursal.id,
+            "rut": sucursal.rut or "",
+            "nombreEmpresa": sucursal.nombre_empresa or "",
+            "nombreSucursal": sucursal.nombre_sucursal or "",
+            "direccion": sucursal.direccion_sucursal or "",
+            "region": _canonical_region(sucursal.region),
+            "comuna": _canonical_comuna(sucursal.region, sucursal.comuna),
+            "referenciaUbicacion": sucursal.referencia_ubicacion or "",
+            "latitud": sucursal.latitud or "",
+            "longitud": sucursal.longitud or "",
+            "latitudLongitud": sucursal.latitud_longitud or (
+                f"{sucursal.latitud}, {sucursal.longitud}" if sucursal.latitud and sucursal.longitud else ""
+            ),
+            "emailFacturas": sucursal.email_facturas or "",
+            "proveedorInternet": sucursal.proveedor_internet or "",
+            "proveedorElectricidad": sucursal.proveedor_electricidad or "",
+            "numeroClienteElectricidad": sucursal.nro_proveedor_electricidad or "",
+            "horarioApertura": sucursal.horario_apertura or "",
+            "horarioCierre": sucursal.horario_cierre or "",
+            "diasFuncionamiento": sucursal.dias_funcionamiento or "",
+        },
+        "ultimaODS": {
+            "codigo": ultima_ods.codigo or "",
+            "estado": ultima_ods.estado or "",
+            "tipoCliente": ultima_ods.tipo_cliente or "",
+            "tipoServicio": ultima_ods.tipo_servicio.replace(" | ", ", ") if ultima_ods.tipo_servicio else "",
+            "tipoPlan": ultima_ods.tipo_plan or "",
+            "camarasInstalar": str(ultima_ods.numero_camaras_instalar or ""),
+            "camarasDesinstalar": str(ultima_ods.numero_camaras_desinstalar or ""),
+            "camarasVigilar": str(ultima_ods.numero_camaras_vigilar or ""),
+            "diasGrabacion": str(ultima_ods.dias_grabacion or ""),
+            "diasMonitoreoDesde": ultima_ods.dias_monitoreo_desde or "",
+            "diasMonitoreoHasta": ultima_ods.dias_monitoreo_hasta or "",
+            "diasMonitoreoAdicional": ultima_ods.dias_monitoreo_adicional or "",
+            "horarioMonitoreo": ultima_ods.horario_monitoreo or "",
+            "observacion": ultima_ods.observacion or "",
+            "materiales": ultima_ods.materiales or "",
+            "consideraciones": ultima_ods.consideraciones or "",
+            "aguaBano": ultima_ods.agua_bano or "",
+            "requiereOC": ultima_ods.requiere_oc or "",
+            "montosACobrar": ultima_ods.montos_a_cobrar or "",
+        } if ultima_ods else {},
         "contactosEmergencia": [
             {
                 "id": item.id,
@@ -281,7 +404,7 @@ def get_cliente_sucursal_resumen(db: Session, rut: str, sucursal_id: int) -> dic
             }
             for item in guardias
         ],
-    }
+    })
 
 
 def add_persona_registro(db: Session, payload) -> None:

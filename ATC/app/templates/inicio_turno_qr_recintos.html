@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>QR inicio de turno</title>
+  <style>
+    :root {
+      --text: #172124;
+      --muted: #66757b;
+      --line: #d9e2e5;
+      --soft: #f3f7f8;
+      --primary: #c86430;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background: #eef3f4;
+      padding: 24px;
+    }
+
+    .head {
+      width: min(1120px, 100%);
+      margin: 0 auto 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 28px;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .print-btn {
+      border: 0;
+      border-radius: 12px;
+      padding: 11px 16px;
+      color: white;
+      background: var(--primary);
+      font-weight: 850;
+      cursor: pointer;
+    }
+
+    .grid {
+      width: min(1120px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 18px;
+      min-height: 330px;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+      break-inside: avoid;
+    }
+
+    .qr {
+      width: 190px;
+      height: 190px;
+      justify-self: center;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px;
+      background: var(--soft);
+    }
+
+    .qr img {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .label {
+      text-align: center;
+      font-weight: 900;
+      font-size: 18px;
+      line-height: 1.25;
+    }
+
+    .address,
+    .url {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+      text-align: center;
+    }
+
+    .empty {
+      width: min(1120px, 100%);
+      margin: 0 auto;
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 24px;
+    }
+
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 620px) {
+      body { padding: 16px; }
+      .head { align-items: flex-start; flex-direction: column; }
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    @media print {
+      body { background: white; padding: 0; }
+      .head { margin: 0 0 12px; }
+      .print-btn { display: none; }
+      .grid {
+        width: 100%;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .card { box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="head">
+    <div>
+      <h1>QR inicio de turno</h1>
+      <p>Imprime una tarjeta por recinto. Cada QR abre el formulario con el recinto ya seleccionado.</p>
+    </div>
+    <button class="print-btn" type="button" onclick="window.print()">Imprimir</button>
+  </header>
+
+  {% if recintos %}
+    <section class="grid">
+      {% for item in recintos %}
+        <article class="card">
+          <div class="qr">
+            <img
+              alt="QR {{ item.label }}"
+              src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={{ item.target|urlencode }}"
+            >
+          </div>
+          <div class="label">{{ item.label }}</div>
+          {% if item.direccion %}<div class="address">{{ item.direccion }}</div>{% endif %}
+          <div class="url">{{ item.target }}</div>
+        </article>
+      {% endfor %}
+    </section>
+  {% else %}
+    <section class="empty">
+      <strong>No hay recintos cargados.</strong>
+      <p>Registra sucursales primero para generar los QR de inicio de turno.</p>
+    </section>
+  {% endif %}
+</body>
+</html>

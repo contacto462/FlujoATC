@@ -13,4 +13,4 @@ from .ticket_sla_feedback import TicketSlaFeedback
 from .ticket_sla_feedback_event import TicketSlaFeedbackEvent
 from .automation_log import AutomationLog
 from .incidencia import Incidencia
-from .incidencia_imagen import IncidenciaImagen
+from .inicio_turno import InicioTurnoGuardia, InicioTurnoRegistro

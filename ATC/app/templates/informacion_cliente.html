@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>InformaciÃ³n del Cliente â€” ATC</title>
+  <title>Información del Cliente - ATC</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -23,7 +23,7 @@
       --radius: 10px;
     }
 
-    html, body { height: 100%; }
+    html, body { min-height: 100%; }
 
     body {
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -32,14 +32,14 @@
       display: flex;
       flex-direction: column;
       min-height: 100vh;
-      height: 100vh;
-      overflow: hidden;
+      overflow-x: hidden;
+      overflow-y: auto;
       font-size: 13.5px;
       font-weight: 500;
       line-height: 1.5;
     }
 
-    /* â”€â”€ HEADER â”€â”€ */
+    /* HEADER */
     .page-header {
       flex-shrink: 0;
       position: sticky;
@@ -135,7 +135,7 @@
       border-color: rgba(255,255,255,.22);
     }
 
-    /* â”€â”€ MAIN â”€â”€ */
+    /* MAIN */
     .main {
       flex: 1;
       padding: 28px 24px 48px;
@@ -145,11 +145,11 @@
       max-width: 1100px;
       width: 100%;
       margin: 0 auto;
-      min-height: 0;
-      overflow: auto;
+      min-height: auto;
+      overflow: visible;
     }
 
-    /* â”€â”€ SEARCH BAR â”€â”€ */
+    /* SEARCH BAR */
     .search-card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -192,7 +192,7 @@
     }
     .btn-buscar:hover { background: var(--orange-2); }
 
-    /* â”€â”€ SECTION CARD â”€â”€ */
+    /* SECTION CARD */
     .card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -228,7 +228,7 @@
 
     .card-body { padding: 20px; }
 
-    /* â”€â”€ INFO GRID â”€â”€ */
+    /* INFO GRID */
     .info-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -252,7 +252,7 @@
 
     .divider { border: none; border-top: 1px solid var(--border); margin: 10px 0 8px; }
 
-    /* â”€â”€ SELECT SUCURSAL â”€â”€ */
+    /* SELECT SUCURSAL */
     .select-sucursal {
       padding: 9px 12px;
       font-size: 13px;
@@ -268,7 +268,7 @@
     }
     .select-sucursal:focus { outline: none; border-color: var(--orange); box-shadow: 0 0 0 3px rgba(255,122,43,.1); }
 
-    /* â”€â”€ TABLES â”€â”€ */
+    /* TABLES */
     .table-wrap { overflow-x: auto; }
 
     table {
@@ -317,7 +317,7 @@
       outline: none;
     }
 
-    /* â”€â”€ ADD ROW â”€â”€ */
+    /* ADD ROW */
     .add-row td {
       background: #f8fafc;
       border-top: 1.5px dashed var(--border);
@@ -352,7 +352,7 @@
     }
     .btn-add:hover { background: var(--orange-2); }
 
-    /* â”€â”€ SUCURSAL SECTION SELECT â”€â”€ */
+    /* SUCURSAL SECTION SELECT */
     .sucursal-bar {
       display: flex;
       align-items: center;
@@ -368,7 +368,7 @@
       white-space: nowrap;
     }
 
-    /* â”€â”€ PLACEHOLDER STATE â”€â”€ */
+    /* PLACEHOLDER STATE */
     .placeholder-msg {
       text-align: center;
       padding: 40px 20px;
@@ -470,28 +470,52 @@
     <div class="card-body">
       <div class="info-grid">
         <div class="info-field">
-          <span class="lbl">RazÃ³n Social</span>
-          <span class="val" id="nombreCliente">â€”</span>
+          <span class="lbl">RUT Cliente</span>
+          <span class="val" id="rutClienteDato">-</span>
         </div>
         <div class="info-field">
-          <span class="lbl">DirecciÃ³n Casa Matriz</span>
-          <span class="val" id="direccionCasaMatriz">â€”</span>
+          <span class="lbl">Razón Social</span>
+          <span class="val" id="nombreCliente">-</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Giro</span>
+          <span class="val" id="giroCliente">-</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Dirección Casa Matriz</span>
+          <span class="val" id="direccionCasaMatriz">-</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Región Casa Matriz</span>
+          <span class="val" id="regionCasaMatriz">-</span>
         </div>
         <div class="info-field">
           <span class="lbl">Comuna Casa Matriz</span>
-          <span class="val" id="comunaCasaMatriz">â€”</span>
+          <span class="val" id="comunaCasaMatriz">-</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Email Facturas</span>
+          <span class="val" id="emailFacturasCliente">-</span>
         </div>
         <div class="info-field">
           <span class="lbl">Representante Legal</span>
-          <span class="val" id="nombreRepresentante">â€”</span>
+          <span class="val" id="nombreRepresentante">-</span>
         </div>
         <div class="info-field">
           <span class="lbl">RUT Representante</span>
-          <span class="val" id="rutRepresentante">â€”</span>
+          <span class="val" id="rutRepresentante">-</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Teléfono Cliente</span>
+          <span class="val" id="telefonoCliente">-</span>
         </div>
         <div class="info-field">
           <span class="lbl">Email Representante</span>
-          <span class="val" id="emailRepresentante">â€”</span>
+          <span class="val" id="emailRepresentante">-</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Ejecutivo</span>
+          <span class="val" id="ejecutivoCliente">-</span>
         </div>
       </div>
 
@@ -514,56 +538,56 @@
     <div class="card-body">
       <div class="info-grid">
         <div class="info-field">
-          <span class="lbl">Comuna</span>
-          <span class="val" id="comunaSucursal">â€”</span>
+          <span class="lbl">Comuna de Sucursal:</span>
+          <span class="val" id="comunaSucursal">-</span>
         </div>
         <div class="info-field">
-          <span class="lbl">Latitud / Longitud</span>
-          <span class="val" id="latitudLongitud">â€”</span>
+          <span class="lbl">Latitud - Longitud:</span>
+          <span class="val" id="latitudLongitud">-</span>
         </div>
         <div class="info-field">
-          <span class="lbl">Referencia UbicaciÃ³n</span>
-          <span class="val" id="referenciaUbicacion">â€”</span>
+          <span class="lbl">Referencia Ubicación:</span>
+          <span class="val" id="referenciaUbicacion">-</span>
         </div>
         <div class="info-field">
-          <span class="lbl">Cantidad de CÃ¡maras</span>
-          <span class="val" id="cantidadCamaras">â€”</span>
+          <span class="lbl">Cantidad de Cámaras:</span>
+          <span class="val" id="cantidadCamaras">-</span>
         </div>
         <div class="info-field">
-          <span class="lbl">DÃ­as de GrabaciÃ³n</span>
-          <span class="val" id="diasGrabacion">â€”</span>
+          <span class="lbl">Días de Grabación:</span>
+          <span class="val" id="diasGrabacion">-</span>
         </div>
         <div class="info-field">
-          <span class="lbl">Proveedor Internet</span>
-          <span class="val" id="proveedorInternet">â€”</span>
+          <span class="lbl">Proveedor de Internet:</span>
+          <span class="val" id="proveedorInternet">-</span>
         </div>
         <div class="info-field">
-          <span class="lbl">Proveedor Electricidad</span>
-          <span class="val" id="proveedorElectricidad">â€”</span>
+          <span class="lbl">Proveedor de Electricidad:</span>
+          <span class="val" id="proveedorElectricidad">-</span>
         </div>
         <div class="info-field">
-          <span class="lbl">NÂ° Cliente Electricidad</span>
-          <span class="val" id="numeroClienteElectricidad">â€”</span>
+          <span class="lbl">Número Cliente Electricidad:</span>
+          <span class="val" id="numeroClienteElectricidad">-</span>
         </div>
         <div class="info-field">
-          <span class="lbl">DÃ­as de Apertura</span>
-          <span class="val" id="diasApertura">â€”</span>
+          <span class="lbl">Días de Apertura:</span>
+          <span class="val" id="diasApertura">-</span>
         </div>
         <div class="info-field">
-          <span class="lbl">Horario Apertura</span>
-          <span class="val" id="horarioApertura">â€”</span>
+          <span class="lbl">Horario de Apertura:</span>
+          <span class="val" id="horarioApertura">-</span>
         </div>
         <div class="info-field">
-          <span class="lbl">Horario Cierre</span>
-          <span class="val" id="horarioCierre">â€”</span>
+          <span class="lbl">Horario de Cierre:</span>
+          <span class="val" id="horarioCierre">-</span>
         </div>
         <div class="info-field">
-          <span class="lbl">Tipo de Servicio</span>
-          <span class="val" id="tipoServicio">â€”</span>
+          <span class="lbl">Tipo de Servicio:</span>
+          <span class="val" id="tipoServicio">-</span>
         </div>
         <div class="info-field">
-          <span class="lbl">Tipo de Plan</span>
-          <span class="val" id="tipoPlan">â€”</span>
+          <span class="lbl">Tipo de Plan:</span>
+          <span class="val" id="tipoPlan">-</span>
         </div>
       </div>
     </div>
@@ -581,7 +605,7 @@
             <tr>
               <th>Nombre</th>
               <th>RUT</th>
-              <th>TelÃ©fono</th>
+              <th>Teléfono</th>
               <th>Email</th>
               <th></th>
             </tr>
@@ -604,7 +628,7 @@
             <tr>
               <th>Nombre</th>
               <th>RUT</th>
-              <th>TelÃ©fono</th>
+              <th>Teléfono</th>
               <th>Email</th>
               <th>Clave Verde</th>
               <th>Clave Roja</th>
@@ -629,7 +653,7 @@
             <tr>
               <th>Nombre</th>
               <th>RUT</th>
-              <th>TelÃ©fono</th>
+              <th>Teléfono</th>
               <th>Horario Desde</th>
               <th>Horario Hasta</th>
               <th></th>
@@ -655,7 +679,7 @@
         </svg>
       </div>
     </div>
-    Ingresa el RUT del cliente y presiona <em>Buscar</em> para ver su informaciÃ³n.
+    Ingresa el RUT del cliente y presiona <em>Buscar</em> para ver su información.
   </div>
 
 </div>
@@ -696,18 +720,24 @@ async function buscarCliente() {
   const response = await fetch(withToken("/api/venta/clientes/resumen?rut=" + encodeURIComponent(rutCliente)));
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    alert(data.detail || "No se pudo obtener la informaciÃ³n del cliente.");
+    alert(data.detail || "No se pudo obtener la información del cliente.");
     return;
   }
 
   const nombre = data.nombreCliente || "Sin nombre";
+  document.getElementById("rutClienteDato").textContent = data.rutCliente || "N/A";
   document.getElementById("nombreCliente").textContent = nombre;
   document.getElementById("badgeNombreCliente").textContent = nombre;
+  document.getElementById("giroCliente").textContent = data.giro || "N/A";
   document.getElementById("direccionCasaMatriz").textContent = data.direccionCasaMatriz || "N/A";
+  document.getElementById("regionCasaMatriz").textContent = data.regionCasaMatriz || "N/A";
   document.getElementById("comunaCasaMatriz").textContent = data.comunaCasaMatriz || "N/A";
+  document.getElementById("emailFacturasCliente").textContent = data.emailFacturas || "N/A";
   document.getElementById("nombreRepresentante").textContent = data.nombreRepresentante || "N/A";
   document.getElementById("rutRepresentante").textContent = data.rutRepresentante || "N/A";
+  document.getElementById("telefonoCliente").textContent = data.telefonoCliente || "N/A";
   document.getElementById("emailRepresentante").textContent = data.emailRepresentante || "N/A";
+  document.getElementById("ejecutivoCliente").textContent = data.ejecutivo || "N/A";
 
   const sucursalesSelect = document.getElementById("sucursales");
   sucursalesSelect.innerHTML = "";
@@ -849,14 +879,14 @@ function llenarTabla(tableId, data) {
     inputRow.innerHTML = `
       <td><input type="text" id="emergenciaNombre" placeholder="Nombre"></td>
       <td><input type="text" id="emergenciaRUT" placeholder="RUT"></td>
-      <td><input type="text" id="emergenciaTelefono" placeholder="TelÃ©fono"></td>
+      <td><input type="text" id="emergenciaTelefono" placeholder="Teléfono"></td>
       <td><input type="email" id="emergenciaEmail" placeholder="Email"></td>
       <td><button class="btn-add" onclick="agregarPersona('Contacto de Emergencia')">+ Agregar</button></td>`;
   } else if (tableId === "personasAutorizadasTable") {
     inputRow.innerHTML = `
       <td><input type="text" id="autorizadoNombre" placeholder="Nombre"></td>
       <td><input type="text" id="autorizadoRUT" placeholder="RUT"></td>
-      <td><input type="text" id="autorizadoTelefono" placeholder="TelÃ©fono"></td>
+      <td><input type="text" id="autorizadoTelefono" placeholder="Teléfono"></td>
       <td><input type="email" id="autorizadoEmail" placeholder="Email"></td>
       <td><input type="text" id="claveVerde" placeholder="Clave Verde"></td>
       <td><input type="text" id="claveRoja" placeholder="Clave Roja"></td>
@@ -865,7 +895,7 @@ function llenarTabla(tableId, data) {
     inputRow.innerHTML = `
       <td><input type="text" id="guardiaNombre" placeholder="Nombre"></td>
       <td><input type="text" id="guardiaRUT" placeholder="RUT"></td>
-      <td><input type="text" id="guardiaTelefono" placeholder="TelÃ©fono"></td>
+      <td><input type="text" id="guardiaTelefono" placeholder="Teléfono"></td>
       <td><input type="time" id="horarioDesde"></td>
       <td><input type="time" id="horarioHasta"></td>
       <td><button class="btn-add" onclick="agregarPersona('Guardia')">+ Agregar</button></td>`;
@@ -926,7 +956,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const t = e.target;
     const ph = String(t.placeholder || "").toLowerCase();
     if (ph === "rut") normalizarRutInput(t);
-    if (ph.includes("telÃ©fono") || ph.includes("telefono")) normalizarTelefonoInput(t);
+    if (ph.includes("teléfono") || ph.includes("telefono")) normalizarTelefonoInput(t);
   });
 });
 </script>

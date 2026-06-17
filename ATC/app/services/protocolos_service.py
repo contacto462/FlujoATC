@@ -383,50 +383,44 @@ class ProtocolosService:
                 encargados_set.add(str(value).strip())
                 operadores_set.add(str(value).strip())
 
-        # Fuente principal solicitada: catalogo_clientes(nombre_cliente, nombre_sucursal).
+        # Fuente actual del sistema: bbdd_clientes + bbdd_sucursales.
         try:
-            bind = self.db.get_bind()
-            dialect = (bind.dialect.name if bind is not None else "").lower()
-            if dialect == "sqlite":
-                stmt_cat = text(
-                    """
-                    SELECT nombre_cliente, nombre_sucursal
-                    FROM catalogo_clientes
-                    WHERE nombre_cliente IS NOT NULL
-                      AND TRIM(nombre_cliente) <> ''
-                      AND nombre_sucursal IS NOT NULL
-                      AND TRIM(nombre_sucursal) <> ''
-                    """
-                )
-            else:
-                schema_name = (settings.db_schema or "public").strip() or "public"
-                stmt_cat = text(
-                    f"""
-                    SELECT nombre_cliente, nombre_sucursal
-                    FROM "{schema_name}"."catalogo_clientes"
-                    WHERE nombre_cliente IS NOT NULL
-                      AND btrim(CAST(nombre_cliente AS text)) <> ''
-                      AND nombre_sucursal IS NOT NULL
-                      AND btrim(CAST(nombre_sucursal AS text)) <> ''
-                    """
-                )
-            rows_cat = self.db.execute(stmt_cat).all()
-            clientes_set.clear()
-            sucursales_set.clear()
-            cliente_sucursales.clear()
-            for nombre_cliente, nombre_sucursal in rows_cat:
-                c = str(nombre_cliente or "").strip()
-                s = str(nombre_sucursal or "").strip()
-                if not c or not s:
+            for cliente_row in self.db.scalars(select(ClienteBBDD).order_by(ClienteBBDD.cliente.asc())).all():
+                cliente = str(cliente_row.cliente or "").strip()
+                if cliente:
+                    clientes_set.add(cliente)
+
+            rows_sucursales = (
+                self.db.query(SucursalBBDD, ClienteBBDD)
+                .outerjoin(ClienteBBDD, SucursalBBDD.rut == ClienteBBDD.rut)
+                .all()
+            )
+            for sucursal, cliente_ref in rows_sucursales:
+                cliente = str(
+                    sucursal.nombre_empresa
+                    or (cliente_ref.cliente if cliente_ref else "")
+                    or ""
+                ).strip()
+                nombre_sucursal = str(sucursal.nombre_sucursal or "").strip()
+                if not cliente or not nombre_sucursal:
                     continue
-                clientes_set.add(c)
-                sucursales_set.add(s)
-                cliente_sucursales[c].add(s)
+                clientes_set.add(cliente)
+                sucursales_set.add(nombre_sucursal)
+                cliente_sucursales[cliente].add(nombre_sucursal)
         except Exception as exc:
             LOGGER.warning(
-                "No fue posible cargar cliente/sucursal desde catalogo_clientes(nombre_cliente,nombre_sucursal): %s",
+                "No fue posible cargar cliente/sucursal desde bbdd_clientes/bbdd_sucursales: %s",
                 exc,
             )
+
+        try:
+            if not cliente_sucursales:
+                for cliente_row in self.db.scalars(select(ClienteBBDD).order_by(ClienteBBDD.cliente.asc())).all():
+                    cliente = str(cliente_row.cliente or "").strip()
+                    if cliente:
+                        clientes_set.add(cliente)
+        except Exception:
+            pass
 
         def _sort(vals: set[str]) -> list[str]:
             return sorted((v for v in vals if v), key=lambda x: x.lower())
@@ -1348,4 +1342,3 @@ class ProtocolosService:
         self.db.delete(informe)
         self.db.commit()
         return {"ok": True, "deleted": int(informe_id)}
-

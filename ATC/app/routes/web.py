@@ -1918,6 +1918,11 @@ def _support_ensure_cierre_tables(db: Session) -> None:
     )
     metadata.create_all(bind=bind, tables=[cierres], checkfirst=True)
 
+
+def _support_ensure_cierre_tables_UNUSED_MIGRATION(db: Session) -> None:
+    # Código de migración de incidencias_imagenes desactivado.
+    # La tabla incidencias_imagenes fue eliminada del esquema.
+    bind = db.get_bind()
     inspector = sa_inspect(bind)
     table_names = set(inspector.get_table_names())
     legacy_image_columns = ("imagen_1", "imagen_2", "imagen_3", "foto", "foto_2", "informe")
@@ -2688,7 +2693,7 @@ def ticket_service_catalog(
     current_user: User = Depends(get_current_user_web),
 ):
     # Catalogo para popup de derivacion desde ticket_detail.
-    # Fuente solicitada: catalogo_clientes.nombre_sucursal.
+    # Fuente: bbdd_sucursales.nombre_sucursal (unificada; antes catalogo_clientes).
     _ = current_user
 
     clientes_map: dict[str, str] = {}
@@ -2699,7 +2704,7 @@ def ticket_service_catalog(
             text(
                 """
                 SELECT nombre_sucursal
-                FROM catalogo_clientes
+                FROM bbdd_sucursales
                 WHERE COALESCE(TRIM(nombre_sucursal), '') <> ''
                 ORDER BY nombre_sucursal ASC
                 """
@@ -2713,7 +2718,7 @@ def ticket_service_catalog(
             if key not in clientes_map:
                 clientes_map[key] = value
     except Exception:
-        pass
+        db.rollback()
 
     # Catalogo oficial de tecnicos.
     try:
@@ -4217,7 +4222,7 @@ def ticket_detail(
             text(
                 """
                 SELECT nombre_sucursal
-                FROM catalogo_clientes
+                FROM bbdd_sucursales
                 WHERE COALESCE(TRIM(nombre_sucursal), '') <> ''
                 ORDER BY nombre_sucursal ASC
                 """
@@ -4234,6 +4239,7 @@ def ticket_detail(
             seen_names.add(key)
             requester_name_catalog.append(value)
     except Exception:
+        incidencias_db.rollback()
         requester_name_catalog = []
 
     linked_odt: dict | None = None
@@ -4298,6 +4304,7 @@ def ticket_detail(
                     "contenido": _em.content or "",
                 })
     except Exception:
+        db.rollback()
         linked_odt = None
         odt_derivacion_tipo = None
         correos_enviados = []
@@ -4613,7 +4620,7 @@ def update_requester_internal_name(
             text(
                 """
                 SELECT nombre_sucursal
-                FROM catalogo_clientes
+                FROM bbdd_sucursales
                 WHERE LOWER(TRIM(nombre_sucursal)) = LOWER(TRIM(:alias))
                 LIMIT 1
                 """
@@ -4623,7 +4630,7 @@ def update_requester_internal_name(
         if not row or not row[0]:
             raise HTTPException(
                 status_code=400,
-                detail="El nombre debe existir en catalogo_clientes.",
+                detail="El nombre debe existir en bbdd_sucursales.",
             )
         requester.internal_name = re.sub(r"\s+", " ", _support_text(row[0])).strip()[:120]
     else:

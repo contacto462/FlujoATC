@@ -33,7 +33,6 @@ from ATC.app.schemas.incidencias import (
     LoginResponse,
     ProtocoloRegistroCreateRequest,
     RendicionRequest,
-    TareaManualRequest,
 )
 from ATC.app.services.incidencias_service import AREA_PANEL_DESTINOS, IncidenciasService, seed_default_identity_data
 from ATC.app.services.incidencias_drive_report_service import download_support_drive_file_bytes
@@ -289,8 +288,8 @@ def _ensure_database_relationships() -> None:
                 "on_delete": "CASCADE",
             },
             {
-                "constraint": "fk_venta_ods_cliente_rut",
-                "child_table": "venta_ods",
+                "constraint": "fk_venta_comercial_cliente_rut",
+                "child_table": "venta_comercial",
                 "child_column": "rut_cliente",
                 "parent_table": "bbdd_clientes",
                 "parent_column": "rut",
@@ -299,39 +298,39 @@ def _ensure_database_relationships() -> None:
                 "constraint": "fk_venta_ods_archivos_ods",
                 "child_table": "venta_ods_archivos",
                 "child_column": "ods_id",
-                "parent_table": "venta_ods",
+                "parent_table": "venta_comercial",
                 "parent_column": "id",
                 "on_delete": "CASCADE",
             },
             {
-                "constraint": "fk_administracion_odt_venta_ods",
-                "child_table": "administracion_odt",
+                "constraint": "fk_venta_administracion_venta_comercial",
+                "child_table": "venta_administracion",
                 "child_column": "odt",
-                "parent_table": "venta_ods",
+                "parent_table": "venta_comercial",
                 "parent_column": "codigo",
                 "on_delete": "CASCADE",
             },
             {
-                "constraint": "fk_finanzas_odt_venta_ods",
-                "child_table": "finanzas_odt",
+                "constraint": "fk_venta_finanzas_venta_comercial",
+                "child_table": "venta_finanzas",
                 "child_column": "odt",
-                "parent_table": "venta_ods",
+                "parent_table": "venta_comercial",
                 "parent_column": "codigo",
                 "on_delete": "CASCADE",
             },
             {
-                "constraint": "fk_servicio_tecnico_ventas_odt_venta_ods",
-                "child_table": "servicio_tecnico_ventas_odt",
+                "constraint": "fk_venta_servicio_tecnico_venta_comercial",
+                "child_table": "venta_servicio_tecnico",
                 "child_column": "odt",
-                "parent_table": "venta_ods",
+                "parent_table": "venta_comercial",
                 "parent_column": "codigo",
                 "on_delete": "CASCADE",
             },
             {
-                "constraint": "fk_operaciones_venta_odt_venta_ods",
-                "child_table": "operaciones_venta_odt",
+                "constraint": "fk_venta_operaciones_venta_comercial",
+                "child_table": "venta_operaciones",
                 "child_column": "odt",
-                "parent_table": "venta_ods",
+                "parent_table": "venta_comercial",
                 "parent_column": "codigo",
                 "on_delete": "CASCADE",
             },
@@ -588,16 +587,16 @@ def _ensure_registro_optional_columns() -> None:
     try:
         with engine.begin() as conn:
             inspector = inspect(conn)
-            if not inspector.has_table("registro"):
+            if not inspector.has_table("incidencias"):
                 return
 
-            existing_columns = {str(c.get("name", "")).strip() for c in inspector.get_columns("registro")}
+            existing_columns = {str(c.get("name", "")).strip() for c in inspector.get_columns("incidencias")}
             for col_name, col_type in optional_columns.items():
                 if col_name in existing_columns:
                     continue
-                conn.execute(text(f'ALTER TABLE registro ADD COLUMN "{col_name}" {col_type}'))
+                conn.execute(text(f'ALTER TABLE incidencias ADD COLUMN "{col_name}" {col_type}'))
     except Exception as exc:
-        LOGGER.warning("No fue posible asegurar columnas opcionales en 'registro': %s", exc)
+        LOGGER.warning("No fue posible asegurar columnas opcionales en 'incidencias': %s", exc)
 
 
 def _ensure_administracion_odt_optional_columns() -> None:
@@ -624,16 +623,16 @@ def _ensure_administracion_odt_optional_columns() -> None:
     try:
         with engine.begin() as conn:
             inspector = inspect(conn)
-            if not inspector.has_table("administracion_odt"):
+            if not inspector.has_table("venta_administracion"):
                 return
 
-            existing_columns = {str(c.get("name", "")).strip() for c in inspector.get_columns("administracion_odt")}
+            existing_columns = {str(c.get("name", "")).strip() for c in inspector.get_columns("venta_administracion")}
             for col_name, col_type in optional_columns.items():
                 if col_name in existing_columns:
                     continue
-                conn.execute(text(f'ALTER TABLE administracion_odt ADD COLUMN "{col_name}" {col_type}'))
+                conn.execute(text(f'ALTER TABLE venta_administracion ADD COLUMN "{col_name}" {col_type}'))
     except Exception as exc:
-        LOGGER.warning("No fue posible asegurar columnas opcionales en 'administracion_odt': %s", exc)
+        LOGGER.warning("No fue posible asegurar columnas opcionales en 'venta_administracion': %s", exc)
 
 
 def _ensure_venta_ods_optional_columns() -> None:
@@ -644,16 +643,16 @@ def _ensure_venta_ods_optional_columns() -> None:
     try:
         with engine.begin() as conn:
             inspector = inspect(conn)
-            if not inspector.has_table("venta_ods"):
+            if not inspector.has_table("venta_comercial"):
                 return
 
-            existing_columns = {str(c.get("name", "")).strip() for c in inspector.get_columns("venta_ods")}
+            existing_columns = {str(c.get("name", "")).strip() for c in inspector.get_columns("venta_comercial")}
             for col_name, col_type in optional_columns.items():
                 if col_name in existing_columns:
                     continue
-                conn.execute(text(f'ALTER TABLE venta_ods ADD COLUMN "{col_name}" {col_type}'))
+                conn.execute(text(f'ALTER TABLE venta_comercial ADD COLUMN "{col_name}" {col_type}'))
     except Exception as exc:
-        LOGGER.warning("No fue posible asegurar columnas opcionales en 'venta_ods': %s", exc)
+        LOGGER.warning("No fue posible asegurar columnas opcionales en 'venta_comercial': %s", exc)
 
 
 def _ensure_finanzas_odt_optional_columns() -> None:
@@ -673,16 +672,16 @@ def _ensure_finanzas_odt_optional_columns() -> None:
     try:
         with engine.begin() as conn:
             inspector = inspect(conn)
-            if not inspector.has_table("finanzas_odt"):
+            if not inspector.has_table("venta_finanzas"):
                 return
 
-            existing_columns = {str(c.get("name", "")).strip() for c in inspector.get_columns("finanzas_odt")}
+            existing_columns = {str(c.get("name", "")).strip() for c in inspector.get_columns("venta_finanzas")}
             for col_name, col_type in optional_columns.items():
                 if col_name in existing_columns:
                     continue
-                conn.execute(text(f'ALTER TABLE finanzas_odt ADD COLUMN "{col_name}" {col_type}'))
+                conn.execute(text(f'ALTER TABLE venta_finanzas ADD COLUMN "{col_name}" {col_type}'))
     except Exception as exc:
-        LOGGER.warning("No fue posible asegurar columnas opcionales en 'finanzas_odt': %s", exc)
+        LOGGER.warning("No fue posible asegurar columnas opcionales en 'venta_finanzas': %s", exc)
 
 
 def _ensure_servicio_tecnico_ventas_optional_columns() -> None:
@@ -705,16 +704,16 @@ def _ensure_servicio_tecnico_ventas_optional_columns() -> None:
     try:
         with engine.begin() as conn:
             inspector = inspect(conn)
-            if not inspector.has_table("servicio_tecnico_ventas_odt"):
+            if not inspector.has_table("venta_servicio_tecnico"):
                 return
 
-            existing_columns = {str(c.get("name", "")).strip() for c in inspector.get_columns("servicio_tecnico_ventas_odt")}
+            existing_columns = {str(c.get("name", "")).strip() for c in inspector.get_columns("venta_servicio_tecnico")}
             for col_name, col_type in optional_columns.items():
                 if col_name in existing_columns:
                     continue
-                conn.execute(text(f'ALTER TABLE servicio_tecnico_ventas_odt ADD COLUMN "{col_name}" {col_type}'))
+                conn.execute(text(f'ALTER TABLE venta_servicio_tecnico ADD COLUMN "{col_name}" {col_type}'))
     except Exception as exc:
-        LOGGER.warning("No fue posible asegurar columnas opcionales en 'servicio_tecnico_ventas_odt': %s", exc)
+        LOGGER.warning("No fue posible asegurar columnas opcionales en 'venta_servicio_tecnico': %s", exc)
 
 
 def _ensure_rendiciones_optional_columns() -> None:
@@ -1848,22 +1847,6 @@ def obtener_clientes_soporte(service: Annotated[IncidenciasService, Depends(get_
     return service.obtener_clientes_soporte()
 
 
-@router.post("/api/sync/soporte/retry")
-def reintentar_sync_soporte(
-    limit: int = 50,
-    service: Annotated[IncidenciasService, Depends(get_service)] = None,
-):
-    return service.sync_soporte_pendientes(limit)
-
-
-@router.get("/api/sync/soporte/outbox")
-def estado_sync_soporte(
-    limit: int = 100,
-    service: Annotated[IncidenciasService, Depends(get_service)] = None,
-):
-    return service.obtener_estado_sync_outbox(limit)
-
-
 @router.get("/api/tareas/tipos")
 def obtener_tipos_especificaciones():
     return TIPOS_Y_ESPECIFICACIONES
@@ -2034,37 +2017,6 @@ def enviar_correo_coordinacion(
         return service.registrar_envio_correo_coordinacion(payload)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-
-@router.post("/api/tareas")
-def registrar_tarea_manual(
-    payload: TareaManualRequest,
-    service: Annotated[IncidenciasService, Depends(get_service)],
-):
-    try:
-        codigo = service.registrar_tarea_manual(payload)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return {"id": codigo}
-
-
-@router.get("/api/tareas")
-def obtener_tareas(service: Annotated[IncidenciasService, Depends(get_service)]):
-    return service.obtener_registro_tareas()
-
-
-@router.patch("/api/tareas/{tarea_id}")
-def actualizar_tarea(
-    tarea_id: int,
-    columna: str,
-    valor: str,
-    token: str,
-    service: Annotated[IncidenciasService, Depends(get_service)],
-):
-    ok = service.actualizar_celda_tarea(tarea_id, columna, valor, token)
-    if not ok:
-        raise HTTPException(status_code=404, detail="Tarea no encontrada")
-    return {"ok": True}
 
 
 @router.post("/api/rendiciones")
