@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dashboard Coordinación — ATC</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0d1424;
+    --surface: rgba(22, 31, 52, 0.9);
+    --surface-strong: #1a2740;
+    --surface-muted: #202c44;
+    --border: rgba(150, 173, 214, 0.16);
+    --text: #eef3ff;
+    --text-soft: #b4c0d8;
+    --text-dim: #8491a8;
+    --primary: #5a8cff;
+    --green: #2dcf83;
+    --amber: #f3b84f;
+    --red: #ef5f6d;
+    --purple: #8b72ff;
+    --shadow: 0 22px 48px rgba(4, 10, 22, 0.28);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+    background:
+      radial-gradient(circle at top left, rgba(90, 140, 255, 0.18), transparent 28%),
+      radial-gradient(circle at top right, rgba(139, 114, 255, 0.12), transparent 22%),
+      var(--bg);
+    color: var(--text);
+  }
+  a { color: inherit; text-decoration: none; }
+  .page { max-width: 1500px; margin: 0 auto; height: 100vh; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+
+  .topbar { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex: 0 0 auto; }
+  .topbar-brand { display: flex; align-items: center; gap: 12px; }
+  .topbar-brand img { height: 34px; width: auto; object-fit: contain; }
+  .topbar-copy h1 { margin: 0 0 2px; font-size: 1.25rem; letter-spacing: -0.03em; font-weight: 800; }
+  .topbar-copy p { margin: 0; color: var(--text-soft); font-size: 0.78rem; }
+  .ghost-button {
+    border: 1px solid var(--border); border-radius: 999px; padding: 8px 16px;
+    font-size: 0.82rem; font-weight: 700; cursor: pointer; background: var(--surface);
+    color: var(--text); box-shadow: var(--shadow); transition: transform .15s, border-color .15s;
+  }
+  .ghost-button:hover { transform: translateY(-1px); border-color: rgba(90,140,255,.34); }
+  .topbar-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .filtro-fechas { display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; box-shadow: var(--shadow); }
+  .filtro-fechas label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); }
+  .filtro-fechas input[type="date"] {
+    background: var(--surface-strong); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); font-size: 0.78rem; padding: 5px 7px; color-scheme: dark;
+  }
+  .filtro-fechas .primary-button {
+    border: none; border-radius: 999px; padding: 7px 14px; font-size: 0.78rem; font-weight: 700;
+    cursor: pointer; background: var(--primary); color: #fff;
+  }
+  .filtro-fechas .clear-button {
+    border: 1px solid var(--border); border-radius: 999px; padding: 7px 12px; font-size: 0.78rem; font-weight: 700;
+    cursor: pointer; background: transparent; color: var(--text-soft);
+  }
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; flex: 0 0 auto; }
+  .kpi {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 10px 14px; box-shadow: var(--shadow);
+  }
+  .kpi-label { font-size: 0.64rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); margin-bottom: 4px; line-height: 1.2; }
+  .kpi-value { font-size: 1.5rem; font-weight: 800; letter-spacing: -.02em; color: var(--text); }
+
+  .charts-row { display: grid; grid-template-columns: 1.3fr 1fr 1.3fr; gap: 10px; flex: 1 1 40%; min-height: 0; }
+  .bottom-row { flex: 1 1 45%; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    box-shadow: var(--shadow); padding: 12px 16px; display: flex; flex-direction: column; min-height: 0;
+  }
+  .card h3 { margin: 0 0 1px; font-size: 0.86rem; font-weight: 800; flex: 0 0 auto; }
+  .card p.sub { margin: 0 0 6px; color: var(--text-soft); font-size: 0.72rem; flex: 0 0 auto; }
+  .chart-host { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+  .chart-host canvas { max-height: 100%; }
+
+  .card-head-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: 0 0 auto; }
+  .card-head-row h3 { margin: 0; }
+  .mas-info-btn {
+    flex: 0 0 auto; border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px;
+    font-size: 0.66rem; font-weight: 700; cursor: pointer; background: var(--surface-strong);
+    color: var(--primary); transition: border-color .15s, transform .15s;
+  }
+  .mas-info-btn:hover { border-color: var(--primary); transform: translateY(-1px); }
+
+  /* ── Popup "+ Info" Informes semanales ── */
+  .detalle-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(4, 8, 18, 0.72);
+    z-index: 200; align-items: center; justify-content: center; padding: 24px;
+    backdrop-filter: blur(3px);
+  }
+  .detalle-overlay.open { display: flex; }
+  .detalle-modal {
+    width: min(1400px, 96vw); max-height: min(940px, 94vh);
+    background: var(--surface-strong); border: 1px solid var(--border); border-radius: 24px;
+    box-shadow: 0 40px 90px rgba(0,0,0,.55); display: flex; flex-direction: column; overflow: hidden;
+  }
+  .detalle-header {
+    flex: 0 0 auto; display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 16px; padding: 22px 28px; border-bottom: 1px solid var(--border);
+  }
+  .detalle-header h2 { margin: 0 0 4px; font-size: 1.3rem; font-weight: 800; letter-spacing: -.01em; }
+  .detalle-header p { margin: 0; color: var(--text-soft); font-size: 0.85rem; }
+  .detalle-close {
+    flex: 0 0 auto; border: 1px solid var(--border); border-radius: 10px; width: 34px; height: 34px;
+    background: var(--surface); color: var(--text); font-size: 1.2rem; cursor: pointer; line-height: 1;
+  }
+  .detalle-close:hover { border-color: var(--red); color: var(--red); }
+  .detalle-kpis { flex: 0 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 20px 28px 0; }
+  .detalle-kpi {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px 18px;
+  }
+  .detalle-kpi .lbl { font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); margin-bottom: 6px; }
+  .detalle-kpi .val { font-size: 1.6rem; font-weight: 800; letter-spacing: -.01em; }
+
+  .detalle-tabs { flex: 0 0 auto; display: flex; gap: 4px; padding: 18px 28px 0; border-bottom: 1px solid var(--border); }
+  .detalle-tab {
+    appearance: none; border: none; background: none; cursor: pointer;
+    padding: 8px 4px 12px; margin-right: 22px; font-size: 0.86rem; font-weight: 700;
+    color: var(--text-dim); border-bottom: 2px solid transparent;
+  }
+  .detalle-tab .n { font-variant-numeric: tabular-nums; margin-left: 5px; opacity: .7; }
+  .detalle-tab.active { color: var(--text); border-bottom-color: var(--primary); }
+  .detalle-tab:hover:not(.active) { color: var(--text-soft); }
+
+  .detalle-list { flex: 1; min-height: 0; overflow-y: auto; padding: 6px 28px 24px; }
+  .detalle-empty { padding: 40px; text-align: center; color: var(--text-dim); font-size: 0.86rem; }
+
+  .info-row { display: flex; align-items: center; gap: 16px; padding: 13px 4px; border-bottom: 1px solid var(--border); }
+  .info-row:last-child { border-bottom: none; }
+  .info-dot { flex: 0 0 auto; width: 9px; height: 9px; border-radius: 50%; }
+  .info-dot.pend { background: var(--red); box-shadow: 0 0 0 4px rgba(239,95,109,.14); }
+  .info-dot.ok { background: var(--green); box-shadow: 0 0 0 4px rgba(45,207,131,.14); }
+  .info-main { flex: 1; min-width: 0; }
+  .info-cliente { font-size: 0.92rem; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .info-sucursal { font-size: 0.78rem; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
+  .info-badge { flex: 0 0 auto; text-align: right; min-width: 132px; }
+  .info-badge .lbl { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); margin-bottom: 2px; }
+  .info-badge .val { font-variant-numeric: tabular-nums; font-weight: 800; letter-spacing: .01em; font-size: 0.94rem; }
+  .info-badge .val.bad { color: var(--red); }
+  .info-badge .val.warn { color: var(--amber); }
+  .info-badge .val.ok { color: var(--green); }
+
+  /* Popup "+ Info" Clientes con mas incidencias pendientes */
+  .cliente-row { padding: 14px 4px; border-bottom: 1px solid var(--border); }
+  .cliente-row:last-child { border-bottom: none; }
+  .cliente-row-top { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .cliente-rank {
+    flex: 0 0 auto; width: 26px; height: 26px; border-radius: 8px; background: var(--surface-strong);
+    color: var(--text-dim); font-size: 0.74rem; font-weight: 800; display: flex; align-items: center; justify-content: center;
+  }
+  .cliente-nombre { flex: 1; min-width: 0; font-size: 0.94rem; font-weight: 800; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cliente-total { flex: 0 0 auto; font-size: 0.86rem; font-weight: 800; }
+  .cliente-total.bad { color: var(--red); }
+  .cliente-total.warn { color: var(--amber); }
+  .cliente-total.ok { color: var(--green); }
+  .problema-chips { display: flex; flex-wrap: wrap; gap: 6px; padding-left: 38px; }
+  .problema-chip {
+    font-size: 0.74rem; font-weight: 600; color: var(--text-soft); background: var(--surface-strong);
+    border: 1px solid var(--border); border-radius: 999px; padding: 4px 11px;
+  }
+  .problema-chip b { color: var(--text); font-weight: 800; }
+
+  /* Popup "+ Info" Incidencias pendientes mas antiguas (resumen) */
+  .detalle-two-col { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; padding: 12px 28px 24px; }
+  .detalle-subcol { display: flex; flex-direction: column; min-height: 0; }
+  .detalle-subcol h4 { margin: 0 0 8px; font-size: 0.82rem; font-weight: 800; flex: 0 0 auto; }
+  .detalle-subcol-list { flex: 1; min-height: 0; overflow-y: auto; }
+  .resumen-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 4px; border-bottom: 1px solid var(--border); }
+  .resumen-row:last-child { border-bottom: none; }
+  .resumen-nombre { font-size: 0.86rem; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .resumen-badge {
+    flex: 0 0 auto; font-size: 0.78rem; font-weight: 800; color: var(--primary);
+    background: rgba(90,140,255,.12); border: 1px solid rgba(90,140,255,.3); padding: 3px 12px; border-radius: 999px;
+  }
+  .resumen-buscar {
+    flex: 0 0 auto; width: 100%; margin-bottom: 8px; padding: 8px 12px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.82rem;
+  }
+  .resumen-buscar:focus { outline: none; border-color: var(--primary); }
+
+  /* Popup "+ Info" al hacer clic en una barra de Antiguedad (grid, no lista) */
+  .bucket-toolbar { flex: 0 0 auto; display: flex; align-items: center; gap: 12px; padding: 16px 28px 0; }
+  .bucket-toolbar input {
+    flex: 0 1 320px; padding: 9px 14px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); font-size: 0.84rem;
+  }
+  .bucket-toolbar input:focus { outline: none; border-color: var(--primary); }
+  .bucket-toolbar .bucket-total { font-size: 0.78rem; color: var(--text-dim); font-weight: 700; }
+  .bucket-grid {
+    flex: 1; min-height: 0; overflow-y: auto; padding: 14px 28px 24px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; align-content: start;
+  }
+  .bucket-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px;
+  }
+  .bucket-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .bucket-card-cliente { font-size: 0.86rem; font-weight: 800; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bucket-card-badge { flex: 0 0 auto; font-size: 0.78rem; font-weight: 800; }
+  .bucket-card-badge.bad { color: var(--red); }
+  .bucket-card-badge.warn { color: var(--amber); }
+  .bucket-card-badge.ok { color: var(--green); }
+  .bucket-card-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+
+  .table-wrap { flex: 1; min-height: 0; overflow-y: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    position: sticky; top: 0; background: var(--surface-strong);
+    text-align: left; font-size: 0.66rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .04em; color: var(--text-dim); padding: 6px 10px; border-bottom: 1px solid var(--border);
+  }
+  thead th.right { text-align: right; }
+  tbody td { padding: 6px 10px; border-bottom: 1px solid var(--border); font-size: 0.8rem; color: var(--text-soft); }
+  tbody td.right { text-align: right; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody td.strong { color: var(--text); font-weight: 700; }
+  .dias-badge { font-weight: 800; }
+  .dias-badge.bad { color: var(--red); }
+  .dias-badge.warn { color: var(--amber); }
+  .dias-badge.ok { color: var(--green); }
+  .empty-row { padding: 20px; text-align: center; color: var(--text-dim); font-size: 0.82rem; }
+
+  @media (max-width: 980px) {
+    html, body { overflow: auto; }
+    .page { height: auto; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .charts-row { grid-template-columns: 1fr; }
+    .chart-host { height: 220px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="topbar">
+    <div class="topbar-brand">
+      <img src="/shared-static/img/logo-atc.png" alt="ATC — Alguien Te Cuida">
+      <div class="topbar-copy">
+        <h1>Dashboard Coordinación</h1>
+        <p>Incidencias derivadas a Cliente/Coordinación y envío de informes semanales de protocolos</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <form class="filtro-fechas" id="filtroFechasForm" method="get">
+        <input type="hidden" name="token" value="{{ token|default('') }}">
+        <label for="filtroDesde">Desde</label>
+        <input type="date" id="filtroDesde" name="desde" value="{{ filtro_desde|default('') }}">
+        <label for="filtroHasta">Hasta</label>
+        <input type="date" id="filtroHasta" name="hasta" value="{{ filtro_hasta|default('') }}">
+        <button type="submit" class="primary-button">Aplicar</button>
+        {% if filtro_desde or filtro_hasta %}
+        <a class="clear-button" href="/venta/operaciones/dashboard-coordinacion?token={{ token|default('') }}">Limpiar</a>
+        {% endif %}
+      </form>
+      <a class="ghost-button" id="btnGenerarInforme" href="#" target="_blank" rel="noopener" title="PDF explicativo del estado de Coordinación con Cliente para el rango seleccionado">Generar informe</a>
+      <a class="ghost-button" id="btnVolver" href="/venta/operaciones?token={{ token|default('') }}">Volver</a>
+    </div>
+  </header>
+
+  <div class="kpi-grid">
+    <article class="kpi">
+      <div class="kpi-label">Incidencias pendientes (Cliente / Coordinación)</div>
+      <div class="kpi-value">{{ incidencias_pendientes }}</div>
+    </article>
+    <article class="kpi">
+      <div class="kpi-label">Días promedio sin gestionar</div>
+      <div class="kpi-value">{{ antiguedad_promedio_dias }}</div>
+    </article>
+    <article class="kpi">
+      <div class="kpi-label">Tasa de envío de informes</div>
+      <div class="kpi-value">{{ tasa_envio_informes }}<small style="font-size:0.9rem;font-weight:700;color:var(--text-dim);">%</small></div>
+    </article>
+    <article class="kpi">
+      <div class="kpi-label">Tasa de resolución de incidencias</div>
+      <div class="kpi-value">{{ tasa_resolucion_odt }}<small style="font-size:0.9rem;font-weight:700;color:var(--text-dim);">%</small></div>
+    </article>
+  </div>
+
+  <div class="charts-row">
+    <article class="card">
+      <div class="card-head-row">
+        <h3>Antigüedad de incidencias pendientes</h3>
+        <button type="button" class="mas-info-btn" onclick="abrirDetalleBucketTotal()">+ Info</button>
+      </div>
+      <p class="sub">Días transcurridos desde la derivación, sin gestión.</p>
+      <div class="chart-host"><canvas id="chAntiguedad"></canvas></div>
+    </article>
+    <article class="card">
+      <div class="card-head-row">
+        <h3>Informes semanales</h3>
+        <button type="button" class="mas-info-btn" onclick="abrirDetalleInformes()">+ Info</button>
+      </div>
+      <p class="sub">Estado de envío</p>
+      <div class="chart-host"><canvas id="chProtocolos"></canvas></div>
+    </article>
+    <article class="card">
+      <div class="card-head-row">
+        <h3>Clientes con más incidencias pendientes</h3>
+        <button type="button" class="mas-info-btn" onclick="abrirDetalleClientes()">+ Info</button>
+      </div>
+      <p class="sub">Top 10 · Cliente / Coordinación</p>
+      <div class="chart-host"><canvas id="chClientes"></canvas></div>
+    </article>
+  </div>
+
+  <div class="bottom-row">
+    <article class="card">
+      <h3 id="tituloIncidenciasPorMes">{% if filtro_desde_fmt and filtro_hasta_fmt %}Incidencias desde {{ filtro_desde_fmt }} hasta {{ filtro_hasta_fmt }}{% else %}Incidencias por mes{% endif %}</h3>
+      <p class="sub">Resueltas · Pendientes</p>
+      <div class="chart-host"><canvas id="chMensual"></canvas></div>
+    </article>
+    <article class="card">
+      <div class="card-head-row">
+        <h3>Incidencias pendientes más antiguas</h3>
+        <button type="button" class="mas-info-btn" onclick="abrirDetallePendientesResumen()">+ Info</button>
+      </div>
+      <p class="sub">Top 10, ordenadas por días sin gestión</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>ODT</th><th>Cliente</th><th>Problema</th><th class="right">Días</th></tr>
+          </thead>
+          <tbody>
+            {% for it in top_antiguas %}
+            <tr>
+              <td class="strong">{{ it.odt }}</td>
+              <td>{{ it.cliente }}</td>
+              <td>{{ it.problema }}</td>
+              <td class="right">
+                <span class="dias-badge {% if it.dias >= 60 %}bad{% elif it.dias >= 30 %}warn{% else %}ok{% endif %}">{{ it.dias }}</span>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="empty-row">No hay incidencias pendientes de Cliente/Coordinación. 🎉</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+  </div>
+
+</div>
+
+<div class="detalle-overlay" id="detalleInformesOverlay" onclick="if(event.target===this) cerrarDetalleInformes()">
+  <div class="detalle-modal">
+    <div class="detalle-header">
+      <div>
+        <h2>Informes semanales — Detalle</h2>
+        <p>Estado de envío por sucursal y antigüedad de los pendientes</p>
+      </div>
+      <button type="button" class="detalle-close" onclick="cerrarDetalleInformes()">&times;</button>
+    </div>
+
+    <div class="detalle-kpis">
+      <article class="detalle-kpi">
+        <div class="lbl">Enviados</div>
+        <div class="val" id="detalleKpiEnviados" style="color:var(--green)">—</div>
+      </article>
+      <article class="detalle-kpi">
+        <div class="lbl">Pendientes</div>
+        <div class="val" id="detalleKpiPendientes" style="color:var(--red)">—</div>
+      </article>
+      <article class="detalle-kpi">
+        <div class="lbl">Sucursales con pendientes</div>
+        <div class="val" id="detalleKpiSucursales">—</div>
+      </article>
+      <article class="detalle-kpi">
+        <div class="lbl">Pendiente más antiguo</div>
+        <div class="val" id="detalleKpiMasAntiguo" style="font-size:1.1rem;">—</div>
+      </article>
+    </div>
+
+    <div class="detalle-tabs">
+      <button type="button" class="detalle-tab active" id="tabPendientes" onclick="cambiarTabDetalle('pendientes')">Pendientes <span class="n" id="tabPendientesCount"></span></button>
+      <button type="button" class="detalle-tab" id="tabEnviados" onclick="cambiarTabDetalle('enviados')">Enviados <span class="n" id="tabEnviadosCount"></span></button>
+    </div>
+    <div class="detalle-list" id="detalleLista">
+      <div class="detalle-empty">Cargando…</div>
+    </div>
+  </div>
+</div>
+
+<div class="detalle-overlay" id="detalleClientesOverlay" onclick="if(event.target===this) cerrarDetalleClientes()">
+  <div class="detalle-modal">
+    <div class="detalle-header">
+      <div>
+        <h2>Clientes con más incidencias pendientes</h2>
+        <p>Top 10 · Desglose por tipo de problema</p>
+      </div>
+      <button type="button" class="detalle-close" onclick="cerrarDetalleClientes()">&times;</button>
+    </div>
+    <div class="detalle-list" id="detalleClientesLista">
+      <div class="detalle-empty">Cargando…</div>
+    </div>
+  </div>
+</div>
+
+<div class="detalle-overlay" id="detallePendientesResumenOverlay" onclick="if(event.target===this) cerrarDetallePendientesResumen()">
+  <div class="detalle-modal">
+    <div class="detalle-header">
+      <div>
+        <h2>Incidencias pendientes — Resumen</h2>
+        <p>Todas las incidencias pendientes de Cliente/Coordinación, por sucursal y por tipo</p>
+      </div>
+      <button type="button" class="detalle-close" onclick="cerrarDetallePendientesResumen()">&times;</button>
+    </div>
+    <div class="detalle-two-col">
+      <div class="detalle-subcol">
+        <h4>Por sucursal</h4>
+        <input type="text" id="resumenSucursalBuscar" class="resumen-buscar" placeholder="Buscar sucursal..." oninput="filtrarResumenSucursal()">
+        <div class="detalle-subcol-list" id="resumenPorSucursalLista"><div class="detalle-empty">Cargando…</div></div>
+      </div>
+      <div class="detalle-subcol">
+        <h4>Por tipo de incidencia</h4>
+        <div class="detalle-subcol-list" id="resumenPorTipoLista"><div class="detalle-empty">Cargando…</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="detalle-overlay" id="detalleBucketOverlay" onclick="if(event.target===this) cerrarDetalleBucket()">
+  <div class="detalle-modal">
+    <div class="detalle-header">
+      <div>
+        <h2 id="detalleBucketTitulo">Antigüedad — Detalle</h2>
+        <p>Sucursales con incidencias en este rango de antigüedad, y sus tipos</p>
+      </div>
+      <button type="button" class="detalle-close" onclick="cerrarDetalleBucket()">&times;</button>
+    </div>
+    <div class="bucket-toolbar">
+      <input type="text" id="bucketBuscar" placeholder="Buscar sucursal..." oninput="filtrarDetalleBucket()">
+      <span class="bucket-total" id="bucketTotalLbl"></span>
+    </div>
+    <div class="bucket-grid" id="bucketGrid">
+      <div class="detalle-empty">Cargando…</div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+  const CHART_TEXT = "#b4c0d8";
+  const CHART_GRID = "rgba(150,173,214,.12)";
+  Chart.defaults.color = CHART_TEXT;
+  Chart.defaults.font.family = "Inter, 'Segoe UI', system-ui, sans-serif";
+
+  const bucketsData = {{ antiguedad_buckets|tojson }};
+  const clientesData = {{ top_clientes|tojson }};
+  const resumenPendientesData = {{ resumen_pendientes|tojson }};
+  const protocolosPendientes = {{ protocolos_semanales_pendientes }};
+  const protocolosEnviados = {{ protocolos_semanales_enviados }};
+  const mensualData = {{ mensual|tojson }};
+
+  const _gradientesAntiguedad = {
+    "#5a8cff": ["#3d63d6", "#7aa6ff"],
+    "#8b72ff": ["#6a4fd9", "#ab94ff"],
+    "#f3b84f": ["#d99a25", "#ffd580"],
+    "#ef8a5f": ["#d66a3a", "#ffab7f"],
+    "#ef5f6d": ["#d63d4d", "#ff8f99"],
+  };
+  const _coloresAntiguedad = Object.keys(_gradientesAntiguedad);
+
+  new Chart(document.getElementById("chAntiguedad"), {
+    type: "bar",
+    data: {
+      labels: bucketsData.map(b => b.label),
+      datasets: [{
+        data: bucketsData.map(b => b.cantidad),
+        backgroundColor(context) {
+          const { chart, dataIndex } = context;
+          const { ctx: c, chartArea } = chart;
+          const base = _coloresAntiguedad[dataIndex] || "#5a8cff";
+          if (!chartArea) return base;
+          const [dark, light] = _gradientesAntiguedad[base];
+          const gradient = c.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+          gradient.addColorStop(0, dark);
+          gradient.addColorStop(1, light);
+          return gradient;
+        },
+        borderRadius: 6,
+        maxBarThickness: 40,
+        categoryPercentage: 0.72,
+        barPercentage: 0.9,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      onHover: (evt, els) => { evt.native.target.style.cursor = els.length ? "pointer" : "default"; },
+      onClick: (evt, els) => { if (els.length) abrirDetalleBucket(els[0].index); },
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: CHART_TEXT, font: { size: 10 } } },
+        y: { beginAtZero: true, grid: { display: false }, ticks: { color: CHART_TEXT, precision: 0, font: { size: 10 } } },
+      },
+    },
+  });
+
+  const totalInformesSemanales = protocolosEnviados + protocolosPendientes;
+  const pluginTextoCentral = {
+    id: "textoCentralDoughnut",
+    afterDraw(chart) {
+      if (chart.config.type !== "doughnut" || !chart.options.plugins?.textoCentral) return;
+      const { ctx, chartArea: { left, right, top, bottom } } = chart;
+      const cx = (left + right) / 2;
+      const cy = (top + bottom) / 2;
+      const { valor, etiqueta } = chart.options.plugins.textoCentral;
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#eef3ff";
+      ctx.font = "800 34px Inter, 'Segoe UI', system-ui, sans-serif";
+      ctx.fillText(valor, cx, cy - (etiqueta ? 10 : 0));
+      if (etiqueta) {
+        ctx.fillStyle = "#8491a8";
+        ctx.font = "700 11px Inter, 'Segoe UI', system-ui, sans-serif";
+        ctx.fillText(etiqueta.toUpperCase(), cx, cy + 16);
+      }
+      ctx.restore();
+    },
+  };
+
+  const _gradientesProtocolos = {
+    0: ["#1a9c63", "#5be0a0"],
+    1: ["#d63d4d", "#ff8f99"],
+  };
+
+  new Chart(document.getElementById("chProtocolos"), {
+    type: "doughnut",
+    data: {
+      labels: ["Enviados", "Pendientes"],
+      datasets: [{
+        data: [protocolosEnviados, protocolosPendientes],
+        backgroundColor(context) {
+          const { chart, dataIndex } = context;
+          const { ctx: c, chartArea } = chart;
+          const par = _gradientesProtocolos[dataIndex] || ["#5a8cff", "#7aa6ff"];
+          if (!chartArea) return par[0];
+          const gradient = c.createLinearGradient(chartArea.left, chartArea.top, chartArea.right, chartArea.bottom);
+          gradient.addColorStop(0, par[0]);
+          gradient.addColorStop(1, par[1]);
+          return gradient;
+        },
+        borderColor: "#0d1424",
+        borderWidth: 3,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: "66%",
+      plugins: {
+        legend: { position: "bottom", labels: { color: CHART_TEXT, boxWidth: 10, padding: 10, font: { size: 11 } } },
+        textoCentral: { valor: totalInformesSemanales, etiqueta: "Total" },
+      },
+    },
+    plugins: [pluginTextoCentral],
+  });
+
+  new Chart(document.getElementById("chClientes"), {
+    type: "bar",
+    data: {
+      labels: clientesData.map(c => c.cliente),
+      datasets: [{
+        data: clientesData.map(c => c.cantidad),
+        backgroundColor(context) {
+          const { chart } = context;
+          const { ctx: c, chartArea } = chart;
+          if (!chartArea) return "#5a8cff";
+          const gradient = c.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
+          gradient.addColorStop(0, "#3d63d6");
+          gradient.addColorStop(1, "#7aa6ff");
+          return gradient;
+        },
+        borderRadius: 6,
+        maxBarThickness: 16,
+        categoryPercentage: 0.72,
+        barPercentage: 0.9,
+      }],
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { top: 2, right: 26, bottom: 2 } },
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { beginAtZero: true, grid: { display: false }, ticks: { color: CHART_TEXT, precision: 0, font: { size: 10 } } },
+        y: { grid: { display: false }, ticks: { color: CHART_TEXT, font: { size: 10.5 }, crossAlign: "far", padding: 4 } },
+      },
+    },
+  });
+  // Brillo (glow) suave en cada linea, como una "ola", manteniendo el color
+  // propio de cada serie (verde/ambar/rojo).
+  const pluginGlowLineas = {
+    id: "glowLineas",
+    beforeDatasetDraw(chart, args) {
+      chart.ctx.save();
+      chart.ctx.shadowColor = args.meta.dataset.options.borderColor;
+      chart.ctx.shadowBlur = 9;
+    },
+    afterDatasetDraw(chart) {
+      chart.ctx.restore();
+    },
+  };
+
+  function _hexARgba(hex, alpha) {
+    const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
+  function _datasetOla(label, data, color) {
+    return {
+      label,
+      data,
+      borderColor: color,
+      backgroundColor(context) {
+        const { chart } = context;
+        const { ctx: c, chartArea } = chart;
+        if (!chartArea) return _hexARgba(color, 0.22);
+        const gradient = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+        gradient.addColorStop(0, _hexARgba(color, 0.38));
+        gradient.addColorStop(1, _hexARgba(color, 0.02));
+        return gradient;
+      },
+      pointBackgroundColor: color,
+      pointBorderColor: "#0d1424",
+      pointBorderWidth: 2,
+      borderWidth: 3,
+      tension: 0.45,
+      fill: "origin",
+      pointRadius: 3,
+      pointHoverRadius: 6,
+      cubicInterpolationMode: "monotone",
+    };
+  }
+
+  new Chart(document.getElementById("chMensual"), {
+    type: "line",
+    data: {
+      labels: mensualData.map(m => m.mes),
+      datasets: [
+        _datasetOla("Resueltas", mensualData.map(m => m.resueltas), "#2dcf83"),
+        _datasetOla("Pendientes", mensualData.map(m => m.pendientes), "#ef5f6d"),
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { intersect: false, mode: "index" },
+      plugins: { legend: { position: "bottom", labels: { color: CHART_TEXT, boxWidth: 10, padding: 10, font: { size: 11 } } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: CHART_TEXT, font: { size: 10 } } },
+        y: { beginAtZero: true, grid: { display: false }, ticks: { color: CHART_TEXT, precision: 0, font: { size: 10 } } },
+      },
+    },
+    plugins: [pluginGlowLineas],
+  });
+
+  // Boton "Generar informe": el href se recalcula con las fechas actuales
+  // del formulario (aunque el usuario no haya apretado "Aplicar" todavia).
+  const DASH_TOKEN = {{ token|default('')|tojson }};
+
+  function _actualizarHrefInforme() {
+    const btn = document.getElementById("btnGenerarInforme");
+    if (!btn) return;
+    const params = new URLSearchParams();
+    if (DASH_TOKEN) params.set("token", DASH_TOKEN);
+    const desde = document.getElementById("filtroDesde").value;
+    const hasta = document.getElementById("filtroHasta").value;
+    if (desde) params.set("desde", desde);
+    if (hasta) params.set("hasta", hasta);
+    btn.href = `/venta/operaciones/dashboard-coordinacion/informe?${params.toString()}`;
+  }
+  document.getElementById("filtroDesde").addEventListener("change", _actualizarHrefInforme);
+  document.getElementById("filtroHasta").addEventListener("change", _actualizarHrefInforme);
+  _actualizarHrefInforme();
+
+  // ── Popup "+ Info" Informes semanales ──
+  let detalleInformesData = null;
+  let detalleAntiguedadTimer = null;
+  let detalleTabActiva = "pendientes";
+
+  // Reloj vivo dd:hh:mm:ss, mismo formato que el timer de detalle_ticket.html.
+  function _detalleFormatoAntiguedad(ms) {
+    const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+    const dias = Math.floor(totalSeconds / 86400);
+    const horas = Math.floor((totalSeconds % 86400) / 3600);
+    const min = Math.floor((totalSeconds % 3600) / 60);
+    const seg = totalSeconds % 60;
+    return `${dias}d ${String(horas).padStart(2, "0")}:${String(min).padStart(2, "0")}:${String(seg).padStart(2, "0")}`;
+  }
+
+  function _horasATexto(h) {
+    if (h < 1) return "< 1h";
+    if (h < 24) return `${Math.floor(h)}h`;
+    return `${Math.floor(h / 24)}d ${Math.floor(h % 24)}h`;
+  }
+
+  function _severidad(horas) {
+    if (horas >= 120) return "bad";
+    if (horas >= 24) return "warn";
+    return "ok";
+  }
+
+  function _fechaRelativa(iso) {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    if (isNaN(d)) return "—";
+    const dias = Math.floor((Date.now() - d.getTime()) / 86400000);
+    if (dias <= 0) return "Hoy";
+    if (dias === 1) return "Ayer";
+    if (dias < 7) return `Hace ${dias} días`;
+    return d.toLocaleDateString("es-CL");
+  }
+
+  function _tickAntiguedadClocks() {
+    document.querySelectorAll(".antiguedad-clock[data-creado]").forEach((el) => {
+      const creadoMs = Number(el.dataset.creado || "0");
+      if (!creadoMs) { el.textContent = "—"; return; }
+      const ms = Date.now() - creadoMs;
+      el.textContent = _detalleFormatoAntiguedad(ms);
+      const sev = _severidad(ms / 3600000);
+      el.classList.remove("bad", "warn", "ok");
+      el.classList.add(sev);
+    });
+  }
+
+  function esc(valor) {
+    return String(valor ?? "")
+      .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+  }
+
+  function cambiarTabDetalle(tab) {
+    detalleTabActiva = tab;
+    document.getElementById("tabPendientes").classList.toggle("active", tab === "pendientes");
+    document.getElementById("tabEnviados").classList.toggle("active", tab === "enviados");
+    renderListaDetalle();
+  }
+
+  function renderListaDetalle() {
+    const data = detalleInformesData;
+    const lista = document.getElementById("detalleLista");
+    if (!data) return;
+
+    const items = data.items.filter((it) => (detalleTabActiva === "pendientes") === it.pendiente);
+    if (!items.length) {
+      lista.innerHTML = detalleTabActiva === "pendientes"
+        ? `<div class="detalle-empty">No hay informes pendientes de envío. 🎉</div>`
+        : `<div class="detalle-empty">Aún no hay informes enviados.</div>`;
+      return;
+    }
+
+    lista.innerHTML = items.map((it) => {
+      if (it.pendiente) {
+        const creadoMs = it.creado_en ? new Date(it.creado_en).getTime() : 0;
+        return `
+        <div class="info-row">
+          <span class="info-dot pend"></span>
+          <div class="info-main">
+            <div class="info-cliente" title="${esc(it.cliente)}">${esc(it.cliente)}</div>
+            <div class="info-sucursal" title="${esc(it.sucursal)}">${esc(it.sucursal)}</div>
+          </div>
+          <div class="info-badge">
+            <div class="lbl">Sin enviar hace</div>
+            <span class="antiguedad-clock val" data-creado="${creadoMs}"></span>
+          </div>
+        </div>`;
+      }
+      return `
+        <div class="info-row">
+          <span class="info-dot ok"></span>
+          <div class="info-main">
+            <div class="info-cliente" title="${esc(it.cliente)}">${esc(it.cliente)}</div>
+            <div class="info-sucursal" title="${esc(it.sucursal)}">${esc(it.sucursal)}</div>
+          </div>
+          <div class="info-badge">
+            <div class="lbl">Enviado</div>
+            <span class="val ok">${esc(_fechaRelativa(it.actualizado_en))}</span>
+          </div>
+        </div>`;
+    }).join("");
+    _tickAntiguedadClocks();
+  }
+
+  function renderDetalleInformes() {
+    const data = detalleInformesData;
+    if (!data) return;
+
+    document.getElementById("detalleKpiEnviados").textContent = data.total_enviados;
+    document.getElementById("detalleKpiPendientes").textContent = data.total_pendientes;
+    document.getElementById("detalleKpiSucursales").textContent = data.sucursales_con_pendientes;
+    const pendientesOrdenados = data.items.filter((it) => it.pendiente);
+    document.getElementById("detalleKpiMasAntiguo").textContent = pendientesOrdenados.length
+      ? `${pendientesOrdenados[0].sucursal} · ${_horasATexto(pendientesOrdenados[0].horas_antiguedad)}`
+      : "—";
+    document.getElementById("tabPendientesCount").textContent = `(${data.total_pendientes})`;
+    document.getElementById("tabEnviadosCount").textContent = `(${data.total_enviados})`;
+
+    renderListaDetalle();
+  }
+
+  async function abrirDetalleInformes() {
+    const overlay = document.getElementById("detalleInformesOverlay");
+    overlay.classList.add("open");
+    detalleTabActiva = "pendientes";
+    document.getElementById("tabPendientes").classList.add("active");
+    document.getElementById("tabEnviados").classList.remove("active");
+    document.getElementById("detalleLista").innerHTML = `<div class="detalle-empty">Cargando…</div>`;
+    if (detalleAntiguedadTimer) clearInterval(detalleAntiguedadTimer);
+    try {
+      const res = await fetch(`/api/venta/operaciones/detalle-informes-semanales?token=${encodeURIComponent(DASH_TOKEN)}`);
+      detalleInformesData = await res.json();
+      renderDetalleInformes();
+      detalleAntiguedadTimer = setInterval(_tickAntiguedadClocks, 1000);
+    } catch (e) {
+      document.getElementById("detalleLista").innerHTML = `<div class="detalle-empty">Error al cargar el detalle.</div>`;
+    }
+  }
+
+  function cerrarDetalleInformes() {
+    document.getElementById("detalleInformesOverlay").classList.remove("open");
+    if (detalleAntiguedadTimer) { clearInterval(detalleAntiguedadTimer); detalleAntiguedadTimer = null; }
+  }
+
+  // ── Popup "+ Info" Clientes con más incidencias pendientes ──
+  function abrirDetalleClientes() {
+    document.getElementById("detalleClientesOverlay").classList.add("open");
+    const lista = document.getElementById("detalleClientesLista");
+    if (!clientesData.length) {
+      lista.innerHTML = `<div class="detalle-empty">No hay incidencias pendientes de Cliente/Coordinación. 🎉</div>`;
+      return;
+    }
+    lista.innerHTML = clientesData.map((c, i) => `
+      <div class="cliente-row">
+        <div class="cliente-row-top">
+          <span class="cliente-rank">${i + 1}</span>
+          <span class="cliente-nombre" title="${esc(c.cliente)}">${esc(c.cliente)}</span>
+          <span class="cliente-total ${c.cantidad >= 4 ? "bad" : c.cantidad >= 2 ? "warn" : "ok"}">${c.cantidad} pendiente${c.cantidad === 1 ? "" : "s"}</span>
+        </div>
+        <div class="problema-chips">
+          ${(c.problemas || []).map((p) => `<span class="problema-chip"><b>${p.cantidad}</b> · ${esc(p.problema)}</span>`).join("") || `<span class="problema-chip">Sin especificar</span>`}
+        </div>
+      </div>
+    `).join("");
+  }
+
+  function cerrarDetalleClientes() {
+    document.getElementById("detalleClientesOverlay").classList.remove("open");
+  }
+
+  // ── Popup "+ Info" Incidencias pendientes más antiguas (resumen) ──
+  function _renderResumenLista(elId, items, nombreKey) {
+    const el = document.getElementById(elId);
+    if (!items || !items.length) {
+      el.innerHTML = `<div class="detalle-empty">Sin datos.</div>`;
+      return;
+    }
+    el.innerHTML = items.map((it) => `
+      <div class="resumen-row">
+        <span class="resumen-nombre" title="${esc(it[nombreKey])}">${esc(it[nombreKey])}</span>
+        <span class="resumen-badge">${it.cantidad}</span>
+      </div>
+    `).join("");
+  }
+
+  function _normalizarBusqueda(v) {
+    return String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  }
+
+  function abrirDetallePendientesResumen() {
+    document.getElementById("detallePendientesResumenOverlay").classList.add("open");
+    document.getElementById("resumenSucursalBuscar").value = "";
+    _renderResumenLista("resumenPorSucursalLista", resumenPendientesData.por_sucursal, "cliente");
+    _renderResumenLista("resumenPorTipoLista", resumenPendientesData.por_tipo, "problema");
+  }
+
+  function filtrarResumenSucursal() {
+    const q = _normalizarBusqueda(document.getElementById("resumenSucursalBuscar").value);
+    const items = q
+      ? resumenPendientesData.por_sucursal.filter((it) => _normalizarBusqueda(it.cliente).includes(q))
+      : resumenPendientesData.por_sucursal;
+    _renderResumenLista("resumenPorSucursalLista", items, "cliente");
+  }
+
+  function cerrarDetallePendientesResumen() {
+    document.getElementById("detallePendientesResumenOverlay").classList.remove("open");
+  }
+
+  // ── Popup al hacer clic en una barra de "Antigüedad de incidencias pendientes" ──
+  let bucketActivo = null;
+
+  function _renderBucketGrid(sucursales) {
+    const grid = document.getElementById("bucketGrid");
+    if (!sucursales || !sucursales.length) {
+      grid.innerHTML = `<div class="detalle-empty">Sin resultados.</div>`;
+      return;
+    }
+    grid.innerHTML = sucursales.map((s) => `
+      <div class="bucket-card">
+        <div class="bucket-card-top">
+          <span class="bucket-card-cliente" title="${esc(s.cliente)}">${esc(s.cliente)}</span>
+          <span class="bucket-card-badge ${s.cantidad >= 4 ? "bad" : s.cantidad >= 2 ? "warn" : "ok"}">${s.cantidad}</span>
+        </div>
+        <div class="bucket-card-chips">
+          ${(s.problemas || []).map((p) => `<span class="problema-chip"><b>${p.cantidad}</b> · ${esc(p.problema)}</span>`).join("")}
+        </div>
+      </div>
+    `).join("");
+  }
+
+  function _abrirDetalleBucketConDatos(label, cantidad, sucursales) {
+    bucketActivo = { label, cantidad, sucursales };
+    document.getElementById("detalleBucketTitulo").textContent = `Antigüedad · ${label}`;
+    document.getElementById("bucketTotalLbl").textContent = `${cantidad} incidencia${cantidad === 1 ? "" : "s"} · ${sucursales.length} sucursales`;
+    document.getElementById("bucketBuscar").value = "";
+    document.getElementById("detalleBucketOverlay").classList.add("open");
+    _renderBucketGrid(sucursales);
+  }
+
+  function abrirDetalleBucket(index) {
+    const b = bucketsData[index];
+    if (!b) return;
+    _abrirDetalleBucketConDatos(b.label, b.cantidad, b.sucursales || []);
+  }
+
+  // Junta las sucursales de todos los buckets (mismo cliente sumado) para el
+  // "+ Info" de la card, que muestra el total sin filtrar por antiguedad.
+  function abrirDetalleBucketTotal() {
+    const mapa = new Map();
+    bucketsData.forEach((b) => {
+      (b.sucursales || []).forEach((s) => {
+        if (!mapa.has(s.cliente)) mapa.set(s.cliente, { cliente: s.cliente, cantidad: 0, problemas: new Map() });
+        const entry = mapa.get(s.cliente);
+        entry.cantidad += s.cantidad;
+        (s.problemas || []).forEach((p) => {
+          entry.problemas.set(p.problema, (entry.problemas.get(p.problema) || 0) + p.cantidad);
+        });
+      });
+    });
+    const sucursales = [...mapa.values()]
+      .map((e) => ({
+        cliente: e.cliente,
+        cantidad: e.cantidad,
+        problemas: [...e.problemas.entries()].map(([problema, cantidad]) => ({ problema, cantidad })).sort((a, b) => b.cantidad - a.cantidad),
+      }))
+      .sort((a, b) => b.cantidad - a.cantidad);
+    const total = bucketsData.reduce((s, b) => s + b.cantidad, 0);
+    _abrirDetalleBucketConDatos("Todas las antigüedades", total, sucursales);
+  }
+
+  function filtrarDetalleBucket() {
+    if (!bucketActivo) return;
+    const q = _normalizarBusqueda(document.getElementById("bucketBuscar").value);
+    const sucursales = q
+      ? bucketActivo.sucursales.filter((s) => _normalizarBusqueda(s.cliente).includes(q))
+      : bucketActivo.sucursales;
+    _renderBucketGrid(sucursales);
+  }
+
+  function cerrarDetalleBucket() {
+    document.getElementById("detalleBucketOverlay").classList.remove("open");
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") { cerrarDetalleInformes(); cerrarDetalleClientes(); cerrarDetallePendientesResumen(); cerrarDetalleBucket(); }
+  });
+</script>
+<script src="/static/auth-guard.js"></script>
+  <script src="/static/atc-logo-home.js"></script>
+<script src="/static/atc-volver.js"></script>
+</body>
+</html>

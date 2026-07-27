@@ -1,0 +1,730 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rendiciones · Finanzas</title>
+  <link rel="stylesheet" href="/static/base.css">
+  <script>if(new URLSearchParams(location.search).get('embed')==='1')document.documentElement.classList.add('embed');</script>
+  <style>
+    .embed .page-header{display:none !important;}
+    .embed .summary{display:none !important;}
+    :root{
+      --bg:#f8fafc;--surface:#ffffff;--surface-alt:#f8fafc;--surface-hover:#f1f5f9;--border:#e2e8f0;--border-strong:#cbd5e1;
+      --text:#0f172a;--text-soft:#475569;--text-muted:#64748b;--text-faint:#94a3b8;--accent:#1d4ed8;--accent-soft:#eff6ff;
+      --accent-strong:#1e40af;--success:#15803d;--success-soft:#f0fdf4;--success-border:#bbf7d0;--warning:#b45309;
+      --warning-soft:#fffbeb;--warning-border:#fde68a;--danger:#b91c1c;--danger-soft:#fef2f2;--danger-border:#fecaca;
+      --navy:#0b1424;--navy-2:#111c2f;--radius:8px;--shadow-sm:0 1px 2px rgba(15,23,42,.04);--shadow:0 1px 3px rgba(15,23,42,.06),0 1px 2px rgba(15,23,42,.04);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;}
+    body{font-family:"Inter","Segoe UI",system-ui,-apple-system,BlinkMacSystemFont,sans-serif;color:var(--text);background:var(--bg);font-size:13.5px;line-height:1.5;overflow:hidden;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
+    .shell{width:100%;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+    .page-header{flex-shrink:0;min-height:84px;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:16px 28px;background:linear-gradient(180deg,#0b1424 0%,#111c2f 100%);border-bottom:1px solid rgba(255,255,255,.06);flex-wrap:wrap;}
+    .brand{display:flex;align-items:center;gap:14px;min-width:260px;}
+    .brand img{width:46px;height:46px;object-fit:contain;opacity:.95;}
+    h1{color:rgba(255,255,255,.96);font-size:18px;font-weight:600;line-height:1.25;letter-spacing:-.01em;}
+    .subtitle{margin-top:3px;color:rgba(255,255,255,.55);font-size:12.5px;}
+    .actions{display:flex;gap:8px;flex-wrap:wrap;}
+    .btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:8px 14px;border-radius:var(--radius);border:1px solid var(--border);color:var(--text);background:var(--surface);text-decoration:none;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;box-shadow:var(--shadow-sm);transition:background .15s,border-color .15s,color .15s,box-shadow .15s;white-space:nowrap;}
+    .btn:hover:not(:disabled){background:var(--surface-hover);border-color:var(--border-strong);}
+    .btn:disabled{opacity:.55;cursor:not-allowed;}
+    .btn-small{min-height:30px;padding:6px 12px;font-size:12px;}
+    .btn-primary{background:var(--accent);color:#fff;border-color:var(--accent-strong);}
+    .page-header .btn{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);color:rgba(255,255,255,.92);box-shadow:none;}
+    .page-header .btn:hover:not(:disabled){background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);}
+    .summary{display:none !important;}
+    .panel{flex-shrink:0;width:100%;max-width:100%;margin:0;align-self:center;display:flex;align-items:center;justify-content:flex-start;gap:16px;padding:10px 16px;background:#f8fafc;border-top:1px solid #d7dee8;border-bottom:1px solid #d7dee8;flex-wrap:wrap;}
+    .filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+    .filters label{color:var(--text-muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+    .sheet-note{margin-left:auto;padding:6px 10px;border:1px solid #d7dee8;background:#fff;color:#64748b;border-radius:6px;font-size:12px;line-height:1.35;}
+    .table-wrap{flex:1;min-height:0;width:100%;max-width:100%;margin:0;align-self:center;overflow:auto;background:var(--surface);border:none;border-radius:0;box-shadow:none;}
+    .table-wrap::-webkit-scrollbar{height:10px;width:10px;}
+    .table-wrap::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:999px;}
+    .table-wrap::-webkit-scrollbar-track{background:#f1f5f9;}
+    table{width:max-content;min-width:100%;border-collapse:collapse;font-size:12.5px;}
+    th,td{padding:8px 10px;border:1px solid #d7dee8;text-align:left;vertical-align:middle;white-space:nowrap;}
+    td.wrap{white-space:normal;overflow-wrap:anywhere;}
+    td{color:var(--text-soft);font-weight:400;}
+    td.text-strong{color:var(--text);font-weight:500;}
+    td.right{text-align:right;}
+    th{position:sticky;top:0;z-index:2;background:#e5e7eb;color:#334155;font-size:11px;font-weight:700;text-transform:none;letter-spacing:.02em;padding:8px 10px;white-space:nowrap;}
+    tbody tr{transition:background .12s ease;}
+    tbody tr:hover td{background:#f8fafc;}
+    tbody tr.row-viatico-especial td{background:#fff7ed;}
+    tbody tr.row-viatico-especial:hover td{background:#ffedd5;}
+    th.sticky-col,td.sticky-col{position:sticky;left:0;background:var(--surface);z-index:1;border-right:1px solid var(--border);}
+    th.sticky-col{background:var(--surface-alt);z-index:4;}
+    tbody tr:hover td.sticky-col{background:var(--surface-alt);}
+    th.sticky-col-right,td.sticky-col-right{position:sticky;background:var(--surface);z-index:1;border-left:1px solid var(--border);}
+    th.sticky-col-right{background:var(--surface-alt);z-index:4;}
+    tbody tr:hover td.sticky-col-right{background:var(--surface-alt);}
+    /* Apiladas de derecha a izquierda para que Estado, Pagado y Viatico Especial
+       queden siempre visibles sin depender del scroll horizontal. */
+    .col-viatico{right:0;width:150px;min-width:150px;}
+    .col-pagado{right:150px;width:60px;min-width:60px;}
+    .col-estado{right:210px;width:110px;min-width:110px;box-shadow:-4px 0 6px -4px rgba(15,23,42,.15);}
+    tbody tr.row-viatico-especial td.sticky-col,
+    tbody tr.row-viatico-especial td.sticky-col-right{background:#fff7ed;}
+    tbody tr.row-viatico-especial:hover td.sticky-col,
+    tbody tr.row-viatico-especial:hover td.sticky-col-right{background:#ffedd5;}
+    .cell-desc{max-width:260px;white-space:normal;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+    .cell-mail{max-width:200px;overflow:hidden;text-overflow:ellipsis;display:inline-block;vertical-align:middle;}
+    .badge{display:inline-flex;align-items:center;justify-content:center;padding:3px 9px;border-radius:999px;font-weight:600;font-size:11px;border:1px solid var(--border);color:var(--text-muted);background:var(--surface-alt);white-space:nowrap;letter-spacing:.02em;}
+    .badge.pendiente{background:var(--warning-soft);border-color:var(--warning-border);color:var(--warning);}
+    .badge.aceptado{background:var(--accent-soft);border-color:#bfdbfe;color:var(--accent);}
+    .badge.pagado{background:var(--success-soft);border-color:var(--success-border);color:var(--success);}
+    .badge.rechazado{background:var(--danger-soft);border-color:var(--danger-border);color:var(--danger);}
+    .btn-pagar{color:var(--success);background:transparent;border:none;min-height:36px;min-width:36px;padding:4px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s,color .15s;}.btn-pagar:hover:not(:disabled){background:var(--success-soft);color:#166534;}.btn-pagar:disabled{opacity:.45;cursor:not-allowed;}
+    
+    .btn-viatico{color:#fff;background:#b45309;border-color:#b45309;min-height:32px;padding:6px 12px;font-size:12.5px;}
+    .btn-viatico:hover:not(:disabled){background:#92400e;border-color:#92400e;}
+    .acciones-rendicion{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;}
+    .link{display:inline-flex;align-items:center;color:var(--accent);font-weight:500;text-decoration:none;}
+    .link:hover{text-decoration:underline;color:var(--accent-strong);}
+    .empty-cell{color:var(--text-muted);text-align:center;padding:40px 12px;}
+    .th-inner{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+    .filter-chip{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border:1px solid #cbd5e1;border-radius:4px;background:#f8fafc;color:#64748b;cursor:pointer;flex-shrink:0;transition:background .12s,border-color .12s,color .12s;font-size:11px;line-height:1;}
+    .filter-chip:hover{background:#eef2ff;border-color:#93c5fd;color:#1d4ed8;}
+    .filter-chip.active{background:#dbeafe;border-color:#60a5fa;color:#1d4ed8;}
+    .filter-menu{position:fixed;z-index:500;min-width:280px;max-width:320px;background:#fff;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 18px 40px rgba(15,23,42,.18);display:none;overflow:hidden;}
+    .filter-menu.open{display:block;}
+    .filter-head{padding:10px 12px;border-bottom:1px solid #e2e8f0;background:#f8fafc;}
+    .filter-title{font-size:12px;font-weight:700;color:#0f172a;}
+    .filter-search{width:100%;margin-top:8px;padding:7px 9px;border:1px solid #cbd5e1;border-radius:6px;font:inherit;font-size:12px;}
+    .filter-search:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(29,78,216,.12);}
+    .filter-actions{display:flex;gap:8px;padding:8px 12px;border-bottom:1px solid #e2e8f0;background:#fff;}
+    .filter-link{appearance:none;border:none;background:none;padding:0;color:#2563eb;cursor:pointer;font:inherit;font-size:12px;font-weight:600;}
+    .filter-values{max-height:280px;overflow:auto;padding:8px 0;background:#fff;}
+    .filter-option{display:flex;align-items:center;gap:8px;padding:6px 12px;font-size:12px;color:#334155;}
+    .filter-option:hover{background:#f8fafc;}
+    .filter-option input{margin:0;}
+    .filter-empty{padding:14px 12px;color:#64748b;font-size:12px;text-align:center;}
+    .filter-foot{display:flex;justify-content:flex-end;gap:8px;padding:10px 12px;border-top:1px solid #e2e8f0;background:#f8fafc;}
+    #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;box-shadow:0 8px 24px rgba(15,23,42,.18);display:none;z-index:300;}
+    #toast.error{background:var(--danger);}
+    .modal-bg{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,.45);z-index:700;padding:18px;}
+    .modal-bg.open{display:flex;}
+    .modal{width:min(520px,100%);background:#fff;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 24px 70px rgba(15,23,42,.24);overflow:hidden;}
+    .modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:16px 18px;border-bottom:1px solid #e2e8f0;background:#f8fafc;}
+    .modal-head h3{font-size:16px;line-height:1.25;color:#0f172a;}
+    .modal-head p{margin-top:3px;color:#64748b;font-size:12.5px;}
+    .modal-body{padding:16px 18px;display:grid;gap:12px;}
+    .modal-grid{display:grid;grid-template-columns:150px 1fr;gap:8px 12px;padding:12px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;}
+    .modal-label{color:#64748b;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+    .modal-value{color:#0f172a;font-weight:600;overflow-wrap:anywhere;}
+    .field{display:grid;gap:6px;}
+    .field label{color:#334155;font-size:12px;font-weight:700;}
+    .field input{width:100%;min-height:38px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:7px;font:inherit;}
+    .field input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(29,78,216,.12);}
+    .modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:14px 18px;border-top:1px solid #e2e8f0;background:#f8fafc;}
+  
+    .modal-confirm-bg{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,.5);z-index:900;padding:18px;backdrop-filter:blur(2px);}
+    .modal-confirm-bg.open{display:flex;}
+    .modal-confirm{width:min(400px,100%);background:#fff;border:1px solid var(--border-strong);border-radius:14px;box-shadow:0 24px 70px rgba(15,23,42,.22);overflow:hidden;animation:confirmIn .18s ease;}
+    @keyframes confirmIn{from{opacity:0;transform:scale(.95) translateY(8px);}to{opacity:1;transform:scale(1) translateY(0);}}
+    .modal-confirm-icon{display:flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:50%;background:var(--success-soft);border:2px solid var(--success-border);margin:0 auto;}
+    .modal-confirm-head{padding:24px 24px 0;text-align:center;}
+    .modal-confirm-title{margin-top:14px;font-size:17px;font-weight:700;color:var(--text);}
+    .modal-confirm-desc{margin-top:6px;font-size:13px;color:var(--text-muted);line-height:1.5;}
+    .modal-confirm-foot{display:flex;gap:10px;padding:20px 24px 24px;}
+    .modal-confirm-foot .btn{flex:1;justify-content:center;min-height:40px;font-size:13.5px;font-weight:600;}
+    .btn-confirm-ok{background:var(--success);color:#fff;border-color:var(--success);}
+    .btn-confirm-ok:hover:not(:disabled){background:#166534;border-color:#166534;}
+  </style>
+    <script src="/static/utils.js"></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="page-header">
+      <div class="brand">
+        <img src="/shared-static/img/logo-atc.png" alt="ATC" onerror="this.style.display='none'">
+        <div>
+          <h1>Rendiciones</h1>
+          <p class="subtitle">Aprobar el pago de rendiciones validadas por Servicio Tecnico</p>
+        </div>
+      </div>
+      <nav class="actions">
+        <a id="btnVolver" class="btn" href="{{ '/?form=panelSelectorServicio&token=' ~ (token|default('')) if from_area == 'servicio' else '/venta/finanzas?token=' ~ (token|default('')) }}">Volver</a>
+        <button class="btn" type="button" onclick="cargarRendiciones()">Actualizar</button>
+        <a class="btn" href="/api/rendiciones/exportar">Exportar</a>
+      </nav>
+    </header>
+
+    <section class="panel">
+      <div class="sheet-note">Hoja "Rendición": registro maestro por técnico, documento y monto.</div>
+    </section>
+
+    <section class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="sticky-col"><div class="th-inner"><span>ID</span><button class="filter-chip" data-filter-btn="id" type="button">▼</button></div></th>
+            <th><div class="th-inner"><span>Fecha registro</span><button class="filter-chip" data-filter-btn="fechaRegistro" type="button">▼</button></div></th>
+            <th><div class="th-inner"><span>Codigo diario</span><button class="filter-chip" data-filter-btn="codigoDiario" type="button">▼</button></div></th>
+            <th><div class="th-inner"><span>Tecnico</span><button class="filter-chip" data-filter-btn="tecnico" type="button">▼</button></div></th>
+            <th><div class="th-inner"><span>RUT</span><button class="filter-chip" data-filter-btn="rut" type="button">▼</button></div></th>
+            <th><div class="th-inner"><span>Mail</span><button class="filter-chip" data-filter-btn="mail" type="button">▼</button></div></th>
+            <th><div class="th-inner"><span>ODT</span><button class="filter-chip" data-filter-btn="odt" type="button">▼</button></div></th>
+            <th><div class="th-inner"><span>Cliente</span><button class="filter-chip" data-filter-btn="cliente" type="button">▼</button></div></th>
+            <th><div class="th-inner"><span>Comuna</span><button class="filter-chip" data-filter-btn="comuna" type="button">▼</button></div></th>
+            <th><div class="th-inner"><span>Tipo gasto</span><button class="filter-chip" data-filter-btn="tipoGasto" type="button">▼</button></div></th>
+            <th><div class="th-inner"><span>Tipo doc</span><button class="filter-chip" data-filter-btn="tipoDocumento" type="button">▼</button></div></th>
+            <th><div class="th-inner"><span>N° documento</span><button class="filter-chip" data-filter-btn="nroDocumento" type="button">▼</button></div></th>
+            <th><div class="th-inner"><span>Documento</span><button class="filter-chip" data-filter-btn="documento" type="button">▼</button></div></th>
+            <th><div class="th-inner"><span>Fecha doc</span><button class="filter-chip" data-filter-btn="fechaDocumento" type="button">▼</button></div></th>
+            <th><div class="th-inner"><span>Monto</span><button class="filter-chip" data-filter-btn="montoTotal" type="button">▼</button></div></th>
+            <th><div class="th-inner"><span>Descripcion</span><button class="filter-chip" data-filter-btn="descripcion" type="button">▼</button></div></th>
+            <th><div class="th-inner"><span>Boleta</span><button class="filter-chip" data-filter-btn="urlBoleta" type="button">▼</button></div></th>
+            <th><div class="th-inner"><span>Informe</span><button class="filter-chip" data-filter-btn="urlInforme" type="button">▼</button></div></th>
+            <th class="sticky-col-right col-estado"><div class="th-inner"><span>Estado</span><button class="filter-chip" data-filter-btn="estadoRevision" type="button">▼</button></div></th>
+            <th class="sticky-col-right col-pagado"><div class="th-inner"><span>Pagado</span></div></th>
+            <th class="sticky-col-right col-viatico"><div class="th-inner"><span>Viático Especial</span></div></th>
+          </tr>
+        </thead>
+        <tbody id="tablaBody">
+          <tr><td class="empty-cell" colspan="21">Cargando rendiciones...</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+  <div id="modalConfirmPago" class="modal-confirm-bg">
+    <div class="modal-confirm" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <div class="modal-confirm-head">
+        <div class="modal-confirm-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26" fill="none">
+            <circle cx="13" cy="13" r="12" stroke="var(--success)" stroke-width="1.5"/>
+            <path d="M7.5 13.5L11 17L18.5 9.5" stroke="var(--success)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="modal-confirm-title" id="confirmTitle">Confirmar pago</div>
+        <div class="modal-confirm-desc" id="confirmDesc">¿Confirmas el pago de la rendición?</div>
+      </div>
+      <div class="modal-confirm-foot">
+        <button class="btn" type="button" id="confirmCancelar">Cancelar</button>
+        <button class="btn btn-confirm-ok" type="button" id="confirmOk">Sí, marcar pagado</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+  <div id="filterMenu" class="filter-menu">
+    <div class="filter-head">
+      <div class="filter-title" id="filterTitle">Filtrar</div>
+      <input id="filterSearch" class="filter-search" type="search" placeholder="Buscar valor">
+    </div>
+    <div class="filter-actions">
+      <button class="filter-link" type="button" id="filterSelectAll">Seleccionar todo</button>
+      <button class="filter-link" type="button" id="filterClear">Limpiar filtro</button>
+    </div>
+    <div id="filterValues" class="filter-values"></div>
+    <div class="filter-foot">
+      <button class="btn btn-small" type="button" id="filterCancel">Cancelar</button>
+      <button class="btn btn-small btn-primary" type="button" id="filterApply">Aplicar</button>
+    </div>
+  </div>
+
+  <div id="modalViatico" class="modal-bg" onclick="if(event.target===this)cerrarModalViatico()">
+    <div class="modal">
+      <div class="modal-head">
+        <div>
+          <h3>Viático Especial</h3>
+          <p>Define el monto especial para este código diario.</p>
+        </div>
+        <button class="btn btn-small" type="button" onclick="cerrarModalViatico()">Cerrar</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-grid">
+          <div class="modal-label">Código diario</div><div class="modal-value" id="viaticoCodigo">-</div>
+          <div class="modal-label">Técnico</div><div class="modal-value" id="viaticoTecnico">-</div>
+          <div class="modal-label">Cliente</div><div class="modal-value" id="viaticoCliente">-</div>
+          <div class="modal-label">Monto registrado</div><div class="modal-value" id="viaticoMontoRegistrado">-</div>
+          <div class="modal-label">N° documento</div><div class="modal-value" id="viaticoNroDocumento">-</div>
+        </div>
+        <div class="field">
+          <label for="viaticoMontoEspecial">Monto viático especial</label>
+          <input id="viaticoMontoEspecial" type="number" min="0" step="100" placeholder="0">
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" type="button" onclick="cerrarModalViatico()">Cancelar</button>
+        <button class="btn btn-primary" id="btnGuardarViatico" type="button" onclick="guardarViaticoEspecial()">Guardar viático</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tokenPlantilla = {{ token|tojson }};
+    let rendiciones = [];
+    let filtrosCabecera = {};
+    let filterState = { campo:"", label:"", values:[], selected:new Set(), anchor:null };
+    let viaticoActual = null;
+    const FILTER_LABELS = {
+      id:"ID", fechaRegistro:"Fecha registro", codigoDiario:"Codigo diario", tecnico:"Tecnico", rut:"RUT", mail:"Mail",
+      odt:"ODT", cliente:"Cliente", comuna:"Comuna", tipoGasto:"Tipo gasto", tipoDocumento:"Tipo doc",
+      nroDocumento:"N° documento", documento:"Documento", fechaDocumento:"Fecha doc", montoTotal:"Monto",
+      descripcion:"Descripcion", urlBoleta:"Boleta", urlInforme:"Informe", estadoRevision:"Estado"
+    };
+
+    function mostrarToast(texto, ok = true){
+      const t = document.getElementById("toast");
+      if (!t) return;
+      t.className = ok ? "" : "error";
+      t.textContent = texto;
+      t.style.display = "block";
+      clearTimeout(mostrarToast._id);
+      mostrarToast._id = setTimeout(() => { t.style.display = "none"; }, 2800);
+    }
+
+    function escapeHtml(text){
+      const div = document.createElement("div");
+      div.textContent = String(text || "");
+      return div.innerHTML;
+    }
+
+    function montoCLP(valor){
+      const n = Number(valor);
+      if (!Number.isFinite(n)) return String(valor || "");
+      return n.toLocaleString("es-CL", { style:"currency", currency:"CLP", maximumFractionDigits:0 });
+    }
+
+    function normalizarEstado(estado){
+      const norm = String(estado || "").trim().toLowerCase();
+      if (norm.includes("acept")) return "aceptado";
+      if (norm.includes("pag")) return "pagado";
+      if (norm.includes("rechaz")) return "rechazado";
+      return "pendiente";
+    }
+
+    function estadoLabel(estadoKey){
+      switch (estadoKey){
+        case "aceptado": return "Por pagar";
+        case "pagado": return "Pagada";
+        case "rechazado": return "Rechazada";
+        default: return "Esperando aprobacion";
+      }
+    }
+
+    function documentoTexto(row){
+      const doc = String(row?.documento || "").trim();
+      if (doc) return doc;
+      const tipo = String(row?.tipoDocumento || "").trim();
+      const nro = String(row?.nroDocumento || "").trim();
+      return [tipo, nro].filter(Boolean).join(" ");
+    }
+
+    function esViatico(row){
+      const tipo = String(row?.tipoGasto || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+      return tipo === "viatico";
+    }
+
+    function normalizarCodigo(valor){
+      return String(valor || "")
+        .normalize("NFKC")
+        .replace(/[\u00a0\u2007\u202f\u200b\u200c\u200d\ufeff]/g, " ")
+        .replace(/[\u2010\u2011\u2012\u2013\u2014\u2212]/g, "-")
+        .replace(/\s+/g, " ")
+        .replace(/\s*-\s*/g, "-")
+        .trim()
+        .toUpperCase();
+    }
+
+    function aplicarViaticosEspeciales(listaEspeciales){
+      const mapa = new Map();
+      (Array.isArray(listaEspeciales) ? listaEspeciales : []).forEach((item) => {
+        const codigo = normalizarCodigo(item?.codigo);
+        if (!codigo) return;
+        mapa.set(codigo, Number(item?.viaticoMax || 0));
+      });
+      rendiciones.forEach((row) => {
+        const codigo = normalizarCodigo(row?.codigoDiario);
+        const monto = mapa.get(codigo);
+        row.viaticoEspecial = mapa.has(codigo);
+        row.viaticoEspecialMonto = row.viaticoEspecial ? monto : null;
+      });
+    }
+
+    function extraerEnlaces(valor, etiqueta){
+      const texto = String(valor || "").trim();
+      if (!texto) return "";
+      const partes = texto.split(/\r?\n|;/).map((x) => x.trim()).filter(Boolean);
+      const enlaces = [];
+      partes.forEach((chunk) => {
+        const matchFormula = chunk.match(/=HYPER(?:LINK|VINCULO)\(\s*"([^"]+)",\s*"([^"]+)"\s*\)/i);
+        if (matchFormula?.[1]){
+          enlaces.push(`<a class="link" href="${escapeHtml(matchFormula[1])}" target="_blank" rel="noopener noreferrer">${escapeHtml(etiqueta)}</a>`);
+          return;
+        }
+        const matchUrl = chunk.match(/(https?:\/\/[^\s")]+)/i);
+        if (matchUrl?.[1]){
+          enlaces.push(`<a class="link" href="${escapeHtml(matchUrl[1])}" target="_blank" rel="noopener noreferrer">${escapeHtml(etiqueta)}</a>`);
+          return;
+        }
+        // Rutas relativas del servidor (/uploads/...)
+        const matchRelative = chunk.match(/(\/[^\s")<>]+)/i);
+        if (matchRelative?.[1]){
+          enlaces.push(`<a class="link" href="${escapeHtml(matchRelative[1])}" target="_blank" rel="noopener noreferrer">${escapeHtml(etiqueta)}</a>`);
+        }
+      });
+      return enlaces.filter(Boolean).join("<br>");
+    }
+
+
+    function valorFiltroCampo(row, campo){
+      if (campo === "estadoRevision") return estadoLabel(normalizarEstado(row?.estadoRevision));
+      if (campo === "montoTotal") return montoCLP(row?.montoTotal);
+      if (campo === "urlBoleta" || campo === "urlInforme") return String(row?.[campo] || "").trim() ? "Sí" : "No";
+      return String(row?.[campo] || "").trim() || "(Vacío)";
+    }
+
+    function filasFiltradas(){
+      return rendiciones.filter((row) => {
+        return Object.entries(filtrosCabecera).every(([campo, values]) => {
+          if (!Array.isArray(values) || !values.length) return true;
+          return values.includes(valorFiltroCampo(row, campo));
+        });
+      });
+    }
+
+    function valoresUnicosCampo(campo){
+      return Array.from(new Set(rendiciones.map((row) => valorFiltroCampo(row, campo)))).sort((a,b)=>String(a).localeCompare(String(b),"es"));
+    }
+
+    function actualizarEstadoBotonesFiltro(){
+      document.querySelectorAll("[data-filter-btn]").forEach((btn) => {
+        const campo = btn.dataset.filterBtn;
+        const activo = Array.isArray(filtrosCabecera[campo]) && filtrosCabecera[campo].length > 0;
+        btn.classList.toggle("active", activo);
+      });
+    }
+
+    function cerrarMenuFiltro(){
+      document.getElementById("filterMenu").classList.remove("open");
+      filterState = { campo:"", label:"", values:[], selected:new Set(), anchor:null };
+    }
+
+    function renderValoresFiltro(){
+      const search = document.getElementById("filterSearch").value.trim().toLowerCase();
+      const cont = document.getElementById("filterValues");
+      const visibles = filterState.values.filter((v) => String(v).toLowerCase().includes(search));
+      if (!visibles.length){
+        cont.innerHTML = `<div class="filter-empty">Sin valores</div>`;
+        return;
+      }
+      cont.innerHTML = visibles.map((value) => `
+        <label class="filter-option">
+          <input type="checkbox" data-filter-value="${escapeHtml(value)}" ${filterState.selected.has(value) ? "checked" : ""}>
+          <span>${escapeHtml(value)}</span>
+        </label>
+      `).join("");
+      cont.querySelectorAll("[data-filter-value]").forEach((input) => {
+        input.addEventListener("change", () => {
+          const value = input.getAttribute("data-filter-value");
+          if (input.checked) filterState.selected.add(value);
+          else filterState.selected.delete(value);
+        });
+      });
+    }
+
+    function abrirMenuFiltro(campo, anchor){
+      filterState.campo = campo;
+      filterState.label = FILTER_LABELS[campo] || campo;
+      filterState.values = valoresUnicosCampo(campo);
+      filterState.selected = new Set(Array.isArray(filtrosCabecera[campo]) && filtrosCabecera[campo].length ? filtrosCabecera[campo] : filterState.values);
+      filterState.anchor = anchor;
+      document.getElementById("filterTitle").textContent = `Filtrar por ${filterState.label}`;
+      document.getElementById("filterSearch").value = "";
+      renderValoresFiltro();
+      const menu = document.getElementById("filterMenu");
+      menu.classList.add("open");
+      menu.style.visibility = "hidden";
+      requestAnimationFrame(() => {
+        const rect = anchor.getBoundingClientRect();
+        const menuRect = menu.getBoundingClientRect();
+        menu.style.top = `${Math.min(window.innerHeight - 20 - menuRect.height, rect.bottom + 6)}px`;
+        menu.style.left = `${Math.min(window.innerWidth - 20 - menuRect.width, Math.max(10, rect.left - 220 + rect.width))}px`;
+        menu.style.visibility = "visible";
+      });
+    }
+
+    function renderTabla(){
+      const tbody = document.getElementById("tablaBody");
+      const rows = filasFiltradas();
+      if (!rows.length){
+        tbody.innerHTML = `<tr><td class="empty-cell" colspan="21">No hay rendiciones con ese filtro.</td></tr>`;
+        return;
+      }
+      const dash = `<span style="color:var(--text-faint);">—</span>`;
+      tbody.innerHTML = rows.map((row) => {
+        const idRendicion = row?.id ?? "";
+        const estadoKey = normalizarEstado(row?.estadoRevision);
+        const tieneViaticoEspecial = Boolean(row?.viaticoEspecial);
+        const boleta = extraerEnlaces(row?.urlBoleta, "Boleta") || dash;
+        const informe = extraerEnlaces(row?.urlInforme, "Rendicion") || dash;
+        const accionPagar = estadoKey === "aceptado"
+          ? `<button type="button" class="btn btn-pagar" data-pagar="${escapeHtml(String(idRendicion))}" title="Marcar como pagado"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="10" fill="currentColor" opacity="0.15"/><circle cx="11" cy="11" r="10" stroke="currentColor" stroke-width="1.5"/><path d="M6.5 11.2L9.5 14.2L15.5 8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`
+          : dash;
+        const accionViatico = (estadoKey === "aceptado" && esViatico(row) && !tieneViaticoEspecial)
+          ? `<button type="button" class="btn btn-viatico" data-viatico="${escapeHtml(String(idRendicion))}">Viático Especial</button>`
+          : (tieneViaticoEspecial && row?.viaticoEspecialMonto != null)
+            ? `<span style="font-weight:600;color:var(--success);font-size:12.5px;">${escapeHtml(montoCLP(row.viaticoEspecialMonto))}</span>`
+            : dash;
+        const mail = row?.mail ? `<span class="cell-mail" title="${escapeHtml(row.mail)}">${escapeHtml(row.mail)}</span>` : dash;
+        const descripcion = row?.descripcion ? `<div class="cell-desc" title="${escapeHtml(row.descripcion)}">${escapeHtml(row.descripcion)}</div>` : dash;
+        const tipoGasto = escapeHtml(row?.tipoGasto || "");
+        return `
+          <tr class="${tieneViaticoEspecial ? 'row-viatico-especial' : ''}">
+            <td class="sticky-col text-strong">${escapeHtml(idRendicion)}</td>
+            <td>${escapeHtml(row?.fechaRegistro || "")}</td>
+            <td>${escapeHtml(row?.codigoDiario || "")}</td>
+            <td class="text-strong">${escapeHtml(row?.tecnico || "")}</td>
+            <td>${escapeHtml(row?.rut || "")}</td>
+            <td>${mail}</td>
+            <td>${escapeHtml(row?.odt || "")}</td>
+            <td class="text-strong">${escapeHtml(row?.cliente || "")}</td>
+            <td>${escapeHtml(row?.comuna || "") || dash}</td>
+            <td>${tipoGasto}</td>
+            <td>${escapeHtml(row?.tipoDocumento || "")}</td>
+            <td>${escapeHtml(row?.nroDocumento || "")}</td>
+            <td>${escapeHtml(documentoTexto(row))}</td>
+            <td>${escapeHtml(row?.fechaDocumento || "")}</td>
+            <td class="right text-strong monto-cell" data-monto-id="${escapeHtml(String(idRendicion))}" title="Doble clic para editar">${escapeHtml(montoCLP(row?.montoTotal))}</td>
+            <td>${descripcion}</td>
+            <td>${boleta}</td>
+            <td>${informe}</td>
+            <td class="sticky-col-right col-estado"><span class="badge ${escapeHtml(estadoKey)}">${escapeHtml(estadoLabel(estadoKey))}</span></td>
+            <td class="sticky-col-right col-pagado">${accionPagar}</td>
+            <td class="sticky-col-right col-viatico">${accionViatico}</td>
+          </tr>
+        `;
+      }).join("");
+      tbody.querySelectorAll("[data-pagar]").forEach((btn) => {
+        btn.addEventListener("click", () => pagarRendicion(btn.getAttribute("data-pagar"), btn));
+      });
+      tbody.querySelectorAll("[data-viatico]").forEach((btn) => {
+        btn.addEventListener("click", () => abrirModalViatico(btn.getAttribute("data-viatico")));
+      });
+      tbody.querySelectorAll(".monto-cell").forEach((td) => {
+        td.addEventListener("dblclick", () => activarEdicionMonto(td));
+      });
+    }
+
+    function activarEdicionMonto(td){
+      if (td.querySelector("input")) return;
+      const idRendicion = td.getAttribute("data-monto-id");
+      const row = rendiciones.find((r) => String(r?.id) === String(idRendicion));
+      const original = Number(row?.montoTotal || 0);
+      const textoOriginal = td.textContent;
+
+      const input = document.createElement("input");
+      input.type = "number";
+      input.min = "0";
+      input.step = "1";
+      input.value = original;
+      input.style.width = "100px";
+      input.style.textAlign = "right";
+      input.style.font = "inherit";
+      input.style.border = "1px solid #1d4ed8";
+      input.style.borderRadius = "5px";
+      input.style.padding = "2px 5px";
+
+      td.textContent = "";
+      td.appendChild(input);
+      input.focus();
+      input.select();
+
+      let guardado = false;
+      const guardar = async () => {
+        if (guardado) return;
+        guardado = true;
+        const nuevoValor = Number(input.value);
+        if (!Number.isFinite(nuevoValor) || nuevoValor < 0) {
+          mostrarToast("Ingresa un monto válido.", false);
+          td.textContent = textoOriginal;
+          return;
+        }
+        if (nuevoValor === original) {
+          td.textContent = textoOriginal;
+          return;
+        }
+        try {
+          await api(`/api/rendiciones/${encodeURIComponent(idRendicion)}/monto?monto=${encodeURIComponent(nuevoValor)}`, { method: "PATCH" });
+          if (row) row.montoTotal = nuevoValor;
+          td.textContent = montoCLP(nuevoValor);
+          mostrarToast("Monto actualizado.", true);
+        } catch (err) {
+          td.textContent = textoOriginal;
+          mostrarToast(`No se pudo guardar: ${err.message}`, false);
+        }
+      };
+
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") input.blur();
+        if (e.key === "Escape") { guardado = true; td.textContent = textoOriginal; }
+      });
+      input.addEventListener("blur", guardar, { once: true });
+    }
+
+    async function pagarRendicion(idRendicion, btn){
+      if (!idRendicion) return;
+      const row = rendiciones.find((r) => String(r?.id) === String(idRendicion));
+      const ok = await confirmarPago(idRendicion, row?.tecnico || "", montoCLP(row?.montoTotal));
+      if (!ok) return;
+      btn.disabled = true;
+      try {
+        await api(`/api/rendiciones/${encodeURIComponent(idRendicion)}?accion=pagar`, { method:"PATCH" });
+        const item = rendiciones.find((r) => String(r?.id) === String(idRendicion));
+        if (item) item.estadoRevision = "Pagado";
+        renderTabla();
+        mostrarToast(`Rendicion ${idRendicion} marcada como pagada.`, true);
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = "Pagado";
+        mostrarToast(`No se pudo pagar la rendicion: ${err.message}`, false);
+      }
+    }
+
+    function abrirModalViatico(idRendicion){
+      const row = rendiciones.find((r) => String(r?.id) === String(idRendicion));
+      if (!row) return;
+      viaticoActual = row;
+      document.getElementById("viaticoCodigo").textContent = row?.codigoDiario || "-";
+      document.getElementById("viaticoTecnico").textContent = row?.tecnico || "-";
+      document.getElementById("viaticoCliente").textContent = row?.cliente || "-";
+      document.getElementById("viaticoMontoRegistrado").textContent = montoCLP(row?.montoTotal);
+      document.getElementById("viaticoNroDocumento").textContent = row?.nroDocumento || "-";
+      document.getElementById("viaticoMontoEspecial").value = "";
+      document.getElementById("modalViatico").classList.add("open");
+      setTimeout(() => document.getElementById("viaticoMontoEspecial").focus(), 50);
+    }
+
+    function cerrarModalViatico(){
+      document.getElementById("modalViatico").classList.remove("open");
+      viaticoActual = null;
+    }
+
+    async function guardarViaticoEspecial(){
+      if (!viaticoActual) return;
+      const codigo = String(viaticoActual?.codigoDiario || "").trim();
+      const monto = Number(document.getElementById("viaticoMontoEspecial").value || 0);
+      if (!codigo){
+        mostrarToast("La rendicion no tiene codigo diario.", false);
+        return;
+      }
+      if (!Number.isFinite(monto) || monto <= 0){
+        mostrarToast("Ingresa un monto de viatico especial mayor a 0.", false);
+        return;
+      }
+      const btn = document.getElementById("btnGuardarViatico");
+      btn.disabled = true;
+      btn.textContent = "Guardando...";
+      try {
+        const tk = encodeURIComponent(tokenPlantilla || "");
+        await api(`/api/finanzas/viatico-cap/${encodeURIComponent(codigo)}?monto=${encodeURIComponent(monto)}&token=${tk}`, { method:"PATCH" });
+        viaticoActual.viaticoEspecial = true;
+        viaticoActual.viaticoEspecialMonto = monto;
+        cerrarModalViatico();
+        renderTabla();
+        mostrarToast(`Viático especial guardado para ${codigo}.`, true);
+      } catch (err) {
+        mostrarToast(`No se pudo guardar el viatico especial: ${err.message}`, false);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Guardar viático";
+      }
+    }
+
+    async function cargarRendiciones(){
+      try {
+        const [data, especiales] = await Promise.all([
+          api(`/api/rendiciones?_=${Date.now()}`, { cache:"no-store" }),
+          api(`/api/finanzas/viatico-especial?personalizados=true&_=${Date.now()}`, { cache:"no-store" }),
+        ]);
+        rendiciones = Array.isArray(data) ? data : [];
+        aplicarViaticosEspeciales(especiales);
+        actualizarEstadoBotonesFiltro();
+        renderTabla();
+      } catch (err) {
+        rendiciones = [];
+        document.getElementById("tablaBody").innerHTML = `<tr><td class="empty-cell" colspan="19">Error cargando rendiciones: ${escapeHtml(err.message)}</td></tr>`;
+        mostrarToast(`Error: ${err.message}`, false);
+      }
+    }
+
+    document.querySelectorAll("[data-filter-btn]").forEach((btn) => {
+      btn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        const campo = btn.dataset.filterBtn;
+        const menu = document.getElementById("filterMenu");
+        if (menu.classList.contains("open") && filterState.campo === campo){
+          cerrarMenuFiltro();
+          return;
+        }
+        abrirMenuFiltro(campo, btn);
+      });
+    });
+    document.getElementById("filterSearch").addEventListener("input", renderValoresFiltro);
+    document.getElementById("filterSelectAll").addEventListener("click", () => {
+      filterState.selected = new Set(filterState.values);
+      renderValoresFiltro();
+    });
+    document.getElementById("filterClear").addEventListener("click", () => {
+      filtrosCabecera[filterState.campo] = [];
+      actualizarEstadoBotonesFiltro();
+      renderTabla();
+      cerrarMenuFiltro();
+    });
+    document.getElementById("filterCancel").addEventListener("click", cerrarMenuFiltro);
+    document.getElementById("filterApply").addEventListener("click", () => {
+      filtrosCabecera[filterState.campo] = Array.from(filterState.selected);
+      actualizarEstadoBotonesFiltro();
+      renderTabla();
+      cerrarMenuFiltro();
+    });
+    document.addEventListener("click", (ev) => {
+      const menu = document.getElementById("filterMenu");
+      if (!menu.classList.contains("open")) return;
+      if (menu.contains(ev.target)) return;
+      if (ev.target.closest("[data-filter-btn]")) return;
+      cerrarMenuFiltro();
+    });
+
+
+    // Modal confirmación pago
+    let _confirmResolve = null;
+    function confirmarPago(idRendicion, tecnico, monto) {
+      return new Promise((resolve) => {
+        _confirmResolve = resolve;
+        const desc = document.getElementById("confirmDesc");
+        desc.innerHTML = `¿Confirmas el pago de la rendición <strong>#${escapeHtml(String(idRendicion))}</strong>${tecnico ? ` de <strong>${escapeHtml(tecnico)}</strong>` : ""}${monto ? ` por <strong>${escapeHtml(monto)}</strong>` : ""}?`;
+        document.getElementById("modalConfirmPago").classList.add("open");
+        document.getElementById("confirmOk").focus();
+      });
+    }
+    document.getElementById("confirmOk").addEventListener("click", () => {
+      document.getElementById("modalConfirmPago").classList.remove("open");
+      if (_confirmResolve) { _confirmResolve(true); _confirmResolve = null; }
+    });
+    document.getElementById("confirmCancelar").addEventListener("click", () => {
+      document.getElementById("modalConfirmPago").classList.remove("open");
+      if (_confirmResolve) { _confirmResolve(false); _confirmResolve = null; }
+    });
+    document.getElementById("modalConfirmPago").addEventListener("click", (e) => {
+      if (e.target === e.currentTarget) {
+        document.getElementById("modalConfirmPago").classList.remove("open");
+        if (_confirmResolve) { _confirmResolve(false); _confirmResolve = null; }
+      }
+    });
+    cargarRendiciones();
+
+  </script>
+  <script src="/static/auth-guard.js"></script>
+  <script src="/static/atc-logo-home.js"></script>
+<script src="/static/atc-volver.js"></script>
+</body>
+</html>

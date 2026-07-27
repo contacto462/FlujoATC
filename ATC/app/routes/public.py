@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -72,7 +72,7 @@ def ticket_sla_feedback(
     resolved_value: bool | None = None
     if resolved is not None:
         lowered = resolved.strip().lower()
-        if lowered in {"si", "sÃ­", "yes", "true", "1"}:
+        if lowered in {"si", "sí", "yes", "true", "1"}:
             resolved_value = True
         elif lowered in {"no", "false", "0"}:
             resolved_value = False
@@ -212,4 +212,61 @@ def fillout_sla_webhook(
         "technician_rating": feedback.technician_rating,
         "resolution_satisfied": feedback.resolution_satisfied,
     }
+
+
+# ──────────────────────────────────────────────
+# Comprobante Ley Karin — formulario público, sin login
+# ──────────────────────────────────────────────
+
+class LeyKarinComprobante(BaseModel):
+    nombre_completo: str
+    rut: str
+    cargo: str = ""
+    correo: str = ""
+    fecha: str = ""
+    documentos: list[int] = []
+    declaraciones: list[int] = []
+
+
+@router.get("/ley-karin", response_class=HTMLResponse)
+def ley_karin_form(request: Request):
+    return templates.TemplateResponse(request, "public_ley_karin.html", {})
+
+
+@router.get("/preview/incidencias-puestos-copia", response_class=HTMLResponse)
+def preview_incidencias_puestos_copia(request: Request):
+    return templates.TemplateResponse(request, "incidencias_puestos_copia.html", {})
+
+
+@router.post("/ley-karin/informe")
+def ley_karin_informe(payload: LeyKarinComprobante, background_tasks: BackgroundTasks):
+    from io import BytesIO
+
+    from fastapi.responses import StreamingResponse
+
+    from ATC.app.services.ley_karin_service import (
+        enviar_comprobante_ley_karin_email,
+        generar_comprobante_ley_karin_pdf,
+    )
+
+    if not payload.nombre_completo.strip() or not payload.rut.strip():
+        raise HTTPException(status_code=422, detail="Nombre completo y RUT son obligatorios.")
+
+    pdf_bytes = generar_comprobante_ley_karin_pdf(payload.model_dump())
+
+    correo = payload.correo.strip()
+    if correo:
+        background_tasks.add_task(
+            enviar_comprobante_ley_karin_email, correo, pdf_bytes, payload.nombre_completo
+        )
+
+    import re as _re
+    nombre_ascii = _re.sub(r"[^A-Za-z0-9_-]+", "_", f"Comprobante_LeyKarin_{payload.nombre_completo}")[:80]
+    filename = f"{nombre_ascii}.pdf"
+    return StreamingResponse(
+        BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        background=background_tasks,
+    )
 

@@ -4,8 +4,8 @@
 
 La aplicacion modular unificada se levanta desde la raiz del repo:
 
-```powershell
-ATC\.venv\Scripts\python.exe -m uvicorn ATC.app.main:app --host 127.0.0.1 --port 8000
+```bash
+./.venv-backend/bin/python -m uvicorn ATC.app.main:app --host 127.0.0.1 --port 8000
 ```
 
 URL local:
@@ -16,11 +16,11 @@ http://127.0.0.1:8000/
 
 ## Que hace
 
-`ATC.app.main` es ahora la unica instancia FastAPI.
+`ATC.app.main` es ahora la unica instancia FastAPI. El entorno que la ejecuta aqui es Python **3.14.5**.
 Helpdesk, Incidencias y Venta se registran como modulos dentro de esa app:
 
 - `/`, `/venta/*`, `/servicio/*` y APIs operativas -> Incidencias/Venta.
-- `/panel`, `/dashboard`, `/soporte`, `/tabla-soporte` y tickets -> Helpdesk.
+- `/panel`, `/ticketera`, `/soporte`, `/tabla-soporte` y tickets -> Helpdesk.
 - `/static/*` y `/uploads/*` se resuelven desde una capa comun con fallback entre carpetas.
 - `/login` redirige al login unico `/?form=login&next=auto`.
 

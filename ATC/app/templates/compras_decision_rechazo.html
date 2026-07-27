@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+  <meta charset="UTF-8">
+  <title>Rechazar solicitud – Alguien Te Cuida</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f5f6fa; padding: 40px; margin: 0; }
+    .card {
+      background: #fff; padding: 30px; border-radius: 10px;
+      max-width: 520px; margin: auto; text-align: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,.08);
+    }
+    img { height: 60px; margin-bottom: 18px; }
+    .badge {
+      display: inline-block; margin-top: 10px; padding: 6px 14px;
+      border-radius: 999px; font-size: 12px; font-weight: 700;
+      color: #fff; background: #c0392b;
+    }
+    p { font-size: 14px; line-height: 1.6; margin: 18px 0; }
+    textarea {
+      width: 100%; min-height: 120px; padding: 10px;
+      font-size: 14px; box-sizing: border-box;
+      border-radius: 6px; border: 1px solid #ccc;
+      resize: vertical; font-family: inherit;
+    }
+    button {
+      background: #c0392b; color: #fff; padding: 12px 18px;
+      border: none; border-radius: 6px; font-size: 15px;
+      cursor: pointer; margin-top: 16px; width: 100%;
+    }
+    button:hover { background: #a93226; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <img src="https://i.imgur.com/VgLG9Ei.png" alt="Alguien Te Cuida">
+    <h2>Rechazar solicitud</h2>
+    <span class="badge">RECHAZO</span>
+    <p>Indica el <strong>motivo del rechazo</strong>. Esta información será enviada al solicitante.</p>
+
+    <form method="post" action="/compras/decision/rechazar">
+      <input type="hidden" name="token" value="{{ token }}">
+      <textarea name="obs" placeholder="Escribe el motivo del rechazo…" required></textarea>
+      <button type="submit">Confirmar rechazo</button>
+    </form>
+  </div>
+</body>
+</html>

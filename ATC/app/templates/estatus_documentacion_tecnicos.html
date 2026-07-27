@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Estatus Documentación Técnicos — Prevención</title>
+<link rel="stylesheet" href="/static/base.css">
+<style>
+:root{
+  --bg:#f7f8fa;
+  --surface:#fff;
+  --border:#e5e7eb;
+  --border-strong:#d1d5db;
+  --text:#111827;
+  --text-soft:#4b5563;
+  --muted:#6b7280;
+  --header-bg-from:#0b1424;
+  --header-bg-to:#111c2f;
+  --shadow-sm:0 1px 2px rgba(15,23,42,.04);
+  --shadow-md:0 1px 3px rgba(15,23,42,.06),0 1px 2px rgba(15,23,42,.04);
+
+  --ok-bg:#eaf4ec;   --ok-text:#1e4430;   --ok-bar:#1e9c83;
+  --warn-bg:#fdf6ed; --warn-text:#92400e; --warn-bar:#d97706;
+  --bad-bg:#f4e8e8;  --bad-text:#7f1d1d;  --bad-bar:#c0392b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;font-family:"Inter",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+body{background:var(--bg);color:var(--text);font-size:13px;font-weight:500;display:flex;flex-direction:column;height:100vh}
+
+/* ── HERO ─────────────────────────────── */
+.hero{
+  flex-shrink:0;
+  display:flex;align-items:center;gap:20px;
+  padding:18px 28px;
+  background:linear-gradient(180deg,var(--header-bg-from) 0%,var(--header-bg-to) 100%);
+  border-bottom:1px solid rgba(255,255,255,.06);
+  box-shadow:0 2px 8px rgba(0,0,0,.28);
+}
+.hero-logo img{height:54px;width:auto;display:block;object-fit:contain;filter:drop-shadow(0 2px 6px rgba(0,0,0,.3))}
+.hero-copy{flex:1;min-width:0}
+.hero-copy h1{font-size:19px;font-weight:700;letter-spacing:-.02em;color:#fff;line-height:1.2}
+.hero-copy p{margin-top:4px;font-size:12.5px;color:rgba(255,255,255,.6);line-height:1.4}
+.hero-actions{display:flex;align-items:center;gap:10px;margin-left:auto}
+.btn-hero{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 14px;border-radius:8px;font-size:12.5px;font-weight:600;
+  text-decoration:none;cursor:pointer;
+  border:1px solid rgba(255,255,255,.16);
+  background:rgba(255,255,255,.07);color:rgba(255,255,255,.9);
+  transition:background .15s,border-color .15s;white-space:nowrap;
+}
+.btn-hero:hover{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.24)}
+.summary-chip{
+  display:flex;flex-direction:column;align-items:flex-end;gap:2px;
+  padding:6px 16px;border-radius:10px;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+}
+.summary-chip .pct{font-size:20px;font-weight:800;color:#fff;line-height:1}
+.summary-chip .lbl{font-size:10.5px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.06em}
+
+/* ── TOOLBAR ─────────────────────────── */
+.toolbar{
+  flex-shrink:0;
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  padding:10px 28px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  box-shadow:var(--shadow-sm);
+}
+.search-box{
+  flex:1;min-width:240px;max-width:420px;
+  padding:8px 12px 8px 32px;
+  border-radius:7px;border:1px solid var(--border);
+  background:#fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'/><path d='m21 21-4.3-4.3'/></svg>") no-repeat 10px center;
+  color:var(--text);font-size:13px;font-weight:500;outline:none;font-family:inherit;
+  transition:border-color .15s,box-shadow .15s;
+}
+.search-box:focus{border-color:#1d4ed8;box-shadow:0 0 0 3px rgba(29,78,216,.14)}
+.legend{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:5px}
+.chip-ok{background:var(--ok-bg);color:var(--ok-text)}
+.chip-warn{background:var(--warn-bg);color:var(--warn-text)}
+.chip-bad{background:var(--bad-bg);color:var(--bad-text)}
+.counter{
+  display:inline-flex;align-items:center;
+  padding:6px 12px;background:#f3f4f6;border:1px solid var(--border);
+  border-radius:999px;font-size:12px;color:var(--text-soft);font-weight:700;white-space:nowrap;
+}
+
+/* ── CONTENIDO / TABLA ───────────────── */
+.wrap{flex:1;overflow:auto;padding:18px 28px 40px}
+.tabla-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  box-shadow:var(--shadow-sm);overflow:auto;max-width:100%;
+}
+table.matriz{border-collapse:separate;border-spacing:0;font-size:12px;table-layout:fixed;width:100%}
+table.matriz thead th{
+  position:sticky;top:0;z-index:2;
+  background:linear-gradient(180deg,#1e3a5f 0%,#16304d 100%);color:#fff;
+  font-size:9.5px;font-weight:800;letter-spacing:.01em;text-transform:uppercase;
+  padding:8px 5px;text-align:center;border-bottom:1px solid rgba(255,255,255,.08);
+  vertical-align:middle;line-height:1.25;
+  white-space:normal;word-break:break-word;
+}
+table.matriz thead th.col-nombre{left:0;z-index:4;text-align:left;padding-left:16px}
+table.matriz thead th.col-rut{left:140px;z-index:4;text-align:left}
+table.matriz thead th.col-avance{text-align:right;padding-right:16px}
+table.matriz td{padding:6px;border-bottom:1px solid var(--border);text-align:center;background:var(--surface)}
+table.matriz tbody tr:nth-child(even) td{background:#fafbfc}
+table.matriz tbody tr:hover td{background:#f1f5f9}
+table.matriz td.col-nombre,
+table.matriz td.col-rut{position:sticky;background:inherit}
+table.matriz td.col-nombre{left:0;z-index:1;text-align:left;padding-left:16px;font-weight:700;color:var(--text);width:140px;white-space:normal;word-break:break-word}
+table.matriz td.col-rut{left:140px;z-index:1;text-align:left;width:90px}
+table.matriz th.col-nombre{width:140px}
+table.matriz th.col-rut{width:90px}
+table.matriz th.col-check{width:76px}
+table.matriz td.col-check{width:76px}
+table.matriz th.col-avance,
+table.matriz td.col-avance{width:100px}
+
+.chk{
+  width:18px;height:18px;cursor:pointer;accent-color:#1e9c83;
+}
+
+
+.avance-cell{display:flex;align-items:center;justify-content:flex-end;gap:8px}
+.bar-track{width:56px;height:7px;border-radius:999px;background:#e5e7eb;overflow:hidden;flex-shrink:0}
+.bar-fill{height:100%;border-radius:999px;transition:width .15s ease,background .15s ease}
+.avance-pct{font-size:12.5px;font-weight:800;color:var(--text);min-width:34px;text-align:right}
+
+.row-oculta{display:none}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-logo"><img src="/shared-static/img/logo-atc.png" alt="Logo ATC"></div>
+  <div class="hero-copy">
+    <h1>Estatus Documentación Técnicos</h1>
+    <p>Documentación, capacitaciones y protocolos de seguridad por técnico</p>
+  </div>
+  <div class="hero-actions">
+    <div class="summary-chip">
+      <span class="pct" id="promedioChip">{{ promedio_general }}%</span>
+      <span class="lbl">Avance general</span>
+    </div>
+    <a class="btn-hero" id="btnVolver" href="{{ back_url or '/prevencion' }}">Volver</a>
+  </div>
+</header>
+
+<div class="toolbar">
+  <input class="search-box" id="buscador" type="text" placeholder="Buscar técnico o RUT…">
+  <div class="legend">
+    <span class="chip chip-ok">≥ 90%</span>
+    <span class="chip chip-warn">50–89%</span>
+    <span class="chip chip-bad">&lt; 50%</span>
+    <span class="counter" id="contador">{{ tecnicos|length }} técnicos</span>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="tabla-card">
+    <table class="matriz">
+      <thead>
+        <tr>
+          <th class="col-nombre">Nombre</th>
+          <th class="col-rut">RUT</th>
+          {% for campo, etiqueta in columnas %}
+          <th class="col-check" title="{{ etiqueta }}">{{ etiqueta }}</th>
+          {% endfor %}
+          <th class="col-avance">Avance</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in tecnicos %}
+        <tr data-tecnico-id="{{ t.id }}" data-search="{{ (t.nombre ~ ' ' ~ t.rut)|lower }}">
+          <td class="col-nombre">{{ t.nombre }}</td>
+          <td class="col-rut">{{ t.rut or "—" }}</td>
+          {% for campo, etiqueta in columnas %}
+          <td class="col-check">
+            <input type="checkbox" class="chk" data-item-id="{{ t.id }}" data-campo="{{ campo }}" {% if t.checks[campo] %}checked{% endif %}>
+          </td>
+          {% endfor %}
+          <td class="col-avance">
+            <div class="avance-cell">
+              <div class="bar-track"><div class="bar-fill" data-fill style="width:{{ t.avance }}%;background:{{ 'var(--ok-bar)' if t.avance >= 90 else ('var(--warn-bar)' if t.avance >= 50 else 'var(--bad-bar)') }};"></div></div>
+              <span class="avance-pct" data-pct>{{ t.avance }}%</span>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  const TOKEN = {{ token|default('')|tojson }};
+  const TOTAL_CAMPOS = {{ columnas|length }};
+
+  const COLORES = {
+    ok:   "#1e9c83",
+    warn: "#d97706",
+    bad:  "#c0392b",
+  };
+  function colorPara(pct) {
+    if (pct >= 90) return COLORES.ok;
+    if (pct >= 50) return COLORES.warn;
+    return COLORES.bad;
+  }
+
+  function recalcularPromedioGeneral() {
+    const filas = Array.from(document.querySelectorAll("tbody tr"));
+    if (!filas.length) { document.getElementById("promedioChip").textContent = "0%"; return; }
+    const promedio = filas.reduce((acc, tr) => acc + Number(tr.querySelector("[data-pct]").textContent.replace("%", "")), 0) / filas.length;
+    document.getElementById("promedioChip").textContent = Math.round(promedio * 10) / 10 + "%";
+  }
+
+  function recalcularFila(tr) {
+    const marcados = tr.querySelectorAll(".chk:checked").length;
+    const pct = Math.round((marcados / TOTAL_CAMPOS) * 100);
+    tr.querySelector("[data-pct]").textContent = pct + "%";
+    tr.querySelector("[data-fill]").style.width = pct + "%";
+    tr.querySelector("[data-fill]").style.background = colorPara(pct);
+    recalcularPromedioGeneral();
+  }
+
+  document.querySelectorAll(".chk").forEach(chk => {
+    chk.addEventListener("change", async () => {
+      const tr = chk.closest("tr");
+      recalcularFila(tr);
+      const itemId = chk.dataset.itemId;
+      const campo = chk.dataset.campo;
+      try {
+        const res = await fetch(`/api/prevencion/estatus-documentacion/${itemId}?token=${encodeURIComponent(TOKEN)}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ campo, valor: chk.checked }),
+        });
+        if (!res.ok) throw new Error((await res.json()).detail || "Error al guardar");
+      } catch (err) {
+        chk.checked = !chk.checked;
+        recalcularFila(tr);
+        alert("No se pudo guardar: " + err.message);
+      }
+    });
+  });
+
+  const buscador = document.getElementById("buscador");
+  const contador = document.getElementById("contador");
+  const totalTecnicos = {{ tecnicos|length }};
+
+  buscador.addEventListener("input", () => {
+    const q = buscador.value.trim().toLowerCase();
+    let visibles = 0;
+    document.querySelectorAll("tbody tr").forEach(tr => {
+      const match = !q || (tr.dataset.search || "").includes(q);
+      tr.classList.toggle("row-oculta", !match);
+      if (match) visibles++;
+    });
+    contador.textContent = q ? `${visibles} de ${totalTecnicos} técnicos` : `${totalTecnicos} técnicos`;
+  });
+</script>
+<script>
+</script>
+  <script src="/static/atc-logo-home.js"></script>
+<script src="/static/atc-volver.js"></script>
+</body>
+</html>

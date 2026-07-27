@@ -1,0 +1,1732 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Tabla Soporte — ODS</title>
+  <link rel="stylesheet" href="/static/base.css">
+<style>
+:root {
+  --bg:           #f7f8fa;
+  --surface:      #ffffff;
+  --surface-alt:  #fafbfc;
+  --surface-hover:#f3f4f6;
+  --border:       #e5e7eb;
+  --border-soft:  #f1f5f9;
+  --border-strong:#d1d5db;
+
+  --text:         #111827;
+  --text-soft:    #4b5563;
+  --text-muted:   #6b7280;
+  --text-faint:   #9ca3af;
+  --label:        #6b7280;
+  --placeholder:  #9ca3af;
+
+  --accent:       #7fc497;
+  --accent-hover: #5fb07f;
+  --accent-strong:#166534;
+  --accent-soft:  rgba(127,196,151,.14);
+
+  --header-bg:    #7fc497;
+  --header-border:#5fb07f;
+  --header-text:  #ffffff;
+
+  --link:         #2563eb;
+
+  --ok-bg:    rgba(127,196,151,.16);
+  --ok-fg:    #166534;
+  --ok-bd:    rgba(127,196,151,.40);
+  --warn-bg:  #fffbeb;
+  --warn-fg:  #92400e;
+  --warn-bd:  rgba(146,64,14,.20);
+  --pend-bg:  #f8fafc;
+  --pend-fg:  #475569;
+  --pend-bd:  #e5e7eb;
+  --info-bg:  rgba(127,196,151,.16);
+  --info-fg:  #166534;
+  --info-bd:  rgba(127,196,151,.40);
+
+  --shadow-sm: 0 1px 2px rgba(15,23,42,.04);
+  --shadow-md: 0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
+  --shadow-lg: 0 18px 36px rgba(15,23,42,.10);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { min-height: 100%; height: 100%; }
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: -0.005em;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "cv11", "ss01", "ss03";
+  overflow: hidden;
+}
+
+.content-shell {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* ── Header ─────────────────────────────────────────────── */
+.header {
+  position: sticky; top: 0; z-index: 50;
+  background: linear-gradient(180deg, #0b1424 0%, #111c2f 100%);
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 20px 30px;
+  min-height: 108px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  flex-shrink: 0;
+}
+.header-logo {
+  height: 68px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,.30));
+}
+.header-title {
+  flex: 1;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  line-height: 1.25;
+}
+.header-title small {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: rgba(255,255,255,.72);
+  margin-top: 6px;
+  letter-spacing: 0;
+  line-height: 1.45;
+}
+.header-actions { display: flex; gap: 10px; align-items: center; }
+.session-user {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 4px;
+  color: rgba(255,255,255,.92);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.volver-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 8px 14px;
+  border-radius: 7px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.04);
+  color: rgba(255,255,255,.92);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: none;
+  transition: background .15s, border-color .15s, color .15s;
+  cursor: pointer;
+}
+.volver-link:hover {
+  background: rgba(255,255,255,.08);
+  border-color: rgba(255,255,255,.22);
+}
+
+/* ── Buttons ────────────────────────────────────────────── */
+.btn {
+  appearance: none;
+  padding: 8px 14px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+  border: 1px solid transparent;
+  outline: none;
+  font-family: inherit;
+  letter-spacing: -.005em;
+  line-height: 1.3;
+}
+.btn-ghost {
+  background: rgba(255,255,255,.04);
+  border-color: rgba(255,255,255,.12);
+  color: rgba(255,255,255,.92);
+}
+.btn-ghost:hover {
+  background: rgba(255,255,255,.08);
+  border-color: rgba(255,255,255,.22);
+}
+.btn-light {
+  background: var(--surface);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+.btn-light:hover { background: var(--surface-hover); border-color: var(--text-faint); }
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent-hover);
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(22,101,52,.15), 0 2px 6px rgba(127,196,151,.35);
+}
+.btn-primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-strong);
+  box-shadow: 0 1px 2px rgba(22,101,52,.20), 0 4px 10px rgba(127,196,151,.45);
+}
+.btn-primary:disabled { opacity: .55; cursor: not-allowed; }
+
+/* ── Filters ────────────────────────────────────────────── */
+.filters {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 11px 22px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  box-shadow: 0 1px 0 var(--border);
+}
+.search-box {
+  flex: 1; min-width: 240px;
+  padding: 9px 12px 9px 34px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: #fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'/><path d='m21 21-4.3-4.3'/></svg>") no-repeat 11px center;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  outline: none;
+  font-family: inherit;
+  transition: border-color .15s, box-shadow .15s;
+}
+.search-box::placeholder { color: var(--placeholder); font-weight: 500; }
+.search-box:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(127,196,151,.20);
+}
+.filtro {
+  padding: 9px 30px 9px 12px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: #fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>") no-repeat right 10px center;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+  transition: border-color .15s, box-shadow .15s;
+  appearance: none;
+  -webkit-appearance: none;
+  min-width: 150px;
+}
+.filtro:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(127,196,151,.20);
+}
+.counter {
+  display: inline-flex; align-items: center;
+  padding: 6px 12px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12.5px;
+  color: var(--text-soft);
+  font-weight: 700;
+  letter-spacing: .02em;
+  white-space: nowrap;
+}
+
+/* ── Loading ─────────────────────────────────────────────── */
+#cargando {
+  text-align: center;
+  padding: 56px 20px;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ── Table wrapper ──────────────────────────────────────── */
+.tabla-container {
+  flex: 1;
+  background: var(--surface);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 13px;
+}
+
+@media (max-width: 760px) {
+  html, body {
+    height: auto;
+    min-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  body {
+    height: auto;
+    min-height: 100dvh;
+    overflow-y: auto;
+  }
+
+  .content-shell {
+    overflow: visible;
+  }
+
+  .tabla-container {
+    max-width: 100vw;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    min-width: 1760px;
+  }
+
+  thead th,
+  td {
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+}
+
+/* THEAD */
+thead th {
+  background: var(--header-bg);
+  color: var(--header-text);
+  font-weight: 700;
+  font-size: 10.5px;
+  padding: 10px 8px;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--header-border);
+  line-height: 1.35;
+  vertical-align: middle;
+}
+/* Espaciado entre encabezado y primer registro */
+tbody tr:first-child td { padding-top: 12px; }
+thead th.th-terminado { vertical-align: middle; padding-bottom: 10px; }
+
+/* Filtro embebido en el encabezado Terminado */
+.filtro-th {
+  margin-top: 8px;
+  display: block;
+}
+.filtro-th select {
+  width: 100%;
+  min-height: 30px;
+  padding: 4px 22px 4px 9px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>") no-repeat right 6px center;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  text-transform: none;
+  letter-spacing: 0;
+  transition: border-color .15s, box-shadow .15s;
+}
+.filtro-th select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(127,196,151,.20);
+}
+
+/* TBODY */
+tbody tr {
+  border-bottom: 1px solid #e2e8f0;
+  transition: background .18s, box-shadow .18s;
+  box-shadow: inset 3px 0 0 #cbd5e1;
+}
+tbody tr:nth-child(even):not(.fila-detalles):not(.modal-subida) { background: #fafbfc; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover:not(.fila-detalles):not(.modal-subida) {
+  background: #f1f5fb;
+  box-shadow:
+    inset 3px 0 0 #cbd5e1,
+    0 1px 0 rgba(15,23,42,.04);
+}
+tbody tr.fila-anulada {
+  opacity: .50;
+  background: #fef2f2 !important;
+  box-shadow: inset 3px 0 0 #dc2626;
+  pointer-events: none;
+}
+tbody tr.fila-anulada:hover { background: #fef2f2 !important; }
+
+td {
+  padding: 12px 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  text-align: center;
+  color: var(--text);
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  hyphens: none;
+  line-height: 1.45;
+  vertical-align: middle;
+  overflow: hidden;
+  max-width: 0;
+}
+
+/* Codigo / ejecutivo links */
+.cliente-link {
+  display: inline-block;
+  font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  font-weight: 700;
+  font-size: 12.5px;
+  color: #0f172a;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  letter-spacing: .015em;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background .15s, color .15s;
+}
+.cliente-link:hover {
+  background: var(--info-bg);
+  color: var(--info-fg);
+}
+
+/* Botones de estado */
+.boton {
+  appearance: none;
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  outline: none;
+  font-family: inherit;
+  letter-spacing: .015em;
+  text-transform: none;
+  line-height: 1.35;
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  transition: background .15s, border-color .15s, transform .15s, box-shadow .15s;
+}
+.boton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(15,23,42,.07);
+}
+.boton:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
+.boton.completado {
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+  border-color: var(--ok-bd);
+}
+.boton.pendiente {
+  background: var(--pend-bg);
+  color: var(--pend-fg);
+  border-color: var(--pend-bd);
+}
+.boton.si {
+  background: var(--info-bg);
+  color: var(--info-fg);
+  border-color: var(--info-bd);
+}
+.boton.no {
+  background: #fff7ed;
+  color: #9a3412;
+  border-color: rgba(154,52,18,.22);
+}
+
+/* Number input */
+.input-number {
+  width: 100%;
+  max-width: 78px;
+  padding: 7px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  text-align: center;
+  background: #fff;
+  color: var(--text);
+  font-family: inherit;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.input-number:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(127,196,151,.20);
+}
+
+/* Filtro en thead (deprecado, ahora va en barra superior; protejo por si queda) */
+.filtro-container { display: none; }
+
+/* Fila de detalle (expandido) */
+tr.fila-detalles td {
+  padding: 4px 14px 20px;
+  background: var(--surface);
+  text-align: left;
+}
+tr.fila-detalles {
+  background: var(--surface) !important;
+  box-shadow: none !important;
+}
+.detalles-card {
+  margin: 14px auto;
+  max-width: 920px;
+  background: var(--surface-alt);
+  padding: 20px 26px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 0 rgba(15,23,42,.04);
+  text-align: left;
+  color: var(--text);
+  line-height: 1.6;
+  font-size: 13.5px;
+  font-weight: 500;
+}
+.detalles-card h4 {
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -.015em;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.detalles-card p { margin: 6px 0; font-size: 13.5px; }
+.detalles-card b { color: var(--text-soft); font-weight: 700; }
+.detalles-card a {
+  color: var(--info-fg);
+  text-decoration: none;
+  font-weight: 600;
+  border-bottom: 1px dashed currentColor;
+}
+.detalles-card a:hover { color: var(--accent); }
+.detalles-card hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+.detalles-card .actions-row { display: flex; gap: 10px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+.detalles-card .btn-card {
+  appearance: none;
+  padding: 8px 15px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  font-family: inherit;
+  letter-spacing: -.005em;
+  transition: background .15s, border-color .15s;
+}
+.detalles-card .btn-card:hover { background: var(--surface-alt); border-color: var(--border-strong); }
+.detalles-card .btn-card.primary { background: var(--text); border-color: var(--text); color: #fff; }
+.detalles-card .btn-card.primary:hover { background: #1e293b; border-color: #1e293b; }
+.detalles-card .btn-card.success {
+  background: var(--accent);
+  border-color: var(--accent-hover);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(22,101,52,.15), 0 2px 6px rgba(127,196,151,.35);
+}
+.detalles-card .btn-card.success:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-strong);
+}
+
+.st-modal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15,23,42,.45);
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+.st-modal.is-open { display: flex; }
+.st-modal-card {
+  width: min(760px, 100%);
+  max-height: 86vh;
+  overflow: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  padding: 22px;
+}
+.st-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.st-modal-title {
+  margin: 0;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -.01em;
+}
+.st-modal-close {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text-soft);
+  border-radius: 7px;
+  padding: 7px 10px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.st-modal-close:hover { background: var(--surface-hover); color: var(--text); }
+.st-detail-grid {
+  display: grid;
+  gap: 8px;
+  color: var(--text);
+}
+.st-detail-grid p { margin: 0; font-size: 13.5px; }
+.st-detail-grid b { color: var(--text-soft); font-weight: 800; }
+.st-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+.camera-form-grid {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+}
+.camera-input-row {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+.camera-input-row label {
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 800;
+}
+.camera-input-row input {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 8px 10px;
+  color: var(--text);
+  background: #fff;
+  font: inherit;
+  outline: none;
+}
+.camera-input-row input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(127,196,151,.20);
+}
+.camera-input-row input[readonly] {
+  background: #f1f5f9;
+  color: var(--text-soft);
+  border-color: var(--border);
+  cursor: not-allowed;
+}
+.camera-help {
+  margin: 0 0 12px;
+  color: var(--text-soft);
+  font-size: 13px;
+}
+.popup-history {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 14px;
+}
+.popup-history-item {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text-soft);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.popup-history-item.empty {
+  background: var(--surface-alt);
+  color: var(--text-faint);
+  font-weight: 600;
+}
+.camera-registered-list {
+  text-align: left;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--text-soft);
+}
+
+/* Modal subida */
+tr.modal-subida td {
+  padding: 4px 14px 20px;
+  background: var(--surface);
+  text-align: left;
+}
+tr.modal-subida {
+  background: var(--surface) !important;
+  box-shadow: none !important;
+}
+.upload-card {
+  margin: 14px auto;
+  max-width: 720px;
+  background: var(--surface-alt);
+  padding: 22px 26px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 0 rgba(15,23,42,.04);
+  text-align: left;
+}
+.upload-card h4 {
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 800;
+  text-align: center;
+  color: var(--text);
+  letter-spacing: -.015em;
+}
+.upload-paste-zone {
+  border: 2px dashed var(--border-strong);
+  border-radius: 10px;
+  padding: 18px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+  margin-bottom: 12px;
+  outline: none;
+}
+.upload-paste-zone:focus, .upload-paste-zone.drag-over {
+  border-color: var(--accent);
+  background: var(--info-bg);
+  color: var(--accent);
+}
+.upload-paste-zone kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+}
+.upload-previews {
+  display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;
+}
+.upload-preview-item {
+  position: relative;
+  width: 90px; height: 90px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: #000;
+}
+.upload-preview-item img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.upload-preview-item .remove-btn {
+  position: absolute; top: 3px; right: 3px;
+  width: 20px; height: 20px;
+  background: rgba(0,0,0,.65);
+  color: #fff;
+  border: none; border-radius: 50%;
+  cursor: pointer; font-size: 13px; line-height: 20px; text-align: center;
+  padding: 0;
+}
+.upload-row {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 10px;
+}
+.upload-row label.file-trigger {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 9px 15px;
+  background: #fff;
+  color: var(--info-fg);
+  border: 1px solid var(--info-bd);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -.005em;
+  min-width: 170px;
+  white-space: nowrap;
+  transition: background .15s, border-color .15s;
+}
+.upload-row label.file-trigger:hover {
+  background: var(--info-bg);
+  border-color: var(--accent);
+}
+.upload-actions {
+  display: flex; justify-content: center; gap: 10px; margin-top: 14px;
+}
+.upload-actions button {
+  appearance: none;
+  padding: 9px 17px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -.005em;
+  cursor: pointer;
+  border: 1px solid transparent;
+  font-family: inherit;
+  transition: background .15s, border-color .15s;
+}
+.upload-actions .btn-subir {
+  background: var(--accent);
+  border-color: var(--accent-hover);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(22,101,52,.15), 0 2px 6px rgba(127,196,151,.35);
+}
+.upload-actions .btn-subir:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-strong);
+}
+.upload-actions .btn-subir:disabled { opacity: .55; cursor: not-allowed; }
+.upload-actions .btn-cancel { background: #fff; border-color: var(--border); color: var(--text-soft); }
+.upload-actions .btn-cancel:hover { background: var(--surface-alt); border-color: var(--border-strong); }
+
+/* Tabla bidireccional de cámaras */
+.tabla-camaras-wrap {
+  display: inline-block;
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  padding: 14px;
+  position: relative;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+.tabla-camaras-wrap table { width: auto; border-collapse: collapse; table-layout: auto; font-size: 12px; }
+.tabla-camaras-wrap th,
+.tabla-camaras-wrap td {
+  border: 1px solid #1e293b;
+  padding: 0;
+  text-align: center;
+  height: 32px;
+  min-width: 64px;
+}
+.tabla-camaras-wrap thead th { background: #111c2f; color: #cbd5e1; font-weight: 600; font-size: 11px; padding: 6px 8px; position: static; }
+.tabla-camaras-wrap td.celda-id {
+  cursor: pointer;
+  font-size: 11.5px;
+  color: #94a3b8;
+  background: transparent;
+  transition: background .15s;
+}
+.tabla-camaras-wrap td.celda-id:hover { background: rgba(59,130,246,.12); }
+.tabla-camaras-wrap td.celda-id.activa {
+  background: #2563eb;
+  color: #fff;
+  font-weight: 600;
+}
+.tabla-camaras-wrap td.label {
+  background: #111c2f;
+  color: #cbd5e1;
+  font-weight: 600;
+  font-size: 11.5px;
+}
+.tabla-camaras-wrap .btn-add {
+  width: 24px; height: 24px;
+  border-radius: 999px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #e2e8f0;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  font-size: 15px;
+  user-select: none;
+  transition: background .15s, border-color .15s;
+}
+.tabla-camaras-wrap .btn-add:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+.tabla-camaras-wrap .btn-add.equipo {
+  position: absolute;
+  right: -32px; top: 50%;
+  transform: translateY(-50%);
+}
+.tabla-camaras-wrap .btn-add.camara {
+  margin-top: 10px;
+}
+
+@media (max-width: 760px) {
+  .tabla-container { max-width: 100vw; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  thead th, td { overflow-wrap: normal !important; word-break: normal !important; }
+}
+
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <img class="header-logo" src="/static/img/logo-atc.png" alt="ATC"
+       onerror="this.style.display='none'"/>
+  <div class="header-title">
+    Tabla Soporte — ODS
+    <small>Seguimiento de configuración y cierre de servicio por orden</small>
+  </div>
+  <div class="header-actions">
+    <div class="session-user" id="usuarioActual">Sesion: Cargando...</div>
+    <a class="volver-link" id="btnVolver" href="/panel?area=soporte">Volver</a>
+  </div>
+</header>
+
+<div class="content-shell" id="pageContentScroll">
+<!-- Filters -->
+<div class="filters">
+  <input type="text" class="search-box" id="searchBox"
+    placeholder="Buscar por código, cliente, RUT, ejecutivo…"
+    oninput="filtrarTabla()"/>
+  <span class="counter" id="counter">Cargando…</span>
+</div>
+
+<!-- Table -->
+<div class="tabla-container" id="contenedor-tabla" style="display:none;">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:4%">Código</th>
+        <th style="width:4.5%">Fecha</th>
+        <th style="width:5%">Ejecutivo</th>
+        <th style="width:4.5%">RUT</th>
+        <th style="width:4.5%">Sucursal</th>
+        <th style="width:5%">Dirección Sucursal</th>
+        <th style="width:4.5%">Tipo Servicio</th>
+        <th style="width:4%">Tipo Plan</th>
+        <th style="width:5.5%">Instalación Finalizada</th>
+        <th style="width:5.5%">Configuración Cámaras</th>
+        <th style="width:5.5%">Posicionamiento Imagen</th>
+        <th style="width:5.5%">Enlace con Servidor</th>
+        <th style="width:5.5%">Configuración IVS</th>
+        <th style="width:5.5%">Plan de Grabación</th>
+        <th style="width:5.5%">Requiere Puesto Nuevo</th>
+        <th style="width:5.5%">N° Central Asignado</th>
+        <th style="width:5.5%">Configuración Cliente</th>
+        <th style="width:5.5%">V°B Final de Servicio</th>
+        <th style="width:6%" class="th-terminado">
+          Terminado
+          <div class="filtro-th">
+            <select id="filtro-terminado" onchange="filtrarTabla()">
+              <option value="Pendiente" selected>Pendientes</option>
+              <option value="Finalizado">Terminados</option>
+              <option value="Todos">Todos</option>
+              <option value="Anuladas">Anuladas</option>
+            </select>
+          </div>
+        </th>
+      </tr>
+    </thead>
+    <tbody id="tabla-datos"></tbody>
+  </table>
+</div>
+
+<div id="cargando">Cargando datos…</div>
+
+</div>
+
+<div id="detalleOdsModal" class="st-modal" aria-hidden="true">
+  <div class="st-modal-card" role="dialog" aria-modal="true" aria-labelledby="detalleOdsTitle">
+    <div class="st-modal-head">
+      <h3 id="detalleOdsTitle" class="st-modal-title">Detalle ODS</h3>
+      <button type="button" class="st-modal-close" onclick="cerrarDetalleOdsModal()">Cerrar</button>
+    </div>
+    <div id="detalleOdsBody"></div>
+  </div>
+</div>
+
+<div id="camarasServidorModal" class="st-modal" aria-hidden="true">
+  <div class="st-modal-card" role="dialog" aria-modal="true" aria-labelledby="camarasServidorTitle">
+    <div class="st-modal-head">
+      <h3 id="camarasServidorTitle" class="st-modal-title">Cámaras en servidor</h3>
+      <button type="button" class="st-modal-close" onclick="cerrarCamarasServidorModal()">Cerrar</button>
+    </div>
+    <p id="camarasServidorHelp" class="camera-help"></p>
+    <div id="camarasServidorInputs" class="camera-form-grid"></div>
+    <div class="st-modal-actions">
+      <button type="button" class="btn btn-light" onclick="cerrarCamarasServidorModal()">Cancelar</button>
+      <button type="button" id="btnGuardarCamarasServidor" class="btn btn-primary">Guardar cámaras</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const token = new URLSearchParams(window.location.search).get("token") || localStorage.getItem("atc_token") || "";
+  let obtenerIDsGlobal = () => [];
+  let camarasServidorContext = null;
+  const vistasEjecutivoCache = {};
+
+  async function cargarUsuarioActual() {
+    const el = document.getElementById("usuarioActual");
+    if (!el || !token) return;
+    try {
+      const res = await fetch(`/api/usuario-actual?token=${encodeURIComponent(token)}`, { credentials: "include" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error("No se pudo cargar usuario");
+      el.textContent = data?.usuario || "Desconocido";
+    } catch (_err) {
+      el.textContent = "Desconocido";
+    }
+  }
+
+  function volverPanel() { location.href = "/panel?area=soporte"; }
+
+  /* ===== API helpers ===== */
+  async function apiGet(url) {
+    const res = await fetch(url, { credentials: "include" });
+    if (res.status === 401) { window.location.href = "/?form=login&next=auto"; throw new Error("401"); }
+    if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.detail || `HTTP ${res.status}`); }
+    return res.json();
+  }
+
+  async function apiPost(url, body) {
+    const res = await fetch(url, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (res.status === 401) { window.location.href = "/?form=login&next=auto"; throw new Error("401"); }
+    if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.detail || `HTTP ${res.status}`); }
+    return res.json();
+  }
+
+  /* ===== Campo mapping (tabla index → field name) ===== */
+  const campoReal = {
+    8:  "instalacion_finalizada",
+    9:  "configuracion_camaras",
+    10: "posicionamiento_imagen",
+    11: "enlace_servidor",
+    12: "configuracion_ivs",
+    13: "plan_grabacion",
+    16: "configuracion_cliente",
+    17: "vb_final_servicio",
+    18: "terminado",
+  };
+
+  function normalizarTipoServicio(valor) {
+    return (valor || "")
+      .toString()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+  }
+
+  function esSoloTelevigilanciaTipo(tipoServicio) {
+    const partes = (tipoServicio || "")
+      .toString()
+      .split(/[|,;/]+/)
+      .map(normalizarTipoServicio)
+      .filter(Boolean);
+    return partes.length === 1 && partes[0] === "televigilancia";
+  }
+
+  /* ===== Load table ===== */
+  async function cargarDatosTablaSoporteTecnico() {
+    try {
+      const datos = await apiGet("/api/soporte-tecnico/ods-filas");
+      mostrarDatosEnTabla(datos);
+    } catch (err) {
+      if (err.message !== "401") {
+        document.getElementById("cargando").textContent = "Error al cargar datos: " + err.message;
+      }
+    }
+  }
+
+  function filtrarTabla() {
+    const filtro = document.getElementById("filtro-terminado").value;
+    const txt = (document.getElementById("searchBox")?.value || "").toLowerCase();
+    let vis = 0;
+    document.querySelectorAll("#tabla-datos tr").forEach(fila => {
+      if (fila.classList.contains("fila-detalles") || fila.classList.contains("modal-subida")) return;
+      const estado = (fila.cells[18] && fila.cells[18].textContent.trim()) || "";
+      const texto = fila.textContent.toLowerCase();
+      const matchTxt = !txt || texto.includes(txt);
+      const anulada = fila.classList.contains("fila-anulada");
+      const matchEst =
+        filtro === "Anuladas"
+          ? anulada
+          : filtro === "Todos"
+            ? true
+            : !anulada && estado === filtro;
+      const show = matchTxt && matchEst;
+      fila.style.display = show ? "" : "none";
+      if (show) vis++;
+    });
+    const counter = document.getElementById("counter");
+    if (counter) counter.textContent = `${vis} ODS`;
+  }
+
+  function mostrarDatosEnTabla(datos) {
+    const cuerpoTabla = document.getElementById("tabla-datos");
+    cuerpoTabla.innerHTML = "";
+
+    datos.forEach((fila) => {
+      const tr = document.createElement("tr");
+      const tipoServicio = (fila[6] || "").toString().toLowerCase();
+      const esTelevigilancia = tipoServicio.includes("televigilancia");
+      const esSoloTelevigilancia = esSoloTelevigilanciaTipo(fila[6]);
+      const instalacionFinalizada = fila[8];
+      const instalacionLista = (() => {
+        if (esSoloTelevigilancia) return true;
+        const valor = (instalacionFinalizada || "").toString().trim().toLowerCase();
+        return Boolean(valor && valor !== "pendiente");
+      })();
+
+      if ((fila[19] || "").toLowerCase() === "anulada") {
+        tr.classList.add("fila-anulada");
+      }
+
+      fila.forEach((celda, idx) => {
+        if (idx === 19) return;
+        const td = document.createElement("td");
+
+        if (idx === 0) {
+          const link = document.createElement("span");
+          link.textContent = celda || "Sin Código";
+          link.className = "cliente-link";
+          link.onclick = () => abrirDetalle(tr, fila, esTelevigilancia);
+          td.appendChild(link);
+
+        } else if (idx === 2) {
+          const enlace = document.createElement("a");
+          enlace.href = "#";
+          enlace.className = "cliente-link";
+          enlace.textContent = celda || "Subir Archivos";
+          enlace.onclick = (e) => { e.preventDefault(); abrirModalSubida(tr, fila); };
+          td.appendChild(enlace);
+
+        } else if (idx === 14) {
+          const cont = document.createElement("div");
+          cont.style.cssText = "display:flex;justify-content:center;gap:6px;";
+          let estadoActual = (celda || "").toString().trim().toLowerCase();
+          ["si", "no"].forEach(opcion => {
+            const btn = document.createElement("button");
+            btn.textContent = opcion.toUpperCase();
+            btn.classList.add("boton", opcion);
+            btn.dataset.opcion = opcion;
+            btn.style.opacity = estadoActual === opcion ? "1" : "0.4";
+            btn.disabled = !instalacionLista;
+            if (!instalacionLista) btn.title = "Debe estar finalizada la instalación";
+            btn.onclick = async () => {
+              if (!instalacionLista) return;
+              const yaSeleccionado = estadoActual === opcion;
+              const nuevoValor = yaSeleccionado ? "" : (opcion === "si" ? "Si" : "No");
+              Array.from(cont.children).forEach(b => b.style.opacity = "1");
+              estadoActual = yaSeleccionado ? "" : opcion;
+              if (!yaSeleccionado) {
+                Array.from(cont.children).forEach(b => {
+                  b.style.opacity = b.dataset.opcion === opcion ? "1" : "0.4";
+                });
+              }
+              try {
+                await apiPost("/api/soporte-tecnico/ods/actualizar-valor", { codigo: fila[0], campo: "requiere_puesto_nuevo", valor: nuevoValor });
+              } catch (err) { alert("Error: " + err.message); }
+            };
+            cont.appendChild(btn);
+          });
+          td.appendChild(cont);
+
+        } else if (idx === 15) {
+          const input = document.createElement("input");
+          input.type = "number";
+          input.value = celda || "";
+          input.classList.add("input-number");
+          input.disabled = !instalacionLista;
+          if (!instalacionLista) input.title = "Debe estar finalizada la instalación";
+          input.onchange = async () => {
+            if (!instalacionLista) return;
+            try {
+              await apiPost("/api/soporte-tecnico/ods/actualizar-valor", { codigo: fila[0], campo: "numero_central_asignado", valor: input.value });
+              await apiPost("/api/soporte-tecnico/ods/notificar-termino", { codigo: fila[0] });
+            } catch (err) { alert("Error: " + err.message); }
+          };
+          td.appendChild(input);
+
+        } else if (
+          (idx >= 9 && idx <= 13) || (idx >= 16 && idx <= 18)
+        ) {
+          const btn = document.createElement("button");
+          const estadoActual = (celda && celda !== "Pendiente") ? "Finalizado" : "Pendiente";
+          btn.textContent = estadoActual;
+          btn.classList.add("boton", estadoActual === "Finalizado" ? "completado" : "pendiente");
+
+          if (!instalacionLista) {
+            btn.disabled = true;
+            btn.title = "Debe estar finalizada la instalación";
+          } else {
+            btn.onclick = async () => {
+              const nuevo = btn.textContent === "Pendiente";
+              const campo = campoReal[idx];
+              if (idx === 18 && nuevo && esTelevigilancia) {
+                const puedeFinalizar = await abrirRegistroCamarasSiFaltan(fila);
+                if (!puedeFinalizar) return;
+              }
+              btn.textContent = nuevo ? "Finalizado" : "Pendiente";
+              btn.classList.toggle("pendiente");
+              btn.classList.toggle("completado");
+              try {
+                await apiPost("/api/soporte-tecnico/ods/actualizar-estado", { codigo: fila[0], campo, valor: nuevo });
+                if (idx === 18 && nuevo) {
+                  await apiPost("/api/soporte-tecnico/ods/notificar-termino", { codigo: fila[0] });
+                }
+              } catch (err) {
+                btn.textContent = nuevo ? "Pendiente" : "Finalizado";
+                btn.classList.toggle("pendiente");
+                btn.classList.toggle("completado");
+                alert("Error: " + err.message);
+              }
+            };
+          }
+          td.appendChild(btn);
+
+        } else if (idx === 8) {
+          td.textContent = celda || "Pendiente";
+        } else if (idx === 19 || idx === 20) {
+          td.textContent = celda || "Pendiente";
+        } else if (idx === 21) {
+          const texto = String(celda || "").trim();
+          td.innerHTML = texto
+            ? `<div class="camera-registered-list">${htmlEsc(texto).replaceAll("\n", "<br>")}</div>`
+            : "Pendiente";
+        } else {
+          td.textContent = celda || "Pendiente";
+        }
+
+        tr.appendChild(td);
+      });
+
+      cuerpoTabla.appendChild(tr);
+    });
+
+    document.getElementById("cargando").style.display = "none";
+    document.getElementById("contenedor-tabla").style.display = "";
+    filtrarTabla();
+  }
+
+  function htmlEsc(valor) {
+    return String(valor ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll("\"", "&quot;")
+      .replaceAll("'", "&#39;");
+  }
+
+  function abrirVistaCamarasEjecutivo(cacheKey, envioIndex) {
+    const envio = vistasEjecutivoCache[cacheKey]?.[Number(envioIndex)];
+    const archivos = Array.isArray(envio?.archivos) ? envio.archivos : [];
+    if (!archivos.length) {
+      alert("No hay imágenes disponibles para este envío.");
+      return;
+    }
+    const ventana = window.open("", "_blank");
+    if (!ventana) {
+      alert("El navegador bloqueó la ventana emergente.");
+      return;
+    }
+    const titulo = `Vista cámaras ${Number(envioIndex) + 1}`;
+    const imagenesHtml = archivos.map((archivo, idx) => `
+      <figure>
+        <img src="${htmlEsc(archivo.data)}" alt="${htmlEsc(archivo.nombre || `Imagen ${idx + 1}`)}">
+        <figcaption>${htmlEsc(archivo.nombre || `Imagen ${idx + 1}`)}</figcaption>
+      </figure>
+    `).join("");
+    ventana.document.open();
+    ventana.document.write(`<!doctype html>
+      <html lang="es">
+      <head>
+        <meta charset="utf-8">
+        <title>${htmlEsc(titulo)}</title>
+        <style>
+          body { margin: 0; padding: 24px; background: #0b1220; color: #e5e7eb; font-family: Arial, sans-serif; }
+          h1 { margin: 0 0 18px; font-size: 22px; }
+          figure { margin: 0 0 24px; }
+          img { display: block; max-width: 100%; height: auto; border: 1px solid #243044; border-radius: 8px; background: #111827; }
+          figcaption { margin-top: 8px; color: #aab4c4; font-size: 13px; }
+        </style>
+      </head>
+      <body>
+        <h1>${htmlEsc(titulo)}</h1>
+        ${imagenesHtml}
+      </body>
+      </html>`);
+    ventana.document.close();
+  }
+
+  function parseCameraCount(valor) {
+    const match = String(valor || "").match(/\d+/);
+    return match ? Math.max(0, parseInt(match[0], 10) || 0) : 0;
+  }
+
+  function abrirModalById(id) {
+    const modal = document.getElementById(id);
+    if (!modal) return;
+    modal.classList.add("is-open");
+    modal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+  }
+
+  function cerrarModalById(id) {
+    const modal = document.getElementById(id);
+    if (!modal) return;
+    modal.classList.remove("is-open");
+    modal.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+  }
+
+  function cerrarDetalleOdsModal() {
+    cerrarModalById("detalleOdsModal");
+  }
+
+  function cerrarCamarasServidorModal() {
+    camarasServidorContext = null;
+    cerrarModalById("camarasServidorModal");
+  }
+
+  async function abrirRegistroCamarasSiFaltan(fila) {
+    const codigo = String(fila?.[0] || "").trim();
+    if (!codigo) return true;
+    let info;
+    let guardadas;
+    try {
+      info = await apiGet(`/api/soporte-tecnico/ods/${encodeURIComponent(codigo)}/detalle`);
+      guardadas = await apiGet(`/api/soporte-tecnico/ods/${encodeURIComponent(codigo)}/camaras`);
+    } catch (err) {
+      alert("Error verificando cámaras: " + err.message);
+      return false;
+    }
+    const totalVigilar = parseCameraCount(info.camarasVigilar);
+    if (!totalVigilar) return true;
+    const completas = Array.from({ length: totalVigilar }, (_, index) => String(guardadas?.[index] || "").trim()).filter(Boolean).length;
+    if (completas >= totalVigilar) return true;
+    await abrirCamarasServidorModal({
+      codigo,
+      totalVigilar,
+      info,
+      finalizarDespues: true,
+    });
+    return false;
+  }
+
+  /* ===== Detalle ODT ===== */
+  async function abrirDetalle(_filaPrincipal, fila, esTelevigilancia) {
+    try {
+      const info = await apiGet(`/api/soporte-tecnico/ods/${encodeURIComponent(fila[0])}/detalle`);
+      const codigo = String(fila[0] || "").trim();
+      const totalVigilar = parseCameraCount(info.camarasVigilar);
+      const title = document.getElementById("detalleOdsTitle");
+      const body = document.getElementById("detalleOdsBody");
+      if (title) title.textContent = `Información completa ODS ${codigo}`;
+      if (!body) return;
+      body.innerHTML = `
+        <div class="st-detail-grid">
+          <p><b>Cámaras a Instalar:</b> ${htmlEsc(info.camarasInstalar || "No informado")}</p>
+          <p><b>Cámaras a Vigilar:</b> ${htmlEsc(info.camarasVigilar || "No informado")}</p>
+          <p><b>Días de Grabación:</b> ${htmlEsc(info.diasGrabacion || "No informado")}</p>
+          <p><b>Contacto:</b> ${htmlEsc(info.contactoNombre || "No disponible")} ${info.contactoTelefono ? `(${htmlEsc(info.contactoTelefono)})` : ""}</p>
+          <p><b>Layout:</b> ${info.layout ? `<a class="cliente-link" href="${htmlEsc(info.layout)}" target="_blank">Ver Layout</a>` : "No disponible"}</p>
+          <p><b>Observación:</b> ${htmlEsc(info.observacion || "Sin observaciones")}</p>
+        </div>
+        ${esTelevigilancia ? `
+          <div class="st-modal-actions">
+            <button id="btnAbrirCamarasServidor" type="button" class="btn btn-primary">
+              Registrar IDs de Cámaras Instaladas
+            </button>
+          </div>
+        ` : ""}
+      `;
+      abrirModalById("detalleOdsModal");
+      const btnCamaras = document.getElementById("btnAbrirCamarasServidor");
+      if (btnCamaras) {
+        btnCamaras.onclick = () => abrirCamarasServidorModal({
+          codigo,
+          totalVigilar,
+          info,
+        });
+      }
+    } catch (err) {
+      if (err.message !== "401") alert("Error cargando detalle: " + err.message);
+    }
+  }
+
+  async function abrirCamarasServidorModal(context) {
+    const codigo = String(context?.codigo || "").trim();
+    const total = Number(context?.totalVigilar || 0);
+    if (!codigo) return;
+    if (!total) {
+      alert("Esta ODS no tiene cantidad de cámaras a monitorear informada.");
+      return;
+    }
+    let guardadas = [];
+    try {
+      guardadas = await apiGet(`/api/soporte-tecnico/ods/${encodeURIComponent(codigo)}/camaras`);
+    } catch (err) {
+      alert("Error cargando cámaras: " + err.message);
+      return;
+    }
+
+    camarasServidorContext = { ...context, totalVigilar: total, guardadas };
+    const title = document.getElementById("camarasServidorTitle");
+    const help = document.getElementById("camarasServidorHelp");
+    const inputs = document.getElementById("camarasServidorInputs");
+    if (title) title.textContent = `Cámaras en servidor - ${codigo}`;
+    if (help) help.textContent = `Registra ${total} cámara${total === 1 ? "" : "s"} según la cantidad a monitorear.`;
+    if (!inputs) return;
+    const completas = Array.from({ length: total }, (_, index) => String(guardadas?.[index] || "").trim()).filter(Boolean).length;
+    inputs.innerHTML = Array.from({ length: total }, (_, index) => {
+      const valor = String(guardadas?.[index] || "").trim();
+      const locked = Boolean(valor);
+      return `
+        <div class="camera-input-row">
+          <label for="camara-servidor-${index}">Cámara ${index + 1}</label>
+          <input id="camara-servidor-${index}" data-camera-index="${index}" type="text" value="${htmlEsc(valor)}" placeholder="Nombre o ID en servidor" ${locked ? "readonly" : ""}>
+        </div>
+      `;
+    }).join("");
+    const btnGuardar = document.getElementById("btnGuardarCamarasServidor");
+    if (btnGuardar) {
+      btnGuardar.disabled = completas >= total;
+      btnGuardar.textContent = completas >= total ? "Cámaras registradas" : "Guardar cámaras";
+    }
+    abrirModalById("camarasServidorModal");
+    setTimeout(() => inputs.querySelector("input:not([readonly])")?.focus(), 40);
+  }
+
+  async function guardarCamarasServidor() {
+    if (!camarasServidorContext) return;
+    const { codigo, totalVigilar, info } = camarasServidorContext;
+    const inputs = Array.from(document.querySelectorAll("#camarasServidorInputs input"));
+    const ids = inputs.map((input) => String(input.value || "").trim());
+    const faltante = ids.findIndex((value) => !value);
+    if (faltante >= 0) {
+      alert(`Completa el nombre o ID de la Cámara ${faltante + 1}.`);
+      inputs[faltante]?.focus();
+      return;
+    }
+    if (ids.length !== Number(totalVigilar || 0)) {
+      alert("La cantidad de cámaras no coincide con la cantidad a monitorear.");
+      return;
+    }
+    const btn = document.getElementById("btnGuardarCamarasServidor");
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Guardando...";
+    }
+    const finalizarDespues = Boolean(camarasServidorContext.finalizarDespues);
+    try {
+      const res = await apiPost("/api/soporte-tecnico/ods/guardar-camaras", {
+        odt: codigo,
+        ids,
+        idCliente: info.idCliente,
+        idSucursal: info.idSucursal,
+        razonSocial: info.razonSocial,
+        sucursal: info.sucursal,
+        direccion: info.direccion,
+      });
+      if (finalizarDespues) {
+        await apiPost("/api/soporte-tecnico/ods/actualizar-estado", { codigo, campo: "terminado", valor: true });
+        await apiPost("/api/soporte-tecnico/ods/notificar-termino", { codigo });
+      }
+      alert(finalizarDespues ? "Cámaras guardadas y ODS finalizada." : (res.mensaje || "Cámaras guardadas"));
+      cerrarCamarasServidorModal();
+      cargarDatosTablaSoporteTecnico();
+    } catch (err) {
+      alert("Error guardando cámaras: " + err.message);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = "Guardar cámaras";
+      }
+    }
+  }
+
+  /* ===== Modal subida de imágenes ===== */
+  async function abrirModalSubida(tr, fila) {
+    const filaAbierta = tr.nextElementSibling;
+    if (filaAbierta && filaAbierta.classList.contains("modal-subida")) { filaAbierta.remove(); return; }
+    document.querySelector(".modal-subida")?.remove();
+
+    const odt = fila[0];
+    let envios = [];
+    try {
+      const historial = await apiGet(`/api/soporte-tecnico/ods/${encodeURIComponent(odt)}/vistas-ejecutivo`);
+      envios = Array.isArray(historial?.envios) ? historial.envios.slice(0, 2) : [];
+    } catch (err) {
+      alert("Error cargando envíos de vistas: " + err.message);
+      return;
+    }
+    const maxEnvios = envios.length >= 2;
+    const enviosConArchivos = envios
+      .map((envio) => ({
+        ...envio,
+        archivos: Array.isArray(envio?.archivos)
+          ? envio.archivos.filter((archivo) => archivo?.data)
+          : [],
+      }))
+      .filter((envio) => envio.archivos.length);
+    const cacheKey = `vistas-${odt}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    vistasEjecutivoCache[cacheKey] = enviosConArchivos;
+    const historialHtml = enviosConArchivos.length ? `
+      <div class="popup-history">
+        ${enviosConArchivos.map((_envio, idx) => `
+          <a class="popup-history-item" href="#" data-vista-camaras-link data-cache-key="${htmlEsc(cacheKey)}" data-envio-index="${idx}">
+            Vista cámaras ${idx + 1}
+          </a>
+        `).join("")}
+      </div>
+    ` : "";
+    const filaDetalle = document.createElement("tr");
+    filaDetalle.className = "modal-subida";
+    const tdModal = document.createElement("td");
+    tdModal.colSpan = 19;
+    tdModal.innerHTML = `
+      <div class="upload-card">
+        <h4>Vista de cámaras — <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-weight:700;">${odt}</span></h4>
+        ${historialHtml}
+        <div class="upload-paste-zone" id="paste-zone-${odt}" tabindex="0" ${maxEnvios ? 'style="opacity:.55;pointer-events:none;"' : ""}>
+          Pega una imagen aquí con <kbd>Ctrl</kbd>+<kbd>V</kbd>, arrastra un archivo, o usa el botón de abajo
+        </div>
+        <div class="upload-previews" id="previews-${odt}"></div>
+        <div class="upload-row">
+          <label class="file-trigger" for="file-pick-${odt}">📎 Seleccionar archivo</label>
+          <input type="file" id="file-pick-${odt}" accept="image/*" multiple style="display:none" ${maxEnvios ? "disabled" : ""}>
+        </div>
+        <div class="upload-actions">
+          <button id="btn-cancelar-${odt}" class="btn-cancel">Cancelar</button>
+          <button id="btn-subir-${odt}" class="btn-subir" ${maxEnvios ? "disabled" : ""}>${maxEnvios ? "Máximo 2 envíos" : "Subir"}</button>
+        </div>
+      </div>
+    `;
+    filaDetalle.appendChild(tdModal);
+    tr.insertAdjacentElement("afterend", filaDetalle);
+
+    tdModal.querySelectorAll("[data-vista-camaras-link]").forEach((link) => {
+      link.addEventListener("click", (event) => {
+        event.preventDefault();
+        abrirVistaCamarasEjecutivo(link.dataset.cacheKey, link.dataset.envioIndex);
+      });
+    });
+
+    const stagedFiles = [];
+    const previewsEl = document.getElementById(`previews-${odt}`);
+    const pasteZone = document.getElementById(`paste-zone-${odt}`);
+    const filePick = document.getElementById(`file-pick-${odt}`);
+
+    function addFile(file) {
+      if (maxEnvios) return;
+      if (!file || !file.type.startsWith("image/")) return;
+      stagedFiles.push(file);
+      const idx = stagedFiles.length - 1;
+      const item = document.createElement("div");
+      item.className = "upload-preview-item";
+      const img = document.createElement("img");
+      const url = URL.createObjectURL(file);
+      img.src = url;
+      img.alt = file.name;
+      const removeBtn = document.createElement("button");
+      removeBtn.className = "remove-btn";
+      removeBtn.textContent = "×";
+      removeBtn.onclick = () => { stagedFiles.splice(idx, 1); item.remove(); URL.revokeObjectURL(url); };
+      item.append(img, removeBtn);
+      previewsEl.appendChild(item);
+    }
+
+    pasteZone.addEventListener("focus", () => pasteZone.style.outline = "none");
+    pasteZone.addEventListener("dragover", e => { e.preventDefault(); pasteZone.classList.add("drag-over"); });
+    pasteZone.addEventListener("dragleave", () => pasteZone.classList.remove("drag-over"));
+    pasteZone.addEventListener("drop", e => {
+      e.preventDefault();
+      pasteZone.classList.remove("drag-over");
+      [...(e.dataTransfer.files || [])].forEach(addFile);
+    });
+
+    document.addEventListener("paste", function onPaste(e) {
+      if (!filaDetalle.isConnected) { document.removeEventListener("paste", onPaste); return; }
+      const items = e.clipboardData?.items || [];
+      for (const item of items) {
+        if (item.kind === "file" && item.type.startsWith("image/")) {
+          addFile(item.getAsFile());
+        }
+      }
+    });
+
+    filePick.addEventListener("change", () => {
+      [...filePick.files].forEach(addFile);
+      filePick.value = "";
+    });
+
+    document.getElementById(`btn-cancelar-${odt}`).onclick = () => filaDetalle.remove();
+    document.getElementById(`btn-subir-${odt}`).onclick = async () => {
+      if (maxEnvios) { alert("Esta ODS ya tiene los 2 envíos de imágenes permitidos."); return; }
+      if (!stagedFiles.length) { alert("Debes agregar al menos una imagen."); return; }
+      const btnSubir = document.getElementById(`btn-subir-${odt}`);
+      btnSubir.disabled = true;
+      btnSubir.textContent = "Subiendo...";
+      try {
+        const convertidos = await Promise.all(stagedFiles.map((file, i) => new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve({ nombre: `CAMARA${i + 1}`, mimeType: file.type, base64: reader.result.split(",")[1] });
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        })));
+        const res = await apiPost("/api/soporte-tecnico/ods/upload-imagenes", { odt, archivos: convertidos });
+        const emailMsg = res.email_sent
+          ? `Correo enviado a ${res.email_to}.`
+          : `Correo no enviado${res.email_error ? ": " + res.email_error : ""}.`;
+        alert(`${res.guardadas} imagen(es) guardada(s). ${emailMsg}`);
+        filaDetalle.remove();
+        cargarDatosTablaSoporteTecnico();
+      } catch (err) {
+        alert("Error al subir: " + err.message);
+        btnSubir.disabled = false;
+        btnSubir.textContent = "Subir";
+      }
+    };
+  }
+
+  /* ===== Tabla bidireccional cámaras ===== */
+  function iniciarTablaBidireccional(contenedorId, idsGuardados = []) {
+    const contenedor = document.getElementById(contenedorId);
+    if (!contenedor) return;
+
+    let totalCamaras = 8;
+    let totalEquipos = 2;
+
+    if (idsGuardados.length) {
+      const maxCam = Math.max(...idsGuardados.map(i => +i.split("_")[1]));
+      if (maxCam > 16) totalCamaras = 32;
+      else if (maxCam > 8) totalCamaras = 16;
+    }
+
+    const estado = {};
+    idsGuardados.forEach(id => estado[id] = true);
+
+    function render() {
+      contenedor.innerHTML = `
+        <div class="tabla-camaras-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="min-width:44px;">#</th>
+                ${Array.from({ length: totalEquipos }, (_, e) => `<th>${e + 1}</th>`).join("")}
+              </tr>
+            </thead>
+            <tbody>
+              ${Array.from({ length: totalCamaras }, (_, c) => `
+                <tr>
+                  <td class="label">${c + 1}</td>
+                  ${Array.from({ length: totalEquipos }, (_, e) => {
+                    const key = `${e + 1}_${c + 1}`;
+                    const activo = estado[key];
+                    return `<td class="celda-id ${activo ? "activa" : ""}" data-key="${key}">${activo ? key : ""}</td>`;
+                  }).join("")}
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+          <div id="btn-add-equipo" class="btn-add equipo">+</div>
+          <div style="display:flex;justify-content:center;">
+            <div id="btn-add-camara" class="btn-add camara">+</div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById("btn-add-equipo").onclick = () => { totalEquipos++; render(); };
+      document.getElementById("btn-add-camara").onclick = () => {
+        if (totalCamaras === 8) totalCamaras = 16;
+        else if (totalCamaras === 16) totalCamaras = 32;
+        else return alert("Máximo 32 cámaras");
+        render();
+      };
+      contenedor.querySelectorAll(".celda-id").forEach(celda => {
+        celda.onclick = () => { const key = celda.dataset.key; estado[key] = !estado[key]; render(); };
+      });
+    }
+
+    obtenerIDsGlobal = () => Object.keys(estado).filter(k => estado[k]);
+    render();
+  }
+
+  document.getElementById("btnGuardarCamarasServidor")?.addEventListener("click", guardarCamarasServidor);
+  ["detalleOdsModal", "camarasServidorModal"].forEach((id) => {
+    const modal = document.getElementById(id);
+    modal?.addEventListener("click", (event) => {
+      if (event.target !== modal) return;
+      if (id === "detalleOdsModal") cerrarDetalleOdsModal();
+      if (id === "camarasServidorModal") cerrarCamarasServidorModal();
+    });
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    const camarasModal = document.getElementById("camarasServidorModal");
+    if (camarasModal?.classList.contains("is-open")) {
+      cerrarCamarasServidorModal();
+      return;
+    }
+    const detalleModal = document.getElementById("detalleOdsModal");
+    if (detalleModal?.classList.contains("is-open")) {
+      cerrarDetalleOdsModal();
+    }
+  });
+
+  window.onload = () => {
+    cargarUsuarioActual();
+    cargarDatosTablaSoporteTecnico();
+  };
+</script>
+  <script src="/static/atc-logo-home.js"></script>
+  <script>
+  </script>
+<script src="/static/atc-volver.js"></script>
+</body>
+</html>

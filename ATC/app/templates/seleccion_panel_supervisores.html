@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Panel Supervisores</title>
+<link rel="stylesheet" href="/static/base.css">
+<style>
+:root{
+  --bg-1:#0a1c20;
+  --bg-2:#10272d;
+  --bg-3:#17363d;
+  --surface:rgba(255,255,255,.06);
+  --border:rgba(255,255,255,.10);
+  --text:#f4f8f9;
+  --muted:#c0cfd4;
+  --primary:#ff6e23;
+  --shadow:0 30px 70px rgba(0,0,0,.32);
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{
+  margin:0;
+  font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  color:var(--text);
+  background:
+    radial-gradient(circle at 18% 22%, rgba(255,255,255,.05), transparent 24%),
+    radial-gradient(circle at 78% 12%, rgba(255,125,53,.08), transparent 18%),
+    linear-gradient(145deg,var(--bg-1) 0%,var(--bg-2) 42%,var(--bg-3) 100%);
+  padding:20px;
+}
+.shell{
+  width:min(1120px,100%);
+  margin:0 auto;
+  border:1px solid var(--border);
+  border-radius:24px;
+  background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.04));
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+.hero{
+  padding:24px 28px 20px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+  position:relative;
+}
+.top-actions{
+  position:absolute;
+  top:20px;
+  right:24px;
+  display:flex;
+  gap:10px;
+}
+.area-back-btn,.logout-btn{
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.05);
+  color:var(--text);
+  padding:9px 14px;
+  border-radius:12px;
+  font-size:13px;
+  font-weight:700;
+  text-decoration:none;
+}
+.brand{display:flex;align-items:center;gap:14px;margin-bottom:20px}
+.brand-badge{
+  width:62px;height:62px;border-radius:16px;
+  display:grid;place-items:center;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.12);
+}
+.brand-badge img{width:50px;height:auto}
+.brand-text strong{display:block;font-size:17px}
+.brand-text span{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+.welcome-message{margin:0 0 6px;color:#fff;font-size:17px;font-weight:800}
+h1{font-size:32px;line-height:1.08;margin:0 0 12px;letter-spacing:0}
+.lead{margin:0;color:var(--muted);max-width:720px;line-height:1.5}
+.user-chip{
+  display:inline-flex;margin-top:18px;padding:8px 14px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:999px;color:#dbe6ea;background:rgba(255,255,255,.05);
+  font-size:13px;font-weight:700;
+}
+.content{padding:22px 24px 26px}
+.section-head{margin-bottom:16px}
+.section-head h2{margin:0 0 4px;font-size:21px}
+.section-head p{margin:0;color:var(--muted);font-size:14px}
+.grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+}
+.option{
+  --option-accent:255,110,35;
+  min-height:132px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  padding:18px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.12);
+  background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.04));
+  color:var(--text);
+  text-decoration:none;
+  transition:transform .18s ease,border-color .18s ease,background .18s ease;
+}
+.option:hover{
+  transform:translateY(-2px);
+  border-color:rgba(var(--option-accent),.45);
+  background:linear-gradient(180deg,rgba(var(--option-accent),.14),rgba(255,255,255,.05));
+}
+.option-top{display:flex;align-items:center;gap:12px}
+.icon{
+  width:42px;height:42px;border-radius:12px;
+  display:grid;place-items:center;
+  background:rgba(var(--option-accent),.22);
+  border:1px solid rgba(var(--option-accent),.45);
+  font-weight:900;
+}
+.option strong{font-size:17px}
+.option p{margin:12px 0 0;color:var(--muted);line-height:1.4;font-size:13px}
+.tabla-quintero{--option-accent:120,48,120}
+.tabla-privados{--option-accent:20,83,45}
+.tabla-concon{--option-accent:32,132,150}
+.bbdd-guardias{--option-accent:14,116,144}
+@media (max-width:760px){
+  body{padding:12px}
+  .hero{padding:76px 18px 18px}
+  .top-actions{left:18px;right:18px;justify-content:flex-end}
+  h1{font-size:26px}
+  .content{padding:18px}
+  .grid{grid-template-columns:1fr}
+}
+.brand-badge{width:auto!important;height:auto!important;padding:0!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;display:flex!important;align-items:center!important;justify-content:center!important}
+.brand-badge img{width:122px!important;height:auto!important;object-fit:contain!important;filter:drop-shadow(0 6px 14px rgba(0,0,0,.22))!important}
+
+</style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div class="top-actions">
+        {% if show_back_button %}
+          <a class="area-back-btn" id="btnVolver" href="{{ back_url }}">Volver</a>
+        {% endif %}
+        <a class="logout-btn" href="/logout">Cerrar sesion</a>
+      </div>
+
+      <div class="brand">
+        <div class="brand-badge">
+          <img src="/shared-static/img/logo-atc.png" alt="ATC - Alguien Te Cuida">
+        </div>
+        <div class="brand-text">
+          <strong>Alguien te Cuida</strong>
+          <span>Supervisores</span>
+        </div>
+      </div>
+
+      <p id="welcomeMessage" class="welcome-message" data-full-name="{{ tecnico|default('') }}">Hola!</p>
+      <h1>Escoge el modulo con el que quieres trabajar.</h1>
+      <p class="lead">Desde aqui puedes revisar la tabla asignada y administrar la base de guardias.</p>
+      <div class="user-chip">Acceso habilitado</div>
+    </section>
+
+    <section class="content">
+      <div class="section-head">
+        <h2>Selecciona un modulo</h2>
+        <p>Elige el area en la que deseas trabajar.</p>
+      </div>
+
+      {% include "_cambio_clave_inicial.html" %}
+
+      {% set rut_limpio = (rut|default('')|replace('.', '')|lower) %}
+      <div class="grid">
+        {% if mostrar_quintero %}
+        <a class="option tabla-quintero" href="/guardia/tabla-supervisor?grupo=quintero">
+          <div class="option-top">
+            <div class="icon">SV</div>
+            <strong>Tabla Supervisor Quintero</strong>
+          </div>
+          <p>Registros de asistencia ingresados manualmente por el supervisor para Municipalidad de Quintero.</p>
+        </a>
+        {% endif %}
+
+        {% if mostrar_concon|default(rut_limpio != '9725725-6') %}
+        <a class="option tabla-concon" href="/guardia/tabla-supervisor?grupo=concon">
+          <div class="option-top">
+            <div class="icon">SV</div>
+            <strong>Tabla Supervisor Concón</strong>
+          </div>
+          <p>Registros de asistencia ingresados manualmente por el supervisor para Municipalidad de Concón.</p>
+        </a>
+        {% endif %}
+
+        {% if mostrar_privados %}
+        <a class="option tabla-privados" href="/guardia/tabla-supervisor?grupo=privados">
+          <div class="option-top">
+            <div class="icon">SV</div>
+            <strong>Tabla Supervisor Privados</strong>
+          </div>
+          <p>Registros del supervisor para recintos privados.</p>
+        </a>
+        {% endif %}
+
+        <a class="option bbdd-guardias" href="/guardia/bbdd-guardias">
+          <div class="option-top">
+            <div class="icon">BD</div>
+            <strong>BBDD Guardias</strong>
+          </div>
+          <p>Registra nuevos guardias con RUT y nombre para habilitarlos en el sistema.</p>
+        </a>
+
+        <a class="option bbdd-guardias" href="/guardia/bbdd-justificaciones">
+          <div class="option-top">
+            <div class="icon">JU</div>
+            <strong>Justificaciones</strong>
+          </div>
+          <p>Registra licencias, faltas, permisos o vacaciones sin necesidad de asignar antes un día y recinto.</p>
+        </a>
+      </div>
+    </section>
+  </main>
+
+<script>
+(function(){
+  const el = document.getElementById("welcomeMessage");
+  if (!el) return;
+  const fullName = (el.dataset.fullName || "").trim();
+  if (!fullName) return;
+  const first = fullName.split(/\s+/)[0] || "";
+  el.textContent = `Hola ${first}!`;
+})();
+</script>
+  <script>window.ATC_ES_PANEL_SELECTOR = true;</script>
+  <script src="/static/atc-logo-home.js"></script>
+  <script>
+  </script>
+<script src="/static/atc-volver.js"></script>
+</body>
+</html>

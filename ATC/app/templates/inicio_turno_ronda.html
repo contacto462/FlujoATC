@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Registro de ronda</title>
+  <style>
+    :root {
+      --page: #eef3f4;
+      --panel: #ffffff;
+      --ink: #142226;
+      --muted: #607176;
+      --line: #d7e1e4;
+      --field: #f8fbfb;
+      --primary: #be6830;
+      --primary-dark: #93471f;
+      --green: #1f7a4d;
+      --red: #a83232;
+      --top: #0d2a30;
+      --top-2: #173b42;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    * { box-sizing: border-box; }
+    html { min-height: 100%; background: var(--page); -webkit-text-size-adjust: 100%; }
+    body {
+      min-height: 100svh; margin: 0; overflow-x: hidden;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink); background: var(--page);
+    }
+    button, input { font: inherit; -webkit-tap-highlight-color: transparent; }
+
+    .shell {
+      width: 100%; min-height: 100svh; background: var(--panel);
+      display: flex; flex-direction: column;
+    }
+
+    .head {
+      position: sticky; top: 0; z-index: 10;
+      padding: calc(18px + var(--safe-top)) 20px 20px;
+      background: linear-gradient(135deg, var(--top), var(--top-2));
+      color: white;
+      box-shadow: 0 8px 24px rgba(7,23,25,.18);
+      text-align: center;
+    }
+    .head img { height: 46px; margin-bottom: 10px; }
+    .head h1 { margin: 0; font-size: 17px; font-weight: 800; }
+    .head p { margin: 4px 0 0; font-size: 12.5px; color: rgba(255,255,255,.65); }
+
+    .content { flex: 1; padding: 24px 20px calc(24px + var(--safe-bottom)); }
+
+    .checkpoint-card {
+      background: var(--field);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 22px;
+      text-align: center;
+      margin-bottom: 22px;
+    }
+    .checkpoint-numero {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 46px; height: 46px; border-radius: 50%;
+      background: var(--primary); color: #fff;
+      font-size: 16px; font-weight: 800;
+      margin-bottom: 12px;
+    }
+    .checkpoint-nombre { font-size: 18px; font-weight: 800; color: var(--ink); }
+    .checkpoint-hint { margin-top: 4px; font-size: 12.5px; color: var(--muted); }
+
+    .field { margin-bottom: 16px; }
+    .field label {
+      display: block; font-size: 12.5px; font-weight: 700; color: var(--muted);
+      margin-bottom: 6px;
+    }
+    input[type="text"] {
+      width: 100%; height: 48px; padding: 0 14px;
+      border: 1px solid var(--line); border-radius: 12px;
+      background: #fff; color: var(--ink); font-size: 15px;
+      outline: none; transition: border-color .15s;
+    }
+    input[type="text"]:focus { border-color: var(--primary); }
+
+    textarea {
+      width: 100%; min-height: 80px; padding: 12px 14px;
+      border: 1px solid var(--line); border-radius: 12px;
+      background: #fff; color: var(--ink); font-size: 14.5px;
+      outline: none; transition: border-color .15s;
+      font-family: inherit; resize: vertical;
+    }
+    textarea:focus { border-color: var(--primary); }
+
+    .btn-registrar {
+      width: 100%; height: 52px; border: none; border-radius: 14px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: #fff; font-size: 15.5px; font-weight: 800;
+      cursor: pointer; box-shadow: 0 6px 18px rgba(147,71,31,.28);
+      transition: opacity .15s, transform .12s;
+    }
+    .btn-registrar:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-registrar:active { transform: translateY(1px); }
+
+    .feedback {
+      margin-top: 16px; padding: 14px; border-radius: 12px;
+      font-size: 14px; font-weight: 700; text-align: center; display: none;
+    }
+    .feedback.ok { display: block; background: #eaf4ec; color: var(--green); border: 1px solid #b7ddc4; }
+    .feedback.err { display: block; background: #fbecec; color: var(--red); border: 1px solid #e5b4b4; }
+
+    .invalido {
+      text-align: center; padding: 60px 24px; color: var(--muted);
+    }
+    .invalido h2 { color: var(--ink); font-size: 18px; margin-bottom: 8px; }
+
+    /* ── Overlay de éxito ── */
+    .success-overlay {
+      position: fixed; inset: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+      background: linear-gradient(135deg, rgba(13,42,48,.97), rgba(23,59,66,.97));
+      backdrop-filter: blur(4px);
+      opacity: 0; pointer-events: none;
+      transition: opacity .25s ease;
+    }
+    .success-overlay.show { opacity: 1; pointer-events: auto; }
+
+    .success-card {
+      background: #fff; border-radius: 24px; padding: 38px 28px 30px;
+      max-width: 360px; width: 100%; text-align: center;
+      box-shadow: 0 24px 60px rgba(0,0,0,.35);
+      transform: scale(.85) translateY(10px); opacity: 0;
+      transition: transform .35s cubic-bezier(.34,1.56,.64,1), opacity .3s ease;
+    }
+    .success-overlay.show .success-card { transform: scale(1) translateY(0); opacity: 1; }
+
+    .success-badge {
+      width: 96px; height: 96px; border-radius: 50%;
+      margin: 0 auto 22px;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #2fbf7e, var(--green));
+      box-shadow: 0 10px 26px rgba(31,122,77,.4);
+      animation: badgePop .5s cubic-bezier(.34,1.56,.64,1) .05s both;
+    }
+    .success-badge.pending {
+      background: linear-gradient(135deg, #e0904a, var(--primary-dark));
+      box-shadow: 0 10px 26px rgba(147,71,31,.4);
+    }
+    @keyframes badgePop {
+      0% { transform: scale(0); }
+      70% { transform: scale(1.14); }
+      100% { transform: scale(1); }
+    }
+
+    .success-check { width: 46px; height: 46px; display: block; }
+    .success-check circle {
+      fill: none; stroke: rgba(255,255,255,.5); stroke-width: 2;
+      stroke-dasharray: 138; stroke-dashoffset: 138;
+      animation: ringDraw .5s ease .1s forwards;
+    }
+    .success-check path {
+      fill: none; stroke: #fff; stroke-width: 5;
+      stroke-linecap: round; stroke-linejoin: round;
+      stroke-dasharray: 30; stroke-dashoffset: 30;
+      animation: checkDraw .35s ease .45s forwards;
+    }
+    @keyframes ringDraw { to { stroke-dashoffset: 0; } }
+    @keyframes checkDraw { to { stroke-dashoffset: 0; } }
+
+    .success-title {
+      font-size: 22px; font-weight: 900; color: var(--ink); margin: 0 0 8px;
+      letter-spacing: -.01em;
+      opacity: 0; animation: fadeUp .35s ease .3s forwards;
+    }
+    .success-subtitle {
+      font-size: 14px; color: var(--muted); line-height: 1.5; margin: 0;
+      opacity: 0; animation: fadeUp .35s ease .4s forwards;
+    }
+    .success-meta {
+      margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line);
+      font-size: 12.5px; color: var(--muted); line-height: 1.6;
+      opacity: 0; animation: fadeUp .35s ease .5s forwards;
+    }
+    .success-meta strong { color: var(--ink); }
+    .success-hint {
+      margin-top: 16px; font-size: 11.5px; color: var(--muted); opacity: .8;
+    }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+<div class="shell">
+  <header class="head">
+    <img src="/shared-static/img/logo-atc.png" alt="ATC" onerror="this.style.display='none'">
+    <h1>Registro de ronda</h1>
+    <p>Escaneo de checkpoint</p>
+  </header>
+
+  <div class="content">
+    {% if not valido %}
+      <div class="invalido">
+        <h2>QR no válido</h2>
+        <p>Este código no corresponde a ningún checkpoint activo. Verifica con tu supervisor.</p>
+      </div>
+    {% else %}
+      <div class="checkpoint-card">
+        <div class="checkpoint-numero">N° {{ numero }}</div>
+        <div class="checkpoint-nombre">{{ recinto_label }}</div>
+        <div class="checkpoint-hint">Confirma tu RUT para dejar constancia de tu paso por este punto.</div>
+      </div>
+
+      <div class="field">
+        <label for="rut">RUT</label>
+        <input type="text" id="rut" placeholder="12345678-9" maxlength="12" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label for="nota">Nota de observación (opcional)</label>
+        <textarea id="nota" placeholder="Solo si notas algo anormal en el recorrido…" maxlength="2000"></textarea>
+        <div class="checkpoint-hint">Si dejas una nota, la ronda queda pendiente hasta que el supervisor la revise.</div>
+      </div>
+
+      <button class="btn-registrar" id="btnRegistrar" onclick="registrar()">Registrar ronda</button>
+      <div class="feedback" id="feedback"></div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="success-overlay" id="successOverlay">
+  <div class="success-card">
+    <div class="success-badge" id="successBadge">
+      <svg class="success-check" viewBox="0 0 48 48">
+        <circle cx="24" cy="24" r="22"></circle>
+        <path d="M14 24.5l6.5 6.5L34.5 17"></path>
+      </svg>
+    </div>
+    <h2 class="success-title" id="successTitle">¡Ronda realizada con éxito!</h2>
+    <p class="success-subtitle" id="successSubtitle">Tu paso por este punto quedó registrado.</p>
+    <div class="success-meta" id="successMeta"></div>
+    <div class="success-hint">Toca para continuar</div>
+  </div>
+</div>
+
+<script>
+  const QR_TOKEN = {{ qr|default('')|tojson }};
+
+  async function registrar() {
+    const rut = document.getElementById("rut").value.trim();
+    const nota = document.getElementById("nota").value.trim();
+    const btn = document.getElementById("btnRegistrar");
+    const fb = document.getElementById("feedback");
+
+    if (!rut) {
+      fb.textContent = "Ingresa tu RUT.";
+      fb.className = "feedback err";
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Registrando…";
+    fb.className = "feedback";
+
+    try {
+      const res = await fetch("/api/inicio-turno/rondas/registrar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ qr: QR_TOKEN, rut, nota }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        fb.textContent = data.detail || "No se pudo registrar la ronda.";
+        fb.className = "feedback err";
+      } else if (data.con_nota) {
+        mostrarExito({
+          pending: true,
+          titulo: "Ronda registrada",
+          subtitulo: "Quedó con observación — pendiente de revisión del supervisor.",
+          nombre: data.nombre_guardia || rut,
+          hora: data.registrado_at,
+        });
+        document.getElementById("rut").value = "";
+        document.getElementById("nota").value = "";
+      } else {
+        mostrarExito({
+          pending: false,
+          titulo: "¡Ronda realizada con éxito!",
+          subtitulo: "Tu paso por este punto quedó registrado.",
+          nombre: data.nombre_guardia || rut,
+          hora: data.registrado_at,
+        });
+        document.getElementById("rut").value = "";
+        document.getElementById("nota").value = "";
+      }
+    } catch (e) {
+      fb.textContent = "Error de red. Intenta de nuevo.";
+      fb.className = "feedback err";
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Registrar ronda";
+    }
+  }
+
+  let _successHideTimer = null;
+  function mostrarExito({ pending, titulo, subtitulo, nombre, hora }) {
+    const overlay = document.getElementById("successOverlay");
+    const badge = document.getElementById("successBadge");
+    document.getElementById("successTitle").textContent = titulo;
+    document.getElementById("successSubtitle").textContent = subtitulo;
+    document.getElementById("successMeta").innerHTML =
+      `<strong>${escHtmlRonda(nombre || "")}</strong>${hora ? " · " + escHtmlRonda(hora) : ""}<br>` +
+      `Checkpoint N° {{ numero }} — {{ recinto_label }}`;
+    badge.classList.toggle("pending", !!pending);
+
+    // Reinicia las animaciones CSS (si el guardia escanea varias rondas seguidas).
+    overlay.classList.remove("show");
+    void overlay.offsetWidth;
+    overlay.classList.add("show");
+
+    clearTimeout(_successHideTimer);
+    _successHideTimer = setTimeout(ocultarExito, 30000);
+  }
+
+  function ocultarExito() {
+    clearTimeout(_successHideTimer);
+    document.getElementById("successOverlay").classList.remove("show");
+  }
+
+  document.getElementById("successOverlay")?.addEventListener("click", ocultarExito);
+
+  function escHtmlRonda(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+    }[c]));
+  }
+
+  document.getElementById("rut")?.addEventListener("keydown", e => { if (e.key === "Enter") registrar(); });
+
+  // Formateo en vivo del RUT: solo dígitos y K, sin puntos, guion automático.
+  document.getElementById("rut")?.addEventListener("input", (e) => {
+    let v = e.target.value.replace(/[^0-9kK]/g, "").toUpperCase();
+    v = v.replace(/K(?=.)/g, "");   // K solo como dígito verificador (al final)
+    if (v.length > 9) v = v.slice(0, 9);
+    e.target.value = v.length > 1 ? v.slice(0, -1) + "-" + v.slice(-1) : v;
+  });
+</script>
+  <script src="/static/atc-logo-home.js"></script>
+</body>
+</html>

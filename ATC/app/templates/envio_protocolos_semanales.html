@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Informes semanales de protocolos</title>
+  <style>
+    :root{
+      --bg:#f8fafc;
+      --surface:#ffffff;
+      --surface-alt:#f8fafc;
+      --surface-hover:#f1f5f9;
+      --border:#e2e8f0;
+      --border-strong:#cbd5e1;
+      --text:#0f172a;
+      --text-soft:#475569;
+      --text-muted:#64748b;
+      --text-faint:#94a3b8;
+      --accent:#1d4ed8;
+      --accent-soft:#eff6ff;
+      --accent-strong:#1e40af;
+      --success:#15803d;
+      --success-soft:#f0fdf4;
+      --success-border:#bbf7d0;
+      --header-bg:#6b7280;
+      --header-border:#6b7280;
+      --header-text:#ffffff;
+      --danger:#b91c1c;
+      --danger-soft:#fef2f2;
+      --danger-border:#fecaca;
+      --navy:#1e293b;
+      --navy-2:#0f172a;
+      --radius:8px;
+      --shadow-sm:0 1px 2px rgba(15,23,42,.04);
+      --shadow:0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{min-height:100%}
+    body{
+      height:100vh;
+      min-height:0;
+      font-family:"Inter","Segoe UI",system-ui,-apple-system,Arial,sans-serif;
+      color:var(--text);
+      background:var(--bg);
+      font-size:13.5px;
+      font-weight:400;
+      line-height:1.5;
+      overflow:hidden;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+    .shell{
+      width:100%;
+      height:100vh;
+      min-height:0;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+    }
+    .page-header{
+      flex-shrink:0;
+      min-height:108px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:18px;
+      padding:20px 30px;
+      background:linear-gradient(180deg,#0b1424 0%,#111c2f 100%);
+      border-bottom:1px solid rgba(255,255,255,.06);
+    }
+    .brand{display:flex;align-items:center;gap:14px;min-width:260px}
+    .brand img{
+      width:auto;
+      height:68px;
+      object-fit:contain;
+      flex-shrink:0;
+      filter:drop-shadow(0 2px 6px rgba(0,0,0,.30));
+    }
+    h1{
+      color:rgba(255,255,255,.96);
+      font-size:20px;
+      font-weight:700;
+      line-height:1.25;
+      letter-spacing:-.02em;
+    }
+    .subtitle{
+      margin-top:6px;
+      color:rgba(255,255,255,.72);
+      font-size:13.5px;
+      font-weight:500;
+      line-height:1.45;
+    }
+    h2{font-size:16px;font-weight:600;color:var(--text);letter-spacing:-.01em}
+    p{margin-top:4px;color:var(--text-muted);line-height:1.55}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    .session-user{
+      display:inline-flex;
+      align-items:center;
+      min-height:36px;
+      padding:0 4px;
+      color:rgba(255,255,255,.92);
+      font-size:14px;
+      font-weight:600;
+      white-space:nowrap;
+    }
+    .btn{
+      appearance:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:36px;
+      padding:8px 14px;
+      border-radius:var(--radius);
+      border:1px solid var(--border);
+      color:var(--text);
+      background:var(--surface);
+      text-decoration:none;
+      font-family:inherit;
+      font-size:13px;
+      font-weight:500;
+      cursor:pointer;
+      box-shadow:var(--shadow-sm);
+      transition:background .15s,border-color .15s,color .15s,box-shadow .15s;
+    }
+    .btn:hover{background:var(--surface-hover);border-color:var(--border-strong)}
+    .page-header .btn{
+      background:rgba(255,255,255,.06);
+      border-color:rgba(255,255,255,.12);
+      color:rgba(255,255,255,.92);
+      box-shadow:none;
+      font-weight:500;
+    }
+    .page-header .btn:hover{
+      background:rgba(255,255,255,.1);
+      border-color:rgba(255,255,255,.2);
+    }
+    .panel{
+      flex-shrink:0;
+      width:100%;
+      max-width:1400px;
+      margin:20px auto 0;
+      align-self:center;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      padding:18px 24px;
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:10px 10px 0 0;
+      border-bottom:none;
+      flex-wrap:wrap;
+    }
+    .panel-title{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .counter{
+      display:inline-flex;
+      align-items:center;
+      min-height:26px;
+      padding:4px 11px;
+      border:1px solid var(--border);
+      border-radius:999px;
+      background:var(--surface-alt);
+      color:var(--text-muted);
+      font-size:12px;
+      font-weight:500;
+      white-space:nowrap;
+    }
+    .table-wrap{
+      flex:1;
+      min-height:0;
+      width:100%;
+      max-width:1400px;
+      margin:0 auto 20px;
+      align-self:center;
+      overflow:auto;
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:0 0 10px 10px;
+      box-shadow:var(--shadow-sm);
+    }
+    table{
+      width:100%;
+      min-width:1100px;
+      border-collapse:collapse;
+      table-layout:fixed;
+      font-size:13px;
+    }
+    th,td{
+      padding:12px 16px;
+      border-bottom:1px solid var(--border);
+      text-align:left;
+      vertical-align:middle;
+      color:var(--text);
+      overflow-wrap:anywhere;
+    }
+    td{
+      font-weight:400;
+      color:var(--text-soft);
+    }
+    td:nth-child(2),td:nth-child(3){
+      color:var(--text);
+      font-weight:500;
+    }
+    th{
+      position:sticky;
+      top:0;
+      z-index:2;
+      background:var(--header-bg);
+      color:var(--header-text);
+      border-bottom:1px solid var(--border-strong);
+      font-size:11px;
+      font-weight:600;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+      padding:11px 16px;
+    }
+    tbody tr{transition:background .12s ease;}
+    tbody tr:hover td{background:var(--surface-alt)}
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:3px 9px;
+      border-radius:999px;
+      font-weight:600;
+      font-size:11px;
+      border:1px solid var(--border);
+      color:var(--text-muted);
+      background:var(--surface-alt);
+      white-space:nowrap;
+      letter-spacing:.02em;
+    }
+    .badge.OK{background:var(--success-soft);border-color:var(--success-border);color:var(--success)}
+    .badge.ERROR{background:var(--danger-soft);border-color:var(--danger-border);color:var(--danger)}
+    .tabs{display:flex;gap:4px;flex-wrap:wrap}
+    .tab{
+      appearance:none;
+      display:inline-flex;
+      align-items:center;
+      min-height:34px;
+      padding:6px 16px;
+      border-radius:var(--radius);
+      border:1px solid var(--border);
+      background:var(--surface);
+      color:var(--text-muted);
+      font-family:inherit;
+      font-size:13px;
+      font-weight:500;
+      cursor:pointer;
+      transition:background .13s,border-color .13s,color .13s;
+    }
+    .tab:hover{background:var(--surface-hover);color:var(--text)}
+    .tab.active{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:600}
+    .link{
+      display:inline-flex;
+      align-items:center;
+      gap:5px;
+      color:var(--accent);
+      font-weight:500;
+      text-decoration:none;
+      transition:color .15s;
+    }
+    .link:hover{color:var(--accent-strong);text-decoration:underline}
+    .empty-cell{color:var(--text-muted);font-weight:400;text-align:center}
+    .btn-small{min-height:30px;padding:6px 12px;font-size:12.5px;font-weight:500}
+    .btn-danger{
+      color:var(--danger);
+      border-color:var(--danger-border);
+      background:var(--surface);
+    }
+    .btn-danger:hover{
+      border-color:#f87171;
+      background:var(--danger-soft);
+      color:var(--danger);
+    }
+    .btn-dark{
+      color:#fff;
+      border-color:var(--navy);
+      background:var(--navy);
+    }
+    .btn-dark:hover{background:var(--navy-2);border-color:var(--navy-2)}
+    .modal-backdrop{
+      display:none;
+      position:fixed;
+      inset:0;
+      z-index:200;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      background:rgba(15,23,42,.5);
+      backdrop-filter:blur(6px);
+    }
+    .modal-backdrop.open{display:flex}
+    .modal{
+      width:min(640px,100%);
+      max-height:90vh;
+      overflow:auto;
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:10px;
+      box-shadow:0 24px 48px rgba(15,23,42,.16);
+    }
+    .modal-head{
+      padding:18px 22px;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:14px;
+    }
+    .modal-head h3{font-size:16px;margin:0;color:var(--text);font-weight:600;letter-spacing:-.01em}
+    .modal-head p{font-size:12.5px;color:var(--text-muted);margin-top:3px}
+    .modal-body{padding:18px 22px}
+    .modal-actions{
+      display:flex;
+      justify-content:flex-end;
+      gap:8px;
+      flex-wrap:wrap;
+      padding:14px 22px;
+      border-top:1px solid var(--border);
+      background:var(--surface-alt);
+    }
+    .contact-toolbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:12px;
+      flex-wrap:wrap;
+    }
+    .checkline{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      color:var(--text-soft);
+      font-weight:500;
+      font-size:13px;
+    }
+    input[type="checkbox"]{width:15px;height:15px;accent-color:var(--accent)}
+    .contact-list{
+      display:grid;
+      gap:6px;
+      max-height:260px;
+      overflow:auto;
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      padding:8px;
+      background:var(--surface-alt);
+    }
+    .contact-item{
+      display:grid;
+      grid-template-columns:auto 1fr;
+      gap:10px;
+      align-items:start;
+      padding:9px 10px;
+      border:1px solid var(--border);
+      border-radius:6px;
+      background:#fff;
+      cursor:pointer;
+      transition:border-color .12s;
+    }
+    .contact-item:hover{border-color:var(--border-strong)}
+    .contact-item strong{display:block;color:var(--text);font-size:13px;font-weight:600}
+    .contact-item span{display:block;color:var(--text-muted);font-size:12px;overflow-wrap:anywhere;margin-top:2px}
+    .reject-box{
+      width:100%;
+      min-height:88px;
+      margin-top:14px;
+      padding:10px 12px;
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      font:inherit;
+      font-size:13px;
+      color:var(--text);
+      resize:vertical;
+      transition:border-color .15s, box-shadow .15s;
+    }
+    .reject-box:focus{
+      outline:none;
+      border-color:var(--accent);
+      box-shadow:0 0 0 3px rgba(29,78,216,.12);
+    }
+    .modal-msg{min-height:20px;margin-top:12px;font-weight:500;font-size:12.5px;color:var(--text-muted)}
+    .modal-msg.err{color:var(--danger)}
+    .modal-msg.ok{color:var(--success)}
+    .hidden{display:none!important}
+    @media (max-width:900px){
+      .page-header{padding:16px 18px;min-height:auto}
+      .brand img{width:52px;height:52px}
+      h1{font-size:18px}
+      .panel{padding:14px 16px;align-items:flex-start}
+      .actions{width:100%}
+      .actions .btn,.panel .btn,.modal-actions .btn{width:100%;text-align:center}
+      .table-wrap{max-width:100vw;overflow-x:auto;-webkit-overflow-scrolling:touch}
+      table th,table td{overflow-wrap:normal!important;word-break:normal!important}
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="page-header">
+      <div class="brand">
+        <img src="/shared-static/img/logo-atc.png" alt="ATC" onerror="this.style.display='none'">
+        <div>
+          <h1>Informes semanales de protocolos</h1>
+          <p class="subtitle">Revision de informes generados automaticamente por cliente y sucursal</p>
+        </div>
+      </div>
+      <nav class="actions">
+        <div class="session-user" id="usuarioActual">Sesion: Cargando...</div>
+        <a id="btnVolver" class="btn" href="/?form=panelSelectorCoordinacion&token={{ token|default('') }}">Volver</a>
+      </nav>
+    </header>
+
+    <section class="panel">
+      <div>
+        <div class="panel-title">
+          <h2>Informes semanales</h2>
+          <span id="totalInformes" class="counter">Cargando...</span>
+        </div>
+        <div class="tabs" style="margin-top:10px">
+          <button class="tab" id="tab-pendientes" onclick="setFiltro('pendientes')">Pendientes</button>
+          <button class="tab" id="tab-enviados"   onclick="setFiltro('enviados')">Enviados</button>
+          <button class="tab" id="tab-anulados"   onclick="setFiltro('anulados')">Anulados</button>
+        </div>
+      </div>
+      <button class="btn" type="button" onclick="cargarInformes()">Actualizar</button>
+    </section>
+
+    <section class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:80px">ID</th>
+            <th>Cliente</th>
+            <th>Sucursal</th>
+            <th style="width:130px">PDF</th>
+            <th style="width:150px">Enviar</th>
+            <th style="width:130px">Eliminar</th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <tr><td class="empty-cell" colspan="6">Cargando...</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <div id="modalEnvio" class="modal-backdrop" onclick="cerrarModalFondo(event)">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitulo">
+      <div class="modal-head">
+        <div>
+          <h3 id="modalTitulo">Enviar informe semanal</h3>
+          <p id="modalSubtitulo"></p>
+        </div>
+        <button class="btn btn-small" type="button" onclick="cerrarModal()">Cerrar</button>
+      </div>
+      <div class="modal-body">
+        <div id="contactToolbar" class="contact-toolbar">
+          <label class="checkline">
+            <input id="chkTodos" type="checkbox" onchange="toggleTodosContactos(this.checked)">
+            Enviar a todos
+          </label>
+          <span id="modalPdf"></span>
+        </div>
+        <div id="contactList" class="contact-list">
+          <div class="empty-cell">Cargando contactos...</div>
+        </div>
+        <textarea id="motivoRechazo" class="reject-box" placeholder="Motivo del rechazo si el protocolo no debe enviarse"></textarea>
+        <div id="modalMsg" class="modal-msg"></div>
+      </div>
+      <div class="modal-actions">
+        <button id="btnRechazar" class="btn btn-danger" type="button" onclick="rechazarInforme()">Registrar rechazo</button>
+        <button id="btnEnviarCorreo" class="btn btn-dark" type="button" onclick="enviarInforme()">Enviar correo</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const safe = (v) => String(v ?? "").replace(/[&<>"']/g, (m) => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    }[m]));
+    let informes = [];
+    let informeActivo = null;
+    let contactosActivos = [];
+    let filtroActivo = "pendientes";
+
+    function setModalMsg(text, ok = false) {
+      const el = $("modalMsg");
+      el.textContent = text || "";
+      el.className = `modal-msg ${text ? (ok ? "ok" : "err") : ""}`;
+    }
+
+    function configurarModal(modo) {
+      const esEnvio = modo === "envio";
+      $("contactToolbar").classList.toggle("hidden", !esEnvio);
+      $("contactList").classList.toggle("hidden", !esEnvio);
+      $("btnEnviarCorreo").classList.toggle("hidden", !esEnvio);
+      $("motivoRechazo").classList.toggle("hidden", esEnvio);
+      $("btnRechazar").classList.toggle("hidden", esEnvio);
+    }
+
+    function estadoAccion(estado) {
+      const valor = String(estado || "").toUpperCase();
+      if (valor === "ENVIADO") return `<span class="badge OK">ENVIADO</span>`;
+      if (valor === "RECHAZADO") return `<span class="badge ERROR">RECHAZADO</span>`;
+      if (valor === "ERROR") return `<span class="badge ERROR">ERROR</span>`;
+      return "";
+    }
+
+    function normalizarTexto(valor) {
+      return String(valor || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLowerCase();
+    }
+
+    function emailValido(valor) {
+      const email = String(valor || "").trim();
+      if (!email || email === "-" || !email.includes("@")) return "";
+      return email;
+    }
+
+    function renderContactos(contactos) {
+      contactosActivos = contactos;
+      $("contactList").innerHTML = contactosActivos.length ? contactosActivos.map((c, idx) => `
+        <label class="contact-item">
+          <input class="contact-check" type="checkbox" value="${safe(c.email)}" data-idx="${idx}">
+          <span>
+            <strong>${safe(c.nombre)}</strong>
+            <span>${safe(c.email)} · ${safe(c.origen || "Contacto")}</span>
+          </span>
+        </label>
+      `).join("") : `<div class="empty-cell">No hay contactos con correo para este cliente/sucursal.</div>`;
+    }
+
+    async function cargarContactosFallback(informe) {
+      const res = await fetch("/api/contactos/sucursal");
+      const mapa = await res.json();
+      if (!res.ok) throw new Error(mapa?.detail || "No se pudieron cargar los contactos.");
+      const objetivoSucursal = normalizarTexto(informe?.sucursal || "");
+      const objetivoCliente = normalizarTexto(informe?.cliente || "");
+      const entradas = Object.entries(mapa || {});
+      let match = entradas.find(([nombre]) => normalizarTexto(nombre) === objetivoSucursal);
+      if (!match) {
+        match = entradas.find(([nombre]) => {
+          const key = normalizarTexto(nombre);
+          return key.includes(objetivoSucursal) || objetivoSucursal.includes(key);
+        });
+      }
+      if (!match && objetivoCliente) {
+        match = entradas.find(([nombre]) => {
+          const key = normalizarTexto(nombre);
+          return key.includes(objetivoCliente) || objetivoCliente.includes(key);
+        });
+      }
+      const vistos = new Set();
+      return ((match && Array.isArray(match[1])) ? match[1] : [])
+        .map((item) => ({
+          nombre: item.nombre || item.email || "Contacto",
+          email: emailValido(item.email),
+          origen: match ? match[0] : "Sucursal",
+        }))
+        .filter((item) => {
+          const key = item.email.toLowerCase();
+          if (!item.email || vistos.has(key)) return false;
+          vistos.add(key);
+          return true;
+        });
+    }
+
+    function filtrarInformes(lista, filtro) {
+      if (filtro === "enviados") return lista.filter((r) => r.estado === "ENVIADO");
+      if (filtro === "anulados") return lista.filter((r) => r.estado === "RECHAZADO");
+      return lista.filter((r) => r.estado !== "ENVIADO" && r.estado !== "RECHAZADO");
+    }
+
+    function setFiltro(filtro) {
+      filtroActivo = filtro;
+      ["pendientes", "enviados", "anulados"].forEach((f) => {
+        $(`tab-${f}`).classList.toggle("active", f === filtro);
+      });
+      renderTabla();
+    }
+
+    function renderTabla() {
+      const vista = filtrarInformes(informes, filtroActivo);
+      const esEnviado = filtroActivo === "enviados" || filtroActivo === "anulados";
+      const labelVacio = {
+        pendientes: "Sin informes pendientes de envío.",
+        enviados:   "Sin informes enviados.",
+        anulados:   "Sin informes anulados.",
+      }[filtroActivo];
+
+      $("totalInformes").textContent = `${vista.length} informe${vista.length !== 1 ? "s" : ""}`;
+      $("tbody").innerHTML = vista.length ? vista.map((r) => `
+        <tr>
+          <td>${safe(r.id)}</td>
+          <td>${safe(r.cliente)}</td>
+          <td>${safe(r.sucursal)}</td>
+          <td>${r.pdf_url ? `<a class="link" target="_blank" rel="noopener" href="${safe(r.pdf_url)}">Abrir PDF</a>` : "-"}</td>
+          <td>
+            ${esEnviado
+              ? estadoAccion(r.estado)
+              : `<button class="btn btn-small" type="button" onclick="abrirEnvio(${Number(r.id)})">Enviar</button> ${estadoAccion(r.estado)}`
+            }
+          </td>
+          <td>${esEnviado ? "-" : `<button class="btn btn-small btn-danger" type="button" onclick="abrirRechazo(${Number(r.id)})">Eliminar</button>`}</td>
+        </tr>
+      `).join("") : `<tr><td class="empty-cell" colspan="6">${labelVacio}</td></tr>`;
+    }
+
+    async function cargarInformes() {
+      try {
+        const res = await fetch("/api/protocolos/informes?tipo_informe=SEMANAL&limit=300");
+        const rows = await res.json();
+        if (!res.ok) throw new Error(rows?.detail || "No se pudieron cargar los informes.");
+        informes = Array.isArray(rows) ? rows : [];
+        renderTabla();
+      } catch (err) {
+        $("totalInformes").textContent = "Error al cargar";
+        $("tbody").innerHTML = `<tr><td class="empty-cell" colspan="6">${safe(err.message || "Error inesperado.")}</td></tr>`;
+      }
+    }
+
+    async function abrirEnvio(id) {
+      informeActivo = informes.find((item) => Number(item.id) === Number(id)) || null;
+      contactosActivos = [];
+      configurarModal("envio");
+      $("contactList").innerHTML = `<div class="empty-cell">Cargando contactos...</div>`;
+      $("chkTodos").checked = false;
+      $("motivoRechazo").value = "";
+      setModalMsg("");
+      $("modalTitulo").textContent = `Enviar informe #${id}`;
+      $("modalSubtitulo").textContent = informeActivo
+        ? `${informeActivo.cliente || ""} / ${informeActivo.sucursal || ""}`
+        : "";
+      $("modalPdf").innerHTML = informeActivo?.pdf_url
+        ? `<a class="link" target="_blank" rel="noopener" href="${safe(informeActivo.pdf_url)}">Abrir PDF</a>`
+        : `<span class="badge ERROR">Sin PDF</span>`;
+      $("modalEnvio").classList.add("open");
+      try {
+        const res = await fetch(`/api/protocolos/informes/${id}/contactos`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.detail || "No se pudieron cargar los contactos.");
+        renderContactos(Array.isArray(data.contactos) ? data.contactos : []);
+      } catch (err) {
+        try {
+          const contactos = await cargarContactosFallback(informeActivo);
+          renderContactos(contactos);
+          if (!contactos.length) {
+            setModalMsg("No encontré contactos con correo para esta sucursal en la base actual.");
+          }
+        } catch (fallbackErr) {
+          $("contactList").innerHTML = `<div class="empty-cell">${safe(fallbackErr.message || err.message || "Error inesperado.")}</div>`;
+        }
+      }
+    }
+
+    function abrirRechazo(id) {
+      informeActivo = informes.find((item) => Number(item.id) === Number(id)) || null;
+      contactosActivos = [];
+      configurarModal("rechazo");
+      $("motivoRechazo").value = "";
+      setModalMsg("");
+      $("modalTitulo").textContent = `Eliminar informe #${id}`;
+      $("modalSubtitulo").textContent = informeActivo
+        ? `Indica por qué se rechaza el envío de ${informeActivo.cliente || ""} / ${informeActivo.sucursal || ""}.`
+        : "Indica por qué se rechaza este informe.";
+      $("modalPdf").innerHTML = "";
+      $("modalEnvio").classList.add("open");
+    }
+
+    function cerrarModal() {
+      $("modalEnvio").classList.remove("open");
+    }
+
+    function cerrarModalFondo(event) {
+      if (event.target === $("modalEnvio")) cerrarModal();
+    }
+
+    function toggleTodosContactos(checked) {
+      document.querySelectorAll(".contact-check").forEach((item) => {
+        item.checked = checked;
+      });
+    }
+
+    function emailsSeleccionados() {
+      return Array.from(document.querySelectorAll(".contact-check:checked"))
+        .map((item) => item.value)
+        .filter(Boolean);
+    }
+
+    async function enviarInforme() {
+      if (!informeActivo) return;
+      const emails = emailsSeleccionados();
+      if (!emails.length) {
+        setModalMsg("Selecciona al menos un contacto.");
+        return;
+      }
+      setModalMsg("Enviando correo...", true);
+      try {
+        const res = await fetch(`/api/protocolos/informes/${informeActivo.id}/enviar`, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({emails}),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.detail || "No se pudo enviar el correo.");
+        setModalMsg(`Correo enviado a ${data.enviados || emails.length} contacto(s).`, true);
+        await cargarInformes();
+      } catch (err) {
+        setModalMsg(err.message || "Error inesperado.");
+      }
+    }
+
+    async function rechazarInforme() {
+      if (!informeActivo) return;
+      const motivo = $("motivoRechazo").value.trim();
+      if (!motivo) {
+        setModalMsg("Escribe el motivo del rechazo.");
+        return;
+      }
+      setModalMsg("Registrando rechazo...", true);
+      try {
+        const res = await fetch(`/api/protocolos/informes/${informeActivo.id}/rechazar`, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({motivo}),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.detail || "No se pudo rechazar el informe.");
+        setModalMsg("Informe rechazado.", true);
+        await cargarInformes();
+        cerrarModal();
+      } catch (err) {
+        setModalMsg(err.message || "Error inesperado.");
+      }
+    }
+
+    async function cargarUsuarioActual() {
+      const el = document.getElementById("usuarioActual");
+      const token = new URLSearchParams(window.location.search).get("token") || localStorage.getItem("atc_token") || "";
+      if (!el || !token) return;
+      try {
+        const res = await fetch(`/api/usuario-actual?token=${encodeURIComponent(token)}`, { credentials: "include" });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error("No se pudo cargar usuario");
+        el.textContent = data?.usuario || "Desconocido";
+      } catch (_err) {
+        el.textContent = "Desconocido";
+      }
+    }
+
+    cargarUsuarioActual();
+    setFiltro("pendientes");
+    cargarInformes();
+
+  </script>
+<script src="/static/auth-guard.js"></script>
+  <script src="/static/atc-logo-home.js"></script>
+<script src="/static/atc-volver.js"></script>
+</body>
+</html>

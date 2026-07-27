@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Tabla de Rondas — {{ month_name }} {{ year }}</title>
+<link rel="stylesheet" href="/static/base.css">
+<style>
+:root{
+  --bg:#f7f8fa;
+  --surface:#fff;
+  --border:#e5e7eb;
+  --border-strong:#d1d5db;
+  --text:#111827;
+  --text-soft:#4b5563;
+  --muted:#6b7280;
+  --header-bg-from:#0b1424;
+  --header-bg-to:#111c2f;
+  --recinto-bg:#f3f4f6;
+  --recinto-w:230px;
+  --cell-w:64px;
+  --weekend-bg:#fdf8f4;
+  --today-border:#16a34a;
+  --shadow-sm:0 1px 2px rgba(15,23,42,.04);
+  --shadow-md:0 1px 3px rgba(15,23,42,.06),0 1px 2px rgba(15,23,42,.04);
+  --ok-bg:#eaf4ec;   --ok-text:#1e7a4d;
+  --falta-bg:#fdf2f2; --falta-text:#a83232;
+  --pendiente-bg:#fef9e7; --pendiente-text:#92720e;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;font-family:"Inter",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+body{background:var(--bg);color:var(--text);font-size:13px;font-weight:500;display:flex;flex-direction:column;height:100vh}
+
+/* ── HERO ─────────────────────────────── */
+.hero{
+  flex-shrink:0;
+  display:flex;align-items:center;gap:20px;
+  padding:18px 28px;
+  background:linear-gradient(180deg,var(--header-bg-from) 0%,var(--header-bg-to) 100%);
+  border-bottom:1px solid rgba(255,255,255,.06);
+  box-shadow:0 2px 8px rgba(0,0,0,.28);
+}
+.hero-logo img{height:54px;width:auto;display:block;object-fit:contain;filter:drop-shadow(0 2px 6px rgba(0,0,0,.3))}
+.hero-copy{flex:1;min-width:0}
+.hero-copy h1{font-size:19px;font-weight:700;letter-spacing:-.02em;color:#fff;line-height:1.2}
+.hero-copy p{margin-top:4px;font-size:12.5px;color:rgba(255,255,255,.6);line-height:1.4}
+.hero-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
+.btn-hero{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 14px;border-radius:8px;font-size:12.5px;font-weight:600;
+  text-decoration:none;cursor:pointer;
+  border:1px solid rgba(255,255,255,.16);
+  background:rgba(255,255,255,.07);color:rgba(255,255,255,.9);
+  transition:background .15s,border-color .15s;white-space:nowrap;
+}
+.btn-hero:hover{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.24)}
+.month-nav{display:flex;align-items:center;gap:6px}
+.month-label{font-size:14px;font-weight:700;color:#fff;min-width:140px;text-align:center}
+
+/* ── TOOLBAR (leyenda) ───────────────────────────── */
+.toolbar{
+  flex-shrink:0;
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  padding:10px 28px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  box-shadow:var(--shadow-sm);
+}
+.legend{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1}
+.chip{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11px;font-weight:700;padding:3px 9px;border-radius:5px;
+}
+.chip-ok{background:var(--ok-bg);color:var(--ok-text)}
+.chip-falta{background:var(--falta-bg);color:var(--falta-text)}
+.legend-note{font-size:11px;color:var(--muted);margin-left:auto;white-space:nowrap}
+
+/* ── TABLE ────────────────────────────────────────── */
+.table-wrap{flex:1;overflow:auto;padding:16px 28px 32px}
+
+table{
+  border-collapse:separate;border-spacing:0;
+  background:var(--surface);
+  border:1px solid var(--border);border-radius:10px;
+  min-width:max-content;
+  box-shadow:var(--shadow-md);
+}
+
+thead tr:first-child th{
+  position:sticky;top:0;z-index:20;
+  background:linear-gradient(180deg,var(--header-bg-from),var(--header-bg-to));
+  color:rgba(255,255,255,.9);font-weight:700;font-size:11.5px;
+  padding:9px 5px;text-align:center;
+  border-bottom:1px solid rgba(255,255,255,.08);white-space:nowrap;
+}
+thead tr:last-child th{
+  position:sticky;top:33px;z-index:20;
+  background:#1a2540;color:rgba(255,255,255,.55);
+  font-size:10px;font-weight:600;text-align:center;
+  padding:4px;border-bottom:2px solid var(--border);
+}
+thead th.col-recinto{
+  position:sticky;left:0;z-index:30;
+  background:linear-gradient(180deg,var(--header-bg-from),var(--header-bg-to));
+  text-align:left;
+  min-width:var(--recinto-w);padding:9px 16px;font-size:12px;
+}
+thead tr:last-child th.col-recinto{
+  position:sticky;left:0;top:33px;z-index:30;
+  background:#1a2540;text-align:left;padding:4px 16px;
+  font-size:10px;color:rgba(255,255,255,.45);
+}
+thead tr:last-child th.today-col{background:#166534;border-left:2px solid var(--today-border);border-right:2px solid var(--today-border)}
+
+tbody tr:hover td{background:#f8fafc}
+td{
+  padding:6px 4px;
+  border-bottom:1px solid var(--border);
+  border-right:1px solid var(--border);
+  vertical-align:middle;min-width:var(--cell-w);
+  background:var(--surface);
+  text-align:center;
+}
+td:last-child{border-right:0}
+tbody tr:last-child td{border-bottom:0}
+td.col-recinto{
+  position:sticky;left:0;z-index:1;
+  background:var(--recinto-bg);
+  min-width:var(--recinto-w);max-width:var(--recinto-w);
+  font-size:12px;font-weight:600;
+  padding:7px 16px;line-height:1.3;
+  border-right:2px solid var(--border);white-space:normal;
+  color:var(--text-soft);
+  text-align:left;
+  vertical-align:middle;
+}
+tbody tr:hover td.col-recinto{background:#eaecf0}
+td.weekend{background:#fdf8f4}
+
+tr.grupo-inicio td{border-top:2px solid var(--border-strong)}
+tr.grupo-inicio:first-child td{border-top:none}
+
+.estado{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:26px;height:26px;border-radius:50%;
+  font-size:12px;font-weight:800;
+}
+.estado-ok{background:var(--ok-bg);color:var(--ok-text);cursor:pointer}
+.estado-ok:hover{filter:brightness(0.96)}
+.estado-pendiente{background:var(--pendiente-bg);color:var(--pendiente-text);cursor:pointer}
+.estado-pendiente:hover{filter:brightness(0.96)}
+.estado-falta{background:var(--falta-bg);color:var(--falta-text)}
+.estado-neutro{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:26px;height:26px;border-radius:50%;
+  font-size:12px;font-weight:800;
+  background:#f1f5f9;color:var(--muted);
+}
+
+/* ── POPUP DE DETALLE ─────────────────────────────── */
+.popup-overlay{
+  display:none;position:fixed;inset:0;z-index:100;
+  background:rgba(15,23,42,.45);
+  align-items:center;justify-content:center;
+}
+.popup-overlay.open{display:flex}
+.popup{
+  width:420px;max-width:calc(100vw - 32px);
+  max-height:80vh;overflow-y:auto;
+  background:#fff;border-radius:14px;
+  box-shadow:0 20px 60px rgba(0,0,0,.28);
+}
+.popup-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 18px;border-bottom:1px solid var(--border);
+}
+.popup-head h3{font-size:15px;font-weight:800;color:var(--text)}
+.popup-close{border:none;background:none;cursor:pointer;font-size:18px;color:var(--muted)}
+.popup-close:hover{color:var(--text)}
+.popup-body{padding:14px 18px;display:flex;flex-direction:column;gap:12px}
+.registro-item{
+  border:1px solid var(--border);border-radius:10px;padding:12px 14px;
+}
+.registro-item.pendiente{background:var(--pendiente-bg);border-color:#e9d385}
+.registro-item.aprobado{background:var(--ok-bg);border-color:#bfe0cc}
+.registro-linea{font-size:12.5px;color:var(--text-soft);margin-bottom:3px}
+.registro-linea strong{color:var(--text)}
+.registro-nota{
+  margin-top:6px;padding:8px 10px;border-radius:8px;
+  background:rgba(255,255,255,.6);font-size:12.5px;color:var(--text);
+}
+.btn-aprobar{
+  margin-top:10px;border:none;border-radius:8px;
+  padding:8px 14px;font-size:12.5px;font-weight:700;
+  background:#1d4ed8;color:#fff;cursor:pointer;
+}
+.btn-aprobar:hover{background:#1e40af}
+.btn-aprobar:disabled{opacity:.5;cursor:not-allowed}
+.aprobado-tag{font-size:11.5px;font-weight:700;color:var(--ok-text)}
+
+/* ── TABS DE GRUPO ─────────────────────────────────── */
+.grupo-tabs{
+  position:fixed;bottom:0;left:0;right:0;z-index:90;
+  display:flex;align-items:center;gap:0;
+  background:rgba(11,20,36,.92);backdrop-filter:blur(10px);
+  border-top:1px solid rgba(255,255,255,.1);
+  padding:0 20px;height:46px;
+}
+.grupo-tab{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:0 18px;height:100%;
+  font-size:13px;font-weight:700;color:rgba(255,255,255,.55);
+  text-decoration:none;border-bottom:3px solid transparent;
+  transition:color .15s,border-color .15s;white-space:nowrap;
+}
+.grupo-tab:hover{color:rgba(255,255,255,.85)}
+.grupo-tab.active{color:#fff;border-bottom-color:#ff6e23}
+.grupo-tab .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-quintero{background:#3d73a8}
+.dot-privados{background:#22c55e}
+.dot-concon{background:#20a6b8}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-logo"><img src="/shared-static/img/logo-atc.png" alt="ATC"></div>
+  <div class="hero-copy">
+    <h1>Tabla de Rondas</h1>
+    <p>Registro de checkpoints escaneados por el guardia — {{ month_name }} {{ year }}</p>
+  </div>
+  <div class="hero-actions">
+    <a class="btn-hero" id="btnVolver" href="/guardia">Volver</a>
+    <div class="month-nav">
+      <a class="btn-hero" href="/guardia/tabla-rondas?year={{ prev_y }}&month={{ prev_m }}&grupo={{ grupo }}">&#8249;</a>
+      <span class="month-label">{{ month_name }} {{ year }}</span>
+      <a class="btn-hero" href="/guardia/tabla-rondas?year={{ next_y }}&month={{ next_m }}&grupo={{ grupo }}">&#8250;</a>
+    </div>
+    <a class="btn-hero" href="/guardia/tabla-rondas/informes?year={{ year }}&month={{ month }}" title="Informe de rondas (Quintero, Privados y Concón) del 1 al {{ days_info|length }}">Descargar informes</a>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="legend">
+    <span class="chip chip-ok">Verde = registrada</span>
+    <span class="chip" style="background:var(--pendiente-bg);color:var(--pendiente-text)">Amarillo = registrada con observación</span>
+    <span class="chip chip-falta">Rojo = no registrada</span>
+    <span class="legend-note">Clic en una celda verde o amarilla para ver el detalle.</span>
+  </div>
+</div>
+
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr>
+      <th class="col-recinto">Checkpoint</th>
+      {% for d in days_info %}
+        <th>{{ d.day }}</th>
+      {% endfor %}
+    </tr>
+    <tr>
+      <th class="col-recinto">{{ month_name }} {{ year }}</th>
+      {% for d in days_info %}
+        <th class="{% if d.day == today_day %}today-col{% endif %}">{{ d.dow }}</th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% if filas %}
+      {% for fila in filas %}
+      <tr class="{% if fila.es_inicio_grupo %}grupo-inicio{% endif %}">
+        {% if fila.es_inicio_grupo %}
+          <td class="col-recinto" rowspan="{{ fila.tamano_grupo }}">{{ fila.recinto_label }}</td>
+        {% endif %}
+        {% for d in days_info %}
+          {% set info = fila.dias.get(d.day, {"cantidad": 0, "pendiente": False}) %}
+          <td class="{% if d.weekend %}weekend{% endif %}">
+            {% if info.cantidad > 0 and info.pendiente %}
+              <span class="estado estado-pendiente" title="Con observación — pendiente de aprobación"
+                    onclick="abrirPopup({{ fila.id }}, {{ d.day }})">{{ fila.numero }}</span>
+            {% elif info.cantidad > 0 %}
+              <span class="estado estado-ok" title="{{ info.cantidad }} registro(s)"
+                    onclick="abrirPopup({{ fila.id }}, {{ d.day }})">{{ fila.numero }}</span>
+            {% elif d.pasado %}
+              <span class="estado estado-falta" title="Sin registro">{{ fila.numero }}</span>
+            {% else %}
+              <span class="estado-neutro">{{ fila.numero }}</span>
+            {% endif %}
+          </td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    {% else %}
+      <tr>
+        <td class="col-recinto" colspan="{{ days_info|length + 1 }}" style="text-align:center;padding:24px;">
+          No hay QR generados para este grupo todavía. Ve al Generador de QR para crearlos.
+        </td>
+      </tr>
+    {% endif %}
+  </tbody>
+</table>
+</div>
+
+<nav class="grupo-tabs">
+  <a class="grupo-tab {% if grupo == 'quintero' %}active{% endif %}"
+     href="/guardia/tabla-rondas?year={{ year }}&month={{ month }}&grupo=quintero">
+    <span class="dot dot-quintero"></span>Quintero
+  </a>
+  <a class="grupo-tab {% if grupo == 'privados' %}active{% endif %}"
+     href="/guardia/tabla-rondas?year={{ year }}&month={{ month }}&grupo=privados">
+    <span class="dot dot-privados"></span>Privados
+  </a>
+  <a class="grupo-tab {% if grupo == 'concon' %}active{% endif %}"
+     href="/guardia/tabla-rondas?year={{ year }}&month={{ month }}&grupo=concon">
+    <span class="dot dot-concon"></span>Concón
+  </a>
+</nav>
+<div style="height:46px"></div>
+
+<div class="popup-overlay" id="popupOverlay" onclick="if(event.target===this) cerrarPopup()">
+  <div class="popup">
+    <div class="popup-head">
+      <h3 id="popupTitulo">Detalle del checkpoint</h3>
+      <button class="popup-close" onclick="cerrarPopup()">✕</button>
+    </div>
+    <div class="popup-body" id="popupBody">Cargando…</div>
+  </div>
+</div>
+
+<script>
+  const YEAR = {{ year }};
+  const MONTH = {{ month }};
+  const SUPERVISOR_NOMBRE = {{ supervisor_nombre|default('')|tojson }};
+
+  async function abrirPopup(checkpointId, day) {
+    const overlay = document.getElementById("popupOverlay");
+    const body = document.getElementById("popupBody");
+    const titulo = document.getElementById("popupTitulo");
+    overlay.classList.add("open");
+    titulo.textContent = `Registros del ${day}/${MONTH}/${YEAR}`;
+    body.innerHTML = "Cargando…";
+
+    try {
+      const res = await fetch(`/api/inicio-turno/rondas?checkpoint_id=${checkpointId}&year=${YEAR}&month=${MONTH}&day=${day}`);
+      const data = await res.json();
+      renderPopup(data.items || []);
+    } catch (e) {
+      body.innerHTML = "Error al cargar el detalle.";
+    }
+  }
+
+  function renderPopup(items) {
+    const body = document.getElementById("popupBody");
+    if (!items.length) {
+      body.innerHTML = "<p>No hay registros.</p>";
+      return;
+    }
+    body.innerHTML = items.map(it => `
+      <div class="registro-item ${it.aprobado ? 'aprobado' : 'pendiente'}" data-id="${it.id}">
+        <div class="registro-linea"><strong>${it.nombre_guardia || it.rut_guardia || 'Sin identificar'}</strong></div>
+        <div class="registro-linea">${it.rut_guardia || '—'} · ${it.registrado_at}</div>
+        ${it.nota ? `<div class="registro-nota">${it.nota}</div>` : ""}
+        ${it.aprobado
+          ? `<div class="aprobado-tag">✓ Aprobado${it.aprobado_por ? ' por ' + it.aprobado_por : ''}</div>`
+          : `<button class="btn-aprobar" onclick="aprobar(${it.id}, this)">Dar visto bueno</button>`
+        }
+      </div>
+    `).join("");
+  }
+
+  async function aprobar(id, btn) {
+    const supervisor = SUPERVISOR_NOMBRE || "Supervisor";
+    btn.disabled = true;
+    btn.textContent = "Guardando…";
+    try {
+      const res = await fetch(`/api/inicio-turno/rondas/${id}/aprobar`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ supervisor }),
+      });
+      if (!res.ok) throw new Error("No se pudo aprobar");
+      location.reload();
+    } catch (e) {
+      alert("Error al aprobar: " + e.message);
+      btn.disabled = false;
+      btn.textContent = "Dar visto bueno";
+    }
+  }
+
+  function cerrarPopup() {
+    document.getElementById("popupOverlay").classList.remove("open");
+  }
+</script>
+  <script src="/static/atc-logo-home.js"></script>
+  <script>
+  </script>
+<script src="/static/atc-volver.js"></script>
+</body>
+</html>

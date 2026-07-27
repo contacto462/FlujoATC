@@ -1,0 +1,1455 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Control de Protocolos</title>
+  <style>
+    :root{
+      --bg:#edf2f7;
+      --surface:#ffffff;
+      --surface-soft:#f8fafc;
+      --surface-muted:#eef3f8;
+      --line:#d8e0ea;
+      --line-strong:#bac6d4;
+      --text:#111827;
+      --muted:#667085;
+      --muted-strong:#475467;
+      --field:#ffffff;
+      --field-b:#b8c4d2;
+      --blue-1:#0b1d35;
+      --blue-2:#12385f;
+      --blue-3:#1d4f7a;
+      --accent:#de7b36;
+      --accent-2:#c96a2d;
+      --ok:#16803c;
+      --ok-bg:#eaf7ef;
+      --err:#c92a2a;
+      --err-bg:#fff1f1;
+      --shadow-sm:0 1px 2px rgba(15,23,42,.06);
+      --shadow-md:0 12px 28px rgba(15,23,42,.08);
+      --shadow-lg:0 24px 70px rgba(15,23,42,.18);
+    }
+
+    *{box-sizing:border-box}
+
+    body{
+      margin:0;
+      padding:0;
+      font-family:"Inter","Segoe UI",system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at 12% 0%,rgba(18,56,95,.10),transparent 30%),
+        linear-gradient(180deg,#f5f8fb 0%,var(--bg) 56%,#e7edf5 100%);
+      min-height:100vh;
+      font-size:13.5px;
+      line-height:1.5;
+      -webkit-font-smoothing:antialiased;
+    }
+
+    .shell{max-width:none;margin:0}
+
+    .head{
+      border:0;
+      border-radius:0;
+      background:linear-gradient(180deg,var(--blue-1) 0%,var(--blue-2) 100%);
+      padding:20px 32px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:18px;
+      margin-bottom:22px;
+      box-shadow:0 16px 38px rgba(11,29,53,.18);
+    }
+
+    .head h1{margin:0;font-size:1.45rem;line-height:1.2;letter-spacing:-.02em;color:#fff;font-weight:800}
+    .head p{margin:6px 0 0;color:rgba(255,255,255,.72)}
+
+    .header{
+      position:sticky;top:0;z-index:50;
+      background:linear-gradient(180deg,#0b1424 0%,#111c2f 100%);
+      display:flex;align-items:center;gap:18px;
+      padding:20px 30px;
+      min-height:108px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      flex-shrink:0;
+      margin-bottom:22px;
+    }
+    .header-logo{
+      height:68px;width:auto;object-fit:contain;
+      filter:drop-shadow(0 2px 6px rgba(0,0,0,.30));
+    }
+    .header-title{flex:1;color:#fff;font-size:20px;font-weight:700;letter-spacing:-.02em;line-height:1.25}
+    .header-title small{display:block;font-size:13.5px;font-weight:500;color:rgba(255,255,255,.72);margin-top:6px;line-height:1.45}
+    .header-actions{display:flex;gap:10px;align-items:center}
+    .session-user{
+      display:inline-flex;
+      align-items:center;
+      min-height:36px;
+      padding:0 4px;
+      color:rgba(255,255,255,.92);
+      font-size:14px;
+      font-weight:600;
+      white-space:nowrap;
+    }
+
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+
+    .btn{
+      border:1px solid var(--line-strong);
+      border-radius:9px;
+      background:linear-gradient(180deg,#ffffff 0%,#f2f5f9 100%);
+      color:var(--text);
+      padding:9px 14px;
+      font-weight:700;
+      cursor:pointer;
+      text-decoration:none;
+      transition:background-color .15s ease,border-color .15s ease,box-shadow .15s ease,transform .12s ease;
+      box-shadow:var(--shadow-sm);
+    }
+    .btn:hover{transform:translateY(-1px);border-color:#94a3b8;box-shadow:0 8px 18px rgba(15,23,42,.10)}
+
+    .header .btn{
+      appearance:none;
+      padding:8px 14px;
+      border-radius:7px;
+      font-size:13px;
+      font-weight:600;
+      cursor:pointer;
+      transition:background .15s,border-color .15s,color .15s;
+      border:1px solid transparent;
+      outline:none;
+      font-family:inherit;
+      letter-spacing:-.005em;
+      line-height:1.3;
+      text-decoration:none;
+      box-shadow:none;
+    }
+    .btn-ghost{
+      background:rgba(255,255,255,.04);
+      border-color:rgba(255,255,255,.12);
+      color:rgba(255,255,255,.92);
+    }
+    .btn-ghost:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.22);box-shadow:none;transform:none}
+
+    .head .btn{
+      color:#f8fafc;
+      background:rgba(255,255,255,.08);
+      border-color:rgba(255,255,255,.18);
+      box-shadow:none;
+    }
+    .head .btn:hover{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.30)}
+
+    .btn-main{
+      background:linear-gradient(180deg,var(--accent) 0%,var(--accent-2) 100%);
+      border-color:var(--accent-2);
+      color:#fff;
+      box-shadow:0 6px 14px rgba(222,123,54,.28);
+    }
+    .btn-main:hover{box-shadow:0 10px 20px rgba(222,123,54,.32)}
+
+    .tabs{
+      width:calc(100% - 36px);
+      max-width:1244px;
+      margin:0 auto 14px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:var(--surface);
+      padding:8px;
+      display:flex;
+      gap:8px;
+      box-shadow:var(--shadow-sm);
+    }
+
+    .tab-btn{
+      border:1px solid transparent;
+      background:transparent;
+      color:var(--muted-strong);
+      border-radius:10px;
+      padding:10px 14px;
+      font-weight:800;
+      cursor:pointer;
+      letter-spacing:.01em;
+      transition:background-color .15s ease,color .15s ease,border-color .15s ease;
+    }
+    .tab-btn:hover{
+      background:var(--surface-muted);
+      color:var(--text);
+    }
+
+    .tab-btn.active{
+      border-color:#0f3c66;
+      color:#fff;
+      background:linear-gradient(180deg,var(--blue-3) 0%,#173f66 100%);
+      box-shadow:0 8px 18px rgba(29,79,122,.22);
+    }
+
+    .tab-view{display:none;max-width:1280px;margin:0 auto 32px;padding:0 18px}
+    .tab-view.active{display:block}
+
+    .panel{
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:var(--surface);
+      padding:18px;
+      box-shadow:var(--shadow-md);
+    }
+
+    .panel h2{margin:0 0 14px;font-size:1.18rem;letter-spacing:-.01em;color:var(--text)}
+
+    .row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+    .row-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    .chip-stack{display:flex;flex-direction:column;gap:8px}
+    .chip-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+    .chip-row > div{display:flex;flex-direction:column}
+    .registro-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;align-items:start}
+    .registro-grid > div{display:flex;flex-direction:column}
+    .span-4{grid-column:1/-1}
+    .protocolo-exitoso-slot{grid-column:2/span 2}
+
+    label{
+      display:block;
+      margin-bottom:5px;
+      font-size:.84rem;
+      color:var(--muted-strong);
+      font-weight:700;
+    }
+
+    input,select,textarea{
+      width:100%;
+      background:var(--field);
+      border:1px solid var(--field-b);
+      border-radius:8px;
+      color:var(--text);
+      padding:9px 10px;
+      font:inherit;
+      outline:none;
+      transition:border-color .15s ease,box-shadow .15s ease,background-color .15s ease;
+    }
+    input:focus,select:focus,textarea:focus{
+      border-color:var(--blue-3);
+      box-shadow:0 0 0 3px rgba(29,79,122,.14);
+    }
+    input::placeholder,textarea::placeholder{color:#98a2b3}
+    .operador-search{
+      position:relative;
+    }
+    .operador-results{
+      position:absolute;
+      top:calc(100% + 5px);
+      left:0;
+      right:0;
+      z-index:30;
+      max-height:260px;
+      overflow:auto;
+      border:1px solid var(--line-strong);
+      border-radius:10px;
+      background:#fff;
+      box-shadow:0 18px 42px rgba(15,23,42,.18);
+      padding:5px;
+    }
+    .operador-results[hidden]{display:none}
+    .operador-result-item,
+    .operador-result-empty{
+      width:100%;
+      border:0;
+      border-radius:7px;
+      background:transparent;
+      color:var(--text);
+      padding:8px 10px;
+      font:inherit;
+      text-align:left;
+    }
+    .operador-result-item{
+      cursor:pointer;
+    }
+    .operador-result-item:hover,
+    .operador-result-item.is-active{
+      background:#eaf1f8;
+      color:#0f3c66;
+    }
+    .operador-result-empty{
+      color:var(--muted);
+      cursor:default;
+    }
+    select.yn-select{transition:background-color .16s ease,border-color .16s ease,color .16s ease}
+    select.yn-select.yn-si{
+      background:var(--ok-bg);
+      border-color:#52a36a;
+      color:#126332;
+    }
+    select.yn-select.yn-no{
+      background:var(--err-bg);
+      border-color:#e07777;
+      color:#9f1f1f;
+    }
+    select.yn-select option{
+      background:#fff;
+      color:var(--text);
+    }
+    select.yn-select.yn-si option,
+    select.yn-select.yn-no option{
+      background:#fff;
+      color:var(--text);
+    }
+
+    textarea{min-height:88px;resize:vertical}
+    .small{font-size:.81rem;color:var(--muted)}
+    .msg{min-height:20px;margin-top:10px;font-weight:700}
+    .ok{color:var(--ok)}
+    .err{color:var(--err)}
+
+    .toolbar{
+      margin-bottom:8px;
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:8px;
+    }
+
+    .toolbar .field{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .date-field{
+      position:relative;
+    }
+    .date-field input[type="date"]{
+      padding-right:44px;
+      appearance:none;
+      -webkit-appearance:none;
+    }
+    .date-field input[type="date"]::-webkit-calendar-picker-indicator{
+      opacity:0;
+      width:0;
+      margin:0;
+      padding:0;
+    }
+    .date-picker-btn{
+      position:absolute;
+      right:3px;
+      top:3px;
+      bottom:3px;
+      width:36px;
+      border:1px solid #d0d8e3;
+      border-radius:7px;
+      background:#f3f6fa;
+      color:var(--muted-strong);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+    }
+    .date-picker-btn:hover{
+      background:#e8eef6;
+      color:var(--text);
+    }
+    .date-picker-btn svg{
+      width:15px;
+      height:15px;
+      stroke:currentColor;
+      fill:none;
+      stroke-width:2;
+      stroke-linecap:round;
+      stroke-linejoin:round;
+    }
+
+    .toolbar-actions{
+      grid-column:1/-1;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .badge{
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:#f3f6fa;
+      font-weight:700;
+      font-size:.82rem;
+      color:var(--muted-strong);
+    }
+
+    .table-wrap{
+      overflow:auto;
+      max-height:70vh;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:#fff;
+      box-shadow:var(--shadow-sm);
+    }
+
+    table{width:100%;border-collapse:separate;border-spacing:0}
+
+    th,td{
+      border-right:1px solid #e4e9f0;
+      border-bottom:1px solid #e4e9f0;
+      padding:8px 7px;
+      font-size:.85rem;
+      vertical-align:middle;
+      text-align:center;
+    }
+    th:last-child,td:last-child{border-right:0}
+
+    th{
+      position:sticky;
+      top:0;
+      z-index:2;
+      background:linear-gradient(180deg,#596574 0%,#4b5563 100%);
+      color:#fff;
+      white-space:nowrap;
+      font-size:.78rem;
+      text-transform:uppercase;
+      letter-spacing:.04em;
+    }
+
+    td{background:#fff;color:var(--text)}
+    tr:nth-child(even) td{background:#f8fafc}
+    tbody tr:hover td{background:#eef4fb}
+
+    td.obs{
+      width:96px;
+      min-width:96px;
+      white-space:nowrap;
+      line-height:1.2;
+    }
+
+    .obs-view-btn{
+      border:1px solid #cbd5e1;
+      background:#f8fafc;
+      color:#243041;
+      border-radius:9px;
+      padding:6px 12px;
+      font-weight:800;
+      font-size:.78rem;
+      cursor:pointer;
+      font-family:inherit;
+    }
+    .obs-view-btn:hover{
+      background:#eef4fb;
+      border-color:#94a3b8;
+    }
+    .obs-view-btn[disabled]{
+      opacity:.45;
+      cursor:not-allowed;
+    }
+    .obs-modal-text{
+      white-space:pre-wrap;
+      line-height:1.5;
+      color:var(--text);
+      background:#f8fafc;
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:14px;
+      max-height:60vh;
+      overflow:auto;
+    }
+
+    .btn-detail{
+      padding:6px 10px;
+      font-size:.78rem;
+      border-radius:9px;
+      font-weight:700;
+    }
+    .btn-header{
+      border:1px solid #3f4854;
+      background:linear-gradient(180deg,#596574 0%,#4b5563 100%);
+      color:#f3f9fc;
+      box-shadow:0 8px 18px rgba(63,72,84,.18);
+    }
+    .btn[disabled]{
+      opacity:.55;
+      cursor:not-allowed;
+      transform:none;
+    }
+    .sel-col{
+      width:92px;
+      min-width:92px;
+      text-align:center;
+      vertical-align:middle;
+    }
+    input.row-selector{
+      width:18px;
+      height:18px;
+      padding:0;
+      margin:0;
+      border:1px solid var(--field-b);
+      border-radius:4px;
+      background:var(--field);
+      cursor:pointer;
+      accent-color:var(--blue-3);
+    }
+    .detail-actions{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-top:10px;
+      flex-wrap:wrap;
+    }
+
+    .modal[hidden]{display:none}
+    .modal{
+      position:fixed;
+      inset:0;
+      z-index:90;
+      background:rgba(15,23,42,.52);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:10px;
+      backdrop-filter:blur(3px);
+    }
+    .modal-card{
+      width:min(96vw,1760px);
+      max-height:90vh;
+      overflow:auto;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:var(--surface);
+      padding:12px;
+      box-shadow:var(--shadow-lg);
+    }
+    .modal-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      margin-bottom:8px;
+    }
+    .modal-head h3{margin:0;font-size:1.08rem}
+    .detail-table-wrap{max-height:68vh}
+    .detail-table{width:100%;border-collapse:collapse}
+    .detail-table th,.detail-table td{font-size:.84rem}
+    .detail-table th,.detail-table td{min-width:110px}
+    .detail-table td{white-space:pre-wrap;word-break:break-word;line-height:1.38}
+    .detail-table .detail-wide{min-width:220px}
+    .detail-table td.yn-cell-si{
+      background:var(--ok-bg);
+      color:#126332;
+      font-weight:700;
+    }
+    .detail-table td.yn-cell-no{
+      background:var(--err-bg);
+      color:#9f1f1f;
+      font-weight:700;
+    }
+
+    @media (max-width: 1120px){
+      .row{grid-template-columns:1fr 1fr}
+      .chip-row{grid-template-columns:1fr 1fr}
+      .toolbar{grid-template-columns:1fr 1fr}
+      .registro-grid{grid-template-columns:1fr 1fr}
+      .protocolo-exitoso-slot{grid-column:auto}
+    }
+
+    @media (max-width: 760px){
+      .head{flex-direction:column;align-items:flex-start;padding:18px}
+      .header{flex-direction:column;align-items:flex-start;padding:18px;min-height:0}
+      .header-logo{height:58px}
+      .header-actions{width:100%;justify-content:space-between;flex-wrap:wrap}
+      .tabs{margin-left:14px;margin-right:14px}
+      .tab-view{padding:0 14px}
+      .row,.row-2,.chip-row,.toolbar{grid-template-columns:1fr}
+      .registro-grid{grid-template-columns:1fr}
+      .tabs{flex-direction:column}
+    }
+  </style>
+    <script src="/static/utils.js"></script>
+</head>
+<body>
+  <div class="shell">
+    <header class="header">
+      <img class="header-logo" src="/shared-static/img/logo-atc.png" alt="ATC" onerror="this.style.display='none'"/>
+      <div class="header-title">
+        Control de Protocolos
+        <small>Registro y seguimiento operativo de protocolos por cliente</small>
+      </div>
+      <div class="header-actions">
+        <div class="session-user" id="usuarioActual">Sesion: Cargando...</div>
+        <a id="btnVolver" class="btn btn-ghost" href="/?form=panelSelector&token={{ token|default('') }}">Volver</a>
+      </div>
+    </header>
+
+    <section class="tabs">
+      <button type="button" id="tabBtnRegistro" class="tab-btn active" onclick="switchTab('registro')">Registrar</button>
+      <button type="button" id="tabBtnTodos" class="tab-btn" onclick="switchTab('todos')">Ver todos</button>
+    </section>
+
+    <section id="viewRegistro" class="tab-view active">
+      <section class="panel">
+        <h2>Nuevo Registro</h2>
+        <form id="frmProtocolo" onsubmit="return false;" autocomplete="off">
+          <div class="registro-grid">
+            <div class="span-4">
+              <label>Operador</label>
+              <div class="operador-search" id="operadorSearch">
+                <input id="operador" type="text" placeholder="Buscar operador..." autocomplete="off" required aria-autocomplete="list" aria-expanded="false" aria-controls="operadorResultados" />
+                <div id="operadorResultados" class="operador-results" hidden></div>
+              </div>
+            </div>
+            <div>
+              <label>Cliente</label>
+              <select id="cliente" required onchange="actualizarSucursalesPorCliente()">
+                <option value="">Cargando clientes...</option>
+              </select>
+            </div>
+            <div>
+              <label>Sucursal</label>
+              <select id="sucursal" required disabled>
+                <option value="">Selecciona un cliente primero...</option>
+              </select>
+            </div>
+            <div>
+              <label>Tipo de protocolo</label>
+              <select id="tipoProtocolo">
+                <option value="">Seleccionar...</option>
+                <option>Preventivo</option>
+                <option>Intrusivo</option>
+              </select>
+            </div>
+
+            <div>
+              <label>Puesto</label>
+              <input id="puesto" placeholder="Del 1 al 30" />
+            </div>
+
+            <div><label>Detectado</label><select id="detectado" class="yn-select"><option></option><option>SI</option><option>NO</option></select></div>
+            <div><label>Efectivo</label><select id="efectivo" class="yn-select"><option></option><option>SI</option><option>NO</option></select></div>
+            <div><label>Sirena</label><select id="sirena" class="yn-select"><option></option><option>SI</option><option>NO</option></select></div>
+            <div><label>Voz</label><select id="voz" class="yn-select"><option></option><option>SI</option><option>NO</option></select></div>
+            <div><label>Carabineros</label><select id="carabineros" class="yn-select"><option></option><option>SI</option><option>NO</option></select></div>
+            <div><label>Alpha3</label><select id="alpha3" class="yn-select"><option></option><option>SI</option><option>NO</option></select></div>
+            <div><label>Informado</label><select id="informado" class="yn-select"><option></option><option>SI</option><option>NO</option></select></div>
+            <div><label>Bitacora</label><select id="bitacora" class="yn-select"><option></option><option>SI</option><option>NO</option></select></div>
+            <div class="protocolo-exitoso-slot"><label>Protocolo Exitoso</label><select id="protocoloExitoso" class="yn-select"><option></option><option>SI</option><option>NO</option></select></div>
+
+            <div class="span-4">
+              <label>Observaciones</label>
+              <textarea id="observaciones" placeholder="Detalle operativo..."></textarea>
+              <div class="small">El backend guarda observacion original y observacion formalizada.</div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
+            <button class="btn btn-main" type="button" onclick="guardarRegistro()">Guardar registro</button>
+          </div>
+          <div id="msgRegistro" class="msg"></div>
+        </form>
+      </section>
+    </section>
+
+    <section id="viewTodos" class="tab-view">
+      <section class="panel">
+        <h2>Todos los Registros</h2>
+
+        <div class="toolbar">
+          <div class="field">
+            <label>Cliente</label>
+            <select id="fltCliente" onchange="actualizarSucursalesFiltro()">
+              <option value="">Todos</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Sucursal</label>
+            <select id="fltSucursal">
+              <option value="">Todas</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Tipo protocolo</label>
+            <select id="fltTipo">
+              <option value="">Todos</option>
+              <option>Preventivo</option>
+              <option>Intrusivo</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Desde</label>
+            <div class="date-field">
+              <input id="fltFechaDesde" type="date" />
+              <button type="button" class="date-picker-btn" onclick="abrirCalendario('fltFechaDesde')" aria-label="Abrir calendario desde">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="17" rx="2"></rect>
+                  <line x1="16" y1="2.5" x2="16" y2="6"></line>
+                  <line x1="8" y1="2.5" x2="8" y2="6"></line>
+                  <line x1="3" y1="9" x2="21" y2="9"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Hasta</label>
+            <div class="date-field">
+              <input id="fltFechaHasta" type="date" />
+              <button type="button" class="date-picker-btn" onclick="abrirCalendario('fltFechaHasta')" aria-label="Abrir calendario hasta">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="17" rx="2"></rect>
+                  <line x1="16" y1="2.5" x2="16" y2="6"></line>
+                  <line x1="8" y1="2.5" x2="8" y2="6"></line>
+                  <line x1="3" y1="9" x2="21" y2="9"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Texto libre (observacion/operador)</label>
+            <input id="fltTexto" placeholder="Buscar..." />
+          </div>
+
+          <div class="toolbar-actions">
+            <div class="badge" id="lblTotal">Total: 0</div>
+            <div style="display:flex;gap:8px">
+              <button type="button" class="btn" onclick="limpiarFiltros()">Limpiar</button>
+              <button type="button" class="btn btn-main" onclick="cargarRegistros(true)">Aplicar filtros</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table id="tblRegistros">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Fecha</th>
+                <th>Encargado</th>
+                <th>Grupo</th>
+                <th>Cliente</th>
+                <th>Sucursal</th>
+                <th>Tipo</th>
+                <th>Puesto</th>
+                <th>Operador</th>
+                <th>Observacion</th>
+                <th>Seleccionar</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="detail-actions">
+          <div class="badge" id="lblSeleccionados">Seleccionados: 0</div>
+          <button id="btnVerDetalleSeleccionados" type="button" class="btn btn-header btn-detail" onclick="abrirDetalleSeleccionados()" disabled>Ver detalle seleccionados</button>
+        </div>
+        <div id="msgTodos" class="msg"></div>
+      </section>
+    </section>
+
+    <div id="detalleModal" class="modal" hidden onclick="closeDetalleFromBackdrop(event)">
+      <div class="modal-card">
+        <div class="modal-head">
+          <h3 id="detalleTitulo">Detalle de registros</h3>
+          <button type="button" class="btn" onclick="cerrarDetalleRegistro()">Cerrar</button>
+        </div>
+        <div class="table-wrap detail-table-wrap">
+          <table class="detail-table">
+            <thead>
+              <tr id="detalleHeadRow"></tr>
+            </thead>
+            <tbody id="detalleBodyRows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="observacionModal" class="modal" hidden onclick="closeObservacionFromBackdrop(event)">
+      <div class="modal-card">
+        <div class="modal-head">
+          <h3 id="observacionTitulo">Observacion</h3>
+          <button type="button" class="btn" onclick="cerrarObservacionModal()">Cerrar</button>
+        </div>
+        <div id="observacionTexto" class="obs-modal-text"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const token = {{ token|default("")|tojson }};
+    const detalleOrden = [
+      ["id", "ID"],
+      ["fecha", "Fecha"],
+      ["encargado", "Encargado"],
+      ["grupo", "Grupo"],
+      ["cliente", "Cliente"],
+      ["sucursal", "Sucursal"],
+      ["tipo_protocolo", "Tipo protocolo"],
+      ["puesto", "Puesto"],
+      ["operador", "Operador"],
+      ["detectado", "Detectado"],
+      ["efectivo", "Efectivo"],
+      ["sirena", "Sirena"],
+      ["voz", "Voz"],
+      ["carabineros", "Carabineros"],
+      ["alpha3", "Alpha3"],
+      ["informado", "Informado"],
+      ["bitacora", "Bitacora"],
+      ["protocolo_exitoso", "Protocolo Exitoso"],
+      ["observaciones_raw", "Observacion original"],
+      ["observaciones_formal", "Observacion formalizada"],
+    ];
+    const detalleLabels = Object.fromEntries(detalleOrden);
+    const detalleCamposOcultos = new Set(["protocolo", "observaciones", "created_at", "updated_at"]);
+    const selectedRegistroIds = new Set();
+    let clienteSucursalesMap = {};
+    let clientesCatalogo = [];
+    let sucursalesActuales = [];
+    let operadoresCatalogo = [];
+    let operadorBusquedaConfigurada = false;
+    let operadorResultadoIndex = -1;
+
+
+    async function cargarUsuarioActual() {
+      const el = document.getElementById("usuarioActual");
+      if (!el || !token) return;
+      try {
+        const data = await api(`/api/usuario-actual?token=${encodeURIComponent(token)}`);
+        el.textContent = data?.usuario || "Desconocido";
+      } catch (_err) {
+        el.textContent = "Desconocido";
+      }
+    }
+
+    function switchTab(tab) {
+      const regBtn = document.getElementById("tabBtnRegistro");
+      const allBtn = document.getElementById("tabBtnTodos");
+      const regView = document.getElementById("viewRegistro");
+      const allView = document.getElementById("viewTodos");
+
+      const isRegistro = tab === "registro";
+      regBtn.classList.toggle("active", isRegistro);
+      allBtn.classList.toggle("active", !isRegistro);
+      regView.classList.toggle("active", isRegistro);
+      allView.classList.toggle("active", !isRegistro);
+
+      if (!isRegistro && !window.__allLoadedOnce) {
+        cargarRegistros(false);
+      }
+    }
+
+    function fillDatalist(id, values) {
+      const dl = document.getElementById(id);
+      if (!dl) return;
+      dl.innerHTML = "";
+      (values || []).forEach(v => {
+        if (!v) return;
+        const o = document.createElement("option");
+        o.value = String(v);
+        dl.appendChild(o);
+      });
+    }
+
+    function fillSelectOptions(id, values, placeholder = "Seleccionar...", selectedValue = "") {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      const selected = String(selectedValue || sel.value || "").trim();
+      sel.innerHTML = "";
+      const base = document.createElement("option");
+      base.value = "";
+      base.textContent = placeholder;
+      sel.appendChild(base);
+      let hasSelected = !selected;
+      (values || []).forEach(v => {
+        const txt = String(v || "").trim();
+        if (!txt) return;
+        const opt = document.createElement("option");
+        opt.value = txt;
+        opt.textContent = txt;
+        if (txt === selected) {
+          opt.selected = true;
+          hasSelected = true;
+        }
+        sel.appendChild(opt);
+      });
+      if (!hasSelected) sel.value = "";
+    }
+
+    function normalizarTextoBusqueda(v) {
+      return String(v || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLowerCase();
+    }
+
+    function normalizarListaOperadores(values) {
+      const seen = new Map();
+      (values || []).forEach(v => {
+        const txt = String(v || "").replace(/\s+/g, " ").trim();
+        const key = normalizarTextoBusqueda(txt);
+        if (txt && !seen.has(key)) seen.set(key, txt);
+      });
+      return Array.from(seen.values()).sort((a, b) => a.localeCompare(b, "es"));
+    }
+
+    function operadoresFiltrados(term) {
+      const q = normalizarTextoBusqueda(term);
+      const base = q
+        ? operadoresCatalogo.filter(nombre => normalizarTextoBusqueda(nombre).includes(q))
+        : operadoresCatalogo;
+      return base.slice(0, 60);
+    }
+
+    function ocultarOperadorResultados() {
+      const box = document.getElementById("operadorResultados");
+      const input = document.getElementById("operador");
+      if (box) box.hidden = true;
+      if (input) input.setAttribute("aria-expanded", "false");
+      operadorResultadoIndex = -1;
+    }
+
+    function actualizarOperadorActivo() {
+      const box = document.getElementById("operadorResultados");
+      if (!box) return;
+      const items = Array.from(box.querySelectorAll(".operador-result-item"));
+      items.forEach((item, idx) => item.classList.toggle("is-active", idx === operadorResultadoIndex));
+      const active = items[operadorResultadoIndex];
+      if (active) active.scrollIntoView({ block: "nearest" });
+    }
+
+    function seleccionarOperador(nombre) {
+      const input = document.getElementById("operador");
+      if (!input) return;
+      input.value = String(nombre || "").trim();
+      ocultarOperadorResultados();
+    }
+
+    function renderOperadorResultados(term) {
+      const box = document.getElementById("operadorResultados");
+      const input = document.getElementById("operador");
+      if (!box || !input) return;
+
+      box.innerHTML = "";
+      const items = operadoresFiltrados(term);
+      if (!operadoresCatalogo.length) {
+        const empty = document.createElement("div");
+        empty.className = "operador-result-empty";
+        empty.textContent = "Cargando operadores...";
+        box.appendChild(empty);
+      } else if (!items.length) {
+        const empty = document.createElement("div");
+        empty.className = "operador-result-empty";
+        empty.textContent = "Sin resultados";
+        box.appendChild(empty);
+      } else {
+        items.forEach((nombre, idx) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "operador-result-item";
+          btn.textContent = nombre;
+          btn.dataset.index = String(idx);
+          btn.addEventListener("mousedown", event => event.preventDefault());
+          btn.addEventListener("click", () => seleccionarOperador(nombre));
+          box.appendChild(btn);
+        });
+      }
+
+      operadorResultadoIndex = items.length ? 0 : -1;
+      box.hidden = false;
+      input.setAttribute("aria-expanded", "true");
+      actualizarOperadorActivo();
+    }
+
+    function configurarBusquedaOperador() {
+      const input = document.getElementById("operador");
+      const search = document.getElementById("operadorSearch");
+      const box = document.getElementById("operadorResultados");
+      if (!input || !search || !box || operadorBusquedaConfigurada) return;
+      operadorBusquedaConfigurada = true;
+
+      input.addEventListener("focus", () => renderOperadorResultados(input.value));
+      input.addEventListener("input", () => renderOperadorResultados(input.value));
+      input.addEventListener("keydown", event => {
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          if (box.hidden) {
+            renderOperadorResultados(input.value);
+            return;
+          }
+          const items = Array.from(box.querySelectorAll(".operador-result-item"));
+          if (!items.length) return;
+          operadorResultadoIndex = operadorResultadoIndex < 0 ? 0 : (operadorResultadoIndex + 1) % items.length;
+          actualizarOperadorActivo();
+        } else if (event.key === "ArrowUp") {
+          event.preventDefault();
+          if (box.hidden) {
+            renderOperadorResultados(input.value);
+            return;
+          }
+          const items = Array.from(box.querySelectorAll(".operador-result-item"));
+          if (!items.length) return;
+          operadorResultadoIndex = operadorResultadoIndex <= 0 ? items.length - 1 : operadorResultadoIndex - 1;
+          actualizarOperadorActivo();
+        } else if (event.key === "Enter" && !box.hidden) {
+          const items = Array.from(box.querySelectorAll(".operador-result-item"));
+          const active = items[operadorResultadoIndex];
+          if (active) {
+            event.preventDefault();
+            seleccionarOperador(active.textContent);
+          }
+        } else if (event.key === "Escape") {
+          ocultarOperadorResultados();
+        }
+      });
+
+      document.addEventListener("click", event => {
+        if (!search.contains(event.target)) ocultarOperadorResultados();
+      });
+    }
+
+    function validarOperadorSeleccionado() {
+      const operador = String(document.getElementById("operador")?.value || "").replace(/\s+/g, " ").trim();
+      if (!operador) throw new Error("Selecciona un operador.");
+      const match = operadoresCatalogo.find(nombre => normalizarTextoBusqueda(nombre) === normalizarTextoBusqueda(operador));
+      if (!match) throw new Error("Operador no valido. Selecciona uno desde la busqueda.");
+      document.getElementById("operador").value = match;
+    }
+
+    function normalizarClienteKey(v) {
+      return String(v || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLowerCase();
+    }
+
+    function construirClienteSucursalesMap(rawMap) {
+      const out = {};
+      if (!rawMap || typeof rawMap !== "object") return out;
+      Object.entries(rawMap).forEach(([cliente, sucursales]) => {
+        const key = normalizarClienteKey(cliente);
+        if (!key) return;
+        const listaLimpia = (Array.isArray(sucursales) ? sucursales : [])
+          .map(v => String(v || "").trim())
+          .filter(Boolean);
+        out[key] = Array.from(new Set([...(out[key] || []), ...listaLimpia]))
+          .sort((a, b) => a.localeCompare(b, "es"));
+      });
+      return out;
+    }
+
+    function clientesDesdeMapaSucursales(rawMap) {
+      if (!rawMap || typeof rawMap !== "object") return [];
+      return Object.entries(rawMap)
+        .filter(([, sucursales]) => Array.isArray(sucursales) && sucursales.some(v => String(v || "").trim()))
+        .map(([cliente]) => String(cliente || "").trim())
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b, "es"));
+    }
+
+    function getSucursalesPorCliente(cliente) {
+      const key = normalizarClienteKey(cliente);
+      if (!key) return [];
+      return clienteSucursalesMap[key] || [];
+    }
+
+    function getTodasSucursalesCatalogo() {
+      const all = [];
+      Object.values(clienteSucursalesMap).forEach(lista => {
+        if (Array.isArray(lista)) all.push(...lista);
+      });
+      return Array.from(new Set(all.filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"));
+    }
+
+    function actualizarSucursalesPorCliente() {
+      const clienteEl = document.getElementById("cliente");
+      const sucursalEl = document.getElementById("sucursal");
+      if (!clienteEl || !sucursalEl) return;
+
+      const opciones = getSucursalesPorCliente(clienteEl.value);
+      sucursalesActuales = Array.isArray(opciones) ? [...opciones] : [];
+      const actual = String(sucursalEl.value || "").trim();
+      const placeholder = clienteEl.value ? "Seleccionar sucursal..." : "Selecciona un cliente primero...";
+      fillSelectOptions("sucursal", sucursalesActuales, placeholder, actual);
+      sucursalEl.disabled = !clienteEl.value || sucursalesActuales.length === 0;
+    }
+
+    function actualizarSucursalesFiltro() {
+      const clienteEl = document.getElementById("fltCliente");
+      const sucursalEl = document.getElementById("fltSucursal");
+      if (!clienteEl || !sucursalEl) return;
+
+      const actual = String(sucursalEl.value || "").trim();
+      const sucursales = clienteEl.value ? getSucursalesPorCliente(clienteEl.value) : getTodasSucursalesCatalogo();
+      fillSelectOptions("fltSucursal", sucursales, "Todas", actual);
+    }
+
+    function validarClienteSucursalSeleccion() {
+      const cliente = String(document.getElementById("cliente")?.value || "").trim();
+      const sucursal = String(document.getElementById("sucursal")?.value || "").trim();
+      if (!cliente) throw new Error("Selecciona un cliente.");
+      if (!clientesCatalogo.includes(cliente)) throw new Error("Cliente no valido. Selecciona uno desde la lista.");
+      actualizarSucursalesPorCliente();
+
+      if (!sucursal) throw new Error("Selecciona una sucursal.");
+      if (!sucursalesActuales.includes(sucursal)) throw new Error("Sucursal no valida para ese cliente.");
+    }
+
+    function setMsg(id, text, ok = true) {
+      const el = document.getElementById(id);
+      el.textContent = text || "";
+      el.className = "msg " + (ok ? "ok" : "err");
+    }
+
+    function abrirCalendario(id) {
+      const input = document.getElementById(id);
+      if (!input) return;
+      if (typeof input.showPicker === "function") {
+        input.showPicker();
+        return;
+      }
+      input.focus();
+      input.click();
+    }
+
+    function paintSiNoState(selectEl) {
+      if (!selectEl) return;
+      const val = (selectEl.value || "").trim().toUpperCase();
+      selectEl.classList.remove("yn-si", "yn-no");
+      if (val === "SI") selectEl.classList.add("yn-si");
+      else if (val === "NO") selectEl.classList.add("yn-no");
+    }
+
+    function initSiNoColoring() {
+      const ids = ["detectado", "efectivo", "sirena", "voz", "carabineros", "alpha3", "informado", "bitacora", "protocoloExitoso"];
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener("change", () => paintSiNoState(el));
+        paintSiNoState(el);
+      });
+    }
+
+    function htmlSafe(v) {
+      return String(v || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function prettyKey(key) {
+      return String(key || "")
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    function formatDetalleValue(v) {
+      const txt = String(v ?? "").trim();
+      return txt ? htmlSafe(txt) : "-";
+    }
+
+    function observacionButtonHtml(value, title) {
+      const txt = String(value ?? "").trim();
+      if (!txt) return "-";
+      return `<button type="button" class="obs-view-btn" data-obs-title="${htmlSafe(title || "Observacion")}" data-obs-text="${htmlSafe(txt)}">Ver</button>`;
+    }
+
+    function detalleSiNoClass(v) {
+      const txt = String(v ?? "").trim().toUpperCase();
+      if (txt === "SI") return "yn-cell-si";
+      if (txt === "NO") return "yn-cell-no";
+      return "";
+    }
+
+    function refreshSeleccionDetalleUI() {
+      const total = selectedRegistroIds.size;
+      const lbl = document.getElementById("lblSeleccionados");
+      const btn = document.getElementById("btnVerDetalleSeleccionados");
+      if (lbl) lbl.textContent = "Seleccionados: " + total;
+      if (btn) btn.disabled = total === 0;
+    }
+
+    function toggleRegistroSeleccion(regId, checked) {
+      const id = String(regId ?? "").trim();
+      if (!id) return;
+      if (checked) selectedRegistroIds.add(id);
+      else selectedRegistroIds.delete(id);
+      refreshSeleccionDetalleUI();
+    }
+
+    function abrirDetalleSeleccionados() {
+      const rows = window.__rowsCurrent || [];
+      const seleccionados = rows.filter(r => selectedRegistroIds.has(String(r.id)));
+      if (!seleccionados.length) {
+        setMsg("msgTodos", "Selecciona al menos un registro para ver detalle.", false);
+        refreshSeleccionDetalleUI();
+        return;
+      }
+
+      const usados = new Set();
+      const keysOrdenados = [];
+      detalleOrden.forEach(([key]) => {
+        const exists = seleccionados.some(r => Object.prototype.hasOwnProperty.call(r, key));
+        if (!exists) return;
+        usados.add(key);
+        keysOrdenados.push(key);
+      });
+      seleccionados.forEach(row => {
+        Object.keys(row).forEach(key => {
+          if (detalleCamposOcultos.has(key)) return;
+          if (usados.has(key)) return;
+          usados.add(key);
+          keysOrdenados.push(key);
+        });
+      });
+
+      let headHtml = "";
+      keysOrdenados.forEach(key => {
+        const label = detalleLabels[key] || prettyKey(key);
+        const wideClass = key.includes("observaciones") ? "detail-wide" : "";
+        headHtml += `<th class="${wideClass}">${htmlSafe(label)}</th>`;
+      });
+
+      let rowsHtml = "";
+      seleccionados.forEach(row => {
+        let rowHtml = "";
+        keysOrdenados.forEach(key => {
+          const wideClass = key.includes("observaciones") ? "detail-wide" : "";
+          const ynClass = detalleSiNoClass(row[key]);
+          const cellClass = [wideClass, ynClass].filter(Boolean).join(" ");
+          const label = detalleLabels[key] || prettyKey(key);
+          const valueHtml = key.includes("observaciones")
+            ? observacionButtonHtml(row[key], label)
+            : formatDetalleValue(row[key]);
+          rowHtml += `<td class="${cellClass}">${valueHtml}</td>`;
+        });
+        rowsHtml += `<tr>${rowHtml}</tr>`;
+      });
+
+      document.getElementById("detalleHeadRow").innerHTML = headHtml;
+      document.getElementById("detalleBodyRows").innerHTML = rowsHtml;
+      bindObservacionButtons(document.getElementById("detalleBodyRows"));
+      document.getElementById("detalleTitulo").textContent = "Detalle de registros (" + seleccionados.length + ")";
+      document.getElementById("detalleModal").hidden = false;
+      document.body.style.overflow = "hidden";
+    }
+
+    function cerrarDetalleRegistro() {
+      const modal = document.getElementById("detalleModal");
+      modal.hidden = true;
+      document.body.style.overflow = "";
+    }
+
+    function closeDetalleFromBackdrop(event) {
+      if (event.target.id === "detalleModal") {
+        cerrarDetalleRegistro();
+      }
+    }
+
+    function abrirObservacionModal(title, text) {
+      document.getElementById("observacionTitulo").textContent = title || "Observacion";
+      document.getElementById("observacionTexto").textContent = text || "-";
+      document.getElementById("observacionModal").hidden = false;
+      document.body.style.overflow = "hidden";
+    }
+
+    function cerrarObservacionModal() {
+      const modal = document.getElementById("observacionModal");
+      modal.hidden = true;
+      const detalleOpen = !document.getElementById("detalleModal")?.hidden;
+      document.body.style.overflow = detalleOpen ? "hidden" : "";
+    }
+
+    function closeObservacionFromBackdrop(event) {
+      if (event.target.id === "observacionModal") {
+        cerrarObservacionModal();
+      }
+    }
+
+    function bindObservacionButtons(root = document) {
+      root.querySelectorAll(".obs-view-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          abrirObservacionModal(btn.dataset.obsTitle || "Observacion", btn.dataset.obsText || "");
+        });
+      });
+    }
+
+    function renderRegistros(rows) {
+      const tbody = document.querySelector("#tblRegistros tbody");
+      window.__rowsCurrent = rows || [];
+      const visibles = new Set((rows || []).map(r => String(r.id)));
+      Array.from(selectedRegistroIds).forEach(id => {
+        if (!visibles.has(id)) selectedRegistroIds.delete(id);
+      });
+      tbody.innerHTML = "";
+      (rows || []).forEach((r) => {
+        const regId = String(r.id);
+        const isChecked = selectedRegistroIds.has(regId);
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${htmlSafe(r.id)}</td>
+          <td>${htmlSafe(r.fecha)}</td>
+          <td>${htmlSafe(r.encargado)}</td>
+          <td>${htmlSafe(r.grupo)}</td>
+          <td>${htmlSafe(r.cliente)}</td>
+          <td>${htmlSafe(r.sucursal)}</td>
+          <td>${htmlSafe(r.tipo_protocolo)}</td>
+          <td>${htmlSafe(r.puesto)}</td>
+          <td>${htmlSafe(r.operador)}</td>
+          <td class="obs">${observacionButtonHtml(r.observaciones, "Observacion")}</td>
+          <td class="sel-col"><input type="checkbox" class="row-selector" data-reg-id="${htmlSafe(regId)}" ${isChecked ? "checked" : ""} /></td>
+        `;
+        tbody.appendChild(tr);
+      });
+      bindObservacionButtons(tbody);
+      tbody.querySelectorAll(".row-selector").forEach(el => {
+        el.addEventListener("change", (event) => {
+          const input = event.target;
+          toggleRegistroSeleccion(input.getAttribute("data-reg-id"), input.checked);
+        });
+      });
+      document.getElementById("lblTotal").textContent = "Total: " + (rows || []).length;
+      refreshSeleccionDetalleUI();
+    }
+
+    async function cargarListas() {
+      const data = await api("/api/protocolos/listas");
+      let operadores = data.operadores || [];
+      if (!operadores.length) {
+        try {
+          const fallback = await api("/static/protocolos/televigilantes.json");
+          operadores = fallback.operadores || [];
+        } catch (_err) {
+          operadores = [];
+        }
+      }
+      clienteSucursalesMap = construirClienteSucursalesMap(data.cliente_sucursales || {});
+      const clientesConSucursales = clientesDesdeMapaSucursales(data.cliente_sucursales || {});
+      const clientesBase = Array.from(new Set(
+        (data.clientes || [])
+          .map(v => String(v || "").trim())
+          .filter(Boolean)
+      )).sort((a, b) => a.localeCompare(b, "es"));
+      clientesCatalogo = clientesConSucursales.length ? clientesConSucursales : clientesBase;
+      fillSelectOptions("cliente", clientesCatalogo, "Seleccionar cliente...");
+      fillSelectOptions("fltCliente", clientesCatalogo, "Todos");
+      sucursalesActuales = [];
+      operadoresCatalogo = normalizarListaOperadores(operadores);
+      configurarBusquedaOperador();
+      actualizarSucursalesPorCliente();
+      actualizarSucursalesFiltro();
+    }
+
+    function limpiarFiltros() {
+      document.getElementById("fltCliente").value = "";
+      document.getElementById("fltSucursal").value = "";
+      actualizarSucursalesFiltro();
+      document.getElementById("fltTipo").value = "";
+      document.getElementById("fltFechaDesde").value = "";
+      document.getElementById("fltFechaHasta").value = "";
+      document.getElementById("fltTexto").value = "";
+      cargarRegistros(false);
+    }
+
+    async function cargarRegistros(fromFilters) {
+      try {
+        const cliente = (document.getElementById("fltCliente").value || "").trim();
+        const sucursal = (document.getElementById("fltSucursal").value || "").trim();
+        const tipo = (document.getElementById("fltTipo").value || "").trim();
+        const fechaDesde = (document.getElementById("fltFechaDesde").value || "").trim();
+        const fechaHasta = (document.getElementById("fltFechaHasta").value || "").trim();
+        const texto = (document.getElementById("fltTexto").value || "").trim().toLowerCase();
+
+        const qs = new URLSearchParams();
+        qs.set("limit", "0");
+        if (cliente) qs.set("cliente", cliente);
+        if (sucursal) qs.set("sucursal", sucursal);
+        if (tipo) qs.set("tipo_protocolo", tipo);
+        if (fechaDesde) qs.set("fecha_desde", fechaDesde);
+        if (fechaHasta) qs.set("fecha_hasta", fechaHasta + " 23:59:59");
+
+        const rows = await api("/api/protocolos/registros?" + qs.toString());
+        let filtered = rows || [];
+        if (texto) {
+          filtered = filtered.filter(r => {
+            const hay = ((r.observaciones || "") + " " + (r.operador || "")).toLowerCase();
+            return hay.includes(texto);
+          });
+        }
+
+        renderRegistros(filtered);
+        window.__allLoadedOnce = true;
+        if (fromFilters) {
+          setMsg("msgTodos", "Filtros aplicados. Registros visibles: " + filtered.length, true);
+        }
+      } catch (err) {
+        setMsg("msgTodos", err.message || "No se pudieron cargar los registros.", false);
+      }
+    }
+
+    function resetFormularioRegistro() {
+      const form = document.getElementById("frmProtocolo");
+      if (form) form.reset();
+      ocultarOperadorResultados();
+      initSiNoColoring();
+      actualizarSucursalesPorCliente();
+    }
+
+    async function guardarRegistro() {
+      try {
+        validarClienteSucursalSeleccion();
+        validarOperadorSeleccionado();
+        const payload = {
+          token: token,
+          cliente: document.getElementById("cliente").value.trim(),
+          sucursal: document.getElementById("sucursal").value.trim(),
+          tipoProtocolo: document.getElementById("tipoProtocolo").value.trim(),
+          detectado: document.getElementById("detectado").value.trim(),
+          efectivo: document.getElementById("efectivo").value.trim(),
+          sirena: document.getElementById("sirena").value.trim(),
+          voz: document.getElementById("voz").value.trim(),
+          carabineros: document.getElementById("carabineros").value.trim(),
+          alpha3: document.getElementById("alpha3").value.trim(),
+          informado: document.getElementById("informado").value.trim(),
+          bitacora: document.getElementById("bitacora").value.trim(),
+          protocoloExitoso: document.getElementById("protocoloExitoso").value.trim(),
+          puesto: document.getElementById("puesto").value.trim(),
+          operador: document.getElementById("operador").value.trim(),
+          observaciones: document.getElementById("observaciones").value.trim()
+        };
+
+        const data = await api("/api/protocolos/registro", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+
+        if (data && data.observacion_formal) {
+          document.getElementById("observaciones").value = data.observacion_formal;
+        }
+
+        setMsg("msgRegistro", "Registro guardado correctamente.");
+        resetFormularioRegistro();
+      } catch (err) {
+        setMsg("msgRegistro", err.message || "No se pudo guardar.", false);
+      }
+    }
+
+    window.addEventListener("load", async () => {
+      cargarUsuarioActual();
+      initSiNoColoring();
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") cerrarDetalleRegistro();
+      });
+      try {
+        await cargarListas();
+      } catch (err) {
+        setMsg("msgRegistro", err.message || "Error inicializando modulo.", false);
+      }
+    });
+
+  </script>
+<script src="/static/auth-guard.js"></script>
+  <script src="/static/atc-logo-home.js"></script>
+<script src="/static/atc-volver.js"></script>
+</body>
+</html>

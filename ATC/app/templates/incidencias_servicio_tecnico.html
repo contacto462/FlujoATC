@@ -1,0 +1,4235 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Incidencias Servicio Técnico</title>
+  <style>
+    :root {
+      --bg: #f7f8fa;
+      --surface: #ffffff;
+      --surface-alt: #fafbfc;
+      --surface-hover: #f3f4f6;
+      --border: #e5e7eb;
+      --border-strong: #d1d5db;
+      --text-main: #111827;
+      --text-soft: #4b5563;
+      --text-muted: #6b7280;
+      --text-faint: #9ca3af;
+      --accent: #f4a672;
+      --accent-hover: #e89254;
+      --accent-soft: rgba(244, 166, 114, 0.12);
+      --accent-strong: #c2410c;
+      --link: #2563eb;
+      --success: #059669;
+      --danger: #dc2626;
+      --header-bg: #f4a672;
+      --header-border: #e89254;
+      --header-text: #ffffff;
+      --row-hover: #fffaf3;
+      --field-bg: #ffffff;
+      --field-border: #d1d5db;
+      --field-focus: #f4a672;
+      --panel-bg: #ffffff;
+      --panel-border: #e5e7eb;
+      --cell-bg: #ffffff;
+      --cell-alt: #fafbfc;
+      --cell-border: #e5e7eb;
+      --obs-bg: #fafbfc;
+      --obs-border: #e5e7eb;
+      --muted: #6b7280;
+      --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+      --shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+      --shadow-md: 0 4px 8px rgba(15, 23, 42, 0.06), 0 2px 4px rgba(15, 23, 42, 0.04);
+      --shadow-lg: 0 18px 36px rgba(15, 23, 42, 0.10);
+      --radius-sm: 6px;
+      --radius: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 14px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      min-height: 100%;
+      height: 100%;
+    }
+
+    body {
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      height: 100vh;
+      color: var(--text-main);
+      background: var(--bg);
+      font-size: 13.5px;
+      font-weight: 500;
+      line-height: 1.5;
+      letter-spacing: -0.005em;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+      font-feature-settings: "cv11", "ss01", "ss03";
+      overflow: hidden;
+    }
+
+    .page-shell {
+      width: 100%;
+      padding: 16px 24px 28px;
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+    }
+
+    button {
+      padding: 8px 14px;
+      background-color: var(--surface);
+      color: var(--text-main);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: inherit;
+      transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+      box-shadow: var(--shadow-sm);
+    }
+
+    button:hover {
+      background-color: var(--surface-hover);
+      border-color: var(--text-faint);
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    /* .btn-mantencion tambien se usa en un <a> (Volver) — solo la "forma" va
+       aca, el color/fondo/borde transparente queda 100% a cargo de
+       .btn-mantencion mas abajo para que no compita en especificidad. */
+    a.btn-mantencion {
+      display: inline-block;
+      padding: 8px 14px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: inherit;
+      text-decoration: none;
+      line-height: 1.3;
+      transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+    }
+
+    a.btn-mantencion:active {
+      transform: translateY(1px);
+    }
+
+    .btn-odt {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent-hover);
+      font-weight: 700;
+      padding: 8px 18px;
+      box-shadow: 0 1px 2px rgba(154, 52, 18, 0.15), 0 2px 6px rgba(244, 166, 114, 0.35);
+    }
+
+    .btn-odt:hover {
+      background: var(--accent-hover);
+      border-color: var(--accent-strong);
+      color: #ffffff;
+      box-shadow: 0 1px 2px rgba(154, 52, 18, 0.20), 0 4px 10px rgba(244, 166, 114, 0.45);
+    }
+
+    .btn-mantencion {
+      background: rgba(255, 255, 255, 0.04);
+      color: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: none;
+    }
+
+    .btn-mantencion:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.22);
+    }
+
+
+    .btn-correo {
+      background: var(--surface);
+      color: var(--text-main);
+      width: 100%;
+      padding: 5px 8px;
+      font-size: 12px;
+      border: 1px solid var(--border);
+      font-weight: 500;
+    }
+
+    .btn-correo:hover {
+      background-color: var(--surface-hover);
+    }
+
+    .info-enviada {
+      display: inline-flex;
+      width: 100%;
+      min-height: 30px;
+      align-items: center;
+      justify-content: center;
+      padding: 5px 8px;
+      box-sizing: border-box;
+      border-radius: var(--radius);
+      border: 1px solid #bbf7d0;
+      background: #f0fdf4;
+      color: #166534;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .btn-imagenes {
+      background: #365f8d;
+      color: #ffffff;
+      width: 100%;
+      padding: 5px 8px;
+      font-size: 12px;
+      border: 1px solid #27496f;
+      font-weight: 600;
+      box-shadow: 0 1px 2px rgba(39, 73, 111, 0.18), 0 2px 6px rgba(54, 95, 141, 0.28);
+    }
+
+    .btn-imagenes:hover {
+      background: #27496f;
+      border-color: #1f3b5a;
+      color: #ffffff;
+    }
+
+    .btn-ver {
+      background: var(--surface);
+      color: var(--text-main);
+      width: 100%;
+      padding: 5px 8px;
+      font-size: 12px;
+      border: 1px solid var(--border);
+      font-weight: 500;
+    }
+
+    .btn-ver:hover {
+      background-color: var(--surface-hover);
+    }
+
+    .encabezado-principal {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      min-height: 108px;
+      padding: 20px 30px;
+      margin-bottom: 0;
+      background: linear-gradient(180deg, #0b1424 0%, #111c2f 100%);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      flex-shrink: 0;
+    }
+
+    .logo-atc {
+      height: 68px;
+      width: auto;
+      min-width: 0;
+      display: block;
+    }
+
+    .logo-atc img {
+      height: 68px;
+      width: auto;
+      display: block;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.30));
+    }
+
+    .titulo-central {
+      font-size: 20px;
+      font-weight: 700;
+      color: #ffffff;
+      text-align: left;
+      letter-spacing: -0.02em;
+      margin: 0;
+      line-height: 1.25;
+    }
+
+    .hero-copy {
+      min-width: 0;
+      flex: 1;
+      text-align: left;
+    }
+
+    .hero-subtitle {
+      margin: 6px 0 0;
+      font-size: 13.5px;
+      line-height: 1.45;
+      color: rgba(255, 255, 255, 0.72);
+    }
+
+    .contenedor-acciones {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-left: auto;
+      width: max-content;
+    }
+
+    .barra-acciones {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .barra-acciones .btn-mantencion {
+      background: var(--surface);
+      color: var(--text-main);
+      border: 1px solid var(--border-strong);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .barra-acciones .btn-mantencion:hover {
+      background-color: var(--surface-hover);
+      border-color: var(--text-faint);
+    }
+
+    .session-user {
+      display: inline-flex;
+      align-items: center;
+      min-height: 36px;
+      padding: 0 4px;
+      color: rgba(255, 255, 255, 0.92);
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .tabla-scroll {
+      overflow-x: hidden;
+      width: 100%;
+      padding: 0;
+      border-radius: var(--radius-lg);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      background-color: var(--surface);
+      font-size: 12.5px;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    thead th {
+      background: var(--header-bg);
+      color: var(--header-text);
+      font-size: 10.5px;
+      text-transform: uppercase;
+      font-weight: 700;
+      padding: 10px 8px;
+      border: 0;
+      border-bottom: 1px solid var(--header-border);
+      z-index: 2;
+      letter-spacing: 0.06em;
+      text-align: left;
+    }
+
+    thead tr#filtros td {
+      background: var(--surface-alt);
+      z-index: 1;
+      border: 0;
+      border-bottom: 1px solid var(--border);
+      padding: 4px 6px;
+    }
+
+    td {
+      padding: 8px 8px;
+      text-align: left;
+      border: 0;
+      border-bottom: 1px solid var(--border);
+      word-break: break-word;
+      vertical-align: middle;
+      background: var(--surface);
+      color: var(--text-main);
+      font-size: 12.5px;
+    }
+
+    tbody tr:nth-child(even) td {
+      background: var(--cell-alt);
+    }
+
+    tbody tr:hover td {
+      background: var(--row-hover);
+    }
+
+    .celda-observacion {
+      text-align: left;
+      line-height: 1.45;
+      white-space: normal;
+    }
+
+    .obs-origen-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .obs-origen-bloque {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface-alt);
+      overflow: hidden;
+    }
+
+    .obs-origen-titulo {
+      padding: 4px 8px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .obs-origen-inicial .obs-origen-titulo {
+      border-left: 3px solid #0ea5e9;
+      padding-left: 8px;
+    }
+
+    .obs-origen-soporte .obs-origen-titulo {
+      border-left: 3px solid #10b981;
+      padding-left: 8px;
+    }
+
+    .obs-origen-servicio .obs-origen-titulo {
+      border-left: 3px solid #f59e0b;
+      padding-left: 8px;
+    }
+
+    .obs-origen-cuerpo {
+      padding: 6px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .obs-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .obs-linea {
+      padding: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.4;
+    }
+
+    .obs-vacio {
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    .editable-tecnico,
+    .editable-acompanante,
+    .editable-derivacion,
+    .editable-prioridad,
+    .editable-observacion {
+      cursor: pointer;
+    }
+
+    select,
+    input,
+    textarea {
+      width: 100%;
+      padding: 7px 10px;
+      font-size: 13px;
+      border: 1px solid var(--field-border);
+      background: var(--field-bg);
+      color: var(--text-main);
+      border-radius: var(--radius-sm);
+      box-sizing: border-box;
+      font-family: inherit;
+      caret-color: var(--text-main);
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    thead tr#filtros select,
+    thead tr#filtros input {
+      min-height: 30px;
+      font-size: 12px;
+      padding: 4px 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      border-radius: var(--radius-sm);
+    }
+
+    thead tr#filtros input::placeholder {
+      color: var(--text-faint);
+    }
+
+    thead tr#filtros select {
+      color-scheme: light;
+    }
+
+    select option {
+      color: var(--text-main);
+      background: var(--surface);
+    }
+
+    select optgroup {
+      color: var(--text-main);
+      background: var(--surface);
+    }
+
+    td select,
+    td input,
+    td textarea {
+      color: var(--text-main);
+      background: var(--surface);
+      font-size: 12px;
+      padding: 5px 7px;
+    }
+
+    select:focus,
+    input:focus,
+    textarea:focus {
+      border-color: var(--field-focus);
+      box-shadow: 0 0 0 3px rgba(244, 166, 114, 0.18);
+      outline: none;
+    }
+
+    /* Override del widget de notas de cliente (estaba pensado para fondo oscuro) */
+    .client-notes-link {
+      color: var(--text-main) !important;
+      text-decoration: none !important;
+      font-weight: 600 !important;
+      border-bottom: 1px dotted var(--text-faint) !important;
+      padding-bottom: 1px !important;
+      transition: color 0.15s ease, border-color 0.15s ease !important;
+    }
+
+    .client-notes-link:hover {
+      color: var(--accent-strong) !important;
+      border-bottom-color: var(--accent) !important;
+    }
+
+    /* Botón cerrar del panel: solo la X, sin cuadro */
+    .client-notes-close {
+      width: auto !important;
+      height: auto !important;
+      padding: 4px 6px !important;
+      background: transparent !important;
+      color: var(--text-muted) !important;
+      border-radius: var(--radius-sm) !important;
+      font-size: 22px !important;
+      font-weight: 400 !important;
+      line-height: 1 !important;
+      transition: color 0.15s ease, background-color 0.15s ease !important;
+    }
+
+    .client-notes-close:hover {
+      color: var(--text-main) !important;
+      background: var(--surface-hover) !important;
+    }
+
+    /* Botón "Guardar nota": naranjo, igual al CTA principal */
+    .client-notes-btn.primary {
+      background: var(--accent) !important;
+      color: #ffffff !important;
+      border: 1px solid var(--accent-hover) !important;
+      border-radius: var(--radius) !important;
+      padding: 8px 14px !important;
+      font-weight: 700 !important;
+      box-shadow: 0 1px 2px rgba(154, 52, 18, 0.15), 0 2px 6px rgba(244, 166, 114, 0.35) !important;
+      transition: background-color 0.15s ease, box-shadow 0.15s ease !important;
+    }
+
+    .client-notes-btn.primary:hover {
+      background: var(--accent-hover) !important;
+      border-color: var(--accent-strong) !important;
+      box-shadow: 0 1px 2px rgba(154, 52, 18, 0.20), 0 4px 10px rgba(244, 166, 114, 0.45) !important;
+    }
+
+    /* Botón secundario "Actualizar" del panel */
+    .client-notes-btn {
+      background: var(--surface) !important;
+      color: var(--text-main) !important;
+      border: 1px solid var(--border-strong) !important;
+      border-radius: var(--radius) !important;
+      padding: 8px 14px !important;
+      font-weight: 600 !important;
+      box-shadow: var(--shadow-sm) !important;
+    }
+
+    .client-notes-btn:hover {
+      background: var(--surface-hover) !important;
+    }
+
+    .mensaje {
+      margin-top: 10px;
+      font-weight: 600;
+      min-height: 20px;
+      color: var(--text-main);
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      background: rgba(17, 24, 39, 0.45);
+      padding: 20px;
+      overflow: auto;
+      backdrop-filter: blur(2px);
+    }
+
+    .panel {
+      background: var(--surface);
+      color: var(--text-main);
+      padding: 22px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      width: 400px;
+      max-width: 95%;
+      margin: 8% auto;
+      position: relative;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .acciones-form {
+      text-align: right;
+      margin-top: 12px;
+    }
+
+    .acciones-form button + button {
+      margin-left: 8px;
+    }
+
+    .panel.panel-obs {
+      width: 720px;
+      max-width: 96%;
+      margin: 5% auto;
+      padding: 24px;
+    }
+
+    .panel.panel-finalizar {
+      width: 520px;
+      max-width: 96%;
+      margin: 9% auto;
+      padding: 22px;
+    }
+
+    .panel.panel-repetida {
+      width: 760px;
+      max-width: 96%;
+      margin: 6% auto;
+      padding: 22px;
+    }
+
+    .panel.panel-contacto-cliente {
+      width: 760px;
+      max-width: 96%;
+      margin: 6% auto;
+      padding: 22px;
+    }
+
+    .contacto-cliente-sucursal {
+      margin: 0 0 10px 0;
+      color: var(--text-main);
+      font-weight: 700;
+    }
+
+    .contacto-cliente-resumen {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px 14px;
+      margin: 0 0 12px 0;
+      padding: 10px 12px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--surface-alt);
+      color: var(--text-soft);
+      font-size: 13px;
+    }
+
+    .contacto-cliente-resumen b {
+      color: var(--text-main);
+      font-weight: 700;
+    }
+
+    .contacto-cliente-fecha {
+      margin: 0 0 12px 0;
+    }
+
+    .contacto-cliente-fecha label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--text-main);
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .contacto-cliente-fecha input {
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .contacto-cliente-select-all {
+      display: flex;
+      align-items: center;
+      margin: 2px 0 4px;
+    }
+
+    .contacto-cliente-select-all label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-main);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .contacto-cliente-select-all input[type="checkbox"] {
+      accent-color: var(--accent);
+    }
+
+    .contacto-cliente-lista {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 360px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .contacto-cliente-item {
+      display: grid;
+      grid-template-columns: 20px minmax(0, 1fr);
+      align-items: start;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--surface-alt);
+    }
+
+    .contacto-cliente-item-enviado {
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+    }
+
+    .contacto-cliente-item input[type="checkbox"] {
+      margin-top: 3px;
+      accent-color: var(--accent);
+    }
+
+    .contacto-cliente-item-main {
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .contacto-cliente-item-nombre {
+      font-weight: 600;
+      color: var(--text-main);
+      font-size: 14px;
+    }
+
+    .contacto-cliente-item-meta {
+      color: var(--text-soft);
+      font-size: 12px;
+      line-height: 1.45;
+      word-break: break-word;
+    }
+
+    .contacto-cliente-item-status {
+      color: #166534;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.45;
+    }
+
+    .finalizar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .finalizar-titulo {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.01em;
+    }
+
+    .finalizar-odt {
+      font-size: 12px;
+      color: var(--text-soft);
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px 10px;
+      white-space: nowrap;
+      font-weight: 500;
+    }
+
+    .finalizar-ayuda {
+      margin: 0 0 10px 0;
+      color: var(--text-soft);
+      font-size: 13px;
+    }
+
+    .obs-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .obs-modal-titulo {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.01em;
+    }
+
+    .obs-modal-odt {
+      font-size: 12px;
+      color: var(--text-soft);
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px 10px;
+      white-space: nowrap;
+      font-weight: 500;
+    }
+
+    .obs-modal-body {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .obs-modal-vacio {
+      padding: 16px;
+      border-radius: var(--radius);
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      color: var(--text-soft);
+      text-align: center;
+      font-size: 13px;
+    }
+
+    .repetida-lista {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 320px;
+      overflow: auto;
+      margin-top: 10px;
+      padding-right: 4px;
+    }
+
+    .repetida-item {
+      display: grid;
+      grid-template-columns: 18px minmax(0, 1fr);
+      align-items: start;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      cursor: pointer;
+      transition: border-color .15s ease, background-color .15s ease;
+    }
+
+    .repetida-item:hover {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .repetida-item input[type="radio"] {
+      -webkit-appearance: radio;
+      appearance: radio;
+      display: block;
+      margin: 5px 0 0 0;
+      width: 14px !important;
+      height: 14px !important;
+      min-width: 14px;
+      min-height: 14px;
+      padding: 0 !important;
+      border: 0 !important;
+      border-radius: 50% !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      box-sizing: border-box;
+      accent-color: var(--accent);
+    }
+
+    .repetida-item-main {
+      display: grid;
+      gap: 4px;
+      width: 100%;
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+
+    .repetida-item-title {
+      font-weight: 600;
+      color: var(--text-main);
+      font-size: 14px;
+    }
+
+    .repetida-item-sub {
+      color: var(--text-soft);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .repetida-item-detalle {
+      margin-top: 6px;
+      padding: 8px 10px;
+      border-radius: var(--radius);
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      font-size: 12px;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .panel-repetida .acciones-form {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .btn-repetida-confirm {
+      background: var(--accent);
+      color: #ffffff;
+      border: 1px solid var(--accent);
+      border-radius: var(--radius-sm);
+      padding: 7px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: none;
+    }
+
+    .btn-repetida-confirm:hover {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+      color: #ffffff;
+    }
+
+    .panel.panel-imagenes {
+      width: 760px;
+      max-width: 96%;
+      margin: 6% auto;
+      padding: 22px;
+    }
+
+
+    .tabla-imagen-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .tabla-imagen-title {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--text-main);
+    }
+
+    .tabla-imagen-sub {
+      margin: 0 0 12px 0;
+      color: var(--text-soft);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .tabla-imagen-zone {
+      border: 1px dashed var(--border-strong);
+      border-radius: var(--radius);
+      padding: 14px;
+      background: var(--surface-alt);
+      outline: none;
+    }
+
+    .tabla-imagen-zone:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(244, 166, 114, 0.18);
+    }
+
+    .tabla-imagen-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn-adjuntar {
+      background: var(--surface);
+      border: 1px solid var(--border-strong);
+      box-shadow: var(--shadow-sm);
+      padding: 7px 12px;
+    }
+
+    .btn-adjuntar:hover {
+      background: var(--surface-hover);
+    }
+
+    .tabla-imagen-counter {
+      color: var(--text-soft);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .tabla-imagen-lista {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 270px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .tabla-imagen-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 8px 10px;
+      font-size: 13px;
+    }
+
+    .tabla-imagen-item a {
+      color: var(--link);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .tabla-imagen-item a:hover {
+      text-decoration: underline;
+    }
+
+    .tabla-imagen-tag {
+      font-size: 11px;
+      color: var(--text-soft);
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 2px 8px;
+      white-space: nowrap;
+      font-weight: 500;
+    }
+
+    .btn-tabla-imagen-remove {
+      background: var(--surface);
+      border: 1px solid var(--border-strong);
+      color: var(--danger);
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      padding: 5px 10px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-tabla-imagen-remove:hover {
+      background: #fef2f2;
+      border-color: #fca5a5;
+    }
+
+    .tabla-imagen-vacio {
+      text-align: center;
+      color: var(--text-soft);
+      padding: 14px;
+      border-radius: var(--radius);
+      border: 1px dashed var(--border-strong);
+      background: var(--surface-alt);
+      font-size: 13px;
+    }
+
+    #scrollTopBtn {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 999;
+      background: linear-gradient(180deg, #365f8d 0%, #27496f 100%);
+      color: #ffffff;
+      border: 1px solid #27496f;
+      border-radius: 50%;
+      width: 42px;
+      height: 42px;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(39, 73, 111, 0.22), 0 6px 14px rgba(54, 95, 141, 0.30);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      transition: transform .15s ease, background-color .15s ease, border-color .15s ease, box-shadow .15s ease;
+    }
+
+    #scrollTopBtn:hover {
+      transform: translateY(-2px);
+      background: linear-gradient(180deg, #2f567f 0%, #1f3b5a 100%);
+      border-color: #1f3b5a;
+      box-shadow: 0 1px 2px rgba(31, 59, 90, 0.26), 0 8px 18px rgba(39, 73, 111, 0.34);
+    }
+
+    #scrollTopBtn svg {
+      display: block;
+      margin: auto;
+      width: 20px;
+      height: 20px;
+    }
+
+    /* Scrollbar sutil */
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-strong);
+      border-radius: 999px;
+      border: 2px solid var(--bg);
+    }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
+    @media screen and (max-width: 1280px) {
+      .page-shell { padding: 16px 18px 24px; }
+      .titulo-central { font-size: 17px; }
+      table, td, th { font-size: 11.5px; }
+      td { padding: 6px 6px; }
+      thead th { padding: 8px 6px; }
+    }
+
+    @media screen and (max-width: 900px) {
+      .page-shell { padding: 14px; }
+
+      .encabezado-principal {
+        flex-direction: column;
+        text-align: center;
+        gap: 10px;
+        padding: 18px 16px;
+      }
+
+      .logo-atc {
+        height: 60px;
+      }
+
+      .logo-atc img {
+        margin: 0 auto;
+        height: 60px;
+        width: auto;
+      }
+
+      .titulo-central {
+        font-size: 16px;
+        text-align: center;
+      }
+
+      .hero-copy {
+        text-align: center;
+      }
+
+      .contenedor-acciones {
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-left: 0;
+      }
+
+      .barra-acciones {
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .tabla-scroll {
+        max-width: 100vw;
+        overflow-x: auto;
+        overflow-y: visible;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      table {
+        min-width: 1320px;
+      }
+
+      table td,
+      table th {
+        font-size: 11px;
+        padding: 6px 4px;
+        overflow-wrap: normal !important;
+        word-break: normal !important;
+      }
+    }
+    /* ── Vista "Ver informe e imagenes ODT" (navegador tipo Drive) ── */
+    .informes-toolbar {
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .informes-buscar {
+      flex: 0 1 420px; padding: 10px 14px; border: 1px solid var(--border-strong);
+      border-radius: 10px; font-size: 14px; background: var(--surface);
+      color: var(--text-main);
+    }
+    .informes-breadcrumb { font-size: 13px; color: var(--text-faint); display: flex; align-items: center; gap: 6px; }
+    .informes-breadcrumb a { color: #ff6e23; cursor: pointer; font-weight: 700; text-decoration: none; }
+    .informes-breadcrumb a:hover { text-decoration: underline; }
+    .informes-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 12px;
+    }
+    .informes-carpeta {
+      display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+      background: var(--surface); border: 1px solid var(--border-strong);
+      border-radius: 12px; cursor: pointer; box-shadow: var(--shadow-sm);
+      transition: transform .12s ease, border-color .12s ease;
+    }
+    .informes-carpeta:hover { transform: translateY(-2px); border-color: #ff6e23; }
+    .informes-carpeta svg { flex: 0 0 auto; }
+    .informes-carpeta .nombre {
+      font-size: 13px; font-weight: 700; color: var(--text-main);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .informes-carpeta .cantidad { font-size: 11px; color: var(--text-faint); }
+    .informes-lista { display: flex; flex-direction: column; gap: 8px; }
+    .informes-odt-item {
+      display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+      background: var(--surface); border: 1px solid var(--border-strong);
+      border-radius: 10px; cursor: pointer;
+    }
+    .informes-odt-item:hover { border-color: #ff6e23; }
+    .informes-odt-item .odt-cod { font-weight: 800; min-width: 70px; }
+    .informes-odt-item .odt-info { flex: 1; font-size: 13px; color: var(--text-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .informes-odt-item .odt-fecha { font-size: 12px; color: var(--text-faint); }
+    .informes-odt-item .odt-badges { display: flex; gap: 6px; }
+    .informes-badge { font-size: 10px; font-weight: 800; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; }
+    .informes-badge.pdf { background: #fde8e8; color: #c0392b; }
+    .informes-badge.fotos { background: #e8f2fd; color: #2266aa; }
+    .informes-detalle { display: flex; flex-direction: column; gap: 14px; }
+    .informes-detalle iframe {
+      width: 100%; height: 62vh; border: 1px solid var(--border-strong); border-radius: 12px;
+      background: #fff;
+    }
+    .informes-archivos { display: flex; flex-direction: column; gap: 6px; }
+    .informes-archivo-fila {
+      display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+      background: var(--surface); border: 1px solid var(--border-strong); border-radius: 10px;
+      max-width: 560px;
+    }
+    .informes-archivo-nombre { flex: 1; font-size: 13px; font-weight: 700; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .informes-icon-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 32px; height: 32px; padding: 0; flex: 0 0 auto;
+      border-radius: 8px; border: 1px solid var(--border-strong);
+      background: var(--surface); color: var(--text-main); cursor: pointer; text-decoration: none;
+      transition: border-color .12s ease, color .12s ease;
+    }
+    .informes-icon-btn svg { flex: 0 0 auto; }
+    .informes-icon-btn:hover { border-color: #ff6e23; color: #ff6e23; }
+    .informes-visor { min-height: 0; margin-top: 10px; }
+    .informes-visor iframe {
+      width: 100%; height: 68vh; border: 1px solid var(--border-strong); border-radius: 12px;
+      background: #fff;
+    }
+    .informes-vacio { padding: 30px; text-align: center; color: var(--text-faint); font-size: 14px; }
+  </style>
+    <script src="/static/utils.js"></script>
+</head>
+<body>
+  <header class="encabezado-principal">
+    <div class="logo-atc">
+      <img src="/shared-static/img/logo-atc.png" alt="Logo ATC" />
+    </div>
+    <div class="hero-copy">
+      <div class="titulo-central">Incidencias Servicio Técnico</div>
+      <p class="hero-subtitle">Seguimiento operativo, derivación y cierre de incidencias de servicio técnico.</p>
+    </div>
+    <div class="contenedor-acciones">
+      <div class="session-user" id="usuarioActual">Sesion: Cargando...</div>
+      <a class="btn-mantencion" id="btnVolver" href="/?form=panelSelectorServicio&token={{ token|default('') }}">Volver</a>
+    </div>
+  </header>
+
+  <div class="page-shell" id="pageContentScroll">
+  <div class="barra-acciones">
+    <button class="btn-mantencion" id="btnVistaInformes" style="margin-right:auto;" onclick="toggleVistaInformes()">Ver informe e imagenes ODT</button>
+    <button class="btn-mantencion" id="btnCrearMantencion" onclick="abrirMantencion()">Crear Mantencion</button>
+    <button class="btn-odt" id="btnCrearOdt" onclick="abrirOdt()">Crear ODT</button>
+  </div>
+
+  <div id="vistaInformesOdt" style="display:none;">
+    <div class="informes-toolbar">
+      <input type="text" id="informesBuscar" class="informes-buscar" placeholder="Buscar por cliente o por ODT (ej. I12470)..." oninput="filtrarInformes()">
+      <div class="informes-breadcrumb" id="informesBreadcrumb"></div>
+    </div>
+    <div id="informesCarpetas" class="informes-grid"></div>
+    <div id="informesOdts" class="informes-lista" style="display:none;"></div>
+    <div id="informesDetalle" class="informes-detalle" style="display:none;"></div>
+  </div>
+
+  <div class="tabla-scroll">
+    <table id="tablaRegistro">
+      <colgroup>
+        <col style="width: 4%" />
+        <col style="width: 7%" />
+        <col style="width: 10%" />
+        <col style="width: 8%" />
+        <col style="width: 28%" />
+        <col style="width: 9%" />
+        <col style="width: 8%" />
+        <col style="width: 9%" />
+        <col style="width: 6.5%" />
+        <col style="width: 6.5%" />
+        <col style="width: 7%" />
+        <col style="width: 8%" />
+        <col style="width: 12%" />
+        <col style="width: 12%" />
+        <col style="width: 9%" />
+      </colgroup>
+      <thead>
+        <tr>
+          <th>ODT</th>
+          <th>Fecha</th>
+          <th>Sucursal</th>
+          <th>Problema</th>
+          <th>Observación</th>
+          <th>Derivación</th>
+          <th>Técnico</th>
+          <th>Acompañante</th>
+          <th>Estado</th>
+          <th>Fecha de Cierre</th>
+          <th>Prioridad</th>
+          <th>Contacto Cliente</th>
+          <th>Dirección</th>
+          <th>Observación Pendiente</th>
+          <th>Subir Imagen</th>
+        </tr>
+        <tr id="filtros">
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+      </thead>
+      <tbody id="registrosExistentes"></tbody>
+    </table>
+  </div>
+  </div>
+
+  <div id="mensaje" class="mensaje"></div>
+
+  <div id="modalOdt" class="modal">
+    <div class="panel">
+      <h3 style="margin-top:0;">Crear ODT</h3>
+      <form id="formOdt" onsubmit="return false;">
+        <div class="grid-2">
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#4b5563;display:block;margin-bottom:4px;">Cliente</label>
+            <input type="text" id="odtCliente" list="listaClientes" required style="width:100%;box-sizing:border-box;" />
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#4b5563;display:block;margin-bottom:4px;">Sucursal</label>
+            <input type="text" id="odtSucursal" list="listaSucursales" style="width:100%;box-sizing:border-box;" />
+          </div>
+        </div>
+        <div style="margin-top:12px;">
+          <label style="font-size:12px;font-weight:600;color:#4b5563;display:block;margin-bottom:4px;">Tipo de Incidencia</label>
+          <select id="odtTipo" required style="width:100%;padding:8px 10px;border-radius:7px;border:1px solid #d1d5db;font-size:13px;font-family:inherit;"></select>
+        </div>
+        <div id="odtExtraWrap" style="margin-top:10px;display:none;"></div>
+        <div style="margin-top:12px;">
+          <label style="font-size:12px;font-weight:600;color:#4b5563;display:block;margin-bottom:4px;">Descripción</label>
+          <textarea id="odtDescripcion" rows="3" required style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:7px;border:1px solid #d1d5db;font-size:13px;font-family:inherit;resize:vertical;"></textarea>
+        </div>
+        <div class="grid-2" style="margin-top:12px;">
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#4b5563;display:block;margin-bottom:4px;">Técnico</label>
+            <input type="text" id="odtTecnico" list="listaTecnicos" style="width:100%;box-sizing:border-box;" />
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#4b5563;display:block;margin-bottom:4px;">Acompañante</label>
+            <input type="text" id="odtAcompanante" list="listaTecnicos" style="width:100%;box-sizing:border-box;" />
+          </div>
+        </div>
+        <div class="acciones-form" style="margin-top:18px;">
+          <button type="button" onclick="cerrarOdt()">Cancelar</button>
+          <button type="submit" class="btn-odt">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="modalMant" class="modal">
+    <div class="panel">
+      <h3 style="margin-top:0;">Crear Mantención</h3>
+      <form id="formMant" onsubmit="return false;">
+        <label style="font-size:12px;font-weight:600;color:#4b5563;display:block;margin-bottom:4px;">Sucursal</label>
+        <select id="mantSucursal" required style="width:100%;padding:8px 10px;border-radius:7px;border:1px solid #d1d5db;font-size:13px;font-family:inherit;margin-bottom:14px;">
+          <option value="">-- Seleccionar sucursal --</option>
+        </select>
+
+        <label style="font-size:12px;font-weight:600;color:#4b5563;display:block;margin-bottom:4px;">Tipo</label>
+        <select id="mantProblema" required style="width:100%;padding:8px 10px;border-radius:7px;border:1px solid #d1d5db;font-size:13px;font-family:inherit;margin-bottom:14px;">
+          <option value="">-- Seleccionar tipo --</option>
+          <option value="Mantencion Preventiva">Mantención Preventiva</option>
+          <option value="Mantencion Correctiva">Mantención Correctiva</option>
+        </select>
+
+        <div id="mantObsWrap" style="display:none;margin-bottom:14px;">
+          <label style="font-size:12px;font-weight:600;color:#4b5563;display:block;margin-bottom:4px;">Observación</label>
+          <textarea id="mantObservacion" rows="3" style="width:100%;padding:8px 10px;border-radius:7px;border:1px solid #d1d5db;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box;"></textarea>
+          <p id="mantObsHint" style="margin:4px 0 0;font-size:11px;color:#9ca3af;"></p>
+        </div>
+
+        <label style="font-size:12px;font-weight:600;color:#4b5563;display:block;margin-bottom:4px;">Técnico</label>
+        <input type="text" id="mantTecnico" list="listaTecnicos" style="width:100%;padding:8px 10px;border-radius:7px;border:1px solid #d1d5db;font-size:13px;font-family:inherit;margin-bottom:14px;box-sizing:border-box;" />
+
+        <label style="font-size:12px;font-weight:600;color:#4b5563;display:block;margin-bottom:4px;">Acompañante</label>
+        <input type="text" id="mantAcompanante" list="listaTecnicos" style="width:100%;padding:8px 10px;border-radius:7px;border:1px solid #d1d5db;font-size:13px;font-family:inherit;margin-bottom:14px;box-sizing:border-box;" />
+
+        <label style="font-size:12px;font-weight:600;color:#4b5563;display:block;margin-bottom:4px;">Prioridad</label>
+        <select id="mantPrioridad" style="width:100%;padding:8px 10px;border-radius:7px;border:1px solid #d1d5db;font-size:13px;font-family:inherit;margin-bottom:18px;">
+          <option value="">-- Seleccionar --</option>
+        </select>
+
+        <div class="acciones-form">
+          <button type="button" onclick="cerrarMantencion()">Cancelar</button>
+          <button type="submit" class="btn-odt">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="modalObsPendiente" class="modal">
+    <div class="panel panel-obs">
+      <div class="obs-modal-header">
+        <h3 class="obs-modal-titulo">Observación Pendiente</h3>
+        <div id="obsPendienteOdt" class="obs-modal-odt"></div>
+      </div>
+      <div id="obsPendienteContenido" class="obs-modal-body"></div>
+      <div class="acciones-form">
+        <button type="button" onclick="cerrarObsPendiente()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalFinalizadoSoporte" class="modal">
+    <div class="panel panel-finalizar">
+      <div class="finalizar-header">
+        <h3 class="finalizar-titulo">Finalizado por Soporte</h3>
+        <div id="finalizarSoporteOdt" class="finalizar-odt"></div>
+      </div>
+      <p class="finalizar-ayuda">Indica qué se realizó para finalizar esta ODT.</p>
+      <textarea id="finalizarSoporteObservacion" rows="4" placeholder="Ejemplo: Se reinicio NVR, se validaron camaras y quedo operativo."></textarea>
+      <div class="acciones-form">
+        <button type="button" onclick="cancelarFinalizadoSoporte()">Cancelar</button>
+        <button type="button" class="btn-odt" onclick="confirmarFinalizadoSoporte()">Guardar y terminar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalEditarObsCierre" class="modal">
+    <div class="panel" style="max-width:620px;width:92vw;display:flex;flex-direction:column;max-height:88vh;padding:0;border-radius:10px;overflow:hidden;">
+      <div class="obs-modal-header" style="padding:16px 20px;border-bottom:1px solid #e5e7eb;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+        <div>
+          <h3 class="obs-modal-titulo" style="margin:0 0 2px;">Editar observación de cierre</h3>
+          <span id="editarObsCierreOdt" style="font-size:12px;color:#6b7280;font-weight:500;"></span>
+        </div>
+        <button type="button" onclick="cerrarEditorObsCierre()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#6b7280;padding:2px 6px;line-height:1;">✕</button>
+      </div>
+      <div style="padding:16px 20px 20px;display:flex;flex-direction:column;gap:10px;flex:1;overflow-y:auto;">
+        <p class="finalizar-ayuda" style="margin:0;">Edita el texto directamente. Lo que quede aquí será el contenido final de "OBSERVACIÓN DE CIERRE" en el informe.</p>
+        <textarea id="editarObsCierreTexto" rows="14" style="flex:1;min-height:220px;" placeholder="Cargando observación actual..."></textarea>
+        <div class="acciones-form">
+          <button type="button" onclick="cerrarEditorObsCierre()">Cancelar</button>
+          <button type="button" class="btn-odt" id="btnGuardarObsCierre">Guardar y regenerar informe</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalContactoCliente" class="modal">
+    <div class="panel panel-contacto-cliente">
+      <div class="finalizar-header">
+        <h3 class="finalizar-titulo">Contacto Cliente</h3>
+        <div id="contactoClienteOdt" class="finalizar-odt"></div>
+      </div>
+      <p class="finalizar-ayuda">Selecciona uno o mas contactos para enviar informacion por correo. WhatsApp quedara pendiente hasta activar la API.</p>
+      <div id="contactoClienteSucursal" class="contacto-cliente-sucursal"></div>
+      <div id="contactoClienteResumen" class="contacto-cliente-resumen"></div>
+      <div class="contacto-cliente-fecha">
+        <label for="contactoClienteFecha">Fecha programada de visita</label>
+        <input id="contactoClienteFecha" type="date" />
+      </div>
+      <div class="contacto-cliente-select-all">
+        <label for="contactoClienteSeleccionarTodos">
+          <input id="contactoClienteSeleccionarTodos" type="checkbox" />
+          <span>Seleccionar todos</span>
+        </label>
+      </div>
+      <div id="contactoClienteLista" class="contacto-cliente-lista"></div>
+      <div class="acciones-form">
+        <button type="button" onclick="cerrarModalContactoCliente()">Cancelar</button>
+        <button type="button" class="btn-odt" id="btnEnviarInfoContacto" onclick="enviarInformacionContactoCliente()">Enviar información</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalRepetida" class="modal">
+    <div class="panel panel-repetida">
+      <div class="finalizar-header">
+        <h3 class="finalizar-titulo">Marcar ODT como Repetida</h3>
+        <div id="repetidaOdtActual" class="finalizar-odt"></div>
+      </div>
+      <p class="finalizar-ayuda">Selecciona la incidencia Pendiente o En Proceso de la misma sucursal y del mismo problema con la que se repite esta ODT.</p>
+      <div id="repetidaSinOpciones" class="obs-modal-vacio" style="display:none;">No hay incidencias compatibles para marcar esta ODT como repetida.</div>
+      <div id="repetidaLista" class="repetida-lista"></div>
+      <div class="acciones-form">
+        <button type="button" onclick="cancelarModalRepetida()">Cancelar</button>
+        <button type="button" id="btnConfirmarRepetida" class="btn-repetida-confirm" onclick="confirmarModalRepetida()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal editor de observación -->
+  <div id="stObsEditorModal" class="modal" style="display:none;">
+    <div class="panel" style="max-width:620px;width:92vw;display:flex;flex-direction:column;max-height:88vh;padding:0;border-radius:10px;overflow:hidden;">
+      <div class="obs-modal-header" style="padding:16px 20px;border-bottom:1px solid #e5e7eb;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+        <div>
+          <h3 class="obs-modal-titulo" style="margin:0 0 2px;">Observación</h3>
+          <span id="stObsEditorOdt" style="font-size:12px;color:#6b7280;font-weight:500;"></span>
+        </div>
+        <button type="button" id="stObsEditorCloseBtn" style="background:none;border:none;font-size:18px;cursor:pointer;color:#6b7280;padding:2px 6px;line-height:1;">✕</button>
+      </div>
+      <div id="stObsEditorHistory" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:10px;background:#fafbfc;min-height:60px;border-bottom:1px solid #e5e7eb;"></div>
+      <div style="padding:16px 20px 20px;display:flex;flex-direction:column;gap:10px;">
+        <label style="font-size:12px;font-weight:600;color:#4b5563;letter-spacing:.04em;text-transform:uppercase;">Agregar nota</label>
+        <textarea id="stObsEditorInput" placeholder="Escribe tu nota aquí…" style="width:100%;min-height:80px;resize:vertical;padding:10px 12px;border-radius:7px;border:1px solid #e5e7eb;font-family:inherit;font-size:13.5px;line-height:1.55;color:#111827;background:#fff;outline:none;box-sizing:border-box;transition:border-color .15s,box-shadow .15s;"
+          onfocus="this.style.borderColor='#7fc497';this.style.boxShadow='0 0 0 3px rgba(127,196,151,.20)'"
+          onblur="this.style.borderColor='';this.style.boxShadow=''"></textarea>
+        <div style="display:flex;justify-content:flex-end;gap:10px;">
+          <button type="button" id="stObsEditorCancelBtn" style="padding:8px 14px;border-radius:7px;border:1px solid #d1d5db;background:#fff;font-size:13px;font-weight:600;cursor:pointer;">Cancelar</button>
+          <button type="button" id="stObsEditorSaveBtn" class="btn-odt" style="padding:8px 14px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">Guardar nota</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalImagenesTabla" class="modal">
+    <div class="panel panel-imagenes">
+      <div class="tabla-imagen-header">
+        <h3 class="tabla-imagen-title">Imagenes ODT</h3>
+        <div id="tablaImagenesOdtLabel" class="finalizar-odt"></div>
+      </div>
+      <div id="tablaImagenesSucursalLabel" class="tabla-imagen-sub" style="margin-top:-6px;margin-bottom:10px;"></div>
+      <p class="tabla-imagen-sub">
+        Puedes pegar un pantallazo con <b>Ctrl + V</b> o adjuntar archivos. Maximo 3 imagenes por ODT.
+      </p>
+
+      <div id="tablaImagenZone" class="tabla-imagen-zone" tabindex="0">
+        <div class="tabla-imagen-toolbar">
+          <button type="button" class="btn-adjuntar" onclick="document.getElementById('tablaImagenFileInput').click()">Adjuntar archivo</button>
+          <input id="tablaImagenFileInput" type="file" accept="image/*" multiple style="display:none;" />
+          <span id="tablaImagenCounter" class="tabla-imagen-counter">0/3</span>
+        </div>
+        <div id="tablaImagenLista" class="tabla-imagen-lista"></div>
+      </div>
+
+      <div class="acciones-form">
+        <button type="button" onclick="cerrarModalImagenesTabla()">Cancelar</button>
+        <button type="button" class="btn-odt" id="btnSubirImagenesTabla" onclick="subirImagenesTabla()">Subir</button>
+      </div>
+    </div>
+  </div>
+
+  <datalist id="listaClientes"></datalist>
+  <datalist id="listaSucursales"></datalist>
+  <datalist id="listaTecnicos"></datalist>
+
+  <button id="scrollTopBtn" title="Volver arriba" onclick="document.getElementById('pageContentScroll')?.scrollTo({ top: 0, behavior: 'smooth' })">
+    <svg viewBox="0 0 24 24" width="28" height="28" fill="white">
+      <path d="M4 12l1.41 1.41L11 7.83V20h2V7.83l5.59 5.58L20 12l-8-8-8 8z"></path>
+    </svg>
+  </button>
+
+  <script>
+    const MESES = [
+      "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+      "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+    ];
+    const COLUMNAS_FILTRO = [0, 1, 2, 3, 5, 6, 7, 8, 9];
+    const DERIVACIONES_EDITABLES = [
+      "T\u00e9cnico Externo",
+      "Cliente",
+      "Soporte T\u00e9cnico",
+      "Finalizado por Soporte",
+      "Finalizado Sin VT",
+      "Repetida"
+    ];
+
+    let listasGlobales = { clientes: [], sucursales: [], tecnicos: [], problemas: [] };
+    let sucursalesPorCliente = {};
+    let incidenciasRaw = [];
+    let resolverFinalizadoSoporte = null;
+    let resolverRepetida = null;
+    let odtRepetidaSeleccionada = "";
+    let recargaDiferidaTimer = null;
+    const RECARGA_DIFERIDA_MS = 15000;
+    let imagenesTablaOdtActual = "";
+    let imagenesTablaExistentes = [];
+    let imagenesTablaPendientes = [];
+    let imagenesTablaSubiendo = false;
+    let firmaUltimoPegadoTabla = "";
+    let tsUltimoPegadoTabla = 0;
+    const TECNICOS_NO_ASIGNABLES = ["fernando lubiano", "gianpiero lubiano"];
+    let contactosPorSucursal = {};
+    let contactoClienteSeleccion = {
+      odt: "",
+      sucursal: "",
+      problema: "",
+      estado: "",
+      observacion: "",
+      tecnico: "",
+      acompanante: "",
+      fechaVisita: "",
+      enviosInfo: { total: 0, claves: [], contactos: [], ultimo_envio: "" },
+      destinos: []
+    };
+
+
+    function setMensaje(msg, ok = true) {
+      const el = document.getElementById("mensaje");
+      el.style.color = ok ? "#166534" : "#b91c1c";
+      el.textContent = msg || "";
+    }
+
+    function tecnicoKey(value) {
+      return String(value || "")
+        .trim()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, " ")
+        .toLowerCase();
+    }
+
+    function filtrarTecnicosAsignables(values) {
+      const out = [];
+      const seen = new Set();
+      (values || []).forEach((value) => {
+        const clean = String(value || "").trim();
+        const key = tecnicoKey(clean);
+        if (!clean || !key || TECNICOS_NO_ASIGNABLES.some((name) => key.includes(name)) || seen.has(key)) return;
+        seen.add(key);
+        out.push(clean);
+      });
+      return out.sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+    }
+
+    function contactoClaveEnvio(destino) {
+      const email = String(destino?.email || "").trim().toLowerCase();
+      if (email) return `email:${email}`;
+      const telefono = String(destino?.telefono || "").replace(/\D+/g, "");
+      if (telefono) return `tel:${telefono}`;
+      const nombre = tecnicoKey(destino?.nombre || "");
+      return nombre ? `nombre:${nombre}` : "";
+    }
+
+    function contactoEnvioClaves(registro) {
+      const claves = registro?.enviosInfo?.claves;
+      return new Set(Array.isArray(claves) ? claves.map((v) => String(v || "")) : []);
+    }
+
+    function contactoYaInformado(registro, destino) {
+      const clave = contactoClaveEnvio(destino);
+      return !!clave && contactoEnvioClaves(registro).has(clave);
+    }
+
+    function contactosValidosInformacion(registro) {
+      return buscarContactosSucursalPorNombre(registro?.cliente || "")
+        .filter((d) => String(d?.email || "").trim() || contactoYaInformado(registro, d));
+    }
+
+    function contactosPendientesInformacion(registro) {
+      return contactosValidosInformacion(registro)
+        .filter((d) => !contactoYaInformado(registro, d));
+    }
+
+    function informacionEnviadaCompleta(registro) {
+      const contactos = contactosValidosInformacion(registro);
+      return contactos.length > 0 && contactos.every((d) => contactoYaInformado(registro, d));
+    }
+
+    function esc(valor) {
+      return String(valor || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll("\"", "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function normalizarTextoObservacion(valor) {
+      let txt = String(valor || "").trim();
+      if (!txt) return "";
+      txt = txt.replace(/\s+\[(?=[^\]]+\s-\s\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2}\])/g, "\n[");
+      return txt.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+    }
+
+    function formatearLineasObservacion(valor) {
+      const txt = normalizarTextoObservacion(valor);
+      if (!txt) return "";
+
+      const lineas = txt
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean);
+
+      if (!lineas.length) return "";
+
+      return `<div class="obs-wrap">${lineas.map((l) => `<div class="obs-linea">${esc(l)}</div>`).join("")}</div>`;
+    }
+
+    function construirBloqueObservacion(cssClass, tituloHtml, valor) {
+      const cuerpo = formatearLineasObservacion(valor);
+      if (!cuerpo) return "";
+      return `
+          <div class="obs-origen-bloque ${cssClass}">
+            <div class="obs-origen-titulo">${tituloHtml}</div>
+            <div class="obs-origen-cuerpo">${cuerpo}</div>
+          </div>
+      `;
+    }
+
+    function formatearObservacionHTML(observacionOperaciones, observacionSoporte, observacionServicio) {
+      const bloques = [
+        construirBloqueObservacion("obs-origen-inicial", "Registro Operaciones", observacionOperaciones),
+        construirBloqueObservacion("obs-origen-soporte", "Gesti&oacute;n Soporte", observacionSoporte),
+        construirBloqueObservacion("obs-origen-servicio", "Gesti&oacute;n Servicio T&eacute;cnico", observacionServicio),
+      ].filter(Boolean);
+
+      if (!bloques.length) return "";
+      return `<div class="obs-origen-grid">${bloques.join("")}</div>`;
+    }
+
+    function obtenerTokenActivo() {
+      const qp = new URLSearchParams(window.location.search).get("token") || "";
+      const ls = localStorage.getItem("atc_token") || "";
+      const token = qp || ls;
+      if (token && ls !== token) {
+        localStorage.setItem("atc_token", token);
+      }
+      return token;
+    }
+
+    async function cargarUsuarioActual() {
+      const el = document.getElementById("usuarioActual");
+      const token = obtenerTokenActivo();
+      if (!el || !token) return;
+      try {
+        const res = await fetch(`/api/usuario-actual?token=${encodeURIComponent(token)}`, { credentials: "include" });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error("No se pudo cargar usuario");
+        el.textContent = data?.usuario || "Desconocido";
+      } catch (_err) {
+        el.textContent = "Desconocido";
+      }
+    }
+
+    function estadoCanonico(valor) {
+      const v = String(valor || "").toLowerCase();
+      if (v.includes("termin")) return "Terminado";
+      if (v.includes("proceso")) return "En Proceso";
+      if (v.includes("pend")) return "Pendiente";
+      return valor || "Pendiente";
+    }
+
+    function normalizarTextoFiltro(valor) {
+      return String(valor || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function mapIncidenciaRow(row) {
+      return {
+        odt: row?.[0] || "",
+        fecha: row?.[1] || "",
+        cliente: row?.[3] || "",
+        problema: row?.[4] || "",
+        derivacion: row?.[5] || "",
+        observacion: row?.[6] || "",
+        tecnico: row?.[7] || "",
+        estado: row?.[8] || "Pendiente",
+        acompanante: row?.[10] || "",
+        fechaCierre: row?.[11] || "",
+        prioridad: row?.[12] || "",
+        direccion: row?.[13] || "",
+        obsPendiente: row?.[14] || "",
+        observacionSoporte: row?.[15] || "",
+        observacionServicio: row?.[16] || "",
+        enviosInfo: row?.[18] || { total: 0, claves: [], contactos: [], ultimo_envio: "" },
+        imagenes: []
+      };
+    }
+
+    function esVisibleServicioTecnico(registro) {
+      const derivacion = normalizarTextoFiltro(registro?.derivacion || "");
+      const estado = normalizarTextoFiltro(registro?.estado || "");
+      const esDerivacionST = /^servicio\s+t.*cnico\b/.test(derivacion);
+      const esDerivacionTE = /^t.*cnico\s+externo\b/.test(derivacion) || derivacion.includes("cnico externo");
+      const esFinalizadoSinVT = derivacion === "finalizado sin vt" || estado === "finalizado sin vt";
+      return esDerivacionST || esDerivacionTE || esFinalizadoSinVT;
+    }
+
+    function esOrdenServicioVenta(registro) {
+      return /^[VS]/i.test(String(registro?.odt || "").trim());
+    }
+
+    function llenarDatalist(id, valores) {
+      const dl = document.getElementById(id);
+      dl.innerHTML = "";
+      (valores || []).forEach((v) => {
+        if (!v) return;
+        const o = document.createElement("option");
+        o.value = String(v);
+        dl.appendChild(o);
+      });
+    }
+
+    function llenarSelect(id, valores, placeholder = "Seleccionar...") {
+      const select = document.getElementById(id);
+      select.innerHTML = `<option value="">${placeholder}</option>`;
+      (valores || []).forEach((v) => {
+        if (!v) return;
+        const o = document.createElement("option");
+        o.value = String(v);
+        o.textContent = String(v);
+        select.appendChild(o);
+      });
+    }
+
+    function normalizarValorFiltro(colIndex, valor) {
+      let texto = String(valor || "").trim();
+      if (colIndex === 1) {
+        const partes = texto.split(/[\/\s:]/);
+        if (partes.length >= 3) {
+          const mes = parseInt(partes[1], 10);
+          const anio = partes[2];
+          if (!Number.isNaN(mes) && anio && MESES[mes - 1]) {
+            texto = `${MESES[mes - 1]}/${anio}`;
+          }
+        }
+      }
+      if (colIndex === 8) {
+        texto = texto.split(" - ")[0].trim();
+      }
+      return texto;
+    }
+
+    function renderBotonObsPendiente(odt, valor) {
+      const texto = String(valor || "").trim();
+      if (!texto) return "";
+      return `<button class="btn-ver" type="button" onclick="abrirObsPendiente('${esc(odt)}')">Ver</button>`;
+    }
+
+    function renderBotonContactoCliente(registro, estado) {
+      if (estadoCanonico(estado) !== "En Proceso") return "";
+      if (informacionEnviadaCompleta(registro)) {
+        return `<span class="info-enviada">(Informacion enviada)</span>`;
+      }
+      const pendientes = contactosPendientesInformacion(registro).length;
+      const total = contactosValidosInformacion(registro).length;
+      const label = total > 0 && pendientes < total
+        ? `Enviar información (${pendientes})`
+        : "Enviar información";
+      return `<button class="btn-correo" type="button" onclick="abrirModalContactoCliente('${esc(registro?.odt)}')">${esc(label)}</button>`;
+    }
+
+    function renderTabla() {
+      const tbody = document.getElementById("registrosExistentes");
+      tbody.innerHTML = "";
+
+      incidenciasRaw.forEach((r) => {
+        const estado = estadoCanonico(r.estado);
+        const prioridadEditable = estado === "En Proceso";
+        const correoBtn = renderBotonContactoCliente(r, estado);
+        const imagenBtn = `<button class="btn-imagenes" type="button" onclick="abrirModalImagenesTabla('${esc(r.odt)}')">Imagenes</button>`;
+
+        const tr = document.createElement("tr");
+        tr.dataset.odt = String(r.odt || "");
+        tr.innerHTML = `
+          <td>${esc(r.odt)}</td>
+          <td>${esc(r.fecha)}</td>
+          <td><button class="client-notes-link" type="button" data-client-notes-open="1" data-client-name="${esc(r.cliente)}">${esc(r.cliente || "-")}</button></td>
+          <td>${esc(r.problema)}</td>
+          <td class="editable-observacion celda-observacion" data-odt="${esc(r.odt)}" title="Doble clic para editar">${formatearObservacionHTML(r.observacion, r.observacionSoporte, r.observacionServicio)}</td>
+          <td class="editable-derivacion" data-odt="${esc(r.odt)}" title="Doble clic para editar">${esc(r.derivacion)}</td>
+          <td class="editable-tecnico" data-odt="${esc(r.odt)}" title="Doble clic para asignar técnico">${esc(r.tecnico)}</td>
+          <td class="editable-acompanante" data-odt="${esc(r.odt)}" title="Doble clic para asignar acompañante">${esc(r.acompanante)}</td>
+          <td>${esc(estado)}</td>
+          <td>${esc(r.fechaCierre)}</td>
+          <td class="${prioridadEditable ? "editable-prioridad" : ""}" data-odt="${esc(r.odt)}" title="${prioridadEditable ? "Doble clic para editar prioridad" : ""}">${esc(r.prioridad)}</td>
+          <td>${correoBtn}</td>
+          <td>${esc(r.direccion)}</td>
+          <td>${renderBotonObsPendiente(r.odt, r.obsPendiente)}</td>
+          <td>${imagenBtn}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      agregarFiltrosSelect();
+      activarEdicionCeldas();
+    }
+
+    function activarEdicionCeldas() {
+      const tbody = document.getElementById("registrosExistentes");
+      tbody.querySelectorAll("td.editable-derivacion").forEach((td) => {
+        td.ondblclick = () => iniciarEdicionDerivacion(td);
+      });
+      tbody.querySelectorAll("td.editable-observacion").forEach((td) => {
+        td.ondblclick = () => iniciarEdicionObservacion(td);
+      });
+      tbody.querySelectorAll("td.editable-tecnico").forEach((td) => {
+        td.ondblclick = () => iniciarEdicionTecnico(td);
+      });
+      tbody.querySelectorAll("td.editable-acompanante").forEach((td) => {
+        td.ondblclick = () => iniciarEdicionAcompanante(td);
+      });
+      tbody.querySelectorAll("td.editable-prioridad").forEach((td) => {
+        td.ondblclick = () => iniciarEdicionPrioridad(td);
+      });
+    }
+
+    async function guardarEdicionTabla(payload) {
+      const token = obtenerTokenActivo();
+      if (!token) {
+        throw new Error("Sesión no encontrada. Vuelve a iniciar sesión.");
+      }
+      return api("/api/incidencias/editar-tabla", {
+        method: "PATCH",
+        body: JSON.stringify({ token, ...payload })
+      });
+    }
+
+    function abrirModalFinalizadoSoporte(odt) {
+      const modal = document.getElementById("modalFinalizadoSoporte");
+      const odtBox = document.getElementById("finalizarSoporteOdt");
+      const ta = document.getElementById("finalizarSoporteObservacion");
+      if (odtBox) odtBox.textContent = `ODT ${odt}`;
+      if (ta) ta.value = "";
+      modal.style.display = "block";
+      setTimeout(() => ta?.focus(), 40);
+      return new Promise((resolve) => {
+        resolverFinalizadoSoporte = resolve;
+      });
+    }
+
+    function cerrarModalFinalizadoSoporte(resultado) {
+      const modal = document.getElementById("modalFinalizadoSoporte");
+      if (modal) modal.style.display = "none";
+      if (resolverFinalizadoSoporte) {
+        resolverFinalizadoSoporte(resultado || { confirmado: false, observacion: "" });
+        resolverFinalizadoSoporte = null;
+      }
+    }
+
+    function cancelarFinalizadoSoporte() {
+      cerrarModalFinalizadoSoporte({ confirmado: false, observacion: "" });
+    }
+
+    function confirmarFinalizadoSoporte() {
+      const ta = document.getElementById("finalizarSoporteObservacion");
+      const texto = String(ta?.value || "").trim();
+      if (!texto) {
+        setMensaje("Debes indicar qué se hizo para finalizar.", false);
+        ta?.focus();
+        return;
+      }
+      cerrarModalFinalizadoSoporte({ confirmado: true, observacion: texto });
+    }
+
+    function normalizarTextoComparable(valor) {
+      return String(valor || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function buscarCandidatasRepetida(odtActual) {
+      const actual = getRegistroPorOdt(odtActual);
+      if (!actual) return [];
+      const sucursalNorm = normalizarTextoComparable(actual.cliente);
+      const problemaNorm = normalizarTextoComparable(actual.problema);
+      return (incidenciasRaw || []).filter((item) => {
+        if (String(item?.odt || "") === String(odtActual || "")) return false;
+        const estado = estadoCanonico(item?.estado || "");
+        if (!(estado === "Pendiente" || estado === "En Proceso")) return false;
+        if (normalizarTextoComparable(item?.cliente) !== sucursalNorm) return false;
+        return normalizarTextoComparable(item?.problema) === problemaNorm;
+      });
+    }
+
+    function construirEspecificacionCompletaRepetida(item) {
+      const partes = [];
+      const problema = String(item?.problema || "").trim();
+      const op = String(item?.observacion || "").trim();
+      const sop = String(item?.observacionSoporte || "").trim();
+      const srv = String(item?.observacionServicio || "").trim();
+
+      if (problema) partes.push(`Problema: ${problema}`);
+      if (op) partes.push(`Registro Operaciones:\n${op}`);
+      if (sop) partes.push(`Gestión Soporte:\n${sop}`);
+      if (srv) partes.push(`Gestión Servicio Técnico:\n${srv}`);
+
+      return partes.join("\n\n").trim();
+    }
+
+    function cerrarModalRepetida(resultado) {
+      const modal = document.getElementById("modalRepetida");
+      if (modal) modal.style.display = "none";
+      if (resolverRepetida) {
+        resolverRepetida(resultado || { confirmado: false, odtRef: "" });
+        resolverRepetida = null;
+      }
+      odtRepetidaSeleccionada = "";
+    }
+
+    function cancelarModalRepetida() {
+      cerrarModalRepetida({ confirmado: false, odtRef: "" });
+    }
+
+    function confirmarModalRepetida() {
+      if (!odtRepetidaSeleccionada) {
+        setMensaje("Debes seleccionar la ODT con la que se repite.", false);
+        return;
+      }
+      cerrarModalRepetida({ confirmado: true, odtRef: odtRepetidaSeleccionada });
+    }
+
+    function abrirModalRepetida(odtActual) {
+      const modal = document.getElementById("modalRepetida");
+      const tagOdt = document.getElementById("repetidaOdtActual");
+      const sinOpciones = document.getElementById("repetidaSinOpciones");
+      const lista = document.getElementById("repetidaLista");
+      const btnConfirmar = document.getElementById("btnConfirmarRepetida");
+
+      if (tagOdt) tagOdt.textContent = `ODT ${odtActual}`;
+      odtRepetidaSeleccionada = "";
+      if (lista) lista.innerHTML = "";
+
+      const candidatas = buscarCandidatasRepetida(odtActual);
+      if (!candidatas.length) {
+        if (sinOpciones) sinOpciones.style.display = "block";
+        if (btnConfirmar) btnConfirmar.disabled = true;
+      } else {
+        if (sinOpciones) sinOpciones.style.display = "none";
+        if (btnConfirmar) btnConfirmar.disabled = false;
+        candidatas.forEach((item, idx) => {
+          const odtRef = String(item?.odt || "").trim();
+          if (!odtRef) return;
+          const row = document.createElement("label");
+          row.className = "repetida-item";
+          row.innerHTML = `
+            <input type="radio" name="odtRepetidaRef" value="${esc(odtRef)}" ${idx === 0 ? "checked" : ""}>
+            <div class="repetida-item-main">
+              <div class="repetida-item-title">ODT ${esc(odtRef)} · ${esc(estadoCanonico(item?.estado || ""))}</div>
+              <div class="repetida-item-sub">${esc(item?.cliente || "")} · ${esc(item?.problema || "")} · ${esc(item?.fecha || "")}</div>
+            </div>
+          `;
+          row.innerHTML = row.innerHTML.replace(/\u00C2\u00B7/g, "|");
+          const detalleCompleto = construirEspecificacionCompletaRepetida(item);
+          if (detalleCompleto) {
+            const box = document.createElement("div");
+            box.className = "repetida-item-detalle";
+            box.innerHTML = esc(detalleCompleto).replace(/\n/g, "<br>");
+            row.querySelector(".repetida-item-main")?.appendChild(box);
+          }
+          const radio = row.querySelector('input[type="radio"]');
+          if (radio && idx === 0) odtRepetidaSeleccionada = radio.value;
+          radio?.addEventListener("change", () => {
+            const seleccionado = lista?.querySelector('input[name="odtRepetidaRef"]:checked');
+            odtRepetidaSeleccionada = String(seleccionado?.value || "");
+          });
+          lista?.appendChild(row);
+        });
+      }
+
+      modal.style.display = "block";
+      return new Promise((resolve) => {
+        resolverRepetida = resolve;
+      });
+    }
+
+    function getRegistroPorOdt(odt) {
+      return incidenciasRaw.find((x) => String(x.odt || "") === String(odt || ""));
+    }
+
+    function getFilaPorOdt(odt) {
+      const key = String(odt || "");
+      return Array.from(document.querySelectorAll("#registrosExistentes tr"))
+        .find((tr) => String(tr.dataset.odt || "") === key) || null;
+    }
+
+    function actualizarFilaLocalAsignacion(odt, cambios = {}) {
+      const key = String(odt || "");
+      const registro = incidenciasRaw.find((x) => String(x.odt || "") === key);
+      if (registro) {
+        if (Object.prototype.hasOwnProperty.call(cambios, "tecnico")) {
+          registro.tecnico = cambios.tecnico || "";
+        }
+        if (Object.prototype.hasOwnProperty.call(cambios, "acompanante")) {
+          registro.acompanante = cambios.acompanante || "";
+        }
+        if (Object.prototype.hasOwnProperty.call(cambios, "estado")) {
+          registro.estado = estadoCanonico(cambios.estado || "En Proceso");
+        }
+        if (Object.prototype.hasOwnProperty.call(cambios, "derivacion")) {
+          registro.derivacion = cambios.derivacion || "";
+        }
+      }
+
+      const fila = getFilaPorOdt(key);
+      if (!fila) return;
+
+      if (Object.prototype.hasOwnProperty.call(cambios, "tecnico") && fila.children[6]) {
+        fila.children[6].textContent = cambios.tecnico || "";
+      }
+      if (Object.prototype.hasOwnProperty.call(cambios, "acompanante") && fila.children[7]) {
+        fila.children[7].textContent = cambios.acompanante || "";
+      }
+      if (Object.prototype.hasOwnProperty.call(cambios, "derivacion") && fila.children[5]) {
+        fila.children[5].textContent = cambios.derivacion || "";
+      }
+      if (Object.prototype.hasOwnProperty.call(cambios, "estado") && fila.children[8]) {
+        const estadoActualizado = estadoCanonico(cambios.estado || "En Proceso");
+        fila.children[8].textContent = estadoActualizado;
+        if (fila.children[10]) {
+          const prioridadCell = fila.children[10];
+          const prioridadEditable = estadoActualizado === "En Proceso";
+          prioridadCell.classList.toggle("editable-prioridad", prioridadEditable);
+          prioridadCell.title = prioridadEditable ? "Doble clic para editar prioridad" : "";
+          prioridadCell.ondblclick = prioridadEditable ? () => iniciarEdicionPrioridad(prioridadCell) : null;
+        }
+        if (fila.children[11]) {
+          fila.children[11].innerHTML = renderBotonContactoCliente(key, estadoActualizado);
+        }
+      }
+    }
+
+    function programarRecargaDiferida() {
+      if (recargaDiferidaTimer) {
+        clearTimeout(recargaDiferidaTimer);
+      }
+      recargaDiferidaTimer = setTimeout(async () => {
+        recargaDiferidaTimer = null;
+        try {
+          await cargarIncidencias();
+        } catch (err) {
+          setMensaje(`Error recargando tabla: ${err.message}`, false);
+        }
+      }, RECARGA_DIFERIDA_MS);
+    }
+
+    function crearSelectTecnico(original, permitirVacio = false) {
+      const select = document.createElement("select");
+      let opciones = filtrarTecnicosAsignables(listasGlobales.tecnicos || []);
+      if (!opciones.length) {
+        opciones = filtrarTecnicosAsignables(
+          (incidenciasRaw || []).flatMap((r) => [r?.tecnico, r?.acompanante])
+        );
+      }
+      select.innerHTML = `<option value="">${permitirVacio ? "-- Sin asignar --" : "-- Seleccionar --"}</option>`;
+      opciones.forEach((nombre) => {
+        const o = document.createElement("option");
+        o.value = nombre;
+        o.textContent = nombre;
+        if (String(original || "").trim() === nombre) o.selected = true;
+        select.appendChild(o);
+      });
+      return select;
+    }
+
+    function crearSelectPrioridad(original) {
+      const select = document.createElement("select");
+      const originalLimpio = String(original || "").trim();
+      select.innerHTML = `<option value="">-- Sin prioridad --</option>`;
+      for (let i = 1; i <= 10; i++) {
+        const o = document.createElement("option");
+        o.value = String(i);
+        o.textContent = String(i);
+        if (originalLimpio === String(i)) o.selected = true;
+        select.appendChild(o);
+      }
+      if (originalLimpio && !Array.from(select.options).some((opt) => opt.value === originalLimpio)) {
+        const actual = document.createElement("option");
+        actual.value = originalLimpio;
+        actual.textContent = `${originalLimpio} (actual)`;
+        actual.selected = true;
+        select.appendChild(actual);
+      }
+      return select;
+    }
+
+    function iniciarEdicionPrioridad(td) {
+      if (!td || td.querySelector("select")) return;
+      const odt = td.dataset.odt || td.parentElement?.dataset?.odt || "";
+      const registro = getRegistroPorOdt(odt);
+      const estado = estadoCanonico(registro?.estado || "");
+      if (estado !== "En Proceso") {
+        setMensaje("Solo puedes editar la prioridad de una ODT En Proceso.", false);
+        return;
+      }
+
+      const original = String(registro?.prioridad || td.textContent || "").trim();
+      const select = crearSelectPrioridad(original);
+      td.innerHTML = "";
+      td.appendChild(select);
+      select.focus();
+
+      let guardando = false;
+      let cerrado = false;
+      const cerrar = (valor) => {
+        cerrado = true;
+        td.textContent = valor || "";
+      };
+      const cancelar = () => { cerrar(original); };
+      const guardar = async () => {
+        if (guardando || cerrado) return;
+        const nuevo = select.value.trim();
+        if (nuevo === original) {
+          cerrar(original);
+          return;
+        }
+        try {
+          guardando = true;
+          cerrar(nuevo);
+          await guardarEdicionTabla({ odt, prioridad: nuevo });
+          if (registro) registro.prioridad = nuevo;
+          setMensaje("Prioridad actualizada.");
+        } catch (err) {
+          cerrar(original);
+          setMensaje(`Error actualizando prioridad: ${err.message}`, false);
+        } finally {
+          guardando = false;
+        }
+      };
+      select.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") cancelar();
+        if (e.key === "Enter") {
+          e.preventDefault();
+          guardar();
+        }
+      });
+      select.addEventListener("change", guardar);
+      select.addEventListener("blur", () => {
+        setTimeout(() => {
+          if (!guardando && !cerrado && td.contains(select)) cancelar();
+        }, 120);
+      });
+    }
+
+    async function guardarDerivacionTecnico(odt, tecnico, acompanante, derivacionActual = "Servicio Técnico") {
+      return api("/api/incidencias/derivar-tecnico", {
+        method: "POST",
+        body: JSON.stringify({
+          odt,
+          tecnico,
+          acompanante: acompanante || "",
+          derivacion: derivacionActual || "Servicio Técnico"
+        })
+      });
+    }
+
+    function iniciarEdicionTecnico(td) {
+      if (!td || td.querySelector("select")) return;
+      const odt = td.dataset.odt || td.parentElement?.dataset?.odt || "";
+      const r = getRegistroPorOdt(odt);
+      const original = String(r?.tecnico || td.textContent || "").trim();
+      const acompananteActual = String(r?.acompanante || "").trim();
+      const derivacionActual = String(r?.derivacion || "Servicio Técnico").trim();
+
+      const select = crearSelectTecnico(original, false);
+      td.innerHTML = "";
+      td.appendChild(select);
+      select.focus();
+
+      const cancelar = () => { td.textContent = original; };
+      select.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") cancelar();
+      });
+      select.addEventListener("blur", async () => {
+        const nuevo = select.value.trim();
+        if (!nuevo || nuevo === original) {
+          td.textContent = original;
+          return;
+        }
+        try {
+          td.textContent = nuevo;
+          await guardarDerivacionTecnico(odt, nuevo, acompananteActual, derivacionActual || "Servicio Técnico");
+          setMensaje("Técnico derivado correctamente.");
+          await cargarIncidencias();
+        } catch (err) {
+          td.textContent = original;
+          setMensaje(`Error derivando técnico: ${err.message}`, false);
+        }
+      });
+    }
+
+    function iniciarEdicionAcompanante(td) {
+      if (!td || td.querySelector("select")) return;
+      const odt = td.dataset.odt || td.parentElement?.dataset?.odt || "";
+      const r = getRegistroPorOdt(odt);
+      const original = String(r?.acompanante || td.textContent || "").trim();
+      const tecnicoActual = String(r?.tecnico || "").trim();
+      const derivacionActual = String(r?.derivacion || "Servicio Técnico").trim();
+
+      if (!tecnicoActual) {
+        setMensaje("Primero asigna un técnico antes de agregar acompañante.", false);
+        return;
+      }
+
+      const select = crearSelectTecnico(original, true);
+      td.innerHTML = "";
+      td.appendChild(select);
+      select.focus();
+
+      const cancelar = () => { td.textContent = original; };
+      select.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") cancelar();
+      });
+      select.addEventListener("blur", async () => {
+        const nuevo = select.value.trim();
+        if (nuevo === original) {
+          td.textContent = original;
+          return;
+        }
+        try {
+          td.textContent = nuevo;
+          await guardarDerivacionTecnico(odt, tecnicoActual, nuevo, derivacionActual || "Servicio Técnico");
+          setMensaje("Acompañante actualizado correctamente.");
+          await cargarIncidencias();
+        } catch (err) {
+          td.textContent = original;
+          setMensaje(`Error actualizando acompañante: ${err.message}`, false);
+        }
+      });
+    }
+
+    // Sobrescribe flujo de asignacion para evitar que la ODT desaparezca de inmediato:
+    // al asignar tecnico/acompanante se marca En Proceso en UI y se recarga en 15s.
+    function iniciarEdicionTecnico(td) {
+      if (!td || td.querySelector("select")) return;
+      const odt = td.dataset.odt || td.parentElement?.dataset?.odt || "";
+      const r = getRegistroPorOdt(odt);
+      const original = String(r?.tecnico || td.textContent || "").trim();
+      const acompananteActual = String(r?.acompanante || "").trim();
+      const derivacionActual = String(r?.derivacion || "Servicio Técnico").trim();
+
+      const select = crearSelectTecnico(original, false);
+      td.innerHTML = "";
+      td.appendChild(select);
+      select.focus();
+
+      const cancelar = () => { td.textContent = original; };
+      select.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") cancelar();
+      });
+      select.addEventListener("blur", async () => {
+        const nuevo = select.value.trim();
+        if (!nuevo || nuevo === original) {
+          td.textContent = original;
+          return;
+        }
+        try {
+          td.textContent = nuevo;
+          await guardarDerivacionTecnico(odt, nuevo, acompananteActual, derivacionActual || "Servicio Técnico");
+          actualizarFilaLocalAsignacion(odt, {
+            tecnico: nuevo,
+            acompanante: acompananteActual,
+            estado: "En Proceso"
+          });
+          setMensaje("Técnico derivado correctamente. La ODT se actualizará en 15 segundos.");
+          programarRecargaDiferida();
+        } catch (err) {
+          td.textContent = original;
+          setMensaje(`Error derivando técnico: ${err.message}`, false);
+        }
+      });
+    }
+
+    function iniciarEdicionAcompanante(td) {
+      if (!td || td.querySelector("select")) return;
+      const odt = td.dataset.odt || td.parentElement?.dataset?.odt || "";
+      const r = getRegistroPorOdt(odt);
+      const original = String(r?.acompanante || td.textContent || "").trim();
+      const tecnicoActual = String(r?.tecnico || "").trim();
+      const derivacionActual = String(r?.derivacion || "Servicio Técnico").trim();
+
+      if (!tecnicoActual) {
+        setMensaje("Primero asigna un técnico antes de agregar acompañante.", false);
+        return;
+      }
+
+      const select = crearSelectTecnico(original, true);
+      td.innerHTML = "";
+      td.appendChild(select);
+      select.focus();
+
+      const cancelar = () => { td.textContent = original; };
+      select.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") cancelar();
+      });
+      select.addEventListener("blur", async () => {
+        const nuevo = select.value.trim();
+        if (nuevo === original) {
+          td.textContent = original;
+          return;
+        }
+        try {
+          td.textContent = nuevo;
+          await guardarDerivacionTecnico(odt, tecnicoActual, nuevo, derivacionActual || "Servicio Técnico");
+          actualizarFilaLocalAsignacion(odt, {
+            tecnico: tecnicoActual,
+            acompanante: nuevo,
+            estado: "En Proceso"
+          });
+          setMensaje("Acompañante actualizado. La ODT se actualizará en 15 segundos.");
+          programarRecargaDiferida();
+        } catch (err) {
+          td.textContent = original;
+          setMensaje(`Error actualizando acompañante: ${err.message}`, false);
+        }
+      });
+    }
+
+    // Version final del flujo con recarga diferida (15s) y textos ASCII seguros.
+    async function guardarDerivacionTecnicoFlexible(odt, tecnico, acompanante, derivacionActual, estadoObjetivo) {
+      return api("/api/incidencias/derivar-tecnico", {
+        method: "POST",
+        body: JSON.stringify({
+          odt: odt || "",
+          tecnico: tecnico || "",
+          acompanante: acompanante || "",
+          derivacion: derivacionActual || "Servicio Tecnico",
+          estado: estadoObjetivo || (String(tecnico || "").trim() ? "En Proceso" : "Pendiente"),
+        }),
+      });
+    }
+
+    function iniciarEdicionTecnico(td) {
+      if (!td || td.querySelector("select")) return;
+      const odt = td.dataset.odt || td.parentElement?.dataset?.odt || "";
+      const r = getRegistroPorOdt(odt);
+      const original = String(r?.tecnico || td.textContent || "").trim();
+      const acompananteActual = String(r?.acompanante || "").trim();
+      const derivacionActual = String(r?.derivacion || "Servicio Tecnico").trim();
+      const estadoActual = estadoCanonico(r?.estado || "Pendiente");
+
+      // Permite dejar pendiente sin perder la asignacion actual.
+      const select = crearSelectTecnico(original, true);
+      td.innerHTML = "";
+      td.appendChild(select);
+      select.focus();
+
+      const cancelar = () => { td.textContent = original; };
+      select.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") cancelar();
+      });
+      select.addEventListener("blur", async () => {
+        const nuevo = select.value.trim();
+        const mismoTecnico = nuevo === original;
+        const limpiarAsignacion = !nuevo;
+
+        if (mismoTecnico && estadoActual !== "Pendiente") {
+          td.textContent = original;
+          return;
+        }
+        if (limpiarAsignacion && !original && !acompananteActual && estadoActual === "Pendiente") {
+          td.textContent = original;
+          return;
+        }
+
+        const tecnicoObjetivo = limpiarAsignacion ? "" : nuevo;
+        const acompananteObjetivo = limpiarAsignacion ? "" : acompananteActual;
+        const estadoObjetivo = limpiarAsignacion ? "Pendiente" : "En Proceso";
+        const derivacionObjetivo = derivacionActual || "Servicio Tecnico";
+
+        try {
+          td.textContent = tecnicoObjetivo;
+          await guardarDerivacionTecnicoFlexible(
+            odt,
+            tecnicoObjetivo,
+            acompananteObjetivo,
+            derivacionObjetivo,
+            estadoObjetivo
+          );
+          actualizarFilaLocalAsignacion(odt, {
+            tecnico: tecnicoObjetivo,
+            acompanante: acompananteObjetivo,
+            estado: estadoObjetivo,
+            derivacion: derivacionObjetivo,
+          });
+
+          if (limpiarAsignacion) {
+            setMensaje("La ODT quedo pendiente.");
+          } else if (mismoTecnico && estadoActual === "Pendiente") {
+            setMensaje("Tecnico confirmado. La ODT paso a En Proceso.");
+          } else {
+            setMensaje("Tecnico derivado correctamente.");
+          }
+          programarRecargaDiferida();
+        } catch (err) {
+          td.textContent = original;
+          setMensaje(`Error actualizando tecnico: ${err.message}`, false);
+        }
+      });
+    }
+
+    function iniciarEdicionAcompanante(td) {
+      if (!td || td.querySelector("select")) return;
+      const odt = td.dataset.odt || td.parentElement?.dataset?.odt || "";
+      const r = getRegistroPorOdt(odt);
+      const original = String(r?.acompanante || td.textContent || "").trim();
+      const tecnicoActual = String(r?.tecnico || "").trim();
+      const derivacionActual = String(r?.derivacion || "Servicio Tecnico").trim();
+
+      if (!tecnicoActual) {
+        setMensaje("Primero asigna un tecnico antes de agregar acompanante.", false);
+        return;
+      }
+
+      const select = crearSelectTecnico(original, true);
+      td.innerHTML = "";
+      td.appendChild(select);
+      select.focus();
+
+      const cancelar = () => { td.textContent = original; };
+      select.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") cancelar();
+      });
+      select.addEventListener("blur", async () => {
+        const nuevo = select.value.trim();
+        if (nuevo === original) {
+          td.textContent = original;
+          return;
+        }
+        try {
+          td.textContent = nuevo;
+          await guardarDerivacionTecnicoFlexible(
+            odt,
+            tecnicoActual,
+            nuevo,
+            derivacionActual || "Servicio Tecnico",
+            "En Proceso"
+          );
+          actualizarFilaLocalAsignacion(odt, {
+            tecnico: tecnicoActual,
+            acompanante: nuevo,
+            estado: "En Proceso",
+          });
+          setMensaje("Acompanante actualizado.");
+          programarRecargaDiferida();
+        } catch (err) {
+          td.textContent = original;
+          setMensaje(`Error actualizando acompanante: ${err.message}`, false);
+        }
+      });
+    }
+
+    function iniciarEdicionDerivacion(td) {
+      if (!td || td.querySelector("select")) return;
+      const odt = td.dataset.odt || td.parentElement?.dataset?.odt || "";
+      const original = td.textContent.trim();
+
+      const select = document.createElement("select");
+      select.innerHTML = `<option value="">-- Seleccionar --</option>` +
+        DERIVACIONES_EDITABLES.map((v) => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
+
+      const normalizar = (v) => String(v || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
+      const origNorm = normalizar(original);
+      Array.from(select.options).forEach((opt) => {
+        if (normalizar(opt.value) === origNorm) {
+          opt.selected = true;
+        }
+      });
+
+      td.innerHTML = "";
+      td.appendChild(select);
+      select.focus();
+
+      const cancelar = () => { td.textContent = original; };
+      select.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") cancelar();
+      });
+      select.addEventListener("blur", async () => {
+        const nuevo = select.value.trim();
+        if (!nuevo || nuevo === original) {
+          td.textContent = original;
+          return;
+        }
+        try {
+          const esFinalizadoSoporte = normalizar(nuevo) === normalizar("Finalizado por Soporte");
+          const esRepetida = normalizar(nuevo) === normalizar("Repetida");
+          let payload = { odt, derivacion: nuevo };
+
+          if (esFinalizadoSoporte) {
+            const resp = await abrirModalFinalizadoSoporte(odt);
+            if (!resp?.confirmado) {
+              td.textContent = original;
+              setMensaje("Finalizacion por soporte cancelada.", false);
+              return;
+            }
+            payload = { ...payload, observacionFinal: resp.observacion };
+          }
+          if (esRepetida) {
+            const respRep = await abrirModalRepetida(odt);
+            if (!respRep?.confirmado || !String(respRep?.odtRef || "").trim()) {
+              td.textContent = original;
+              setMensaje("Marcado de ODT repetida cancelado.", false);
+              return;
+            }
+            const odtRef = String(respRep.odtRef).trim();
+            payload = {
+              ...payload,
+              observacionServicio: `ODT con la que se repite ${odtRef}`,
+              repetidaOdtRef: odtRef
+            };
+          }
+
+          td.textContent = nuevo;
+          await guardarEdicionTabla(payload);
+          if (esFinalizadoSoporte) {
+            setMensaje("ODT finalizada por soporte.");
+          } else if (esRepetida) {
+            setMensaje("ODT marcada como repetida.");
+          } else {
+            setMensaje("Derivacion actualizada.");
+          }
+          await cargarIncidencias();
+        } catch (err) {
+          td.textContent = original;
+          setMensaje(`Error actualizando derivacion: ${err.message}`, false);
+        }
+      });
+    }
+
+    function _stParseObsEntries(raw) {
+      const text = (raw || "").replace(/\\n/g, "\n").replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
+      if (!text) return [];
+      const entries = [];
+      const lineRegex = /^\[([^\]]+)\]\s*(.*)$/;
+      const lines = text.split("\n");
+      let current = null;
+      for (const line of lines) {
+        const m = line.match(lineRegex);
+        if (m) {
+          if (current) entries.push(current);
+          const meta = m[1].trim();
+          const dashIdx = meta.lastIndexOf(" - ");
+          const author = dashIdx >= 0 ? meta.slice(0, dashIdx).trim() : meta;
+          const date   = dashIdx >= 0 ? meta.slice(dashIdx + 3).trim() : "";
+          current = { author, date, lines: [m[2].trim()] };
+        } else if (current) {
+          current.lines.push(line.trim());
+        } else {
+          entries.push({ author: "", date: "", lines: [line.trim()] });
+        }
+      }
+      if (current) entries.push(current);
+      return entries.filter((e) => e.lines.some((l) => l));
+    }
+
+    function _stRenderObsHistory(registro) {
+      const hist = document.getElementById("stObsEditorHistory");
+      if (!hist) return;
+      hist.innerHTML = "";
+      const sections = [
+        { label: "Registro Operaciones",      value: registro?.observacion || "",        color: "#0e4f2d" },
+        { label: "Gesti\u00f3n Soporte",            value: registro?.observacionSoporte || "", color: "#1d4ed8" },
+        { label: "Gesti\u00f3n Servicio T\u00e9cnico",   value: registro?.observacionServicio || "", color: "#7c3aed" },
+      ];
+      let hasContent = false;
+      sections.forEach(({ label, value, color }) => {
+        const entries = _stParseObsEntries(value);
+        if (!entries.length) return;
+        hasContent = true;
+        const section = document.createElement("div");
+        section.style.cssText = "display:flex;flex-direction:column;gap:6px;";
+        const title = document.createElement("div");
+        title.style.cssText = `font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:${color};margin-bottom:2px;`;
+        title.textContent = label;
+        section.appendChild(title);
+        entries.forEach(({ author, date, lines }) => {
+          const card = document.createElement("div");
+          card.style.cssText = "background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:8px 12px;";
+          if (author) {
+            const meta = document.createElement("div");
+            meta.style.cssText = "display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap;";
+            const letter = author.trim().charAt(0).toUpperCase();
+            meta.innerHTML = `
+              <span style="width:22px;height:22px;border-radius:50%;background:${color};color:#fff;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">${esc(letter)}</span>
+              <span style="font-size:12px;font-weight:600;color:#1e293b;">${esc(author)}</span>
+              ${date ? `<span style="font-size:11px;color:#9ca3af;margin-left:auto;">${esc(date)}</span>` : ""}
+            `;
+            card.appendChild(meta);
+          }
+          const body = document.createElement("div");
+          body.style.cssText = "font-size:13px;color:#374151;line-height:1.55;white-space:pre-wrap;";
+          body.textContent = lines.filter(Boolean).join("\n");
+          card.appendChild(body);
+          section.appendChild(card);
+        });
+        hist.appendChild(section);
+      });
+      if (!hasContent) {
+        hist.innerHTML = '<p style="margin:0;font-size:13px;color:#9ca3af;font-style:italic;">Sin observaciones registradas.</p>';
+      }
+    }
+
+    let _stObsCtx = null;
+    function _stOpenObsModal(td, odt, registro) {
+      _stObsCtx = { td, odt, registro };
+      const modal = document.getElementById("stObsEditorModal");
+      const odtLabel = document.getElementById("stObsEditorOdt");
+      const input = document.getElementById("stObsEditorInput");
+      if (odtLabel) odtLabel.textContent = odt || "";
+      if (input) input.value = "";
+      _stRenderObsHistory(registro);
+      modal.style.display = "flex";
+      setTimeout(() => { if (input) input.focus(); }, 50);
+    }
+
+    function _stCloseObsModal() {
+      const modal = document.getElementById("stObsEditorModal");
+      if (modal) modal.style.display = "none";
+      _stObsCtx = null;
+    }
+
+    async function _stSaveObsModal() {
+      if (!_stObsCtx) return;
+      const input = document.getElementById("stObsEditorInput");
+      const nota = (input ? input.value : "").trim();
+      const { td, odt, registro } = _stObsCtx;
+      _stCloseObsModal();
+      if (!nota) return;
+      const observacionInicial = String(registro?.observacion || "").trim();
+      const originalSoporte = String(registro?.observacionSoporte || "").trim();
+      const originalServicio = String(registro?.observacionServicio || "").trim();
+      try {
+        const res = await guardarEdicionTabla({ odt, observacionServicio: nota });
+        const obsServicio = res?.observacion_servicio || originalServicio;
+        td.innerHTML = formatearObservacionHTML(observacionInicial, originalSoporte, obsServicio);
+        setMensaje("Gesti\u00f3n Servicio T\u00e9cnico actualizada.");
+        await cargarIncidencias();
+      } catch (err) {
+        td.innerHTML = formatearObservacionHTML(observacionInicial, originalSoporte, originalServicio);
+        setMensaje(`Error: ${err.message}`, false);
+      }
+    }
+
+    function iniciarEdicionObservacion(td) {
+      if (!td) return;
+      const odt = td.dataset.odt || td.parentElement?.dataset?.odt || "";
+      const registro = incidenciasRaw.find((x) => String(x.odt) === String(odt)) || {};
+      _stOpenObsModal(td, odt, registro);
+    }
+
+    function crearSelectFiltro(colIndex) {
+      const select = document.createElement("select");
+      select.dataset.colIndex = String(colIndex);
+
+      const valores = new Set();
+      let hayVacios = false;
+
+      document.querySelectorAll("#registrosExistentes tr").forEach((fila) => {
+        const celda = fila.children[colIndex];
+        if (!celda) return;
+        const texto = normalizarValorFiltro(colIndex, celda.textContent);
+        if (!texto) {
+          hayVacios = true;
+        } else {
+          valores.add(texto);
+        }
+      });
+
+      if (colIndex === 6 || colIndex === 7) {
+        valores.clear();
+        let opcionesTecnicos = filtrarTecnicosAsignables(listasGlobales.tecnicos || []);
+        if (!opcionesTecnicos.length) {
+          opcionesTecnicos = filtrarTecnicosAsignables(
+            (incidenciasRaw || []).flatMap((r) => [r?.tecnico, r?.acompanante])
+          );
+        }
+        opcionesTecnicos.forEach((nombre) => valores.add(nombre));
+      }
+
+      const optTodos = document.createElement("option");
+      optTodos.value = "";
+      optTodos.textContent = "Todos";
+      select.appendChild(optTodos);
+
+      if ((colIndex === 6 || colIndex === 7) && hayVacios) {
+        const optVacio = document.createElement("option");
+        optVacio.value = "__VACIO__";
+        optVacio.textContent = "Vacio";
+        select.appendChild(optVacio);
+      }
+
+      Array.from(valores).sort().forEach((valor) => {
+        const opt = document.createElement("option");
+        opt.value = valor;
+        opt.textContent = valor;
+        select.appendChild(opt);
+      });
+
+      if (colIndex === 8) {
+        const opcionesEstado = Array.from(select.options).map((opt) => String(opt.value || "").trim());
+        if (opcionesEstado.includes("Pendiente")) {
+          select.value = "Pendiente";
+        } else if (opcionesEstado.includes("En Proceso")) {
+          select.value = "En Proceso";
+        } else {
+          select.value = "";
+        }
+      }
+
+      if (colIndex === 1) {
+        const hoy = new Date();
+        const valorMesActual = `${MESES[hoy.getMonth()]}/${hoy.getFullYear()}`;
+        if (Array.from(valores).includes(valorMesActual)) {
+          select.value = valorMesActual;
+        }
+      }
+
+      select.addEventListener("change", aplicarTodosLosFiltros);
+      return select;
+    }
+
+    function agregarFiltrosSelect() {
+      const filaFiltros = document.getElementById("filtros");
+      if (!filaFiltros) return;
+
+      const valoresPrevios = {};
+      document.querySelectorAll("#filtros select").forEach((sel) => {
+        if (sel.dataset.colIndex) valoresPrevios[sel.dataset.colIndex] = sel.value;
+      });
+
+      for (let i = 0; i < filaFiltros.children.length; i++) {
+        filaFiltros.children[i].innerHTML = "";
+      }
+
+      COLUMNAS_FILTRO.forEach((colIndex) => {
+        const celda = filaFiltros.children[colIndex];
+        if (!celda) return;
+        celda.appendChild(crearSelectFiltro(colIndex));
+      });
+
+      document.querySelectorAll("#filtros select").forEach((sel) => {
+        const prev = valoresPrevios[sel.dataset.colIndex];
+        if (prev !== undefined) {
+          const existe = Array.from(sel.options).some((o) => o.value === prev);
+          if (existe) sel.value = prev;
+        }
+      });
+
+      const derivSelect = document.querySelector('#filtros select[data-col-index="5"]');
+      if (derivSelect) {
+        derivSelect.addEventListener("change", function () {
+          if (normalizarTextoFiltro(this.value).includes("tecnico externo")) {
+            const estadoSelect = document.querySelector('#filtros select[data-col-index="8"]');
+            if (estadoSelect) {
+              const opEnProceso = Array.from(estadoSelect.options).find(
+                (o) => normalizarTextoFiltro(o.value).includes("proceso")
+              );
+              if (opEnProceso) estadoSelect.value = opEnProceso.value;
+              aplicarTodosLosFiltros();
+            }
+          }
+        });
+      }
+
+      aplicarTodosLosFiltros();
+    }
+
+    function aplicarTodosLosFiltros() {
+      const filtros = Array.from(document.querySelectorAll("#filtros select")).map((select) => ({
+        colIndex: Number(select.dataset.colIndex),
+        valor: select.value.trim()
+      }));
+
+      document.querySelectorAll("#registrosExistentes tr").forEach((fila) => {
+        let visible = true;
+        for (const filtro of filtros) {
+          const celda = fila.children[filtro.colIndex];
+          if (!celda) continue;
+          const texto = normalizarValorFiltro(filtro.colIndex, celda.textContent);
+
+          if (filtro.valor === "__VACIO__") {
+            if (texto !== "") {
+              visible = false;
+              break;
+            }
+          } else if (filtro.valor && texto !== filtro.valor) {
+            visible = false;
+            break;
+          }
+        }
+        fila.style.display = visible ? "" : "none";
+      });
+    }
+
+    function abrirObsPendiente(odt) {
+      const registro = getRegistroPorOdt(odt);
+      const modal = document.getElementById("modalObsPendiente");
+      const odtBox = document.getElementById("obsPendienteOdt");
+      const cont = document.getElementById("obsPendienteContenido");
+      const autorFallback = String(registro?.tecnico || registro?.acompanante || "Usuario no identificado").trim();
+      const texto = String(registro?.obsPendiente || "")
+        .replace(/\[(\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2})\]/g, `[${autorFallback} - $1]`)
+        .trim();
+
+      odtBox.textContent = `ODT ${odt}`;
+      cont.innerHTML = texto
+        ? formatearLineasObservacion(texto)
+        : '<div class="obs-modal-vacio">No hay observación pendiente registrada.</div>';
+      modal.style.display = "block";
+    }
+
+    function cerrarObsPendiente() {
+      document.getElementById("modalObsPendiente").style.display = "none";
+    }
+
+    function buscarContactosSucursalPorNombre(sucursal) {
+      const objetivo = normalizarTextoComparable(sucursal);
+      if (!objetivo) return [];
+
+      const directo = contactosPorSucursal[sucursal];
+      if (Array.isArray(directo) && directo.length) return directo;
+
+      const keyMatch = Object.keys(contactosPorSucursal || {}).find(
+        (k) => normalizarTextoComparable(k) === objetivo
+      );
+      if (keyMatch && Array.isArray(contactosPorSucursal[keyMatch])) {
+        return contactosPorSucursal[keyMatch];
+      }
+
+      return [];
+    }
+
+    function fechaTablaAInputDate(valor) {
+      const txt = String(valor || "").trim();
+      if (!txt) return "";
+      const m = txt.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?$/);
+      if (!m) return "";
+      const dd = m[1].padStart(2, "0");
+      const mm = m[2].padStart(2, "0");
+      const yyyy = m[3];
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function todayInputDate() {
+      const d = new Date();
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function abrirModalContactoCliente(odt) {
+      const registro = getRegistroPorOdt(odt);
+      if (!registro) {
+        setMensaje(`No se encontro la ODT ${odt}.`, false);
+        return;
+      }
+
+      const modal = document.getElementById("modalContactoCliente");
+      const odtBox = document.getElementById("contactoClienteOdt");
+      const sucursalBox = document.getElementById("contactoClienteSucursal");
+      const resumenBox = document.getElementById("contactoClienteResumen");
+      const fechaInput = document.getElementById("contactoClienteFecha");
+      const lista = document.getElementById("contactoClienteLista");
+      const btnEnviar = document.getElementById("btnEnviarInfoContacto");
+      const seleccionarTodosInput = document.getElementById("contactoClienteSeleccionarTodos");
+      if (!modal || !odtBox || !sucursalBox || !resumenBox || !fechaInput || !lista || !btnEnviar) return;
+      btnEnviar.textContent = "Enviar información";
+
+      const destinos = buscarContactosSucursalPorNombre(registro.cliente);
+      const fechaDefault = fechaTablaAInputDate(registro.fechaCierre) || todayInputDate();
+      contactoClienteSeleccion = {
+        odt: String(registro.odt || ""),
+        sucursal: String(registro.cliente || ""),
+        problema: String(registro.problema || ""),
+        estado: String(registro.estado || ""),
+        observacion: String(registro.observacion || ""),
+        tecnico: String(registro.tecnico || "").trim(),
+        acompanante: String(registro.acompanante || "").trim(),
+        fechaVisita: fechaDefault,
+        enviosInfo: registro.enviosInfo || { total: 0, claves: [], contactos: [], ultimo_envio: "" },
+        destinos: destinos.map((d) => ({
+          nombre: String(d?.nombre || "").trim(),
+          telefono: String(d?.telefono || "").trim(),
+          email: String(d?.email || "").trim(),
+          prioridad: String(d?.prioridad || "").trim(),
+          informado: contactoYaInformado(registro, d),
+          selected: false
+        }))
+      };
+
+      odtBox.textContent = `ODT ${contactoClienteSeleccion.odt}`;
+      sucursalBox.textContent = `Sucursal: ${contactoClienteSeleccion.sucursal || "-"}`;
+      resumenBox.innerHTML = `
+        <div><b>Sucursal:</b> ${esc(contactoClienteSeleccion.sucursal || "-")}</div>
+        <div><b>Equipo:</b> Servicio Tecnico ATC</div>
+        <div><b>Tecnico:</b> ${esc(contactoClienteSeleccion.tecnico || "Por confirmar")}</div>
+        <div><b>Acompanante:</b> ${esc(contactoClienteSeleccion.acompanante || "Sin acompanante")}</div>
+      `;
+      fechaInput.value = contactoClienteSeleccion.fechaVisita || todayInputDate();
+      lista.innerHTML = "";
+      if (seleccionarTodosInput) {
+        seleccionarTodosInput.checked = false;
+        seleccionarTodosInput.indeterminate = false;
+        seleccionarTodosInput.disabled = true;
+        seleccionarTodosInput.onchange = (e) => {
+          aplicarSeleccionTodosContactoCliente(e.target.checked);
+        };
+      }
+
+      if (!contactoClienteSeleccion.destinos.length) {
+        lista.innerHTML = '<div class="obs-modal-vacio">No se encontraron contactos para esta sucursal.</div>';
+        btnEnviar.disabled = true;
+      } else {
+        contactoClienteSeleccion.destinos.forEach((destino, idx) => {
+          const id = `contacto-destino-${idx}`;
+          const informado = !!destino.informado;
+          const row = document.createElement("label");
+          row.className = `contacto-cliente-item${informado ? " contacto-cliente-item-enviado" : ""}`;
+          row.innerHTML = `
+            <input type="checkbox" id="${id}" data-idx="${idx}" ${informado ? "disabled" : ""}>
+            <div class="contacto-cliente-item-main">
+              <div class="contacto-cliente-item-nombre">${esc(destino.nombre || "Contacto sin nombre")}</div>
+              <div class="contacto-cliente-item-meta">Correo: ${esc(destino.email || "-")}</div>
+              <div class="contacto-cliente-item-meta">Telefono: ${esc(destino.telefono || "-")}</div>
+              <div class="contacto-cliente-item-meta">Prioridad: ${esc(destino.prioridad || "-")}</div>
+              ${informado ? '<div class="contacto-cliente-item-status">Informacion enviada</div>' : ""}
+            </div>
+          `;
+          lista.appendChild(row);
+          const chk = row.querySelector('input[type="checkbox"][data-idx]');
+          if (chk) {
+            chk.addEventListener("change", actualizarSeleccionTodosContactoCliente);
+          }
+        });
+        const pendientes = contactoClienteSeleccion.destinos.filter((d) => !d.informado).length;
+        btnEnviar.disabled = pendientes === 0;
+        btnEnviar.textContent = pendientes === 0 ? "Informacion enviada" : "Enviar información";
+        actualizarSeleccionTodosContactoCliente();
+      }
+
+      modal.style.display = "block";
+    }
+
+    function cerrarModalContactoCliente() {
+      const modal = document.getElementById("modalContactoCliente");
+      if (modal) modal.style.display = "none";
+      const seleccionarTodosInput = document.getElementById("contactoClienteSeleccionarTodos");
+      if (seleccionarTodosInput) {
+        seleccionarTodosInput.checked = false;
+        seleccionarTodosInput.indeterminate = false;
+        seleccionarTodosInput.disabled = true;
+        seleccionarTodosInput.onchange = null;
+      }
+      contactoClienteSeleccion = {
+        odt: "",
+        sucursal: "",
+        problema: "",
+        estado: "",
+        observacion: "",
+        tecnico: "",
+        acompanante: "",
+        fechaVisita: "",
+        enviosInfo: { total: 0, claves: [], contactos: [], ultimo_envio: "" },
+        destinos: []
+      };
+    }
+
+    function normalizarTelefonoParaWhatsapp(valor) {
+      let digits = String(valor || "").replace(/\D+/g, "");
+      if (!digits) return "";
+      if (digits.startsWith("00")) digits = digits.slice(2);
+      if (digits.startsWith("56")) return digits;
+      if (digits.length === 9) return `56${digits}`;
+      return digits;
+    }
+
+    function construirMensajeInformacionCliente() {
+      const odt = String(contactoClienteSeleccion.odt || "").trim();
+      const sucursal = String(contactoClienteSeleccion.sucursal || "").trim();
+      const problema = String(contactoClienteSeleccion.problema || "").trim();
+      return [
+        `ODT ${odt}`,
+        `Sucursal: ${sucursal || "-"}`,
+        `Problema: ${problema || "-"}`,
+        "ATC - Incidencias Servicio Tecnico"
+      ].join("\n");
+    }
+
+    function actualizarSeleccionTodosContactoCliente() {
+      const modal = document.getElementById("modalContactoCliente");
+      const chkTodos = document.getElementById("contactoClienteSeleccionarTodos");
+      if (!modal || !chkTodos) return;
+
+      const checks = Array.from(modal.querySelectorAll('input[type="checkbox"][data-idx]'))
+        .filter((chk) => !chk.disabled);
+      if (!checks.length) {
+        chkTodos.checked = false;
+        chkTodos.indeterminate = false;
+        chkTodos.disabled = true;
+        return;
+      }
+
+      const marcados = checks.filter((chk) => chk.checked).length;
+      chkTodos.disabled = false;
+      chkTodos.checked = marcados === checks.length;
+      chkTodos.indeterminate = marcados > 0 && marcados < checks.length;
+    }
+
+    function aplicarSeleccionTodosContactoCliente(checked) {
+      const modal = document.getElementById("modalContactoCliente");
+      if (!modal) return;
+
+      const checks = Array.from(modal.querySelectorAll('input[type="checkbox"][data-idx]'))
+        .filter((chk) => !chk.disabled);
+      checks.forEach((chk) => {
+        chk.checked = !!checked;
+      });
+      actualizarSeleccionTodosContactoCliente();
+    }
+
+    async function enviarInformacionContactoCliente() {
+      const modal = document.getElementById("modalContactoCliente");
+      const btnEnviar = document.getElementById("btnEnviarInfoContacto");
+      if (!modal || !btnEnviar) return;
+
+      const checks = Array.from(modal.querySelectorAll('input[type="checkbox"][data-idx]'));
+      const seleccionados = checks
+        .filter((chk) => chk.checked)
+        .map((chk) => Number(chk.dataset.idx))
+        .filter((idx) => Number.isInteger(idx) && idx >= 0)
+        .map((idx) => contactoClienteSeleccion.destinos[idx])
+        .filter(Boolean)
+        .map((d) => ({
+          nombre: String(d.nombre || "").trim(),
+          telefono: String(d.telefono || "").trim(),
+          email: String(d.email || "").trim(),
+          prioridad: String(d.prioridad || "").trim()
+        }))
+        .filter((d) => d.email || d.telefono);
+
+      if (!seleccionados.length) {
+        setMensaje("Selecciona al menos un contacto con correo o telefono.", false);
+        return;
+      }
+
+      const emails = Array.from(
+        new Set(seleccionados.map((d) => String(d.email || "").trim()).filter(Boolean))
+      );
+      if (!emails.length) {
+        setMensaje("Por ahora solo esta habilitado el envio por correo. Selecciona al menos un contacto con email.", false);
+        return;
+      }
+      const pendientesAntes = contactoClienteSeleccion.destinos
+        .filter((d) => !d.informado)
+        .filter((d) => String(d.email || "").trim() || String(d.telefono || "").trim())
+        .length;
+      const seleccionCompletaPendientes = pendientesAntes > 0 && seleccionados.length >= pendientesAntes;
+
+      btnEnviar.disabled = true;
+      const textoOriginal = btnEnviar.textContent;
+      btnEnviar.textContent = "Enviando...";
+      try {
+        const fechaInput = document.getElementById("contactoClienteFecha");
+        const fechaVisita = String(fechaInput?.value || "").trim();
+        if (!fechaVisita) {
+          setMensaje("Debes indicar la fecha programada de visita.", false);
+          return;
+        }
+
+        const token = obtenerTokenActivo() || "";
+        const payload = {
+          token,
+          odt: contactoClienteSeleccion.odt,
+          sucursal: contactoClienteSeleccion.sucursal,
+          problema: contactoClienteSeleccion.problema,
+          estado: contactoClienteSeleccion.estado,
+          observacion: contactoClienteSeleccion.observacion,
+          tecnico: contactoClienteSeleccion.tecnico,
+          acompanante: contactoClienteSeleccion.acompanante,
+          fecha_visita: fechaVisita,
+          destinos: seleccionados
+        };
+        const resp = await api("/api/contacto-cliente/enviar-info", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+
+        cerrarModalContactoCliente();
+        await cargarIncidencias();
+        const enviados = Number(resp?.emails_enviados || 0);
+        const omitidos = Number(resp?.omitidos || 0);
+        const msgBase = seleccionCompletaPendientes
+          ? "Informacion enviada."
+          : `Informacion enviada automaticamente. Destinos enviados: ${resp?.destinos || seleccionados.length}. Correos enviados: ${enviados}.`;
+        setMensaje(omitidos > 0 ? `${msgBase} Omitidos por envio previo: ${omitidos}.` : msgBase);
+        if (resp?.warning) {
+          setMensaje(
+            `Informacion enviada con advertencias. Correos enviados: ${enviados}. Detalle: ${resp.warning}`,
+            false
+          );
+        }
+      } catch (err) {
+        setMensaje(`Error enviando informacion: ${err.message}`, false);
+      } finally {
+        btnEnviar.disabled = false;
+        btnEnviar.textContent = textoOriginal;
+      }
+    }
+
+    function accionNoImplementada(tipo, odt) {
+      if (tipo === "correo") {
+        setMensaje(`Envio de correo para ${odt} aun no implementado en esta version.`, false);
+      } else {
+        setMensaje(`Modulo de imagenes para ${odt} aun no implementado en esta version.`, false);
+      }
+    }
+
+    function resetEstadoImagenesTabla() {
+      imagenesTablaOdtActual = "";
+      imagenesTablaExistentes = [];
+      imagenesTablaPendientes = [];
+      imagenesTablaSubiendo = false;
+      firmaUltimoPegadoTabla = "";
+      tsUltimoPegadoTabla = 0;
+    }
+
+    function firmaArchivoTabla(file) {
+      return `${file.name}__${file.size}__${file.type}`;
+    }
+
+    function renderImagenesTablaLista() {
+      const lista = document.getElementById("tablaImagenLista");
+      const counter = document.getElementById("tablaImagenCounter");
+      const btnSubir = document.getElementById("btnSubirImagenesTabla");
+      const input = document.getElementById("tablaImagenFileInput");
+
+      const total = imagenesTablaExistentes.length + imagenesTablaPendientes.length;
+      if (counter) counter.textContent = `${total}/3`;
+
+      if (lista) {
+        const bloques = [];
+        imagenesTablaExistentes.forEach((url, i) => {
+          bloques.push(`
+            <div class="tabla-imagen-item">
+              <a href="${esc(url)}" target="_blank" rel="noopener noreferrer">Imagen ${i + 1}</a>
+              <span class="tabla-imagen-tag">Guardada</span>
+              <span></span>
+            </div>
+          `);
+        });
+
+        imagenesTablaPendientes.forEach((file, idx) => {
+          bloques.push(`
+            <div class="tabla-imagen-item">
+              <span>${esc(file.name)}</span>
+              <span class="tabla-imagen-tag">Imagen ${imagenesTablaExistentes.length + idx + 1}</span>
+              <button type="button" class="btn-tabla-imagen-remove" onclick="quitarImagenPendienteTabla(${idx})">Quitar</button>
+            </div>
+          `);
+        });
+
+        if (!bloques.length) {
+          lista.innerHTML = `<div class="tabla-imagen-vacio">Haz clic aqui y pega la captura, o usa "Adjuntar archivo".</div>`;
+        } else {
+          lista.innerHTML = bloques.join("");
+        }
+      }
+
+      if (btnSubir) {
+        const habilitado = !imagenesTablaSubiendo && imagenesTablaPendientes.length > 0;
+        btnSubir.disabled = !habilitado;
+        btnSubir.textContent = imagenesTablaSubiendo ? "Subiendo..." : "Subir";
+      }
+
+      if (input) {
+        const sinEspacio = total >= 3;
+        input.disabled = sinEspacio || imagenesTablaSubiendo;
+      }
+    }
+
+    function agregarArchivoPendienteTabla(file) {
+      if (!(file instanceof File)) return;
+      if (!String(file.type || "").toLowerCase().startsWith("image/")) return;
+
+      const totalActual = imagenesTablaExistentes.length + imagenesTablaPendientes.length;
+      if (totalActual >= 3) return;
+
+      const nuevaFirma = firmaArchivoTabla(file);
+      const yaExiste = imagenesTablaPendientes.some((f) => firmaArchivoTabla(f) === nuevaFirma);
+      if (yaExiste) return;
+
+      imagenesTablaPendientes.push(file);
+    }
+
+    function agregarArchivosImagenTabla(files) {
+      if (!files || !files.length) return;
+      for (const file of files) {
+        agregarArchivoPendienteTabla(file);
+        if (imagenesTablaExistentes.length + imagenesTablaPendientes.length >= 3) break;
+      }
+      renderImagenesTablaLista();
+    }
+
+    function quitarImagenPendienteTabla(index) {
+      if (index < 0 || index >= imagenesTablaPendientes.length) return;
+      imagenesTablaPendientes.splice(index, 1);
+      renderImagenesTablaLista();
+    }
+
+    async function cargarImagenesTablaExistentes(odt) {
+      const data = await api(`/api/incidencias/imagenes-tabla?odt=${encodeURIComponent(odt)}`);
+      imagenesTablaExistentes = Array.isArray(data?.imagenes)
+        ? data.imagenes.map((x) => String(x || "").trim()).filter(Boolean).slice(0, 3)
+        : [];
+    }
+
+    async function abrirModalImagenesTabla(odt) {
+      try {
+        resetEstadoImagenesTabla();
+        imagenesTablaOdtActual = String(odt || "").trim();
+        if (!imagenesTablaOdtActual) {
+          throw new Error("ODT invalida.");
+        }
+
+        const odtLabel = document.getElementById("tablaImagenesOdtLabel");
+        if (odtLabel) odtLabel.textContent = `ODT ${imagenesTablaOdtActual}`;
+        const sucursalLabel = document.getElementById("tablaImagenesSucursalLabel");
+        const registro = getRegistroPorOdt(imagenesTablaOdtActual);
+        const sucursal = String(registro?.cliente || "").trim();
+        if (sucursalLabel) {
+          sucursalLabel.textContent = sucursal ? `Sucursal: ${sucursal}` : "";
+        }
+
+        await cargarImagenesTablaExistentes(imagenesTablaOdtActual);
+        renderImagenesTablaLista();
+
+        const modal = document.getElementById("modalImagenesTabla");
+        modal.style.display = "block";
+      } catch (err) {
+        setMensaje(`No se pudieron cargar imagenes: ${err.message}`, false);
+      }
+    }
+
+    function cerrarModalImagenesTabla(force = false) {
+      if (imagenesTablaSubiendo && !force) return;
+      const modal = document.getElementById("modalImagenesTabla");
+      if (modal) modal.style.display = "none";
+      resetEstadoImagenesTabla();
+      renderImagenesTablaLista();
+      const fileInput = document.getElementById("tablaImagenFileInput");
+      if (fileInput) fileInput.value = "";
+      const sucursalLabel = document.getElementById("tablaImagenesSucursalLabel");
+      if (sucursalLabel) sucursalLabel.textContent = "";
+    }
+
+    function handlePegadoImagenTabla(event) {
+      const modal = document.getElementById("modalImagenesTabla");
+      if (!modal || modal.style.display !== "block") return;
+
+      const items = event.clipboardData?.items || [];
+      const archivos = [];
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (!item || !String(item.type || "").toLowerCase().startsWith("image/")) continue;
+        const blob = item.getAsFile();
+        if (!blob) continue;
+        const mime = String(blob.type || "image/png").toLowerCase();
+        const ext = mime.includes("jpeg") ? ".jpg" : (mime.includes("webp") ? ".webp" : ".png");
+        archivos.push(new File([blob], `imagen-${Date.now()}-${i}${ext}`, { type: mime }));
+      }
+      if (!archivos.length) return;
+
+      const firma = archivos.map((f) => `${f.size}:${f.type}`).join("|");
+      const ahora = Date.now();
+      if (firma && firma === firmaUltimoPegadoTabla && (ahora - tsUltimoPegadoTabla) < 500) {
+        event.preventDefault();
+        return;
+      }
+      firmaUltimoPegadoTabla = firma;
+      tsUltimoPegadoTabla = ahora;
+
+      event.preventDefault();
+      agregarArchivosImagenTabla(archivos);
+    }
+
+    async function subirImagenesTabla() {
+      if (imagenesTablaSubiendo) return;
+
+      if (!imagenesTablaPendientes.length) {
+        setMensaje("Debes adjuntar al menos una imagen valida.", false);
+        return;
+      }
+      if (!imagenesTablaOdtActual) {
+        setMensaje("ODT invalida para subir imagenes.", false);
+        return;
+      }
+
+      imagenesTablaSubiendo = true;
+      renderImagenesTablaLista();
+
+      try {
+        const token = obtenerTokenActivo() || "";
+        const formData = new FormData();
+        formData.append("odt", imagenesTablaOdtActual);
+        formData.append("token", token);
+        imagenesTablaPendientes.forEach((file) => {
+          formData.append("files", file, file.name);
+        });
+
+        const res = await fetch("/api/incidencias/upload-image-tabla", {
+          method: "POST",
+          body: formData,
+        });
+        const contentType = res.headers.get("content-type") || "";
+        const payload = contentType.includes("application/json") ? await res.json() : await res.text();
+        if (!res.ok) {
+          const detail = typeof payload === "string" ? payload : (payload?.detail || JSON.stringify(payload));
+          throw new Error(detail || `HTTP ${res.status}`);
+        }
+
+        imagenesTablaExistentes = Array.isArray(payload?.imagenes)
+          ? payload.imagenes.map((x) => String(x || "").trim()).filter(Boolean).slice(0, 3)
+          : imagenesTablaExistentes;
+        const guardadas = Number(payload?.imagenes_guardadas || 0);
+        imagenesTablaPendientes = [];
+        renderImagenesTablaLista();
+        setMensaje(`Imagenes subidas correctamente para ${imagenesTablaOdtActual} (${guardadas}).`);
+      } catch (err) {
+        setMensaje(`Error al subir imagenes: ${err.message}`, false);
+      } finally {
+        imagenesTablaSubiendo = false;
+        renderImagenesTablaLista();
+      }
+    }
+
+    async function cargarListas() {
+      const [listasBbdd, listasInc, contactosMap, sucPorCli] = await Promise.all([
+        api("/api/listas/bbdd"),
+        api("/api/listas/incidencias"),
+        api("/api/contactos/sucursal"),
+        api("/api/sucursales/por-cliente"),
+      ]);
+
+      listasGlobales = {
+        clientes: listasInc?.clientes || [],
+        sucursales: listasBbdd?.sucursales || [],
+        tecnicos: filtrarTecnicosAsignables(listasBbdd?.tecnicos || []),
+        problemas: listasInc?.problemas || []
+      };
+      contactosPorSucursal = (contactosMap && typeof contactosMap === "object")
+        ? contactosMap
+        : {};
+      // sucPorCli: { "Cliente": [{nombre, direccion}, ...] }
+      sucursalesPorCliente = (sucPorCli && typeof sucPorCli === "object") ? sucPorCli : {};
+      odtDireccionGlobalPorSucursal = {};
+      Object.values(sucursalesPorCliente).forEach((sucursales) => {
+        (Array.isArray(sucursales) ? sucursales : []).forEach((s) => {
+          const nombre = String(s?.nombre || "").trim();
+          const direccion = String(s?.direccion || "").trim();
+          if (nombre && direccion && !odtDireccionGlobalPorSucursal[nombre]) {
+            odtDireccionGlobalPorSucursal[nombre] = direccion;
+          }
+        });
+      });
+
+      llenarDatalist("listaClientes", listasGlobales.clientes);
+      llenarDatalist("listaSucursales", listasGlobales.sucursales);
+      llenarDatalist("listaTecnicos", listasGlobales.tecnicos);
+      llenarSelect("odtTipo", TIPOS_INCIDENCIA_ODT, "--Selecciona--");
+
+      const selPrio = document.getElementById("mantPrioridad");
+      for (let i = 1; i <= 20; i++) {
+        const o = document.createElement("option");
+        o.value = String(i);
+        o.textContent = String(i);
+        selPrio.appendChild(o);
+      }
+    }
+
+    async function cargarIncidencias() {
+      const rows = await api("/api/incidencias/servicio-tecnico");
+      incidenciasRaw = (rows || [])
+        .map(mapIncidenciaRow)
+        .filter((r) => !esOrdenServicioVenta(r))
+        .filter((r) => esVisibleServicioTecnico(r));
+      renderTabla();
+    }
+
+    const TIPOS_INCIDENCIA_ODT = ["Desconexión", "Problema de Parlante", "Problema de Alarma", "Hora y/o Fecha Cambiada", "Problema de Visual"];
+    const ESPECIFICACIONES_VISUAL_ODT = ["Falla de Video", "Obstruccion", "Intermitencia", "IVS", "Camara sucia", "Camara Movida", "Bateria Baja"];
+
+    function odtClaveTipo(tipo) {
+      const t = String(tipo || "").toLowerCase();
+      if (t.includes("desconex")) return "desconexion";
+      if (t.includes("visual")) return "visual";
+      if (t.includes("hora")) return "hora";
+      return "otro";
+    }
+
+    let odtPrefijoFijo = "";
+
+    function odtLimpiarPrefijo() {
+      odtPrefijoFijo = "";
+      const ta = document.getElementById("odtDescripcion");
+      if (ta) { ta.readOnly = false; ta.value = ""; }
+    }
+
+    function odtAplicarPrefijo(prefijo, bloquear) {
+      odtPrefijoFijo = prefijo;
+      const ta = document.getElementById("odtDescripcion");
+      if (!ta) return;
+      ta.value = prefijo;
+      ta.readOnly = bloquear;
+      if (!bloquear) {
+        ta.readOnly = false;
+        ta.setSelectionRange(prefijo.length, prefijo.length);
+        ta.focus();
+      }
+    }
+
+    function abrirOdt() {
+      document.getElementById("formOdt").reset();
+      document.getElementById("odtExtraWrap").style.display = "none";
+      document.getElementById("odtExtraWrap").innerHTML = "";
+      odtPrefijoFijo = "";
+      document.getElementById("modalOdt").style.display = "block";
+    }
+
+    function cerrarOdt() {
+      document.getElementById("modalOdt").style.display = "none";
+      llenarDatalist("listaSucursales", listasGlobales.sucursales);
+    }
+
+    let odtDireccionPorSucursal = {};
+    let odtDireccionGlobalPorSucursal = {};
+
+    function direccionPorSucursalOdt(sucursal) {
+      const nombre = String(sucursal || "").trim();
+      if (!nombre) return "";
+      return odtDireccionPorSucursal[nombre] || odtDireccionGlobalPorSucursal[nombre] || "";
+    }
+
+    document.getElementById("odtCliente")?.addEventListener("input", function () {
+      const cliente = this.value.trim();
+      const suc = sucursalesPorCliente[cliente];
+      if (suc && suc.length) {
+        odtDireccionPorSucursal = Object.fromEntries(suc.map((s) => [s.nombre, s.direccion]));
+        llenarDatalist("listaSucursales", suc.map((s) => s.nombre));
+      } else {
+        odtDireccionPorSucursal = {};
+        llenarDatalist("listaSucursales", listasGlobales.sucursales);
+      }
+      document.getElementById("odtSucursal").value = "";
+    });
+
+    document.getElementById("odtTipo")?.addEventListener("change", function () {
+      const wrap = document.getElementById("odtExtraWrap");
+      wrap.innerHTML = "";
+      wrap.style.display = "none";
+      odtLimpiarPrefijo();
+      const clave = odtClaveTipo(this.value);
+
+      if (clave === "desconexion") {
+        wrap.style.display = "block";
+        wrap.innerHTML = '<div style="margin-bottom:6px;font-size:12px;font-weight:600;color:#4b5563;">Problema de:</div>';
+        const sel = document.createElement("select");
+        sel.style.cssText = "width:100%;padding:8px 10px;border-radius:7px;border:1px solid #d1d5db;font-size:13px;font-family:inherit;";
+        sel.innerHTML = '<option value="">Seleccionar...</option><option value="Internet">Internet</option><option value="Electricidad">Electricidad</option><option value="Se Desconoce">Se Desconoce</option>';
+        sel.addEventListener("change", () => {
+          const v = sel.value;
+          if (!v) { odtLimpiarPrefijo(); return; }
+          const prefijo = v === "Se Desconoce" ? "Desconocida de: " : `Debido a ${v.toLowerCase()} de: `;
+          odtAplicarPrefijo(prefijo, false);
+        });
+        wrap.appendChild(sel);
+
+      } else if (clave === "visual") {
+        wrap.style.display = "block";
+        wrap.innerHTML = '<div style="margin-bottom:6px;font-size:12px;font-weight:600;color:#4b5563;">Específicamente:</div>';
+        const sel = document.createElement("select");
+        sel.style.cssText = "width:100%;padding:8px 10px;border-radius:7px;border:1px solid #d1d5db;font-size:13px;font-family:inherit;";
+        sel.innerHTML = '<option value="">Seleccionar...</option>';
+        ESPECIFICACIONES_VISUAL_ODT.forEach((op) => {
+          const o = document.createElement("option");
+          o.value = op; o.textContent = op;
+          sel.appendChild(o);
+        });
+        sel.addEventListener("change", () => {
+          const v = sel.value;
+          if (!v) { odtLimpiarPrefijo(); return; }
+          odtAplicarPrefijo(`${v}: `, false);
+        });
+        wrap.appendChild(sel);
+      }
+    });
+    const PREVENTIVA_DEFAULT_TEXT = "Mantención Preventiva Completa de la totalidad del servicio";
+
+    async function abrirMantencion() {
+      // Cargar sucursales de mantención la primera vez
+      const sel = document.getElementById("mantSucursal");
+      if (sel && sel.options.length <= 1) {
+        try {
+          const lista = await api("/api/mantencion/sucursales");
+          (lista || []).forEach((s) => {
+            const opt = document.createElement("option");
+            opt.value = s;
+            opt.textContent = s;
+            sel.appendChild(opt);
+          });
+        } catch (_) {}
+      }
+      // Reset
+      document.getElementById("formMant").reset();
+      document.getElementById("mantObsWrap").style.display = "none";
+      document.getElementById("mantObservacion").readOnly = false;
+      document.getElementById("mantObservacion").value = "";
+      document.getElementById("mantObsHint").textContent = "";
+      document.getElementById("modalMant").style.display = "block";
+    }
+
+    function cerrarMantencion() { document.getElementById("modalMant").style.display = "none"; }
+
+    document.getElementById("mantProblema")?.addEventListener("change", function () {
+      const wrap = document.getElementById("mantObsWrap");
+      const ta = document.getElementById("mantObservacion");
+      const hint = document.getElementById("mantObsHint");
+      if (this.value === "Mantencion Preventiva") {
+        wrap.style.display = "block";
+        ta.value = PREVENTIVA_DEFAULT_TEXT;
+        ta.readOnly = true;
+        ta.style.background = "#f8fafc";
+        ta.style.color = "#6b7280";
+        hint.textContent = "Texto predeterminado para mantención preventiva.";
+      } else if (this.value === "Mantencion Correctiva") {
+        wrap.style.display = "block";
+        ta.value = "";
+        ta.readOnly = false;
+        ta.style.background = "";
+        ta.style.color = "";
+        hint.textContent = "Describe la gestión correctiva realizada.";
+      } else {
+        wrap.style.display = "none";
+        ta.value = "";
+      }
+    });
+
+    document.getElementById("formOdt").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        const cliente = document.getElementById("odtCliente").value.trim();
+        const sucursal = document.getElementById("odtSucursal").value.trim();
+        const tipo = document.getElementById("odtTipo").value.trim();
+        const tecnico = document.getElementById("odtTecnico").value.trim();
+        const acompanante = document.getElementById("odtAcompanante").value.trim();
+        let descripcion = document.getElementById("odtDescripcion").value.trim();
+
+        if (!cliente || !tipo) throw new Error("Completa cliente y tipo de incidencia.");
+
+        const claveTipo = odtClaveTipo(tipo);
+        if (claveTipo === "desconexion" && !descripcion) throw new Error("Debes indicar el tipo de desconexión.");
+        if (claveTipo === "visual" && !descripcion) throw new Error("Debes seleccionar la especificación de Problema de Visual.");
+        if (!descripcion) throw new Error("Completa la descripción.");
+
+        if (tecnico) descripcion += ` | Técnico sugerido: ${tecnico}`;
+        if (acompanante) descripcion += ` | Acompañante: ${acompanante}`;
+
+        const direccion = direccionPorSucursalOdt(sucursal);
+        const payload = {
+          puesto: "",
+          cliente: sucursal || cliente,
+          tipoIncidencia: tipo,
+          descripcion,
+          derivacion: "Servicio Técnico",
+          estado: (tecnico || acompanante) ? "En Proceso" : "Pendiente",
+          area: "servicio_tecnico",
+          direccion,
+          tecnico,
+          acompanante,
+          token: obtenerTokenActivo(),
+        };
+
+        const data = await api("/api/incidencias/nueva", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+        const odtCreada = data?.odt ? ` (${data.odt})` : "";
+        setMensaje(`ODT creada correctamente${odtCreada}.`);
+        e.target.reset();
+        cerrarOdt();
+        await cargarIncidencias();
+      } catch (err) {
+        setMensaje(`Error al crear ODT: ${err.message}`, false);
+      }
+    });
+
+    document.getElementById("formMant").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        const tipo = document.getElementById("mantProblema").value;
+        const obs = document.getElementById("mantObservacion").value.trim();
+        const tecnico = document.getElementById("mantTecnico").value.trim();
+        const acompanante = document.getElementById("mantAcompanante").value.trim();
+        const payload = {
+          sucursal: document.getElementById("mantSucursal").value.trim(),
+          problema: tipo,
+          observacion: tipo === "Mantencion Preventiva" ? PREVENTIVA_DEFAULT_TEXT : obs,
+          observacion_servicio: tipo === "Mantencion Preventiva" ? PREVENTIVA_DEFAULT_TEXT : obs,
+          tecnico,
+          acompanante,
+          estado: (tecnico || acompanante) ? "En Proceso" : "Pendiente",
+          prioridad: document.getElementById("mantPrioridad").value,
+        };
+        if (!payload.sucursal || !payload.problema) {
+          throw new Error("Completa sucursal y tipo.");
+        }
+        if (tipo === "Mantencion Correctiva" && !payload.observacion) {
+          throw new Error("Debes ingresar una observación para la mantención correctiva.");
+        }
+        await api("/api/mantencion/correctiva", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        setMensaje("Mantención creada correctamente.");
+        cerrarMantencion();
+        await cargarIncidencias();
+      } catch (err) {
+        setMensaje(`Error al crear mantención: ${err.message}`, false);
+      }
+    });
+
+    const tablaScrollContainer = document.getElementById("pageContentScroll");
+    if (tablaScrollContainer) {
+      tablaScrollContainer.addEventListener("scroll", () => {
+        document.getElementById("scrollTopBtn").style.display = tablaScrollContainer.scrollTop > 220 ? "flex" : "none";
+      });
+    }
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      _stCloseObsModal();
+      cerrarOdt();
+      cerrarMantencion();
+      cerrarObsPendiente();
+      cancelarFinalizadoSoporte();
+      cancelarModalRepetida();
+      cerrarModalContactoCliente();
+      cerrarModalImagenesTabla();
+    });
+
+    ["modalOdt", "modalMant", "modalObsPendiente", "modalFinalizadoSoporte", "modalRepetida", "modalContactoCliente", "modalImagenesTabla"].forEach((id) => {
+      const modal = document.getElementById(id);
+      if (!modal) return;
+      modal.addEventListener("click", (e) => {
+        if (e.target !== modal) return;
+        if (id === "modalFinalizadoSoporte") {
+          cancelarFinalizadoSoporte();
+          return;
+        }
+        if (id === "modalRepetida") {
+          cancelarModalRepetida();
+          return;
+        }
+        if (id === "modalContactoCliente") {
+          cerrarModalContactoCliente();
+          return;
+        }
+        if (id === "modalImagenesTabla") {
+          cerrarModalImagenesTabla();
+          return;
+        }
+        modal.style.display = "none";
+      });
+    });
+
+    window.addEventListener("load", async () => {
+      await cargarUsuarioActual();
+
+      // Botón modal editar observación de cierre
+      document.getElementById("btnGuardarObsCierre")?.addEventListener("click", guardarEditorObsCierre);
+
+      // Botones modal observación servicio técnico
+      document.getElementById("stObsEditorCloseBtn")?.addEventListener("click", _stCloseObsModal);
+      document.getElementById("stObsEditorCancelBtn")?.addEventListener("click", _stCloseObsModal);
+      document.getElementById("stObsEditorSaveBtn")?.addEventListener("click", _stSaveObsModal);
+      document.getElementById("stObsEditorModal")?.addEventListener("click", (e) => {
+        if (e.target === document.getElementById("stObsEditorModal")) _stCloseObsModal();
+      });
+      document.getElementById("stObsEditorInput")?.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") { _stCloseObsModal(); return; }
+        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) _stSaveObsModal();
+      });
+
+      const modalImagenes = document.getElementById("modalImagenesTabla");
+      const fileInputImagenes = document.getElementById("tablaImagenFileInput");
+      if (modalImagenes) {
+        modalImagenes.addEventListener("paste", handlePegadoImagenTabla);
+      }
+      if (fileInputImagenes) {
+        fileInputImagenes.addEventListener("change", (e) => {
+          const files = Array.from(e.target.files || []);
+          agregarArchivosImagenTabla(files);
+          e.target.value = "";
+        });
+      }
+      renderImagenesTablaLista();
+
+      try {
+        await cargarListas();
+        await cargarIncidencias();
+      } catch (err) {
+        setMensaje(`Error inicial: ${err.message}`, false);
+      }
+
+      // Auto-recarga deshabilitada para no interrumpir filtros ni revisión manual.
+    });
+
+    /* ── Vista "Ver informe e imagenes ODT" ── */
+    let informesData = null;          // carpetas de sucursal del Drive raiz
+    let informesVistaAbierta = false;
+    let informesClienteActual = null; // {id, nombre} de la sucursal abierta
+    let informesBuscaTimer = null;
+
+    const SVG_CARPETA = `<svg width="34" height="34" viewBox="0 0 24 24" fill="#f4b400" xmlns="http://www.w3.org/2000/svg"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"/></svg>`;
+    const SVG_PDF = `<svg width="22" height="22" viewBox="0 0 24 24" fill="#c0392b" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm0 7V3.5L18.5 8H14z"/></svg>`;
+
+    function toggleVistaInformes() {
+      informesVistaAbierta = !informesVistaAbierta;
+      const vista = document.getElementById("vistaInformesOdt");
+      const tabla = document.querySelector(".tabla-scroll");
+      const btn = document.getElementById("btnVistaInformes");
+      const btnMant = document.getElementById("btnCrearMantencion");
+      const btnOdt = document.getElementById("btnCrearOdt");
+      vista.style.display = informesVistaAbierta ? "" : "none";
+      tabla.style.display = informesVistaAbierta ? "none" : "";
+      if (btnMant) btnMant.style.display = informesVistaAbierta ? "none" : "";
+      if (btnOdt) btnOdt.style.display = informesVistaAbierta ? "none" : "";
+      btn.textContent = informesVistaAbierta ? "Volver a la tabla" : "Ver informe e imagenes ODT";
+      // Persistir la vista en el hash para que sobreviva recargas.
+      if (informesVistaAbierta) {
+        location.hash = "informes";
+      } else if (location.hash === "#informes") {
+        history.replaceState(null, "", location.pathname + location.search);
+      }
+      if (informesVistaAbierta && !informesData) cargarInformesOdt();
+    }
+
+    // Al recargar estando en la vista de informes, quedarse ahi.
+    if (location.hash === "#informes") {
+      document.addEventListener("DOMContentLoaded", () => toggleVistaInformes());
+    }
+
+    async function cargarInformesOdt() {
+      const cont = document.getElementById("informesCarpetas");
+      cont.innerHTML = `<div class="informes-vacio">Cargando carpetas del Drive...</div>`;
+      try {
+        const data = await api("/api/incidencias/drive-odt/listar");
+        informesData = Array.isArray(data?.folders) ? data.folders : [];
+      } catch (e) {
+        cont.innerHTML = `<div class="informes-vacio">Error al cargar el Drive de informes.</div>`;
+        return;
+      }
+      renderCarpetasInformes();
+    }
+
+    function _informesFiltro() {
+      return String(document.getElementById("informesBuscar").value || "").trim().toLowerCase();
+    }
+
+    function _informesFecha(iso) {
+      if (!iso) return "";
+      const d = new Date(iso);
+      return isNaN(d) ? "" : d.toLocaleDateString("es-CL");
+    }
+
+    function renderCarpetasInformes() {
+      informesClienteActual = null;
+      const filtro = _informesFiltro();
+      document.getElementById("informesOdts").style.display = "none";
+      document.getElementById("informesDetalle").style.display = "none";
+      const cont = document.getElementById("informesCarpetas");
+      cont.style.display = "";
+      document.getElementById("informesBreadcrumb").innerHTML = "";
+
+      // Codigo de ODT → busqueda directa de carpetas "ODT Ixxxx" en Drive.
+      if (filtro && /^i?\d{2,}/.test(filtro)) {
+        cont.style.display = "none";
+        buscarOdtEnDrive(filtro);
+        return;
+      }
+
+      const carpetas = (informesData || []).filter(
+        (c) => !filtro || c.name.toLowerCase().includes(filtro)
+      );
+      if (!carpetas.length) {
+        cont.innerHTML = `<div class="informes-vacio">Sin resultados.</div>`;
+        return;
+      }
+      cont.innerHTML = carpetas.map((c) => `
+        <div class="informes-carpeta" data-id="${esc(c.id)}" data-nombre="${esc(c.name)}">
+          ${SVG_CARPETA}
+          <div style="min-width:0;">
+            <div class="nombre" title="${esc(c.name)}">${esc(c.name)}</div>
+          </div>
+        </div>
+      `).join("");
+      cont.querySelectorAll(".informes-carpeta").forEach((el) => {
+        el.addEventListener("click", () => abrirCarpetaInformes(el.dataset.id, el.dataset.nombre));
+      });
+    }
+
+    async function buscarOdtEnDrive(filtro) {
+      const lista = document.getElementById("informesOdts");
+      lista.style.display = "";
+      lista.innerHTML = `<div class="informes-vacio">Buscando "${esc(filtro)}" en Drive...</div>`;
+      document.getElementById("informesBreadcrumb").innerHTML =
+        `<a onclick="renderCarpetasInformesSinFiltro()">Carpetas</a> <span>›</span> <span>Busqueda</span>`;
+      try {
+        const data = await api(`/api/incidencias/drive-odt/buscar?q=${encodeURIComponent(filtro)}`);
+        const folders = (data?.folders || []).filter((f) => /odt/i.test(f.name) || /^i?\d/.test(filtro));
+        informesClienteActual = null;
+        renderOdtsInformes(folders, `Resultados para "${filtro}"`);
+      } catch (e) {
+        lista.innerHTML = `<div class="informes-vacio">Error buscando en Drive.</div>`;
+      }
+    }
+
+    function renderCarpetasInformesSinFiltro() {
+      document.getElementById("informesBuscar").value = "";
+      renderCarpetasInformes();
+    }
+
+    async function abrirCarpetaInformes(id, nombre) {
+      informesClienteActual = { id, nombre };
+      document.getElementById("informesCarpetas").style.display = "none";
+      const lista = document.getElementById("informesOdts");
+      lista.style.display = "";
+      lista.innerHTML = `<div class="informes-vacio">Cargando ODTs de ${esc(nombre)}...</div>`;
+      try {
+        const data = await api(`/api/incidencias/drive-odt/listar?folder_id=${encodeURIComponent(id)}`);
+        renderOdtsInformes(data?.folders || [], nombre, data?.files || []);
+      } catch (e) {
+        lista.innerHTML = `<div class="informes-vacio">Error al abrir la carpeta.</div>`;
+      }
+    }
+
+    function renderOdtsInformes(carpetas, titulo, archivosSueltos = []) {
+      document.getElementById("informesDetalle").style.display = "none";
+      const lista = document.getElementById("informesOdts");
+      lista.style.display = "";
+      document.getElementById("informesBreadcrumb").innerHTML =
+        `<a onclick="renderCarpetasInformesSinFiltro()">Carpetas</a> <span>›</span> <span>${esc(titulo)}</span>`;
+      if (!carpetas.length && !archivosSueltos.length) {
+        lista.innerHTML = `<div class="informes-vacio">Sin ODTs en esta carpeta.</div>`;
+        return;
+      }
+      let html = carpetas.map((c) => `
+        <div class="informes-odt-item" data-id="${esc(c.id)}" data-nombre="${esc(c.name)}">
+          ${SVG_PDF}
+          <span class="odt-cod" style="min-width:auto;">${esc(c.name)}</span>
+          <span class="odt-info"></span>
+        </div>
+      `).join("");
+      if (archivosSueltos.length) {
+        html += `<div class="informes-archivos" style="margin-top:8px;">` +
+          archivosSueltos.map((f) => _informesFilaArchivo(f.name, f.id)).join("") + `</div>`;
+      }
+      lista.innerHTML = html;
+      lista.querySelectorAll(".informes-odt-item").forEach((el) => {
+        el.addEventListener("click", () => abrirDetalleInforme(el.dataset.id, el.dataset.nombre));
+      });
+      _informesBindVisor(lista);
+    }
+
+    // Todo el contenido de Drive se sirve a traves del proxy del server
+    // (credenciales del sistema), nunca con links directos a drive.google.com:
+    // esos dependen de la cuenta de Google con la que el navegador tenga
+    // sesion abierta y devuelven 403 si esa cuenta no tiene acceso al Drive
+    // compartido de informes.
+    function _informesProxyUrl(id) {
+      return `/api/incidencias/drive-image/${encodeURIComponent(id)}`;
+    }
+
+    // Los nombres de carpeta de ODT vienen como "ODT I13023" (esquema nuevo)
+    // o directamente "I12344" (esquema viejo, carpetas por codigo de ODT).
+    function _extraerCodigoOdt(nombre) {
+      const m = String(nombre || "").trim().match(/^ODT\s+(\S+)/i);
+      return m ? m[1] : String(nombre || "").trim();
+    }
+
+    let _obsCierreOdtActual = "";
+    let _obsCierreFolderActual = "";
+    let _obsCierreNombreActual = "";
+
+    async function abrirEditorObsCierre(odt, folderId, nombre) {
+      if (!odt) return;
+      _obsCierreOdtActual = odt;
+      _obsCierreFolderActual = folderId || "";
+      _obsCierreNombreActual = nombre || "";
+      document.getElementById("editarObsCierreOdt").textContent = `ODT ${odt}`;
+      const textoEl = document.getElementById("editarObsCierreTexto");
+      const btn = document.getElementById("btnGuardarObsCierre");
+      textoEl.value = "";
+      textoEl.disabled = true;
+      btn.disabled = true;
+      document.getElementById("modalEditarObsCierre").style.display = "block";
+      try {
+        const data = await api(`/api/incidencias/odt/${encodeURIComponent(odt)}/observacion-cierre`);
+        textoEl.value = data?.observacion_final || "";
+        textoEl.disabled = false;
+        btn.disabled = false;
+      } catch (e) {
+        // No habilitar guardar si no se pudo cargar el texto actual — evita
+        // que un guardado accidental sobreescriba la observacion con vacio.
+        textoEl.placeholder = "No se pudo cargar la observación actual. Cierra e intenta de nuevo.";
+      }
+      setTimeout(() => textoEl?.focus(), 40);
+    }
+
+    function cerrarEditorObsCierre() {
+      document.getElementById("modalEditarObsCierre").style.display = "none";
+      _obsCierreOdtActual = "";
+    }
+
+    async function guardarEditorObsCierre() {
+      const odt = _obsCierreOdtActual;
+      const folderId = _obsCierreFolderActual;
+      const nombre = _obsCierreNombreActual;
+      const limpio = String(document.getElementById("editarObsCierreTexto").value || "").trim();
+      if (!limpio) {
+        setMensaje("La observación no puede quedar vacía.", false);
+        return;
+      }
+      const token = obtenerTokenActivo();
+      if (!token) {
+        setMensaje("Sesión no encontrada. Vuelve a iniciar sesión.", false);
+        return;
+      }
+      const btn = document.getElementById("btnGuardarObsCierre");
+      btn.disabled = true;
+      btn.textContent = "Guardando...";
+      try {
+        await api("/api/incidencias/regenerar-informe-cierre", {
+          method: "PATCH",
+          body: JSON.stringify({ token, odt, observacion: limpio }),
+        });
+        cerrarEditorObsCierre();
+        setMensaje("Observación de cierre actualizada.");
+        if (folderId) {
+          await abrirDetalleInforme(folderId, nombre);
+        } else if (informesClienteActual) {
+          abrirCarpetaInformes(informesClienteActual.id, informesClienteActual.nombre);
+        } else {
+          renderCarpetasInformesSinFiltro();
+        }
+      } catch (e) {
+        setMensaje(`Error al actualizar la observación: ${e.message}`, false);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Guardar y regenerar informe";
+      }
+    }
+
+    function _informesPreviewHtml(url, nombre) {
+      const low = String(nombre || "").toLowerCase();
+      if (/\.(png|jpe?g|gif|webp|bmp)$/.test(low)) {
+        return `<img src="${esc(url)}" style="max-width:100%;max-height:70vh;border-radius:10px;border:1px solid var(--border-strong);display:block;">`;
+      }
+      return `<iframe src="${esc(url)}"></iframe>`;
+    }
+
+    const SVG_OJO = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+    const SVG_DESCARGA = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>`;
+
+    function _informesFilaArchivo(nombre, id) {
+      const url = _informesProxyUrl(id);
+      return `
+        <div class="informes-archivo-fila">
+          <span class="informes-archivo-nombre">${esc(nombre)}</span>
+          <a class="informes-icon-btn" href="${esc(url)}" rel="noopener" download="${esc(nombre)}" title="Descargar">${SVG_DESCARGA}</a>
+          <button type="button" class="informes-icon-btn ver" data-url="${esc(url)}" data-nombre="${esc(nombre)}" title="Ver">${SVG_OJO}</button>
+        </div>`;
+    }
+
+    function _informesBindVisor(cont) {
+      cont.querySelectorAll(".informes-icon-btn.ver").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          let visor = document.getElementById("informesVisor");
+          if (!visor || !document.body.contains(visor)) {
+            visor = document.createElement("div");
+            visor.id = "informesVisor";
+            visor.className = "informes-visor";
+            cont.appendChild(visor);
+          }
+          const url = btn.dataset.url || "";
+          if (visor.dataset.urlActual === url && visor.innerHTML) {
+            visor.innerHTML = "";
+            visor.dataset.urlActual = "";
+            return;
+          }
+          visor.dataset.urlActual = url;
+          visor.innerHTML = _informesPreviewHtml(url, btn.dataset.nombre || "");
+          visor.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        });
+      });
+    }
+
+    async function abrirDetalleInforme(folderId, nombre) {
+      document.getElementById("informesOdts").style.display = "none";
+      const det = document.getElementById("informesDetalle");
+      det.style.display = "";
+      const migaCliente = informesClienteActual
+        ? ` <a id="informesMigaCliente">${esc(informesClienteActual.nombre)}</a> <span>›</span>`
+        : "";
+      document.getElementById("informesBreadcrumb").innerHTML =
+        `<a onclick="renderCarpetasInformesSinFiltro()">Carpetas</a> <span>›</span>${migaCliente} <span>${esc(nombre)}</span>`;
+      const miga = document.getElementById("informesMigaCliente");
+      if (miga && informesClienteActual) {
+        const ctx = informesClienteActual;
+        miga.addEventListener("click", () => abrirCarpetaInformes(ctx.id, ctx.nombre));
+      }
+
+      det.innerHTML = `<div class="informes-vacio">Cargando archivos de ${esc(nombre)}...</div>`;
+      let data;
+      try {
+        data = await api(`/api/incidencias/drive-odt/listar?folder_id=${encodeURIComponent(folderId)}`);
+      } catch (e) {
+        det.innerHTML = `<div class="informes-vacio">No se pudieron cargar los archivos.</div>`;
+        return;
+      }
+      const archivos = data?.files || [];
+      const subcarpetas = data?.folders || [];
+
+      const odtCode = _extraerCodigoOdt(nombre);
+      let html = `<div style="display:flex;align-items:center;gap:10px;">` +
+        `<div style="font-weight:800;font-size:16px;">${esc(nombre)}${informesClienteActual ? ` — ${esc(informesClienteActual.nombre)}` : ""}</div>` +
+        `<button type="button" class="btn-odt" style="margin-left:auto;" onclick="abrirEditorObsCierre('${esc(odtCode)}', '${esc(folderId)}', '${esc(nombre)}')">Editar observación de cierre</button>` +
+        `</div>`;
+      if (!archivos.length && !subcarpetas.length) {
+        html += `<div class="informes-vacio">Carpeta vacia.</div>`;
+      }
+      if (archivos.length) {
+        const pdfs = archivos.filter((f) => /pdf/i.test(f.mimeType) || /\.pdf$/i.test(f.name));
+        const otros = archivos.filter((f) => !pdfs.includes(f));
+        html += `<div class="informes-archivos">` +
+          pdfs.map((f) => _informesFilaArchivo(f.name, f.id)).join("") +
+          otros.map((f) => _informesFilaArchivo(f.name, f.id)).join("") +
+          `</div>`;
+      }
+      html += `<div id="informesVisor" class="informes-visor"></div>`;
+      det.innerHTML = html;
+      _informesBindVisor(det);
+
+      // Recorrer subcarpetas (ej. carpeta de fotos dentro de la ODT) y listar
+      // tambien sus archivos.
+      for (const sub of subcarpetas.slice(0, 5)) {
+        try {
+          const subData = await api(`/api/incidencias/drive-odt/listar?folder_id=${encodeURIComponent(sub.id)}`);
+          const subArchivos = subData?.files || [];
+          if (!subArchivos.length) continue;
+          const zona = document.createElement("div");
+          zona.innerHTML = `<div style="font-weight:800;margin:8px 0 4px;">${esc(sub.name)}</div><div class="informes-archivos">` +
+            subArchivos.map((f) => _informesFilaArchivo(f.name, f.id)).join("") + `</div>`;
+          det.insertBefore(zona, document.getElementById("informesVisor"));
+          _informesBindVisor(zona);
+        } catch (e) { /* subcarpeta inaccesible: continuar */ }
+      }
+
+      // Auto-abrir el primer PDF (informe de cierre) en el visor.
+      const primerPdf = archivos.find((f) => /pdf/i.test(f.mimeType) || /\.pdf$/i.test(f.name));
+      if (primerPdf) {
+        const visor = document.getElementById("informesVisor");
+        const url = _informesProxyUrl(primerPdf.id);
+        visor.dataset.urlActual = url;
+        visor.innerHTML = _informesPreviewHtml(url, primerPdf.name);
+      }
+    }
+
+    function filtrarInformes() {
+      if (!informesData) return;
+      clearTimeout(informesBuscaTimer);
+      informesBuscaTimer = setTimeout(renderCarpetasInformes, 300);
+    }
+  </script>
+{% include "notas_clientes_widget.html" %}
+<script src="/static/auth-guard.js"></script>
+  <script src="/static/atc-logo-home.js"></script>
+  <script>
+  </script>
+<script src="/static/atc-volver.js"></script>
+</body>
+</html>

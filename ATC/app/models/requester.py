@@ -9,7 +9,7 @@ from ATC.app.models.ticket import Ticket
 
 
 class Requester(Base):
-    __tablename__ = "requesters"
+    __tablename__ = "clientes"
 
     # =========================
     # ðŸ†” IDENTIFICACIÃ“N

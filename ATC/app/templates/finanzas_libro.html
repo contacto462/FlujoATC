@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rendiciones · Libro Finanzas</title>
+  <link rel="stylesheet" href="/static/base.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{
+  font-family:'Inter','Segoe UI',system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+  background:#f8fafc;color:#0f172a;overflow:hidden;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+}
+.libro{
+  display:flex;flex-direction:column;height:100vh;
+}
+.libro-header{
+  flex-shrink:0;min-height:64px;display:flex;align-items:center;justify-content:space-between;
+  gap:18px;padding:12px 24px;background:linear-gradient(180deg,#0b1424 0%,#111c2f 100%);
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+.brand{display:flex;align-items:center;gap:14px;}
+.brand img{width:38px;height:38px;object-fit:contain;opacity:.95;}
+.libro-title{color:rgba(255,255,255,.96);font-size:16px;font-weight:600;letter-spacing:-.01em;}
+.libro-subtitle{color:rgba(255,255,255,.55);font-size:12px;margin-top:2px;}
+.libro-actions{display:flex;gap:8px;}
+.libro-actions a,.libro-actions button{
+  appearance:none;display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:7px 13px;
+  border-radius:8px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);
+  color:rgba(255,255,255,.92);text-decoration:none;font:inherit;font-size:12.5px;font-weight:500;
+  cursor:pointer;transition:background .15s,border-color .15s;
+}
+.libro-actions a:hover,.libro-actions button:hover{
+  background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);
+}
+
+/* Toolbar (formula bar style — solo info de la hoja activa) */
+.libro-toolbar{
+  flex-shrink:0;display:flex;align-items:center;gap:14px;padding:8px 20px;
+  background:#fff;border-bottom:1px solid #e2e8f0;
+}
+.libro-cell-ref{
+  font-size:12px;font-weight:600;color:#475569;
+  padding:5px 10px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:5px;
+  font-family:'Consolas','Monaco',monospace;min-width:160px;
+}
+.libro-cell-desc{font-size:12.5px;color:#64748b;flex:1;}
+
+/* Hoja activa (iframe) */
+.libro-sheet{
+  flex:1;min-height:0;position:relative;background:#f8fafc;
+  border-top:1px solid #e2e8f0;
+}
+.libro-sheet iframe{
+  width:100%;height:100%;border:0;display:block;background:#f8fafc;
+}
+.libro-loading{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:#f8fafc;color:#64748b;font-size:13px;pointer-events:none;
+  opacity:0;transition:opacity .15s;
+}
+.libro-loading.show{opacity:1;}
+.libro-loading::before{
+  content:"";display:inline-block;width:18px;height:18px;margin-right:10px;
+  border:2px solid #cbd5e1;border-top-color:#1d4ed8;border-radius:50%;
+  animation:spin 1s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* Excel-style tabs at the bottom */
+.libro-tabs{
+  flex-shrink:0;display:flex;align-items:flex-end;gap:0;
+  padding:0 14px;background:#e2e8f0;
+  border-top:1px solid #cbd5e1;
+  overflow-x:auto;overflow-y:hidden;
+  scrollbar-width:thin;scrollbar-color:#94a3b8 transparent;
+}
+.libro-tabs::-webkit-scrollbar{height:6px;}
+.libro-tabs::-webkit-scrollbar-thumb{background:#94a3b8;border-radius:999px;}
+.libro-tab{
+  appearance:none;display:inline-flex;align-items:center;gap:6px;
+  border:1px solid #cbd5e1;border-bottom:none;background:#cbd5e1;color:#475569;
+  font:inherit;font-size:12px;font-weight:600;padding:8px 16px;
+  border-radius:6px 6px 0 0;cursor:pointer;white-space:nowrap;
+  margin-top:6px;margin-right:2px;
+  transition:background .12s,color .12s,transform .12s;
+}
+.libro-tab:hover{background:#e2e8f0;color:#1e293b;}
+.libro-tab.active{
+  background:#f8fafc;color:#0f172a;
+  border-color:#cbd5e1;border-bottom:none;
+  position:relative;z-index:2;
+  margin-bottom:-1px;
+  padding:9px 18px;
+}
+.libro-tab.active::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:2px;
+  background:#1d4ed8;border-radius:6px 6px 0 0;
+}
+.libro-tab .dot{
+  width:7px;height:7px;border-radius:50%;flex-shrink:0;
+}
+.libro-tab[data-type="master"] .dot{background:#1d4ed8;}
+.libro-tab[data-type="resumen"] .dot{background:#15803d;}
+.libro-tab[data-type="viatico"] .dot{background:#b45309;}
+.libro-tab[data-type="pagos"] .dot{background:#7c3aed;}
+.libro-tab[data-type="filtro"] .dot{background:#dc2626;}
+.libro-tab[data-type="suma"] .dot{background:#0891b2;}
+.libro-tab[data-type="pagos-atc"] .dot{background:#ea580c;}
+.libro-tab[data-type="pagos-vl"] .dot{background:#059669;}
+.libro-tab-oculta{display:none !important;}
+
+@media (max-width:760px){
+  .libro-header{padding:10px 14px;flex-wrap:wrap;}
+  .libro-toolbar{padding:6px 12px;flex-wrap:wrap;}
+  .libro-cell-ref{min-width:auto;}
+  .libro-tabs{padding:0 8px;}
+  .libro-tab{padding:7px 12px;font-size:11.5px;}
+}
+</style>
+</head>
+<body>
+<div class="libro">
+  <header class="libro-header">
+    <div class="brand">
+      <img src="/shared-static/img/logo-atc.png" alt="ATC" onerror="this.style.display='none'">
+      <div>
+        <div class="libro-title">Rendicion de Gastos</div>
+        <div class="libro-subtitle">Libro completo de gestion de gastos - Finanzas</div>
+      </div>
+    </div>
+    <nav class="libro-actions">
+      <a id="btnVolver" href="{{ back_url|default('/venta/finanzas?token=' ~ (token|default(''))) }}">Volver</a>
+      <button type="button" onclick="recargarHoja()">Recargar hoja</button>
+      <a id="btnExportarPagos" href="/api/rendiciones/exportar" style="display:none;">Exportar</a>
+    </nav>
+  </header>
+
+  <div class="libro-toolbar">
+    <span class="libro-cell-ref" id="hojaRef">Rendición</span>
+    <span class="libro-cell-desc" id="hojaDesc">Estructura del libro basada en el Excel "Rendición de Gastos".</span>
+  </div>
+
+  <div class="libro-sheet">
+    <iframe id="hojaFrame" src="" title="Hoja activa" referrerpolicy="same-origin"></iframe>
+    <div class="libro-loading" id="hojaLoading">Cargando hoja</div>
+  </div>
+
+  <nav class="libro-tabs" id="tabs">
+    <button class="libro-tab active" type="button" data-type="master" data-sheet="rendicion"><span class="dot"></span>Rendición</button>
+    <button class="libro-tab" type="button" data-type="resumen" data-sheet="consolidado"><span class="dot"></span>Consolidado</button>
+    <button class="libro-tab" type="button" data-type="viatico" data-sheet="viatico"><span class="dot"></span>Viatico Especial</button>
+    <button class="libro-tab" type="button" data-type="pagos" data-sheet="pagos"><span class="dot"></span>Pagos</button>
+    <button class="libro-tab libro-tab-oculta" type="button" data-type="suma" data-sheet="suma-pagos" aria-hidden="true" tabindex="-1"><span class="dot"></span>SumaPagos</button>
+    <button class="libro-tab" type="button" data-type="pagos-atc" data-sheet="pagos-atc"><span class="dot"></span>Pagos ATC</button>
+    <button class="libro-tab" type="button" data-type="pagos-vl" data-sheet="pagos-vl"><span class="dot"></span>Pagos VL</button>
+  </nav>
+</div>
+
+<script>
+const TOKEN = {{ token|tojson }};
+const ORIGEN = {{ origen|default('')|tojson }};
+const HOJAS = {
+  "rendicion":   {url:"/venta/finanzas/rendiciones",      titulo:"Rendición",        desc:"Hoja maestra de rendiciones por tecnico, documento y monto."},
+  "consolidado": {url:"/venta/finanzas/consolidado",      titulo:"Consolidado",      desc:"Formula de suma por codigo diario con monto a pagar, pagado y saldo."},
+  "viatico":     {url:"/venta/finanzas/viatico-especial", titulo:"Viatico Especial", desc:"Calculo de viatico real, tope maximo y monto a pagar por codigo."},
+  "pagos":       {url:"/venta/finanzas/pagos",            titulo:"Pagos",            desc:"Registro de transferencias y pagos efectuados a tecnicos."},
+  "suma-pagos":  {url:"/venta/finanzas/suma-pagos",       titulo:"SumaPagos",        desc:"Total pagado agrupado por codigo diario."},
+  "pagos-atc":   {url:"/venta/finanzas/pagos-atc",        titulo:"Pagos ATC",        desc:"Pagos pendientes que no son Materiales/Combustible, agrupados por RUT."},
+  "pagos-vl":    {url:"/venta/finanzas/pagos-vl",         titulo:"Pagos VL",         desc:"Pagos pendientes de Materiales/Combustible, agrupados por RUT."},
+};
+
+function activarHoja(key){
+  const hoja = HOJAS[key];
+  if(!hoja) return;
+  document.querySelectorAll(".libro-tab").forEach(t=>{
+    t.classList.toggle("active", t.dataset.sheet === key);
+  });
+  document.getElementById("hojaRef").textContent = hoja.titulo;
+  document.getElementById("hojaDesc").textContent = hoja.desc;
+  document.getElementById("btnExportarPagos").style.display = key === "rendicion" ? "" : "none";
+  document.getElementById("hojaLoading").classList.add("show");
+  const url = new URL(hoja.url, location.origin);
+  url.searchParams.set("embed", "1");
+  if(TOKEN) url.searchParams.set("token", TOKEN);
+  url.searchParams.set("_", String(Date.now()));
+  const frame = document.getElementById("hojaFrame");
+  frame.src = url.toString();
+  try{
+    const stateUrl = new URL(location.href);
+    stateUrl.searchParams.set("token", TOKEN || "");
+    stateUrl.searchParams.set("sheet", key);
+    if(ORIGEN) stateUrl.searchParams.set("from", ORIGEN);
+    else stateUrl.searchParams.delete("from");
+    history.replaceState(null, "", `${stateUrl.pathname}${stateUrl.search}`);
+  }catch(_){}
+}
+
+function recargarHoja(){
+  const frame = document.getElementById("hojaFrame");
+  document.getElementById("hojaLoading").classList.add("show");
+  const url = new URL(frame.src || location.href, location.origin);
+  url.searchParams.set("_", String(Date.now()));
+  frame.src = url.toString();
+}
+
+document.getElementById("hojaFrame").addEventListener("load",()=>{
+  document.getElementById("hojaLoading").classList.remove("show");
+});
+
+document.querySelectorAll(".libro-tab").forEach(tab=>{
+  tab.addEventListener("click",()=>activarHoja(tab.dataset.sheet));
+});
+
+(function init(){
+  const initial = new URLSearchParams(location.search).get("sheet") || "rendicion";
+  activarHoja(HOJAS[initial] ? initial : "rendicion");
+})();
+</script>
+<script>
+</script>
+<script src="/static/auth-guard.js"></script>
+  <script src="/static/atc-logo-home.js"></script>
+<script src="/static/atc-volver.js"></script>
+</body>
+</html>

@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Comprobante Ley Karin</title>
+<style>
+:root{
+  --bg:#f3f2f7;
+  --surface:#ffffff;
+  --border:#e4e1ec;
+  --text:#1f1b2e;
+  --muted:#6b6478;
+  --purple:#4b1d78;
+  --purple-dark:#37134f;
+  --orange:#f4a672;
+  --orange-dark:#c2410c;
+  --ok:#1e9c83;
+  --error:#c0392b;
+  --shadow:0 20px 50px rgba(31,17,54,.14);
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{
+  margin:0;
+  font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  color:var(--text);
+  background:var(--bg);
+  padding:24px 16px 60px;
+}
+
+.shell{
+  width:min(880px,100%);
+  margin:0 auto;
+}
+
+.hero{
+  border-radius:18px 18px 0 0;
+  background:linear-gradient(135deg,var(--purple-dark),var(--purple));
+  padding:26px 30px;
+  position:relative;
+  overflow:hidden;
+}
+.hero-top{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+}
+.hero-brand{display:flex;align-items:center;gap:12px}
+.hero-brand img{height:38px;width:auto;display:block}
+.hero-brand .name{color:#fff;font-weight:800;font-size:15px;letter-spacing:-.01em}
+.hero-brand .rut{color:rgba(255,255,255,.65);font-size:11.5px}
+.badge-karin{
+  background:var(--orange);color:#3a1600;font-weight:800;font-size:12px;
+  padding:8px 14px;border-radius:10px;letter-spacing:.03em;text-align:center;line-height:1.2;
+}
+.hero h1{
+  color:#fff;font-size:21px;margin:20px 0 4px;letter-spacing:-.01em;line-height:1.25;
+}
+.hero p{
+  color:rgba(255,255,255,.7);margin:0;font-size:12.5px;
+}
+.accent-bar{height:4px;background:var(--orange)}
+
+.intro-box{
+  background:#f2ecfa;border:1px solid #ddd0f0;border-radius:0;
+  padding:14px 30px;font-size:12.5px;color:#5a4a72;line-height:1.55;
+}
+
+.content{
+  background:var(--surface);
+  border-radius:0 0 18px 18px;
+  box-shadow:var(--shadow);
+  padding:8px 30px 30px;
+}
+
+.section{
+  border-top:1px solid var(--border);
+  padding:22px 0;
+}
+.section:first-child{border-top:none}
+.section h2{
+  font-size:14.5px;font-weight:800;color:var(--purple);margin:0 0 4px;
+}
+.section .hint{
+  margin:0 0 14px;font-size:12px;color:var(--muted);
+}
+
+.grid{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 20px;
+}
+.field{display:flex;flex-direction:column;gap:6px}
+.field.full{grid-column:1 / -1}
+.field label{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.field input,.field select{
+  border:1px solid var(--border);border-radius:10px;padding:10px 12px;
+  font-size:13.5px;font-family:inherit;color:var(--text);background:#fff;outline:none;
+  transition:border-color .15s ease;
+}
+.field input:focus,.field select:focus{border-color:var(--purple)}
+
+.check-grid{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 22px;
+}
+.check-item{
+  display:flex;align-items:flex-start;gap:9px;
+  border:1px solid var(--border);border-radius:10px;padding:10px 12px;
+  cursor:pointer;transition:border-color .15s ease,background .15s ease;
+}
+.check-item:hover{border-color:var(--purple)}
+.check-item input{margin-top:2px;flex-shrink:0;accent-color:var(--purple);width:16px;height:16px;cursor:pointer}
+.check-item span{font-size:12.5px;line-height:1.45;color:var(--text)}
+
+.canales{
+  margin-top:14px;font-size:11.5px;color:var(--muted);line-height:1.6;
+  background:#faf9fb;border:1px solid var(--border);border-radius:10px;padding:12px 14px;
+}
+.canales b{color:var(--text)}
+
+.decl-box{
+  background:#fdf6ee;border:1px solid #f0dcc0;border-radius:12px;
+  padding:16px 18px;font-size:13px;line-height:1.65;color:#3a2a12;
+}
+.decl-box b{color:var(--purple-dark)}
+
+.submit-row{
+  display:flex;align-items:center;justify-content:flex-end;gap:14px;
+  margin-top:24px;padding-top:20px;border-top:1px solid var(--border);
+  flex-wrap:wrap;
+}
+.submit-status{font-size:12.5px;color:var(--muted)}
+.submit-status.ok{color:var(--ok);font-weight:700}
+.submit-status.error{color:var(--error);font-weight:700}
+.btn-generar{
+  appearance:none;border:none;border-radius:12px;padding:13px 22px;
+  font-size:13.5px;font-weight:800;color:#fff;cursor:pointer;
+  background:linear-gradient(135deg,var(--orange-dark),var(--orange));
+  box-shadow:0 10px 22px rgba(194,65,12,.28);
+  transition:transform .15s ease,opacity .15s ease;
+}
+.btn-generar:disabled{opacity:.5;cursor:not-allowed}
+.btn-generar:not(:disabled):hover{transform:translateY(-1px)}
+
+@media (max-width:640px){
+  .grid,.check-grid{grid-template-columns:1fr}
+  .hero,.content,.intro-box{padding-left:18px;padding-right:18px}
+}
+</style>
+</head>
+<body>
+  <div class="shell">
+    <header class="hero">
+      <div class="hero-top">
+        <div class="hero-brand">
+          <img src="/shared-static/img/logo-atc.png" alt="Alguien Te Cuida">
+          <div>
+            <div class="name">ALGUIEN TE CUIDA SPA</div>
+            <div class="rut">RUT 76.521.007-0</div>
+          </div>
+        </div>
+        <div class="badge-karin">LEY<br>KARIN</div>
+      </div>
+      <h1>Comprobante de Entrega, Acuse de Recibo y Toma de Conocimiento</h1>
+      <p>Protocolo Ley Karin · procedimiento de investigación · canales de denuncia</p>
+    </header>
+    <div class="accent-bar"></div>
+    <div class="intro-box">
+      Este comprobante acredita que la persona trabajadora recibió y fue informada sobre las materias indicadas.
+      La declaración no implica renuncia de derechos, aceptación de hechos ni limita el derecho a denunciar.
+    </div>
+
+    <main class="content">
+      <form id="formLeyKarin" autocomplete="off">
+
+        <section class="section">
+          <h2>1. Identificación</h2>
+          <p class="hint">Datos de la persona trabajadora que recibe la información.</p>
+          <div class="grid">
+            <div class="field"><label for="nombre_completo">Nombre completo</label><input type="text" id="nombre_completo" required></div>
+            <div class="field"><label for="rut">RUT</label><input type="text" id="rut" placeholder="12.345.678-9" required></div>
+            <div class="field"><label for="cargo">Cargo</label><input type="text" id="cargo" value="Trabajador ATC" readonly style="background:#f3f0f8;color:var(--muted);cursor:not-allowed;"></div>
+            <div class="field"><label for="correo">Correo</label><input type="email" id="correo" placeholder="nombre@correo.cl" required></div>
+            <div class="field"><label for="fecha">Fecha</label><input type="date" id="fecha" readonly style="background:#f3f0f8;color:var(--muted);cursor:not-allowed;"></div>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>2. Documentos y materias entregadas o informadas</h2>
+          <p class="hint">Marca lo que efectivamente se entregó o informó.</p>
+          <div class="check-grid" id="checkDocumentos"></div>
+          <div class="canales">
+            <b>Canales internos:</b> denuncias@alguientecuida.cl · RR.HH. · Desarrollo Organizacional · Jefatura Directa · Prevención de Riesgos.<br>
+            <b>Canales externos:</b> Dirección del Trabajo y organismo administrador de la Ley N.° 16.744, según corresponda.
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>3. Declaración de recepción y toma de conocimiento</h2>
+          <p class="hint">Marca lo que la persona trabajadora declara conocer/haber recibido.</p>
+          <div class="check-grid" id="checkDeclaraciones"></div>
+        </section>
+
+        <section class="section">
+          <h2>4. Declaración de toma de conocimiento</h2>
+          <p class="hint">Se arma sola — reemplaza a las firmas. El registro de la actividad de capacitación se agrega directo en el PDF.</p>
+          <div class="decl-box" id="declaracionPreview">
+            Yo, <b>________________________</b>, RUT <b>____________</b>, declaro que con fecha
+            <b>22-07-2026</b> recibí y tomé conocimiento íntegro de los documentos, materias y canales de
+            denuncia señalados en el presente comprobante, en el marco de la actividad de
+            información/capacitación correspondiente. Formulo esta declaración en señal de
+            conformidad con lo antes expuesto, sin que ello implique renuncia de derechos, aceptación de
+            hechos ni limite mi derecho a denunciar.
+          </div>
+        </section>
+
+        <div class="submit-row">
+          <span class="submit-status" id="submitStatus"></span>
+          <button type="submit" class="btn-generar" id="btnGenerar">Enviar</button>
+        </div>
+      </form>
+    </main>
+  </div>
+
+  <script>
+    const DOCUMENTOS = [
+      "Protocolo de Prevención del Acoso Sexual, Laboral y la Violencia en el Trabajo.",
+      "Procedimiento de investigación y sanción de Alguien Te Cuida SpA.",
+      "Definiciones, ejemplos y señales de alerta: acoso, violencia, incivismo y sexismo.",
+      "Derechos, deberes, confidencialidad, debido proceso y prohibición de represalias.",
+      "Medidas preventivas, de protección y de resguardo.",
+      "Formulario de denuncia y antecedentes que pueden acompañarse.",
+      "Canales internos y externos para orientación o denuncia.",
+      "Material impreso o acceso electrónico para consulta posterior.",
+    ];
+    const DECLARACIONES = [
+      "Recibí copia o acceso electrónico legible y se me indicó cómo volver a consultar la información.",
+      "Recibí una explicación clara y tuve oportunidad de formular preguntas.",
+      "Conozco los canales de denuncia y la prohibición de represalias por denunciar o participar de buena fe.",
+      "Comprendo que una denuncia inicia una investigación y no determina por sí sola responsabilidad.",
+    ];
+
+    function renderChecklist(containerId, items, namePrefix) {
+      const cont = document.getElementById(containerId);
+      cont.innerHTML = items.map((texto, i) => `
+        <label class="check-item">
+          <input type="checkbox" data-${namePrefix}="${i}">
+          <span>${texto}</span>
+        </label>
+      `).join("");
+    }
+    renderChecklist("checkDocumentos", DOCUMENTOS, "doc");
+    renderChecklist("checkDeclaraciones", DECLARACIONES, "decl");
+
+    // La fecha del punto 1 siempre es la del día en que se completa el comprobante.
+    (() => {
+      const hoy = new Date();
+      const iso = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(hoy.getDate()).padStart(2, "0")}`;
+      document.getElementById("fecha").value = iso;
+    })();
+
+    function esc(v) {
+      return String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+
+    const FECHA_ACTIVIDAD_FIJA = "22-07-2026"; // debe coincidir con ACTIVIDAD_FECHA_DECLARACION en ley_karin_service.py
+
+    function actualizarDeclaracion() {
+      const nombre = document.getElementById("nombre_completo").value.trim();
+      const rut = document.getElementById("rut").value.trim();
+
+      document.getElementById("declaracionPreview").innerHTML =
+        `Yo, <b>${nombre ? esc(nombre) : "________________________"}</b>, RUT ` +
+        `<b>${rut ? esc(rut) : "____________"}</b>, declaro que con fecha ` +
+        `<b>${FECHA_ACTIVIDAD_FIJA}</b> recibí y tomé conocimiento íntegro ` +
+        `de los documentos, materias y canales de denuncia señalados en el presente comprobante, en el marco ` +
+        `de la actividad de información/capacitación correspondiente. Formulo esta declaración ` +
+        `en señal de conformidad con lo antes expuesto, sin que ello implique renuncia de derechos, aceptación ` +
+        `de hechos ni limite mi derecho a denunciar.`;
+    }
+
+    ["nombre_completo", "rut"].forEach((id) => {
+      document.getElementById(id).addEventListener("input", actualizarDeclaracion);
+    });
+    actualizarDeclaracion();
+
+    document.getElementById("formLeyKarin").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const status = document.getElementById("submitStatus");
+      const btn = document.getElementById("btnGenerar");
+
+      const nombre = document.getElementById("nombre_completo").value.trim();
+      const rut = document.getElementById("rut").value.trim();
+      const correo = document.getElementById("correo").value.trim();
+      if (!nombre || !rut) {
+        status.textContent = "Completa al menos Nombre completo y RUT.";
+        status.className = "submit-status error";
+        return;
+      }
+
+      const documentos = Array.from(document.querySelectorAll("[data-doc]:checked")).map(el => parseInt(el.dataset.doc, 10));
+      const declaraciones = Array.from(document.querySelectorAll("[data-decl]:checked")).map(el => parseInt(el.dataset.decl, 10));
+
+      const payload = {
+        nombre_completo: nombre,
+        rut,
+        cargo: document.getElementById("cargo").value.trim(),
+        correo,
+        fecha: document.getElementById("fecha").value,
+        documentos,
+        declaraciones,
+      };
+
+      btn.disabled = true;
+      status.className = "submit-status";
+      status.textContent = "Generando comprobante...";
+      try {
+        const res = await fetch("/public/ley-karin/informe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || `HTTP ${res.status}`);
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `Comprobante_LeyKarin_${nombre.replace(/[^A-Za-z0-9_-]+/g, "_")}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        status.textContent = correo
+          ? `Comprobante descargado y enviado a ${correo}.`
+          : "Comprobante generado y descargado correctamente.";
+        status.className = "submit-status ok";
+      } catch (err) {
+        status.textContent = `No se pudo generar el comprobante: ${err.message}`;
+        status.className = "submit-status error";
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

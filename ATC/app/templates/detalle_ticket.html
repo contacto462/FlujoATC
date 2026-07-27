@@ -1,12 +1,16 @@
 ﻿<!DOCTYPE html>
 <html lang="es">
 <head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Ticket #{{ ticket.id }} - {{ ticket.subject }}</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
+  <link rel="stylesheet" href="/static/base.css">
 <style>
 :root{
   --bg:#f0f2f5;
@@ -785,6 +789,16 @@ body{
   color:#ffffff;
   box-shadow:0 14px 24px rgba(15,23,42,.20);
 }
+.action-neutral{
+  background:#f1f5f9;
+  color:#475569;
+  border-color:#cbd5e1;
+}
+.action-neutral:hover{
+  background:#e2e8f0;
+  border-color:#94a3b8;
+  color:#334155;
+}
 
 /* ===== LEFT: FIELDS (Zendesk-ish) ===== */
 .field{
@@ -1307,6 +1321,81 @@ select::-ms-expand{
 .reception-form{
   flex:0 0 auto;
   margin:0;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.cc-chip-box{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:5px;
+  min-height:36px;
+  padding:4px 8px;
+  border-radius:11px;
+  border:1px solid #d4dee1;
+  background:#fff;
+  width:260px;
+  cursor:text;
+}
+.cc-chip-box:focus-within{
+  border-color:#1d4ed8;
+  box-shadow:0 0 0 3px rgba(29,78,216,.12);
+}
+.cc-chip-box[data-disabled="1"]{
+  background:#f1f5f9;
+  opacity:.7;
+  cursor:not-allowed;
+}
+.cc-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  padding:3px 6px 3px 10px;
+  border-radius:999px;
+  background:var(--chip);
+  color:var(--chip-text);
+  font-size:12px;
+  font-weight:600;
+  white-space:nowrap;
+  max-width:100%;
+}
+.cc-chip.invalid{
+  background:#fef2f2;
+  color:#b91c1c;
+}
+.cc-chip-remove{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:16px;
+  height:16px;
+  border:none;
+  border-radius:50%;
+  background:rgba(0,0,0,.08);
+  color:inherit;
+  font-size:11px;
+  line-height:1;
+  cursor:pointer;
+  padding:0;
+  flex:0 0 auto;
+}
+.cc-chip-remove:hover{
+  background:rgba(0,0,0,.18);
+}
+.cc-chip-typing{
+  flex:1 1 80px;
+  min-width:80px;
+  border:none;
+  outline:none;
+  font-size:12.5px;
+  font-family:inherit;
+  color:#172124;
+  background:transparent;
+  padding:3px 2px;
+}
+.cc-chip-typing::placeholder{
+  color:#94a3b8;
 }
 .send.reception-action{
   height:36px;
@@ -2628,7 +2717,8 @@ body.is-inline-image-resizing{
     width:100%;
     justify-content:space-between;
   }
-  .reception-form{ flex:1 1 auto; }
+  .reception-form{ flex:1 1 auto; flex-wrap:wrap; }
+  .cc-chip-box{ width:100%; }
   .send.reception-action{ width:100%; }
   .service-grid{ grid-template-columns:1fr; }
   .gmail-toolbar{
@@ -2695,7 +2785,7 @@ body.is-inline-image-resizing{
         
         <!-- SUBJECT + REGRESAR -->
         <div class="subject">
-          <a href="/dashboard" class="smallbtn" style="margin-right:12px;">
+          <a href="/ticketera" class="smallbtn" style="margin-right:12px;">
              Salir
           </a>
           <h1 style="display:inline;">{{ ticket.subject }}</h1>
@@ -2720,6 +2810,8 @@ body.is-inline-image-resizing{
             id="ticketTimerPopover"
             class="clock-popover"
             aria-hidden="true"
+            data-created-local="{{ ticket.created_at.strftime('%Y-%m-%d %H:%M:%S') if ticket.created_at else '' }}"
+            data-resolved-local="{{ ticket.resolved_at.strftime('%Y-%m-%d %H:%M:%S') if ticket.resolved_at else '' }}"
             data-created-ms="{{ (ticket.created_at.timestamp() * 1000)|int if ticket.created_at else 0 }}"
             data-resolved-ms="{{ (ticket.resolved_at.timestamp() * 1000)|int if ticket.resolved_at else 0 }}"
             data-status="{{ ticket_status_css(ticket.status) }}"
@@ -2730,13 +2822,13 @@ body.is-inline-image-resizing{
           </div>
 
           {% if previous_ticket_id %}
-            <a href="/dashboard/tickets/{{ previous_ticket_id }}" class="smallbtn ticket-nav-btn">
+            <a href="/ticketera/tickets/{{ previous_ticket_id }}" class="smallbtn ticket-nav-btn">
               Anterior
             </a>
           {% endif %}
 
           {% if next_ticket_id %}
-            <a href="/dashboard/tickets/{{ next_ticket_id }}" class="smallbtn ticket-nav-btn">
+            <a href="/ticketera/tickets/{{ next_ticket_id }}" class="smallbtn ticket-nav-btn">
               Siguiente
             </a>
           {% endif %}
@@ -2785,7 +2877,7 @@ body.is-inline-image-resizing{
 
           <div class="kv">
             <span class="kv-k">Agente asignado</span>
-            <form class="assign-form" method="POST" action="/dashboard/tickets/{{ ticket.id }}/assign">
+            <form class="assign-form" method="POST" action="/ticketera/tickets/{{ ticket.id }}/assign">
               <select name="user_id" onchange="if(!this.disabled){this.form.submit()}" {% if ticket_locked %}disabled{% endif %}>
                 <option value="" disabled {% if not ticket.assigned_to_id %}selected{% endif %}>Sin asignar</option>
                 {% for u in assignable_users %}
@@ -3001,7 +3093,19 @@ body.is-inline-image-resizing{
 
               <div class="composer-workbench-actions">
             {% if requires_reception and not reception_sent %}
-              <form class="reception-form" method="POST" action="/dashboard/tickets/{{ ticket.id }}/send-reception">
+              <form class="reception-form" method="POST" action="/ticketera/tickets/{{ ticket.id }}/send-reception">
+                <div id="receptionCcChips" class="cc-chip-box" {% if ticket_locked %}data-disabled="1"{% endif %}>
+                  <input
+                    id="receptionCcTyping"
+                    class="cc-chip-typing"
+                    type="text"
+                    placeholder="Copiar a (CC, opcional)"
+                    title="Escribe un correo y presiona Enter, coma o Tab"
+                    autocomplete="off"
+                    {% if ticket_locked %}disabled{% endif %}
+                  />
+                </div>
+                <input type="hidden" name="cc" id="receptionCcValue" value="" />
                 <button class="send reception-action" type="submit" {% if ticket_locked %}disabled{% endif %}>
                   Recepcion de solicitud
                 </button>
@@ -3028,7 +3132,7 @@ body.is-inline-image-resizing{
             <form
               id="replyForm"
               method="POST"
-              action="/dashboard/tickets/{{ ticket.id }}/reply"
+              action="/ticketera/tickets/{{ ticket.id }}/{% if direct_reply_mode %}reply-direct{% else %}reply{% endif %}"
               enctype="multipart/form-data"
               data-ticket-source="{{ (ticket.source or '').strip().lower() }}"
             >
@@ -3036,7 +3140,7 @@ body.is-inline-image-resizing{
                 Respuesta minimizada. Haz clic para expandir y escribir.
               </button>
 
-              {% set priority_pending = (ticket.priority or '') not in ['low', 'medium', 'high', 'urgent'] %}
+              {% set priority_pending = false if direct_reply_mode else (ticket.priority or '') not in ['low', 'medium', 'high', 'urgent'] %}
               {% set send_error_text = (send_error or '')|lower %}
               {% set show_send_error = send_error and not ('prioridad' in send_error_text) %}
               {% set reception_pending = (not priority_pending) and requires_reception and not can_reply %}
@@ -3107,7 +3211,7 @@ body.is-inline-image-resizing{
                   class="gmail-editor"
                   contenteditable="{% if ticket_locked or (requires_reception and not can_reply) %}false{% else %}true{% endif %}"
                   data-placeholder="{% if ticket_locked %}Ticket finalizado. La respuesta quedo bloqueada.{% elif requires_reception and not can_reply %}Primero envia 'Recepcion de solicitud'.{% else %}Escribe una respuesta...{% endif %}"
-                >{% if not ticket_locked and not (requires_reception and not can_reply) and user_signature %}<div><br></div>{{ user_signature|safe }}{% endif %}</div>
+                >{% if not ticket_locked and not (requires_reception and not can_reply) and user_signature and ticket.source == 'email' %}<div><br></div>{{ user_signature|safe }}{% endif %}</div>
                 <div id="inlineImageResizeToolbar" class="gmail-image-resize-toolbar hidden" role="toolbar" aria-label="Tamano de imagen">
                   <button type="button" class="gmail-image-size-btn" data-image-size="small">Pequena</button>
                   <button type="button" class="gmail-image-size-btn active" data-image-size="fit">Ajustar</button>
@@ -3238,7 +3342,7 @@ body.is-inline-image-resizing{
               <div class="composer-row" style="margin-top:10px; margin-bottom:0;">
                 <div class="composer-left">
                 </div>
-                <div class="composer-right">
+                <div class="composer-right" style="display:flex;gap:8px;align-items:center;">
                   <button class="send cta-reply" type="submit" {% if ticket_locked or (requires_reception and not can_reply) %}disabled{% endif %}>
                     Enviar respuesta
                   </button>
@@ -3336,9 +3440,26 @@ body.is-inline-image-resizing{
     </button>
     {% endif %}
 
+    <!-- NO ES UN TICKET -->
+    {% if not ticket.is_deleted and not ticket.is_spam and not ticket_locked %}
+    {% if direct_reply_mode %}
+    <form method="POST" action="/ticketera/tickets/{{ ticket.id }}/restore-no-ticket">
+      <button type="submit" class="action-btn action-success cta-moderation">
+        Volver a modo normal
+      </button>
+    </form>
+    {% else %}
+    <form method="POST" action="/ticketera/tickets/{{ ticket.id }}/no-ticket">
+      <button type="submit" class="action-btn action-neutral cta-moderation">
+        No es un ticket
+      </button>
+    </form>
+    {% endif %}
+    {% endif %}
+
     <!-- SPAM -->
     {% if not ticket.is_spam and not ticket.is_deleted %}
-    <form method="POST" action="/dashboard/tickets/{{ ticket.id }}/spam">
+    <form method="POST" action="/ticketera/tickets/{{ ticket.id }}/spam">
       <button type="submit" class="action-btn action-warning cta-moderation" {% if ticket_locked %}disabled{% endif %}>
         Marcar como Spam
       </button>
@@ -3346,7 +3467,7 @@ body.is-inline-image-resizing{
     {% endif %}
 
     {% if ticket.is_spam %}
-    <form method="POST" action="/dashboard/tickets/{{ ticket.id }}/restore-spam">
+    <form method="POST" action="/ticketera/tickets/{{ ticket.id }}/restore-spam">
       <button type="submit" class="action-btn action-success cta-moderation">
         Restaurar de Spam
       </button>
@@ -3355,7 +3476,7 @@ body.is-inline-image-resizing{
 
     <!-- ELIMINAR -->
     {% if not ticket.is_deleted %}
-    <form method="POST" action="/dashboard/tickets/{{ ticket.id }}/delete">
+    <form method="POST" action="/ticketera/tickets/{{ ticket.id }}/delete">
       <button type="submit" class="action-btn action-danger cta-moderation" {% if ticket_locked %}disabled{% endif %}>
         Mover a Papelera
       </button>
@@ -3363,16 +3484,17 @@ body.is-inline-image-resizing{
     {% endif %}
 
     {% if ticket.is_deleted %}
-    <form method="POST" action="/dashboard/tickets/{{ ticket.id }}/restore-trash">
+    <form method="POST" action="/ticketera/tickets/{{ ticket.id }}/restore-trash">
       <button type="submit" class="action-btn action-success cta-moderation">
         Restaurar de Papelera
       </button>
     </form>
     {% endif %}
 
-    <div style="height:1px; background:var(--border); margin:2px 0;"></div>
+    {% if not direct_reply_mode %}
+    <div id="ntSeparator" style="height:1px; background:var(--border); margin:2px 0;"></div>
 
-    <form method="POST" action="/dashboard/tickets/{{ ticket.id }}/quick-actions">
+    <form id="quickActionsForm" method="POST" action="/ticketera/tickets/{{ ticket.id }}/quick-actions">
       <div class="field" style="margin:0 0 12px;">
         <label>Estado</label>
         <select name="status" {% if ticket_locked %}disabled{% endif %}>
@@ -3401,6 +3523,7 @@ body.is-inline-image-resizing{
 
       <button class="send cta-save" style="margin-top:10px;" type="submit" {% if ticket_locked %}disabled{% endif %}>Guardar cambios</button>
     </form>
+    {% endif %}
 
   </div>
 </div>
@@ -3545,6 +3668,21 @@ body.is-inline-image-resizing{
   </div>
 </div>
 
+<div id="ticketAvisoModal" class="requester-modal" aria-hidden="true">
+  <div class="requester-modal-card" style="width:min(420px, 92vw);">
+    <div class="requester-modal-head">
+      <h3 id="ticketAvisoTitulo">Aviso</h3>
+      <button id="closeTicketAvisoModalBtn" class="tool" type="button" aria-label="Cerrar">&times;</button>
+    </div>
+    <div class="requester-modal-body">
+      <p id="ticketAvisoMensaje" style="margin:0;font-size:14px;line-height:1.5;color:var(--fg,#1f2937);"></p>
+      <div style="display:flex;justify-content:flex-end;">
+        <button type="button" id="ticketAvisoAceptarBtn" class="send cta-save">Aceptar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="serviceTicketModal" class="requester-modal" aria-hidden="true">
   <div class="requester-modal-card service-modal-card">
     <div class="requester-modal-head">
@@ -3552,7 +3690,7 @@ body.is-inline-image-resizing{
       <button id="closeServiceModalBtn" class="tool" type="button" aria-label="Cerrar derivación de ticket">&times;</button>
     </div>
     <div class="service-modal-body">
-      <form method="POST" action="/dashboard/tickets/{{ ticket.id }}/send-to-service">
+      <form method="POST" action="/ticketera/tickets/{{ ticket.id }}/send-to-service">
         <div class="service-grid">
           <div class="field service-full">
             <label>Derivacion</label>
@@ -3797,6 +3935,17 @@ body.is-inline-image-resizing{
         shadow.innerHTML = messageShadowStyles + template.innerHTML;
         shadow.querySelectorAll("script, link[rel='stylesheet'], meta, title, head").forEach((node) => node.remove());
         shadow.querySelectorAll("img").forEach((img) => {
+          const rawSrc = (img.getAttribute("src") || "").trim();
+          const marcarNoDisponible = () => {
+            const aviso = document.createElement("span");
+            aviso.textContent = "Imagen no disponible";
+            aviso.style.cssText = "display:inline-block;font-size:11px;color:#94a3b8;border:1px dashed #cbd5e1;border-radius:6px;padding:2px 8px;margin:2px 0;";
+            img.replaceWith(aviso);
+          };
+          // cid: sin resolver (el correo no trajo el adjunto): aviso en vez de ícono roto.
+          if (!rawSrc || rawSrc.startsWith("cid:")) { marcarNoDisponible(); return; }
+          // El navegador SÍ intenta cargarla; solo si falla se muestra el aviso.
+          img.addEventListener("error", marcarNoDisponible, { once: true });
           img.style.maxWidth = "100%";
           img.style.height = "auto";
           img.style.cursor = "zoom-in";
@@ -4009,7 +4158,7 @@ body.is-inline-image-resizing{
         const source = normalizeAlertSource(alert.source);
         const sourceIcon = getAlertSourceIcon(source, alert.ticket_id);
         const anchor = document.createElement("a");
-        anchor.href = alert.url || `/dashboard/tickets/${alert.ticket_id}`;
+        anchor.href = alert.url || `/ticketera/tickets/${alert.ticket_id}`;
         anchor.className = "ticket-alert-item" + (alert.unread ? " unread" : "");
         anchor.innerHTML = `
           <div class="ticket-alert-line">
@@ -4119,12 +4268,12 @@ body.is-inline-image-resizing{
         if (!ticketId) return;
         markUnreadBtn.disabled = true;
         try {
-          const res = await fetch(`/dashboard/tickets/${ticketId}/mark-unread`, {
+          const res = await fetch(`/ticketera/tickets/${ticketId}/mark-unread`, {
             method: "POST",
             credentials: "same-origin",
           });
           if (!res.ok) throw new Error("HTTP " + res.status);
-          window.location.href = "/dashboard";
+          window.location.href = "/ticketera";
         } catch (err) {
           markUnreadBtn.disabled = false;
           alert("No se pudo marcar como no leído: " + (err.message || err));
@@ -4140,8 +4289,25 @@ body.is-inline-image-resizing{
     if (timerBtn && timerPopover && timerValue && timerTitle) {
       let timerInterval = null;
 
-      const createdMs = Number(timerPopover.dataset.createdMs || "0");
-      const resolvedMs = Number(timerPopover.dataset.resolvedMs || "0");
+      function parseLocalDateTimeMs(value) {
+        const raw = String(value || "").trim();
+        const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/);
+        if (!match) return 0;
+        const date = new Date(
+          Number(match[1]),
+          Number(match[2]) - 1,
+          Number(match[3]),
+          Number(match[4]),
+          Number(match[5]),
+          Number(match[6] || 0),
+          0
+        );
+        const ms = date.getTime();
+        return Number.isFinite(ms) ? ms : 0;
+      }
+
+      const createdMs = parseLocalDateTimeMs(timerPopover.dataset.createdLocal) || Number(timerPopover.dataset.createdMs || "0");
+      const resolvedMs = parseLocalDateTimeMs(timerPopover.dataset.resolvedLocal) || Number(timerPopover.dataset.resolvedMs || "0");
       const status = (timerPopover.dataset.status || "").toLowerCase();
       const isResolved = ["resolved", "resolved_service", "resolved_client", "closed"].includes(status) && resolvedMs > 0;
 
@@ -5041,7 +5207,7 @@ body.is-inline-image-resizing{
       resetRequesterSections();
       requesterModal.classList.add("open");
       requesterModal.setAttribute("aria-hidden", "false");
-      fetch(`/dashboard/tickets/{{ ticket.id }}/internal-notes/mark-read`, {
+      fetch(`/ticketera/tickets/{{ ticket.id }}/internal-notes/mark-read`, {
         method: "POST",
         credentials: "same-origin",
       }).finally(() => {
@@ -5548,6 +5714,152 @@ body.is-inline-image-resizing{
   })();
 </script>
 
+<script>
+  // Campo CC de "Recepcion de solicitud": entrada de correos como chips,
+  // igual que Gmail (escribe y presiona Enter, coma, Tab o pega una lista).
+  (function () {
+    const box = document.getElementById("receptionCcChips");
+    const typing = document.getElementById("receptionCcTyping");
+    const hidden = document.getElementById("receptionCcValue");
+    if (!box || !typing || !hidden) return;
+    if (box.dataset.disabled === "1") return;
+
+    const emails = [];
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    function sync() {
+      hidden.value = emails.join(", ");
+    }
+
+    function renderChip(addr) {
+      const valido = EMAIL_RE.test(addr);
+      const chip = document.createElement("span");
+      chip.className = "cc-chip" + (valido ? "" : " invalid");
+      chip.title = valido ? addr : `"${addr}" no parece un correo valido`;
+
+      const label = document.createElement("span");
+      label.textContent = addr;
+      chip.appendChild(label);
+
+      const removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.className = "cc-chip-remove";
+      removeBtn.setAttribute("aria-label", `Quitar ${addr}`);
+      removeBtn.textContent = "×";
+      removeBtn.addEventListener("click", () => {
+        const idx = emails.indexOf(addr);
+        if (idx !== -1) emails.splice(idx, 1);
+        chip.remove();
+        sync();
+      });
+      chip.appendChild(removeBtn);
+      box.insertBefore(chip, typing);
+    }
+
+    function addAddress(raw) {
+      const addr = raw.trim().replace(/[,;]+$/, "");
+      if (!addr) return;
+      if (emails.includes(addr)) return;
+      emails.push(addr);
+      renderChip(addr);
+      sync();
+    }
+
+    function addFromText(text) {
+      String(text || "")
+        .split(/[,;\n]+/)
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .forEach(addAddress);
+    }
+
+    typing.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === "," || event.key === ";" || event.key === "Tab") {
+        if (!typing.value.trim()) return;
+        event.preventDefault();
+        addFromText(typing.value);
+        typing.value = "";
+      } else if (event.key === "Backspace" && !typing.value && emails.length) {
+        emails.pop();
+        const chips = box.querySelectorAll(".cc-chip");
+        if (chips.length) chips[chips.length - 1].remove();
+        sync();
+      }
+    });
+
+    typing.addEventListener("blur", () => {
+      if (typing.value.trim()) {
+        addFromText(typing.value);
+        typing.value = "";
+      }
+    });
+
+    typing.addEventListener("paste", (event) => {
+      const pasted = (event.clipboardData || window.clipboardData).getData("text");
+      if (pasted && /[,;\n]/.test(pasted)) {
+        event.preventDefault();
+        addFromText(pasted);
+        typing.value = "";
+      }
+    });
+
+    box.addEventListener("click", (event) => {
+      if (event.target === box) typing.focus();
+    });
+  })();
+</script>
+
+<script>
+  // Aviso corporativo reutilizable (reemplaza al alert() nativo del navegador
+  // por un popup con el mismo estilo que el resto de los modales del ticket).
+  function mostrarAvisoTicket(mensaje, titulo) {
+    const modal = document.getElementById("ticketAvisoModal");
+    if (!modal) { alert(mensaje); return; }
+    document.getElementById("ticketAvisoTitulo").textContent = titulo || "Aviso";
+    document.getElementById("ticketAvisoMensaje").textContent = mensaje;
+    modal.classList.add("open");
+    modal.setAttribute("aria-hidden", "false");
+  }
+  (function () {
+    const modal = document.getElementById("ticketAvisoModal");
+    if (!modal) return;
+    function cerrar() {
+      modal.classList.remove("open");
+      modal.setAttribute("aria-hidden", "true");
+    }
+    document.getElementById("ticketAvisoAceptarBtn")?.addEventListener("click", cerrar);
+    document.getElementById("closeTicketAvisoModalBtn")?.addEventListener("click", cerrar);
+    modal.addEventListener("click", (event) => { if (event.target === modal) cerrar(); });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && modal.classList.contains("open")) cerrar();
+    });
+  })();
+</script>
+
+<script>
+  // No se puede marcar un ticket como Resuelto (cualquier variante) sin
+  // haber enviado antes una respuesta al cliente por "Mesa tecnica" — el
+  // registro de "que se hizo" es esa misma respuesta, no una nota aparte.
+  (function () {
+    const form = document.getElementById("quickActionsForm");
+    if (!form) return;
+    const statusSelect = form.querySelector('select[name="status"]');
+    if (!statusSelect) return;
+
+    const RESOLVED_VALUES = ["resolved", "resolved_service", "resolved_client"];
+    const HAS_AGENT_REPLY = {{ has_agent_reply|tojson }};
+
+    form.addEventListener("submit", (event) => {
+      if (RESOLVED_VALUES.includes(statusSelect.value) && !HAS_AGENT_REPLY) {
+        event.preventDefault();
+        mostrarAvisoTicket(
+          "Debes enviar una respuesta por Mesa técnica antes de marcar este ticket como resuelto.",
+          "No se puede resolver"
+        );
+      }
+    });
+  })();
+</script>
+
 </body>
 </html>
-

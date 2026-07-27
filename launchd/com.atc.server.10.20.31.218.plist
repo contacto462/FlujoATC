@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.atc.server.10.20.31.218</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/fernando/PROYECTO-ATC/.venv-backend/bin/python</string>
+    <string>-m</string>
+    <string>uvicorn</string>
+    <string>ATC.app.main:app</string>
+    <string>--host</string>
+    <string>10.20.31.218</string>
+    <string>--port</string>
+    <string>8000</string>
+    <string>--ssl-certfile</string>
+    <string>/Users/fernando/PROYECTO-ATC/cert.pem</string>
+    <string>--ssl-keyfile</string>
+    <string>/Users/fernando/PROYECTO-ATC/key.pem</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/fernando/PROYECTO-ATC</string>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>KeepAlive</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>/private/tmp/atc_server_10_20_31_218.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>/private/tmp/atc_server_10_20_31_218.err.log</string>
+</dict>
+</plist>

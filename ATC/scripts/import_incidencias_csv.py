@@ -6,6 +6,7 @@ from pathlib import Path
 
 from sqlalchemy import delete, text
 
+from app.core.db_compat import quote_ident
 from app.core.db import Base, SessionLocal, engine
 from app.models.incidencia import Incidencia
 
@@ -37,7 +38,14 @@ def import_csv(csv_path: Path, truncate_first: bool = False) -> tuple[int, int]:
     db = SessionLocal()
     try:
         # Ajuste de compatibilidad si la tabla fue creada con prioridad VARCHAR corto.
-        db.execute(text("ALTER TABLE incidencias ALTER COLUMN prioridad TYPE TEXT"))
+        dialect = db.get_bind().dialect.name
+        table_name = Incidencia.__tablename__
+        table = quote_ident(table_name, dialect)
+        column = quote_ident("prioridad", dialect)
+        if dialect == "mssql":
+            db.execute(text(f"ALTER TABLE {table} ALTER COLUMN {column} NVARCHAR(MAX) NULL"))
+        else:
+            db.execute(text(f"ALTER TABLE {table} ALTER COLUMN {column} TYPE TEXT"))
         db.commit()
 
         if truncate_first:

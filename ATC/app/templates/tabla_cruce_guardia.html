@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Cruce Guardia — {{ month_name }} {{ year }}</title>
+<style>
+:root{
+  --bg:#f0f4f5;
+  --surface:#fff;
+  --border:#d4dee1;
+  --header-bg:#1a3540;
+  --header-text:#f4f8f9;
+  --sub-header:#243f4a;
+  --recinto-bg:#eaf1f3;
+  --recinto-w:220px;
+  --cell-w:160px;
+  --row-h:38px;
+  --weekend:#f7f0ea;
+  --muted:#7a9199;
+  --today-border:#e07030;
+
+  --ok-bg:#eaf4ec;       --ok-border:#a3c9a8;     --ok-text:#1e4430;
+  --solo-qr-bg:#e8eef6;  --solo-qr-border:#9ab0cc;--solo-qr-text:#2c4a72;
+  --solo-sv-bg:#f5f0e0;  --solo-sv-border:#c8b87a;--solo-sv-text:#5c4516;
+  --mismatch-bg:#f4e8e8; --mismatch-border:#c9a3a3;--mismatch-text:#5c2020;
+  --falta-bg:#fef2f2;    --falta-border:#fca5a5;  --falta-text:#991b1b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:#172124;font-size:13px}
+
+.topbar{
+  background:var(--header-bg);color:var(--header-text);
+  padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+}
+.topbar h1{font-size:17px;font-weight:800;letter-spacing:-.01em}
+.topbar .sub{font-size:12px;color:rgba(255,255,255,.55);margin-top:2px}
+.nav{display:flex;align-items:center;gap:8px}
+.nav a,.nav button{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:7px 13px;border-radius:10px;font-size:13px;font-weight:700;
+  text-decoration:none;border:1px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.07);color:var(--header-text);cursor:pointer;
+  transition:background .15s;
+}
+.nav a:hover,.nav button:hover{background:rgba(255,255,255,.14)}
+.nav .month-label{font-size:15px;font-weight:800;min-width:160px;text-align:center}
+.print-btn{background:#e07030;border-color:#e07030}
+.print-btn:hover{background:#c85f20 !important}
+.back-btn{font-size:12px}
+
+.legend{
+  padding:8px 20px;background:#fff;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.badge{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:11px;font-weight:700;padding:4px 10px;border-radius:8px;border:1px solid;
+}
+.badge-ok{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok-text)}
+.badge-solo-qr{background:var(--solo-qr-bg);border-color:var(--solo-qr-border);color:var(--solo-qr-text)}
+.badge-solo-sv{background:var(--solo-sv-bg);border-color:var(--solo-sv-border);color:var(--solo-sv-text)}
+.badge-mismatch{background:var(--mismatch-bg);border-color:var(--mismatch-border);color:var(--mismatch-text)}
+.legend-note{font-size:11px;color:var(--muted);margin-left:auto}
+
+.wrap{overflow-x:auto;padding:16px 20px 32px}
+
+table{
+  border-collapse:separate;border-spacing:0;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;overflow:hidden;min-width:max-content;
+}
+
+thead tr:first-child th{
+  background:var(--header-bg);color:var(--header-text);font-weight:800;font-size:12px;
+  padding:10px 8px;text-align:center;border-bottom:1px solid rgba(255,255,255,.1);white-space:nowrap;
+}
+thead tr:last-child th{
+  background:var(--sub-header);color:rgba(255,255,255,.65);font-size:10px;
+  font-weight:700;text-align:center;padding:5px 4px;border-bottom:2px solid var(--border);
+}
+thead th.col-recinto{
+  background:var(--header-bg);position:sticky;left:0;z-index:4;
+  text-align:left;min-width:var(--recinto-w);padding:10px 14px;font-size:13px;
+}
+thead tr:last-child th.col-recinto{
+  background:var(--sub-header);text-align:left;padding:5px 14px;
+  font-size:11px;color:rgba(255,255,255,.5);
+}
+thead th.weekend{background:#2a4550}
+thead tr:last-child th.weekend{background:#223840}
+thead th.today-col{background:#7c3010;border-left:2px solid var(--today-border);border-right:2px solid var(--today-border)}
+thead tr:last-child th.today-col{background:#6a2808}
+
+tbody tr:hover td{background:#f5fafb}
+td{
+  padding:4px 5px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);
+  vertical-align:top;min-width:var(--cell-w);white-space:nowrap;
+}
+td:last-child{border-right:0}
+tbody tr:last-child td{border-bottom:0}
+
+td.col-recinto{
+  position:sticky;left:0;z-index:2;background:var(--recinto-bg);
+  min-width:var(--recinto-w);max-width:var(--recinto-w);font-weight:700;font-size:12px;
+  padding:7px 14px;line-height:1.3;border-right:2px solid var(--border);white-space:normal;
+}
+tbody tr:hover td.col-recinto{background:#dceef2}
+td.weekend{background:#fdf8f4}
+tbody tr:hover td.weekend{background:#faf0e8}
+
+/* ── cell backgrounds ── */
+td.cell-ok       {background:#f0fdf4;border-left:3px solid var(--ok-border)}
+td.cell-solo-qr  {background:#e8eef6;border-left:3px solid var(--solo-qr-border)}
+td.cell-solo-sv  {background:#f5f0e0;border-left:3px solid var(--solo-sv-border)}
+td.cell-falta    {background:#fff0f0;border-left:4px solid #dc2626;box-shadow:inset 2px 0 0 #fca5a5}
+td.cell-mismatch {background:#fff7ed;border-left:4px solid #f97316;box-shadow:inset 2px 0 0 #fed7aa}
+tbody tr:hover td.cell-ok      {background:#e0faea}
+tbody tr:hover td.cell-solo-qr {background:#dbeafe}
+tbody tr:hover td.cell-falta   {background:#fee2e2}
+tbody tr:hover td.cell-mismatch{background:#ffedd5}
+
+/* ── source labels ── */
+.source-label{
+  font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+  padding:1px 5px;border-radius:4px;margin-bottom:3px;display:inline-block;
+}
+.label-qr{background:#dbeafe;color:#1e40af}
+.label-sv{background:#fef9c3;color:#713f12}
+
+/* ── entry rows ── */
+.entry-row{
+  display:flex;align-items:baseline;gap:4px;
+  font-size:11px;font-weight:700;line-height:1.5;
+  white-space:nowrap;
+}
+.entry-row .turno{
+  font-size:9px;font-weight:700;opacity:.7;
+  border-radius:4px;padding:1px 4px;
+  background:rgba(0,0,0,.06);
+}
+.entry-row .hora{font-size:10px;font-weight:400;opacity:.6}
+.section{margin-bottom:4px}
+.section:last-child{margin-bottom:0}
+.no-data{font-size:10px;color:var(--muted);font-style:italic}
+
+/* ── alerta de FALTA ── */
+.alerta-falta{
+  display:flex;align-items:flex-start;gap:5px;
+  background:#fef2f2;border:1.5px solid #fca5a5;border-radius:6px;
+  padding:5px 7px;margin-top:4px;
+}
+.alerta-falta .alerta-icon{
+  font-size:13px;line-height:1;flex-shrink:0;margin-top:1px;
+}
+.alerta-falta .alerta-body{
+  font-size:10px;font-weight:700;color:#991b1b;line-height:1.45;
+  white-space:normal;
+}
+.alerta-falta .alerta-sub{
+  font-size:9.5px;font-weight:400;color:#b91c1c;display:block;margin-top:1px;
+}
+
+/* ── alerta de DISCREPANCIA ── */
+.alerta-mismatch{
+  display:flex;align-items:flex-start;gap:5px;
+  background:#fff7ed;border:1.5px solid #fb923c;border-radius:6px;
+  padding:5px 7px;margin-top:4px;
+}
+.alerta-mismatch .alerta-icon{font-size:13px;line-height:1;flex-shrink:0;margin-top:1px}
+.alerta-mismatch .alerta-body{
+  font-size:10px;font-weight:700;color:#9a3412;line-height:1.45;
+  white-space:normal;
+}
+.alerta-mismatch .alerta-sub{
+  font-size:9.5px;font-weight:400;color:#c2410c;display:block;margin-top:1px;
+}
+
+@media print{
+  body{background:white}
+  .topbar{background:#1a3540 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .print-btn,.back-btn{display:none}
+  .wrap{padding:8px 0;overflow:visible}
+  table{border-radius:0;min-width:100%}
+  thead th.col-recinto,td.col-recinto{position:static}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <h1>Cruce de Registros — Guardia</h1>
+    <div class="sub">QR (automático) vs Supervisor (manual) — {{ month_name }} {{ year }}</div>
+  </div>
+  <div class="nav">
+    <a class="back-btn" id="btnVolver" href="/guardia">Volver</a>
+    <a href="/guardia/cruce?year={{ prev_y }}&month={{ prev_m }}">&#8249;</a>
+    <span class="month-label">{{ month_name }} {{ year }}</span>
+    <a href="/guardia/cruce?year={{ next_y }}&month={{ next_m }}">&#8250;</a>
+    <button class="print-btn" onclick="window.print()">Imprimir</button>
+  </div>
+</div>
+
+<div class="legend">
+  <span class="badge badge-ok">✓ Coinciden</span>
+  <span class="badge badge-solo-qr">Solo QR</span>
+  <span class="badge badge-solo-sv">Solo Supervisor</span>
+  <span class="badge badge-mismatch">⚠ Discrepancia</span>
+  <span class="badge" style="background:#fef2f2;border-color:#fca5a5;color:#991b1b">🚨 Falta de asistencia</span>
+  <span class="badge" style="background:#fff7ed;border-color:#fb923c;color:#9a3412">⚠️ Discrepancia</span>
+  <span class="legend-note">Cada alerta explica el motivo exacto</span>
+</div>
+
+<div class="wrap">
+<table>
+  <thead>
+    <tr>
+      <th class="col-recinto">Recinto</th>
+      {% for d in days_info %}
+        <th class="{% if d.weekend %}weekend{% endif %}{% if d.day == today_day %} today-col{% endif %}">
+          {{ d.day }}/{{ month }}
+        </th>
+      {% endfor %}
+    </tr>
+    <tr>
+      <th class="col-recinto">{{ month_name }} {{ year }}</th>
+      {% for d in days_info %}
+        <th class="{% if d.weekend %}weekend{% endif %}{% if d.day == today_day %} today-col{% endif %}">
+          {{ d.dow }}
+        </th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for recinto in recintos %}
+    <tr>
+      <td class="col-recinto">{{ recinto }}</td>
+      {% for d in days_info %}
+        {% set cell = cruce.get(recinto, {}).get(d.day, {"qr":[],"sv":[],"status":"empty"}) %}
+        {% set status = cell.status %}
+        <td class="
+          {% if d.weekend %}weekend {% endif %}
+          {% if d.day == today_day %}today-col {% endif %}
+          {% if status != 'empty' %}cell-{{ status }}{% endif %}
+        ">
+          {% if cell.qr or cell.sv %}
+
+          {% if cell.qr %}
+          <div class="section">
+            <span class="source-label label-qr">QR</span>
+            {% for e in cell.qr %}
+            <div class="entry-row">
+              <span>{{ e.nombre }}</span>
+              <span class="turno">{{ e.turno }}</span>
+              <span class="hora">{{ e.hora }}</span>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          {% if cell.sv %}
+          <div class="section">
+            <span class="source-label label-sv">Supervisor</span>
+            {% for e in cell.sv %}
+            <div class="entry-row">
+              <span>{{ e.nombre }}</span>
+              <span class="turno">{{ e.turno }}</span>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          {# ── Alertas por razón ── #}
+          {% for razon in cell.razones %}
+            {% if razon.startswith("Falta") %}
+            <div class="alerta-falta">
+              <span class="alerta-icon">🚨</span>
+              <div class="alerta-body">
+                FALTA DE ASISTENCIA
+                <span class="alerta-sub">{{ razon[8:] }}</span>
+              </div>
+            </div>
+            {% elif razon.startswith("Turno diferente") %}
+            <div class="alerta-mismatch">
+              <span class="alerta-icon">⚠️</span>
+              <div class="alerta-body">
+                TURNO DIFERENTE
+                <span class="alerta-sub">{{ razon[18:] }}</span>
+              </div>
+            </div>
+            {% elif razon.startswith("Solo en QR") %}
+            <div class="alerta-mismatch">
+              <span class="alerta-icon">⚠️</span>
+              <div class="alerta-body">
+                SIN CONFIRMACIÓN SUPERVISOR
+                <span class="alerta-sub">{{ razon[12:] }}</span>
+              </div>
+            </div>
+            {% endif %}
+          {% endfor %}
+
+          {% endif %}
+        </td>
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<script>
+</script>
+<script src="/static/atc-volver.js"></script>
+</body>
+</html>

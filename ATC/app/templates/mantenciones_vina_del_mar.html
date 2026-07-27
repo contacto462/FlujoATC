@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>Mantenciones Viña del Mar</title>
+<link rel="stylesheet" href="/static/base.css">
+<style>
+:root{
+  --bg:#f7f8fa;
+  --surface:#fff;
+  --border:#e5e7eb;
+  --border-strong:#d1d5db;
+  --text:#111827;
+  --text-soft:#4b5563;
+  --muted:#6b7280;
+  --header-bg-from:#0b1424;
+  --header-bg-to:#111c2f;
+  --accent:#f4a672;
+  --accent-strong:#c2410c;
+  --ok:#1e9c83;
+  --shadow-sm:0 1px 2px rgba(15,23,42,.04);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow-y:auto;overflow-x:hidden;font-family:"Inter",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+body{background:var(--bg);color:var(--text);font-size:15px;font-weight:500;display:flex;flex-direction:column;min-height:100vh;max-width:100vw}
+
+.hero{
+  flex-shrink:0;
+  display:flex;align-items:center;gap:12px;
+  padding:14px 16px;
+  background:linear-gradient(180deg,var(--header-bg-from) 0%,var(--header-bg-to) 100%);
+  border-bottom:1px solid rgba(255,255,255,.06);
+  box-shadow:0 2px 8px rgba(0,0,0,.28);
+}
+.hero-logo img{height:38px;width:auto;display:block;object-fit:contain;filter:drop-shadow(0 2px 6px rgba(0,0,0,.3))}
+.hero-copy{flex:1;min-width:0}
+.hero-copy h1{font-size:16px;font-weight:700;letter-spacing:-.02em;color:#fff;line-height:1.25}
+.hero-copy p{margin-top:3px;font-size:11.5px;color:rgba(255,255,255,.6);line-height:1.4}
+.btn-hero{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:9px 16px;border-radius:8px;font-size:12.5px;font-weight:700;
+  text-decoration:none;cursor:pointer;
+  border:1px solid rgba(255,255,255,.16);
+  background:rgba(255,255,255,.07);color:rgba(255,255,255,.9);
+  transition:background .15s,border-color .15s;white-space:nowrap;
+}
+.btn-hero:hover{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.24)}
+
+.content{flex:1;padding:14px 12px 32px;display:flex;flex-direction:column;gap:16px}
+
+.buscador-card{
+  width:100%;max-width:640px;margin:0 auto;
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:14px;box-shadow:var(--shadow-sm);
+}
+.buscador-card label{display:block;font-size:11.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px}
+.tecnico-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.tecnico-row select{
+  flex:1 1 100%;min-width:0;max-width:100%;width:100%;min-height:46px;padding:11px 12px;border-radius:8px;border:1px solid var(--border-strong);
+  font-family:inherit;font-size:16px;background:#fff;
+  text-overflow:ellipsis;
+}
+.buscador-wrap{position:relative}
+#buscadorPunto{
+  width:100%;min-height:48px;padding:12px 14px;border-radius:10px;border:1px solid var(--border-strong);
+  font-size:16px;font-weight:600;color:var(--text);outline:none;font-family:inherit;
+}
+#buscadorPunto:focus{border-color:#1d4ed8;box-shadow:0 0 0 3px rgba(29,78,216,.12)}
+.sugerencias{
+  position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:20;
+  background:#fff;border:1px solid var(--border-strong);border-radius:10px;
+  box-shadow:0 12px 30px rgba(15,23,42,.14);max-height:280px;overflow:auto;display:none;
+  -webkit-overflow-scrolling:touch;
+}
+.sugerencias.open{display:block}
+.sugerencia-item{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:13px 14px;cursor:pointer;font-weight:700;min-height:44px;
+}
+.sugerencia-item:hover,.sugerencia-item.activa{background:#f1f5f9}
+.sugerencia-item .estado-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.sugerencia-item.terminado .estado-dot{background:var(--ok)}
+.sugerencia-item.pendiente .estado-dot{background:#cbd5e1}
+.sugerencia-meta{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--muted)}
+
+.resumen-chip{margin-top:12px;font-size:12px;color:var(--muted);font-weight:600}
+.total-puntos-row{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;align-items:center;flex-wrap:wrap;gap:10px;font-size:12.5px;font-weight:700;color:var(--text-soft)}
+.total-puntos-row span{flex:1 1 100%}
+.total-puntos-row input{flex:1 1 80px;min-height:42px;padding:8px 10px;border-radius:8px;border:1px solid var(--border-strong);font-family:inherit;font-size:16px;font-weight:700}
+.total-puntos-row .btn{flex:0 0 auto;padding:10px 16px;font-size:12.5px}
+
+.fotos-pares{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.foto-par{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;padding:10px;border:1px solid var(--border);border-radius:10px;background:#fafafa}
+.foto-par .foto-col{flex:1 1 130px}
+.foto-par .foto-col label{display:block;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px}
+.foto-par .foto-col img{width:100%;height:130px;object-fit:cover;border-radius:8px;border:1px solid var(--border)}
+.foto-par .foto-col .fotos-input{padding:10px;font-size:11.5px;min-height:130px;display:flex;align-items:center;justify-content:center}
+.foto-par .foto-numero{flex:1 1 auto;font-size:12px;font-weight:800;color:var(--muted)}
+.foto-par-head{display:flex;align-items:center;justify-content:space-between;flex:0 0 100%}
+.foto-par-quitar{background:none;border:none;color:#b91c1c;font-size:12px;font-weight:700;cursor:pointer;padding:6px 4px}
+
+.pendiente-toggle{margin-top:4px;margin-bottom:16px}
+.pendiente-toggle button{
+  background:none;border:none;padding:8px 0;font-size:13px;font-weight:700;color:#1d4ed8;
+  cursor:pointer;text-decoration:underline;min-height:44px;
+}
+.pendiente-box{
+  display:none;margin-top:10px;padding:14px;border-radius:10px;
+  background:#fff7ed;border:1px solid #fed7aa;
+}
+.pendiente-box.open{display:block}
+.pendiente-box label{display:block;font-size:12px;font-weight:800;color:#9a3412;margin-bottom:6px}
+.pendiente-box textarea{
+  width:100%;padding:10px 12px;border-radius:8px;border:1px solid #fdba74;
+  font-family:inherit;font-size:16px;min-height:80px;resize:vertical;outline:none;
+}
+.pendiente-box .form-actions{margin-top:10px}
+.btn-pendiente{background:#c2410c;border-color:#c2410c;color:#fff}
+.btn-pendiente:hover{filter:brightness(1.06)}
+
+.form-card{
+  width:100%;max-width:640px;margin:0 auto;display:none;
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:16px;box-shadow:var(--shadow-sm);
+}
+.form-card.open{display:block}
+.form-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 12px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.form-head h2{flex:1 1 auto;min-width:0}
+.form-head h2{font-size:15px;font-weight:800;color:var(--text)}
+.form-head .badge-estado{font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.badge-estado.terminado{background:#eaf4ec;color:#1e4430}
+.badge-estado.pendiente{background:#f1f5f9;color:#475569}
+
+.campo{margin-bottom:16px}
+.campo label{display:block;font-size:12px;font-weight:800;color:var(--text-soft);margin-bottom:6px}
+.campo select,.campo textarea{
+  width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border-strong);
+  font-family:inherit;font-size:16px;color:var(--text);outline:none;
+}
+.campo textarea{min-height:80px;resize:vertical}
+.campo select:focus,.campo textarea:focus{border-color:#1d4ed8;box-shadow:0 0 0 3px rgba(29,78,216,.10)}
+
+.checks{display:flex;flex-wrap:wrap;gap:8px}
+.check-pill{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 12px;border-radius:999px;border:1px solid var(--border-strong);
+  font-size:12.5px;font-weight:700;cursor:pointer;user-select:none;color:var(--text-soft);
+  transition:background .15s,border-color .15s,color .15s;
+}
+.check-pill input{accent-color:var(--accent-strong)}
+.check-pill:has(input:checked){background:#fff1e6;border-color:var(--accent);color:var(--accent-strong)}
+
+.fotos-input{
+  border:1px dashed var(--border-strong);border-radius:10px;padding:16px;text-align:center;
+  cursor:pointer;font-size:12.5px;color:var(--muted);font-weight:700;min-height:44px;
+}
+.fotos-input:hover{border-color:var(--accent)}
+.fotos-preview{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.fotos-preview img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--border)}
+
+.form-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:8px;flex-wrap:wrap}
+.btn{
+  appearance:none;border-radius:8px;padding:12px 18px;font-size:14px;font-weight:700;
+  cursor:pointer;font-family:inherit;border:1px solid var(--border-strong);background:#fff;color:var(--text);
+  min-height:46px;flex:1 1 auto;
+}
+.btn-primary{background:var(--accent-strong);border-color:var(--accent-strong);color:#fff}
+.btn-primary:hover{filter:brightness(1.06)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+
+#toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  max-width:calc(100% - 32px);
+  background:var(--text);color:#fff;padding:10px 18px;border-radius:8px;
+  font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(15,23,42,.18);display:none;z-index:300;
+  text-align:center;
+}
+
+@media (min-width:640px){
+  .hero{padding:18px 28px;gap:20px}
+  .hero-logo img{height:48px}
+  .hero-copy h1{font-size:19px}
+  .hero-copy p{font-size:12.5px;margin-top:4px}
+  .content{padding:24px 28px 40px;gap:20px}
+  .buscador-card{padding:18px}
+  .tecnico-row select{flex:1 1 200px}
+  .total-puntos-row span{flex:0 0 auto}
+  .form-card{padding:22px}
+  .form-actions{justify-content:flex-end}
+  .btn{flex:0 0 auto}
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-logo"><img src="/shared-static/img/logo-atc.png" alt="Logo ATC"></div>
+  <div class="hero-copy">
+    <h1>Mantenciones Viña del Mar</h1>
+    <p>Cierre de mantención por punto de cámara (1 a {{ puntos|length }})</p>
+  </div>
+</header>
+
+<div class="content">
+  <div class="buscador-card">
+    <label>Técnico / Acompañante</label>
+    <div class="tecnico-row">
+      <select id="tecnicoInput">
+        <option value="">Selecciona técnico…</option>
+        {% for nombre in tecnicos_nombres %}
+        <option value="{{ nombre }}">{{ nombre }}</option>
+        {% endfor %}
+      </select>
+      <select id="acompananteInput">
+        <option value="">Acompañante (opcional)</option>
+        {% for nombre in tecnicos_nombres %}
+        <option value="{{ nombre }}">{{ nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <label for="buscadorPunto">Buscar punto</label>
+    <div class="buscador-wrap">
+      <input type="text" id="buscadorPunto" placeholder="Escribe un número del 1 al {{ puntos|length }}…" autocomplete="off">
+      <div class="sugerencias" id="sugerencias"></div>
+    </div>
+    <div class="resumen-chip" id="resumenChip"></div>
+    <div class="total-puntos-row">
+      <span>Total de puntos vigentes:</span>
+      <input type="number" id="totalPuntosInput" min="1" max="999" value="{{ total_puntos }}">
+      <button type="button" class="btn" id="btnGuardarTotal">Guardar</button>
+    </div>
+  </div>
+
+  <div class="form-card" id="formCard">
+    <div class="form-head">
+      <h2 id="formTitulo">Punto —</h2>
+      <span class="badge-estado" id="formEstadoBadge"></span>
+    </div>
+
+    <div class="campo">
+      <label>Fotos (antes y después)</label>
+      <div class="fotos-input" id="fotoAntesWrap">Haz clic para elegir fotos "Antes" — puedes tocar varias veces para ir agregando más</div>
+      <input type="file" id="fotoAntesInput" accept="image/*" multiple style="display:none">
+      <div class="fotos-pares" id="fotosPares"></div>
+    </div>
+
+    <div class="form-actions">
+      <button type="button" class="btn" id="btnCancelar">Cancelar</button>
+      <button type="button" class="btn btn-primary" id="btnCerrar">Cerrar mantención</button>
+    </div>
+
+    <div class="pendiente-toggle">
+      <button type="button" id="btnMostrarPendiente">No se pudo hacer / dejar pendiente</button>
+    </div>
+    <div class="pendiente-box" id="pendienteBox">
+      <label for="observacionPendiente">Motivo por el que no se pudo realizar</label>
+      <textarea id="observacionPendiente" placeholder="Explica brevemente por qué quedó pendiente…"></textarea>
+      <div class="form-actions">
+        <button type="button" class="btn" id="btnCancelarPendiente">Cancelar</button>
+        <button type="button" class="btn btn-pendiente" id="btnGuardarPendiente">Dejar pendiente</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const TOKEN = {{ token|default('')|tojson }};
+  const PUNTOS = {{ puntos|tojson }};
+  const PUNTOS_POR_NUMERO = {};
+  PUNTOS.forEach(p => PUNTOS_POR_NUMERO[p.numero] = p);
+
+  const input = document.getElementById("buscadorPunto");
+  const sugerencias = document.getElementById("sugerencias");
+  const resumenChip = document.getElementById("resumenChip");
+  const formCard = document.getElementById("formCard");
+  const formTitulo = document.getElementById("formTitulo");
+  const formEstadoBadge = document.getElementById("formEstadoBadge");
+  const pendienteBox = document.getElementById("pendienteBox");
+
+  let puntoActual = null;
+  let fotosAntes = [];
+  let fotosDespues = [];
+
+  // Tecnico/Acompañante: quedan guardados en este navegador hasta que se
+  // cambien manualmente (no hay login en esta pagina).
+  const tecnicoInput = document.getElementById("tecnicoInput");
+  const acompananteInput = document.getElementById("acompananteInput");
+  tecnicoInput.value = localStorage.getItem("mantVinaTecnico") || "";
+  acompananteInput.value = localStorage.getItem("mantVinaAcompanante") || "";
+  tecnicoInput.addEventListener("change", () => localStorage.setItem("mantVinaTecnico", tecnicoInput.value));
+  acompananteInput.addEventListener("change", () => localStorage.setItem("mantVinaAcompanante", acompananteInput.value));
+
+  function actualizarResumen() {
+    const terminados = PUNTOS.filter(p => p.cerrado).length;
+    resumenChip.textContent = `${terminados} de ${PUNTOS.length} puntos con mantención cerrada`;
+  }
+  actualizarResumen();
+
+  document.getElementById("btnGuardarTotal").addEventListener("click", async () => {
+    const nuevoTotal = parseInt(document.getElementById("totalPuntosInput").value, 10);
+    if (!nuevoTotal || nuevoTotal < 1) { mostrarToast("Ingresa un total válido.", false); return; }
+    try {
+      const res = await fetch("/api/servicio-tecnico/mantenciones-vina-del-mar/total", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ total: nuevoTotal }),
+      });
+      if (!res.ok) throw new Error((await res.json())?.detail || `HTTP ${res.status}`);
+      mostrarToast("Total actualizado. Recargando…", true);
+      setTimeout(() => window.location.reload(), 800);
+    } catch (err) {
+      mostrarToast("No se pudo actualizar el total: " + err.message, false);
+    }
+  });
+
+  function renderSugerencias(lista) {
+    if (!lista.length) {
+      sugerencias.classList.remove("open");
+      sugerencias.innerHTML = "";
+      return;
+    }
+    sugerencias.innerHTML = lista.slice(0, 30).map(p => `
+      <div class="sugerencia-item ${p.cerrado ? 'terminado' : 'pendiente'}" data-numero="${p.numero}">
+        <span>Punto ${p.numero}</span>
+        <span class="sugerencia-meta"><span class="estado-dot"></span>${p.cerrado ? 'Cerrado' : 'Pendiente'}</span>
+      </div>
+    `).join("");
+    sugerencias.classList.add("open");
+    sugerencias.querySelectorAll("[data-numero]").forEach(el => {
+      el.addEventListener("click", () => seleccionarPunto(Number(el.dataset.numero)));
+    });
+  }
+
+  input.addEventListener("input", () => {
+    const q = input.value.trim();
+    if (!q) { renderSugerencias(PUNTOS); return; }
+    const filtrados = PUNTOS.filter(p => String(p.numero).includes(q));
+    renderSugerencias(filtrados);
+  });
+  input.addEventListener("focus", () => {
+    if (!input.value.trim()) renderSugerencias(PUNTOS);
+  });
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".buscador-wrap")) sugerencias.classList.remove("open");
+  });
+
+  function seleccionarPunto(numero) {
+    const punto = PUNTOS_POR_NUMERO[numero];
+    if (!punto) return;
+    puntoActual = punto;
+    input.value = `Punto ${numero}`;
+    sugerencias.classList.remove("open");
+    formTitulo.textContent = `Punto ${numero} — ${punto.odt}`;
+    formEstadoBadge.textContent = punto.cerrado ? "Ya cerrado" : "Pendiente";
+    formEstadoBadge.className = "badge-estado " + (punto.cerrado ? "terminado" : "pendiente");
+    document.getElementById("observacionPendiente").value = "";
+    fotosAntes = [];
+    fotosDespues = [];
+    renderParesFotos();
+    pendienteBox.classList.remove("open");
+    formCard.classList.add("open");
+    formCard.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  document.getElementById("btnCancelar").addEventListener("click", () => {
+    formCard.classList.remove("open");
+    pendienteBox.classList.remove("open");
+    puntoActual = null;
+    input.value = "";
+  });
+
+  const fotoAntesWrap = document.getElementById("fotoAntesWrap");
+  const fotoAntesInput = document.getElementById("fotoAntesInput");
+  const fotosPares = document.getElementById("fotosPares");
+
+  fotoAntesWrap.addEventListener("click", () => fotoAntesInput.click());
+  fotoAntesInput.addEventListener("change", () => {
+    const nuevas = Array.from(fotoAntesInput.files || []);
+    fotosAntes = fotosAntes.concat(nuevas);
+    fotosDespues = fotosDespues.concat(new Array(nuevas.length).fill(null));
+    fotoAntesInput.value = "";
+    renderParesFotos();
+  });
+
+  function renderParesFotos() {
+    fotosPares.innerHTML = "";
+    fotosAntes.forEach((archivoAntes, i) => {
+      const fila = document.createElement("div");
+      fila.className = "foto-par";
+
+      const cabecera = document.createElement("div");
+      cabecera.className = "foto-par-head";
+      const numero = document.createElement("div");
+      numero.className = "foto-numero";
+      numero.textContent = `#${i + 1}`;
+      const quitar = document.createElement("button");
+      quitar.type = "button";
+      quitar.className = "foto-par-quitar";
+      quitar.textContent = "Quitar";
+      quitar.addEventListener("click", () => {
+        fotosAntes.splice(i, 1);
+        fotosDespues.splice(i, 1);
+        renderParesFotos();
+      });
+      cabecera.appendChild(numero);
+      cabecera.appendChild(quitar);
+
+      const colAntes = document.createElement("div");
+      colAntes.className = "foto-col";
+      colAntes.innerHTML = `<label>Antes</label>`;
+      const imgAntes = document.createElement("img");
+      imgAntes.src = URL.createObjectURL(archivoAntes);
+      colAntes.appendChild(imgAntes);
+
+      const colDespues = document.createElement("div");
+      colDespues.className = "foto-col";
+      colDespues.innerHTML = `<label>Después</label>`;
+      if (fotosDespues[i]) {
+        const imgDespues = document.createElement("img");
+        imgDespues.src = URL.createObjectURL(fotosDespues[i]);
+        imgDespues.style.cursor = "pointer";
+        imgDespues.addEventListener("click", () => abrirSelectorDespues(i));
+        colDespues.appendChild(imgDespues);
+      } else {
+        const boton = document.createElement("div");
+        boton.className = "fotos-input";
+        boton.textContent = "Elegir foto";
+        boton.addEventListener("click", () => abrirSelectorDespues(i));
+        colDespues.appendChild(boton);
+      }
+
+      fila.appendChild(cabecera);
+      fila.appendChild(colAntes);
+      fila.appendChild(colDespues);
+      fotosPares.appendChild(fila);
+    });
+  }
+
+  function abrirSelectorDespues(indice) {
+    const inputTemporal = document.createElement("input");
+    inputTemporal.type = "file";
+    inputTemporal.accept = "image/*";
+    inputTemporal.addEventListener("change", () => {
+      const archivo = (inputTemporal.files || [])[0];
+      if (archivo) {
+        fotosDespues[indice] = archivo;
+        renderParesFotos();
+      }
+    });
+    inputTemporal.click();
+  }
+
+  function mostrarToast(texto, ok = true) {
+    const toast = document.getElementById("toast");
+    toast.textContent = texto;
+    toast.style.background = ok ? "#111827" : "#c0392b";
+    toast.style.display = "block";
+    setTimeout(() => { toast.style.display = "none"; }, 3200);
+  }
+
+  document.getElementById("btnCerrar").addEventListener("click", async () => {
+    if (!puntoActual) return;
+    const tecnico = tecnicoInput.value.trim();
+    if (!tecnico) { mostrarToast("Ingresa el nombre del técnico.", false); tecnicoInput.focus(); return; }
+    if (!fotosAntes.length) { mostrarToast("Adjunta al menos una foto de \"Antes\".", false); return; }
+    if (fotosDespues.some((f) => !f)) { mostrarToast("Falta la foto \"Después\" de alguno de los puntos.", false); return; }
+
+    const diagnostico = {
+      observacion: "Mantención preventiva realizada.",
+      resultadoCierre: "operativo",
+      materialesSinUso: true,
+      requiereSeguimiento: false,
+    };
+
+    const btn = document.getElementById("btnCerrar");
+    btn.disabled = true;
+    btn.textContent = "Guardando…";
+    try {
+      await fetch(`/api/servicio-tecnico/mantenciones-vina-del-mar/${encodeURIComponent(puntoActual.odt)}/tecnico`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tecnico, acompanante: acompananteInput.value.trim() }),
+      });
+
+      const formData = new FormData();
+      formData.append("odt", puntoActual.odt);
+      formData.append("token", TOKEN || "");
+      formData.append("diagnostico", JSON.stringify(diagnostico));
+      fotosAntes.forEach((archivo, i) => formData.append("files", archivo, archivo.name || `antes-${i + 1}.jpg`));
+      fotosDespues.forEach((archivo, i) => formData.append("files", archivo, archivo.name || `despues-${i + 1}.jpg`));
+
+      const res = await fetch("/api/incidencias/cierre-mantencion", { method: "POST", body: formData });
+      const contentType = res.headers.get("content-type") || "";
+      const payload = contentType.includes("application/json") ? await res.json() : await res.text();
+      if (!res.ok) {
+        const detail = typeof payload === "string" ? payload : (payload?.detail || JSON.stringify(payload));
+        throw new Error(detail || `HTTP ${res.status}`);
+      }
+      puntoActual.cerrado = true;
+      mostrarToast(`Mantención del punto ${puntoActual.numero} cerrada correctamente.`, true);
+      actualizarResumen();
+      formCard.classList.remove("open");
+      input.value = "";
+    } catch (err) {
+      mostrarToast("No se pudo cerrar: " + err.message, false);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Cerrar mantención";
+    }
+  });
+
+  document.getElementById("btnMostrarPendiente").addEventListener("click", () => {
+    pendienteBox.classList.add("open");
+    pendienteBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  });
+  document.getElementById("btnCancelarPendiente").addEventListener("click", () => {
+    pendienteBox.classList.remove("open");
+  });
+
+  document.getElementById("btnGuardarPendiente").addEventListener("click", async () => {
+    if (!puntoActual) return;
+    const observacion = document.getElementById("observacionPendiente").value.trim();
+    if (!observacion) { mostrarToast("Ingresa el motivo por el que no se pudo realizar.", false); return; }
+
+    const btn = document.getElementById("btnGuardarPendiente");
+    btn.disabled = true;
+    btn.textContent = "Guardando…";
+    try {
+      const res = await fetch(`/api/servicio-tecnico/mantenciones-vina-del-mar/${encodeURIComponent(puntoActual.odt)}/pendiente`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          observacion,
+          tecnico: tecnicoInput.value.trim(),
+          acompanante: acompananteInput.value.trim(),
+        }),
+      });
+      if (!res.ok) throw new Error((await res.json())?.detail || `HTTP ${res.status}`);
+      mostrarToast(`Punto ${puntoActual.numero} quedó pendiente.`, true);
+      puntoActual.obsPendiente = true;
+      formCard.classList.remove("open");
+      pendienteBox.classList.remove("open");
+      input.value = "";
+    } catch (err) {
+      mostrarToast("No se pudo guardar: " + err.message, false);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Dejar pendiente";
+    }
+  });
+</script>
+  <script src="/static/atc-logo-home.js"></script>
+</body>
+</html>

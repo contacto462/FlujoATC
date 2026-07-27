@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solicitud Orden de Servicio — ATC</title>
+  <link rel="stylesheet" href="/static/base.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy-1: #0b1420;
+      --navy-2: #162538;
+      --navy-3: #1e3248;
+      --orange: #ff7a2b;
+      --orange-2: #ff9448;
+      --orange-dark: #e8691f;
+      --surface: #ffffff;
+      --bg: #f0f4f8;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --label: #374151;
+      --entry: #f8fafc;
+      --radius: 9px;
+      --radius-lg: 22px;
+      --sidebar-w: 270px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+    }
+
+    /* ── OUTER SHELL ── */
+    .shell {
+      width: 100%;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── TOP HERO ── */
+    .hero {
+      position: sticky; top: 0; z-index: 50;
+      background: linear-gradient(180deg, #0b1424 0%, #111c2f 100%);
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 20px 30px;
+      min-height: 108px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      flex-shrink: 0;
+    }
+    .hero-logo {
+      height: 68px; width: auto; object-fit: contain;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,.30));
+    }
+    .hero-left { flex: 1; }
+    .hero-left h1 { font-size: 20px; font-weight: 700; color: #fff; letter-spacing: -.02em; line-height: 1.25; }
+    .hero-left p { font-size: 13.5px; font-weight: 500; color: rgba(255,255,255,.72); margin-top: 6px; line-height: 1.45; }
+    .hero-actions { display: flex; gap: 10px; align-items: center; }
+    .hero-volver {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 8px 14px; border-radius: 7px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.04);
+      color: rgba(255,255,255,.92); font-size: 13px; font-weight: 600;
+      text-decoration: none; transition: background .15s, border-color .15s; white-space: nowrap;
+    }
+    .hero-volver:hover { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.22); }
+
+
+    /* ── MAIN LAYOUT: sidebar + content ── */
+    .main-layout {
+      display: grid;
+      grid-template-columns: var(--sidebar-w) 1fr;
+      flex: 1;
+      align-items: start;
+      background: var(--surface);
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      background: linear-gradient(180deg, #0b1424 0%, #111c2f 100%);
+      padding: 0 0 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .sidebar-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      color: rgba(190,208,214,.38);
+      padding: 0 24px 6px;
+      margin-top: 4px;
+    }
+
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 500;
+      color: rgba(190,208,214,.65);
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: all .14s;
+      text-decoration: none;
+      line-height: 1.2;
+    }
+
+    .sidebar-item .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: rgba(190,208,214,.28);
+      flex-shrink: 0;
+      transition: background .14s, transform .14s;
+    }
+
+    .sidebar-item:hover { color: #f4f8f9; background: rgba(255,255,255,.06); }
+    .sidebar-item:hover .dot { background: rgba(190,208,214,.55); transform: scale(1.2); }
+
+    .sidebar-item.active {
+      color: #f4f8f9;
+      font-weight: 600;
+      border-left-color: var(--orange);
+      background: rgba(255,122,43,.09);
+    }
+    .sidebar-item.active .dot {
+      background: var(--orange);
+      box-shadow: 0 0 6px rgba(255,122,43,.5);
+    }
+
+    /* ── FORM CONTENT ── */
+    .form-content {
+      padding: 34px clamp(28px, 4vw, 64px) 64px;
+      background: var(--surface);
+    }
+
+    #formularioOrdenServicio {
+      width: min(1120px, 100%);
+      margin: 0 auto;
+    }
+
+    /* ── SECTION ── */
+    .section {
+      margin-bottom: 30px;
+      padding-bottom: 30px;
+      border-bottom: 1px solid #e8edf3;
+      scroll-margin-top: 24px;
+    }
+    .section:last-of-type { margin-bottom: 0; }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 750;
+      color: var(--text);
+      letter-spacing: 0;
+      border-left: 3px solid var(--orange);
+      padding-left: 11px;
+    }
+
+    .section-subtitle {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0;
+    }
+
+    /* ── GRIDS ── */
+    .g2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .g3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .client-grid {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .client-rut { grid-column: span 4; }
+    .client-name { grid-column: span 8; }
+    .client-address { grid-column: span 8; }
+    .client-branch { grid-column: span 4; }
+    .client-type { grid-column: span 4; }
+
+    .service-config-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px 24px;
+      margin-top: 24px;
+      padding-top: 22px;
+      border-top: 1px solid #e8edf3;
+    }
+    .service-config-block {
+      min-width: 0;
+    }
+    .service-config-wide {
+      grid-column: 1 / -1;
+    }
+    .service-config-head {
+      display: flex;
+      align-items: center;
+      min-height: 24px;
+      margin-bottom: 10px;
+    }
+    .service-compact-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(150px, 220px));
+      gap: 12px;
+    }
+
+    /* ── FIELD ── */
+    .f { display: flex; flex-direction: column; gap: 4px; }
+    .section > .f:not(:last-child) { margin-bottom: 14px; }
+    .mt { margin-top: 12px; }
+
+    .f label { font-size: 11px; font-weight: 650; color: var(--label); }
+
+    .f input, .f select, .f textarea {
+      width: 100%;
+      min-height: 38px;
+      padding: 8px 11px;
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+      appearance: none;
+      resize: vertical;
+    }
+
+    .f textarea { min-height: 78px; line-height: 1.5; }
+
+    .f select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 11px center;
+      padding-right: 32px;
+      cursor: pointer;
+    }
+
+    .f input:focus, .f select:focus, .f textarea:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(255,122,43,.13); }
+    .f input[readonly] { background: var(--entry); color: var(--muted); cursor: default; }
+    .f input::placeholder, .f textarea::placeholder { color: #94a3b8; font-size: 12.5px; }
+    .f input[type="file"] { padding: 7px 10px; font-size: 12px; color: var(--muted); cursor: pointer; }
+
+    .monto-row {
+      display: grid;
+      grid-template-columns: 118px minmax(180px, 280px) 118px;
+      gap: 8px;
+      align-items: end;
+    }
+    #contenedorMontos {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    .monto-row select,
+    .monto-row input {
+      min-height: 34px;
+    }
+    .monto-row input {
+      text-align: right;
+      font-weight: 650;
+    }
+    .monto-row.is-free {
+      grid-template-columns: 1fr;
+    }
+    .monto-row.is-free .monto-amount,
+    .monto-row.is-free .monto-iva {
+      display: none;
+    }
+
+    /* ── SERVICE CHIPS ── */
+    .chip-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .srv-chip { position: relative; }
+    .srv-chip input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; }
+
+    .srv-chip label {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 14px;
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--muted);
+      background: var(--entry);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all .12s;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .srv-chip input:checked + label {
+      background: linear-gradient(135deg, var(--orange), var(--orange-2));
+      border-color: var(--orange);
+      color: #fff;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(255,122,43,.3);
+    }
+
+    .srv-chip label:hover { border-color: var(--orange); color: var(--orange); }
+
+    /* ── RADIO TOGGLE ── */
+    .radio-row { display: flex; gap: 8px; margin-top: 6px; }
+
+    .radio-opt { position: relative; }
+    .radio-opt input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+
+    .radio-opt label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      background: var(--entry);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all .12s;
+      user-select: none;
+    }
+
+    .radio-opt input:checked + label {
+      background: linear-gradient(135deg, var(--orange), var(--orange-2));
+      border-color: var(--orange);
+      color: #fff;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(255,122,43,.25);
+    }
+
+    .radio-opt label:hover { border-color: var(--orange); color: var(--orange); }
+
+    /* ── MATERIALES (lista estructurada) ── */
+    .materiales-list { display: flex; flex-direction: column; gap: 6px; }
+    .material-row {
+      display: grid;
+      grid-template-columns: 96px 1fr 36px;
+      gap: 8px;
+      align-items: stretch;
+    }
+    .material-row input {
+      width: 100%;
+      padding: 9px 11px;
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .material-row input:focus {
+      border-color: var(--orange);
+      box-shadow: 0 0 0 3px rgba(255,122,43,.13);
+    }
+    .material-row .material-cantidad { text-align: center; font-weight: 600; }
+    .material-row input::placeholder { color: #94a3b8; font-size: 12.5px; }
+
+    .btn-remove-material {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--entry);
+      color: var(--muted);
+      cursor: pointer;
+      transition: background .15s, border-color .15s, color .15s;
+    }
+    .btn-remove-material svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+      display: block;
+      pointer-events: none;
+    }
+    .btn-remove-material .icon-hover { display: none; }
+    .btn-remove-material:hover,
+    .btn-remove-material:focus-visible {
+      background: #fef2f2;
+      border-color: #fca5a5;
+      color: #dc2626;
+    }
+    .btn-remove-material:hover .icon-default,
+    .btn-remove-material:focus-visible .icon-default,
+    .btn-remove-material:active .icon-default { display: none; }
+    .btn-remove-material:hover .icon-hover,
+    .btn-remove-material:focus-visible .icon-hover,
+    .btn-remove-material:active .icon-hover { display: block; }
+
+    .btn-add-material {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      align-self: flex-start;
+      margin-top: 6px;
+      padding: 8px 14px;
+      font-size: 12.5px;
+      font-weight: 600;
+      font-family: inherit;
+      color: var(--muted);
+      background: var(--entry);
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: border-color .15s, color .15s, background .15s;
+    }
+    .btn-add-material svg { width: 13px; height: 13px; }
+    .btn-add-material:hover {
+      border-color: var(--orange);
+      color: var(--orange);
+      border-style: solid;
+    }
+
+    /* ── CONDITIONAL BLOCK ── */
+    .cond-block {
+      background: var(--entry);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .cond-block .f:not(:last-child) { margin-bottom: 16px; }
+
+    #seccionTipoPlan .f,
+    #seccionDesinstalacion .f,
+    #seccionAguaBano .f {
+      max-width: 320px;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(300px, .85fr);
+      gap: 18px;
+      margin-top: 14px;
+    }
+
+    #contenedorArchivos {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px 18px;
+    }
+
+    #seccionDesglosePrecio .f {
+      max-width: 720px;
+    }
+
+    /* ── SUBMIT ── */
+    .btn-submit {
+      display: block;
+      width: min(340px, 100%);
+      padding: 12px 18px;
+      background: linear-gradient(135deg, var(--orange) 0%, var(--orange-2) 100%);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      letter-spacing: -.01em;
+      box-shadow: 0 2px 8px rgba(255,122,43,.3), 0 6px 20px rgba(255,122,43,.18);
+      transition: opacity .15s, transform .12s;
+      margin: 4px 0 0 auto;
+    }
+
+    .btn-submit:hover { opacity: .92; }
+    .btn-submit:active { transform: translateY(1px); }
+    .btn-submit:disabled { background: #94a3b8; box-shadow: none; cursor: not-allowed; }
+
+    /* -- SUCCESS MODAL -- */
+    .success-modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(11, 20, 32, .62);
+      backdrop-filter: blur(8px);
+    }
+
+    .success-modal-overlay.is-open {
+      display: flex;
+      animation: fadeIn .16s ease-out;
+    }
+
+    .success-modal {
+      width: min(440px, 100%);
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.24);
+      border-radius: 18px;
+      background: #fff;
+      box-shadow: 0 24px 70px rgba(11,20,32,.28);
+      animation: modalIn .2s ease-out;
+    }
+
+    .success-modal-top {
+      position: relative;
+      padding: 26px 28px 24px;
+      color: #fff;
+      background:
+        radial-gradient(circle at 88% 18%, rgba(255,255,255,.22), transparent 28%),
+        linear-gradient(145deg, var(--navy-1) 0%, var(--navy-2) 58%, var(--orange-dark) 155%);
+      overflow: hidden;
+    }
+
+    .success-modal-top::after {
+      content: "";
+      position: absolute;
+      right: -72px;
+      bottom: -76px;
+      width: 240px;
+      height: 240px;
+      background: url("/shared-static/img/logo-atc.png") center / contain no-repeat;
+      opacity: .18;
+      filter: blur(2px);
+      transform: rotate(-8deg) scale(1.18);
+    }
+
+    .success-icon {
+      position: relative;
+      width: 54px;
+      height: 54px;
+      margin-bottom: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      background: linear-gradient(135deg, var(--orange), var(--orange-2));
+      box-shadow: 0 12px 30px rgba(255,122,43,.34);
+    }
+
+    .success-modal h3 {
+      position: relative;
+      margin: 0 0 8px;
+      font-size: 24px;
+      line-height: 1.12;
+      letter-spacing: -.02em;
+    }
+
+    .success-modal-lead {
+      position: relative;
+      max-width: 330px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #dbe8ef;
+    }
+
+    .success-modal-body {
+      padding: 22px 28px 26px;
+      background: #fff;
+    }
+
+    .success-summary {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 22px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: #f8fafc;
+    }
+
+    .success-summary-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .success-summary-row strong {
+      max-width: 60%;
+      color: var(--text);
+      text-align: right;
+      word-break: break-word;
+    }
+
+    .success-modal-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .success-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform .12s, box-shadow .15s, background .15s;
+    }
+
+    .success-btn:active { transform: translateY(1px); }
+
+    .success-btn.primary {
+      border: 0;
+      color: #fff;
+      background: linear-gradient(135deg, var(--orange), var(--orange-2));
+      box-shadow: 0 8px 22px rgba(255,122,43,.26);
+    }
+
+    .success-btn.secondary {
+      border: 1px solid var(--border);
+      color: var(--text);
+      background: #fff;
+    }
+
+    .success-btn.primary:hover { box-shadow: 0 10px 28px rgba(255,122,43,.34); }
+    .success-btn.secondary:hover { background: #f8fafc; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes modalIn {
+      from { opacity: 0; transform: translateY(10px) scale(.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @media (max-width: 700px) {
+      .hero { grid-template-columns: 1fr; padding: 20px 20px 16px; }
+      .hero-notice { max-width: 100%; }
+      .main-layout { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .form-content { padding: 24px 18px 40px; }
+      .section { margin-bottom: 24px; padding-bottom: 24px; }
+      .g2, .g3 { grid-template-columns: 1fr; }
+      .client-grid,
+      .service-config-grid,
+      .detail-grid,
+      #contenedorArchivos { grid-template-columns: 1fr; }
+      .client-rut,
+      .client-name,
+      .client-address,
+      .client-branch,
+      .client-type,
+      .service-config-wide { grid-column: auto; }
+      .service-compact-grid { grid-template-columns: 1fr; }
+      .monto-row { grid-template-columns: 1fr; }
+      .monto-row.is-free .monto-amount,
+      .monto-row.is-free .monto-iva { display: none; }
+      .btn-submit { width: 100%; }
+      .success-modal-actions { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="shell">
+  <!-- HERO -->
+  <div class="hero">
+    <img class="hero-logo" src="/shared-static/img/logo-atc.png" alt="ATC" onerror="this.style.display='none'">
+    <div class="hero-left">
+      <h1>Solicitud Orden de Servicio</h1>
+      <p>Complete el formulario para registrar una nueva ODS en el sistema ATC.</p>
+    </div>
+    <div class="hero-actions">
+      <a id="btnVolver" href="#" class="hero-volver js-btn-volver">Volver</a>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main-layout">
+    <!-- SIDEBAR -->
+    <nav class="sidebar">
+      <div class="sidebar-label" style="margin-top:20px;">Formulario</div>
+      <a class="sidebar-item active" href="#sec-cliente"><span class="dot"></span>1. Cliente</a>
+      <a class="sidebar-item" href="#sec-servicio"><span class="dot"></span>2. Tipo de Servicio</a>
+      <a class="sidebar-item" href="#sec-detalle"><span class="dot"></span>3. Detalle y Montos</a>
+      <a class="sidebar-item" href="#sec-oc"><span class="dot"></span>4. Orden de Compra</a>
+      <div class="sidebar-label">Documentos</div>
+      <a class="sidebar-item" href="#sec-adjuntos"><span class="dot"></span>5. Archivos adjuntos</a>
+
+    </nav>
+
+    <!-- FORM -->
+    <div class="form-content">
+      <form id="formularioOrdenServicio">
+
+        <!-- Cliente -->
+        <div class="section" id="sec-cliente">
+          <div class="section-head">
+            <span class="section-title">1. Identificación y sucursal</span>
+          </div>
+          <div class="client-grid">
+            <div class="f client-rut"><label>RUT Empresa</label><input type="text" id="rutCliente" required placeholder="12.345.678-9"></div>
+            <div class="f client-name"><label>Razón Social</label><input type="text" id="razonSocial" readonly placeholder="Se completará automáticamente"></div>
+            <div class="f client-address"><label>Dirección Sucursal</label><select id="direccionSucursal"><option value="" disabled selected>Seleccionar sucursal</option></select></div>
+            <div class="f client-branch"><label>Nombre Sucursal</label><input type="text" id="nombreSucursal" readonly></div>
+            <div class="f client-type"><label>Tipo de Cliente</label>
+              <select id="tipoCliente" required>
+                <option value="" disabled selected>Seleccionar</option>
+                <option value="EMPRESA">Empresa</option>
+                <option value="DOMICILIO">Domicilio</option>
+                <option value="STRIP CENTER">Strip Center</option>
+                <option value="MUNICIPALIDAD">Municipalidad</option>
+                <option value="CONDOMINIO">Condominio</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tipo Servicio -->
+        <div class="section" id="sec-servicio">
+          <div class="section-head">
+            <span class="section-title">2. Tipo de Servicio</span>
+          </div>
+          <div class="chip-grid" id="tipoServicio">
+            <div class="srv-chip"><input type="checkbox" id="s-tv" name="tipoServicio[]" value="Televigilancia"><label for="s-tv">Televigilancia</label></div>
+            <div class="srv-chip"><input type="checkbox" id="s-al" name="tipoServicio[]" value="Alarma"><label for="s-al">Alarma</label></div>
+            <div class="srv-chip"><input type="checkbox" id="s-gu" name="tipoServicio[]" value="Guardia"><label for="s-gu">Guardia</label></div>
+            <div class="srv-chip"><input type="checkbox" id="s-in" name="tipoServicio[]" value="Instalacion"><label for="s-in">Instalación</label></div>
+            <div class="srv-chip"><input type="checkbox" id="s-up" name="tipoServicio[]" value="Upgrade"><label for="s-up">Upgrade</label></div>
+            <div class="srv-chip"><input type="checkbox" id="s-dw" name="tipoServicio[]" value="Downgrade"><label for="s-dw">Downgrade</label></div>
+            <div class="srv-chip"><input type="checkbox" id="s-st" name="tipoServicio[]" value="Servicio Tecnico"><label for="s-st">Servicio Técnico</label></div>
+            <div class="srv-chip"><input type="checkbox" id="monitoreoAdicional" name="tipoServicio[]" value="Monitoreo Adicional"><label for="monitoreoAdicional">Monitoreo Adicional</label></div>
+            <div class="srv-chip"><input type="checkbox" id="s-de" name="tipoServicio[]" value="Desinstalacion"><label for="s-de">Desinstalación</label></div>
+          </div>
+
+          <!-- Configuración condicional del servicio -->
+          <div class="service-config-grid" id="serviceConfigGrid" style="display:none;">
+            <div id="monitoreoAdicionalSecciones" class="service-config-block service-config-wide" style="display:none;">
+              <div class="service-config-head">
+                <span class="section-subtitle">Monitoreo Adicional</span>
+              </div>
+              <div class="service-compact-grid">
+                <div class="f"><label>Desde</label><input type="date" id="diasMonitoreoDesde"></div>
+                <div class="f"><label>Hasta</label><input type="date" id="diasMonitoreoHasta"></div>
+                <div class="f"><label>Nuevo Horario</label><input type="time" id="horarioMonitoreo"></div>
+              </div>
+            </div>
+
+            <div id="seccionCamaras" class="service-config-block service-config-wide" style="display:none;">
+              <div class="service-config-head">
+                <span class="section-subtitle">Cámaras</span>
+              </div>
+              <div class="service-compact-grid">
+                <div class="f"><label>A Instalar</label><input type="number" id="numeroCamarasInstalar" min="0" placeholder="0"></div>
+                <div class="f"><label>A Vigilar</label><input type="number" id="numeroCamarasVigilar" min="0" placeholder="0"></div>
+                <div class="f"><label>Días Grabación</label><input type="number" id="diasGrabacion" min="1" placeholder="Días"></div>
+              </div>
+            </div>
+
+            <div id="seccionDesinstalacion" class="service-config-block" style="display:none;">
+              <div class="service-config-head">
+                <span class="section-subtitle">Desinstalación</span>
+              </div>
+              <div class="f"><label>Cámaras a Desinstalar</label><input type="number" id="numeroCamarasDesinstalar" min="0" placeholder="0"></div>
+            </div>
+
+            <div id="seccionTipoPlan" class="service-config-block" style="display:none;">
+              <div class="service-config-head">
+                <span class="section-subtitle">Tipo de Plan</span>
+              </div>
+              <div class="f">
+                <label>Plan</label>
+                <select id="tipoPlan">
+                  <option value="" disabled selected>Seleccionar</option>
+                  <option value="Plan Full">Plan Full</option>
+                  <option value="Plan Mixto">Plan Mixto</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="seccionAguaBano" class="service-config-block" style="display:none;">
+              <div class="service-config-head">
+                <span class="section-subtitle">Condiciones de instalación</span>
+              </div>
+              <div class="f"><label>Agua Potable y Baño</label>
+                <select id="aguaBano"><option value="" disabled selected>Seleccionar</option><option value="Si">Sí</option><option value="No">No</option></select>
+              </div>
+            </div>
+
+            <div id="seccionMontosCobrar" class="service-config-block service-config-wide" style="display:none;">
+              <div class="service-config-head">
+                <span class="section-subtitle">Valores a Cobrar</span>
+              </div>
+              <div id="contenedorMontos"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detalle -->
+        <div class="section" id="sec-detalle">
+          <div class="section-head">
+            <span class="section-title">3. Detalle de la Orden</span>
+          </div>
+          <div class="f"><label>Observación</label><textarea id="observacion" placeholder="Observaciones para el técnico"></textarea></div>
+          <div class="detail-grid">
+            <div class="f">
+              <label>Materiales</label>
+              <div id="materialesContainer" class="materiales-list"></div>
+              <button type="button" id="btnAgregarMaterial" class="btn-add-material">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Agregar material
+              </button>
+            </div>
+            <div class="f"><label>Consideraciones</label><textarea id="consideraciones" required placeholder="Consideraciones completas"></textarea></div>
+          </div>
+        </div>
+
+        <!-- Orden de Compra -->
+        <div class="section" id="sec-oc">
+          <div class="section-head">
+            <span class="section-title">4. Orden de Compra</span>
+          </div>
+          <div class="f">
+            <label>¿Requiere Orden de Compra?</label>
+            <div class="radio-row">
+              <div class="radio-opt"><input type="radio" id="oc-si" name="requiereOC" value="Si"><label for="oc-si">Sí</label></div>
+              <div class="radio-opt"><input type="radio" id="oc-no" name="requiereOC" value="No"><label for="oc-no">No</label></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Desglose (condicional) -->
+        <div id="seccionDesglosePrecio" style="display:none;">
+          <div class="section">
+            <div class="section-head">
+              <span class="section-subtitle">Desglose de Precio</span>
+            </div>
+            <div class="f"><label>Adjuntar Desglose por Ítem</label><input type="file" id="desgloseArchivo" accept=".pdf,.doc,.docx,.xls,.xlsx"></div>
+          </div>
+        </div>
+
+        <!-- Documentos -->
+        <div class="section" id="sec-adjuntos">
+          <div class="section-head">
+            <span class="section-title">5. Documentos Adjuntos</span>
+          </div>
+          <div id="contenedorArchivos"></div>
+        </div>
+
+        <button type="button" id="btnRegistrarODS" class="btn-submit">Registrar Orden de Servicio</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="success-modal-overlay" id="modalODSRegistrada" aria-hidden="true">
+  <div class="success-modal" role="dialog" aria-modal="true" aria-labelledby="successTitle" aria-describedby="successMessage">
+    <div class="success-modal-top">
+      <div class="success-icon" aria-hidden="true">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      </div>
+      <h3 id="successTitle">ODS registrada</h3>
+      <p class="success-modal-lead" id="successMessage">La orden de servicio fue creada correctamente y ya queda disponible para seguimiento operativo.</p>
+    </div>
+    <div class="success-modal-body">
+      <div class="success-summary" aria-label="Resumen de la ODS registrada">
+        <div class="success-summary-row"><span>Código ODS</span><strong id="successCodigoODS">-</strong></div>
+        <div class="success-summary-row"><span>Cliente</span><strong id="successClienteODS">-</strong></div>
+      </div>
+      <div class="success-modal-actions">
+        <a class="success-btn primary" id="btnVerODS" href="#">Ver BBDD ODS</a>
+        <a class="success-btn secondary js-btn-volver" id="btnVolverPanelVenta" href="#">Volver</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const qsToken = new URLSearchParams(window.location.search).get("token") || "";
+const withToken = (url) => { const sep = url.includes("?") ? "&" : "?"; return qsToken ? `${url}${sep}token=${encodeURIComponent(qsToken)}` : url; };
+document.getElementById("btnVolver").href = withToken("/venta/panel-selector");
+document.getElementById("btnVerODS").href = withToken("/venta/bbdd-orden-servicio");
+document.getElementById("btnVolverPanelVenta").href = withToken("/venta/panel-selector");
+function abrirModalODSRegistrada(orden, payload) {
+  const modal = document.getElementById("modalODSRegistrada");
+  document.getElementById("successCodigoODS").textContent = orden?.codigo || "-";
+  document.getElementById("successClienteODS").textContent = payload?.razonSocial || payload?.rutCliente || "-";
+  modal.classList.add("is-open");
+  modal.setAttribute("aria-hidden", "false");
+  document.getElementById("btnVerODS").focus();
+}
+function cerrarModalODSRegistrada() {
+  const modal = document.getElementById("modalODSRegistrada");
+  modal.classList.remove("is-open");
+  modal.setAttribute("aria-hidden", "true");
+  document.getElementById("rutCliente").focus();
+}
+function formatearRUTInput(input) { let rut = String(input.value || "").trim().replace(/[^0-9Kk]/g, "").toUpperCase(); if (rut.length < 2) { input.value = rut; return; } input.value = `${rut.slice(0, -1)}-${rut.slice(-1)}`; }
+function obtenerTiposSeleccionados() { return Array.from(document.querySelectorAll('input[name="tipoServicio[]"]:checked')).map(c => c.value); }
+function obtenerValor(id) { return document.getElementById(id)?.value.trim() || ""; }
+function escapeAttr(value) { return String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+const TRASH_ICON_DEFAULT = '<svg class="icon-default" viewBox="0 0 297 297" aria-hidden="true"><path d="M221.227 32.615H191V9.884C191 4.426 186.575 0 181.116 0h-65.231c-5.458 0-9.884 4.425-9.884 9.884v22.732H75.773c-19.301 0-35.004 15.703-35.004 35.004v23.803c0 5.458 4.425 9.884 9.884 9.884h6.967l11.124 186.399A9.883 9.883 0 0 0 78.61 297h139.78a9.884 9.884 0 0 0 9.866-9.295l11.124-186.399h6.967c5.458 0 9.884-4.425 9.884-9.884V67.619c0-19.301-15.703-35.004-35.004-35.004m-95.459-12.848h45.464v12.849h-45.464zM89.693 277.233h-1.772L77.452 101.8h12.241zm31.451 0H109.46V101.306h11.684zm34.946 0h-15.179V101.8h15.179zm31.45 0h-11.684V101.306h11.684zm21.539 0h-1.772V101.8h12.241zm27.384-195.694H60.537v-13.92c0-8.401 6.835-15.236 15.236-15.236h145.453c8.402 0 15.237 6.835 15.237 15.236z"/></svg>';
+const TRASH_ICON_HOVER = '<svg class="icon-hover" viewBox="0 0 297 297" aria-hidden="true"><path d="M248.596 80.468c-3.988-8.124-10.903-14.209-19.467-17.133l-27.689-9.453 7.109-20.824c1.707-5-.962-10.437-5.962-12.144L142.833.512a9.57 9.57 0 0 0-12.146 5.963l-7.109 20.823-27.69-9.454c-17.676-6.036-36.974 3.438-43.012 21.118l-7.444 21.804a9.57 9.57 0 0 0 5.962 12.146l46.897 16.011H57.694a9.566 9.566 0 0 0-9.55 10.136L59.42 288.003A9.57 9.57 0 0 0 68.97 297h135.3a9.567 9.567 0 0 0 9.55-8.997l9.336-156.45 7.502 2.561a9.6 9.6 0 0 0 3.092.516 9.57 9.57 0 0 0 9.053-6.478l7.444-21.805c2.924-8.564 2.338-17.756-1.651-25.879M79.697 277.866h-1.715l-10.134-169.81h11.849zM145.704 21.71l41.647 14.219-4.018 11.77-41.647-14.219zM110.14 277.866H98.831v-169.81h11.309zm33.826 0h-14.692v-169.81h14.692zm30.442.001h-11.309V111.049l11.309 3.861zm20.849-.001h-1.715V121.442l10.83 3.698zm36.883-177.701-4.353 12.751L66.631 57.895l4.354-12.75c2.628-7.695 11.03-11.818 18.722-9.193l133.241 45.491a14.65 14.65 0 0 1 8.474 7.457 14.65 14.65 0 0 1 .718 11.265"/></svg>';
+
+function agregarFilaMaterial(cantidad = "", nombre = "") {
+  const container = document.getElementById("materialesContainer");
+  if (!container) return;
+  const row = document.createElement("div");
+  row.className = "material-row";
+  row.innerHTML = `
+    <input type="text" inputmode="decimal" class="material-cantidad" placeholder="0" value="${escapeAttr(cantidad)}">
+    <input type="text" class="material-nombre" placeholder="Nombre del material" value="${escapeAttr(nombre)}">
+    <button type="button" class="btn-remove-material" aria-label="Eliminar fila" title="Eliminar fila">${TRASH_ICON_DEFAULT}${TRASH_ICON_HOVER}</button>
+  `;
+  row.querySelector(".btn-remove-material").addEventListener("click", () => {
+    const filas = container.querySelectorAll(".material-row");
+    if (filas.length <= 1) {
+      row.querySelector(".material-cantidad").value = "";
+      row.querySelector(".material-nombre").value = "";
+      row.querySelector(".material-cantidad").focus();
+    } else {
+      row.remove();
+    }
+  });
+  container.appendChild(row);
+}
+
+function serializarMateriales() {
+  const lineas = [];
+  document.querySelectorAll("#materialesContainer .material-row").forEach((fila) => {
+    const cantidad = (fila.querySelector(".material-cantidad")?.value || "").trim();
+    const nombre = (fila.querySelector(".material-nombre")?.value || "").trim();
+    if (!cantidad && !nombre) return;
+    if (cantidad && nombre) lineas.push(`${cantidad} ${nombre}`);
+    else lineas.push(nombre || cantidad);
+  });
+  return lineas.join("\n");
+}
+async function cargarDatosDesdeSucursales(rutIngresado) {
+  const response = await fetch(withToken("/api/venta/ods/datos-por-rut?rut=" + encodeURIComponent(rutIngresado)));
+  if (!response.ok) { const err = await response.json().catch(() => ({})); throw new Error(typeof err?.detail === "string" ? err.detail : "No se pudieron cargar las sucursales del RUT."); }
+  const datos = await response.json();
+  document.getElementById("razonSocial").value = datos.razonSocial || "";
+  const direccionSelect = document.getElementById("direccionSucursal");
+  direccionSelect.innerHTML = "";
+  const direcciones = datos.direcciones || []; const nombres = datos.nombresSucursales || [];
+  if (!direcciones.length) { direccionSelect.innerHTML = "<option value='' selected>Sin sucursales registradas</option>"; document.getElementById("nombreSucursal").value = ""; return; }
+  direcciones.forEach((d, i) => { const o = document.createElement("option"); o.value = d; o.textContent = d; o.dataset.nombreSucursal = nombres[i] || ""; direccionSelect.appendChild(o); });
+  document.getElementById("nombreSucursal").value = nombres[0] || "";
+}
+function actualizarNombreSucursal() { const sel = document.getElementById("direccionSucursal"); document.getElementById("nombreSucursal").value = sel.options[sel.selectedIndex]?.dataset?.nombreSucursal || ""; }
+function actualizarVisibilidad() {
+  const sel = obtenerTiposSeleccionados();
+  const activarTecnico = sel.some(s => ["Televigilancia", "Instalacion", "Upgrade", "Downgrade"].includes(s));
+  document.getElementById("serviceConfigGrid").style.display = sel.length ? "grid" : "none";
+  document.getElementById("seccionCamaras").style.display = activarTecnico ? "block" : "none";
+  document.getElementById("seccionDiasGrabacion") && (document.getElementById("seccionDiasGrabacion").style.display = activarTecnico ? "block" : "none");
+  document.getElementById("seccionTipoPlan").style.display = activarTecnico ? "block" : "none";
+  document.getElementById("seccionDesinstalacion").style.display = sel.includes("Desinstalacion") ? "block" : "none";
+  document.getElementById("seccionAguaBano").style.display = sel.includes("Instalacion") ? "block" : "none";
+  document.getElementById("seccionDesglosePrecio").style.display = sel.length > 0 ? "block" : "none";
+  document.getElementById("monitoreoAdicionalSecciones").style.display = sel.includes("Monitoreo Adicional") ? "block" : "none";
+  actualizarCamposAdjuntar(sel);
+  actualizarMontosPorCobrar(sel);
+}
+function actualizarMontosPorCobrar(servicios) {
+  const seccion = document.getElementById("seccionMontosCobrar"); const contenedor = document.getElementById("contenedorMontos"); contenedor.innerHTML = "";
+  const campos = [];
+  if (servicios.includes("Instalacion")) { campos.push(["monto_instalacion_total", "Valor Instalación Total"]); campos.push(["monto_servicio_mensual", "Valor Servicio Mensual"]); }
+  if (servicios.some(s => ["Televigilancia", "Alarma", "Guardia"].includes(s)) && !campos.find(i => i[0] === "monto_servicio_mensual")) campos.push(["monto_servicio_mensual", "Valor Servicio Mensual"]);
+  if (servicios.includes("Servicio Tecnico")) campos.push(["monto_servicio_tecnico", "Valor Servicio Técnico"]);
+  if (servicios.includes("Desinstalacion")) campos.push(["monto_desinstalacion", "Valor Desinstalación"]);
+  if (servicios.includes("Upgrade")) campos.push(["monto_upgrade", "Valor Upgrade"]);
+  if (servicios.includes("Downgrade")) campos.push(["monto_downgrade", "Valor Downgrade"]);
+  if (servicios.includes("Monitoreo Adicional")) campos.push(["monto_monitoreo_adicional", "Valor Monitoreo Adicional"]);
+  campos.forEach(([id, label]) => {
+    const div = document.createElement("div");
+    div.className = "f";
+    div.innerHTML = `
+      <label for="${id}_tipo">${label}</label>
+      <div class="monto-row" data-label="${escapeAttr(label)}">
+        <select id="${id}_tipo" class="monto-type" required>
+          <option value="" disabled selected>UF/CLP/Sin Costo</option>
+          <option value="UF">UF</option>
+          <option value="CLP">CLP</option>
+          <option value="Sin Costo">Sin Costo</option>
+        </select>
+        <input type="number" min="0" step="0.01" id="${id}_valor" class="monto-amount" inputmode="decimal" placeholder="Monto" required>
+        <select id="${id}_iva" class="monto-iva" required>
+          <option value="" disabled selected>IVA</option>
+          <option value="+ IVA">+ IVA</option>
+          <option value="Sin IVA">Sin IVA</option>
+        </select>
+      </div>`;
+    contenedor.appendChild(div);
+    configurarMontoRow(div.querySelector(".monto-row"));
+  });
+  seccion.style.display = campos.length ? "block" : "none";
+}
+function configurarMontoRow(row) {
+  const tipo = row?.querySelector(".monto-type");
+  const monto = row?.querySelector(".monto-amount");
+  const iva = row?.querySelector(".monto-iva");
+  if (!tipo || !monto || !iva) return;
+  const actualizar = () => {
+    const sinCosto = tipo.value === "Sin Costo";
+    row.classList.toggle("is-free", sinCosto);
+    monto.required = !sinCosto;
+    iva.required = !sinCosto;
+    monto.disabled = sinCosto;
+    iva.disabled = sinCosto;
+    if (sinCosto) {
+      monto.value = "";
+      iva.value = "";
+    }
+  };
+  tipo.addEventListener("change", actualizar);
+  actualizar();
+}
+function serializarMontosACobrar() {
+  const filas = Array.from(document.querySelectorAll("#contenedorMontos .monto-row"));
+  const valores = [];
+  for (const row of filas) {
+    const label = row.dataset.label || "Valor";
+    const tipo = row.querySelector(".monto-type");
+    const monto = row.querySelector(".monto-amount");
+    const iva = row.querySelector(".monto-iva");
+    if (!tipo?.value) {
+      tipo?.focus();
+      throw new Error(`Completa ${label}: UF, CLP o Sin Costo.`);
+    }
+    if (tipo.value === "Sin Costo") {
+      valores.push(`${label}: Sin Costo`);
+      continue;
+    }
+    const montoValor = String(monto?.value || "").trim();
+    if (!montoValor || Number(montoValor) <= 0) {
+      monto?.focus();
+      throw new Error(`Completa el monto de ${label}.`);
+    }
+    if (!iva?.value) {
+      iva?.focus();
+      throw new Error(`Selecciona + IVA o Sin IVA en ${label}.`);
+    }
+    valores.push(`${label}: ${tipo.value} ${montoValor} ${iva.value}`);
+  }
+  return valores.join("\n");
+}
+function actualizarCamposAdjuntar(servicios) {
+  const contenedor = document.getElementById("contenedorArchivos");
+  const esperados = new Map();
+  esperados.set("cotizacion_general", { label: "Adjuntar Cotización", cls: "cotizacion", ds: "", accept: ".pdf,.doc,.docx" });
+  const requiereOC = document.querySelector('input[name="requiereOC"]:checked')?.value;
+  if (requiereOC === "Si") esperados.set("odc_general", { label: "Adjuntar Orden de Compra", cls: "odc", ds: "Instalacion", accept: ".pdf,.doc,.docx" });
+  servicios.forEach(s => {
+    if (!["Instalacion", "Servicio Tecnico", "Desinstalacion"].includes(s)) esperados.set(`contrato_${s}`, { label: `Adjuntar Contrato (${s})`, cls: "contrato", ds: s, accept: ".pdf,.doc,.docx" });
+    if (s === "Instalacion") esperados.set(`layout_${s}`, { label: `Adjuntar Layout (${s})`, cls: "layout", ds: s, accept: "image/*,.pdf" });
+  });
+  Array.from(contenedor.querySelectorAll("input[type='file']")).forEach(input => {
+    if (!esperados.has(input.id)) input.closest(".f").remove();
+  });
+  esperados.forEach(({ label, cls, ds, accept }, id) => {
+    if (!document.getElementById(id)) {
+      const d = document.createElement("div"); d.className = "f";
+      d.innerHTML = `<label for="${id}">${label}</label><input type="file" id="${id}" class="${cls}" ${ds ? `data-servicio="${ds}"` : ''} accept="${accept}">`;
+      contenedor.appendChild(d);
+    }
+  });
+}
+async function procesarArchivoAsync(input, tipoArchivo, servicio) {
+  return new Promise(resolve => {
+    if (!input || !input.files || !input.files.length) { resolve(null); return; }
+    const file = input.files[0]; const reader = new FileReader();
+    reader.onload = function(e) { const base64String = String(e.target?.result || "").split(",")[1] || ""; const ext = file.name.includes(".") ? file.name.split(".").pop().toLowerCase() : "bin"; const nombre = `${tipoArchivo} - ${servicio} - ${document.getElementById("razonSocial").value.trim() || "Cliente"}.${ext}`; resolve({ nombre, tipo: file.type || "application/octet-stream", data: base64String, servicio, tipoDocumento: tipoArchivo }); };
+    reader.readAsDataURL(file);
+  });
+}
+async function enviarFormulario() {
+  const boton = document.getElementById("btnRegistrarODS"); const textoOriginal = boton.textContent; boton.textContent = "Registrando..."; boton.disabled = true;
+  try {
+    const tiposSeleccionados = obtenerTiposSeleccionados();
+    if (!tiposSeleccionados.length) throw new Error("Debes seleccionar al menos un tipo de servicio.");
+    const materiales = serializarMateriales(); const consideraciones = obtenerValor("consideraciones");
+    if (!materiales || !consideraciones) throw new Error("Los campos Materiales y Consideraciones son obligatorios.");
+    const montosACobrar = serializarMontosACobrar();
+    const cotizacion = await procesarArchivoAsync(document.getElementById("cotizacion_general"), "Cotizacion", "General");
+    const odc = await procesarArchivoAsync(document.getElementById("odc_general"), "ODC", "Instalacion");
+    const desglosePrecioArchivo = await procesarArchivoAsync(document.getElementById("desgloseArchivo"), "DesglosePrecio", "General");
+    const contratos = (await Promise.all(Array.from(document.querySelectorAll(".contrato")).map(i => procesarArchivoAsync(i, "Contrato", i.dataset.servicio)))).filter(Boolean);
+    const layouts = (await Promise.all(Array.from(document.querySelectorAll(".layout")).map(i => procesarArchivoAsync(i, "Layout", i.dataset.servicio)))).filter(Boolean);
+    const payload = { rutCliente: obtenerValor("rutCliente"), razonSocial: obtenerValor("razonSocial"), direccionSucursal: obtenerValor("direccionSucursal"), nombreSucursal: obtenerValor("nombreSucursal"), observacion: obtenerValor("observacion"), tipoCliente: obtenerValor("tipoCliente"), tipoServicio: tiposSeleccionados, tipoPlan: obtenerValor("tipoPlan"), numeroCamarasInstalar: obtenerValor("numeroCamarasInstalar"), numeroCamarasDesinstalar: obtenerValor("numeroCamarasDesinstalar"), numeroCamarasVigilar: obtenerValor("numeroCamarasVigilar"), diasGrabacion: obtenerValor("diasGrabacion"), diasMonitoreoDesde: obtenerValor("diasMonitoreoDesde"), diasMonitoreoHasta: obtenerValor("diasMonitoreoHasta"), diasMonitoreoAdicional: [obtenerValor("diasMonitoreoDesde"), obtenerValor("diasMonitoreoHasta")].filter(Boolean).join(" - "), horarioMonitoreo: obtenerValor("horarioMonitoreo"), materiales, consideraciones, aguaBano: obtenerValor("aguaBano"), requiereOC: document.querySelector('input[name="requiereOC"]:checked')?.value || "", montosACobrar, cotizacion, odc, contratos, layouts, desglosePrecioArchivo };
+    const response = await fetch(withToken("/api/venta/ods"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    if (!response.ok) { const err = await response.json().catch(() => ({ detail: "Error al registrar la orden." })); let message = "Error al registrar la orden."; if (typeof err?.detail === "string") { message = err.detail; } else if (Array.isArray(err?.detail) && err.detail.length > 0) { const first = err.detail[0]; const field = Array.isArray(first?.loc) ? first.loc[first.loc.length - 1] : ""; message = field ? `${field}: ${first?.msg || "valor invalido"}` : (first?.msg || message); } throw new Error(message); }
+    const data = await response.json();
+    abrirModalODSRegistrada(data, payload);
+  } catch (error) { alert(error?.message || "No se pudo registrar la orden."); }
+  finally { boton.textContent = textoOriginal; boton.disabled = false; }
+}
+document.addEventListener("DOMContentLoaded", async function () {
+  const rutInput = document.getElementById("rutCliente"); const direccionSelect = document.getElementById("direccionSucursal");
+  rutInput.addEventListener("input", function () { formatearRUTInput(this); });
+  rutInput.addEventListener("blur", async function () { const rut = this.value.trim(); if (!rut) return; try { await cargarDatosDesdeSucursales(rut); } catch (error) { alert(error?.message || "No se pudieron cargar los datos del cliente."); } });
+  direccionSelect.addEventListener("change", actualizarNombreSucursal);
+  document.querySelectorAll('input[name="tipoServicio[]"]').forEach(c => c.addEventListener("change", actualizarVisibilidad));
+  document.querySelectorAll('input[name="requiereOC"]').forEach(r => r.addEventListener("change", () => actualizarCamposAdjuntar(obtenerTiposSeleccionados())));
+  document.getElementById("btnRegistrarODS").addEventListener("click", enviarFormulario);
+  document.getElementById("btnAgregarMaterial").addEventListener("click", () => agregarFilaMaterial());
+  document.getElementById("modalODSRegistrada").addEventListener("click", function (event) { if (event.target === this) cerrarModalODSRegistrada(); });
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && document.getElementById("modalODSRegistrada").classList.contains("is-open")) cerrarModalODSRegistrada();
+  });
+  agregarFilaMaterial();
+  try { actualizarVisibilidad(); }
+  catch (error) { alert(error?.message || "No se pudo inicializar el formulario."); }
+});
+</script>
+<script>
+  (() => {
+    const sectionIds = ["sec-cliente","sec-servicio","sec-detalle","sec-oc","sec-adjuntos"];
+    const navLinks = {};
+    document.querySelectorAll("a.sidebar-item").forEach(a => {
+      const id = (a.getAttribute("href") || "").replace("#", "");
+      if (id) navLinks[id] = a;
+    });
+    function setActive(id) {
+      Object.values(navLinks).forEach(a => a.classList.remove("active"));
+      if (navLinks[id]) navLinks[id].classList.add("active");
+    }
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => { if (entry.isIntersecting) setActive(entry.target.id); });
+    }, { threshold: 0.1, rootMargin: "-10% 0px -60% 0px" });
+    sectionIds.forEach(id => { const el = document.getElementById(id); if (el) observer.observe(el); });
+  })();
+</script>
+<script>
+</script>
+<script src="/static/auth-guard.js"></script>
+  <script src="/static/atc-logo-home.js"></script>
+<script src="/static/atc-volver.js"></script>
+</body>
+</html>

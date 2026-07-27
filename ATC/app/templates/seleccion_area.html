@@ -1,6 +1,11 @@
 <!doctype html>
 <html lang="es">
 <head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Seleccionar Area</title>
@@ -116,6 +121,7 @@
     .area-finanzas,
     .area-administracion,
     .area-operaciones,
+    .area-guardia,
     .area-bitacora { --area-accent: var(--accent); }
 
     .card-link {
@@ -213,9 +219,11 @@
 
     <section class="body">
       <div class="user">{{ user.name or user.username }}</div>
+      {% include "_cambio_clave_inicial.html" %}
+
       <div class="grid">
         {% for area in areas %}
-          {% if area.code != "protocolos" %}
+          {% if area.code != "protocolos" and area.code != "bitacora" %}
           <form class="area-{{ area.code|replace('_', '-') }}" method="post" action="/seleccionar-area">
             <input type="hidden" name="area_code" value="{{ area.code }}" />
             <button type="submit">
@@ -226,14 +234,12 @@
           {% endif %}
         {% endfor %}
         {% if bitacora_enabled %}
-          <div class="area-bitacora">
-            <a class="card-link" href="/bitacora">
-              <button type="button">
-                <span class="icon">B</span>
-                <span class="title">Bitacora</span>
-              </button>
-            </a>
-          </div>
+        <a class="area-bitacora" href="/bitacora" style="text-decoration:none;color:inherit;">
+          <button type="button">
+            <span class="icon">B</span>
+            <span class="title">Bitácora</span>
+          </button>
+        </a>
         {% endif %}
       </div>
     </section>
@@ -242,5 +248,6 @@
       <a class="logout" href="/logout">Cerrar sesion</a>
     </section>
   </main>
+  <script src="/static/atc-logo-home.js"></script>
 </body>
 </html>

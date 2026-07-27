@@ -1,0 +1,830 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Inicio de turno</title>
+  <style>
+    :root {
+      --page: #eef3f4;
+      --panel: #ffffff;
+      --ink: #142226;
+      --muted: #607176;
+      --line: #d7e1e4;
+      --field: #f8fbfb;
+      --primary: #be6830;
+      --primary-dark: #93471f;
+      --green: #1f7a4d;
+      --amber: #9b5c16;
+      --red: #a83232;
+      --top: #0d2a30;
+      --top-2: #173b42;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      min-height: 100%;
+      background: var(--page);
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      min-height: 100svh;
+      margin: 0;
+      overflow-x: hidden;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--page);
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .shell {
+      width: 100%;
+      min-height: 100svh;
+      background: var(--panel);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .head {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      padding: calc(12px + var(--safe-top)) 18px 14px;
+      background: linear-gradient(135deg, var(--top), var(--top-2));
+      color: white;
+      border-bottom: 1px solid rgba(255, 255, 255, .12);
+      box-shadow: 0 8px 24px rgba(7, 23, 25, .18);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .brand img {
+      width: 76px;
+      height: 38px;
+      object-fit: contain;
+    }
+
+    h1 {
+      margin: 0 0 5px;
+      font-size: 23px;
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .head p {
+      margin: 0;
+      color: rgba(255, 255, 255, .78);
+      line-height: 1.35;
+      font-size: 13px;
+    }
+
+    form {
+      width: 100%;
+      flex: 1;
+      display: grid;
+      align-content: start;
+      gap: 12px;
+      padding: 14px 16px calc(16px + var(--safe-bottom));
+    }
+
+    label {
+      display: grid;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 850;
+      color: #263539;
+    }
+
+    input,
+    select {
+      width: 100%;
+      min-height: 52px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 0 14px;
+      color: var(--ink);
+      background: var(--field);
+      outline: none;
+      font-size: 16px;
+      line-height: 1.2;
+    }
+
+    select {
+      appearance: none;
+      background:
+        linear-gradient(45deg, transparent 50%, #607176 50%),
+        linear-gradient(135deg, #607176 50%, transparent 50%),
+        var(--field);
+      background-position:
+        calc(100% - 18px) 24px,
+        calc(100% - 12px) 24px,
+        0 0;
+      background-size: 6px 6px, 6px 6px, 100%;
+      background-repeat: no-repeat;
+      padding-right: 34px;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: rgba(190, 104, 48, .78);
+      box-shadow: 0 0 0 4px rgba(190, 104, 48, .14);
+      background-color: #fff;
+    }
+
+    input[readonly] {
+      background: #eef4f5;
+      color: #31464c;
+    }
+
+    .turno-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 0;
+    }
+
+    .turno-opt {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 50px;
+      border: 1.5px solid var(--line);
+      border-radius: 14px;
+      padding: 0 12px;
+      background: var(--field);
+      color: var(--ink);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+      transition: border-color .14s, background .14s;
+    }
+
+    .turno-opt input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .turno-dot {
+      width: 20px;
+      height: 20px;
+      flex: 0 0 auto;
+      border: 2px solid #90a8b0;
+      border-radius: 999px;
+      background: transparent;
+      transition: border-color .14s, background .14s, box-shadow .14s;
+    }
+
+    .turno-opt:has(input:checked) {
+      border-color: var(--primary);
+      background: #fff6f0;
+    }
+
+    .turno-opt:has(input:checked) .turno-dot {
+      border-color: var(--primary);
+      background: var(--primary);
+      box-shadow: inset 0 0 0 4px #fff6f0;
+    }
+
+    .turno-opt.disabled {
+      opacity: .42;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .turno-text { display: flex; flex-direction: column; line-height: 1.2; }
+    .turno-name { font-size: 15px; font-weight: 800; }
+    .turno-hint { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+    .recinto-card,
+    .status {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: #f5f8f9;
+      border-radius: 16px;
+      padding: 14px;
+      color: #33474d;
+      font-size: 14px;
+      line-height: 1.4;
+      overflow-wrap: anywhere;
+    }
+
+    .recinto-card strong,
+    .status strong {
+      display: block;
+      color: var(--ink);
+      margin-bottom: 4px;
+      font-size: 12px;
+      line-height: 1.2;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+
+    .recinto-card span {
+      display: block;
+      font-size: 16px;
+      font-weight: 850;
+      line-height: 1.25;
+    }
+
+    .status {
+      display: none;
+      border-left-width: 5px;
+    }
+
+    .status.visible { display: block; }
+    .status.ok { border-color: rgba(31, 122, 77, .38); border-left-color: var(--green); background: #edf8f2; color: var(--green); }
+    .status.warn { border-color: rgba(155, 92, 22, .38); border-left-color: var(--amber); background: #fff7ed; color: var(--amber); }
+    .status.error { border-color: rgba(168, 50, 50, .38); border-left-color: var(--red); background: #fff0f0; color: var(--red); }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 18px 16px calc(18px + var(--safe-bottom));
+      background: rgba(8, 22, 26, .48);
+      backdrop-filter: blur(8px);
+    }
+
+    .modal-backdrop.visible {
+      display: flex;
+    }
+
+    .modal-card {
+      width: min(428px, 100%);
+      border: 1px solid rgba(168, 50, 50, .18);
+      border-radius: 18px;
+      background: #fff;
+      box-shadow: 0 24px 58px rgba(20, 34, 38, .26);
+      padding: 18px;
+    }
+
+    .modal-card strong {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--ink);
+      font-size: 18px;
+      line-height: 1.18;
+    }
+
+    .modal-card p {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .modal-card button {
+      min-height: 48px;
+      box-shadow: none;
+    }
+
+    .location-required {
+      border: 1px solid rgba(155, 92, 22, .28);
+      border-radius: 14px;
+      background: #fff7ed;
+      color: var(--amber);
+      padding: 10px 12px;
+      font-size: 13px;
+      line-height: 1.35;
+      font-weight: 850;
+    }
+
+    .location-action {
+      min-height: 48px;
+      background: #e7eef0;
+      color: #213338;
+      box-shadow: none;
+      border: 1px solid var(--line);
+    }
+
+    .location-disabled [data-location-control] {
+      display: none;
+    }
+
+    .row {
+      position: static;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      padding: 4px 0 0;
+      background: transparent;
+      border-top: 0;
+      box-shadow: none;
+      backdrop-filter: none;
+    }
+
+    button {
+      width: 100%;
+      min-height: 52px;
+      border: 0;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      font-size: 16px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 12px 24px rgba(147, 71, 31, .24);
+      touch-action: manipulation;
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: .58;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .secondary {
+      background: #e7eef0;
+      color: #213338;
+      box-shadow: none;
+    }
+
+    .footnote {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    @media (min-width: 560px) {
+      body {
+        display: grid;
+        place-items: start center;
+      }
+
+      .shell {
+        max-width: 460px;
+        min-height: 100svh;
+        box-shadow: 0 22px 56px rgba(20, 34, 38, .18);
+      }
+
+      form {
+        padding: 16px 16px calc(162px + var(--safe-bottom));
+      }
+
+      .row {
+        position: fixed;
+        left: 50%;
+        right: auto;
+        bottom: 0;
+        z-index: 20;
+        width: min(460px, 100%);
+        transform: translateX(-50%);
+        gap: 14px;
+        padding: 12px 16px calc(12px + var(--safe-bottom));
+        background: rgba(255, 255, 255, .96);
+        border-top: 1px solid var(--line);
+        box-shadow: 0 -12px 28px rgba(20, 34, 38, .12);
+        backdrop-filter: blur(14px);
+      }
+    }
+
+    @media (max-width: 380px) {
+      .turno-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .head {
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+
+      form {
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+    }
+  </style>
+</head>
+<body class="location-disabled">
+  <main class="shell">
+    <section class="head">
+      <div class="brand">
+        <img src="/shared-static/img/logo-atc.png" alt="ATC">
+      </div>
+      <h1>Inicio de turno</h1>
+      <p>Registra tu llegada al recinto. La hora se guarda desde el servidor.</p>
+    </section>
+
+    <form id="turnoForm">
+      <label>
+        Recinto
+        <input id="recintoDisplay" readonly value="{{ recinto_qr or '' }}" placeholder="Escanea el QR del recinto">
+      </label>
+      <input type="hidden" id="recintoId" value="{{ recinto_id or '' }}">
+      <input type="hidden" id="recintoManual" value="{{ recinto_qr or '' }}">
+
+      <label>
+        RUT guardia
+        <input id="rut" name="rut" autocomplete="off" inputmode="text" placeholder="Ej: 12345678-9" required>
+      </label>
+
+      <input id="nombre" type="hidden" value="">
+
+      <label as="div">
+        Tipo de turno <span style="font-weight:400;color:#607176;font-size:12px">Opcional — si no seleccionas, se registra Turno Normal</span>
+        <div class="turno-grid" id="turnoGrid">
+          <label class="turno-opt">
+            <input type="radio" name="tipo_turno" value="Extra" id="turnoExtra">
+            <span class="turno-dot"></span>
+            <span class="turno-text"><span class="turno-name">Extra</span></span>
+          </label>
+          <label class="turno-opt disabled" id="turnoContratoOpt">
+            <input type="radio" name="tipo_turno" value="Contrato Diario" id="turnoContrato" disabled>
+            <span class="turno-dot"></span>
+            <span class="turno-text"><span class="turno-name">Contrato Diario</span><span class="turno-hint">Solo guardias Part Time</span></span>
+          </label>
+        </div>
+      </label>
+
+      <div id="ubicacionStatus" class="status"></div>
+
+      <div class="row">
+        <div class="location-required" data-location-control>Debes activar la ubicacion para registrar el inicio de turno.</div>
+        <button id="btnUbicacion" class="location-action" type="button" data-location-control>Activar ubicacion</button>
+        <button id="btnSubmit" type="submit">Iniciar turno</button>
+      </div>
+
+      <div id="formStatus" class="status"></div>
+    </form>
+  </main>
+
+  <div class="modal-backdrop" id="appModal" role="dialog" aria-modal="true" aria-labelledby="appModalTitle">
+    <div class="modal-card">
+      <strong id="appModalTitle">Permiso requerido</strong>
+      <p id="appModalText">Activa ubicacion para registrar.</p>
+      <button id="appModalButton" type="button">Entendido</button>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById("turnoForm");
+    const rutInput = document.getElementById("rut");
+    const nombreInput = document.getElementById("nombre");
+    const recintoIdInput = document.getElementById("recintoId");
+    const recintoManualInput = document.getElementById("recintoManual");
+    const btnUbicacion = document.getElementById("btnUbicacion");
+    const btnSubmit = document.getElementById("btnSubmit");
+    const ubicacionStatus = document.getElementById("ubicacionStatus");
+    const formStatus = document.getElementById("formStatus");
+    const appModal = document.getElementById("appModal");
+    const appModalTitle = document.getElementById("appModalTitle");
+    const appModalText = document.getElementById("appModalText");
+    const appModalButton = document.getElementById("appModalButton");
+    const UBICACION_HABILITADA = false;
+
+    let ubicacion = {
+      latitud: null,
+      longitud: null,
+      precision_metros: null,
+      ubicacion_estado: UBICACION_HABILITADA ? "pendiente" : "inhabilitada"
+    };
+
+    function setStatus(el, type, title, text) {
+      el.className = `status visible ${type || ""}`.trim();
+      el.innerHTML = `<strong>${title}</strong>${text}`;
+    }
+
+    function showModal(title, text) {
+      appModalTitle.textContent = title;
+      appModalText.textContent = text;
+      appModal.classList.add("visible");
+    }
+
+    appModalButton.addEventListener("click", () => {
+      appModal.classList.remove("visible");
+    });
+
+
+    function limpiarRut(value) {
+      return (value || "").trim().replace(/\./g, "").toUpperCase();
+    }
+
+    function recintoIdActual() {
+      return recintoIdInput.value || "";
+    }
+
+    function recintoTextoActual() {
+      return recintoManualInput.value || "";
+    }
+
+    function origenPermiteUbicacion() {
+      return window.isSecureContext || ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+    }
+
+    function mensajePermisoUbicacion() {
+      if (!origenPermiteUbicacion()) {
+        return "El navegador solo permite ubicacion en sitios seguros. Abre este sistema por HTTPS para que pueda preguntar o permitir la ubicacion.";
+      }
+      return "Abre los permisos del sitio en el navegador, habilita Ubicacion y vuelve a intentar.";
+    }
+
+    function configurarUbicacionInhabilitada() {
+      document.body.classList.toggle("location-disabled", !UBICACION_HABILITADA);
+      if (UBICACION_HABILITADA) return;
+      ubicacion = {
+        latitud: null,
+        longitud: null,
+        precision_metros: null,
+        ubicacion_estado: "inhabilitada"
+      };
+      ubicacionStatus.className = "status";
+      ubicacionStatus.textContent = "";
+    }
+
+    function marcarUbicacionLista() {
+      const precision = ubicacion.precision_metros ? ` Precision aprox: ${Math.round(ubicacion.precision_metros)} m.` : "";
+      setStatus(ubicacionStatus, "ok", "Ubicacion lista", `Ya se obtuvo la ubicacion del equipo.${precision}`);
+      if (btnUbicacion) btnUbicacion.textContent = "Actualizar ubicacion";
+    }
+
+    async function revisarPermisoUbicacionInicial() {
+      if (!UBICACION_HABILITADA) {
+        configurarUbicacionInhabilitada();
+        return;
+      }
+      if (!navigator.geolocation) {
+        setStatus(ubicacionStatus, "error", "Ubicacion no disponible", "Este navegador no soporta geolocalizacion.");
+        return;
+      }
+      if (!origenPermiteUbicacion()) {
+        setStatus(ubicacionStatus, "error", "HTTPS requerido", mensajePermisoUbicacion());
+        return;
+      }
+      if (!navigator.permissions || !navigator.permissions.query) {
+        setStatus(ubicacionStatus, "warn", "Ubicacion requerida", "Toca Activar ubicacion para permitir el acceso.");
+        return;
+      }
+      try {
+        const permission = await navigator.permissions.query({ name: "geolocation" });
+        if (permission.state === "granted") {
+          setStatus(ubicacionStatus, "warn", "Ubicacion requerida", "Toca Activar ubicacion para actualizar tu posicion antes de registrar.");
+        } else if (permission.state === "denied") {
+          setStatus(ubicacionStatus, "error", "Ubicacion bloqueada", mensajePermisoUbicacion());
+        } else {
+          setStatus(ubicacionStatus, "warn", "Ubicacion requerida", "Toca Activar ubicacion. El navegador debe mostrar la pregunta de permiso.");
+        }
+        permission.onchange = () => revisarPermisoUbicacionInicial();
+      } catch (_) {
+        setStatus(ubicacionStatus, "warn", "Ubicacion requerida", "Toca Activar ubicacion para permitir el acceso.");
+      }
+    }
+
+    function actualizarDisponibilidadContratoDiario(habilitado) {
+      const opt = document.getElementById("turnoContratoOpt");
+      const input = document.getElementById("turnoContrato");
+      if (!opt || !input) return;
+      input.disabled = !habilitado;
+      opt.classList.toggle("disabled", !habilitado);
+      if (!habilitado && input.checked) {
+        input.checked = false;
+      }
+    }
+
+    async function validarRut() {
+      const rut = limpiarRut(rutInput.value);
+      // Se preserva la seleccion de "Contrato Diario": esta funcion se vuelve
+      // a llamar al enviar el formulario (revalidacion), y si no se restaura
+      // el check tras habilitar de nuevo la opcion, el turno queda vacio y
+      // el backend lo registra como turno normal (autodetectado por hora).
+      const contratoEstabaMarcado = document.getElementById("turnoContrato")?.checked || false;
+      nombreInput.value = "";
+      if (!rut || rut.length < 7) {
+        actualizarDisponibilidadContratoDiario(false);
+        return false;
+      }
+
+      const params = new URLSearchParams({ rut });
+      const recintoId = recintoIdActual();
+      if (recintoId) params.set("recinto_id", recintoId);
+
+      const res = await fetch(`/api/inicio-turno/guardia?${params.toString()}`);
+      const data = await res.json();
+      if (!data.found) {
+        actualizarDisponibilidadContratoDiario(false);
+        setStatus(formStatus, "error", "RUT no registrado", "No existe un guardia registrado con ese RUT.");
+        return false;
+      }
+      nombreInput.value = data.nombre || "";
+      const esPartTime = data.tipo_contrato === "Part Time";
+      actualizarDisponibilidadContratoDiario(esPartTime);
+      if (esPartTime && contratoEstabaMarcado) {
+        document.getElementById("turnoContrato").checked = true;
+      }
+      formStatus.className = "status";
+      formStatus.textContent = "";
+      return true;
+    }
+
+    function solicitarUbicacionObligatoria() {
+      return new Promise((resolve, reject) => {
+        function rechazarPorPermiso(message) {
+          const error = new Error(message || mensajePermisoUbicacion());
+          error.locationRequired = true;
+          reject(error);
+        }
+
+        function pedirUbicacion() {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              ubicacion = {
+                latitud: pos.coords.latitude,
+                longitud: pos.coords.longitude,
+                precision_metros: pos.coords.accuracy,
+                ubicacion_estado: "confirmada"
+              };
+              marcarUbicacionLista();
+              resolve(ubicacion);
+            },
+            (err) => {
+              ubicacion = {
+                latitud: null,
+                longitud: null,
+                precision_metros: null,
+                ubicacion_estado: "rechazada"
+              };
+              if (err && err.code === err.PERMISSION_DENIED) {
+                rechazarPorPermiso();
+                return;
+              }
+              const error = new Error("No se pudo obtener la ubicacion. Revisa que el GPS este activo y vuelve a intentar.");
+              error.locationRequired = true;
+              reject(error);
+            },
+            { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+          );
+        }
+
+        if (!navigator.geolocation) {
+          ubicacion = {
+            latitud: null,
+            longitud: null,
+            precision_metros: null,
+            ubicacion_estado: "no_soportada"
+          };
+          rechazarPorPermiso("Este navegador no soporta geolocalizacion.");
+          return;
+        }
+
+        if (!origenPermiteUbicacion()) {
+          ubicacion = {
+            latitud: null,
+            longitud: null,
+            precision_metros: null,
+            ubicacion_estado: "origen_no_seguro"
+          };
+          rechazarPorPermiso(mensajePermisoUbicacion());
+          return;
+        }
+
+        setStatus(ubicacionStatus, "warn", "Buscando ubicacion", "Acepta el permiso de ubicacion si el navegador lo solicita.");
+
+        if (navigator.permissions && navigator.permissions.query) {
+          navigator.permissions.query({ name: "geolocation" }).then((permission) => {
+            if (permission.state === "denied") {
+              rechazarPorPermiso();
+              return;
+            }
+            pedirUbicacion();
+          }).catch(() => pedirUbicacion());
+          return;
+        }
+
+        pedirUbicacion();
+      });
+    }
+
+    btnUbicacion.addEventListener("click", async () => {
+      if (!UBICACION_HABILITADA) return;
+      const originalText = btnUbicacion.textContent;
+      btnUbicacion.disabled = true;
+      btnUbicacion.textContent = "Buscando ubicacion...";
+      try {
+        await solicitarUbicacionObligatoria();
+      } catch (err) {
+        setStatus(ubicacionStatus, "error", "Ubicacion requerida", err.message || mensajePermisoUbicacion());
+        showModal("Ubicacion requerida", err.message || mensajePermisoUbicacion());
+      } finally {
+        btnUbicacion.disabled = false;
+        if (ubicacion.ubicacion_estado !== "confirmada") {
+          btnUbicacion.textContent = originalText;
+        }
+      }
+    });
+
+    // Formateo en vivo del RUT: solo dígitos y K, sin puntos, guion automático.
+    rutInput.addEventListener("input", () => {
+      let v = rutInput.value.replace(/[^0-9kK]/g, "").toUpperCase();
+      v = v.replace(/K(?=.)/g, "");   // K solo como dígito verificador (al final)
+      if (v.length > 9) v = v.slice(0, 9);
+      rutInput.value = v.length > 1 ? v.slice(0, -1) + "-" + v.slice(-1) : v;
+    });
+
+    rutInput.addEventListener("blur", () => {
+      validarRut().catch(() => {
+        setStatus(formStatus, "error", "Error al validar", "No se pudo consultar la base de guardias.");
+      });
+    });
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      btnSubmit.disabled = true;
+      const originalText = btnSubmit.textContent;
+      btnSubmit.textContent = "Registrando...";
+      formStatus.className = "status";
+      formStatus.textContent = "";
+
+      try {
+        if (!recintoTextoActual()) {
+          showModal("QR requerido", "Escanea el QR del recinto.");
+          return;
+        }
+
+        if (UBICACION_HABILITADA) {
+          await solicitarUbicacionObligatoria();
+        }
+
+        const rutValido = await validarRut();
+        if (!rutValido) return;
+
+        const turnoSeleccionado = (form.querySelector("input[name='tipo_turno']:checked") || {}).value || "";
+
+        const payload = {
+          rut: limpiarRut(rutInput.value),
+          tipo_turno: turnoSeleccionado,
+          recinto: recintoTextoActual(),
+          sucursal_id: recintoIdActual() ? Number(recintoIdActual()) : null,
+          ...ubicacion
+        };
+
+        const res = await fetch("/api/inicio-turno", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          const detalle = typeof data.detail === "string"
+            ? data.detail
+            : Array.isArray(data.detail)
+              ? data.detail.map(e => e.msg || JSON.stringify(e)).join("; ")
+              : "No se pudo registrar el inicio de turno";
+          throw new Error(detalle);
+        }
+
+        setStatus(formStatus, "ok", "Turno iniciado", `Registro guardado en ${data.recinto}.`);
+        form.reset();
+        configurarUbicacionInhabilitada();
+        recintoIdInput.value = "{{ recinto_id or '' }}";
+        recintoManualInput.value = "{{ recinto_qr or '' }}";
+        document.getElementById("recintoDisplay").value = "{{ recinto_qr or '' }}";
+        nombreInput.value = "";
+      } catch (err) {
+        if (err.locationRequired) {
+          showModal("Ubicacion requerida", err.message || "Activa ubicacion en el candado del navegador.");
+        } else {
+          showModal("No se registro el turno", err.message || "No se pudo registrar el inicio de turno.");
+        }
+      } finally {
+        btnSubmit.textContent = originalText;
+        btnSubmit.disabled = false;
+      }
+    });
+
+    configurarUbicacionInhabilitada();
+    revisarPermisoUbicacionInicial();
+  </script>
+  <script src="/static/atc-logo-home.js"></script>
+</body>
+</html>

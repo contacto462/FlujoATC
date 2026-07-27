@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Registro de Guardia — ATC</title>
+  <link rel="stylesheet" href="/static/base.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy-1: #0b1420;
+      --navy-2: #162538;
+      --navy-3: #1e3248;
+      --orange: #ff7a2b;
+      --orange-2: #ff9448;
+      --orange-dark: #e8691f;
+      --surface: #ffffff;
+      --bg: #f0f4f8;
+      --border: #e2e8f0;
+      --border-focus: #ff7a2b;
+      --text: #0f172a;
+      --muted: #64748b;
+      --label: #374151;
+      --danger: #dc2626;
+      --success: #166534;
+      --radius: 9px;
+      --radius-lg: 22px;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 32px 16px;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      width: 100%;
+      max-width: 760px;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgba(0,0,0,.06), 0 20px 60px rgba(0,0,0,.14);
+    }
+
+    /* ── PANEL IZQUIERDO ── */
+    .panel-left {
+      background: linear-gradient(160deg, var(--navy-1) 0%, var(--navy-2) 55%, var(--navy-3) 100%);
+      padding: 36px 26px 40px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+    .panel-left::before {
+      content: '';
+      position: absolute;
+      top: -80px; right: -80px;
+      width: 260px; height: 260px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,122,43,.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .panel-left::after {
+      content: '';
+      position: absolute;
+      bottom: -60px; left: -60px;
+      width: 200px; height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(61,115,168,.14) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .brand-mark {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 24px;
+    }
+    .brand-mark img {
+      width: 120px;
+      height: 120px;
+      object-fit: contain;
+      opacity: .95;
+    }
+
+    .panel-left h2 {
+      font-size: 20px;
+      font-weight: 800;
+      color: #f4f8f9;
+      line-height: 1.25;
+      letter-spacing: -.03em;
+      margin-bottom: 10px;
+      position: relative;
+    }
+    .panel-left p {
+      font-size: 12.5px;
+      color: #bed0d6;
+      line-height: 1.65;
+      position: relative;
+    }
+
+    .flow-steps {
+      margin-top: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+    }
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .step-num {
+      flex-shrink: 0;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(255,122,43,.2);
+      border: 1px solid rgba(255,122,43,.4);
+      color: var(--orange-2);
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+    .step-text {
+      font-size: 12px;
+      color: #a0b4be;
+      line-height: 1.5;
+    }
+    .step-text strong {
+      color: #d0dfe5;
+      font-weight: 600;
+    }
+
+    .user-chip {
+      margin-top: auto;
+      padding-top: 28px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #7a9baa;
+      position: relative;
+    }
+    .user-chip::before {
+      content: '';
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #4ade80;
+      flex-shrink: 0;
+    }
+
+    /* ── PANEL DERECHO ── */
+    .panel-right {
+      background: var(--surface);
+      padding: 36px 36px 40px;
+      overflow-y: auto;
+      max-height: calc(100vh - 64px);
+    }
+
+    .form-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.03em;
+      margin-bottom: 4px;
+    }
+    .form-subtitle {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 28px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+      margin-bottom: 10px;
+      margin-top: 24px;
+    }
+    .section-label:first-of-type { margin-top: 0; }
+
+    .field {
+      margin-bottom: 14px;
+    }
+    .field label {
+      display: block;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--label);
+      margin-bottom: 5px;
+    }
+
+    input[type="text"],
+    select {
+      font-family: inherit;
+      font-size: 13.5px;
+      color: var(--text);
+      background: #fafbfc;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0 11px;
+      height: 42px;
+      width: 100%;
+      transition: border-color .15s, box-shadow .15s;
+      outline: none;
+    }
+    input[type="text"]:focus,
+    select:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(255,122,43,.12);
+      background: #fff;
+    }
+    input[type="text"]::placeholder {
+      color: #94a3b8;
+    }
+
+    .rut-hint {
+      font-size: 11.5px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .btn-submit {
+      margin-top: 28px;
+      width: 100%;
+      height: 46px;
+      background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-size: 14.5px;
+      font-weight: 700;
+      letter-spacing: -.01em;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(232,105,31,.25), 0 4px 12px rgba(232,105,31,.2);
+      transition: opacity .15s, transform .12s, box-shadow .15s;
+    }
+    .btn-submit:hover { opacity: .92; transform: translateY(-1px); box-shadow: 0 6px 18px rgba(232,105,31,.28); }
+    .btn-submit:active { transform: translateY(0); }
+    .btn-submit:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    .feedback {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 600;
+      display: none;
+    }
+    .feedback.ok  { display: block; background: #f0fdf4; border: 1px solid #bbf7d0; color: var(--success); }
+    .feedback.err { display: block; background: #fef2f2; border: 1px solid #fecaca; color: var(--danger); }
+
+    .mode-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 24px;
+      background: #f1f5f9;
+      border-radius: 10px;
+      padding: 4px;
+    }
+    .mode-tab {
+      flex: 1;
+      text-align: center;
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      font-family: inherit;
+      transition: background .15s, color .15s;
+    }
+    .mode-tab.active {
+      background: #fff;
+      color: var(--text);
+      box-shadow: 0 1px 2px rgba(0,0,0,.08);
+    }
+
+    .search-box {
+      margin-bottom: 14px;
+    }
+
+    .guardia-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 320px;
+      overflow-y: auto;
+      margin-bottom: 18px;
+    }
+    .guardia-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: #fafbfc;
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+    }
+    .guardia-item:hover {
+      border-color: var(--orange);
+      background: #fff7f1;
+    }
+    .guardia-item.active {
+      border-color: var(--orange);
+      background: #fff1e6;
+    }
+    .guardia-item-info { min-width: 0; }
+    .guardia-item-nombre {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .guardia-item-meta {
+      font-size: 11.5px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .guardia-item-tipo {
+      flex-shrink: 0;
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #e8eef6;
+      color: #2c4a72;
+      white-space: nowrap;
+    }
+    .guardia-list-empty {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      padding: 20px 0;
+    }
+    .edit-form { display: none; }
+    .edit-form.visible { display: block; }
+    .edit-hint {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    @media (max-width: 640px) {
+      body { padding: 0; align-items: stretch; }
+      .shell { grid-template-columns: 1fr; border-radius: 0; box-shadow: none; }
+      .panel-left { padding: 28px 22px 26px; }
+      .flow-steps, .user-chip { display: none; }
+      .panel-right { max-height: none; padding: 28px 22px 36px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+
+    <!-- Panel izquierdo -->
+    <aside class="panel-left">
+      <div class="brand-mark">
+        <img src="/shared-static/img/logo-atc.png" alt="ATC"
+             onerror="this.src='https://i.imgur.com/VgLG9Ei.png'">
+      </div>
+      <h2>Registro de Guardia</h2>
+      <p>Agrega nuevos guardias a la base de datos para que puedan registrar su turno.</p>
+
+      <div class="flow-steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-text"><strong>Ingresa el RUT</strong><br>Sin puntos, con guión. Ej: 12345678-9</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-text"><strong>Nombre completo</strong><br>Nombres y apellidos del guardia.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-text"><strong>Tipo de contrato</strong><br>Full Time o Part Time.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-text"><strong>Guardar</strong><br>Queda registrado como guardia con su contrato.</div>
+        </div>
+      </div>
+
+      <a id="btnVolver" href="/guardia" style="
+        display:inline-flex;align-items:center;gap:6px;
+        margin-top:18px;padding:8px 14px;
+        border-radius:8px;border:1px solid rgba(255,255,255,.14);
+        background:rgba(255,255,255,.06);color:rgba(255,255,255,.85);
+        font-size:12.5px;font-weight:600;text-decoration:none;
+        transition:background .15s;
+      " onmouseover="this.style.background='rgba(255,255,255,.11)'"
+         onmouseout="this.style.background='rgba(255,255,255,.06)'">Volver</a>
+
+      <div class="user-chip">{{ user.nombre if user else "Operador" }}</div>
+    </aside>
+
+    <!-- Panel derecho -->
+    <main class="panel-right">
+      <div class="mode-tabs">
+        <button class="mode-tab active" id="tabNuevo" onclick="cambiarModo('nuevo')">Nuevo guardia</button>
+        <button class="mode-tab" id="tabEditar" onclick="cambiarModo('editar')">Editar guardia</button>
+      </div>
+
+      <!-- ── Modo: Nuevo guardia ── -->
+      <div id="formNuevo">
+        <div class="form-title">Nuevo guardia</div>
+        <div class="form-subtitle">Completa los datos del guardia para registrarlo en el sistema.</div>
+
+        <div class="section-label">Datos del guardia</div>
+
+        <div class="field">
+          <label for="rut">RUT</label>
+          <input type="text" id="rut" placeholder="12345678-9" maxlength="12" autocomplete="off">
+          <div class="rut-hint">Sin puntos, con guión. El sistema normaliza automáticamente.</div>
+        </div>
+
+        <div class="field">
+          <label for="nombre">Nombre completo</label>
+          <input type="text" id="nombre" placeholder="Juan Pérez González" maxlength="255" autocomplete="off">
+        </div>
+
+        <div class="field">
+          <label for="tipoContrato">Tipo de Contrato</label>
+          <select id="tipoContrato">
+            <option value="">Seleccionar tipo</option>
+            <option value="Full Time">Full Time</option>
+            <option value="Part Time">Part Time</option>
+          </select>
+        </div>
+
+        <button class="btn-submit" id="btnGuardar" onclick="guardar()">Guardar guardia</button>
+        <div class="feedback" id="feedback"></div>
+      </div>
+
+      <!-- ── Modo: Editar guardia ── -->
+      <div id="formEditarWrap" style="display:none;">
+        <div class="form-title">Editar guardia</div>
+        <div class="form-subtitle">Selecciona un guardia de la lista para editar sus datos.</div>
+
+        <div class="field search-box">
+          <input type="text" id="buscarGuardia" placeholder="Buscar por nombre o RUT…" autocomplete="off">
+        </div>
+
+        <div class="guardia-list" id="guardiaList">
+          <div class="guardia-list-empty">Cargando guardias…</div>
+        </div>
+
+        <div class="edit-form" id="editForm">
+          <div class="section-label">Datos del guardia</div>
+          <div class="edit-hint" id="editandoLabel"></div>
+
+          <div class="field">
+            <label for="editRut">RUT</label>
+            <input type="text" id="editRut" placeholder="12345678-9" maxlength="12" autocomplete="off">
+          </div>
+
+          <div class="field">
+            <label for="editNombre">Nombre completo</label>
+            <input type="text" id="editNombre" placeholder="Juan Pérez González" maxlength="255" autocomplete="off">
+          </div>
+
+          <div class="field">
+            <label for="editTipoContrato">Tipo de Contrato</label>
+            <select id="editTipoContrato">
+              <option value="">Seleccionar tipo</option>
+              <option value="Full Time">Full Time</option>
+              <option value="Part Time">Part Time</option>
+            </select>
+          </div>
+
+          <button class="btn-submit" id="btnActualizar" onclick="actualizarGuardia()">Guardar cambios</button>
+          <div class="feedback" id="feedbackEditar"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const btn = document.getElementById("btnGuardar");
+    const fb  = document.getElementById("feedback");
+
+    function mostrarFeedback(msg, ok) {
+      fb.textContent = msg;
+      fb.className = "feedback " + (ok ? "ok" : "err");
+    }
+
+    async function guardar() {
+      const rut    = document.getElementById("rut").value.trim();
+      const nombre = document.getElementById("nombre").value.trim();
+      const tipo_contrato = document.getElementById("tipoContrato").value;
+
+      if (!rut || !nombre || !tipo_contrato) {
+        mostrarFeedback("Completa RUT, Nombre y Tipo de Contrato.", false);
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "Guardando…";
+      fb.className = "feedback";
+
+      try {
+        const res = await fetch("/api/inicio-turno/guardias/crear", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rut, nombre, tipo_contrato }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          mostrarFeedback(data.detail || "Error al guardar.", false);
+        } else if (data.nombre_duplicado) {
+          mostrarFeedback(
+            "Guardia registrado, pero ya existe otro guardia con el mismo nombre y otro RUT. Verifica que no sea la misma persona duplicada.",
+            false
+          );
+        } else {
+          mostrarFeedback(
+            data.created ? "Guardia registrado correctamente." : "Guardia actualizado correctamente.",
+            true
+          );
+          document.getElementById("rut").value = "";
+          document.getElementById("nombre").value = "";
+          document.getElementById("tipoContrato").value = "";
+        }
+      } catch (e) {
+        mostrarFeedback("Error de red. Intenta de nuevo.", false);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Guardar guardia";
+      }
+    }
+
+    // Submit con Enter desde cualquier campo
+    document.getElementById("rut").addEventListener("keydown",    e => { if (e.key === "Enter") document.getElementById("nombre").focus(); });
+    document.getElementById("nombre").addEventListener("keydown",  e => { if (e.key === "Enter") document.getElementById("tipoContrato").focus(); });
+    document.getElementById("tipoContrato").addEventListener("keydown",  e => { if (e.key === "Enter") guardar(); });
+
+    // ── Modo Editar guardia ──────────────────────────────────
+    let _guardias = [];
+    let _guardiaSeleccionado = null;
+
+    function cambiarModo(modo) {
+      const esNuevo = modo === "nuevo";
+      document.getElementById("tabNuevo").classList.toggle("active", esNuevo);
+      document.getElementById("tabEditar").classList.toggle("active", !esNuevo);
+      document.getElementById("formNuevo").style.display = esNuevo ? "block" : "none";
+      document.getElementById("formEditarWrap").style.display = esNuevo ? "none" : "block";
+      if (!esNuevo && _guardias.length === 0) cargarGuardias();
+    }
+
+    async function cargarGuardias() {
+      const lista = document.getElementById("guardiaList");
+      lista.innerHTML = '<div class="guardia-list-empty">Cargando guardias…</div>';
+      try {
+        const res = await fetch("/api/inicio-turno/guardias/listar");
+        const data = await res.json();
+        _guardias = data.items || [];
+        renderGuardiaList(_guardias);
+      } catch (e) {
+        lista.innerHTML = '<div class="guardia-list-empty">Error al cargar guardias.</div>';
+      }
+    }
+
+    function renderGuardiaList(items) {
+      const lista = document.getElementById("guardiaList");
+      if (!items.length) {
+        lista.innerHTML = '<div class="guardia-list-empty">No hay guardias registrados.</div>';
+        return;
+      }
+      lista.innerHTML = items.map(g => `
+        <div class="guardia-item${_guardiaSeleccionado === g.id ? ' active' : ''}" onclick="seleccionarGuardia(${g.id})">
+          <div class="guardia-item-info">
+            <div class="guardia-item-nombre">${g.nombre}</div>
+            <div class="guardia-item-meta">${g.rut}</div>
+          </div>
+          ${g.tipo_contrato ? `<span class="guardia-item-tipo">${g.tipo_contrato}</span>` : ""}
+        </div>
+      `).join("");
+    }
+
+    function seleccionarGuardia(id) {
+      const g = _guardias.find(x => x.id === id);
+      if (!g) return;
+      _guardiaSeleccionado = id;
+      renderGuardiaList(_guardiaActuales());
+      document.getElementById("editForm").classList.add("visible");
+      document.getElementById("editandoLabel").textContent = `Editando: ${g.nombre}`;
+      document.getElementById("editRut").value = g.rut;
+      document.getElementById("editNombre").value = g.nombre;
+      document.getElementById("editTipoContrato").value = g.tipo_contrato || "";
+      document.getElementById("feedbackEditar").className = "feedback";
+    }
+
+    function _guardiaActuales() {
+      const q = document.getElementById("buscarGuardia").value.trim();
+      return q ? filtrarGuardias(q) : _guardias;
+    }
+
+    function filtrarGuardias(q) {
+      const norm = q.toLowerCase();
+      return _guardias.filter(g =>
+        g.nombre.toLowerCase().includes(norm) || g.rut.toLowerCase().includes(norm)
+      );
+    }
+
+    document.getElementById("buscarGuardia").addEventListener("input", () => {
+      renderGuardiaList(_guardiaActuales());
+    });
+
+    async function actualizarGuardia() {
+      if (!_guardiaSeleccionado) return;
+      const rut    = document.getElementById("editRut").value.trim();
+      const nombre = document.getElementById("editNombre").value.trim();
+      const tipo_contrato = document.getElementById("editTipoContrato").value;
+      const btnAct = document.getElementById("btnActualizar");
+      const fbEdit = document.getElementById("feedbackEditar");
+
+      if (!rut || !nombre || !tipo_contrato) {
+        fbEdit.textContent = "Completa RUT, Nombre y Tipo de Contrato.";
+        fbEdit.className = "feedback err";
+        return;
+      }
+
+      btnAct.disabled = true;
+      btnAct.textContent = "Guardando…";
+      fbEdit.className = "feedback";
+
+      try {
+        const res = await fetch(`/api/inicio-turno/guardias/${_guardiaSeleccionado}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rut, nombre, tipo_contrato }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          fbEdit.textContent = data.detail || "Error al guardar.";
+          fbEdit.className = "feedback err";
+        } else {
+          fbEdit.textContent = "Guardia actualizado correctamente.";
+          fbEdit.className = "feedback ok";
+          const idx = _guardias.findIndex(g => g.id === data.id);
+          if (idx !== -1) _guardias[idx] = data;
+          renderGuardiaList(_guardiaActuales());
+          document.getElementById("editandoLabel").textContent = `Editando: ${data.nombre}`;
+        }
+      } catch (e) {
+        fbEdit.textContent = "Error de red. Intenta de nuevo.";
+        fbEdit.className = "feedback err";
+      } finally {
+        btnAct.disabled = false;
+        btnAct.textContent = "Guardar cambios";
+      }
+    }
+
+  </script>
+  <script src="/static/atc-logo-home.js"></script>
+<script src="/static/atc-volver.js"></script>
+</body>
+</html>

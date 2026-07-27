@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Estatus Gestión — Prevención</title>
+<link rel="stylesheet" href="/static/base.css">
+<style>
+:root{
+  --bg:#f7f8fa;
+  --surface:#fff;
+  --border:#e5e7eb;
+  --border-strong:#d1d5db;
+  --text:#111827;
+  --text-soft:#4b5563;
+  --muted:#6b7280;
+  --header-bg-from:#0b1424;
+  --header-bg-to:#111c2f;
+  --shadow-sm:0 1px 2px rgba(15,23,42,.04);
+  --shadow-md:0 1px 3px rgba(15,23,42,.06),0 1px 2px rgba(15,23,42,.04);
+
+  --ok-bg:#eaf4ec;   --ok-text:#1e4430;   --ok-bar:#1e9c83;
+  --warn-bg:#fdf6ed; --warn-text:#92400e; --warn-bar:#d97706;
+  --bad-bg:#f4e8e8;  --bad-text:#7f1d1d;  --bad-bar:#c0392b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;font-family:"Inter",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+body{background:var(--bg);color:var(--text);font-size:13px;font-weight:500;display:flex;flex-direction:column;height:100vh}
+
+/* ── HERO ─────────────────────────────── */
+.hero{
+  flex-shrink:0;
+  display:flex;align-items:center;gap:20px;
+  padding:18px 28px;
+  background:linear-gradient(180deg,var(--header-bg-from) 0%,var(--header-bg-to) 100%);
+  border-bottom:1px solid rgba(255,255,255,.06);
+  box-shadow:0 2px 8px rgba(0,0,0,.28);
+}
+.hero-logo img{height:54px;width:auto;display:block;object-fit:contain;filter:drop-shadow(0 2px 6px rgba(0,0,0,.3))}
+.hero-copy{flex:1;min-width:0}
+.hero-copy h1{font-size:19px;font-weight:700;letter-spacing:-.02em;color:#fff;line-height:1.2}
+.hero-copy p{margin-top:4px;font-size:12.5px;color:rgba(255,255,255,.6);line-height:1.4}
+.hero-actions{display:flex;align-items:center;gap:10px;margin-left:auto}
+.btn-hero{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 14px;border-radius:8px;font-size:12.5px;font-weight:600;
+  text-decoration:none;cursor:pointer;
+  border:1px solid rgba(255,255,255,.16);
+  background:rgba(255,255,255,.07);color:rgba(255,255,255,.9);
+  transition:background .15s,border-color .15s;white-space:nowrap;
+}
+.btn-hero:hover{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.24)}
+.btn-hero.btn-informe{
+  background:linear-gradient(180deg,#f4a672 0%,#e5883e 100%);
+  border-color:rgba(0,0,0,.08);color:#3a1c05;
+}
+.btn-hero.btn-informe:hover{filter:brightness(1.05)}
+.btn-hero.btn-informe svg{width:14px;height:14px}
+.summary-chip{
+  display:flex;flex-direction:column;align-items:flex-end;gap:2px;
+  padding:6px 16px;border-radius:10px;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+}
+.summary-chip .pct{font-size:20px;font-weight:800;color:#fff;line-height:1}
+.summary-chip .lbl{font-size:10.5px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.06em}
+
+/* ── TOOLBAR ─────────────────────────── */
+.toolbar{
+  flex-shrink:0;
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  padding:10px 28px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  box-shadow:var(--shadow-sm);
+}
+.search-box{
+  flex:1;min-width:240px;max-width:420px;
+  padding:8px 12px 8px 32px;
+  border-radius:7px;border:1px solid var(--border);
+  background:#fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'/><path d='m21 21-4.3-4.3'/></svg>") no-repeat 10px center;
+  color:var(--text);font-size:13px;font-weight:500;outline:none;font-family:inherit;
+  transition:border-color .15s,box-shadow .15s;
+}
+.search-box:focus{border-color:#1d4ed8;box-shadow:0 0 0 3px rgba(29,78,216,.14)}
+.legend{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:5px}
+.chip-ok{background:var(--ok-bg);color:var(--ok-text)}
+.chip-warn{background:var(--warn-bg);color:var(--warn-text)}
+.chip-bad{background:var(--bad-bg);color:var(--bad-text)}
+.counter{
+  display:inline-flex;align-items:center;
+  padding:6px 12px;background:#f3f4f6;border:1px solid var(--border);
+  border-radius:999px;font-size:12px;color:var(--text-soft);font-weight:700;white-space:nowrap;
+}
+
+/* ── CONTENIDO ───────────────────────── */
+.wrap{flex:1;overflow:auto;padding:18px 28px 40px}
+.seccion{margin-bottom:18px}
+.seccion-titulo{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 14px;margin-bottom:8px;
+  background:linear-gradient(180deg,#1e3a5f 0%,#16304d 100%);
+  color:#fff;border-radius:8px;
+  font-size:12.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;
+}
+.seccion-titulo .cnt{
+  margin-left:auto;font-size:11px;font-weight:700;
+  background:rgba(255,255,255,.14);padding:2px 9px;border-radius:999px;
+}
+.items{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  overflow:hidden;box-shadow:var(--shadow-sm);
+}
+.item{
+  display:grid;grid-template-columns:2.2fr minmax(220px,1.6fr) auto;gap:14px;
+  align-items:center;padding:11px 16px;
+  border-bottom:1px solid var(--border);
+}
+.item:last-child{border-bottom:none}
+.item:nth-child(even){background:#fafbfc}
+.item.filtrado-oculto{display:none}
+.item-doc{font-weight:700;color:var(--text);line-height:1.35}
+.item-obs{margin-top:3px;font-size:11.5px;color:var(--muted);font-weight:500;line-height:1.4}
+
+/* Columna combinada: responsable / revision / barra de avance — todo junto
+   para que se reordene y adapte como un solo bloque segun el espacio. */
+.item-gestion{display:flex;flex-direction:column;gap:6px;min-width:0}
+.persona-linea{font-size:11.5px;color:var(--text-soft);line-height:1.4;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.persona-linea .rol{flex-shrink:0;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.04em;font-weight:700}
+.persona-valor{
+  cursor:pointer;border-radius:4px;padding:1px 4px;margin:-1px -4px;
+  border:1px dashed transparent;transition:border-color .15s ease,background .15s ease;
+}
+.persona-valor:hover{border-color:var(--border-strong);background:#f8fafc}
+.persona-input{
+  font:inherit;font-size:11.5px;font-weight:600;color:var(--text);
+  border:1px solid #1d4ed8;border-radius:5px;padding:2px 5px;outline:none;
+  width:100%;min-width:0;background:#fff;box-shadow:0 0 0 3px rgba(29,78,216,.10);
+}
+.bar-wrap{margin-top:2px}
+.bar-track{
+  height:8px;border-radius:999px;background:#e5e7eb;overflow:hidden;
+}
+.bar-fill{height:100%;border-radius:999px;transition:width .15s ease,background .15s ease}
+.avance-input-wrap{
+  margin-top:6px;display:flex;align-items:center;justify-content:flex-end;gap:2px;
+}
+.avance-input{
+  width:52px;text-align:right;font-size:13px;font-weight:800;color:var(--text);
+  border:1px solid var(--border-strong);border-radius:6px;padding:3px 5px;
+  outline:none;font-family:inherit;transition:border-color .3s ease;
+}
+.avance-input:focus{border-color:#1d4ed8;box-shadow:0 0 0 3px rgba(29,78,216,.14)}
+.avance-input::placeholder{color:#c3cad4;font-weight:600}
+.pct-sign{font-size:12px;color:var(--muted);font-weight:700}
+.estado-badge{
+  justify-self:end;
+  font-size:10.5px;font-weight:800;padding:3px 10px;border-radius:999px;white-space:nowrap;
+}
+.chip-none{background:#f1f5f9;color:#6b7280}
+
+@media (max-width:900px){
+  .item{grid-template-columns:1fr;gap:6px}
+  .bar-wrap{min-width:0}
+  .estado-badge{justify-self:start}
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-logo"><img src="/shared-static/img/logo-atc.png" alt="Logo ATC"></div>
+  <div class="hero-copy">
+    <h1>Estatus Gestión — Prevención de Riesgos</h1>
+    <p>Avance documental, capacitaciones, protocolos y matriz de riesgos</p>
+  </div>
+  <div class="hero-actions">
+    <div class="summary-chip">
+      <span class="pct" id="promedioChip">{{ promedio_general }}%</span>
+      <span class="lbl">Avance general</span>
+    </div>
+    <a class="btn-hero btn-informe" href="/prevencion/estatus-gestion/informe?token={{ token }}" download>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Descargar informe
+    </a>
+    <a id="btnVolver" class="btn-hero" href="{{ back_url or '/prevencion' }}">Volver</a>
+  </div>
+</header>
+
+<div class="toolbar">
+  <input class="search-box" id="buscador" type="text" placeholder="Buscar documento, responsable u observación…">
+  <div class="legend">
+    <span class="chip chip-ok">≥ 90%</span>
+    <span class="chip chip-warn">50–89%</span>
+    <span class="chip chip-bad">&lt; 50%</span>
+    <span class="counter" id="contador">{{ total_items }} ítems</span>
+  </div>
+</div>
+
+<div class="wrap">
+  {% for seccion in secciones %}
+  <div class="seccion" data-seccion>
+    <div class="seccion-titulo">
+      {{ seccion.seccion }}
+      <span class="cnt">{{ seccion["items"]|length }}</span>
+    </div>
+    <div class="items">
+      {% for it in seccion["items"] %}
+        {% set pct = it.avance %}
+        {% if pct is none %}
+          {% set estado_cls = 'none' %}{% set estado_txt = 'Sin dato' %}
+        {% elif pct >= 90 %}
+          {% set estado_cls = 'ok' %}{% set estado_txt = 'Al día' %}
+        {% elif pct >= 50 %}
+          {% set estado_cls = 'warn' %}{% set estado_txt = 'En proceso' %}
+        {% else %}
+          {% set estado_cls = 'bad' %}{% set estado_txt = 'Pendiente' %}
+        {% endif %}
+        <div class="item" data-item-id="{{ it.id }}" data-search="{{ (it.documento ~ ' ' ~ it.responsable ~ ' ' ~ it.revisor ~ ' ' ~ it.observaciones)|lower }}">
+          <div>
+            <div class="item-doc">{{ it.documento }}</div>
+            {% if it.observaciones %}<div class="item-obs">{{ it.observaciones }}</div>{% endif %}
+          </div>
+          <div class="item-gestion">
+            <div class="persona-linea">
+              <span class="rol">Responsable</span>
+              <span class="persona-valor" data-field="responsable" data-item-id="{{ it.id }}" title="Doble clic para editar">{{ it.responsable or "—" }}</span>
+            </div>
+            <div class="persona-linea">
+              <span class="rol">Revisión / aprobación</span>
+              <span class="persona-valor" data-field="revisor" data-item-id="{{ it.id }}" title="Doble clic para editar">{{ it.revisor or "—" }}</span>
+            </div>
+            <div class="bar-wrap">
+              <div class="bar-track"><div class="bar-fill" data-fill style="width:{{ pct or 0 }}%;background:var(--{{ estado_cls }}-bar, #cbd5e1);"></div></div>
+              <div class="avance-input-wrap">
+                <input type="number" class="avance-input" min="0" max="100" step="5" placeholder="—" value="{{ pct if pct is not none else '' }}" data-item-id="{{ it.id }}">
+                <span class="pct-sign">%</span>
+              </div>
+            </div>
+          </div>
+          <span class="estado-badge chip-{{ estado_cls }}" data-badge>{{ estado_txt }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<script>
+  const TOKEN = {{ token|default('')|tojson }};
+  const COLORES = {
+    ok:   { bar: "#1e9c83", text: "#1e4430", label: "Al día" },
+    warn: { bar: "#d97706", text: "#92400e", label: "En proceso" },
+    bad:  { bar: "#c0392b", text: "#7f1d1d", label: "Pendiente" },
+    none: { bar: "#cbd5e1", text: "#6b7280", label: "Sin dato" },
+  };
+
+  function estadoPara(pct) {
+    if (pct === null || pct === undefined || pct === "") return "none";
+    if (pct >= 90) return "ok";
+    if (pct >= 50) return "warn";
+    return "bad";
+  }
+
+  function recalcularPromedio() {
+    const valores = Array.from(document.querySelectorAll(".avance-input"))
+      .map(el => el.value.trim())
+      .filter(v => v !== "")
+      .map(Number);
+    const promedio = valores.length ? Math.round((valores.reduce((a, b) => a + b, 0) / valores.length) * 10) / 10 : 0;
+    document.getElementById("promedioChip").textContent = promedio + "%";
+  }
+
+  document.querySelectorAll(".avance-input").forEach(input => {
+    input.addEventListener("change", async () => {
+      let raw = input.value.trim();
+      let valor = raw === "" ? null : Math.max(0, Math.min(100, Math.round(Number(raw))));
+      input.value = valor === null ? "" : valor;
+
+      const item = input.closest(".item");
+      const estado = estadoPara(valor);
+      const c = COLORES[estado];
+      item.querySelector("[data-fill]").style.width = (valor || 0) + "%";
+      item.querySelector("[data-fill]").style.background = c.bar;
+      const badge = item.querySelector("[data-badge]");
+      badge.textContent = c.label;
+      badge.className = "estado-badge chip-" + estado;
+      badge.setAttribute("data-badge", "");
+
+      recalcularPromedio();
+
+      const itemId = input.dataset.itemId;
+      try {
+        const res = await fetch(`/api/prevencion/estatus-gestion/${itemId}?token=${encodeURIComponent(TOKEN)}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ avance: valor }),
+        });
+        if (!res.ok) throw new Error((await res.json()).detail || "Error al guardar");
+        input.style.borderColor = "#1e9c83";
+      } catch (err) {
+        input.style.borderColor = "#c0392b";
+        alert("No se pudo guardar: " + err.message);
+      } finally {
+        setTimeout(() => { input.style.borderColor = ""; }, 900);
+      }
+    });
+  });
+
+  // ── Edición de Responsable / Revisión (doble clic → texto libre) ──
+  function activarEdicionPersona(span) {
+    return () => {
+      if (span.tagName === "INPUT") return;
+      const valorActual = span.textContent.trim();
+      const original = valorActual === "—" ? "" : valorActual;
+
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "persona-input";
+      input.value = original;
+
+      span.replaceWith(input);
+      input.focus();
+      input.select();
+
+      let yaGuardado = false;
+      const guardar = async () => {
+        if (yaGuardado) return;
+        yaGuardado = true;
+
+        const nuevoValor = input.value.trim();
+        const nuevoSpan = document.createElement("span");
+        nuevoSpan.className = "persona-valor";
+        nuevoSpan.dataset.field = span.dataset.field;
+        nuevoSpan.dataset.itemId = span.dataset.itemId;
+        nuevoSpan.title = "Doble clic para editar";
+        nuevoSpan.textContent = nuevoValor || "—";
+        input.replaceWith(nuevoSpan);
+        nuevoSpan.addEventListener("dblclick", activarEdicionPersona(nuevoSpan));
+
+        if (nuevoValor === original) return;
+        const itemId = span.dataset.itemId;
+        const campo = span.dataset.field;
+        try {
+          const res = await fetch(`/api/prevencion/estatus-gestion/${itemId}?token=${encodeURIComponent(TOKEN)}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ [campo]: nuevoValor }),
+          });
+          if (!res.ok) throw new Error((await res.json()).detail || "Error al guardar");
+        } catch (err) {
+          alert("No se pudo guardar: " + err.message);
+        }
+      };
+
+      input.addEventListener("keydown", e => {
+        if (e.key === "Enter") input.blur();
+        if (e.key === "Escape") { yaGuardado = true; input.replaceWith(span); }
+      });
+      input.addEventListener("blur", guardar, { once: true });
+    };
+  }
+
+  document.querySelectorAll(".persona-valor").forEach(span => {
+    span.addEventListener("dblclick", activarEdicionPersona(span));
+  });
+
+  const buscador = document.getElementById("buscador");
+  const contador = document.getElementById("contador");
+  const totalItems = {{ total_items }};
+
+  buscador.addEventListener("input", () => {
+    const q = buscador.value.trim().toLowerCase();
+    let visibles = 0;
+    document.querySelectorAll(".item").forEach(el => {
+      const match = !q || (el.dataset.search || "").includes(q);
+      el.classList.toggle("filtrado-oculto", !match);
+      if (match) visibles++;
+    });
+    document.querySelectorAll("[data-seccion]").forEach(sec => {
+      const algunoVisible = Array.from(sec.querySelectorAll(".item")).some(el => !el.classList.contains("filtrado-oculto"));
+      sec.style.display = algunoVisible ? "" : "none";
+    });
+    contador.textContent = q ? `${visibles} de ${totalItems} ítems` : `${totalItems} ítems`;
+  });
+
+</script>
+  <script src="/static/atc-logo-home.js"></script>
+<script src="/static/atc-volver.js"></script>
+</body>
+</html>

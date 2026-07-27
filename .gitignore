@@ -3,6 +3,13 @@
 *.db
 backups/
 backup_bbdd/
+uploads/
+ATC/uploads/
+logs/
+exports/
+.claude/
+ATC/app/static/protocolos/informes/
+Contrato Diario.pdf
 __pycache__/
 *.pyc
 auto_git.py
@@ -11,6 +18,10 @@ auto_git.py
 .DS_Store
 # Logs del servidor
 *.log
+
+# Certificados TLS locales
+/key.pem
+/cert.pem
 
 ATC/.env
 ATC/secrets/

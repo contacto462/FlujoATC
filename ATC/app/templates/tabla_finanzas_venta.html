@@ -1,0 +1,1177 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Tabla Finanzas — ODS</title>
+  <link rel="stylesheet" href="/static/base.css">
+<style>
+:root {
+  --bg:           #f6f8fb;
+  --surface:      #ffffff;
+  --surface-alt:  #fafbfc;
+  --border:       #e5e7eb;
+  --border-soft:  #f1f5f9;
+  --border-strong:#cbd5e1;
+
+  --text:         #0f172a;
+  --text-soft:    #334155;
+  --text-muted:   #64748b;
+  --label:        #64748b;
+  --placeholder:  #94a3b8;
+
+  --accent:        #7fc497;
+  --accent-hover:  #5fb07f;
+  --accent-strong: #166534;
+  --accent-soft:   rgba(127,196,151,.14);
+
+  /* Área: Finanzas → verde tenue (mismo tono unificado) */
+  --area-text:   #166534;
+  --area-bg:     rgba(127,196,151,.18);
+  --area-border: var(--accent);
+
+  --ok-bg:    #ecfdf5;
+  --ok-fg:    #166534;
+  --ok-bd:    rgba(22,101,52,.18);
+  --pend-bg:  #f8fafc;
+  --pend-fg:  #475569;
+  --pend-bd:  #e5e7eb;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { min-height: 100%; }
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: -0.005em;
+  display: flex; flex-direction: column;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Header */
+.header {
+  position: sticky; top: 0; z-index: 50;
+  background: linear-gradient(180deg, #0b1424 0%, #111c2f 100%);
+  display: flex; align-items: center; gap: 18px;
+  padding: 20px 30px;
+  min-height: 108px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  flex-shrink: 0;
+}
+.header-logo {
+  height: 68px; width: auto; object-fit: contain;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,.30));
+}
+.header-title { flex: 1; color: #fff; font-size: 20px; font-weight: 700; letter-spacing: -.02em; line-height: 1.25; }
+.header-title small { display: block; font-size: 13.5px; font-weight: 500; color: rgba(255,255,255,.72); margin-top: 6px; line-height: 1.45; }
+.header-actions { display: flex; gap: 10px; align-items: center; }
+
+.btn {
+  appearance: none; padding: 8px 14px; border-radius: 7px;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+  border: 1px solid transparent; outline: none;
+  font-family: inherit; letter-spacing: -.005em; line-height: 1.3;
+  text-decoration: none;
+}
+.btn-ghost {
+  background: rgba(255,255,255,.04);
+  border-color: rgba(255,255,255,.12);
+  color: rgba(255,255,255,.92);
+}
+.btn-ghost:hover { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.22); }
+
+/* Filters bar */
+.filters {
+  position: sticky; top: 108px; z-index: 40;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 11px 22px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  box-shadow: 0 1px 0 var(--border);
+}
+.alerta { margin: 0; flex: 0 0 auto; }
+.alerta .pill {
+  display: inline-flex; align-items: center;
+  padding: 6px 12px; border-radius: 999px;
+  font-size: 12.5px; font-weight: 700;
+  background: #fef2f2; color: #b91c1c;
+  border: 1px solid rgba(220,38,38,.25);
+  letter-spacing: .02em;
+}
+.counter {
+  display: inline-flex; align-items: center;
+  padding: 6px 12px; background: var(--surface-alt); border: 1px solid var(--border);
+  border-radius: 999px; font-size: 12.5px; color: var(--text-soft);
+  font-weight: 700; letter-spacing: .02em; white-space: nowrap;
+  margin-left: auto;
+}
+
+/* Table */
+.tabla-container {
+  flex: 1;
+  background: var(--surface);
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 13px;
+}
+
+@media (max-width: 760px) {
+  html,
+  body {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .tabla-container {
+    max-width: 100vw;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    min-width: 1720px;
+  }
+
+  thead th,
+  td {
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+}
+
+thead th {
+  position: sticky; top: 163px; z-index: 60;
+  background: rgb(232, 244, 236);
+  color: #334155;
+  font-weight: 800;
+  font-size: 10.5px;
+  padding: 14px 4px 14px;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  border-bottom: 3px solid var(--area-border);
+  line-height: 1.35;
+  vertical-align: middle;
+}
+thead th.filtro-abierto {
+  z-index: 999;
+}
+/* thead th::after eliminado: border-bottom directo en thead th */
+.th-content {
+  display: flex;
+  min-height: 54px;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 8px;
+}
+.th-label {
+  display: flex;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+}
+.th-content.no-filter {
+  justify-content: flex-start;
+  gap: 0;
+  padding-top: 1px;
+}
+.th-content.no-filter .th-label {
+  white-space: normal;
+  font-size: inherit;
+  letter-spacing: inherit;
+  line-height: 1.25;
+}
+.filtro-container { display: block; width: 100%; }
+.filtro-container select, select.filtro {
+  width: 100%;
+  min-width: 0;
+  height: 27px;
+  padding: 5px 22px 5px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>") no-repeat right 6px center;
+  color: var(--text-soft);
+  font-size: 11.5px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer; outline: none;
+  appearance: none; -webkit-appearance: none;
+  text-transform: none; letter-spacing: 0;
+  transition: border-color .15s, box-shadow .15s;
+}
+.filtro-container select:focus, select.filtro:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(127,196,151,.20);
+}
+
+.buscar-select { position: relative; z-index: 5; font-size: 11.5px; font-weight: 600; }
+.buscar-select.is-open { z-index: 500; }
+.buscar-select-trigger {
+  position: relative; width: 100%; min-width: 0; height: 27px;
+  padding: 5px 22px 5px 8px; border-radius: 6px; border: 1px solid var(--border);
+  background: #fff; color: var(--text-soft); font: inherit; text-align: left;
+  cursor: pointer; outline: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: border-color .15s, box-shadow .15s;
+}
+.buscar-select-trigger::after {
+  content: ""; position: absolute; top: 50%; right: 8px; width: 0; height: 0;
+  border-left: 4px solid transparent; border-right: 4px solid transparent;
+  border-top: 5px solid #94a3b8; transform: translateY(-30%); pointer-events: none;
+}
+.buscar-select.is-open .buscar-select-trigger { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(127,196,151,.20); }
+.buscar-select-menu {
+  position: absolute; top: calc(100% + 2px); left: 0; min-width: 180px; z-index: 500;
+  background: #fff; border: 1px solid var(--border); border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(15,23,42,.14); overflow: hidden;
+}
+.buscar-select-menu[hidden] { display: none !important; }
+.buscar-select-filter-wrap { padding: 6px; border-bottom: 1px solid var(--border); }
+.buscar-select-filter {
+  width: 100%; height: 28px; border: 1px solid var(--accent); border-radius: 5px;
+  padding: 4px 8px; font: inherit; font-size: 11.5px; outline: none; box-sizing: border-box;
+}
+.buscar-select-options { max-height: 220px; overflow-y: auto; overflow-x: hidden; background: #fff; }
+.buscar-select-option {
+  display: block; width: 100%; min-height: 30px; border: 0; background: #fff;
+  color: var(--text-soft); padding: 6px 9px; font: inherit; text-align: left; cursor: pointer;
+  text-transform: none; letter-spacing: 0; white-space: nowrap;
+}
+.buscar-select-option:hover, .buscar-select-option.is-active { background: var(--accent-soft); color: var(--accent-strong); }
+
+.filtro-fecha-rango { display: flex; gap: 3px; }
+.filtro-fecha-rango input[type="date"] {
+  width: 100%; min-width: 0; height: 27px; padding: 4px 3px;
+  border-radius: 6px; border: 1px solid var(--border); background: #fff;
+  color: var(--text-soft); font-size: 10px; font-weight: 600; font-family: inherit;
+  outline: none; text-transform: none; letter-spacing: 0;
+  transition: border-color .15s, box-shadow .15s;
+}
+.filtro-fecha-rango input[type="date"]:focus {
+  border-color: var(--accent); box-shadow: 0 0 0 3px rgba(127,196,151,.20);
+}
+
+tbody tr {
+  border-bottom: 1px solid #e2e8f0;
+  transition: background .18s, box-shadow .18s;
+  box-shadow: inset 3px 0 0 #cbd5e1;
+}
+tbody tr:nth-child(even):not(.anulada):not(.detalle-vineta) { background: #fafbfc; }
+tbody tr:hover:not(.anulada):not(.detalle-vineta) {
+  background: #f1f5fb;
+  box-shadow: inset 3px 0 0 var(--area-text), 0 1px 0 rgba(15,23,42,.04);
+}
+tbody tr.anulada {
+  opacity: .50;
+  background: #fef2f2 !important;
+  box-shadow: inset 3px 0 0 #dc2626;
+}
+tbody tr.anulada a { pointer-events: none; color: #7f1d1d !important; }
+tbody tr.anulada .boton-estado { pointer-events: none; }
+tbody tr:first-child td { padding-top: 26px; }
+tbody tr.detalle-vineta:first-child td { padding-top: 4px; }
+
+td {
+  padding: 12px 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  text-align: center;
+  color: var(--text);
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
+  line-height: 1.45;
+  vertical-align: middle;
+}
+
+a.link {
+  display: inline-block;
+  font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  font-weight: 700;
+  font-size: 12.5px;
+  color: #0f172a;
+  text-decoration: none;
+  cursor: pointer;
+  letter-spacing: .02em;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background .15s, color .15s;
+}
+a.link:hover { background: #ecfdf5; color: var(--area-text); }
+td a.link:not([href="#"]) {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--area-text);
+}
+td a.link:not([href="#"]):hover { background: var(--area-bg); }
+
+.sin-carpeta {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 500;
+  font-style: italic;
+  color: var(--text-muted);
+  letter-spacing: .01em;
+}
+
+.td-documentos {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.td-documentos a.link,
+.td-documentos .sin-carpeta {
+  font-size: 11px;
+}
+
+/* Botones de estado */
+.boton-estado {
+  appearance: none;
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  outline: none;
+  font-family: inherit;
+  letter-spacing: .015em;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  line-height: 1.35;
+  transition: background .15s, border-color .15s, transform .15s, box-shadow .15s;
+}
+.boton-estado:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(15,23,42,.07); }
+.boton-estado:disabled { cursor: not-allowed; opacity: .45; }
+.boton-estado.completado { background: var(--ok-bg); color: var(--ok-fg); border-color: var(--ok-bd); }
+.boton-estado.pendiente  { background: var(--pend-bg); color: var(--pend-fg); border-color: var(--pend-bd); }
+
+/* Detalle expandible */
+tr.detalle-vineta td {
+  padding: 4px 16px 18px;
+  background: var(--surface);
+  text-align: left;
+}
+tr.detalle-vineta {
+  background: var(--surface) !important;
+  box-shadow: none !important;
+}
+.detalle-box {
+  margin: 12px auto;
+  max-width: 940px;
+  padding: 20px 26px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 1px 0 rgba(15,23,42,.04);
+  text-align: left;
+  line-height: 1.6;
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+.detalle-box .title {
+  text-align: center; font-weight: 800; font-size: 15px;
+  margin-bottom: 14px; color: var(--text); letter-spacing: -.015em;
+  padding-bottom: 10px; border-bottom: 1px solid var(--border);
+}
+.detalle-box div { margin: 6px 0; }
+.detalle-box strong { color: var(--text-soft); font-weight: 700; }
+.detalle-box pre {
+  white-space: pre-wrap; font-family: inherit;
+  margin: 6px 0 0; color: var(--text-soft);
+  background: #fff; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border);
+}
+
+#loading { text-align: center; padding: 56px 20px; color: var(--text-muted); font-size: 14px; font-weight: 500; }
+
+/* ── Modal detalle ODS ── */
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(15,23,42,.48);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  opacity: 0; pointer-events: none;
+  transition: opacity .2s ease;
+}
+.modal-backdrop.visible { opacity: 1; pointer-events: all; }
+
+.modal-card {
+  background: var(--surface);
+  border-radius: 18px;
+  box-shadow: 0 24px 64px rgba(15,23,42,.18), 0 4px 16px rgba(15,23,42,.10);
+  border: 1px solid var(--border);
+  width: 100%; max-width: 540px;
+  transform: translateY(14px) scale(.97);
+  transition: transform .22s cubic-bezier(.34,1.56,.64,1), opacity .2s ease;
+  opacity: 0;
+  overflow: hidden;
+}
+.modal-backdrop.visible .modal-card {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+
+.modal-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid var(--border-soft);
+  background: linear-gradient(135deg, rgba(127,196,151,.10) 0%, rgba(127,196,151,.04) 100%);
+}
+.modal-header-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: var(--accent-soft);
+  border: 1px solid rgba(127,196,151,.3);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.modal-header-icon svg { width: 20px; height: 20px; stroke: var(--accent-hover); }
+.modal-title { flex: 1; }
+.modal-title h3 {
+  font-size: 16px; font-weight: 800; color: var(--text); letter-spacing: -.02em;
+  line-height: 1.2;
+}
+.modal-title span {
+  font-size: 12px; font-weight: 500; color: var(--text-muted);
+  letter-spacing: .01em;
+}
+.modal-close {
+  appearance: none; background: none; border: none; cursor: pointer;
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted);
+  transition: background .15s, color .15s;
+  flex-shrink: 0;
+}
+.modal-close:hover { background: #f1f5f9; color: var(--text); }
+.modal-close svg { width: 16px; height: 16px; }
+
+.modal-body { padding: 22px 24px 24px; display: flex; flex-direction: column; gap: 14px; }
+
+.modal-field {
+  display: flex; flex-direction: column; gap: 4px;
+}
+.modal-field label {
+  font-size: 11px; font-weight: 700; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.modal-field .field-value {
+  font-size: 13.5px; font-weight: 500; color: var(--text);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.modal-field .field-value.mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 13px; font-weight: 600;
+}
+.modal-field .field-value.highlight {
+  background: var(--accent-soft);
+  border-color: rgba(127,196,151,.35);
+  color: var(--accent-strong); font-weight: 700;
+}
+
+.modal-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+}
+
+.modal-loading {
+  text-align: center; padding: 36px 20px;
+  color: var(--text-muted); font-size: 13.5px;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+.modal-spinner {
+  width: 28px; height: 28px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (max-width: 760px) {
+  .tabla-container { max-width: 100vw; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  thead th, td { overflow-wrap: normal !important; word-break: normal !important; }
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <img class="header-logo" src="/shared-static/img/logo-atc.png" alt="ATC" onerror="this.style.display='none'"/>
+  <div class="header-title">
+    Tabla Finanzas — ODS
+    <small>Seguimiento de facturación y cierre financiero por orden</small>
+  </div>
+  <div class="header-actions">
+    <span id="nombreUsuario" style="color:rgba(255,255,255,.85);font-size:13.5px;font-weight:600;letter-spacing:-.01em;"></span>
+    <a class="btn btn-ghost" id="btnVolver" href="/venta/finanzas?token={{ token|default('') }}" style="flex-shrink:0;">Volver</a>
+  </div>
+</header>
+
+<div class="filters">
+  <div id="alertaAnuladas" class="alerta"></div>
+  <span class="counter" id="counter">Cargando…</span>
+</div>
+
+<div class="tabla-container">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:5%"><div class="th-content"><span class="th-label">Código</span><div class="filtro-container">
+          <div class="buscar-select" id="filtro-codigo" data-value="Todos">
+            <button class="buscar-select-trigger" type="button">Todos</button>
+            <div class="buscar-select-menu" hidden>
+              <div class="buscar-select-filter-wrap"><input class="buscar-select-filter" type="text" autocomplete="off" placeholder="Buscar…"></div>
+              <div class="buscar-select-options"><button class="buscar-select-option is-active" type="button" data-value="Todos">Todos</button></div>
+            </div>
+          </div>
+        </div></div></th>
+        <th style="width:7.5%"><div class="th-content"><span class="th-label">Fecha</span><div class="filtro-container filtro-fecha-rango">
+          <input type="date" id="filtro-fecha-desde" title="Desde">
+          <input type="date" id="filtro-fecha-hasta" title="Hasta">
+        </div></div></th>
+        <th style="width:5.5%"><div class="th-content"><span class="th-label">Ejecutivo</span><div class="filtro-container">
+          <div class="buscar-select" id="filtro-ejecutivo" data-value="Todos">
+            <button class="buscar-select-trigger" type="button">Todos</button>
+            <div class="buscar-select-menu" hidden>
+              <div class="buscar-select-filter-wrap"><input class="buscar-select-filter" type="text" autocomplete="off" placeholder="Buscar…"></div>
+              <div class="buscar-select-options"><button class="buscar-select-option is-active" type="button" data-value="Todos">Todos</button></div>
+            </div>
+          </div>
+        </div></div></th>
+        <th style="width:5%"><div class="th-content"><span class="th-label">RUT Cliente</span><div class="filtro-container">
+          <div class="buscar-select" id="filtro-rut" data-value="Todos">
+            <button class="buscar-select-trigger" type="button">Todos</button>
+            <div class="buscar-select-menu" hidden>
+              <div class="buscar-select-filter-wrap"><input class="buscar-select-filter" type="text" autocomplete="off" placeholder="Buscar…"></div>
+              <div class="buscar-select-options"><button class="buscar-select-option is-active" type="button" data-value="Todos">Todos</button></div>
+            </div>
+          </div>
+        </div></div></th>
+        <th style="width:6%"><div class="th-content"><span class="th-label">Razón Social</span><div class="filtro-container">
+          <div class="buscar-select" id="filtro-razonsocial" data-value="Todos">
+            <button class="buscar-select-trigger" type="button">Todos</button>
+            <div class="buscar-select-menu" hidden>
+              <div class="buscar-select-filter-wrap"><input class="buscar-select-filter" type="text" autocomplete="off" placeholder="Buscar…"></div>
+              <div class="buscar-select-options"><button class="buscar-select-option is-active" type="button" data-value="Todos">Todos</button></div>
+            </div>
+          </div>
+        </div></div></th>
+        <th style="width:5.5%"><div class="th-content"><span class="th-label">Sucursal</span><div class="filtro-container">
+          <div class="buscar-select" id="filtro-razon" data-value="Todos">
+            <button class="buscar-select-trigger" type="button">Todos</button>
+            <div class="buscar-select-menu" hidden>
+              <div class="buscar-select-filter-wrap"><input class="buscar-select-filter" type="text" autocomplete="off" placeholder="Buscar…"></div>
+              <div class="buscar-select-options"><button class="buscar-select-option is-active" type="button" data-value="Todos">Todos</button></div>
+            </div>
+          </div>
+        </div></div></th>
+        <th style="width:6%"><div class="th-content"><span class="th-label">Dirección Sucursal</span><div class="filtro-container">
+          <div class="buscar-select" id="filtro-direccion" data-value="Todos">
+            <button class="buscar-select-trigger" type="button">Todos</button>
+            <div class="buscar-select-menu" hidden>
+              <div class="buscar-select-filter-wrap"><input class="buscar-select-filter" type="text" autocomplete="off" placeholder="Buscar…"></div>
+              <div class="buscar-select-options"><button class="buscar-select-option is-active" type="button" data-value="Todos">Todos</button></div>
+            </div>
+          </div>
+        </div></div></th>
+        <th style="width:5%"><div class="th-content"><span class="th-label">Tipo Servicio</span><div class="filtro-container">
+          <div class="buscar-select" id="filtro-servicio" data-value="Todos">
+            <button class="buscar-select-trigger" type="button">Todos</button>
+            <div class="buscar-select-menu" hidden>
+              <div class="buscar-select-filter-wrap"><input class="buscar-select-filter" type="text" autocomplete="off" placeholder="Buscar…"></div>
+              <div class="buscar-select-options"><button class="buscar-select-option is-active" type="button" data-value="Todos">Todos</button></div>
+            </div>
+          </div>
+        </div></div></th>
+        <th style="width:4.5%"><div class="th-content"><span class="th-label">Tipo Plan</span><div class="filtro-container">
+          <div class="buscar-select" id="filtro-plan" data-value="Todos">
+            <button class="buscar-select-trigger" type="button">Todos</button>
+            <div class="buscar-select-menu" hidden>
+              <div class="buscar-select-filter-wrap"><input class="buscar-select-filter" type="text" autocomplete="off" placeholder="Buscar…"></div>
+              <div class="buscar-select-options"><button class="buscar-select-option is-active" type="button" data-value="Todos">Todos</button></div>
+            </div>
+          </div>
+        </div></div></th>
+        <th style="width:5.5%"><div class="th-content no-filter"><span class="th-label">Documentos</span></div></th>
+        <th style="width:6.5%"><div class="th-content no-filter"><span class="th-label">Fecha inicio servicio</span></div></th>
+        <th style="width:8%"><div class="th-content no-filter"><span class="th-label">Recepción datos facturación</span></div></th>
+        <th style="width:6.8%"><div class="th-content no-filter"><span class="th-label">Creación clientes Piriod</span></div></th>
+        <th style="width:7.2%"><div class="th-content no-filter"><span class="th-label">Facturación Instalación</span></div></th>
+        <th style="width:7.2%"><div class="th-content no-filter"><span class="th-label">Facturación Servicio</span></div></th>
+        <th style="width:5.5%"><div class="th-content"><span class="th-label">Terminado</span>
+          <div class="filtro-container">
+            <select id="filtro-terminado" class="filtro">
+              <option value="Pendiente" selected>Pendientes</option>
+              <option value="Finalizado">Terminados</option>
+              <option value="Todos">Todos</option>
+              <option value="Anuladas">Anuladas</option>
+            </select>
+          </div>
+        </div></th>
+      </tr>
+    </thead>
+    <tbody id="tablaDatos"></tbody>
+  </table>
+</div>
+
+<!-- Modal detalle ODS -->
+<div class="modal-backdrop" id="modalDetalle" role="dialog" aria-modal="true" aria-labelledby="modalTituloODS">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-header-icon">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z"/></svg>
+      </div>
+      <div class="modal-title">
+        <h3 id="modalTituloODS">Detalle ODS</h3>
+        <span id="modalSubtitulo">Información de la orden</span>
+      </div>
+      <button class="modal-close" id="modalCerrar" aria-label="Cerrar">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="modalBody">
+      <div class="modal-loading"><div class="modal-spinner"></div>Cargando…</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const token = new URLSearchParams(window.location.search).get("token") || "";
+  const tbody = document.getElementById("tablaDatos");
+
+  async function cerrarSesion(){
+    try{
+      if(token){
+        await fetch(`/api/logout?token=${encodeURIComponent(token)}`, {method:"POST"});
+      }
+    }catch(e){
+    }finally{
+      window.location.href = "/?form=login&next=auto";
+    }
+  }
+
+  function setAlertaAnuladas(cantidad){
+    const cont = document.getElementById("alertaAnuladas");
+    cont.innerHTML = "";
+    if (!cantidad || cantidad <= 0) return;
+    const pill = document.createElement("div");
+    pill.className = "pill";
+    pill.textContent = `Hay ${cantidad} ODS anuladas`;
+    cont.appendChild(pill);
+  }
+
+  function cerrarTodosBuscarSelect(){
+    document.querySelectorAll(".buscar-select.is-open").forEach(w => {
+      w.classList.remove("is-open");
+      const m = w.querySelector(".buscar-select-menu");
+      if (m) m.hidden = true;
+      const th = w.closest("th");
+      if (th) th.classList.remove("filtro-abierto");
+    });
+  }
+
+  function initBuscarSelect(wrapper){
+    const trigger = wrapper.querySelector(".buscar-select-trigger");
+    const menu = wrapper.querySelector(".buscar-select-menu");
+    const filterInput = wrapper.querySelector(".buscar-select-filter");
+    const optionsBox = wrapper.querySelector(".buscar-select-options");
+    const th = wrapper.closest("th");
+
+    function filtrarOpciones(term){
+      const q = term.trim().toLowerCase();
+      optionsBox.querySelectorAll(".buscar-select-option").forEach(opt => {
+        const txt = opt.textContent.trim().toLowerCase();
+        opt.style.display = (!q || txt.includes(q)) ? "" : "none";
+      });
+    }
+
+    trigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const yaAbierto = wrapper.classList.contains("is-open");
+      cerrarTodosBuscarSelect();
+      if (!yaAbierto){
+        wrapper.classList.add("is-open");
+        if (th) th.classList.add("filtro-abierto");
+        menu.hidden = false;
+        filterInput.value = "";
+        filtrarOpciones("");
+        setTimeout(() => filterInput.focus(), 0);
+      }
+    });
+
+    filterInput.addEventListener("input", () => filtrarOpciones(filterInput.value));
+    filterInput.addEventListener("click", (e) => e.stopPropagation());
+
+    optionsBox.addEventListener("click", (e) => {
+      const opt = e.target.closest(".buscar-select-option");
+      if (!opt) return;
+      const value = opt.dataset.value || "Todos";
+      wrapper.dataset.value = value;
+      trigger.textContent = value;
+      optionsBox.querySelectorAll(".buscar-select-option").forEach(o => o.classList.toggle("is-active", o === opt));
+      wrapper.classList.remove("is-open");
+      if (th) th.classList.remove("filtro-abierto");
+      menu.hidden = true;
+      aplicarTodosLosFiltros();
+    });
+  }
+
+  document.addEventListener("click", (e) => {
+    if (e.target.closest(".buscar-select")) return;
+    cerrarTodosBuscarSelect();
+  });
+
+  function buildSelectOptions(filtroId, values){
+    const wrapper = document.getElementById(filtroId);
+    if(!wrapper) return;
+    const trigger = wrapper.querySelector(".buscar-select-trigger");
+    const optionsBox = wrapper.querySelector(".buscar-select-options");
+    const current = wrapper.dataset.value || "Todos";
+    const unicos = [...new Set([...values].filter(v => v !== null && v !== undefined).map(v => String(v).trim()))].sort();
+
+    optionsBox.innerHTML = `<button class="buscar-select-option${current === "Todos" ? " is-active" : ""}" type="button" data-value="Todos">Todos</button>` +
+      unicos.map(v => `<button class="buscar-select-option${v === current ? " is-active" : ""}" type="button" data-value="${esc(v)}">${esc(v || "(vacio)")}</button>`).join("");
+
+    const valorValido = current === "Todos" || unicos.includes(current);
+    wrapper.dataset.value = valorValido ? current : "Todos";
+    trigger.textContent = valorValido ? current : "Todos";
+
+    if (!wrapper.dataset.inited){
+      wrapper.dataset.inited = "1";
+      initBuscarSelect(wrapper);
+    }
+  }
+
+  function mkBtn(anulada, estado, codigo, campo){
+    const btn = document.createElement("button");
+    btn.className = "boton-estado " + (estado ? "completado" : "pendiente");
+    btn.textContent = estado ? "Finalizado" : "Pendiente";
+    btn.disabled = !!anulada;
+    if(!anulada){
+      btn.addEventListener("click", async () => {
+        const nuevo = btn.classList.contains("completado") ? false : true;
+        const res = await fetch("/api/venta/finanzas-ods/estado?token=" + encodeURIComponent(token), {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({ codigo, campo, valor: nuevo })
+        });
+        const data = await res.json();
+        if(!res.ok || !data?.ok){
+          alert(data?.detail || "No se pudo actualizar.");
+          return;
+        }
+        btn.textContent = nuevo ? "Finalizado" : "Pendiente";
+        btn.className = "boton-estado " + (nuevo ? "completado" : "pendiente");
+        aplicarFiltroTerminado();
+      });
+    }
+    return btn;
+  }
+
+  const modalEl = document.getElementById("modalDetalle");
+  const modalBody = document.getElementById("modalBody");
+  const modalTitulo = document.getElementById("modalTituloODS");
+  const modalSubtitulo = document.getElementById("modalSubtitulo");
+
+  function esc(s){ const d = document.createElement("div"); d.textContent = String(s ?? ""); return d.innerHTML; }
+
+  function renderOC(valor){
+    const texto = String(valor || "").trim();
+    const normalizado = texto
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (!texto) return "Sin ODC";
+    if (["no", "no requiere", "no requiere odc", "sin odc", "sin oc"].includes(normalizado)) {
+      return "No Requiere";
+    }
+    const href = /^https?:\/\//i.test(texto) ? texto : `/${texto.replace(/^\/+/, "")}`;
+    return `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer" style="color:var(--accent-strong);font-weight:700;text-decoration:underline;">Ver ODC</a>`;
+  }
+
+  function abrirModal(codigo, nombreSucursal){
+    modalTitulo.textContent = codigo;
+    modalSubtitulo.textContent = nombreSucursal || "Información de la orden";
+    modalBody.innerHTML = '<div class="modal-loading"><div class="modal-spinner"></div>Cargando…</div>';
+    modalEl.classList.add("visible");
+    document.body.style.overflow = "hidden";
+
+    (async () => {
+      try {
+        const r = await fetch(`/api/venta/finanzas-ods/${encodeURIComponent(codigo)}/detalle?token=${encodeURIComponent(token)}`);
+        let data = {};
+        try { data = await r.json(); } catch(_) {}
+        if (!r.ok) {
+          modalBody.innerHTML = `<div class="modal-loading">${esc(data?.detail || `Error ${r.status}`)}</div>`;
+          return;
+        }
+        const v = (val, fallback="No informado") => esc(val || fallback);
+        modalBody.innerHTML = `
+          <div class="modal-grid">
+            <div class="modal-field">
+              <label>Comuna</label>
+              <div class="field-value">${v(data?.comuna, "No disponible")}</div>
+            </div>
+            <div class="modal-field">
+              <label>OC</label>
+              <div class="field-value">${renderOC(data?.requiereOC)}</div>
+            </div>
+          </div>
+          <div class="modal-grid">
+            <div class="modal-field">
+              <label>Cámaras a Instalar</label>
+              <div class="field-value mono highlight">${v(data?.numeroCamaras)}</div>
+            </div>
+            <div class="modal-field">
+              <label>Cámaras a Vigilar</label>
+              <div class="field-value mono highlight">${v(data?.camarasVigilar)}</div>
+            </div>
+          </div>
+          <div class="modal-field">
+            <label>Monto a Cobrar</label>
+            <div class="field-value mono">${v(data?.montosACobrar)}</div>
+          </div>
+          <div class="modal-field">
+            <label>Observación</label>
+            <div class="field-value">${v(data?.observacion, "Sin observaciones")}</div>
+          </div>
+        `;
+      } catch(err) {
+        modalBody.innerHTML = `<div class="modal-loading">${esc(err?.message || "No se pudo cargar el detalle.")}</div>`;
+      }
+    })();
+  }
+
+  function abrirModalFacturacion(codigo, razonSocial){
+    modalTitulo.textContent = "Datos de Facturación";
+    modalSubtitulo.textContent = razonSocial || "";
+    modalBody.innerHTML = '<div class="modal-loading"><div class="modal-spinner"></div>Cargando…</div>';
+    modalEl.classList.add("visible");
+    document.body.style.overflow = "hidden";
+
+    (async () => {
+      try {
+        const r = await fetch(`/api/venta/finanzas-ods/${encodeURIComponent(codigo)}/facturacion?token=${encodeURIComponent(token)}`);
+        let data = {};
+        try { data = await r.json(); } catch(_) {}
+        if (!r.ok) {
+          modalBody.innerHTML = `<div class="modal-loading">${esc(data?.detail || `Error ${r.status}`)}</div>`;
+          return;
+        }
+        const v = (val, fallback="No informado") => esc(val || fallback);
+        modalBody.innerHTML = `
+          <div class="modal-grid">
+            <div class="modal-field">
+              <label>RUT Cliente</label>
+              <div class="field-value mono">${v(data?.rutCliente)}</div>
+            </div>
+            <div class="modal-field">
+              <label>Giro</label>
+              <div class="field-value">${v(data?.giro)}</div>
+            </div>
+          </div>
+          <div class="modal-field">
+            <label>Email Facturación</label>
+            <div class="field-value">${v(data?.emailFacturas)}</div>
+          </div>
+          <div class="modal-grid">
+            <div class="modal-field">
+              <label>Nombre Representante</label>
+              <div class="field-value">${v(data?.nombreRepresentante)}</div>
+            </div>
+            <div class="modal-field">
+              <label>RUT Representante</label>
+              <div class="field-value mono">${v(data?.rutRepresentante)}</div>
+            </div>
+          </div>
+          <div class="modal-grid">
+            <div class="modal-field">
+              <label>Teléfono</label>
+              <div class="field-value">${v(data?.telefono)}</div>
+            </div>
+            <div class="modal-field">
+              <label>Email Representante</label>
+              <div class="field-value">${v(data?.emailRepresentante)}</div>
+            </div>
+          </div>
+        `;
+      } catch(err) {
+        modalBody.innerHTML = `<div class="modal-loading">${esc(err?.message || "No se pudo cargar el detalle.")}</div>`;
+      }
+    })();
+  }
+
+  function cerrarModal(){
+    modalEl.classList.remove("visible");
+    document.body.style.overflow = "";
+  }
+
+  document.getElementById("modalCerrar").addEventListener("click", cerrarModal);
+  modalEl.addEventListener("click", e => { if(e.target === modalEl) cerrarModal(); });
+  document.addEventListener("keydown", e => { if(e.key === "Escape") cerrarModal(); });
+
+  function _fechaCeldaAIso(txt){
+    // Celda con formato "DD/MM/AAAA HH:MM" (o similar) -> "AAAA-MM-DD" para comparar con <input type="date">.
+    const m = String(txt || "").trim().match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    return m ? `${m[3]}-${m[2]}-${m[1]}` : "";
+  }
+
+  function aplicarTodosLosFiltros(){
+    const fechaDesde = document.getElementById("filtro-fecha-desde").value;
+    const fechaHasta = document.getElementById("filtro-fecha-hasta").value;
+    const filtros = {
+      0: document.getElementById("filtro-codigo").dataset.value,
+      2: document.getElementById("filtro-ejecutivo").dataset.value,
+      3: document.getElementById("filtro-rut").dataset.value,
+      4: document.getElementById("filtro-razonsocial").dataset.value,
+      5: document.getElementById("filtro-razon").dataset.value,
+      6: document.getElementById("filtro-direccion").dataset.value,
+      7: document.getElementById("filtro-servicio").dataset.value,
+      8: document.getElementById("filtro-plan").dataset.value,
+      15: document.getElementById("filtro-terminado").value
+    };
+    const rows = document.querySelectorAll("#tablaDatos tr");
+    let vis = 0;
+    rows.forEach(r => {
+      if(r.classList.contains("detalle-vineta")) return;
+      let visible = true;
+      if((fechaDesde || fechaHasta) && visible){
+        const fechaCelda = _fechaCeldaAIso(r.cells[1] ? r.cells[1].textContent : "");
+        if(!fechaCelda){
+          visible = false;
+        } else {
+          if(fechaDesde && fechaCelda < fechaDesde) visible = false;
+          if(fechaHasta && fechaCelda > fechaHasta) visible = false;
+        }
+      }
+      Object.entries(filtros).forEach(([idx, val]) => {
+        if(!visible) return;
+        if(val && val !== "Todos"){
+          const i = parseInt(idx, 10);
+          const cell = r.cells[i];
+          if(!cell){
+            visible = false;
+            return;
+          }
+          const txt = cell.textContent.trim();
+          if(i === 15 && val === "Anuladas"){
+            visible = r.classList.contains("anulada");
+            return;
+          }
+          if(i === 15 && val === "Finalizado"){
+            visible = txt === "Finalizado" && !r.classList.contains("anulada");
+            return;
+          }
+          if(i === 15 && val === "Pendiente"){
+            visible = txt !== "Finalizado" && !r.classList.contains("anulada");
+            return;
+          }
+          if(i !== 15 && txt !== val.trim()){
+            visible = false;
+          }
+        }
+      });
+      r.style.display = visible ? "" : "none";
+      if (visible) vis++;
+    });
+    const counter = document.getElementById("counter");
+    if (counter) counter.textContent = `${vis} ODS`;
+  }
+
+  function aplicarFiltroTerminado(){ aplicarTodosLosFiltros(); }
+
+  async function cargarDatos(){
+    tbody.innerHTML = "";
+    const res = await fetch("/api/venta/finanzas-ods?token=" + encodeURIComponent(token));
+    const data = await res.json();
+    const rows = Array.isArray(data?.rows) ? data.rows : [];
+    setAlertaAnuladas(data?.totalAnuladas || 0);
+
+    if(rows.length === 0){
+      tbody.innerHTML = "<tr><td colspan='17'>No hay datos disponibles</td></tr>";
+      const counter = document.getElementById("counter");
+      if (counter) counter.textContent = "0 ODS";
+      return;
+    }
+
+    const opts = {
+      codigo: new Set(),
+      fecha: new Set(),
+      ejecutivo: new Set(),
+      rut: new Set(),
+      razonsocial: new Set(),
+      razon: new Set(),
+      direccion: new Set(),
+      servicio: new Set(),
+      plan: new Set(),
+    };
+
+    rows.forEach((r) => {
+      opts.codigo.add(r.codigo || "");
+      opts.fecha.add(r.fecha || "");
+      opts.ejecutivo.add(r.ejecutivo || "");
+      opts.rut.add(r.rutCliente || "");
+      opts.razonsocial.add(r.razonSocial || "");
+      opts.razon.add(r.nombreSucursal || r.razonSocial || "");
+      opts.direccion.add(r.direccionSucursal || "");
+      opts.servicio.add(r.tipoServicio || "");
+      opts.plan.add(r.tipoPlan || "");
+
+      const tr = document.createElement("tr");
+      if(r.anulada) tr.classList.add("anulada");
+
+      const tdCodigo = document.createElement("td");
+      const a = document.createElement("a");
+      a.className = "link";
+      a.textContent = r.codigo || "Sin codigo";
+      a.href = "#";
+      a.addEventListener("click", (e) => {
+        e.preventDefault();
+        if(r.anulada) return;
+        abrirModal(r.codigo, r.nombreSucursal || r.razonSocial || "");
+      });
+      tdCodigo.appendChild(a);
+      tr.appendChild(tdCodigo);
+
+      const cols = [
+        r.fecha, r.ejecutivo, r.rutCliente
+      ];
+      cols.forEach(v => {
+        const td = document.createElement("td");
+        td.textContent = v || "";
+        tr.appendChild(td);
+      });
+
+      const tdRazonSocial = document.createElement("td");
+      const linkRazonSocial = document.createElement("a");
+      linkRazonSocial.className = "link";
+      linkRazonSocial.textContent = r.razonSocial || "";
+      linkRazonSocial.href = "#";
+      linkRazonSocial.addEventListener("click", (e) => {
+        e.preventDefault();
+        abrirModalFacturacion(r.codigo, r.razonSocial || "");
+      });
+      tdRazonSocial.appendChild(linkRazonSocial);
+      tr.appendChild(tdRazonSocial);
+
+      [(r.nombreSucursal || r.razonSocial), r.direccionSucursal, r.tipoServicio, r.tipoPlan].forEach(v => {
+        const td = document.createElement("td");
+        td.textContent = v || "";
+        tr.appendChild(td);
+      });
+
+      const tdCarpeta = document.createElement("td");
+      tdCarpeta.className = "td-documentos";
+      const agregarDocLink = (url, etiqueta) => {
+        if(typeof url === "string" && url){
+          if(r.anulada){
+            const span = document.createElement("span");
+            span.textContent = etiqueta;
+            tdCarpeta.appendChild(span);
+          }else{
+            const link = document.createElement("a");
+            link.className = "link";
+            link.href = url;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            link.textContent = etiqueta;
+            tdCarpeta.appendChild(link);
+          }
+        }else{
+          const sin = document.createElement("span");
+          sin.className = "sin-carpeta";
+          sin.textContent = "Sin " + etiqueta.replace("Ver ", "").toLowerCase();
+          tdCarpeta.appendChild(sin);
+        }
+      };
+      agregarDocLink(r.cotizacionUrl, "Ver Cotización");
+      agregarDocLink(r.odcUrl, "Ver ODC");
+      tr.appendChild(tdCarpeta);
+
+      const tdInicio = document.createElement("td");
+      tdInicio.textContent = r.fechaInicioServicio || "-";
+      tr.appendChild(tdInicio);
+
+      const estados = r.estados || {};
+      const botones = [
+        ["recepcion_datos_facturacion", !!estados.recepcion_datos_facturacion],
+        ["creacion_clientes_piriod", !!estados.creacion_clientes_piriod],
+        ["facturacion_instalacion", !!estados.facturacion_instalacion],
+        ["facturacion_servicio", !!estados.facturacion_servicio],
+        ["finalizado", !!estados.finalizado],
+      ];
+
+      botones.forEach(([campo, val]) => {
+        const td = document.createElement("td");
+        td.appendChild(mkBtn(r.anulada, val, r.codigo, campo));
+        tr.appendChild(td);
+      });
+
+      tbody.appendChild(tr);
+    });
+
+    buildSelectOptions("filtro-codigo", opts.codigo);
+    buildSelectOptions("filtro-ejecutivo", opts.ejecutivo);
+    buildSelectOptions("filtro-rut", opts.rut);
+    buildSelectOptions("filtro-razonsocial", opts.razonsocial);
+    buildSelectOptions("filtro-razon", opts.razon);
+    buildSelectOptions("filtro-direccion", opts.direccion);
+    buildSelectOptions("filtro-servicio", opts.servicio);
+    buildSelectOptions("filtro-plan", opts.plan);
+
+    aplicarFiltroTerminado();
+  }
+
+  document.getElementById("filtro-terminado").addEventListener("change", aplicarFiltroTerminado);
+  document.getElementById("filtro-fecha-desde").addEventListener("change", aplicarTodosLosFiltros);
+  document.getElementById("filtro-fecha-hasta").addEventListener("change", aplicarTodosLosFiltros);
+  cargarDatos();
+  fetch(`/api/venta/usuario-actual?token=${encodeURIComponent(token)}`)
+    .then(r => r.ok ? r.json() : null)
+    .then(d => { if (d?.name) document.getElementById("nombreUsuario").textContent = d.name; })
+    .catch(() => {});
+</script>
+<script src="/static/auth-guard.js"></script>
+  <script src="/static/atc-logo-home.js"></script>
+  <script>
+  </script>
+<script src="/static/atc-volver.js"></script>
+</body>
+</html>

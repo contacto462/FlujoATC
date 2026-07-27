@@ -1,10 +1,15 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Control de materiales ODS</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/base.css">
 <style>
 :root{
   --bg:#f7f8fa;
@@ -721,7 +726,10 @@ body{
                 <h3>Materiales solicitados para la instalación</h3>
                 <p>Completa la columna entregada. Puedes corregir cantidades antes de guardar.</p>
               </div>
-              <div class="badge" id="materialCountBadge">0 items</div>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <button id="solicitarCompraButton" class="btn btn-secondary" type="button">Solicitar compra</button>
+                <div class="badge" id="materialCountBadge">0 items</div>
+              </div>
             </div>
 
             <table class="material-table">
@@ -750,6 +758,118 @@ body{
       </main>
     </div>
   </div>
+
+  <div id="solicitudCompraOverlay" class="scp-overlay" style="display:none;">
+    <div class="scp-modal">
+      <div class="scp-head">
+        <h3>Solicitar compra de material</h3>
+        <button type="button" class="scp-close" id="scpCerrar" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="scp-body">
+        <div class="scp-field">
+          <label>ODS</label>
+          <div id="scpOdsInfo" class="scp-ods-info">-</div>
+        </div>
+        <div class="scp-field">
+          <label>Material que falta</label>
+          <div class="buscar-select" id="scpMaterialSelect">
+            <button class="buscar-select-trigger" id="scpMaterialTrigger" type="button">Selecciona un material…</button>
+            <div class="buscar-select-menu" id="scpMaterialMenu" hidden>
+              <div class="buscar-select-filter-wrap">
+                <input class="buscar-select-filter" id="scpMaterialFilter" type="text" autocomplete="off" placeholder="Buscar material…">
+              </div>
+              <div class="buscar-select-options" id="scpMaterialOptions"></div>
+            </div>
+          </div>
+        </div>
+        <div class="scp-field">
+          <label for="scpCantidad">Cantidad</label>
+          <input type="number" id="scpCantidad" min="1" value="1">
+        </div>
+        <div class="scp-field">
+          <label for="scpMotivo">Motivo</label>
+          <textarea id="scpMotivo" rows="3" placeholder="Describe por qué se necesita…"></textarea>
+        </div>
+        <div id="scpMsg" class="scp-msg" style="display:none;"></div>
+      </div>
+      <div class="scp-actions">
+        <button type="button" class="btn btn-secondary" id="scpCancelar">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="scpEnviar">Enviar solicitud</button>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .scp-overlay{
+      position:fixed;inset:0;z-index:9999;
+      background:rgba(15,23,42,.55);
+      display:flex;align-items:center;justify-content:center;
+    }
+    .scp-modal{
+      width:min(640px,94vw);max-height:88vh;
+      display:flex;flex-direction:column;
+      background:#fff;border-radius:16px;
+      box-shadow:0 30px 70px rgba(0,0,0,.3);overflow:hidden;
+      font-family:inherit;
+    }
+    .scp-head{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:22px 28px;border-bottom:1px solid #e5e7eb;
+      background:#0b1424;flex-shrink:0;
+    }
+    .scp-head h3{margin:0;font-size:19px;font-weight:800;color:#fff;}
+    .scp-close{border:none;background:none;color:#fff;font-size:20px;cursor:pointer;opacity:.75;}
+    .scp-close:hover{opacity:1;}
+    .scp-body{padding:26px 28px;display:flex;flex-direction:column;gap:18px;overflow-y:auto;}
+    .scp-field label{display:block;font-size:13px;font-weight:700;color:#4b5563;margin-bottom:7px;}
+    .scp-field input,.scp-field textarea{
+      width:100%;padding:12px 14px;border:1px solid #d1d5db;border-radius:9px;
+      font-size:15px;font-family:inherit;outline:none;
+    }
+    .scp-field input:focus,.scp-field textarea:focus{border-color:#0b1424;}
+
+    /* Buscador tipo combobox (mismo estilo que el buscador de empresa en bitacora.html) */
+    .buscar-select{position:relative;font-size:13.5px;font-weight:400;}
+    .buscar-select.is-open{z-index:20;}
+    .buscar-select-trigger{
+      position:relative;width:100%;height:40px;
+      border:1px solid #d1d5db;border-radius:8px;background:#fff;color:#111827;
+      padding:9px 34px 9px 11px;font:inherit;text-align:left;cursor:pointer;line-height:20px;
+    }
+    .buscar-select-trigger::after{
+      content:"";position:absolute;top:50%;right:12px;width:0;height:0;
+      border-left:5px solid transparent;border-right:5px solid transparent;
+      border-top:6px solid #8a8a8a;transform:translateY(-35%);pointer-events:none;
+    }
+    .buscar-select.is-open .buscar-select-trigger{border-color:#0b1424;border-bottom-left-radius:0;border-bottom-right-radius:0;}
+    .buscar-select-menu{
+      position:absolute;top:calc(100% - 1px);left:0;right:0;z-index:30;
+      background:#fff;border:1px solid #0b1424;border-top:0;border-radius:0 0 8px 8px;overflow:hidden;
+    }
+    .buscar-select-menu[hidden]{display:none !important;}
+    .buscar-select-filter-wrap{padding:6px;background:#fff;}
+    .buscar-select-filter{
+      width:100%;height:32px;border:1px solid #d1d5db;border-radius:6px;
+      padding:4px 8px;font:inherit;outline:none;
+    }
+    .buscar-select-filter:focus{border-color:#0b1424;}
+    .buscar-select-options{max-height:220px;overflow-y:auto;overflow-x:hidden;background:#fff;}
+    .buscar-select-option{
+      display:block;width:100%;min-height:36px;border:0;background:#fff;color:#333;
+      padding:8px 10px;font:inherit;text-align:left;cursor:pointer;
+    }
+    .buscar-select-option:hover,.buscar-select-option.is-active{background:#0b1424;color:#fff;}
+    .buscar-select-empty{padding:9px 10px;color:#777;font:inherit;}
+    .scp-ods-info{font-size:16px;font-weight:700;color:#111827;}
+    .scp-msg{font-size:13.5px;padding:10px 12px;border-radius:9px;}
+    .scp-msg.ok{background:#eaf4ec;color:#1e7a4d;}
+    .scp-msg.err{background:#fdf2f2;color:#a83232;}
+    .scp-actions{
+      display:flex;justify-content:flex-end;gap:12px;
+      padding:18px 28px;border-top:1px solid #e5e7eb;background:#f9fafb;flex-shrink:0;
+    }
+    .scp-actions .btn{padding:11px 20px;font-size:14px;}
+  </style>
 
 <script>
 const state = {
@@ -1159,7 +1279,7 @@ function addMaterialRow() {
   els.saveStatus.textContent = "";
 }
 
-async function saveCurrent(silent = false) {
+async function saveCurrent(silent = false, { allowEmpty = false } = {}) {
   const row = getSelectedRow();
   if (!row) return;
   if (state.saveInFlight) return;
@@ -1171,7 +1291,7 @@ async function saveCurrent(silent = false) {
     return isAddedItemReadyToSave(item);
   });
 
-  if (!itemsToPersist.length) {
+  if (!itemsToPersist.length && !allowEmpty) {
     if (!silent) {
       els.saveStatus.textContent = "Completa Presupuesto y Material para guardar la fila agregada.";
     }
@@ -1240,6 +1360,7 @@ function deleteAddedRow(index) {
   if (targetItem?.agregado && hasDeliveredQty(targetItem.entregado)) {
     return;
   }
+  const eliminandoFilaGuardada = !!targetItem?.guardado;
   const nextItems = items.filter((_, itemIndex) => itemIndex !== index);
   detail.materialesBodega = {
     items: nextItems.map((item) => ({
@@ -1251,6 +1372,13 @@ function deleteAddedRow(index) {
   state.detailCache.set(row.codigo, detail);
   renderMaterials(detail);
   renderList();
+  if (eliminandoFilaGuardada) {
+    // La fila ya estaba persistida en el servidor: hay que guardar
+    // explicitamente (aunque quede una lista vacia) para que el borrado
+    // no se pierda al recargar la pagina.
+    void saveCurrent(true, { allowEmpty: true });
+    return;
+  }
   const hasPendingSavable = nextItems.some((item) => item.agregado && !item.guardado && isAddedItemReadyToSave(item));
   if (hasPendingSavable) {
     scheduleAutoSave();
@@ -1286,8 +1414,157 @@ els.materialTableBody.addEventListener("click", (event) => {
   deleteAddedRow(Number(deleteIndex));
 });
 
+/* ── Solicitud de compra (falta material) ── */
+const scp = {
+  overlay: document.getElementById("solicitudCompraOverlay"),
+  odsInfo: document.getElementById("scpOdsInfo"),
+  materialSelect: document.getElementById("scpMaterialSelect"),
+  materialTrigger: document.getElementById("scpMaterialTrigger"),
+  materialMenu: document.getElementById("scpMaterialMenu"),
+  materialFilter: document.getElementById("scpMaterialFilter"),
+  materialOptions: document.getElementById("scpMaterialOptions"),
+  cantidad: document.getElementById("scpCantidad"),
+  motivo: document.getElementById("scpMotivo"),
+  msg: document.getElementById("scpMsg"),
+  enviarBtn: document.getElementById("scpEnviar"),
+  materialValue: "",
+};
+
+function scpRenderOpciones(nombres) {
+  scp.materialOptions.innerHTML = nombres.length
+    ? nombres.map((n) => `<button type="button" class="buscar-select-option" data-value="${escapeHtml(n)}">${escapeHtml(n)}</button>`).join("")
+    : '<div class="buscar-select-empty">Sin materiales para esta ODS.</div>';
+}
+
+function scpFiltrarOpciones(term) {
+  const clean = String(term || "").trim().toLowerCase();
+  scp.materialOptions.querySelectorAll(".buscar-select-option").forEach((opt) => {
+    const texto = opt.textContent.trim().toLowerCase();
+    opt.style.display = !clean || texto.includes(clean) ? "" : "none";
+  });
+}
+
+function scpAbrirMenu() {
+  scp.materialSelect.classList.add("is-open");
+  scp.materialMenu.hidden = false;
+  scp.materialFilter.value = "";
+  scpFiltrarOpciones("");
+  setTimeout(() => scp.materialFilter.focus(), 0);
+}
+
+function scpCerrarMenu() {
+  scp.materialSelect.classList.remove("is-open");
+  scp.materialMenu.hidden = true;
+}
+
+function scpSeleccionar(valor) {
+  scp.materialValue = valor;
+  scp.materialTrigger.textContent = valor || "Selecciona un material…";
+  scpCerrarMenu();
+}
+
+scp.materialTrigger.addEventListener("click", () => {
+  if (scp.materialMenu.hidden) scpAbrirMenu(); else scpCerrarMenu();
+});
+scp.materialFilter.addEventListener("input", () => scpFiltrarOpciones(scp.materialFilter.value));
+scp.materialOptions.addEventListener("click", (event) => {
+  const opt = event.target.closest(".buscar-select-option");
+  if (!opt) return;
+  scpSeleccionar(opt.getAttribute("data-value") || "");
+});
+document.addEventListener("click", (event) => {
+  if (!scp.materialSelect.contains(event.target)) scpCerrarMenu();
+});
+
+function abrirSolicitudCompra() {
+  const row = getSelectedRow();
+  if (!row) return;
+  scp.odsInfo.textContent = `${row.codigo} — ${row.sucursal || "-"}`;
+
+  const nombres = [...new Set(
+    collectMaterialItems()
+      .map((item) => item.nombre.trim())
+      .filter(Boolean)
+  )];
+  scpRenderOpciones(nombres);
+  scpSeleccionar("");
+
+  scp.cantidad.value = "1";
+  scp.motivo.value = `Falta material para la ODS ${row.codigo} (${row.sucursal || "-"}).`;
+  scp.msg.style.display = "none";
+  scp.overlay.style.display = "flex";
+}
+
+function cerrarSolicitudCompra() {
+  scp.overlay.style.display = "none";
+  scpCerrarMenu();
+}
+
+async function enviarSolicitudCompra() {
+  const row = getSelectedRow();
+  if (!row) return;
+  const material = scp.materialValue.trim();
+  const cantidad = parseInt(scp.cantidad.value || "1", 10) || 1;
+  const motivo = scp.motivo.value.trim();
+
+  scp.msg.style.display = "none";
+  if (!material) {
+    scp.msg.textContent = "Indica el material que falta.";
+    scp.msg.className = "scp-msg err";
+    scp.msg.style.display = "block";
+    return;
+  }
+  if (!motivo) {
+    scp.msg.textContent = "Describe el motivo de la solicitud.";
+    scp.msg.className = "scp-msg err";
+    scp.msg.style.display = "block";
+    return;
+  }
+
+  const items = [{
+    texto: `${material} (ODS ${row.codigo})`,
+    cantidad,
+    precio_unitario: 0,
+    subtotal: 0,
+    es_link: false,
+  }];
+
+  scp.enviarBtn.disabled = true;
+  scp.enviarBtn.textContent = "Enviando…";
+  try {
+    const fd = new FormData();
+    fd.append("empresa", "ATC");
+    fd.append("centro", "Servicio Técnico");
+    fd.append("motivo", motivo);
+    fd.append("items_json", JSON.stringify(items));
+    const res = await fetch("/compras/solicitud", { method: "POST", body: fd });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || "No se pudo enviar la solicitud.");
+    scp.msg.textContent = `Solicitud enviada correctamente (código ${data.codigo || ""}).`;
+    scp.msg.className = "scp-msg ok";
+    scp.msg.style.display = "block";
+    setTimeout(cerrarSolicitudCompra, 1600);
+  } catch (err) {
+    scp.msg.textContent = err.message || "Error al enviar la solicitud.";
+    scp.msg.className = "scp-msg err";
+    scp.msg.style.display = "block";
+  } finally {
+    scp.enviarBtn.disabled = false;
+    scp.enviarBtn.textContent = "Enviar solicitud";
+  }
+}
+
+document.getElementById("solicitarCompraButton").addEventListener("click", abrirSolicitudCompra);
+document.getElementById("scpCerrar").addEventListener("click", cerrarSolicitudCompra);
+document.getElementById("scpCancelar").addEventListener("click", cerrarSolicitudCompra);
+document.getElementById("scpEnviar").addEventListener("click", enviarSolicitudCompra);
+scp.overlay.addEventListener("click", (event) => {
+  if (event.target === scp.overlay) cerrarSolicitudCompra();
+});
+
 init();
 </script>
+  <script src="/static/atc-logo-home.js"></script>
 </body>
 </html>
 

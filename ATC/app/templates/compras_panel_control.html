@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Control de Compras — ATC</title>
+  <link rel="stylesheet" href="/static/base.css">
+  <style>
+    :root {
+      --bg: #f7f8fa;
+      --surface: #ffffff;
+      --surface-alt: #fafbfc;
+      --border: #e5e7eb;
+      --border-strong: #d1d5db;
+      --text: #111827;
+      --muted: #6b7280;
+      --accent: #ff7a2b;
+      --accent-bg: rgba(255,122,43,.08);
+      --header-bg: #0b1424;
+      --header-border: #0f1e34;
+      --header-text: #ffffff;
+      --row-hover: #fff7f3;
+      --danger: #dc2626;
+      --shadow-md: 0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
+      --radius: 8px;
+      --radius-lg: 14px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13.5px;
+      font-weight: 500;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── HEADER ── */
+    .page-hero {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      min-height: 72px;
+      padding: 14px 28px;
+      background: linear-gradient(180deg, #0b1424 0%, #111c2f 100%);
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .logo-atc img { height: 48px; width: auto; display: block; object-fit: contain; }
+    .hero-copy { flex: 1; min-width: 0; }
+    .hero-title { font-size: 17px; font-weight: 700; letter-spacing: -.02em; color: #fff; margin: 0; }
+    .hero-subtitle { font-size: 12.5px; color: rgba(255,255,255,.6); margin-top: 2px; }
+    .hero-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+    .hero-user { font-size: 12.5px; color: rgba(255,255,255,.65); white-space: nowrap; }
+    .btn-volver {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      height: 34px;
+      padding: 0 14px;
+      border-radius: 7px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.05);
+      color: rgba(255,255,255,.9);
+      font: 600 12.5px/1 'Inter', sans-serif;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background .15s, border-color .15s;
+    }
+    .btn-volver:hover { background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.22); }
+
+    /* ── SHELL ── */
+    .page-shell { flex: 1; min-height: 0; overflow-y: auto; padding: 24px 28px 36px; }
+
+    /* ── TOOLBAR ── */
+    .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+    .search-box {
+      flex: 1; min-width: 200px; height: 36px; padding: 0 12px;
+      border: 1px solid var(--border-strong); border-radius: var(--radius);
+      font: 13px 'Inter', sans-serif; color: var(--text); background: var(--surface); outline: none;
+    }
+    .search-box:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(255,122,43,.1); }
+    .filter-select {
+      height: 36px; padding: 0 10px;
+      border: 1px solid var(--border-strong); border-radius: var(--radius);
+      font: 13px 'Inter', sans-serif; color: var(--text); background: var(--surface); cursor: pointer; outline: none;
+    }
+    .filter-select:focus { border-color: var(--accent); }
+
+    /* ── TABLE SHELL ── */
+    .table-shell { border-radius: var(--radius-lg); border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow-md); overflow: hidden; }
+    .table-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 18px 20px 14px; border-bottom: 1px solid var(--border); }
+    .table-title { font-size: 17px; font-weight: 800; color: var(--text); }
+    .table-subtitle { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+    .badge-count {
+      display: inline-flex; align-items: center; height: 26px; padding: 0 10px;
+      border-radius: 999px; background: var(--accent-bg); border: 1px solid rgba(255,122,43,.2);
+      color: var(--accent); font-size: 12px; font-weight: 700; white-space: nowrap;
+    }
+
+    /* ── EMPTY ── */
+    .empty-state { padding: 56px 24px; text-align: center; color: var(--muted); font-size: 13.5px; }
+    .empty-state strong { display: block; font-size: 15px; color: var(--text); margin-bottom: 6px; }
+
+    /* ── TABLE ── */
+    table { width: 100%; border-collapse: collapse; background: var(--surface); font-size: 12.5px; }
+    th, td { border: 0; border-bottom: 1px solid var(--border); padding: 9px 12px; text-align: left; color: var(--text); vertical-align: top; }
+    thead tr.encabezados th {
+      padding: 10px 12px;
+      background: var(--header-bg);
+      border-bottom: 1px solid var(--header-border);
+      color: var(--header-text);
+      font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap;
+    }
+    tbody tr { background: var(--surface); transition: background .12s; }
+    tbody tr:nth-child(even) { background: var(--surface-alt); }
+    tbody tr:hover { background: var(--row-hover); }
+    tbody tr:last-child td { border-bottom: 0; }
+
+    .items-ul { margin: 0; padding-left: 16px; }
+    .items-ul li { margin-bottom: 3px; line-height: 1.4; }
+    .items-ul a { color: var(--accent); text-decoration: none; }
+    .items-ul a:hover { text-decoration: underline; }
+    .item-sub { font-size: 11px; color: var(--muted); }
+    .total-cell { font-weight: 700; white-space: nowrap; }
+    .presup-link { color: var(--accent); font-size: 12px; display: block; }
+
+    /* ── BADGE ESTADO ── */
+    .badge-estado { display: inline-block; padding: 2px 8px; border-radius: 5px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .badge-pendiente   { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+    .badge-en-proceso  { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .badge-terminado   { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .badge-rechazado   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .badge-ops         { background: #fefce8; color: #854d0e; border: 1px solid #fde68a; }
+    .badge-conta       { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+    .badge-gerencia    { background: #f5f3ff; color: #5b21b6; border: 1px solid #ddd6fe; }
+
+    /* ── SELECT ESTADO ── */
+    .estado-select {
+      height: 30px; padding: 0 8px;
+      border: 1px solid var(--border-strong); border-radius: 6px;
+      font: 600 11.5px 'Inter', sans-serif; color: var(--text); background: var(--surface);
+      cursor: pointer; width: 100%;
+    }
+    .estado-select:focus { outline: none; border-color: var(--accent); }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: #111827; color: #fff; padding: 11px 20px; border-radius: 8px;
+      font-size: 13px; font-weight: 600; display: none; z-index: 200;
+      box-shadow: 0 8px 24px rgba(0,0,0,.22);
+    }
+    .toast.show { display: block; }
+  </style>
+</head>
+<body>
+
+  <header class="page-hero">
+    <div class="logo-atc">
+      <img src="/shared-static/img/logo-atc.png" alt="ATC"
+           onerror="this.src='https://i.imgur.com/VgLG9Ei.png'">
+    </div>
+    <div class="hero-copy">
+      <h1 class="hero-title">Control de Compras</h1>
+      <p class="hero-subtitle">Solicitudes aprobadas — gestiona avance, proceso y cierre</p>
+    </div>
+    <div class="hero-actions">
+      <span class="hero-user">{{ user.name }}</span>
+      <a id="btnVolver" class="btn-volver" href="/seleccionar-area?token={{ token|default('') }}">Volver</a>
+    </div>
+  </header>
+
+  <div class="page-shell">
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <input class="search-box" type="text" id="buscar"
+             placeholder="Buscar por código, solicitante, destino…"
+             oninput="filtrar()">
+      <select class="filter-select" id="filtroEstado" onchange="filtrar()">
+        <option value="">Todos los estados</option>
+        <option value="Pendiente">Pendiente</option>
+        <option value="En proceso">En proceso</option>
+        <option value="Terminado">Terminado</option>
+        <option value="Rechazado">Rechazado</option>
+        <option value="Pendiente Operaciones">Pend. Operaciones</option>
+        <option value="Pendiente Contabilidad">Pend. Contabilidad</option>
+        <option value="Pendiente Gerencia">Pend. Gerencia</option>
+      </select>
+    </div>
+
+    <div class="table-shell">
+      <div class="table-head">
+        <div>
+          <div class="table-title">Todas las solicitudes</div>
+          <div class="table-subtitle">Vista completa. Cambia el estado directamente desde la tabla.</div>
+        </div>
+        <span class="badge-count" id="totalCount">{{ solicitudes | length }} solicitud(es)</span>
+      </div>
+
+      {% if not solicitudes %}
+        <div class="empty-state">
+          <strong>Sin solicitudes</strong>
+          No hay solicitudes registradas aún.
+        </div>
+      {% else %}
+      <table id="tablaSolicitudes">
+        <thead>
+          <tr class="encabezados">
+            <th style="width:100px">Código</th>
+            <th style="width:80px">Fecha</th>
+            <th style="width:140px">Solicitante</th>
+            <th style="width:110px">Destino</th>
+            <th>Ítems</th>
+            <th style="width:110px">Total</th>
+            <th>Motivo / Obs.</th>
+            <th style="width:80px">Presup.</th>
+            <th style="width:110px">Estado</th>
+            <th style="width:130px">Cambiar</th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          {% for s in solicitudes %}
+          <tr data-estado="{{ s.estado }}" data-texto="{{ s.codigo }} {{ s.solicitante_nombre }} {{ s.solicitante_email }} {{ s.empresa }} {{ s.centro }}">
+            <td><strong>{{ s.codigo }}</strong></td>
+            <td>{{ s.fecha_solicitud.strftime("%d/%m/%Y") }}</td>
+            <td>
+              {{ s.solicitante_nombre }}<br>
+              <span class="item-sub">{{ s.solicitante_email }}</span>
+            </td>
+            <td>{{ s.empresa }} → {{ s.centro }}</td>
+            <td>
+              <ul class="items-ul">
+                {% for it in s.items %}
+                <li>
+                  {% if it.es_link %}
+                    <a href="{{ it.texto }}" target="_blank">ÍTEM (link)</a>
+                  {% else %}
+                    {{ it.texto }}
+                  {% endif %}
+                  <span class="item-sub"> ×{{ it.cantidad }} — ${{ "{:,.0f}".format(it.subtotal).replace(",", ".") }}</span>
+                </li>
+                {% endfor %}
+              </ul>
+            </td>
+            <td class="total-cell">${{ "{:,.0f}".format(s.total_compra).replace(",", ".") }}</td>
+            <td>
+              {{ s.motivo }}
+              {% if s.observaciones %}
+                <div class="item-sub" style="margin-top:4px">{{ s.observaciones }}</div>
+              {% endif %}
+            </td>
+            <td>
+              {% for p in s.presupuestos %}
+                <a class="presup-link" href="{{ p }}" target="_blank">Archivo {{ loop.index }}</a>
+              {% endfor %}
+            </td>
+            <td>
+              <span class="badge-estado
+                {%- if s.estado == 'Pendiente' %} badge-pendiente
+                {%- elif s.estado == 'En proceso' %} badge-en-proceso
+                {%- elif s.estado == 'Terminado' %} badge-terminado
+                {%- elif s.estado == 'Rechazado' %} badge-rechazado
+                {%- elif s.estado == 'Pendiente Operaciones' %} badge-ops
+                {%- elif s.estado == 'Pendiente Contabilidad' %} badge-conta
+                {%- elif s.estado == 'Pendiente Gerencia' %} badge-gerencia
+                {%- endif %}">{{ s.estado }}</span>
+            </td>
+            <td>
+              <select class="estado-select" onchange="cambiarEstado({{ s.id }}, this)">
+                <option value="">-- cambiar --</option>
+                <option value="Pendiente">Pendiente</option>
+                <option value="En proceso">En proceso</option>
+                <option value="Terminado">Terminado</option>
+                <option value="Rechazado">Rechazado</option>
+              </select>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    function filtrar() {
+      const q   = document.getElementById("buscar").value.toLowerCase().trim();
+      const est = document.getElementById("filtroEstado").value.toLowerCase();
+      let visible = 0;
+      document.querySelectorAll("#tbody tr").forEach(row => {
+        const texto  = row.dataset.texto.toLowerCase();
+        const estado = row.dataset.estado.toLowerCase();
+        const show   = (!q || texto.includes(q)) && (!est || estado === est);
+        row.style.display = show ? "" : "none";
+        if (show) visible++;
+      });
+      document.getElementById("totalCount").textContent = visible + " solicitud(es)";
+    }
+
+    async function cambiarEstado(id, sel) {
+      const nuevoEstado = sel.value;
+      if (!nuevoEstado) return;
+      try {
+        const resp = await fetch("/compras/api/cambiar-estado", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id, estado: nuevoEstado, obs: "" }),
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+          toast("Estado actualizado → " + nuevoEstado);
+          setTimeout(() => location.reload(), 1500);
+        } else {
+          alert(data.detail || "Error al cambiar estado.");
+          sel.value = "";
+        }
+      } catch {
+        alert("Error de conexión.");
+        sel.value = "";
+      }
+    }
+
+    function toast(msg) {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 3200);
+    }
+
+  </script>
+  <script src="/static/atc-logo-home.js"></script>
+<script src="/static/atc-volver.js"></script>
+</body>
+</html>

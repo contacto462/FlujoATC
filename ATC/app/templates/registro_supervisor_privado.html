@@ -1,0 +1,973 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Registro Supervisor Privados — {{ month_name }} {{ year }}</title>
+<style>
+:root{
+  --bg:#f7f8fa;
+  --surface:#fff;
+  --border:#e5e7eb;
+  --header-bg-from:#0b1424;
+  --header-bg-to:#111c2f;
+  --sub-header:#1a2540;
+  --recinto-bg:#f3f4f6;
+  --recinto-w:260px;
+  --cell-w:120px;
+  --weekend-bg:#fdf8f4;
+  --today-border:#16a34a;
+  --muted:#6b7280;
+  --dia-bg:#e8eef6;    --dia-text:#2c4a72;
+  --noche-bg:#ece9f4;  --noche-text:#3e2f68;
+  --extra-bg:#f5f0e0;  --extra-text:#5c4516;
+  --contrato-bg:#e4f0e8; --contrato-text:#1e4430;
+  --parttime-bg:#f2e8ef; --parttime-text:#5c2e4a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:#172124;font-size:13px;display:flex;flex-direction:column;height:100vh}
+
+.page-hero{
+  flex-shrink:0;
+  display:flex;align-items:center;gap:18px;
+  min-height:90px;padding:16px 28px;
+  background:linear-gradient(180deg,#0b1424 0%,#111c2f 100%);
+  border-bottom:1px solid rgba(255,255,255,.06);
+  box-shadow:0 2px 8px rgba(0,0,0,.28);
+}
+.logo-atc img{height:56px;width:auto;display:block;object-fit:contain;filter:drop-shadow(0 2px 6px rgba(0,0,0,.3))}
+.hero-copy{min-width:0;flex:1}
+.hero-copy h1{margin:0;font-size:18px;font-weight:700;letter-spacing:-.02em;color:#fff}
+.hero-copy .sub{margin:4px 0 0;font-size:12.5px;color:rgba(255,255,255,.65)}
+.hero-nav{display:flex;align-items:center;gap:8px;margin-left:auto}
+.hero-nav a,.hero-nav button{
+  display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:8px;
+  font-size:13px;font-weight:600;text-decoration:none;
+  border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.07);
+  color:#fff;cursor:pointer;transition:background .15s;
+}
+.hero-nav a:hover,.hero-nav button:hover{background:rgba(255,255,255,.15)}
+.hero-nav .month-label{font-size:14px;font-weight:700;min-width:150px;text-align:center;color:#fff}
+
+.legend{
+  flex-shrink:0;
+  padding:8px 20px;background:#fff;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px}
+.chip-dia{background:var(--dia-bg);color:var(--dia-text)}
+.chip-noche{background:var(--noche-bg);color:var(--noche-text)}
+.chip-extra{background:var(--extra-bg);color:var(--extra-text)}
+.chip-contrato-diario{background:var(--contrato-bg);color:var(--contrato-text)}
+.legend-note{font-size:11px;color:var(--muted);margin-left:auto}
+
+.wrap{flex:1;overflow:auto;padding:16px 20px 40px}
+
+table{
+  border-collapse:separate;border-spacing:0;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;min-width:max-content;
+}
+
+thead tr:first-child th{
+  position:sticky;top:0;z-index:20;
+  background:linear-gradient(180deg,var(--header-bg-from) 0%,var(--header-bg-to) 100%);
+  color:rgba(255,255,255,.9);
+  font-weight:700;font-size:11.5px;padding:9px 8px;
+  text-align:center;border-bottom:1px solid rgba(255,255,255,.08);white-space:nowrap;
+}
+thead tr:last-child th{
+  position:sticky;top:33px;z-index:20;
+  background:var(--sub-header);color:rgba(255,255,255,.55);
+  font-size:10px;font-weight:600;text-align:center;
+  padding:5px 4px;border-bottom:2px solid var(--border);
+}
+thead th.col-recinto{
+  position:sticky;left:0;z-index:30;
+  background:linear-gradient(180deg,var(--header-bg-from) 0%,var(--header-bg-to) 100%);
+  text-align:left;
+  min-width:var(--recinto-w);padding:9px 14px;font-size:13px;
+}
+thead tr:last-child th.col-recinto{
+  position:sticky;left:0;top:33px;z-index:30;
+  background:var(--sub-header);text-align:left;padding:5px 14px;
+  font-size:11px;color:rgba(255,255,255,.45);
+}
+thead th.weekend{background:#1e2d4a}
+thead tr:last-child th.weekend{background:#1a2845}
+thead th.today-col{background:#14532d;border-left:2px solid var(--today-border);border-right:2px solid var(--today-border)}
+thead tr:last-child th.today-col{background:#166534;box-shadow:0 2px 0 rgba(0,0,0,.08)}
+thead tr:last-child th{box-shadow:0 2px 4px rgba(0,0,0,.12)}
+
+tbody tr:hover td{background:#f8fafc}
+
+td{
+  padding:4px 5px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);
+  vertical-align:top;min-width:var(--cell-w);white-space:nowrap;
+  background:var(--surface);
+}
+td:last-child{border-right:0}
+tbody tr:last-child td{border-bottom:0}
+
+td.col-recinto{
+  position:sticky;left:0;z-index:1;background:var(--recinto-bg);
+  min-width:var(--recinto-w);max-width:var(--recinto-w);
+  font-weight:700;font-size:12px;padding:7px 14px;line-height:1.3;
+  border-right:2px solid var(--border);white-space:normal;
+}
+tbody tr:hover td.col-recinto{background:#eaecf0}
+td.weekend{background:var(--weekend-bg)}
+tbody tr:hover td.weekend{background:#faf0e8}
+
+td.data-cell{cursor:pointer}
+td.data-cell:hover{background:#e8f1fc !important}
+
+.entries{display:flex;flex-direction:column;gap:3px}
+.entry{
+  display:flex;align-items:center;gap:4px;
+  border-radius:6px;padding:2px 6px;font-size:11px;font-weight:700;line-height:1.35;
+  cursor:default;
+}
+.entry-dia{background:var(--dia-bg);color:var(--dia-text)}
+.entry-noche{background:var(--noche-bg);color:var(--noche-text)}
+.entry-extra{background:var(--extra-bg);color:var(--extra-text)}
+.entry-contrato-diario{background:var(--contrato-bg);color:var(--contrato-text)}
+.entry.ghost{
+  background:#eef0f2;color:#6b7280;border:1px dashed #9ca3af;
+  cursor:pointer;opacity:.75;font-weight:600;
+}
+.entry.ghost:hover{opacity:1;background:#e3e7ea;border-color:#1d4ed8;color:#1d4ed8}
+.entry.ghost .ghost-x{
+  margin-left:auto;background:none;border:none;cursor:pointer;
+  font-size:11px;color:inherit;opacity:.45;padding:0 2px;line-height:1;flex:0 0 auto;
+}
+.entry.ghost .ghost-x:hover{opacity:1;color:#c0392b}
+.entry-nombre{cursor:pointer;text-decoration:underline;text-underline-offset:2px;text-decoration-style:dotted}
+.entry-nombre:hover{opacity:.75}
+.entry .del-btn{
+  margin-left:auto;background:none;border:none;cursor:pointer;
+  font-size:12px;color:inherit;opacity:.5;padding:0 2px;line-height:1;
+  flex:0 0 auto;
+}
+.entry .del-btn:hover{opacity:1}
+
+.add-btn{
+  display:block;width:100%;text-align:center;
+  font-size:18px;line-height:1;color:rgba(0,0,0,.2);
+  background:none;border:none;cursor:pointer;padding:2px 0;
+}
+.add-btn:hover{color:#1d4ed8}
+
+.overlay{
+  position:fixed;inset:0;z-index:50;
+  background:rgba(8,26,14,.48);backdrop-filter:blur(6px);
+  display:none;align-items:center;justify-content:center;padding:20px;
+}
+.overlay.open{display:flex}
+.modal{
+  width:min(440px,100%);background:#fff;border-radius:18px;
+  box-shadow:0 24px 60px rgba(0,0,0,.22);padding:22px;
+  display:grid;gap:14px;
+}
+.modal h2{font-size:17px;font-weight:800;margin:0}
+.modal .recinto-label{font-size:12px;color:var(--muted);margin-top:-8px}
+.modal label{display:grid;gap:5px;font-size:12px;font-weight:700;color:#263539}
+.modal input,.modal select,.modal textarea{
+  width:100%;min-height:44px;border:1px solid #cfddd2;border-radius:10px;
+  padding:0 12px;font:inherit;font-size:14px;color:#172124;background:#f8fbf9;outline:none;
+}
+.modal textarea{min-height:64px;padding:10px 12px;resize:vertical}
+.modal input:focus,.modal select:focus,.modal textarea:focus{
+  border-color:rgba(29,78,216,.6);box-shadow:0 0 0 3px rgba(29,78,216,.1);background:#fff;
+}
+.modal-actions{display:flex;gap:10px}
+.modal-actions button{
+  flex:1;min-height:44px;border:none;border-radius:10px;
+  font:inherit;font-size:14px;font-weight:800;cursor:pointer;
+}
+.btn-save{background:linear-gradient(135deg,#1d4ed8,#1e40af);color:#fff}
+.btn-cancel{background:#e7eef0;color:#213338}
+.btn-lm{background:linear-gradient(135deg,#c2410c,#9a3412);color:#fff}
+.just-motivo-btn{
+  padding:8px 14px;border-radius:999px;border:1px solid #cfddd2;background:#fff;
+  font:inherit;font-size:12.5px;font-weight:700;color:#374151;cursor:pointer;
+}
+.just-motivo-btn:hover{border-color:#c2410c;color:#c2410c}
+.just-motivo-btn.selected{background:#c2410c;border-color:#c2410c;color:#fff}
+
+#toastSv{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  max-width:min(480px,calc(100% - 32px));
+  background:#111827;color:#fff;padding:12px 18px;border-radius:10px;
+  font-size:13px;font-weight:600;line-height:1.5;text-align:center;
+  box-shadow:0 8px 24px rgba(0,0,0,.25);display:none;z-index:300;
+}
+#toastSv.error{background:#c0392b}
+
+@media print{
+  body{background:white}
+  .page-hero{background:#0b1424!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .hero-nav button,.overlay,.grupo-tabs{display:none!important}
+  .wrap{padding:8px 0;overflow:visible}
+  table{border-radius:0;min-width:100%}
+  thead th.col-recinto,td.col-recinto{position:static}
+  .add-btn,.del-btn{display:none!important}
+}
+</style>
+</head>
+<body>
+
+<header class="page-hero">
+  <div class="logo-atc">
+    <img src="/static/img/logo-atc.png" alt="Logo ATC">
+  </div>
+  <div class="hero-copy">
+    <h1>Registro Supervisor — Privados</h1>
+    <div class="sub">MACH · Total Transport · Soprodi · Atlas Copco · Storage · Edificio Velázquez</div>
+  </div>
+  <div class="hero-nav">
+    <a id="btnVolver" href="{{ '/guardia' if origen == 'guardia' else '/supervisores' }}">Volver</a>
+    <a href="/guardia/tabla-supervisor?year={{ prev_y }}&month={{ prev_m }}&grupo=privados&origen={{ origen|default('supervisores') }}">&#8249;</a>
+    <span class="month-label">{{ month_name }} {{ year }}</span>
+    <a href="/guardia/tabla-supervisor?year={{ next_y }}&month={{ next_m }}&grupo=privados&origen={{ origen|default('supervisores') }}">&#8250;</a>
+  </div>
+</header>
+
+<div class="legend">
+  <span class="chip chip-dia">Día</span>
+  <span class="chip chip-noche">Noche</span>
+  <span class="chip chip-extra">Extra</span>
+  <span class="chip chip-contrato-diario">Contrato Diario</span>
+  <span class="chip" style="background:#eef0f2;color:#6b7280;border:1px dashed #9ca3af">Sugerencia — clic para repetir</span>
+  <span class="legend-note">Haz clic en una celda para agregar un guardia. Clic en ✕ para eliminar.</span>
+</div>
+
+<div class="wrap">
+<table>
+  <thead>
+    <tr>
+      <th class="col-recinto">Recinto</th>
+      {% for d in days_info %}
+        <th class="{% if d.weekend %}weekend{% endif %}{% if d.day == today_day %} today-col{% endif %}">
+          {{ d.day }}/{{ month }}
+        </th>
+      {% endfor %}
+    </tr>
+    <tr>
+      <th class="col-recinto">{{ month_name }} {{ year }}</th>
+      {% for d in days_info %}
+        <th class="{% if d.weekend %}weekend{% endif %}{% if d.day == today_day %} today-col{% endif %}">
+          {{ d.dow }}
+        </th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for recinto in recintos %}
+    <tr>
+      <td class="col-recinto" title="{{ recinto }}">{{ recinto.split(' - ')|last }}</td>
+      {% for d in days_info %}
+        {% set entries = matrix.get(recinto, {}).get(d.day, []) %}
+        <td class="data-cell {% if d.weekend %}weekend{% endif %}{% if d.day == today_day %} today-col{% endif %}"
+            data-recinto="{{ recinto|e }}"
+            data-day="{{ d.day }}"
+            data-year="{{ year }}"
+            data-month="{{ '%02d' % month }}">
+          <div class="entries">
+            {% for e in entries %}
+            <div class="entry entry-{{ e.turno|lower|replace(' ','-') }}"
+              data-id="{{ e.id }}"
+              data-supervisor="{{ e.supervisor|e }}"
+              data-notas="{{ e.notas|e }}"
+              data-turno="{{ e.turno|e }}">
+              <span class="entry-nombre" onclick="verDetalle(this.closest('.entry'))">{{ e.nombre }}</span>
+              <button class="del-btn" title="Eliminar" onclick="eliminar(event,{{ e.id }})">✕</button>
+            </div>
+            {% endfor %}
+          </div>
+          <button class="add-btn" title="Agregar guardia" onclick="abrirModal(this.parentElement)">+</button>
+        </td>
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<!-- Modal detalle -->
+<div class="overlay" id="overlayDetalle">
+  <div class="modal" style="gap:10px">
+    <h2 id="dNombre" style="font-size:18px"></h2>
+    <div id="dTurnoChip" style="display:inline-block;border-radius:6px;padding:3px 10px;font-size:12px;font-weight:700;width:fit-content"></div>
+    <div style="display:grid;gap:6px;font-size:13px">
+      <div><span style="font-weight:700;color:#607176">Supervisor:</span> <span id="dSupervisor"></span></div>
+    </div>
+    <div id="dNotasWrap" style="display:none">
+      <div style="font-weight:700;font-size:12px;color:#607176;margin-bottom:4px">Observaciones</div>
+      <div id="dNotas" style="background:#f5f8f9;border:1px solid #cfddd2;border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.5;white-space:pre-wrap"></div>
+    </div>
+    <div class="modal-actions" style="margin-top:4px">
+      <button class="btn-cancel" onclick="document.getElementById('overlayDetalle').classList.remove('open')">Cerrar</button>
+      <button class="btn-lm" id="btnAbrirJust" type="button">Justificación</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Justificacion: motivo + reemplazo -->
+<div class="overlay" id="overlayJust">
+  <div class="modal">
+    <h2>Justificación</h2>
+    <div class="recinto-label" id="justOriginalLabel"></div>
+
+    <div id="justMotivos" style="display:flex;flex-wrap:wrap;gap:8px">
+      <button type="button" class="just-motivo-btn" data-motivo="Licencia Médica">Licencia Médica</button>
+      <button type="button" class="just-motivo-btn" data-motivo="Falta">Falta</button>
+      <button type="button" class="just-motivo-btn" data-motivo="Permiso con Goce">Permiso con Goce</button>
+      <button type="button" class="just-motivo-btn" data-motivo="Permiso sin Goce">Permiso sin Goce</button>
+      <button type="button" class="just-motivo-btn" data-motivo="Vacaciones">Vacaciones</button>
+      <button type="button" class="just-motivo-btn" data-motivo="Desvinculado">Desvinculado</button>
+      <button type="button" class="just-motivo-btn" data-motivo="Renuncia">Renuncia</button>
+    </div>
+
+    <div id="justReemplazoWrap" style="display:none;gap:14px">
+      <div id="justMotivoSeleccionado" style="font-size:12px;font-weight:700;color:#c2410c"></div>
+      <div id="justFechasWrap" style="display:none;gap:10px;grid-template-columns:1fr 1fr">
+        <label>
+          Desde
+          <input id="justDesde" type="date">
+        </label>
+        <label>
+          Hasta
+          <input id="justHasta" type="date">
+        </label>
+      </div>
+      <label>
+        Turno que cumplirá el reemplazo
+        <div id="justTipoTurnoWrap" style="display:flex;flex-wrap:wrap;gap:8px">
+          <button type="button" class="just-motivo-btn" data-tipo-turno="Extra">Turno Extra</button>
+          <button type="button" class="just-motivo-btn" data-tipo-turno="Contrato Diario">Contrato Diario</button>
+        </div>
+      </label>
+
+      <label>
+        Reemplazo
+        <div style="position:relative">
+          <input id="justNombre" type="text" placeholder="Buscar por nombre o RUT…" autocomplete="off">
+          <div id="justNombreDropdown" style="
+            display:none;position:absolute;top:100%;left:0;right:0;z-index:100;
+            background:#fff;border:1px solid #cfddd2;border-radius:10px;
+            box-shadow:0 8px 24px rgba(0,0,0,.12);margin-top:4px;overflow:hidden;max-height:200px;overflow-y:auto;
+          "></div>
+        </div>
+      </label>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" id="btnCancelarJust" type="button">Cancelar</button>
+      <button class="btn-save" id="btnGuardarJust" type="button" style="display:none">Confirmar reemplazo</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal agregar -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2>Agregar guardia</h2>
+    <div class="recinto-label" id="modalRecinto"></div>
+
+    <div id="mSugerencias" style="display:none;gap:6px"></div>
+
+    <label>
+      Guardia
+      <div style="position:relative">
+        <input id="mNombre" type="text" placeholder="Buscar por nombre o RUT…" autocomplete="off" style="padding-right:36px">
+        <div id="mNombreResuelto" style="display:none;margin-top:4px;font-size:12px;color:#1d4ed8;font-weight:600;padding:2px 4px"></div>
+        <div id="mNombreDropdown" style="
+          display:none;position:absolute;top:100%;left:0;right:0;z-index:100;
+          background:#fff;border:1px solid #cfddd2;border-radius:10px;
+          box-shadow:0 8px 24px rgba(0,0,0,.12);margin-top:4px;overflow:hidden;max-height:200px;overflow-y:auto;
+        "></div>
+      </div>
+    </label>
+
+    <label>
+      Tipo de turno
+      <select id="mTurno">
+        {% for t in tipos_turno %}
+        <option value="{{ t }}">{{ t }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <div style="font-size:12px;font-weight:700;color:#263539">
+      Supervisor
+      <span id="mSupervisorDisplay" style="font-weight:400;color:#31464c;margin-left:6px"></span>
+    </div>
+
+    <label>
+      Notas (opcional)
+      <textarea id="mNotas" placeholder="Observaciones…"></textarea>
+    </label>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" id="btnCancelar" type="button">Cancelar</button>
+      <button class="btn-save" id="btnGuardar" type="button">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toastSv"></div>
+
+<script>
+const SUPERVISOR_NOMBRE = {{ supervisor_nombre | tojson }};
+let _celda = null;
+let _searchTimer = null;
+let _nombreGuardia = null;
+let _rutGuardia = "";
+
+function mostrarToastSv(texto, esError = true) {
+  const el = document.getElementById("toastSv");
+  el.textContent = texto;
+  el.className = esError ? "error" : "";
+  el.style.display = "block";
+  clearTimeout(mostrarToastSv._t);
+  mostrarToastSv._t = setTimeout(() => { el.style.display = "none"; }, 4200);
+}
+
+document.getElementById("mNombre").addEventListener("input", () => {
+  const mNombre   = document.getElementById("mNombre");
+  const mDropdown = document.getElementById("mNombreDropdown");
+  const mResuelto = document.getElementById("mNombreResuelto");
+  _nombreGuardia = null;
+  _rutGuardia = "";
+  mResuelto.style.display = "none";
+  clearTimeout(_searchTimer);
+  const q = mNombre.value.trim();
+  if (q.length < 2) { mDropdown.style.display = "none"; return; }
+  _searchTimer = setTimeout(async () => {
+    try {
+      const res = await fetch("/api/inicio-turno/guardias/buscar?q=" + encodeURIComponent(q));
+      const data = await res.json();
+      if (!data.length) { mDropdown.style.display = "none"; return; }
+      mDropdown.innerHTML = data.map(g =>
+        `<div class="dd-item" data-nombre="${escHtml(g.nombre)}" data-rut="${escHtml(g.rut)}"
+          style="padding:10px 14px;cursor:pointer;font-size:14px;border-bottom:1px solid #f0f4f5">
+          <span style="font-weight:700">${escHtml(g.nombre)}</span>
+          <span style="font-size:11px;color:#7a9199;margin-left:8px">${escHtml(g.rut)}</span>
+        </div>`
+      ).join("");
+      mDropdown.querySelectorAll(".dd-item").forEach(el => {
+        el.addEventListener("mousedown", e => {
+          e.preventDefault();
+          _nombreGuardia = el.dataset.nombre;
+          _rutGuardia = el.dataset.rut || "";
+          mNombre.value = el.dataset.nombre;
+          mDropdown.style.display = "none";
+          mResuelto.style.display = "none";
+        });
+        el.addEventListener("mouseover", () => el.style.background = "#eff6ff");
+        el.addEventListener("mouseout",  () => el.style.background = "");
+      });
+      mDropdown.style.display = "block";
+    } catch(_) {}
+  }, 220);
+});
+
+document.getElementById("mNombre").addEventListener("blur", () => {
+  setTimeout(() => { document.getElementById("mNombreDropdown").style.display = "none"; }, 150);
+});
+
+function _buscarSugerencias(td) {
+  // Sugerencias: solo los registros del DÍA ANTERIOR en el mismo recinto,
+  // leyendo lo ya renderizado en la tabla.
+  const day = parseInt(td.dataset.day, 10);
+  const cells = Array.from(td.parentElement.querySelectorAll("td.data-cell"));
+  const prev = cells.find(c => parseInt(c.dataset.day, 10) === day - 1);
+  if (!prev) return null;
+  const entries = Array.from(prev.querySelectorAll(".entry:not(.ghost)")).map(e => ({
+    nombre: e.querySelector(".entry-nombre").textContent.trim(),
+    turno:  e.dataset.turno || "",
+    notas:  e.dataset.notas || "",
+  })).filter(s => s.nombre);
+  return entries.length ? { day: day - 1, entries } : null;
+}
+
+function aplicarSugerencia(s) {
+  _nombreGuardia = s.nombre;
+  _rutGuardia = "";
+  document.getElementById("mNombre").value = s.nombre;
+  document.getElementById("mNombreDropdown").style.display = "none";
+  const mTurno = document.getElementById("mTurno");
+  if (Array.from(mTurno.options).some(o => o.value === s.turno)) mTurno.value = s.turno;
+  document.getElementById("mNotas").value = s.notas || "";
+  const res = document.getElementById("mNombreResuelto");
+  res.textContent = "✔ Copiado del día anterior — revisa y guarda";
+  res.style.display = "block";
+}
+
+function renderSugerencias(td) {
+  const wrap = document.getElementById("mSugerencias");
+  wrap.style.display = "none";
+  wrap.innerHTML = "";
+  const sug = _buscarSugerencias(td);
+  if (!sug) return;
+  const titulo = document.createElement("div");
+  titulo.style.cssText = "font-size:12px;font-weight:700;color:#607176";
+  titulo.textContent = "Sugerencia del " + sug.day + "/" + td.dataset.month + " en este recinto (clic para copiar todo):";
+  wrap.appendChild(titulo);
+  const lista = document.createElement("div");
+  lista.style.cssText = "display:flex;flex-wrap:wrap;gap:6px";
+  sug.entries.forEach(s => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "entry entry-" + (s.turno || "").toLowerCase().replace(/ /g, "-");
+    chip.style.cssText = "cursor:pointer;border:1px dashed rgba(0,0,0,.3);font:inherit;font-size:12px;font-weight:700;padding:7px 11px;border-radius:8px";
+    chip.textContent = s.nombre + " · " + s.turno + (s.notas ? " · 📝" : "");
+    if (s.notas) chip.title = "Notas: " + s.notas;
+    chip.addEventListener("click", () => aplicarSugerencia(s));
+    lista.appendChild(chip);
+  });
+  wrap.appendChild(lista);
+  wrap.style.display = "grid";
+}
+
+function recintoCorto(s) {
+  const partes = String(s || "").split(" - ");
+  return (partes[partes.length - 1] || "").trim() || String(s || "");
+}
+
+function abrirModal(td) {
+  _celda = td;
+  _nombreGuardia = null;
+  _rutGuardia = "";
+  document.getElementById("modalRecinto").textContent =
+    recintoCorto(td.dataset.recinto) + " — " + td.dataset.day + "/" + td.dataset.month + "/" + td.dataset.year;
+  document.getElementById("mNombre").value = "";
+  document.getElementById("mNotas").value  = "";
+  document.getElementById("mNombreResuelto").style.display = "none";
+  document.getElementById("mSupervisorDisplay").textContent = SUPERVISOR_NOMBRE || "(sin sesión)";
+  renderSugerencias(td);
+  document.getElementById("overlay").classList.add("open");
+  setTimeout(() => document.getElementById("mNombre").focus(), 80);
+}
+
+document.getElementById("btnCancelar").addEventListener("click", cerrarModal);
+document.getElementById("overlay").addEventListener("click", e => {
+  if (e.target === document.getElementById("overlay")) cerrarModal();
+});
+function cerrarModal() {
+  document.getElementById("overlay").classList.remove("open");
+  _celda = null;
+  _nombreGuardia = null;
+  _rutGuardia = "";
+}
+
+document.getElementById("btnGuardar").addEventListener("click", async () => {
+  if (!_celda) return;
+  const nombre = _nombreGuardia || document.getElementById("mNombre").value.trim();
+  if (!nombre) { document.getElementById("mNombre").focus(); return; }
+
+  const btn = document.getElementById("btnGuardar");
+  btn.disabled = true; btn.textContent = "Guardando…";
+
+  const payload = {
+    recinto:        _celda.dataset.recinto,
+    fecha:          _celda.dataset.year + "-" + _celda.dataset.month + "-" + String(_celda.dataset.day).padStart(2,"0"),
+    nombre_guardia: nombre,
+    rut:            _rutGuardia,
+    tipo_turno:     document.getElementById("mTurno").value,
+    supervisor:     SUPERVISOR_NOMBRE,
+    notas:          document.getElementById("mNotas").value.trim(),
+  };
+
+  try {
+    const res  = await fetch("/api/guardia/supervisor-registro", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Error al guardar");
+
+    const turnoClass = "entry-" + payload.tipo_turno.toLowerCase().replace(/ /g, "-");
+    const div = document.createElement("div");
+    div.className = "entry " + turnoClass;
+    div.dataset.id = data.id;
+    div.dataset.turno = payload.tipo_turno;
+    div.dataset.supervisor = payload.supervisor;
+    div.dataset.notas = payload.notas;
+    div.innerHTML = `<span class="entry-nombre" onclick="verDetalle(this.closest('.entry'))">${escHtml(nombre)}</span>
+      <button class="del-btn" title="Eliminar" onclick="eliminar(event,${data.id})">✕</button>`;
+    _celda.querySelector(".entries").appendChild(div);
+    cerrarModal();
+    refreshGhosts();
+  } catch(err) {
+    mostrarToastSv("Error: " + err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = "Guardar";
+  }
+});
+
+async function eliminar(event, id) {
+  event.stopPropagation();
+  if (!confirm("¿Eliminar este registro?")) return;
+  const chip = event.target.closest(".entry");
+  try {
+    const res = await fetch("/api/guardia/supervisor-registro/" + id, { method: "DELETE" });
+    if (!res.ok) { const d = await res.json(); throw new Error(d.detail); }
+    chip.remove();
+    refreshGhosts();
+  } catch(err) { mostrarToastSv("Error: " + err.message); }
+}
+
+let _entryDetalle = null;
+
+function verDetalle(entry) {
+  _entryDetalle = entry;
+  const nombre     = entry.querySelector(".entry-nombre").textContent.trim();
+  const turno      = entry.dataset.turno || "";
+  const supervisor = entry.dataset.supervisor || "—";
+  const notas      = entry.dataset.notas || "";
+
+  document.getElementById("dNombre").textContent = nombre;
+  document.getElementById("dSupervisor").textContent = supervisor || "—";
+
+  const chip = document.getElementById("dTurnoChip");
+  chip.textContent = turno;
+  chip.className = "chip chip-" + turno.toLowerCase().replace(/ /g, "-");
+  chip.style.cssText = "";
+
+  const notasWrap = document.getElementById("dNotasWrap");
+  if (notas) {
+    document.getElementById("dNotas").textContent = notas;
+    notasWrap.style.display = "block";
+  } else {
+    notasWrap.style.display = "none";
+  }
+  document.getElementById("overlayDetalle").classList.add("open");
+}
+
+document.getElementById("overlayDetalle").addEventListener("click", e => {
+  if (e.target === document.getElementById("overlayDetalle"))
+    document.getElementById("overlayDetalle").classList.remove("open");
+});
+
+// ── Justificación: motivo + reemplazar guardia y dejar nota automática ──
+let _justSearchTimer = null;
+let _justNombreGuardia = null;
+let _justMotivo = null;
+let _justTipoTurno = null;
+
+function abrirModalJust() {
+  if (!_entryDetalle) return;
+  const nombreActual = _entryDetalle.querySelector(".entry-nombre").textContent.trim();
+  document.getElementById("justOriginalLabel").textContent = "Reemplaza a: " + nombreActual;
+  document.getElementById("justNombre").value = "";
+  document.getElementById("justDesde").value = "";
+  document.getElementById("justHasta").value = "";
+  document.getElementById("justFechasWrap").style.display = "none";
+  document.getElementById("justReemplazoWrap").style.display = "none";
+  document.getElementById("btnGuardarJust").style.display = "none";
+  document.querySelectorAll(".just-motivo-btn").forEach(b => b.classList.remove("selected"));
+  _justMotivo = null;
+  _justTipoTurno = null;
+  _justNombreGuardia = null;
+  document.getElementById("overlayDetalle").classList.remove("open");
+  document.getElementById("overlayJust").classList.add("open");
+}
+document.getElementById("btnAbrirJust").addEventListener("click", abrirModalJust);
+
+document.querySelectorAll("#justMotivos .just-motivo-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    _justMotivo = btn.dataset.motivo;
+    document.querySelectorAll("#justMotivos .just-motivo-btn").forEach(b => b.classList.toggle("selected", b === btn));
+    document.getElementById("justMotivoSeleccionado").textContent = "Motivo: " + _justMotivo;
+    document.getElementById("justFechasWrap").style.display = (_justMotivo === "Falta") ? "none" : "grid";
+    document.getElementById("justReemplazoWrap").style.display = "grid";
+    document.getElementById("btnGuardarJust").style.display = "";
+    setTimeout(() => document.getElementById("justNombre").focus(), 80);
+  });
+});
+
+document.querySelectorAll("#justTipoTurnoWrap .just-motivo-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    _justTipoTurno = btn.dataset.tipoTurno;
+    document.querySelectorAll("#justTipoTurnoWrap .just-motivo-btn").forEach(b => b.classList.toggle("selected", b === btn));
+  });
+});
+
+document.getElementById("justNombre").addEventListener("input", () => {
+  const input    = document.getElementById("justNombre");
+  const dropdown = document.getElementById("justNombreDropdown");
+  _justNombreGuardia = null;
+  clearTimeout(_justSearchTimer);
+  const q = input.value.trim();
+  if (q.length < 2) { dropdown.style.display = "none"; return; }
+  _justSearchTimer = setTimeout(async () => {
+    try {
+      const res = await fetch("/api/inicio-turno/guardias/buscar?q=" + encodeURIComponent(q));
+      const data = await res.json();
+      if (!data.length) { dropdown.style.display = "none"; return; }
+      dropdown.innerHTML = data.map(g =>
+        `<div class="dd-item" data-nombre="${escHtml(g.nombre)}"
+          style="padding:10px 14px;cursor:pointer;font-size:14px;border-bottom:1px solid #f0f4f5">
+          <span style="font-weight:700">${escHtml(g.nombre)}</span>
+          <span style="font-size:11px;color:#7a9199;margin-left:8px">${escHtml(g.rut)}</span>
+        </div>`
+      ).join("");
+      dropdown.querySelectorAll(".dd-item").forEach(el => {
+        el.addEventListener("mousedown", e => {
+          e.preventDefault();
+          _justNombreGuardia = el.dataset.nombre;
+          input.value = el.dataset.nombre;
+          dropdown.style.display = "none";
+        });
+        el.addEventListener("mouseover", () => el.style.background = "#eff6ff");
+        el.addEventListener("mouseout",  () => el.style.background = "");
+      });
+      dropdown.style.display = "block";
+    } catch(_) {}
+  }, 220);
+});
+document.getElementById("justNombre").addEventListener("blur", () => {
+  setTimeout(() => { document.getElementById("justNombreDropdown").style.display = "none"; }, 150);
+});
+
+function cerrarModalJust() {
+  document.getElementById("overlayJust").classList.remove("open");
+  _justNombreGuardia = null;
+  _justMotivo = null;
+}
+document.getElementById("btnCancelarJust").addEventListener("click", cerrarModalJust);
+document.getElementById("overlayJust").addEventListener("click", e => {
+  if (e.target === document.getElementById("overlayJust")) cerrarModalJust();
+});
+
+document.getElementById("btnGuardarJust").addEventListener("click", async () => {
+  if (!_entryDetalle || !_justMotivo) return;
+  if (!_justTipoTurno) { mostrarToastSv("Indica si el reemplazo cumplirá Turno Extra o Contrato Diario."); return; }
+  const nombreReemplazo = _justNombreGuardia || document.getElementById("justNombre").value.trim();
+  if (!nombreReemplazo) { document.getElementById("justNombre").focus(); return; }
+
+  const requiereFechas = _justMotivo !== "Falta";
+  const desde = document.getElementById("justDesde").value;
+  const hasta = document.getElementById("justHasta").value;
+  if (requiereFechas && (!desde || !hasta)) {
+    mostrarToastSv("Indica desde cuándo y hasta cuándo rige esta justificación.");
+    (desde ? document.getElementById("justHasta") : document.getElementById("justDesde")).focus();
+    return;
+  }
+
+  const id = _entryDetalle.dataset.id;
+
+  const btn = document.getElementById("btnGuardarJust");
+  btn.disabled = true; btn.textContent = "Guardando…";
+  try {
+    const res  = await fetch("/api/guardia/supervisor-registro/" + id + "/justificar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        motivo: _justMotivo,
+        fecha_desde: requiereFechas ? desde : null,
+        fecha_hasta: requiereFechas ? hasta : null,
+        nombre_reemplazo: nombreReemplazo,
+        tipo_turno_reemplazo: _justTipoTurno,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Error al guardar");
+
+    _entryDetalle.querySelector(".entry-nombre").textContent = nombreReemplazo;
+    _entryDetalle.dataset.notas = data.notas || "";
+    if (data.tipo_turno) {
+      _entryDetalle.dataset.turno = data.tipo_turno;
+      _entryDetalle.className = "entry entry-" + data.tipo_turno.toLowerCase().replace(/ /g, "-");
+    }
+    cerrarModalJust();
+  } catch(err) {
+    mostrarToastSv("Error: " + err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = "Confirmar reemplazo";
+  }
+});
+
+function escHtml(s) {
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+// ── Sugerencias "fantasma" en la celda del día siguiente ──
+const _GHOST_SAVING = new Set();
+let _GHOST_DISMISSED = new Set();
+try { _GHOST_DISMISSED = new Set(JSON.parse(localStorage.getItem("sv_ghost_dismissed") || "[]")); } catch (_) {}
+
+function _dismissKey(td, nombre) {
+  return td.dataset.recinto + "|" + td.dataset.year + "-" + td.dataset.month + "-" + td.dataset.day + "|" + nombre;
+}
+
+function _guardarDismissed() {
+  try { localStorage.setItem("sv_ghost_dismissed", JSON.stringify(Array.from(_GHOST_DISMISSED).slice(-500))); } catch (_) {}
+}
+
+function _realNames(td) {
+  return new Set(Array.from(td.querySelectorAll(".entry:not(.ghost) .entry-nombre")).map(e => e.textContent.trim()));
+}
+
+function renderGhosts() {
+  document.querySelectorAll("tbody tr").forEach(tr => {
+    const cells = Array.from(tr.querySelectorAll("td.data-cell"));
+    let lastDay = null, lastCell = null;
+    cells.forEach(c => {
+      if (c.querySelector(".entry:not(.ghost)")) {
+        const d = parseInt(c.dataset.day, 10);
+        if (lastDay === null || d > lastDay) { lastDay = d; lastCell = c; }
+      }
+    });
+    if (lastCell === null) return;
+    // Solo la celda del DÍA SIGUIENTE al último día con registros reales
+    const target = cells.find(c => parseInt(c.dataset.day, 10) === lastDay + 1);
+    if (!target || _realNames(target).size) return;
+    const yaGhost = new Set(Array.from(target.querySelectorAll(".entry.ghost")).map(g => g.dataset.nombre));
+    const sugs = Array.from(lastCell.querySelectorAll(".entry:not(.ghost)")).map(e => ({
+      nombre: e.querySelector(".entry-nombre").textContent.trim(),
+      turno:  e.dataset.turno || "",
+      notas:  e.dataset.notas || "",
+    })).filter(s => s.nombre && !yaGhost.has(s.nombre) && !_GHOST_DISMISSED.has(_dismissKey(target, s.nombre)));
+    const cont = target.querySelector(".entries");
+    sugs.forEach(s => {
+      const g = document.createElement("div");
+      g.className = "entry ghost";
+      g.dataset.nombre = s.nombre;
+      g.title = "Sugerencia del " + lastDay + "/" + target.dataset.month +
+        " — clic para registrar igual · " + s.turno + (s.notas ? " · " + s.notas : "");
+      g.innerHTML = `<span>${escHtml(s.nombre)}</span><button class="ghost-x" title="Quitar sugerencia">✕</button>`;
+      g.addEventListener("click", () => aceptarGhost(g, target, s));
+      g.querySelector(".ghost-x").addEventListener("click", ev => {
+        ev.stopPropagation();
+        _GHOST_DISMISSED.add(_dismissKey(target, s.nombre));
+        _guardarDismissed();
+        g.remove();
+      });
+      cont.appendChild(g);
+    });
+  });
+}
+
+function refreshGhosts() {
+  // Quita ghosts que ya no aplican (nombre ya registrado en la celda, o el
+  // día anterior ya no tiene ese nombre) y agrega los que correspondan ahora.
+  document.querySelectorAll("td.data-cell").forEach(td => {
+    const ghosts = td.querySelectorAll(".entry.ghost");
+    if (!ghosts.length) return;
+    const day = parseInt(td.dataset.day, 10);
+    const cells = Array.from(td.parentElement.querySelectorAll("td.data-cell"));
+    const prev = cells.find(c => parseInt(c.dataset.day, 10) === day - 1);
+    const prevNames = prev ? _realNames(prev) : new Set();
+    const curNames = _realNames(td);
+    ghosts.forEach(g => {
+      const n = g.dataset.nombre || "";
+      if (curNames.has(n) || !prevNames.has(n)) g.remove();
+    });
+  });
+  renderGhosts();
+}
+
+async function aceptarGhost(g, td, s) {
+  const key = td.dataset.recinto + "|" + td.dataset.day + "|" + s.nombre;
+  if (_GHOST_SAVING.has(key)) return;
+  _GHOST_SAVING.add(key);
+  g.style.pointerEvents = "none";
+  g.style.opacity = ".35";
+  const payload = {
+    recinto:        td.dataset.recinto,
+    fecha:          td.dataset.year + "-" + td.dataset.month + "-" + String(td.dataset.day).padStart(2, "0"),
+    nombre_guardia: s.nombre,
+    rut:            "",
+    tipo_turno:     s.turno,
+    supervisor:     SUPERVISOR_NOMBRE,
+    notas:          s.notas || "",
+  };
+  try {
+    const res = await fetch("/api/guardia/supervisor-registro", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Error al guardar");
+    const div = document.createElement("div");
+    div.className = "entry entry-" + payload.tipo_turno.toLowerCase().replace(/ /g, "-");
+    div.dataset.id = data.id;
+    div.dataset.turno = payload.tipo_turno;
+    div.dataset.supervisor = payload.supervisor;
+    div.dataset.notas = payload.notas;
+    div.innerHTML = `<span class="entry-nombre" onclick="verDetalle(this.closest('.entry'))">${escHtml(s.nombre)}</span>
+      <button class="del-btn" title="Eliminar" onclick="eliminar(event,${data.id})">✕</button>`;
+    g.replaceWith(div);
+    refreshGhosts();
+  } catch (err) {
+    mostrarToastSv("Error: " + err.message);
+    g.style.pointerEvents = "";
+    g.style.opacity = "";
+  } finally {
+    _GHOST_SAVING.delete(key);
+  }
+}
+
+renderGhosts();
+</script>
+
+{% if origen == 'guardia' %}
+<!-- ── TABS DE GRUPO (solo desde Panel Guardias) ────────── -->
+<style>
+.grupo-tabs{
+  position:fixed;bottom:0;left:0;right:0;z-index:90;
+  display:flex;align-items:center;gap:0;
+  background:rgba(11,20,36,.92);backdrop-filter:blur(10px);
+  border-top:1px solid rgba(255,255,255,.1);
+  padding:0 20px;height:46px;
+}
+.grupo-tab{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:0 18px;height:100%;
+  font-size:13px;font-weight:700;color:rgba(255,255,255,.55);
+  text-decoration:none;border-bottom:3px solid transparent;
+  transition:color .15s,border-color .15s;white-space:nowrap;
+}
+.grupo-tab:hover{color:rgba(255,255,255,.85)}
+.grupo-tab.active{color:#fff;border-bottom-color:#ff6e23}
+.grupo-tab .dot{
+  width:8px;height:8px;border-radius:50%;flex-shrink:0;
+}
+.dot-quintero{background:#3d73a8}
+.dot-privados{background:#22c55e}
+.dot-concon{background:#20a6b8}
+</style>
+
+<nav class="grupo-tabs">
+  <a class="grupo-tab {% if grupo == 'quintero' %}active{% endif %}"
+     href="/guardia/tabla-supervisor?year={{ year }}&month={{ month }}&grupo=quintero&origen=guardia">
+    <span class="dot dot-quintero"></span>Quintero
+  </a>
+  <a class="grupo-tab {% if grupo == 'privados' %}active{% endif %}"
+     href="/guardia/tabla-supervisor?year={{ year }}&month={{ month }}&grupo=privados&origen=guardia">
+    <span class="dot dot-privados"></span>Privados
+  </a>
+  <a class="grupo-tab {% if grupo == 'concon' %}active{% endif %}"
+     href="/guardia/tabla-supervisor?year={{ year }}&month={{ month }}&grupo=concon&origen=guardia">
+    <span class="dot dot-concon"></span>Concón
+  </a>
+</nav>
+<div style="height:46px"></div>
+{% endif %}
+  <script src="/static/atc-logo-home.js"></script>
+  <script>
+  </script>
+<script src="/static/atc-volver.js"></script>
+</body>
+</html>

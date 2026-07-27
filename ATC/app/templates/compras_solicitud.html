@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Solicitud de Compra — ATC</title>
+  <link rel="stylesheet" href="/static/base.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy-1: #0b1420;
+      --navy-2: #162538;
+      --navy-3: #1e3248;
+      --orange: #ff7a2b;
+      --orange-2: #ff9448;
+      --orange-dark: #e8691f;
+      --surface: #ffffff;
+      --bg: #f0f4f8;
+      --border: #e2e8f0;
+      --border-focus: #ff7a2b;
+      --text: #0f172a;
+      --muted: #64748b;
+      --label: #374151;
+      --danger: #dc2626;
+      --success: #166534;
+      --radius: 9px;
+      --radius-lg: 22px;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 32px 16px;
+    }
+
+    /* ── SHELL ── */
+    .shell {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      width: 100%;
+      max-width: 900px;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgba(0,0,0,.06), 0 20px 60px rgba(0,0,0,.14);
+    }
+
+    /* ── PANEL IZQUIERDO ── */
+    .panel-left {
+      background: linear-gradient(160deg, var(--navy-1) 0%, var(--navy-2) 55%, var(--navy-3) 100%);
+      padding: 36px 26px 40px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+    .panel-left::before {
+      content: '';
+      position: absolute;
+      top: -80px; right: -80px;
+      width: 260px; height: 260px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,122,43,.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .panel-left::after {
+      content: '';
+      position: absolute;
+      bottom: -60px; left: -60px;
+      width: 200px; height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(61,115,168,.14) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .brand-mark {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 24px;
+    }
+    .brand-mark img {
+      width: 120px;
+      height: 120px;
+      object-fit: contain;
+      opacity: .95;
+    }
+
+    .panel-left h2 {
+      font-size: 20px;
+      font-weight: 800;
+      color: #f4f8f9;
+      line-height: 1.25;
+      letter-spacing: -.03em;
+      margin-bottom: 10px;
+      position: relative;
+    }
+    .panel-left p {
+      font-size: 12.5px;
+      color: #bed0d6;
+      line-height: 1.65;
+      position: relative;
+    }
+
+    .flow-steps {
+      margin-top: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+    }
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .step-num {
+      flex-shrink: 0;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(255,122,43,.2);
+      border: 1px solid rgba(255,122,43,.4);
+      color: var(--orange-2);
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+    .step-text {
+      font-size: 12px;
+      color: #a0b4be;
+      line-height: 1.5;
+    }
+    .step-text strong {
+      color: #d0dfe5;
+      font-weight: 600;
+    }
+
+    .user-chip {
+      margin-top: auto;
+      padding-top: 28px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #7a9baa;
+      position: relative;
+    }
+    .user-chip::before {
+      content: '';
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #4ade80;
+      flex-shrink: 0;
+    }
+
+    /* ── PANEL DERECHO ── */
+    .panel-right {
+      background: var(--surface);
+      padding: 36px 36px 40px;
+      overflow-y: auto;
+      max-height: calc(100vh - 64px);
+    }
+
+    .form-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.03em;
+      margin-bottom: 4px;
+    }
+    .form-subtitle {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 28px;
+    }
+
+    /* ── SECCIÓN ── */
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+      margin-bottom: 10px;
+      margin-top: 24px;
+    }
+    .section-label:first-of-type { margin-top: 0; }
+
+    /* ── ÍTEMS ── */
+    .items-head {
+      display: grid;
+      grid-template-columns: 1fr 72px 130px 32px;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .items-head span {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .items-head .c-r { text-align: center; }
+
+    .item-row {
+      display: grid;
+      grid-template-columns: 1fr 72px 130px 32px;
+      gap: 6px;
+      margin-bottom: 6px;
+      align-items: center;
+    }
+
+    input[type="text"], input[type="number"], select, textarea {
+      font-family: inherit;
+      font-size: 13.5px;
+      color: var(--text);
+      background: #fafbfc;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0 11px;
+      height: 38px;
+      width: 100%;
+      transition: border-color .15s, box-shadow .15s;
+      outline: none;
+    }
+    input[type="text"]:focus, input[type="number"]:focus,
+    select:focus, textarea:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(255,122,43,.12);
+      background: #fff;
+    }
+    textarea {
+      height: auto;
+      padding: 10px 11px;
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .item-del {
+      width: 32px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: #fafbfc;
+      color: var(--muted);
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background .15s, color .15s, border-color .15s;
+    }
+    .item-del:hover { background: #fee2e2; border-color: #fca5a5; color: var(--danger); }
+
+    .btn-add-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      padding: 7px 14px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--orange-dark);
+      background: rgba(255,122,43,.06);
+      border: 1px dashed rgba(255,122,43,.35);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: background .15s, border-color .15s;
+    }
+    .btn-add-item:hover { background: rgba(255,122,43,.11); border-color: rgba(255,122,43,.5); }
+
+    .total-row {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .total-row span { color: var(--muted); font-weight: 500; }
+
+    /* ── GRID 2 COLS ── */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    /* ── FILE UPLOAD ── */
+    .file-drop {
+      border: 1.5px dashed #cbd5e1;
+      border-radius: var(--radius);
+      background: #fafbfc;
+      padding: 18px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+    }
+    .file-drop:hover { border-color: var(--orange); background: rgba(255,122,43,.04); }
+    .file-drop-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--orange-dark);
+    }
+    .file-drop-hint {
+      font-size: 11.5px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .file-list { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+    .file-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 10px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 12.5px;
+      color: var(--label);
+    }
+    .file-item button {
+      border: none; background: none; color: var(--muted);
+      cursor: pointer; font-size: 14px; padding: 0 2px;
+      line-height: 1;
+      transition: color .15s;
+    }
+    .file-item button:hover { color: var(--danger); }
+
+    /* ── SUBMIT ── */
+    .btn-submit {
+      margin-top: 24px;
+      width: 100%;
+      height: 44px;
+      background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-size: 14.5px;
+      font-weight: 700;
+      letter-spacing: -.01em;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(232,105,31,.25), 0 4px 12px rgba(232,105,31,.2);
+      transition: opacity .15s, transform .12s, box-shadow .15s;
+    }
+    .btn-submit:hover { opacity: .92; transform: translateY(-1px); box-shadow: 0 6px 18px rgba(232,105,31,.28); }
+    .btn-submit:active { transform: translateY(0); }
+    .btn-submit:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    /* ── FEEDBACK ── */
+    .feedback {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 600;
+      display: none;
+    }
+    .feedback.ok  { display: block; background: #f0fdf4; border: 1px solid #bbf7d0; color: var(--success); }
+    .feedback.err { display: block; background: #fef2f2; border: 1px solid #fecaca; color: var(--danger); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 700px) {
+      body { padding: 0; align-items: stretch; }
+      .shell { grid-template-columns: 1fr; border-radius: 0; box-shadow: none; }
+      .panel-left { padding: 28px 22px 26px; }
+      .flow-steps, .user-chip { display: none; }
+      .panel-right { max-height: none; padding: 28px 22px 36px; }
+      .items-head { display: none; }
+      .item-row { grid-template-columns: 1fr 1fr; }
+      .item-row .item-desc { grid-column: 1 / -1; }
+      .item-del { width: 100%; justify-content: center; }
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+
+    <!-- Panel izquierdo -->
+    <aside class="panel-left">
+      <div class="brand-mark">
+        <img src="/shared-static/img/logo-atc.png" alt="ATC"
+             onerror="this.src='https://i.imgur.com/VgLG9Ei.png'">
+      </div>
+      <h2>Solicitud de Compra</h2>
+      <p>Gestiona tus pedidos internos de forma ordenada y trazable.</p>
+
+      <div class="flow-steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-text"><strong>Ingresa ítems</strong><br>Links o descripciones con cantidad y precio.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-text"><strong>Selecciona destino</strong><br>Empresa y centro al que va dirigida la compra.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-text"><strong>Adjunta presupuesto</strong><br>Opcional. Hasta 3 archivos (PDF, imagen o doc).</div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-text"><strong>Flujo de aprobación</strong><br>Operaciones → Contabilidad → Compras.</div>
+        </div>
+      </div>
+
+      <a id="btnVolver" href="/seleccionar-area?token={{ token|default('') }}" style="
+        display:inline-flex;align-items:center;gap:6px;
+        margin-top:18px;padding:8px 14px;
+        border-radius:8px;border:1px solid rgba(255,255,255,.14);
+        background:rgba(255,255,255,.06);color:rgba(255,255,255,.85);
+        font-size:12.5px;font-weight:600;text-decoration:none;
+        transition:background .15s;
+      " onmouseover="this.style.background='rgba(255,255,255,.11)'"
+         onmouseout="this.style.background='rgba(255,255,255,.06)'">Volver</a>
+
+      <div class="user-chip">{{ user.name }}</div>
+    </aside>
+
+    <!-- Panel derecho -->
+    <main class="panel-right">
+      <div class="form-title">Nueva solicitud</div>
+      <div class="form-subtitle">Completa los campos y envía tu pedido para que sea revisado.</div>
+
+      <!-- ÍTEMS -->
+      <div class="section-label">Ítems a comprar</div>
+
+      <div class="items-head">
+        <span>Descripción o link</span>
+        <span class="c-r">Cant.</span>
+        <span class="c-r">Precio unitario</span>
+        <span></span>
+      </div>
+
+      <div id="itemsContainer">
+        <div class="item-row">
+          <input type="text" class="item-desc" placeholder="Link o descripción del ítem">
+          <input type="number" class="item-qty" min="1" value="1">
+          <input type="number" class="item-price" min="0" value="0" placeholder="0">
+          <button type="button" class="item-del" title="Quitar fila">×</button>
+        </div>
+      </div>
+
+      <button type="button" class="btn-add-item" onclick="agregarItem()">
+        + Agregar ítem
+      </button>
+
+      <div class="total-row">
+        <span>Total estimado</span>
+        <strong id="totalCompra">$0</strong>
+      </div>
+
+      <!-- DESTINO -->
+      <div class="section-label">Destino</div>
+      <div class="grid-2">
+        <div>
+          <select id="empresaSelect" onchange="cargarCentros()" required>
+            <option value="">Empresa…</option>
+            <option value="ATC">ATC</option>
+            <option value="VL">VL</option>
+          </select>
+        </div>
+        <div>
+          <select id="centroSelect" required>
+            <option value="">Centro…</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- MOTIVO -->
+      <div class="section-label">Motivo de la compra</div>
+      <textarea id="observacion" placeholder="Describe el motivo o necesidad…" rows="3"></textarea>
+
+      <!-- PRESUPUESTOS -->
+      <div class="section-label">Presupuestos <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">(opcional)</span></div>
+      <div class="file-drop" onclick="document.getElementById('presupuestos').click()">
+        <div class="file-drop-label">Elegir archivos</div>
+        <div class="file-drop-hint">Hasta 3 archivos · PDF, imagen o documento</div>
+      </div>
+      <input type="file" id="presupuestos" multiple
+             accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
+             style="display:none">
+      <div class="file-list" id="fileList"></div>
+
+      <!-- SUBMIT -->
+      <button class="btn-submit" id="btnEnviar" onclick="enviar()">Enviar solicitud</button>
+      <div class="feedback" id="feedback"></div>
+    </main>
+  </div>
+
+  <script>
+    const DESTINOS = {
+      ATC: ["Administración","Quilpué","Concón Guardia","Concón Calles","CMM Rosa",
+            "Llaillay","Quintero Municipal","Servicio Técnico","Eventos",
+            "Servicios a privados","Soporte técnico","Quintero Desam",
+            "Viña Calles","Villa Alemana Calles"],
+      VL:  ["Administración","Bodega","Viña 1","Viña 2"]
+    };
+
+    let archivos = [];
+
+    /* ── FILE UPLOAD ── */
+    document.getElementById("presupuestos").addEventListener("change", e => {
+      Array.from(e.target.files).forEach(f => {
+        if (archivos.length >= 3) return;
+        if (!archivos.some(x => x.name === f.name && x.size === f.size)) archivos.push(f);
+      });
+      if (archivos.length > 3) archivos = archivos.slice(0, 3);
+      renderArchivos();
+      e.target.value = "";
+    });
+
+    function renderArchivos() {
+      const list = document.getElementById("fileList");
+      list.innerHTML = archivos.map((f, i) => `
+        <div class="file-item">
+          <span>${f.name}</span>
+          <button onclick="quitarArchivo(${i})" title="Quitar">×</button>
+        </div>`).join("");
+    }
+
+    function quitarArchivo(i) { archivos.splice(i, 1); renderArchivos(); }
+
+    /* ── CENTROS ── */
+    function cargarCentros() {
+      const emp = document.getElementById("empresaSelect").value;
+      const sel = document.getElementById("centroSelect");
+      sel.innerHTML = '<option value="">Centro…</option>';
+      (DESTINOS[emp] || []).forEach(c => {
+        const o = document.createElement("option");
+        o.value = o.textContent = c;
+        sel.appendChild(o);
+      });
+    }
+
+    /* ── ITEMS ── */
+    function _makeRow() {
+      const row = document.createElement("div");
+      row.className = "item-row";
+      row.innerHTML = `
+        <input type="text"   class="item-desc"  placeholder="Link o descripción del ítem">
+        <input type="number" class="item-qty"   min="1" value="1">
+        <input type="number" class="item-price" min="0" value="0" placeholder="0">
+        <button type="button" class="item-del" title="Quitar fila">×</button>`;
+      row.querySelector(".item-del").onclick   = () => { row.remove(); calcTotal(); };
+      row.querySelector(".item-qty").oninput   = calcTotal;
+      row.querySelector(".item-price").oninput = calcTotal;
+      return row;
+    }
+
+    function agregarItem() {
+      document.getElementById("itemsContainer").appendChild(_makeRow());
+      calcTotal();
+    }
+
+    /* Configurar primer fila (ya en el DOM) */
+    document.querySelectorAll(".item-row").forEach(row => {
+      row.querySelector(".item-del").onclick   = () => { row.remove(); calcTotal(); };
+      row.querySelector(".item-qty").oninput   = calcTotal;
+      row.querySelector(".item-price").oninput = calcTotal;
+    });
+
+    function calcTotal() {
+      let total = 0;
+      document.querySelectorAll(".item-row").forEach(row => {
+        const q = parseInt(row.querySelector(".item-qty")?.value || "1", 10);
+        const p = parseInt(row.querySelector(".item-price")?.value || "0", 10);
+        total += q * p;
+      });
+      document.getElementById("totalCompra").textContent =
+        "$" + total.toLocaleString("es-CL");
+    }
+
+    document.addEventListener("input", e => {
+      if (e.target.classList.contains("item-qty") || e.target.classList.contains("item-price"))
+        calcTotal();
+    });
+
+    /* ── ENVIAR ── */
+    async function enviar() {
+      const empresa = document.getElementById("empresaSelect").value;
+      const centro  = document.getElementById("centroSelect").value;
+      const motivo  = document.getElementById("observacion").value.trim();
+      const btn     = document.getElementById("btnEnviar");
+      const fb      = document.getElementById("feedback");
+
+      if (!empresa || !centro) return mostrarFb("Selecciona empresa y centro.", false);
+      if (!motivo)              return mostrarFb("El motivo es obligatorio.", false);
+
+      const items = [];
+      document.querySelectorAll(".item-row").forEach(row => {
+        const texto = row.querySelector(".item-desc").value.trim();
+        if (!texto) return;
+        const cantidad      = parseInt(row.querySelector(".item-qty").value  || "1", 10);
+        const precioUnitario = parseInt(row.querySelector(".item-price").value || "0", 10);
+        items.push({ texto, cantidad, precio_unitario: precioUnitario,
+                     subtotal: cantidad * precioUnitario, es_link: texto.startsWith("http") });
+      });
+
+      if (!items.length) return mostrarFb("Ingresa al menos un ítem.", false);
+
+      btn.disabled = true;
+      btn.textContent = "Enviando…";
+      fb.className = "feedback";
+
+      const fd = new FormData();
+      fd.append("empresa", empresa);
+      fd.append("centro", centro);
+      fd.append("motivo", motivo);
+      fd.append("items_json", JSON.stringify(items));
+      archivos.forEach(f => fd.append("presupuestos", f));
+
+      try {
+        const r = await fetch("/compras/solicitud", { method: "POST", body: fd });
+        const raw = await r.text();
+        let d = {};
+        try {
+          d = raw ? JSON.parse(raw) : {};
+        } catch {
+          d = { detail: raw || "Respuesta no válida del servidor." };
+        }
+        if (r.ok && d.ok) {
+          mostrarFb(`✓ Solicitud ${d.codigo} enviada. Te notificaremos por correo con el estado.`, true);
+          limpiar();
+        } else {
+          mostrarFb(d.detail || "No se pudo enviar la solicitud.", false);
+        }
+      } catch {
+        mostrarFb("Error de conexión. Intenta nuevamente.", false);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Enviar solicitud";
+      }
+    }
+
+    function mostrarFb(msg, ok) {
+      const fb = document.getElementById("feedback");
+      fb.textContent = msg;
+      fb.className = "feedback " + (ok ? "ok" : "err");
+    }
+
+    function limpiar() {
+      document.getElementById("observacion").value = "";
+      document.getElementById("empresaSelect").value = "";
+      document.getElementById("centroSelect").innerHTML = '<option value="">Centro…</option>';
+      archivos = [];
+      renderArchivos();
+      document.getElementById("itemsContainer").innerHTML = "";
+      document.getElementById("itemsContainer").appendChild(_makeRow());
+      calcTotal();
+    }
+
+  </script>
+  <script src="/static/atc-logo-home.js"></script>
+<script src="/static/atc-volver.js"></script>
+</body>
+</html>

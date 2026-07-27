@@ -1,0 +1,1116 @@
+﻿<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Tabla Servicio Técnico - ODS</title>
+  <link rel="stylesheet" href="/static/base.css">
+<style>
+:root {
+  --bg:           #f6f8fb;
+  --surface:      #ffffff;
+  --surface-alt:  #fafbfc;
+  --border:       #e5e7eb;
+  --border-soft:  #f1f5f9;
+  --border-strong:#cbd5e1;
+
+  --text:         #0f172a;
+  --text-soft:    #334155;
+  --text-muted:   #64748b;
+  --label:        #64748b;
+  --placeholder:  #94a3b8;
+
+  --accent:        #f4a672;
+  --accent-hover:  #e89254;
+  --accent-strong: #c2410c;
+  --accent-soft:   rgba(244,166,114,.14);
+  --header-bg:     #f4a672;
+  --header-border: #e89254;
+  --header-text:   #ffffff;
+
+  /* Área: Servicio Técnico -> naranja tenue (mismo tono unificado) */
+  --area-text:   #c2410c;
+  --area-bg:     rgba(244,166,114,.18);
+  --area-border: var(--accent);
+
+  --ok-bg:    #ecfdf5;
+  --ok-fg:    #166534;
+  --ok-bd:    rgba(22,101,52,.18);
+  --pend-bg:  #f8fafc;
+  --pend-fg:  #475569;
+  --pend-bd:  #e5e7eb;
+  --info-bg:  #eff6ff;
+  --info-fg:  #1e40af;
+  --info-bd:  rgba(30,64,175,.18);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { min-height: 100%; height: 100%; }
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: -0.005em;
+  display: flex; flex-direction: column;
+  min-height: 100vh;
+  height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+}
+
+.content-shell {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.header {
+  position: sticky; top: 0; z-index: 50;
+  background: linear-gradient(180deg, #0b1424 0%, #111c2f 100%);
+  display: flex; align-items: center; gap: 18px;
+  padding: 20px 30px;
+  min-height: 108px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  flex-shrink: 0;
+}
+.header-logo {
+  height: 68px; width: auto; object-fit: contain;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,.30));
+}
+.header-title { flex: 1; color: #fff; font-size: 20px; font-weight: 700; letter-spacing: -.02em; line-height: 1.25; }
+.header-title small { display: block; font-size: 13.5px; font-weight: 500; color: rgba(255,255,255,.72); margin-top: 6px; line-height: 1.45; }
+.header-actions { display: flex; gap: 10px; align-items: center; }
+.session-user {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 4px;
+  color: rgba(255,255,255,.92);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.btn {
+  appearance: none; padding: 8px 14px; border-radius: 7px;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+  border: 1px solid transparent; outline: none;
+  font-family: inherit; letter-spacing: -.005em; line-height: 1.3;
+  text-decoration: none;
+}
+.btn-ghost {
+  background: rgba(255,255,255,.04);
+  border-color: rgba(255,255,255,.12);
+  color: rgba(255,255,255,.92);
+}
+.btn-ghost:hover { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.22); }
+
+/* Filters */
+.filters {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 11px 22px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  box-shadow: 0 1px 0 var(--border);
+}
+.search-box {
+  flex: 1; min-width: 240px;
+  padding: 9px 12px 9px 34px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: #fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'/><path d='m21 21-4.3-4.3'/></svg>") no-repeat 11px center;
+  color: var(--text); font-size: 13px; font-weight: 500; outline: none; font-family: inherit;
+  transition: border-color .15s, box-shadow .15s;
+}
+.search-box::placeholder { color: var(--placeholder); font-weight: 500; }
+.search-box:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(244,166,114,.20); }
+.counter {
+  display: inline-flex; align-items: center;
+  padding: 6px 12px; background: var(--surface-alt); border: 1px solid var(--border);
+  border-radius: 999px; font-size: 12.5px; color: var(--text-soft);
+  font-weight: 700; letter-spacing: .02em; white-space: nowrap;
+}
+
+/* Table */
+.tabla-container { flex: 1; background: var(--surface); }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 13px;
+}
+
+@media (max-width: 760px) {
+  html, body {
+    height: auto;
+    min-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  body {
+    height: auto;
+    min-height: 100dvh;
+    overflow-y: auto;
+  }
+
+  .content-shell {
+    overflow: visible;
+  }
+
+  .tabla-container {
+    max-width: 100vw;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    min-width: 1500px;
+  }
+
+  thead th,
+  td {
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+}
+
+thead th {
+  background: var(--header-bg);
+  color: var(--header-text);
+  font-weight: 700;
+  font-size: 10.5px;
+  padding: 10px 8px;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--header-border);
+  line-height: 1.35;
+  vertical-align: middle;
+}
+thead th.th-terminado { vertical-align: middle; padding-bottom: 10px; }
+
+.filtro-container { margin-top: 8px; display: block; }
+.filtro-container select, select.filtro {
+  width: 100%;
+  min-height: 30px;
+  padding: 4px 22px 4px 9px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>") no-repeat right 6px center;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer; outline: none;
+  appearance: none; -webkit-appearance: none;
+  text-transform: none; letter-spacing: 0;
+  transition: border-color .15s, box-shadow .15s;
+}
+.filtro-container select:focus, select.filtro:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(244,166,114,.20);
+}
+
+tbody tr {
+  border-bottom: 1px solid #e2e8f0;
+  transition: background .18s, box-shadow .18s;
+  box-shadow: inset 3px 0 0 #cbd5e1;
+}
+tbody tr:nth-child(even):not(.fila-anulada) { background: #fafbfc; }
+tbody tr:hover:not(.fila-anulada) {
+  background: #f1f5fb;
+  box-shadow: inset 3px 0 0 var(--area-text), 0 1px 0 rgba(15,23,42,.04);
+}
+tbody tr.fila-anulada {
+  opacity: .50;
+  background: #fef2f2 !important;
+  box-shadow: inset 3px 0 0 #dc2626;
+  pointer-events: none;
+}
+tbody tr.fila-anulada td { color: #7f1d1d; text-decoration: line-through; }
+tbody tr:first-child td { padding-top: 18px; }
+
+td {
+  padding: 12px 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  text-align: center;
+  color: var(--text);
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
+  line-height: 1.45;
+  vertical-align: middle;
+}
+
+a.link-estilo {
+  display: inline-block;
+  font-weight: 700;
+  font-size: 12.5px;
+  color: var(--area-text);
+  text-decoration: none;
+  cursor: pointer;
+  letter-spacing: .015em;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background .15s, color .15s;
+}
+a.link-estilo:hover { background: var(--area-bg); color: var(--accent-strong); }
+
+/* Botones de estado */
+.boton-estado {
+  appearance: none;
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  outline: none;
+  font-family: inherit;
+  letter-spacing: .015em;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  line-height: 1.35;
+  transition: background .15s, border-color .15s, transform .15s, box-shadow .15s;
+}
+.boton-estado:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(15,23,42,.07); }
+.boton-estado.completado { background: var(--ok-bg); color: var(--ok-fg); border-color: var(--ok-bd); }
+.boton-estado.pendiente  { background: var(--pend-bg); color: var(--pend-fg); border-color: var(--pend-bd); }
+.boton-estado.mini { padding: 5px 8px; background: var(--info-bg); color: var(--info-fg); border-color: var(--info-bd); }
+.estado-plano {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  line-height: 1.35;
+}
+.estado-plano.completado { background: var(--ok-bg); color: var(--ok-fg); border-color: var(--ok-bd); }
+.estado-plano.pendiente { background: var(--pend-bg); color: var(--pend-fg); border-color: var(--pend-bd); }
+.timestamp-plano {
+  display: inline-block;
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.timestamp-plano.vacio {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Inputs / selects / textarea de celdas */
+td input[type="date"],
+td input[type="text"],
+td select,
+td textarea {
+  width: 100%;
+  padding: 7px 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color .15s, box-shadow .15s;
+}
+td input:focus, td select:focus, td textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(244,166,114,.20);
+}
+td textarea { resize: vertical; min-height: 48px; }
+
+/* Detalle popup (dirección / ODT) */
+.detalle-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+  background: rgba(15, 23, 42, .48);
+}
+.detalle-modal.abierto { display: flex; }
+.detalle-modal-card {
+  width: min(720px, 100%);
+  max-height: min(82vh, 760px);
+  overflow: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 22px 60px rgba(15, 23, 42, .28);
+}
+.detalle-modal-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 18px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.detalle-modal-title { font-size: 16px; font-weight: 800; color: var(--text); letter-spacing: -.015em; }
+.detalle-modal-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text-soft);
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+}
+.detalle-modal-body {
+  padding: 18px;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.6;
+  color: var(--text);
+}
+.detalle-modal-body b { color: var(--text-soft); font-weight: 700; }
+.detalle-modal-body pre {
+  white-space: pre-wrap; font-family: inherit; margin: 6px 0;
+  color: var(--text-soft);
+  background: #fff; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border);
+}
+.detalle-modal-body a.link-estilo { font-size: 12px; }
+.editor-modal-field {
+  display: grid;
+  gap: 7px;
+}
+.editor-modal-field label {
+  font-size: 11.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--label);
+}
+.editor-modal-field textarea,
+.editor-modal-field input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--text);
+  background: #fff;
+  outline: none;
+}
+.editor-modal-field textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+.editor-modal-field input {
+  min-height: 40px;
+}
+.editor-modal-field textarea:focus,
+.editor-modal-field input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(244,166,114,.20);
+}
+.detalle-modal-card.editor-compact {
+  width: min(360px, 94vw);
+  max-height: none;
+}
+.detalle-modal-card.editor-compact .detalle-modal-head {
+  padding: 12px 14px;
+}
+.detalle-modal-card.editor-compact .detalle-modal-title {
+  font-size: 14px;
+}
+.detalle-modal-card.editor-compact .detalle-modal-body {
+  padding: 14px;
+}
+.editor-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+#loading { text-align: center; padding: 56px 20px; color: var(--text-muted); font-size: 14px; font-weight: 500; }
+@media (max-width: 760px) {
+  .tabla-container { max-width: 100vw; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  thead th, td { overflow-wrap: normal !important; word-break: normal !important; }
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <img class="header-logo" src="/shared-static/img/logo-atc.png" alt="ATC" onerror="this.style.display='none'"/>
+  <div class="header-title">
+    Tabla Servicio Técnico - ODS
+    <small>Coordinación e instalación de servicios por orden</small>
+  </div>
+  <div class="header-actions">
+    <div class="session-user" id="usuarioActual">Sesion: Cargando...</div>
+    <a class="btn btn-ghost" id="btnVolver" href="/?form=panelSelectorServicio&token={{ token|default('') }}">Volver</a>
+  </div>
+</header>
+
+<div class="content-shell" id="pageContentScroll">
+<div class="filters">
+  <input type="text" class="search-box" id="searchBox"
+    placeholder="Buscar por ODT, cliente, RUT, ejecutivo…"
+    oninput="aplicarFiltroTerminado()"/>
+  <span class="counter" id="counter">Cargando...</span>
+</div>
+
+<div class="tabla-container">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:5.5%">ODT</th>
+        <th style="width:5%">Fecha</th>
+        <th style="width:6%">Ejecutivo</th>
+        <th style="width:5%">RUT Cliente</th>
+        <th style="width:6%">Sucursal</th>
+        <th style="width:7%">Dirección Sucursal</th>
+        <th style="width:6.5%">Tipo Servicio</th>
+        <th style="width:6.5%">Recepción solicitud instalación</th>
+        <th style="width:6%">Llamar cliente</th>
+        <th style="width:6%">Solicitud Materiales</th>
+        <th style="width:6%">Fecha inicio instalación</th>
+        <th style="width:6%">Fecha estimada fin instalación</th>
+        <th style="width:8%">Técnicos a Cargo</th>
+        <th style="width:6%">Instalación Finalizada</th>
+        <th style="width:6%">Layout Final Instalación</th>
+        <th style="width:6%" class="th-terminado">
+          Terminado
+          <div class="filtro-container">
+            <select id="filtroTerminado" class="filtro">
+              <option value="Pendiente" selected>Pendientes</option>
+              <option value="check">Terminados</option>
+              <option value="Todos">Todos</option>
+              <option value="Anuladas">Anuladas</option>
+            </select>
+          </div>
+        </th>
+      </tr>
+    </thead>
+    <tbody id="tablaDatos"></tbody>
+  </table>
+</div>
+</div>
+
+<div class="detalle-modal" id="detalleModal" aria-hidden="true">
+  <div class="detalle-modal-card" role="dialog" aria-modal="true" aria-labelledby="detalleModalTitle">
+    <div class="detalle-modal-head">
+      <div class="detalle-modal-title" id="detalleModalTitle">Detalle</div>
+      <button class="detalle-modal-close" type="button" onclick="cerrarDetalleModal()" aria-label="Cerrar">×</button>
+    </div>
+    <div class="detalle-modal-body" id="detalleModalBody"></div>
+  </div>
+</div>
+
+<div class="detalle-modal" id="editorModal" aria-hidden="true">
+  <div class="detalle-modal-card" id="editorModalCard" role="dialog" aria-modal="true" aria-labelledby="editorModalTitle">
+    <div class="detalle-modal-head">
+      <div class="detalle-modal-title" id="editorModalTitle">Editar</div>
+      <button class="detalle-modal-close" type="button" onclick="cerrarEditorModal()" aria-label="Cerrar">×</button>
+    </div>
+    <div class="detalle-modal-body">
+      <div class="editor-modal-field">
+        <label id="editorModalLabel" for="editorModalText">Detalle</label>
+        <input id="editorModalInput" type="text" autocomplete="name" maxlength="120"/>
+        <textarea id="editorModalText"></textarea>
+      </div>
+      <div class="editor-modal-actions">
+        <button class="boton-estado pendiente" type="button" onclick="cerrarEditorModal()">Cancelar</button>
+        <button class="boton-estado completado" type="button" id="editorModalSave">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const token = new URLSearchParams(window.location.search).get("token") || "";
+  async function cargarUsuarioActual() {
+    const el = document.getElementById("usuarioActual");
+    if (!el || !token) return;
+    try {
+      const res = await fetch(`/api/usuario-actual?token=${encodeURIComponent(token)}`, { credentials: "include" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error("No se pudo cargar usuario");
+      el.textContent = data?.usuario || "Desconocido";
+    } catch (_err) {
+      el.textContent = "Desconocido";
+    }
+  }
+  const tbody = document.getElementById("tablaDatos");
+  const tecnicos = [
+    "Cristopher Enrique Soto Diaz",
+    "Dwait German Aros Contreras",
+    "Luis Alberto Bustamante Aguilera",
+    "Marco Antonio Lopez Aguirre",
+    "Diego Antonio Moncada Sepulveda",
+    "Jason Kevin Perez Ortiz",
+    "Enrique Alejandro Sandoval Nunez",
+    "Jesus Sebastian Gonzalez Aguilera",
+    "Omar Alejandro Trivino Silva",
+    "Mauro Estefano Reyes Villegas",
+    "Haxel Samir Del Carmen Saavedra Villanueva",
+    "Felipe Ignacio Mora Munoz",
+    "Bryan Alexander Rebolledo Hidalgo",
+    "Nicolas Alfonso Bravo Rain",
+    "Ricardo Andres Vergara Guerra",
+    "Emmanuel Issak Correa Ubilla",
+    "Michael Alejandro Herrera Navia",
+    "Hans Reinhold Schemmel Rodriguez",
+    "Rodrigo Octavio Carmona Agurto",
+    "Bryan Benjamin Ibaceta Fabrega",
+    "Javier Ignacio Salgado Brito"
+  ];
+
+  function api(path){
+    const sep = path.includes("?") ? "&" : "?";
+    return `${path}${sep}token=${encodeURIComponent(token)}`;
+  }
+
+  async function postEstado(codigo, campo, valor){
+    const res = await fetch(api("/api/venta/servicio-tecnico-ods/estado"), {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({codigo,campo,valor})
+    });
+    const data = await res.json();
+    if(!res.ok || !data?.ok) throw new Error(data?.detail || "No se pudo actualizar.");
+    return data;
+  }
+
+  async function postValor(codigo, campo, valor){
+    const res = await fetch(api("/api/venta/servicio-tecnico-ods/valor"), {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({codigo,campo,valor})
+    });
+    const data = await res.json();
+    if(!res.ok || !data?.ok) throw new Error(data?.detail || "No se pudo guardar.");
+    return data;
+  }
+
+  function estadoBtn(codigo, campo, activo, opciones = {}){
+    const btn = document.createElement("button");
+    btn.className = "boton-estado " + (activo ? "completado" : "pendiente");
+    btn.textContent = activo ? "Finalizado" : "Pendiente";
+    if (opciones.bloqueado) {
+      btn.title = opciones.mensajeBloqueo || "Debes finalizar la instalación antes de terminar.";
+    }
+    btn.addEventListener("click", async () => {
+      try{
+        const nuevo = !btn.classList.contains("completado");
+        if (nuevo && opciones.bloqueado) {
+          alert(opciones.mensajeBloqueo || "Debes finalizar la instalación antes de terminar.");
+          return;
+        }
+        await postEstado(codigo, campo, nuevo);
+        btn.textContent = nuevo ? "Finalizado" : "Pendiente";
+        btn.className = "boton-estado " + (nuevo ? "completado" : "pendiente");
+        aplicarFiltroTerminado();
+      }catch(err){
+        alert(err.message);
+      }
+    });
+    return btn;
+  }
+
+  function estadoTexto(activo){
+    const span = document.createElement("span");
+    span.className = "estado-plano " + (activo ? "completado" : "pendiente");
+    span.textContent = activo ? "Finalizado" : "Pendiente";
+    return span;
+  }
+
+  function fechaInput(codigo, campo, valor){
+    const input = document.createElement("input");
+    input.type = "date";
+    if(valor && /^\d{2}\/\d{2}\/\d{4}$/.test(valor)){
+      const [d,m,y] = valor.split("/");
+      input.value = `${y}-${m}-${d}`;
+    }else if(valor){
+      input.value = valor;
+    }
+    input.addEventListener("change", async () => {
+      const [y,m,d] = input.value.split("-");
+      const final = y && m && d ? `${d}/${m}/${y}` : "";
+      try{ await postValor(codigo, campo, final); }catch(err){ alert(err.message); }
+    });
+    return input;
+  }
+
+  function tecnicoSelect(codigo, campo, valor, placeholder){
+    const select = document.createElement("select");
+    const valorActual = String(valor || "").trim();
+    const empty = document.createElement("option");
+    empty.value = "";
+    empty.textContent = placeholder;
+    select.appendChild(empty);
+    const opciones = [...tecnicos];
+    if (valorActual && !opciones.some((nombre) => nombre === valorActual)) {
+      opciones.unshift(valorActual);
+    }
+    opciones.forEach(nombre => {
+      const opt = document.createElement("option");
+      opt.value = nombre;
+      opt.textContent = nombre;
+      opt.selected = valorActual === nombre;
+      select.appendChild(opt);
+    });
+    select.addEventListener("change", async () => {
+      try{ await postValor(codigo, campo, select.value); }catch(err){ alert(err.message); }
+    });
+    return select;
+  }
+
+  let editorModalGuardar = null;
+  let editorModalTipo = "textarea";
+
+  function abrirEditorModal({ titulo, etiqueta, valor, placeholder, tipo = "textarea", compact = false, onGuardar }){
+    const modal = document.getElementById("editorModal");
+    const card = document.getElementById("editorModalCard");
+    const title = document.getElementById("editorModalTitle");
+    const label = document.getElementById("editorModalLabel");
+    const text = document.getElementById("editorModalText");
+    const input = document.getElementById("editorModalInput");
+    const save = document.getElementById("editorModalSave");
+    title.textContent = titulo || "Editar";
+    label.textContent = etiqueta || "Detalle";
+    editorModalTipo = tipo === "input" ? "input" : "textarea";
+    card.classList.toggle("editor-compact", !!compact);
+    input.style.display = editorModalTipo === "input" ? "" : "none";
+    text.style.display = editorModalTipo === "textarea" ? "" : "none";
+    input.placeholder = placeholder || "";
+    text.placeholder = placeholder || "";
+    input.value = valor || "";
+    text.value = valor || "";
+    editorModalGuardar = onGuardar;
+    save.disabled = false;
+    save.textContent = "Guardar";
+    modal.classList.add("abierto");
+    modal.setAttribute("aria-hidden", "false");
+    setTimeout(() => {
+      const field = editorModalTipo === "input" ? input : text;
+      field.focus();
+      field.setSelectionRange(field.value.length, field.value.length);
+    }, 0);
+  }
+
+  function cerrarEditorModal(){
+    const modal = document.getElementById("editorModal");
+    const card = document.getElementById("editorModalCard");
+    modal.classList.remove("abierto");
+    modal.setAttribute("aria-hidden", "true");
+    card.classList.remove("editor-compact");
+    editorModalGuardar = null;
+  }
+
+  async function guardarEditorModal(){
+    const text = document.getElementById("editorModalText");
+    const input = document.getElementById("editorModalInput");
+    const save = document.getElementById("editorModalSave");
+    if (typeof editorModalGuardar !== "function") return;
+    const field = editorModalTipo === "input" ? input : text;
+    // El input de una linea colapsa todo el espacio en blanco; el textarea
+    // debe conservar los saltos de linea (ej. materiales, uno por fila).
+    const valor = editorModalTipo === "input"
+      ? field.value.replace(/\s+/g, " ").trim()
+      : field.value
+          .split("\n")
+          .map((linea) => linea.replace(/[ \t]+/g, " ").trim())
+          .filter(Boolean)
+          .join("\n");
+    if (!valor) {
+      alert(editorModalTipo === "input" ? "Ingresa un nombre completo." : "Ingresa un detalle antes de guardar.");
+      field.focus();
+      return;
+    }
+    try {
+      save.disabled = true;
+      save.textContent = "Guardando...";
+      await editorModalGuardar(valor);
+      cerrarEditorModal();
+    } catch (err) {
+      alert(err.message || "No se pudo guardar.");
+      save.disabled = false;
+      save.textContent = "Guardar";
+    }
+  }
+
+  document.getElementById("editorModalSave").addEventListener("click", guardarEditorModal);
+  document.getElementById("editorModalText").addEventListener("keydown", event => {
+    if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+      event.preventDefault();
+      guardarEditorModal();
+    }
+  });
+  document.getElementById("editorModalInput").addEventListener("keydown", event => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      guardarEditorModal();
+    }
+  });
+
+  function llamarClienteControl(row){
+    const wrap = document.createElement("div");
+    const valor = row.valores?.llamar_cliente || "";
+    const btn = document.createElement("button");
+    btn.className = "boton-estado " + (valor ? "completado" : "pendiente");
+    btn.textContent = valor ? "Finalizado" : "Pendiente";
+    if(valor) btn.title = valor;
+
+    function limpiarValorActual(raw){
+      const texto = String(raw || "").trim();
+      return texto.replace(/^\d{2}\/\d{2}\/\d{4}\s+-\s+/, "");
+    }
+
+    function abrir(){
+      abrirEditorModal({
+        titulo: `Llamar cliente · ${row.codigo || ""}`,
+        etiqueta: "Nombre completo",
+        valor: limpiarValorActual(btn.title || valor),
+        placeholder: "Nombre y apellido",
+        tipo: "input",
+        compact: true,
+        onGuardar: async (nombre) => {
+          const texto = nombre.replace(/\s+/g, " ").trim();
+          if(!texto){
+            alert("Ingresa un nombre completo.");
+            return;
+          }
+          const now = new Date();
+          const fecha = `${String(now.getDate()).padStart(2,"0")}/${String(now.getMonth()+1).padStart(2,"0")}/${now.getFullYear()}`;
+          const final = `${fecha} - ${texto}`;
+          await postValor(row.codigo, "llamar_cliente", final);
+          btn.textContent = "Finalizado";
+          btn.className = "boton-estado completado";
+          btn.title = final;
+        }
+      });
+    }
+
+    btn.addEventListener("click", abrir);
+    wrap.appendChild(btn);
+    return wrap;
+  }
+
+  function materialesControl(row){
+    const wrap = document.createElement("div");
+    const valor = row.valores?.solicitud_materiales || "";
+    const btn = document.createElement("button");
+    btn.className = "boton-estado " + (valor ? "completado" : "pendiente");
+    btn.textContent = valor ? "Finalizado" : "Pendiente";
+    btn.title = valor || row.materialesBase || "";
+    const edit = document.createElement("button");
+    edit.className = "boton-estado mini";
+    edit.textContent = "+";
+
+    function abrir(){
+      abrirEditorModal({
+        titulo: `Solicitud Materiales · ${row.codigo || ""}`,
+        etiqueta: "Materiales solicitados",
+        valor: btn.title || valor || row.materialesBase || "",
+        placeholder: "Ej: DVR, balunes, transformador...",
+        onGuardar: async (comentario) => {
+          const final = comentario.trim();
+          if(!final) return;
+          await postValor(row.codigo, "solicitud_materiales", final);
+          btn.textContent = "Finalizado";
+          btn.className = "boton-estado completado";
+          btn.title = final;
+        }
+      });
+    }
+
+    btn.addEventListener("click", abrir);
+    edit.addEventListener("click", abrir);
+
+    const line = document.createElement("div");
+    line.style.display = "flex";
+    line.style.gap = "6px";
+    line.style.justifyContent = "center";
+    line.appendChild(btn);
+    line.appendChild(edit);
+    wrap.appendChild(line);
+    return wrap;
+  }
+
+  function direccionDetalle(row){
+    const wrap = document.createElement("div");
+    const link = document.createElement("a");
+    link.href = "#";
+    link.className = "link-estilo";
+    link.textContent = row.direccionSucursal || "";
+    link.addEventListener("click", async e => {
+      e.preventDefault();
+      abrirDetalleModal("Contacto de emergencia", "Cargando...");
+      const res = await fetch(api(`/api/venta/servicio-tecnico-ods/contacto?direccion=${encodeURIComponent(row.direccionSucursal || "")}`));
+      const info = await res.json();
+      setDetalleModalBody(info?.nombre
+        ? `<b>Contacto de Emergencia</b><br>Nombre: ${info.nombre || "No disponible"}<br>Teléfono: ${info.telefono || "No disponible"}<br>Correo: ${info.correo || "No disponible"}`
+        : `<b>No se encontró contacto de emergencia para esta dirección.</b>`);
+    });
+    wrap.appendChild(link);
+    return wrap;
+  }
+
+  function odtDetalle(row){
+    const wrap = document.createElement("div");
+    const link = document.createElement("a");
+    link.href = "#";
+    link.className = "link-estilo";
+    link.textContent = row.odt || row.codigo;
+    link.addEventListener("click", async e => {
+      e.preventDefault();
+      abrirDetalleModal(`Información completa ODT ${row.odt || row.codigo || ""}`, "Cargando...");
+      const res = await fetch(api(`/api/venta/servicio-tecnico-ods/${encodeURIComponent(row.codigo)}/detalle`));
+      const info = await res.json();
+      const layout = info.layout
+        ? `<a class="link-estilo" target="_blank" href="${info.layout}">Ver Documento</a>`
+        : "No Disponible";
+      setDetalleModalBody(`
+        <b>Información completa ODT</b><br>
+        <b>Nombre Sucursal:</b> ${info.sucursal || "No disponible"}<br>
+        <b>Dirección:</b> ${info.direccion || "No disponible"}<br>
+        <b>Observaciones:</b><pre>${info.observacion || "No disponible"}</pre>
+        <b>Consideraciones:</b><pre>${info.consideraciones || "No disponible"}</pre>
+        <b>Cámaras:</b> ${info.camaras || "No informado"}<br>
+        <b>Días de Grabación:</b> ${info.dias || "No informado"}<br>
+        <b>Layout:</b> ${layout}
+      `);
+    });
+    wrap.appendChild(link);
+    return wrap;
+  }
+
+  function abrirDetalleModal(titulo, contenido){
+    document.getElementById("detalleModalTitle").textContent = titulo || "Detalle";
+    setDetalleModalBody(contenido || "");
+    const modal = document.getElementById("detalleModal");
+    modal.classList.add("abierto");
+    modal.setAttribute("aria-hidden", "false");
+  }
+
+  function setDetalleModalBody(contenido){
+    document.getElementById("detalleModalBody").innerHTML = contenido || "";
+  }
+
+  function cerrarDetalleModal(){
+    const modal = document.getElementById("detalleModal");
+    modal.classList.remove("abierto");
+    modal.setAttribute("aria-hidden", "true");
+  }
+
+  document.getElementById("detalleModal").addEventListener("click", (event) => {
+    if (event.target.id === "detalleModal") cerrarDetalleModal();
+  });
+  document.getElementById("editorModal").addEventListener("click", (event) => {
+    if (event.target.id === "editorModal") cerrarEditorModal();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      cerrarDetalleModal();
+      cerrarEditorModal();
+    }
+  });
+
+  function layoutFinalControl(row){
+    const wrap = document.createElement("div");
+    wrap.style.display = "flex";
+    wrap.style.flexDirection = "column";
+    wrap.style.alignItems = "center";
+    wrap.style.gap = "6px";
+
+    const urlActual = row.valores?.layout_final || "";
+
+    if(urlActual){
+      const link = document.createElement("a");
+      link.href = urlActual;
+      link.target = "_blank";
+      link.className = "boton-estado completado";
+      link.textContent = "Ver Layout";
+      link.style.textDecoration = "none";
+      wrap.appendChild(link);
+    }
+
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = ".pdf,.jpg,.jpeg,.png,.dwg,.dxf";
+    fileInput.style.display = "none";
+
+    const uploadBtn = document.createElement("button");
+    uploadBtn.className = "boton-estado mini";
+    uploadBtn.textContent = urlActual ? "Reemplazar" : "Subir Layout";
+
+    fileInput.addEventListener("change", async () => {
+      const file = fileInput.files?.[0];
+      if(!file) return;
+      uploadBtn.disabled = true;
+      uploadBtn.textContent = "Subiendo...";
+      try{
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          const base64 = e.target.result.split(",")[1];
+          const res = await fetch(api("/api/venta/servicio-tecnico-ods/layout-final"), {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({codigo: row.codigo, nombre: file.name, data: base64})
+          });
+          const data = await res.json();
+          if(!res.ok || !data?.ok) throw new Error(data?.detail || "No se pudo subir.");
+          const newUrl = data.url;
+          let link = wrap.querySelector("a.boton-estado");
+          if(!link){
+            link = document.createElement("a");
+            link.className = "boton-estado completado";
+            link.target = "_blank";
+            link.style.textDecoration = "none";
+            wrap.insertBefore(link, uploadBtn);
+          }
+          link.href = newUrl;
+          link.textContent = "Ver Layout";
+          uploadBtn.textContent = "Reemplazar";
+          uploadBtn.disabled = false;
+        };
+        reader.readAsDataURL(file);
+      }catch(err){
+        alert(err.message);
+        uploadBtn.disabled = false;
+        uploadBtn.textContent = urlActual ? "Reemplazar" : "Subir Layout";
+      }
+    });
+
+    uploadBtn.addEventListener("click", () => fileInput.click());
+    wrap.appendChild(fileInput);
+    wrap.appendChild(uploadBtn);
+    return wrap;
+  }
+
+  function td(content){
+    const cell = document.createElement("td");
+    if(content instanceof Node) cell.appendChild(content);
+    else cell.textContent = content || "";
+    return cell;
+  }
+
+  function recepcionSolicitud(valor){
+    const span = document.createElement("span");
+    const texto = String(valor || "").trim();
+    span.className = "timestamp-plano" + (texto ? "" : " vacio");
+    span.textContent = texto || "-";
+    return span;
+  }
+
+  function aplicarFiltroTerminado(){
+    const filtro = document.getElementById("filtroTerminado").value;
+    const txt = (document.getElementById("searchBox")?.value || "").toLowerCase();
+    let vis = 0;
+    document.querySelectorAll("#tablaDatos tr").forEach(tr => {
+      const estado = tr.cells[15]?.textContent.trim();
+      const texto = tr.textContent.toLowerCase();
+      const matchTxt = !txt || texto.includes(txt);
+      let matchEst = true;
+      const anulada = tr.classList.contains("fila-anulada");
+      if(filtro === "Anuladas") matchEst = anulada;
+      else if(filtro === "Todos") matchEst = true;
+      else if(anulada) matchEst = false;
+      else if(filtro === "check") matchEst = estado === "Finalizado";
+      else matchEst = estado !== "Finalizado";
+      const show = matchTxt && matchEst;
+      tr.style.display = show ? "" : "none";
+      if (show) vis++;
+    });
+    const counter = document.getElementById("counter");
+    if (counter) counter.textContent = `${vis} ODS`;
+  }
+
+  async function cargarDatos(){
+    tbody.innerHTML = "";
+    const res = await fetch(api("/api/venta/servicio-tecnico-ods"));
+    const data = await res.json();
+    const rows = Array.isArray(data?.rows) ? data.rows : [];
+    if(!rows.length){
+      tbody.innerHTML = "<tr><td colspan='16'>No hay datos disponibles</td></tr>";
+      const counter = document.getElementById("counter");
+      if (counter) counter.textContent = "0 ODS";
+      return;
+    }
+    rows.forEach(row => {
+      const tr = document.createElement("tr");
+      if(row.anulada) tr.classList.add("fila-anulada");
+      tr.appendChild(td(odtDetalle(row)));
+      tr.appendChild(td(row.fecha));
+      tr.appendChild(td(row.ejecutivo));
+      tr.appendChild(td(row.rutCliente));
+      tr.appendChild(td(row.nombreSucursal || row.razonSocial));
+      tr.appendChild(td(direccionDetalle(row)));
+      tr.appendChild(td(row.tipoServicio));
+      tr.appendChild(td(recepcionSolicitud(row.valores?.recepcion_solicitud_instalacion || "")));
+      tr.appendChild(td(llamarClienteControl(row)));
+      tr.appendChild(td(materialesControl(row)));
+      tr.appendChild(td(fechaInput(row.codigo, "fecha_inicio_instalacion", row.valores?.fecha_inicio_instalacion || "")));
+      tr.appendChild(td(fechaInput(row.codigo, "fecha_fin_instalacion", row.valores?.fecha_fin_instalacion || "")));
+      const techWrap = document.createElement("div");
+      techWrap.style.display = "grid";
+      techWrap.style.gap = "6px";
+      techWrap.appendChild(tecnicoSelect(row.codigo, "tecnico_a_cargo", row.valores?.tecnico_a_cargo || "", "Seleccionar tecnico"));
+      techWrap.appendChild(tecnicoSelect(row.codigo, "acompanante", row.valores?.acompanante || "", "Acompanante"));
+      tr.appendChild(td(techWrap));
+      const instalacionFinalizada = !!row.estados?.instalacion_finalizada;
+      tr.appendChild(td(estadoTexto(instalacionFinalizada)));
+      tr.appendChild(td(layoutFinalControl(row)));
+      tr.appendChild(td(estadoBtn(row.codigo, "finalizado", !!row.estados?.finalizado, {
+        bloqueado: !instalacionFinalizada,
+        mensajeBloqueo: "Primero debe estar en Finalizado la columna Instalación Finalizada.",
+      })));
+      tbody.appendChild(tr);
+    });
+    aplicarFiltroTerminado();
+  }
+
+  document.getElementById("filtroTerminado").addEventListener("change", aplicarFiltroTerminado);
+  cargarUsuarioActual();
+  cargarDatos();
+</script>
+<script src="/static/auth-guard.js"></script>
+  <script src="/static/atc-logo-home.js"></script>
+  <script>
+  </script>
+<script src="/static/atc-volver.js"></script>
+</body>
+</html>

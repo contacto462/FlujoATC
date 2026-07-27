@@ -168,6 +168,7 @@ def send_initial_email_auto_reply(
     requester: Requester | None,
     in_reply_to_external_id: str | None = None,
     event_name: str = "ticket_created",
+    cc: str | list[str] | None = None,
 ) -> bool:
     # Solo respondemos automÃ¡ticamente tickets nuevos por email.
     if not bool(settings.AUTOMATION_EMAIL_AUTO_REPLY_ENABLED):
@@ -268,6 +269,7 @@ def send_initial_email_auto_reply(
         to=requester_email,
         subject=subject,
         body=email_html,
+        cc=cc,
         in_reply_to=in_reply_to,
         references=references,
         ticket_id=ticket.id,
@@ -297,7 +299,7 @@ def send_initial_email_auto_reply(
         rule_key=RULE_EMAIL_AUTO_REPLY,
         event_name=event_name,
         ticket_id=ticket.id,
-        details={"to": requester_email},
+        details={"to": requester_email, "cc": cc or ""},
     )
     return True
 

@@ -58,6 +58,14 @@ class User(Base):
         index=True,
     )
 
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    password_changed: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+    )
+
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
@@ -74,7 +82,13 @@ class User(Base):
     # =========================
     @property
     def is_admin(self) -> bool:
-        return self.role == "admin"
+        """True para admin de bitácora Y superadmin. Usar is_super_admin para acceso total al sistema."""
+        return self.role in ("admin", "superadmin")
+
+    @property
+    def is_super_admin(self) -> bool:
+        """Acceso total al sistema (solo Gianpiero y Fernando)."""
+        return self.role == "superadmin"
 
     @property
     def is_agent(self) -> bool:

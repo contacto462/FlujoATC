@@ -1,0 +1,225 @@
+<div id="claveInicialOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(6,10,16,.72);backdrop-filter:blur(3px);align-items:center;justify-content:center;">
+  <div style="width:min(420px,92vw);background:#111c2f;border:1px solid rgba(255,255,255,.12);border-radius:16px;box-shadow:0 30px 70px rgba(0,0,0,.45);padding:26px 26px 22px;font-family:'Inter',system-ui,-apple-system,sans-serif;">
+
+    <div id="claveInicialPasoOpciones">
+      <h3 style="margin:0 0 8px;font-size:17px;font-weight:800;color:#fff;">¿Quieres cambiar tu contraseña?</h3>
+      <p style="margin:0 0 20px;font-size:13px;color:rgba(255,255,255,.65);line-height:1.5;">Este aviso solo aparece una vez. Puedes cambiar tu contraseña ahora o dejarla tal cual.</p>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button type="button" onclick="_omitirClaveInicial()"
+                style="height:38px;padding:0 16px;border-radius:8px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:#fff;font-size:13px;font-weight:600;cursor:pointer;">
+          Dejarla tal cual
+        </button>
+        <button type="button" onclick="_irAPasoActual()"
+                style="height:38px;padding:0 16px;border-radius:8px;border:none;background:#ff6e23;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">
+          Cambiar contraseña
+        </button>
+      </div>
+    </div>
+
+    <div id="claveInicialPasoActual" style="display:none;">
+      <h3 style="margin:0 0 8px;font-size:17px;font-weight:800;color:#fff;">Confirma tu contraseña actual</h3>
+      <p style="margin:0 0 16px;font-size:13px;color:rgba(255,255,255,.65);line-height:1.5;">Escríbela dos veces para continuar.</p>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:8px;">
+        <input type="password" id="claveActual1" placeholder="Contraseña actual" autocomplete="current-password"
+               style="height:40px;padding:0 12px;border-radius:8px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:#fff;font-size:13.5px;outline:none;">
+        <input type="password" id="claveActual2" placeholder="Repite la contraseña actual" autocomplete="current-password"
+               style="height:40px;padding:0 12px;border-radius:8px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:#fff;font-size:13.5px;outline:none;">
+      </div>
+      <div id="claveInicialMsgActual" style="display:none;margin-bottom:8px;font-size:12px;color:#ffb4b4;"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button type="button" onclick="_volverAOpciones()"
+                style="height:38px;padding:0 16px;border-radius:8px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:#fff;font-size:13px;font-weight:600;cursor:pointer;">
+          Volver
+        </button>
+        <button type="button" id="claveInicialBtnContinuar" onclick="_validarClaveActual()"
+                style="height:38px;padding:0 16px;border-radius:8px;border:none;background:#ff6e23;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">
+          Continuar
+        </button>
+      </div>
+    </div>
+
+    <div id="claveInicialPasoNueva" style="display:none;">
+      <h3 style="margin:0 0 8px;font-size:17px;font-weight:800;color:#fff;">Elige tu nueva contraseña</h3>
+      <p style="margin:0 0 16px;font-size:13px;color:rgba(255,255,255,.65);line-height:1.5;">Escríbela dos veces para confirmarla.</p>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:8px;">
+        <input type="password" id="claveNueva1" placeholder="Nueva contraseña" autocomplete="new-password"
+               style="height:40px;padding:0 12px;border-radius:8px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:#fff;font-size:13.5px;outline:none;">
+        <input type="password" id="claveNueva2" placeholder="Repite la nueva contraseña" autocomplete="new-password"
+               style="height:40px;padding:0 12px;border-radius:8px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:#fff;font-size:13.5px;outline:none;">
+      </div>
+      <div id="claveInicialMsgNueva" style="display:none;margin-bottom:8px;font-size:12px;color:#ffb4b4;"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button type="button" onclick="_volverAActual()"
+                style="height:38px;padding:0 16px;border-radius:8px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:#fff;font-size:13px;font-weight:600;cursor:pointer;">
+          Volver
+        </button>
+        <button type="button" id="claveInicialBtnGuardar" onclick="_guardarClaveNueva()"
+                style="height:38px;padding:0 16px;border-radius:8px;border:none;background:#ff6e23;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">
+          Guardar
+        </button>
+      </div>
+    </div>
+
+    <div id="claveInicialPasoOk" style="display:none;text-align:center;">
+      <h3 style="margin:0 0 8px;font-size:17px;font-weight:800;color:#fff;">Contraseña actualizada</h3>
+      <p style="margin:0;font-size:13px;color:rgba(255,255,255,.65);">Ya puedes continuar.</p>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function () {
+  function getTokenActual() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("token") || (typeof window._claveInicialToken !== "undefined" ? window._claveInicialToken : "") || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  const TOKEN = getTokenActual();
+
+  function mostrarPaso(id) {
+    ["claveInicialPasoOpciones", "claveInicialPasoActual", "claveInicialPasoNueva", "claveInicialPasoOk"].forEach(p => {
+      document.getElementById(p).style.display = (p === id) ? "block" : "none";
+    });
+  }
+
+  window._irAPasoActual = function () {
+    document.getElementById("claveInicialMsgActual").style.display = "none";
+    document.getElementById("claveActual1").value = "";
+    document.getElementById("claveActual2").value = "";
+    mostrarPaso("claveInicialPasoActual");
+  };
+
+  window._volverAOpciones = function () { mostrarPaso("claveInicialPasoOpciones"); };
+  window._volverAActual = function () { mostrarPaso("claveInicialPasoActual"); };
+
+  let _claveActualValidada = "";
+
+  window._validarClaveActual = async function () {
+    const a1 = document.getElementById("claveActual1").value;
+    const a2 = document.getElementById("claveActual2").value;
+    const msg = document.getElementById("claveInicialMsgActual");
+    const btn = document.getElementById("claveInicialBtnContinuar");
+    msg.style.display = "none";
+
+    if (!a1 || !a2) {
+      msg.textContent = "Completa ambos campos.";
+      msg.style.display = "block";
+      return;
+    }
+    if (a1 !== a2) {
+      msg.textContent = "Las contraseñas actuales no coinciden entre sí.";
+      msg.style.display = "block";
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Verificando…";
+    try {
+      const res = await fetch(`/api/usuario/verificar-clave-actual?token=${encodeURIComponent(TOKEN)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clave_actual_1: a1, clave_actual_2: a2 }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        msg.textContent = data.detail || "No se pudo verificar la contraseña actual.";
+        msg.style.display = "block";
+        return;
+      }
+      _claveActualValidada = a1;
+      document.getElementById("claveNueva1").value = "";
+      document.getElementById("claveNueva2").value = "";
+      document.getElementById("claveInicialMsgNueva").style.display = "none";
+      mostrarPaso("claveInicialPasoNueva");
+    } catch (e) {
+      msg.textContent = "Error de red. Intenta de nuevo.";
+      msg.style.display = "block";
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Continuar";
+    }
+  };
+
+  window._guardarClaveNueva = async function () {
+    const n1 = document.getElementById("claveNueva1").value;
+    const n2 = document.getElementById("claveNueva2").value;
+    const msg = document.getElementById("claveInicialMsgNueva");
+    const btn = document.getElementById("claveInicialBtnGuardar");
+    msg.style.display = "none";
+
+    if (!n1 || n1.length < 4) {
+      msg.textContent = "La nueva contraseña debe tener al menos 4 caracteres.";
+      msg.style.display = "block";
+      return;
+    }
+    if (n1 !== n2) {
+      msg.textContent = "Las contraseñas nuevas no coinciden entre sí.";
+      msg.style.display = "block";
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Guardando…";
+    try {
+      const res = await fetch(`/api/usuario/cambiar-clave-inicial?token=${encodeURIComponent(TOKEN)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clave_actual_1: _claveActualValidada,
+          clave_actual_2: _claveActualValidada,
+          clave_nueva_1: n1,
+          clave_nueva_2: n2,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.detail && data.detail.toLowerCase().includes("incorrecta")) {
+          mostrarPaso("claveInicialPasoActual");
+          document.getElementById("claveInicialMsgActual").textContent = data.detail;
+          document.getElementById("claveInicialMsgActual").style.display = "block";
+          return;
+        }
+        throw new Error(data.detail || "No se pudo cambiar la contraseña.");
+      }
+      mostrarPaso("claveInicialPasoOk");
+      setTimeout(() => { document.getElementById("claveInicialOverlay").style.display = "none"; }, 1400);
+    } catch (e) {
+      msg.textContent = e.message || "Error al cambiar la contraseña.";
+      msg.style.display = "block";
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Guardar";
+    }
+  };
+
+  window._omitirClaveInicial = async function () {
+    try {
+      await fetch(`/api/usuario/clave-prompt/omitir?token=${encodeURIComponent(TOKEN)}`, { method: "POST" });
+    } catch (e) {
+      /* silencioso */
+    } finally {
+      document.getElementById("claveInicialOverlay").style.display = "none";
+    }
+  };
+
+  async function verificarClaveInicial() {
+    try {
+      const res = await fetch(`/api/usuario/estado-clave-inicial?token=${encodeURIComponent(TOKEN)}`);
+      const data = await res.json();
+      if (data.mostrar) {
+        mostrarPaso("claveInicialPasoOpciones");
+        document.getElementById("claveInicialOverlay").style.display = "flex";
+      }
+    } catch (e) {
+      /* silencioso */
+    }
+  }
+
+  verificarClaveInicial();
+})();
+</script>

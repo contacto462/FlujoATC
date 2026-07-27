@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Suma Pagos · Finanzas</title>
+  <link rel="stylesheet" href="/static/base.css">
+<link rel="stylesheet" href="/static/finanzas_shared.css">
+<script>if(new URLSearchParams(location.search).get('embed')==='1')document.documentElement.classList.add('embed');</script>
+    <script src="/static/utils.js"></script>
+</head>
+<body>
+<main class="shell">
+  <header class="page-header">
+    <div class="brand">
+      <img src="/shared-static/img/logo-atc.png" alt="ATC" onerror="this.style.display='none'">
+      <div>
+        <h1>Suma Pagos</h1>
+        <p class="subtitle">Total pagado por codigo diario con los topes de Pagos ATC y Pagos VL</p>
+      </div>
+    </div>
+    <nav class="actions">
+      <a class="btn" id="btnVolver" href="/venta/finanzas?token={{ token|default('') }}">Volver</a>
+      <a class="btn" href="/venta/finanzas/pagos?token={{ token|default('') }}">Ver pagos</a>
+      <button class="btn" type="button" onclick="cargar()">Actualizar</button>
+    </nav>
+  </header>
+
+  <section class="panel">
+    <div class="filters">
+      <label for="fQ">Buscar codigo</label>
+      <input id="fQ" type="search" placeholder="45867-MALA-...">
+    </div>
+    <div class="sheet-note">Hoja auxiliar "SumaPagos": total pagado con tope normal o viatico especial.</div>
+  </section>
+
+  <section class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Codigo Diario</th><th style="text-align:right;">Suma</th>
+        <th style="text-align:right;">Cantidad pagos</th><th>Ultimo pago</th>
+      </tr></thead>
+      <tbody id="tbody"><tr><td class="empty-cell" colspan="4">Cargando...</td></tr></tbody>
+    </table>
+  </section>
+</main>
+<div id="toast"></div>
+<script>
+const tokenSesion = {{ token|tojson }};
+let data = [];
+function $(id){return document.getElementById(id);}
+function esc(t){const d=document.createElement("div");d.textContent=String(t||"");return d.innerHTML;}
+function clp(v){const n=Number(v);return Number.isFinite(n)?n.toLocaleString("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}):"$0";}
+function showToast(t,ok=true){const el=$("toast");el.className=ok?"":"error";el.textContent=t;el.style.display="block";clearTimeout(showToast._id);showToast._id=setTimeout(()=>{el.style.display="none";},2800);}
+function filtered(){
+  const q=$("fQ").value.trim().toLowerCase();
+  if(!q) return data;
+  return data.filter(r=>String(r.codigo||"").toLowerCase().includes(q));
+}
+function render(){
+  const rows=filtered();
+  if(!rows.length){$("tbody").innerHTML=`<tr><td class="empty-cell" colspan="4">Sin pagos registrados.</td></tr>`;return;}
+  $("tbody").innerHTML=rows.map(r=>`
+    <tr>
+      <td class="text-strong">${esc(r.codigo)}</td>
+      <td class="right text-strong">${esc(clp(r.suma))}</td>
+      <td class="right">${esc(r.pagos)}</td>
+      <td>${esc(r.ultimoPago||"")}</td>
+    </tr>
+  `).join("");
+}
+async function cargar(){
+  try{data=await api("/api/finanzas/suma-pagos");render();}
+  catch(err){$("tbody").innerHTML=`<tr><td class="empty-cell" colspan="4">Error: ${esc(err.message)}</td></tr>`;showToast("Error: "+err.message,false);}
+}
+$("fQ").addEventListener("input",render);
+cargar();
+</script>
+<script>
+</script>
+<script src="/static/auth-guard.js"></script>
+  <script src="/static/atc-logo-home.js"></script>
+<script src="/static/atc-volver.js"></script>
+</body></html>

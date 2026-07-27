@@ -1,10 +1,15 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>HelpDesk - Etapa</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/base.css">
   <style>
     :root{
       --bg:#071227;
@@ -397,7 +402,7 @@
           <p>Mantenga presionado y arrastre el ticket para cambiar su estado.</p>
         </div>
         <div class="top-actions">
-          <a class="chip" href="/panel?area=soporte">&larr; Volver</a>
+          <a class="chip" id="btnVolver" href="/panel?area=soporte">Volver</a>
           <span class="chip">{{ user.name }}</span>
         </div>
       </div>
@@ -510,7 +515,7 @@
                     </div>
                   </div>
                   <div class="ticket-actions">
-                    <a class="ticket-open" href="/dashboard/tickets/{{ ticket.id }}">Abrir</a>
+                    <a class="ticket-open" href="/ticketera/tickets/{{ ticket.id }}">Abrir</a>
                   </div>
                 </article>
               {% endfor %}
@@ -583,7 +588,7 @@
       async function persistStage(ticketId, stage) {
         const payload = new URLSearchParams();
         payload.set("stage", stage);
-        const response = await fetch(`/dashboard/tickets/${ticketId}/stage`, {
+        const response = await fetch(`/ticketera/tickets/${ticketId}/stage`, {
           method: "POST",
           credentials: "same-origin",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -607,7 +612,7 @@
       async function persistPriority(ticketId, priority) {
         const payload = new URLSearchParams();
         payload.set("priority", priority);
-        const response = await fetch(`/dashboard/tickets/${ticketId}/priority-json`, {
+        const response = await fetch(`/ticketera/tickets/${ticketId}/priority-json`, {
           method: "POST",
           credentials: "same-origin",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -622,7 +627,7 @@
       async function persistAssignee(ticketId, userId) {
         const payload = new URLSearchParams();
         payload.set("user_id", userId || "");
-        const response = await fetch(`/dashboard/tickets/${ticketId}/assign-json`, {
+        const response = await fetch(`/ticketera/tickets/${ticketId}/assign-json`, {
           method: "POST",
           credentials: "same-origin",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -869,5 +874,8 @@
       start();
     })();
   </script>
+  <script>
+  </script>
+<script src="/static/atc-volver.js"></script>
 </body>
 </html>

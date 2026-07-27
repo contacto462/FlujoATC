@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Información del Cliente - ATC</title>
+  <link rel="stylesheet" href="/static/base.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy-1: #0b1420;
+      --navy-2: #162538;
+      --navy-3: #1e3248;
+      --orange: #ff7a2b;
+      --orange-2: #ff9448;
+      --bg: #f0f4f8;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --label: #374151;
+      --radius: 10px;
+    }
+
+    html, body { min-height: 100%; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      overflow-x: hidden;
+      overflow-y: auto;
+      font-size: 13.5px;
+      font-weight: 500;
+      line-height: 1.5;
+    }
+
+    /* HEADER */
+    .page-header {
+      flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      background: linear-gradient(180deg, #0b1424 0%, #111c2f 100%);
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      padding: 20px 30px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      min-height: 108px;
+      z-index: 50;
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .header-brand img {
+      height: 68px;
+      width: auto;
+      object-fit: contain;
+      display: block;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,.30));
+    }
+
+    .header-brand-text {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .header-brand-text strong {
+      display: block;
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.25;
+      letter-spacing: -0.02em;
+    }
+
+    .header-brand-text span {
+      display: block;
+      margin-top: 6px;
+      font-size: 13.5px;
+      color: rgba(255,255,255,.72);
+      line-height: 1.45;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-left: auto;
+      flex-wrap: wrap;
+    }
+
+    .session-user {
+      display: inline-flex;
+      align-items: center;
+      min-height: 36px;
+      padding: 0 4px;
+      color: rgba(255,255,255,.92);
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .btn-back {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 36px;
+      padding: 0 16px;
+      border-radius: 10px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.12);
+      color: rgba(255,255,255,.92);
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: background .18s, border-color .18s;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .btn-back:hover {
+      background: rgba(255,255,255,.08);
+      border-color: rgba(255,255,255,.22);
+    }
+
+    /* MAIN */
+    .main {
+      flex: 1;
+      padding: 28px 24px 48px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      max-width: 1100px;
+      width: 100%;
+      margin: 0 auto;
+      min-height: auto;
+      overflow: visible;
+    }
+
+    /* SEARCH BAR */
+    .search-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.05);
+    }
+
+    .search-card .field-wrap { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+    .search-card label { font-size: 12px; font-weight: 600; color: var(--label); text-transform: uppercase; letter-spacing: .04em; }
+
+    .search-input {
+      padding: 10px 14px;
+      font-size: 14px;
+      font-family: inherit;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      transition: border-color .18s, box-shadow .18s;
+      width: 100%;
+    }
+    .search-input:focus { outline: none; border-color: var(--orange); box-shadow: 0 0 0 3px rgba(255,122,43,.1); background: #fff; }
+
+    .btn-buscar {
+      padding: 10px 22px;
+      background: var(--orange);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .18s;
+    }
+    .btn-buscar:hover { background: var(--orange-2); }
+
+    /* SECTION CARD */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 1px 4px rgba(0,0,0,.05);
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 13px 20px;
+      background: linear-gradient(180deg, #475569 0%, #3b4a5e 100%);
+      border-bottom: 1px solid rgba(255,255,255,.04);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .card-header h2 {
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(255,255,255,.94);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .badge-nombre {
+      font-size: 12.5px;
+      font-weight: 500;
+      color: rgba(255,255,255,.7);
+      font-style: normal;
+    }
+
+    .card-body { padding: 20px; }
+
+    /* INFO GRID */
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .info-field { display: flex; flex-direction: column; gap: 3px; }
+    .info-field .lbl {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    .info-field .val {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      word-break: break-word;
+    }
+
+    .divider { border: none; border-top: 1px solid var(--border); margin: 10px 0 8px; }
+
+    /* SELECT SUCURSAL */
+    .select-sucursal {
+      padding: 9px 12px;
+      font-size: 13px;
+      font-family: inherit;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      width: 100%;
+      max-width: 380px;
+      transition: border-color .18s;
+      cursor: pointer;
+    }
+    .select-sucursal:focus { outline: none; border-color: var(--orange); box-shadow: 0 0 0 3px rgba(255,122,43,.1); }
+
+    /* TABLES */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    thead tr { background: #f8fafc; }
+    thead th {
+      padding: 10px 12px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      border-bottom: 1.5px solid var(--border);
+      white-space: nowrap;
+    }
+
+    tbody td {
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      vertical-align: middle;
+    }
+
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: #f8fafc; }
+
+    .editable-cell { cursor: text; }
+    .editable-cell:hover { background: #fff5ef !important; }
+
+    tbody td input[type="text"],
+    tbody td input[type="email"],
+    tbody td input[type="time"] {
+      width: 100%;
+      padding: 5px 8px;
+      font-size: 13px;
+      font-family: inherit;
+      border: 1.5px solid var(--orange);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      outline: none;
+    }
+
+    /* ADD ROW */
+    .add-row td {
+      background: #f8fafc;
+      border-top: 1.5px dashed var(--border);
+      padding: 8px 10px;
+    }
+
+    .add-row input {
+      width: 100%;
+      padding: 7px 10px;
+      font-size: 12px;
+      font-family: inherit;
+      border: 1.5px solid var(--border);
+      border-radius: 7px;
+      background: #fff;
+      color: var(--text);
+      transition: border-color .18s;
+    }
+    .add-row input:focus { outline: none; border-color: var(--orange); }
+
+    .btn-add {
+      padding: 7px 14px;
+      background: var(--orange);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: inherit;
+      border: none;
+      border-radius: 7px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .18s;
+    }
+    .btn-add:hover { background: var(--orange-2); }
+
+    /* SUCURSAL SECTION SELECT */
+    .sucursal-bar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .sucursal-bar label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--label);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      white-space: nowrap;
+    }
+
+    .editable-extra {
+      cursor: pointer;
+      display: block;
+      width: 100%;
+      min-height: 28px;
+      padding: 4px 8px;
+      border: 1px dashed #c9d4e0;
+      border-radius: 5px;
+      background: #f8fafc;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .editable-extra:empty::before {
+      content: "Doble clic para editar";
+      color: #b0bcc8;
+      font-size: 12px;
+      font-style: italic;
+    }
+    .editable-extra:hover { background: #fff3e8; border-color: #e07b2c; }
+    .editable-extra input {
+      border: 1px solid #e07b2c;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 13px;
+      width: 100%;
+      outline: none;
+    }
+
+    /* PLACEHOLDER STATE */
+    .placeholder-msg {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .loader { display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
+    .loaderMiniContainer {
+      display: flex; align-items: center; justify-content: center;
+      position: relative; width: 70px; height: 48px;
+    }
+    .barContainer {
+      width: 100%;
+      display: flex; flex-direction: column;
+      align-items: flex-start; justify-content: center;
+      gap: 5px; margin-top: 18px;
+    }
+    .bar {
+      width: 100%; height: 4px;
+      background: linear-gradient(to right, #1a1a1a, #555, #1a1a1a);
+      background-size: 200% 100%; border-radius: 10px;
+      animation: bar ease-in-out 3s infinite alternate-reverse;
+    }
+    @keyframes bar { 0% { background-position: left; } 100% { background-position: right; } }
+    .bar2 { width: 50%; }
+    .svgIcon {
+      position: absolute; top: 0; left: -13px; z-index: 2; width: 70%;
+      animation: search ease-in-out 3s infinite alternate-reverse;
+    }
+    @keyframes search {
+      0%   { transform: translateX(0%) rotate(70deg); }
+      100% { transform: translateX(54px) rotate(10deg); }
+    }
+    .svgIcon circle, .svgIcon line { stroke: #1a1a1a; }
+    .svgIcon circle { fill: rgba(0,0,0,.12); }
+
+    @media (max-width: 640px) {
+      .page-header {
+        padding: 18px 16px;
+        min-height: auto;
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+      .header-brand {
+        width: 100%;
+      }
+      .header-brand img {
+        height: 56px;
+      }
+      .header-brand-text strong {
+        font-size: 18px;
+      }
+      .header-actions {
+        width: 100%;
+        justify-content: space-between;
+      }
+      .main { padding: 16px 12px 40px; }
+      .info-grid { grid-template-columns: 1fr 1fr; }
+      .search-card { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="page-header">
+  <div class="header-brand">
+    <img src="/shared-static/img/logo-atc.png" alt="ATC" onerror="this.style.display='none'">
+    <div class="header-brand-text">
+      <strong>Información del Cliente</strong>
+      <span>Consulta operativa de datos de cliente, sucursales y contactos autorizados.</span>
+    </div>
+  </div>
+  <div class="header-actions">
+    <div class="session-user" id="usuarioActual">Sesión: Cargando...</div>
+    <a class="btn-back" id="btnVolver" href="/seleccionar-area?token={{ token|default('') }}">Volver</a>
+  </div>
+</header>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- SEARCH -->
+  <div class="search-card">
+    <div class="field-wrap">
+      <label for="rutCliente">RUT del Cliente</label>
+      <input class="search-input" type="text" id="rutCliente" placeholder="Ej: 12345678-9" autocomplete="off">
+    </div>
+    <button class="btn-buscar" onclick="buscarCliente()">Buscar</button>
+  </div>
+
+  <!-- DATOS CLIENTE -->
+  <div class="card" id="cardCliente" style="display:none">
+    <div class="card-header">
+      <h2>Datos del Cliente</h2>
+      <span class="badge-nombre" id="badgeNombreCliente"></span>
+    </div>
+    <div class="card-body">
+      <div class="info-grid">
+        <div class="info-field">
+          <span class="lbl">RUT Cliente</span>
+          <span class="val" id="rutClienteDato">-</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Razón Social</span>
+          <span class="val" id="nombreCliente">-</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Giro</span>
+          <span class="val" id="giroCliente">-</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Dirección Casa Matriz</span>
+          <span class="val" id="direccionCasaMatriz">-</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Región Casa Matriz</span>
+          <span class="val" id="regionCasaMatriz">-</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Comuna Casa Matriz</span>
+          <span class="val" id="comunaCasaMatriz">-</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Email Facturas</span>
+          <span class="val" id="emailFacturasCliente">-</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Representante Legal</span>
+          <span class="val" id="nombreRepresentante">-</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">RUT Representante</span>
+          <span class="val" id="rutRepresentante">-</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Teléfono Cliente</span>
+          <span class="val" id="telefonoCliente">-</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Email Representante</span>
+          <span class="val" id="emailRepresentante">-</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Ejecutivo</span>
+          <span class="val" id="ejecutivoCliente">-</span>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <div class="sucursal-bar">
+        <label for="sucursales">Sucursal:</label>
+        <select class="select-sucursal" id="sucursales" onchange="cargarDatosDeEmergencia()">
+          <option value="" disabled selected>Seleccione Sucursal</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- DATOS SUCURSAL -->
+  <div class="card" id="cardSucursal" style="display:none">
+    <div class="card-header">
+      <h2>Datos de la Sucursal</h2>
+    </div>
+    <div class="card-body">
+      <div class="info-grid">
+        <div class="info-field">
+          <span class="lbl">Comuna de Sucursal:</span>
+          <span class="val" id="comunaSucursal">-</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Latitud - Longitud:</span>
+          <span class="val" id="latitudLongitud">-</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Referencia Ubicación:</span>
+          <span class="val" id="referenciaUbicacion">-</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Cantidad de Cámaras:</span>
+          <span class="val" id="cantidadCamaras">-</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Días de Grabación:</span>
+          <span class="val" id="diasGrabacion">-</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Proveedor de Internet:</span>
+          <span class="val" id="proveedorInternet">-</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Proveedor de Electricidad:</span>
+          <span class="val" id="proveedorElectricidad">-</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Número Cliente Electricidad:</span>
+          <span class="val" id="numeroClienteElectricidad">-</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Días de Apertura:</span>
+          <span class="val" id="diasApertura">-</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Horario de Apertura:</span>
+          <span class="val" id="horarioApertura">-</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Horario de Cierre:</span>
+          <span class="val" id="horarioCierre">-</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Tipo de Servicio:</span>
+          <span class="val" id="tipoServicio">-</span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Tipo de Plan:</span>
+          <span class="val" id="tipoPlan">-</span>
+        </div>
+      </div>
+
+      <hr class="divider">
+  
+      <div class="info-grid">
+        <div class="info-field">
+          <span class="lbl">Plan Cuadrante:</span>
+          <span class="val editable-extra" id="extraPlanCuadrante" data-campo="planCuadrante"></span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Carabineros:</span>
+          <span class="val editable-extra" id="extraCarabineros" data-campo="carabineros"></span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Bomberos:</span>
+          <span class="val editable-extra" id="extraBomberos" data-campo="bomberos"></span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Seguridad Ciudadana:</span>
+          <span class="val editable-extra" id="extraSeguridadCiudadana" data-campo="seguridadCiudadana"></span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Código P2P:</span>
+          <span class="val editable-extra" id="extraCodigoP2P" data-campo="codigoP2P"></span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Código DSS:</span>
+          <span class="val editable-extra" id="extraCodigoDSS" data-campo="codigoDSS"></span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Teléfono Portón:</span>
+          <span class="val editable-extra" id="extraTelefonoPorton" data-campo="telefonoPorton"></span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Teléfono Recepción:</span>
+          <span class="val editable-extra" id="extraTelefonoRecepcion" data-campo="telefonoRecepcion"></span>
+        </div>
+        <div class="info-field">
+          <span class="lbl">Internet ATC:</span>
+          <span class="val editable-extra" id="extraInternetATC" data-campo="internetATC"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTACTOS DE EMERGENCIA -->
+  <div class="card" id="cardEmergencia" style="display:none">
+    <div class="card-header">
+      <h2>Contacto de Emergencia</h2>
+    </div>
+    <div class="card-body" style="padding:0">
+      <div class="table-wrap">
+        <table id="contactosEmergenciaTable">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>RUT</th>
+              <th>Teléfono</th>
+              <th>Email</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tbodyEmergencia"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PERSONAS AUTORIZADAS -->
+  <div class="card" id="cardAutorizados" style="display:none">
+    <div class="card-header">
+      <h2>Personas Autorizadas</h2>
+    </div>
+    <div class="card-body" style="padding:0">
+      <div class="table-wrap">
+        <table id="personasAutorizadasTable">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>RUT</th>
+              <th>Teléfono</th>
+              <th>Email</th>
+              <th>Clave Verde</th>
+              <th>Clave Roja</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tbodyAutorizados"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- GUARDIAS -->
+  <div class="card" id="cardGuardias" style="display:none">
+    <div class="card-header">
+      <h2>Guardias</h2>
+    </div>
+    <div class="card-body" style="padding:0">
+      <div class="table-wrap">
+        <table id="guardiasTable">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>RUT</th>
+              <th>Teléfono</th>
+              <th>Horario Desde</th>
+              <th>Horario Hasta</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tbodyGuardias"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PLACEHOLDER -->
+  <div class="placeholder-msg" id="placeholderMsg">
+    <div class="loader">
+      <div class="loaderMiniContainer">
+        <div class="barContainer">
+          <div class="bar"></div>
+          <div class="bar bar2"></div>
+        </div>
+        <svg class="svgIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </div>
+    </div>
+    Ingresa el RUT del cliente y presiona <em>Buscar</em> para ver su información.
+  </div>
+
+</div>
+
+<script>
+const qsToken = new URLSearchParams(window.location.search).get("token") || "";
+const withToken = (url) => {
+  const sep = url.includes("?") ? "&" : "?";
+  return qsToken ? `${url}${sep}token=${encodeURIComponent(qsToken)}` : url;
+};
+
+function normalizarRutInput(input) {
+  let rut = String(input.value || "").replace(/[^\dkK]/gi, "").replace(/^0+/, "");
+  if (rut.length > 1) {
+    input.value = `${rut.slice(0, -1)}-${rut.slice(-1)}`;
+  } else {
+    input.value = rut;
+  }
+}
+
+function normalizarTelefonoInput(input) {
+  let tel = String(input.value || "").replace(/[^0-9]/g, "");
+  if (!tel.startsWith("569")) tel = "569" + tel;
+  input.value = "+" + tel.slice(0, 11);
+}
+
+function mostrarCards(visible) {
+  ["cardCliente", "cardSucursal", "cardEmergencia", "cardAutorizados", "cardGuardias"].forEach(id => {
+    document.getElementById(id).style.display = visible ? "" : "none";
+  });
+  document.getElementById("placeholderMsg").style.display = visible ? "none" : "";
+}
+
+async function buscarCliente() {
+  const rutCliente = document.getElementById("rutCliente").value.trim();
+  if (!rutCliente) { alert("Por favor, ingrese un RUT."); return; }
+
+  const response = await fetch(withToken("/api/venta/clientes/resumen?rut=" + encodeURIComponent(rutCliente)));
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    alert(data.detail || "No se pudo obtener la información del cliente.");
+    return;
+  }
+
+  const nombre = data.nombreCliente || "Sin nombre";
+  document.getElementById("rutClienteDato").textContent = data.rutCliente || "N/A";
+  document.getElementById("nombreCliente").textContent = nombre;
+  document.getElementById("badgeNombreCliente").textContent = nombre;
+  document.getElementById("giroCliente").textContent = data.giro || "N/A";
+  document.getElementById("direccionCasaMatriz").textContent = data.direccionCasaMatriz || "N/A";
+  document.getElementById("regionCasaMatriz").textContent = data.regionCasaMatriz || "N/A";
+  document.getElementById("comunaCasaMatriz").textContent = data.comunaCasaMatriz || "N/A";
+  document.getElementById("emailFacturasCliente").textContent = data.emailFacturas || "N/A";
+  document.getElementById("nombreRepresentante").textContent = data.nombreRepresentante || "N/A";
+  document.getElementById("rutRepresentante").textContent = data.rutRepresentante || "N/A";
+  document.getElementById("telefonoCliente").textContent = data.telefonoCliente || "N/A";
+  document.getElementById("emailRepresentante").textContent = data.emailRepresentante || "N/A";
+  document.getElementById("ejecutivoCliente").textContent = data.ejecutivo || "N/A";
+
+  const sucursalesSelect = document.getElementById("sucursales");
+  sucursalesSelect.innerHTML = "";
+
+  const sucursales = data.sucursales || [];
+  if (sucursales.length > 0) {
+    const firstOption = document.createElement("option");
+    firstOption.value = ""; firstOption.textContent = "Seleccione Sucursal"; firstOption.disabled = true;
+    sucursalesSelect.appendChild(firstOption);
+    sucursales.forEach((suc, idx) => {
+      const opt = document.createElement("option");
+      opt.value = String(suc.id);
+      opt.textContent = suc.nombre || suc.label || suc.direccion || `Sucursal ${suc.id}`;
+      if (idx === 0) opt.selected = true;
+      sucursalesSelect.appendChild(opt);
+    });
+    mostrarCards(true);
+    await cargarDatosDeEmergencia();
+  } else {
+    const opt = document.createElement("option");
+    opt.value = ""; opt.textContent = "No hay sucursales disponibles";
+    sucursalesSelect.appendChild(opt);
+    mostrarCards(true);
+    document.getElementById("cardSucursal").style.display = "none";
+    document.getElementById("cardEmergencia").style.display = "none";
+    document.getElementById("cardAutorizados").style.display = "none";
+    document.getElementById("cardGuardias").style.display = "none";
+  }
+}
+
+async function agregarPersona(categoria) {
+  const rutCliente = document.getElementById("rutCliente").value.trim();
+  const sucursalId = parseInt(document.getElementById("sucursales").value || "0", 10);
+  if (!rutCliente || !sucursalId) { alert("Debe ingresar el RUT del cliente y seleccionar una sucursal."); return; }
+
+  const datos = { categoria, rutCliente, sucursalId };
+  if (categoria === "Contacto de Emergencia") {
+    datos.nombre = document.getElementById("emergenciaNombre").value.trim();
+    datos.rut = document.getElementById("emergenciaRUT").value.trim();
+    datos.telefono = document.getElementById("emergenciaTelefono").value.trim();
+    datos.email = document.getElementById("emergenciaEmail").value.trim();
+  } else if (categoria === "Persona Autorizada") {
+    datos.nombre = document.getElementById("autorizadoNombre").value.trim();
+    datos.rut = document.getElementById("autorizadoRUT").value.trim();
+    datos.telefono = document.getElementById("autorizadoTelefono").value.trim();
+    datos.email = document.getElementById("autorizadoEmail").value.trim();
+    datos.claveVerde = document.getElementById("claveVerde").value.trim();
+    datos.claveRoja = document.getElementById("claveRoja").value.trim();
+  } else if (categoria === "Guardia") {
+    datos.nombre = document.getElementById("guardiaNombre").value.trim();
+    datos.rut = document.getElementById("guardiaRUT").value.trim();
+    datos.telefono = document.getElementById("guardiaTelefono").value.trim();
+    datos.horarioDesde = document.getElementById("horarioDesde").value.trim();
+    datos.horarioHasta = document.getElementById("horarioHasta").value.trim();
+  }
+
+  const response = await fetch(withToken("/api/venta/clientes/persona"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(datos),
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) { alert(body.detail || "No se pudo agregar el registro."); return; }
+  await cargarDatosDeEmergencia();
+}
+
+async function cargarDatosDeEmergencia() {
+  const rutCliente = document.getElementById("rutCliente").value.trim();
+  const sucursalId = parseInt(document.getElementById("sucursales").value || "0", 10);
+  if (!rutCliente || !sucursalId) return;
+
+  const response = await fetch(withToken(`/api/venta/clientes/resumen-sucursal?rut=${encodeURIComponent(rutCliente)}&sucursal_id=${encodeURIComponent(String(sucursalId))}`));
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) { alert(data.detail || "No se pudieron cargar los datos de la sucursal."); return; }
+
+  document.getElementById("comunaSucursal").textContent = data.comunaSucursal || "N/A";
+  document.getElementById("latitudLongitud").textContent = data.latitudLongitud || "N/A";
+  document.getElementById("referenciaUbicacion").textContent = data.referenciaUbicacion || "N/A";
+  document.getElementById("cantidadCamaras").textContent = data.cantidadCamaras || "N/A";
+  document.getElementById("diasGrabacion").textContent = data.diasGrabacion || "N/A";
+  document.getElementById("proveedorInternet").textContent = data.proveedorInternet || "N/A";
+  document.getElementById("proveedorElectricidad").textContent = data.proveedorElectricidad || "N/A";
+  document.getElementById("numeroClienteElectricidad").textContent = data.numeroClienteElectricidad || "N/A";
+  document.getElementById("diasApertura").textContent = data.diasApertura || "N/A";
+  document.getElementById("horarioApertura").textContent = data.horarioApertura || "N/A";
+  document.getElementById("horarioCierre").textContent = data.horarioCierre || "N/A";
+  document.getElementById("tipoServicio").textContent = data.tipoServicio || "N/A";
+  document.getElementById("tipoPlan").textContent = data.tipoPlan || "N/A";
+
+  document.getElementById("cardSucursal").style.display = "";
+  document.getElementById("cardEmergencia").style.display = "";
+  document.getElementById("cardAutorizados").style.display = "";
+  document.getElementById("cardGuardias").style.display = "";
+
+  llenarCamposInfoExtra(data.infoExtra || null);
+  llenarTabla("contactosEmergenciaTable", data.contactosEmergencia || []);
+  llenarTabla("personasAutorizadasTable", data.personasAutorizadas || []);
+  llenarTabla("guardiasTable", data.guardias || []);
+}
+
+function llenarTabla(tableId, data) {
+  const table = document.getElementById(tableId);
+  const tbody = table.querySelector("tbody");
+  tbody.innerHTML = "";
+
+  data.forEach((item) => {
+    const row = document.createElement("tr");
+    let campos = [], categoria = "";
+
+    if (tableId === "contactosEmergenciaTable") {
+      categoria = "Contacto de Emergencia";
+      campos = [["nombre", item.nombre], ["rut", item.rut], ["telefono", item.telefono], ["email", item.email]];
+    } else if (tableId === "personasAutorizadasTable") {
+      categoria = "Persona Autorizada";
+      campos = [["nombre", item.nombre], ["rut", item.rut], ["telefono", item.telefono], ["email", item.email], ["claveVerde", item.claveVerde], ["claveRoja", item.claveRoja]];
+    } else if (tableId === "guardiasTable") {
+      categoria = "Guardia";
+      campos = [["nombre", item.nombre], ["rut", item.rut], ["telefono", item.telefono], ["horarioDesde", item.horarioDesde], ["horarioHasta", item.horarioHasta]];
+    }
+
+    campos.forEach(([campo, valor]) => {
+      const td = document.createElement("td");
+      td.textContent = valor || "";
+      td.className = "editable-cell";
+      td.dataset.categoria = categoria;
+      td.dataset.registroId = String(item.id);
+      td.dataset.campo = campo;
+      td.ondblclick = hacerEditable;
+      row.appendChild(td);
+    });
+
+    const tdEmpty = document.createElement("td");
+    row.appendChild(tdEmpty);
+    tbody.appendChild(row);
+  });
+
+  const inputRow = document.createElement("tr");
+  inputRow.className = "add-row";
+  if (tableId === "contactosEmergenciaTable") {
+    inputRow.innerHTML = `
+      <td><input type="text" id="emergenciaNombre" placeholder="Nombre"></td>
+      <td><input type="text" id="emergenciaRUT" placeholder="RUT"></td>
+      <td><input type="text" id="emergenciaTelefono" placeholder="Teléfono"></td>
+      <td><input type="email" id="emergenciaEmail" placeholder="Email"></td>
+      <td><button class="btn-add" onclick="agregarPersona('Contacto de Emergencia')">+ Agregar</button></td>`;
+  } else if (tableId === "personasAutorizadasTable") {
+    inputRow.innerHTML = `
+      <td><input type="text" id="autorizadoNombre" placeholder="Nombre"></td>
+      <td><input type="text" id="autorizadoRUT" placeholder="RUT"></td>
+      <td><input type="text" id="autorizadoTelefono" placeholder="Teléfono"></td>
+      <td><input type="email" id="autorizadoEmail" placeholder="Email"></td>
+      <td><input type="text" id="claveVerde" placeholder="Clave Verde"></td>
+      <td><input type="text" id="claveRoja" placeholder="Clave Roja"></td>
+      <td><button class="btn-add" onclick="agregarPersona('Persona Autorizada')">+ Agregar</button></td>`;
+  } else if (tableId === "guardiasTable") {
+    inputRow.innerHTML = `
+      <td><input type="text" id="guardiaNombre" placeholder="Nombre"></td>
+      <td><input type="text" id="guardiaRUT" placeholder="RUT"></td>
+      <td><input type="text" id="guardiaTelefono" placeholder="Teléfono"></td>
+      <td><input type="time" id="horarioDesde"></td>
+      <td><input type="time" id="horarioHasta"></td>
+      <td><button class="btn-add" onclick="agregarPersona('Guardia')">+ Agregar</button></td>`;
+  }
+  tbody.appendChild(inputRow);
+}
+
+function hacerEditable(e) {
+  const td = e.target;
+  const valorOriginal = td.textContent.trim();
+  const input = document.createElement("input");
+  input.type = "text";
+  input.value = valorOriginal;
+  td.textContent = "";
+  td.appendChild(input);
+  input.focus();
+
+  input.addEventListener("blur", async () => {
+    let nuevoValor = input.value.trim();
+    const campo = td.dataset.campo || "";
+    if (campo === "rut") { normalizarRutInput(input); nuevoValor = input.value.trim(); }
+    if (campo === "telefono") { normalizarTelefonoInput(input); nuevoValor = input.value.trim(); }
+    if (campo === "email") nuevoValor = nuevoValor.replace(/\s+/g, "");
+    td.textContent = nuevoValor || valorOriginal;
+    if (nuevoValor === valorOriginal) return;
+    const response = await fetch(withToken("/api/venta/clientes/persona/editar"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ categoria: td.dataset.categoria, registroId: Number(td.dataset.registroId || "0"), campo, nuevoValor }),
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) { alert(body.detail || "Error al guardar el cambio."); td.textContent = valorOriginal; }
+  });
+
+  input.addEventListener("keydown", (ev) => { if (ev.key === "Enter") input.blur(); });
+}
+
+function llenarCamposInfoExtra(infoExtra) {
+  const map = {
+    planCuadrante: "extraPlanCuadrante",
+    carabineros: "extraCarabineros",
+    bomberos: "extraBomberos",
+    seguridadCiudadana: "extraSeguridadCiudadana",
+    codigoP2P: "extraCodigoP2P",
+    codigoDSS: "extraCodigoDSS",
+    telefonoPorton: "extraTelefonoPorton",
+    telefonoRecepcion: "extraTelefonoRecepcion",
+    internetATC: "extraInternetATC",
+  };
+  for (const [campo, elId] of Object.entries(map)) {
+    const el = document.getElementById(elId);
+    if (el) el.textContent = (infoExtra && infoExtra[campo]) || "";
+  }
+}
+
+function hacerEditableExtra(e) {
+  const span = e.currentTarget;
+  if (span.querySelector("input")) return;
+  const valorOriginal = span.textContent.trim() === "-" ? "" : span.textContent.trim();
+  const campo = span.dataset.campo;
+  const input = document.createElement("input");
+  input.type = "text";
+  input.value = valorOriginal;
+  span.textContent = "";
+  span.appendChild(input);
+  input.focus();
+
+  const guardar = async () => {
+    const nuevoValor = input.value.trim();
+    span.textContent = nuevoValor;
+    if (nuevoValor === valorOriginal) return;
+    const sucursalId = parseInt(document.getElementById("sucursales").value || "0", 10);
+    if (!sucursalId) return;
+    const response = await fetch(withToken("/api/venta/clientes/sucursal-info-extra"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sucursalId, campo, valor: nuevoValor }),
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) { alert(body.detail || "Error al guardar."); span.textContent = valorOriginal; }
+  };
+
+  input.addEventListener("blur", guardar);
+  input.addEventListener("keydown", (ev) => { if (ev.key === "Enter") input.blur(); if (ev.key === "Escape") { input.removeEventListener("blur", guardar); span.textContent = valorOriginal; } });
+}
+
+async function cargarUsuarioActual() {
+  const target = document.getElementById("usuarioActual");
+  if (!target) return;
+  try {
+    const response = await fetch(withToken("/api/usuario-actual"));
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data?.detail || "No se pudo cargar el usuario actual.");
+    const nombre = String(data?.usuario || data?.nombre || data?.username || "").trim();
+    target.textContent = nombre || "Sesión activa";
+  } catch (_err) {
+    target.textContent = "Sesión activa";
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  cargarUsuarioActual();
+  document.querySelectorAll(".editable-extra").forEach(el => {
+    el.addEventListener("dblclick", hacerEditableExtra);
+  });
+  document.getElementById("rutCliente").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") buscarCliente();
+  });
+  document.body.addEventListener("input", (e) => {
+    const t = e.target;
+    const ph = String(t.placeholder || "").toLowerCase();
+    if (ph === "rut") normalizarRutInput(t);
+    if (ph.includes("teléfono") || ph.includes("telefono")) normalizarTelefonoInput(t);
+  });
+});
+</script>
+
+<script>
+</script>
+
+<script src="/static/auth-guard.js"></script>
+  <script src="/static/atc-logo-home.js"></script>
+<script src="/static/atc-volver.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+

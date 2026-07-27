@@ -1,0 +1,36 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap");
+
+:root {
+  /* Paleta base — los templates pueden sobreescribir con sus propios :root */
+  --bg:            #f7f8fa;
+  --surface:       #ffffff;
+  --surface-alt:   #fafbfc;
+  --surface-hover: #f3f4f6;
+  --border:        #e5e7eb;
+  --border-strong: #d1d5db;
+  --text:          #111827;
+  --text-soft:     #4b5563;
+  --text-muted:    #6b7280;
+  --text-faint:    #9ca3af;
+  --radius:        8px;
+  --radius-lg:     12px;
+  --shadow-sm:     0 1px 2px rgba(15, 23, 42, .04);
+  --shadow:        0 1px 3px rgba(15, 23, 42, .06), 0 1px 2px rgba(15, 23, 42, .04);
+  --shadow-lg:     0 18px 36px rgba(15, 23, 42, .10);
+  --danger:        #dc2626;
+  --danger-hover:  #b91c1c;
+  --success:       #16a34a;
+  --success-hover: #15803d;
+  --link:          #2563eb;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}

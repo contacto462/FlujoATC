@@ -1,0 +1,730 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cierre y Apertura de Clientes</title>
+  <link rel="stylesheet" href="/static/base.css">
+  <style>
+    :root{
+      --bg:#f7f8fa;
+      --surface:#ffffff;
+      --surface-alt:#fafbfc;
+      --surface-hover:#f3f4f6;
+      --row-hover:#fffefa;
+      --text:#111827;
+      --text-soft:#4b5563;
+      --muted:#6b7280;
+      --text-faint:#9ca3af;
+      --border:#e5e7eb;
+      --border-strong:#d1d5db;
+      --accent:#f4a672;
+      --accent-hover:#e89254;
+      --accent-strong:#c2410c;
+      --accent-soft:rgba(244,166,114,.14);
+      --header-bg:#94a3b8;
+      --header-border:#64748b;
+      --field-bg:#ffffff;
+      --field-border:#d1d5db;
+      --field-focus:#f4a672;
+      --warn:#92400e;
+      --warn-bg:#fffbeb;
+      --warn-bd:rgba(146,64,14,.20);
+      --success:#166534;
+      --derco:#f97316;
+      --kovacs:#3b82f6;
+      --astara:#14b8a6;
+      --noviciados:#eab308;
+      --atlas:#a855f7;
+      --radius-sm:6px;
+      --radius:8px;
+      --radius-lg:12px;
+      --radius-xl:14px;
+      --shadow-sm:0 1px 2px rgba(15,23,42,.04);
+      --shadow-md:0 1px 3px rgba(15,23,42,.06),0 1px 2px rgba(15,23,42,.04);
+      --shadow-lg:0 18px 36px rgba(15,23,42,.10);
+    }
+
+    *{box-sizing:border-box}
+    html,body{min-height:100%}
+    body{
+      margin:0;
+      font-family:"Inter","Segoe UI",system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      font-size:13.5px;
+      font-weight:500;
+      line-height:1.5;
+      letter-spacing:-.005em;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      text-rendering:optimizeLegibility;
+    }
+
+    .page-hero{
+      position:sticky;top:0;z-index:50;
+      display:flex;align-items:center;gap:18px;
+      min-height:96px;padding:18px 30px;
+      background:linear-gradient(180deg,#0b1424 0%,#111c2f 100%);
+      border-bottom:1px solid rgba(255,255,255,.06);
+    }
+    .logo-atc{height:60px;width:auto;display:flex;align-items:center}
+    .logo-atc img{height:60px;width:auto;object-fit:contain;display:block;filter:drop-shadow(0 2px 6px rgba(0,0,0,.30))}
+    .hero-copy{flex:1;min-width:0;text-align:left}
+    .titulo-central{margin:0;font-size:20px;line-height:1.25;font-weight:700;letter-spacing:-.02em;color:#fff}
+    .hero-subtitle{margin:6px 0 0;font-size:13.5px;line-height:1.45;color:rgba(255,255,255,.72)}
+    .header-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .volver-link{
+      display:inline-flex;align-items:center;justify-content:center;
+      min-height:0;padding:8px 14px;border-radius:7px;
+      border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);
+      color:rgba(255,255,255,.92);font-size:13px;font-weight:600;
+      text-decoration:none;cursor:pointer;font-family:inherit;
+      transition:background-color .15s ease,border-color .15s ease;
+    }
+    .volver-link:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.22)}
+
+    .page-shell{max-width:1500px;margin:0 auto;padding:24px 28px 40px;display:flex;flex-direction:column;gap:20px}
+
+    .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-md)}
+
+    .filters{padding:20px;display:flex;flex-direction:column;gap:14px}
+
+    input,select{
+      width:100%;padding:9px 11px;font-size:13px;border-radius:var(--radius-sm);
+      border:1px solid var(--field-border);box-sizing:border-box;color:var(--text);background:var(--field-bg);
+      outline:none;font-family:inherit;transition:border-color .15s ease,box-shadow .15s ease;
+    }
+    input:focus,select:focus{border-color:var(--field-focus);box-shadow:0 0 0 3px rgba(244,166,114,.20)}
+
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;gap:8px;
+      padding:9px 16px;background:var(--surface);color:var(--text);border:1px solid var(--border-strong);
+      border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;
+      box-shadow:var(--shadow-sm);transition:background-color .15s ease,border-color .15s ease,transform .1s ease,box-shadow .15s ease;
+    }
+    .btn:hover{background:var(--surface-hover);border-color:var(--text-faint);transform:translateY(-1px)}
+    .hint{
+      grid-column:1/-1;border:1px dashed var(--border-strong);border-radius:var(--radius);
+      padding:10px 12px;color:var(--muted);font-size:12.5px;background:var(--surface-alt);
+    }
+    .client-boxes{grid-column:1/-1;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+    .client-box{
+      border:1px solid var(--border-strong);border-radius:var(--radius);padding:10px 12px;min-height:44px;
+      display:flex;align-items:center;justify-content:center;text-align:center;
+      background:var(--surface);color:var(--text-soft);cursor:pointer;font-size:13px;font-weight:700;
+      letter-spacing:.02em;box-shadow:var(--shadow-sm);
+      transition:background-color .15s ease,border-color .15s ease,color .15s ease,transform .1s ease,box-shadow .15s ease;
+    }
+    .client-box:hover{background:var(--surface-hover);border-color:var(--text-faint);color:var(--text);transform:translateY(-1px)}
+    .client-box.active{
+      border-color:var(--accent-hover);color:#fff;
+      background:linear-gradient(180deg,var(--accent) 0%,var(--accent-hover) 100%);
+      box-shadow:0 1px 2px rgba(194,65,12,.18),0 4px 10px rgba(244,166,114,.34);
+    }
+
+    .clients{display:flex;flex-direction:column;gap:16px}
+
+    .client-card{padding:18px;display:flex;flex-direction:column;gap:14px}
+
+    .client-card[data-client="derco"]{--client-color:var(--derco)}
+    .client-card[data-client="kovacs"]{--client-color:var(--kovacs)}
+    .client-card[data-client="astara"]{--client-color:var(--astara)}
+    .client-card[data-client="astara_noviciados"]{--client-color:var(--noviciados)}
+    .client-card[data-client="atlas"]{--client-color:var(--atlas)}
+
+    .client-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+    .client-title{display:flex;align-items:center;gap:8px;font-weight:800;font-size:16px;color:var(--text)}
+    .dot{width:10px;height:10px;border-radius:999px;background:var(--client-color);box-shadow:0 0 0 3px rgba(244,166,114,.10);flex:0 0 10px}
+    .client-sub{margin:4px 0 0;color:var(--muted);font-size:12.5px}
+
+    .client-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .btn-export{
+      color:#fff;border-color:var(--header-border);font-weight:700;
+      background:linear-gradient(180deg,var(--header-bg) 0%,var(--header-border) 100%);
+      box-shadow:0 1px 2px rgba(71,85,105,.15),0 2px 6px rgba(148,163,184,.35);
+    }
+    .btn-export:hover{background:linear-gradient(180deg,#a7b4c4 0%,#54647a 100%);border-color:#475569;box-shadow:0 1px 2px rgba(71,85,105,.20),0 4px 10px rgba(148,163,184,.45)}
+
+    .table-wrap{overflow:auto;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);box-shadow:var(--shadow-sm)}
+
+    table{width:100%;border-collapse:collapse;min-width:880px;background:var(--surface);font-size:12.5px}
+
+    th,td{border-bottom:1px solid var(--border);text-align:center;vertical-align:middle;padding:10px 8px;font-size:12.5px}
+
+    th{
+      background:linear-gradient(180deg,var(--header-bg) 0%,var(--header-hover,#64748b) 100%);
+      font-weight:700;color:#fff;white-space:nowrap;border-bottom:1px solid var(--header-border);
+      text-transform:uppercase;letter-spacing:.06em;font-size:10.5px;
+    }
+
+    tbody tr:nth-child(even) td{background:var(--surface-alt)}
+    tbody tr:hover td{background:var(--row-hover)}
+
+    td.branch{text-align:left;font-weight:700;min-width:260px;color:var(--text)}
+
+    .time-input{width:100%;min-width:130px;text-align:center;font-weight:700;letter-spacing:.01em}
+
+    .preview{border:1px solid var(--border);border-radius:var(--radius);overflow:auto;background:var(--surface)}
+    .preview-export{min-width:980px;background:var(--surface)}
+    .export-header{
+      display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:12px 14px;
+      border-bottom:1px solid var(--header-border);
+      background:linear-gradient(180deg,var(--header-bg) 0%,var(--header-hover,#64748b) 100%);
+    }
+    .export-title{margin:0;font-size:17px;font-weight:800;letter-spacing:.01em;color:#fff}
+    .export-sub{margin:3px 0 0;color:rgba(255,255,255,.85);font-size:13px}
+    .preview-head{display:grid;grid-template-columns:1.2fr .8fr .8fr;min-width:980px}
+
+    .preview-head div{
+      padding:7px 12px;border-right:1px solid var(--header-border);border-bottom:1px solid var(--header-border);
+      background:linear-gradient(180deg,var(--header-bg) 0%,var(--header-hover,#64748b) 100%);
+      font-weight:800;text-align:center;white-space:nowrap;color:#fff;text-transform:uppercase;font-size:12.5px;letter-spacing:.04em;
+    }
+    .preview-head div:last-child{border-right:none}
+
+    .preview-row{display:grid;grid-template-columns:1.2fr .8fr .8fr;min-width:980px}
+    .preview-row > div{
+      border-right:1px solid var(--border);border-bottom:1px solid var(--border);
+      padding:5px 10px;text-align:center;min-height:30px;display:flex;align-items:center;justify-content:center;color:var(--text);
+      font-size:15.5px;
+    }
+    .preview-row > div:first-child{justify-content:flex-start;text-align:left;font-weight:700;background:var(--surface-alt)}
+    .preview-row > div:last-child{border-right:none}
+    .preview-row:last-child > div{border-bottom:none}
+
+    .schedule-table{min-width:520px}
+    .schedule-date-row td{
+      padding:6px 10px;
+      font-size:16px;
+      font-weight:900;
+      color:#111827;
+    }
+    .schedule-date-row .date-apertura,
+    .schedule-date-row .date-cierre{background:var(--surface-alt)}
+    .preview-head.schedule-preview-head,
+    .preview-row.schedule-preview-row{
+      grid-template-columns:1fr 1fr;
+      min-width:720px;
+    }
+    .preview-row.schedule-preview-row > div:first-child{
+      justify-content:center;
+      text-align:center;
+      font-weight:800;
+      background:var(--surface);
+    }
+    .schedule-preview-date > div{
+      font-weight:900;
+      background:var(--surface-alt);
+    }
+
+    .value-na{color:var(--warn);font-weight:800}
+    .value-time{color:var(--success);font-weight:800}
+    .value-empty{color:var(--text-faint)}
+
+    .export-sheet{
+      position:fixed;left:-10000px;top:0;width:1060px;color:var(--text);padding:14px;
+      border-radius:var(--radius-lg);border:1px solid var(--border);background:var(--surface);box-shadow:var(--shadow-lg);
+    }
+    .export-brand{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:12px;padding:4px 2px}
+    .export-brand-left{display:flex;align-items:center;gap:10px;min-width:0}
+    .export-logo{width:120px;height:56px;object-fit:contain}
+    .export-company{margin:0;font-size:15px;font-weight:800;letter-spacing:.01em;color:var(--text)}
+    .export-meta{margin:6px 0 0;color:var(--text);font-size:14px;font-weight:700}
+    .export-periodo{display:inline-flex;align-items:center;margin-left:8px;padding:2px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent-strong);font-weight:800;font-size:12px}
+    .export-periodo.is-empty{background:var(--surface-alt);color:var(--muted);font-weight:600}
+
+    @media (max-width:1250px){
+      .client-boxes{grid-template-columns:repeat(2,minmax(0,1fr))}
+    }
+    @media (max-width:1100px){
+      .page-shell{padding:14px}
+      .page-hero{flex-direction:column;text-align:center;align-items:center;gap:10px;min-height:0;padding:18px 16px}
+      .hero-copy{text-align:center}
+      .titulo-central{font-size:18px}
+    }
+    @media (max-width:760px){
+      .client-boxes{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <header class="page-hero">
+    <div class="logo-atc"><img src="/shared-static/img/logo-atc.png" alt="Logo ATC" /></div>
+    <div class="hero-copy">
+      <h1 class="titulo-central">Cierre y Apertura de Clientes</h1>
+      <p class="hero-subtitle">Panel oficial para control interno y plantilla profesional de envío a cliente (correo/WhatsApp).</p>
+    </div>
+    <div class="header-actions">
+      <a id="btnVolver" class="volver-link" href="/?form=panelSelector&token={{ token|default('') }}">Volver</a>
+      <a class="volver-link" href="/?form=login&next=auto">Cambiar sesión</a>
+    </div>
+  </header>
+
+  <div class="page-shell">
+    <section class="panel filters">
+      <div class="client-boxes" id="clientBoxes">
+        <button type="button" class="client-box" data-client="derco">DERCO</button>
+        <button type="button" class="client-box" data-client="kovacs">KOVACS</button>
+        <button type="button" class="client-box" data-client="astara">ASTARA</button>
+        <button type="button" class="client-box" data-client="astara_noviciados">ASTARA NOVICIADOS CASETA GUARDIA</button>
+        <button type="button" class="client-box" data-client="atlas">ATLAS</button>
+      </div>
+      <div class="hint">
+        Puedes escribir <b>hora</b> (ej. 19:34), <b>S/A</b> o <b>-</b>. Usa <b>Guardar imagen PNG</b> para generar la plantilla corporativa de envio.
+      </div>
+    </section>
+
+    <section class="clients" id="clientsContainer"></section>
+  </div>
+
+  <script>
+    const clientsConfig = [
+      {
+        id: "derco",
+        name: "Derco",
+        branches: [
+          "Derco Rancagua",
+          "Derco Maipu",
+        ],
+      },
+      {
+        id: "kovacs",
+        name: "Kovacs",
+        branches: [
+          "Kovacs Santos Ossa",
+          "Kovacs Quillota 315 (Nissan Vina)",
+          "Kovacs Colon 3129 (Nissan Valpo)",
+        ],
+      },
+      {
+        id: "astara",
+        name: "Astara",
+        branches: [
+          "Astara El tranque",
+          "Astara Maipu",
+          "Astara Machalí",
+          "Astara Irarrazaval",
+          "Astara Cantagallo",
+          "Astara Casa Matriz",
+          "Astara Luxury",
+          "Cortijo Guardia",
+          "Cortijo Oficina",
+          "Cortijo El galpon",
+          "Astara Padre Hurtado",
+          "Astara Nos",
+          "Alarm. taller y oficina",
+          "Miguel Ramirez recepcion y taller",
+          "Miguel Ramirez sala de ventas",
+          "Astara Longitudinal oficina",
+          "Astara Longitudinal Taller",
+        ],
+      },
+      {
+        id: "astara_noviciados",
+        name: "Astara Noviciados Caseta Guardia",
+        exportName: "Astara Noviciados",
+        kind: "schedule",
+        spacesPerDate: 5,
+      },
+      {
+        id: "atlas",
+        name: "Atlas",
+        branches: [
+          "Oficina",
+          "Bodega",
+          "OF - T - Pr",
+        ],
+      },
+    ];
+
+    const state = {
+      rows: {},
+    };
+
+    function normalizeCellValue(value) {
+      const txt = String(value || "").trim();
+      if (!txt) return "";
+      const up = txt.toUpperCase();
+      if (up === "S/A" || up === "SA") return "S/A";
+      if (up === "-") return "-";
+      return txt;
+    }
+
+    function valueClass(value) {
+      const v = normalizeCellValue(value);
+      if (v === "S/A") return "value-na";
+      if (/^\d{1,2}:\d{2}$/.test(v)) return "value-time";
+      return "value-empty";
+    }
+
+    function addDays(date, days) {
+      const out = new Date(date);
+      out.setDate(out.getDate() + days);
+      return out;
+    }
+
+    function formatDateShort(date) {
+      return `${String(date.getDate()).padStart(2,"0")}/${String(date.getMonth()+1).padStart(2,"0")}`;
+    }
+
+    function buildScheduleRows(spacesPerDate = 5) {
+      const today = new Date();
+      const tomorrow = addDays(today, 1);
+      const rows = [];
+      [today, tomorrow].forEach(date => {
+        rows.push({ type: "date", label: formatDateShort(date) });
+        for (let i = 0; i < spacesPerDate; i += 1) {
+          rows.push({ type: "time", apertura: "", cierre: "" });
+        }
+      });
+      return rows;
+    }
+
+    function buildInitialState() {
+      clientsConfig.forEach(client => {
+        if (client.kind === "schedule") {
+          state.rows[client.id] = buildScheduleRows(client.spacesPerDate || 5);
+        } else {
+          state.rows[client.id] = client.branches.map(branch => ({
+            branch,
+            cierre: "",
+            apertura: "",
+          }));
+        }
+      });
+    }
+
+    function renderClientCard(client) {
+      const section = document.createElement("section");
+      section.className = "panel client-card";
+      section.dataset.client = client.id;
+      section.id = `client-${client.id}`;
+
+      section.innerHTML = `
+        <div class="client-head">
+          <div>
+            <div class="client-title">
+              <span class="dot"></span>
+              <span>${client.name.toUpperCase()}</span>
+            </div>
+            <p class="client-sub">Registro interno + plantilla de envio para cliente y grupo de encargados.</p>
+          </div>
+          <div class="client-tools">
+            <button type="button" class="btn btn-export" onclick="guardarImagenCliente('${client.id}')">Guardar imagen PNG</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="${client.kind === "schedule" ? "schedule-table" : ""}">
+            <thead>
+              <tr>
+                ${client.kind === "schedule"
+                  ? "<th>Apertura</th><th>Cierre</th>"
+                  : "<th>Sucursal</th><th>Cierre</th><th>Apertura</th>"
+                }
+              </tr>
+            </thead>
+            <tbody id="edit-${client.id}"></tbody>
+          </table>
+        </div>
+
+      `;
+
+      return section;
+    }
+
+    function renderEditRows(clientId) {
+      const tbody = document.getElementById(`edit-${clientId}`);
+      const rows = state.rows[clientId] || [];
+      tbody.innerHTML = "";
+
+      const client = getClientById(clientId);
+      if (client?.kind === "schedule") {
+        rows.forEach((row, idx) => {
+          const tr = document.createElement("tr");
+          if (row.type === "date") {
+            tr.className = "schedule-date-row";
+            tr.innerHTML = `<td class="date-apertura">${row.label}</td><td class="date-cierre">${row.label}</td>`;
+          } else {
+            tr.innerHTML = `
+              <td><input class="time-input" data-client="${clientId}" data-row="${idx}" data-field="apertura" placeholder="Ej: 01:40 / S/A / -" value="${row.apertura}" /></td>
+              <td><input class="time-input" data-client="${clientId}" data-row="${idx}" data-field="cierre" placeholder="Ej: 01:41 / S/A / -" value="${row.cierre}" /></td>
+            `;
+          }
+          tbody.appendChild(tr);
+        });
+        return;
+      }
+
+      rows.forEach((row, idx) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="branch">${row.branch}</td>
+          <td><input class="time-input" data-client="${clientId}" data-row="${idx}" data-field="cierre" placeholder="Ej: 19:34 / S/A / -" value="${row.cierre}" /></td>
+          <td><input class="time-input" data-client="${clientId}" data-row="${idx}" data-field="apertura" placeholder="Ej: 07:25 / S/A / -" value="${row.apertura}" /></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function getClientById(clientId) {
+      return clientsConfig.find(c => c.id === clientId) || null;
+    }
+
+    function buildPreviewRowsHtml(clientId) {
+      const rows = state.rows[clientId] || [];
+      return rows.map(row => {
+        const cierre = normalizeCellValue(row.cierre) || "-";
+        const apertura = normalizeCellValue(row.apertura) || "-";
+        return `
+          <div class="preview-row">
+            <div>${row.branch}</div>
+            <div class="${valueClass(cierre)}">${cierre}</div>
+            <div class="${valueClass(apertura)}">${apertura}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function buildSchedulePreviewRowsHtml(clientId) {
+      const rows = state.rows[clientId] || [];
+      const output = [];
+      let currentDate = "";
+      let datePrinted = false;
+
+      rows.forEach(row => {
+        if (row.type === "date") {
+          currentDate = row.label;
+          datePrinted = false;
+          return;
+        }
+        const apertura = normalizeCellValue(row.apertura);
+        const cierre = normalizeCellValue(row.cierre);
+        if (!apertura && !cierre) return;
+
+        if (currentDate && !datePrinted) {
+          output.push(`
+            <div class="preview-row schedule-preview-row schedule-preview-date">
+              <div>${currentDate}</div>
+              <div>${currentDate}</div>
+            </div>
+          `);
+          datePrinted = true;
+        }
+
+        output.push(`
+          <div class="preview-row schedule-preview-row">
+            <div class="${valueClass(apertura)}">${apertura}</div>
+            <div class="${valueClass(cierre)}">${cierre}</div>
+          </div>
+        `);
+      });
+
+      return output.join("");
+    }
+
+    function buildScheduleExportSheet(clientId, periodo, periodoClase) {
+      const client = getClientById(clientId);
+      const rowsHtml = buildSchedulePreviewRowsHtml(clientId);
+      return `
+        <div class="export-brand">
+          <div class="export-brand-left">
+            <img src="/shared-static/img/logo-atc2.jpeg" alt="ATC" class="export-logo" />
+            <div>
+              <p class="export-company">Alguien Te Cuida</p>
+              <p class="export-meta">Reporte de cierre y apertura<span class="${periodoClase}">${periodo}</span></p>
+            </div>
+          </div>
+        </div>
+        <div class="preview preview-export">
+          <div class="export-header">
+            <div>
+              <p class="export-title">Reporte de Cierre y Apertura</p>
+              <p class="export-sub">${(client?.name || "").toUpperCase()} - Control operativo diario</p>
+            </div>
+          </div>
+          <div class="preview-head schedule-preview-head">
+            <div>APERTURA</div>
+            <div>CIERRE</div>
+          </div>
+          <div>${rowsHtml}</div>
+        </div>
+      `;
+    }
+
+    function buildExportSheet(clientId) {
+      const client = getClientById(clientId);
+      if (!client) return null;
+
+      const rowsHtml = client.kind === "schedule" ? "" : buildPreviewRowsHtml(clientId);
+      const ahora = new Date();
+      const periodo = `${String(ahora.getDate()).padStart(2,"0")}/${String(ahora.getMonth()+1).padStart(2,"0")}/${ahora.getFullYear()} ${String(ahora.getHours()).padStart(2,"0")}:${String(ahora.getMinutes()).padStart(2,"0")}`;
+      const periodoClase = "export-periodo";
+
+      const sheet = document.createElement("section");
+      sheet.className = "export-sheet";
+      sheet.innerHTML = client.kind === "schedule" ? buildScheduleExportSheet(clientId, periodo, periodoClase) : `
+        <div class="export-brand">
+          <div class="export-brand-left">
+            <img src="/shared-static/img/logo-atc2.jpeg" alt="ATC" class="export-logo" />
+            <div>
+              <p class="export-company">Alguien Te Cuida</p>
+              <p class="export-meta">Reporte de cierre y apertura<span class="${periodoClase}">${periodo}</span></p>
+            </div>
+          </div>
+        </div>
+        <div class="preview preview-export">
+          <div class="export-header">
+            <div>
+              <p class="export-title">Reporte de Cierre y Apertura</p>
+              <p class="export-sub">${client.name.toUpperCase()} - Control operativo diario</p>
+            </div>
+          </div>
+          <div class="preview-head">
+            <div>${client.name.toUpperCase()}</div>
+            <div>CIERRE</div>
+            <div>APERTURA</div>
+          </div>
+          <div>${rowsHtml}</div>
+        </div>
+      `;
+
+      return sheet;
+    }
+
+    async function guardarImagenCliente(clientId) {
+      const target = buildExportSheet(clientId);
+      if (!target) return;
+      if (typeof html2canvas !== "function") {
+        alert("No se pudo cargar el generador de imagen. Recarga la pagina.");
+        return;
+      }
+
+      document.body.appendChild(target);
+      try {
+        await new Promise(resolve => setTimeout(resolve, 80));
+        const canvas = await html2canvas(target, {
+          backgroundColor: null,
+          scale: 2,
+          useCORS: true,
+          width: target.scrollWidth,
+          height: target.scrollHeight,
+          scrollX: 0,
+          scrollY: 0,
+        });
+        const link = document.createElement("a");
+        const now = new Date();
+        const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}_${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}`;
+        link.download = `cierre_apertura_${clientId}_${stamp}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      } catch (err) {
+        alert("No se pudo guardar la imagen. Intenta nuevamente.");
+      } finally {
+        target.remove();
+      }
+    }
+
+    function renderAll() {
+      clientsConfig.forEach(client => {
+        renderEditRows(client.id);
+      });
+    }
+
+    function filterClients(clientId) {
+      const cards = document.querySelectorAll(".client-card");
+      cards.forEach(card => {
+        const show = clientId === "todos" || card.dataset.client === clientId;
+        card.style.display = show ? "" : "none";
+      });
+    }
+
+    function syncClientBoxes(clientId) {
+      document.querySelectorAll(".client-box").forEach(box => {
+        box.classList.toggle("active", box.getAttribute("data-client") === clientId);
+      });
+    }
+
+    function applyClientFilter(clientId) {
+      const value = clientId || "";
+      filterClients(value);
+      syncClientBoxes(value);
+    }
+
+    function bindEvents() {
+      document.getElementById("clientBoxes").addEventListener("click", (event) => {
+        const btn = event.target.closest(".client-box");
+        if (!btn) return;
+        applyClientFilter(btn.getAttribute("data-client"));
+      });
+
+      document.getElementById("clientsContainer").addEventListener("input", (event) => {
+        const target = event.target;
+        if (!target.classList.contains("time-input")) return;
+        const clientId = target.getAttribute("data-client");
+        const rowIdx = Number(target.getAttribute("data-row"));
+        const field = target.getAttribute("data-field");
+        const rows = state.rows[clientId] || [];
+        const row = rows[rowIdx];
+        if (!row || (field !== "cierre" && field !== "apertura")) return;
+        if (row.type === "date") return;
+        row[field] = target.value;
+        persistirEstado();
+      });
+    }
+
+    // ── Persistencia: lo ingresado se mantiene al navegar y volver.
+    //    Se borra solo al cerrar sesión (la pantalla de login limpia la clave).
+    const STORAGE_KEY = "cierreAperturaRegistros:v1";
+
+    function persistirEstado() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.rows)); } catch (_) {}
+    }
+
+    function restaurarEstado() {
+      let guardado = null;
+      try { guardado = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); } catch (_) {}
+      if (!guardado) return;
+      Object.keys(state.rows).forEach(clientId => {
+        const saved = guardado[clientId];
+        if (!Array.isArray(saved)) return;
+        state.rows[clientId].forEach((row, idx) => {
+          if (row.type === "date") return;
+          const s = row.branch
+            ? saved.find(x => x && x.branch === row.branch)
+            : saved[idx];
+          if (s && s.type !== "date") {
+            if (typeof s.cierre === "string") row.cierre = s.cierre;
+            if (typeof s.apertura === "string") row.apertura = s.apertura;
+          }
+        });
+      });
+    }
+
+    function init() {
+      buildInitialState();
+      restaurarEstado();
+      const container = document.getElementById("clientsContainer");
+      clientsConfig.forEach(client => {
+        container.appendChild(renderClientCard(client));
+      });
+      renderAll();
+      bindEvents();
+      applyClientFilter("");
+    }
+
+    window.addEventListener("load", init);
+
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="/static/auth-guard.js"></script>
+  <script src="/static/atc-logo-home.js"></script>
+<script src="/static/atc-volver.js"></script>
+</body>
+</html>

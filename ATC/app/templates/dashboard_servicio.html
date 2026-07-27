@@ -1,0 +1,1562 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dashboard Servicio Técnico — ATC</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0d1424;
+    --surface: rgba(22, 31, 52, 0.9);
+    --surface-strong: #1a2740;
+    --surface-muted: #202c44;
+    --border: rgba(150, 173, 214, 0.16);
+    --text: #eef3ff;
+    --text-soft: #b4c0d8;
+    --text-dim: #8491a8;
+    --primary: #5a8cff;
+    --green: #2dcf83;
+    --amber: #f3b84f;
+    --red: #ef5f6d;
+    --purple: #8b72ff;
+    --shadow: 0 22px 48px rgba(4, 10, 22, 0.28);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+    background:
+      radial-gradient(circle at top left, rgba(90, 140, 255, 0.18), transparent 28%),
+      radial-gradient(circle at top right, rgba(139, 114, 255, 0.12), transparent 22%),
+      var(--bg);
+    color: var(--text);
+  }
+  a { color: inherit; text-decoration: none; }
+
+  /* Scrollbars a tono con el theme oscuro (en vez del negro por defecto) */
+  * { scrollbar-width: thin; scrollbar-color: var(--surface-muted) transparent; }
+  *::-webkit-scrollbar { width: 8px; height: 8px; }
+  *::-webkit-scrollbar-track { background: transparent; }
+  *::-webkit-scrollbar-thumb { background-color: var(--surface-muted); border-radius: 999px; }
+  *::-webkit-scrollbar-thumb:hover { background-color: var(--border); }
+  *::-webkit-scrollbar-corner { background: transparent; }
+
+  .page { max-width: 1500px; margin: 0 auto; height: 100vh; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+
+  .topbar { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex: 0 0 auto; }
+  .topbar-brand { display: flex; align-items: center; gap: 12px; }
+  .topbar-brand img { height: 34px; width: auto; object-fit: contain; }
+  .topbar-copy h1 { margin: 0 0 2px; font-size: 1.25rem; letter-spacing: -0.03em; font-weight: 800; }
+  .topbar-copy p { margin: 0; color: var(--text-soft); font-size: 0.78rem; }
+  .ghost-button {
+    border: 1px solid var(--border); border-radius: 999px; padding: 8px 16px;
+    font-size: 0.82rem; font-weight: 700; cursor: pointer; background: var(--surface);
+    color: var(--text); box-shadow: var(--shadow); transition: transform .15s, border-color .15s;
+  }
+  .ghost-button:hover { transform: translateY(-1px); border-color: rgba(90,140,255,.34); }
+  .topbar-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .filtro-fechas { display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; box-shadow: var(--shadow); }
+  .filtro-fechas label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); }
+  .filtro-fechas input[type="date"] {
+    background: var(--surface-strong); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); font-size: 0.78rem; padding: 5px 7px; color-scheme: dark;
+  }
+  .filtro-fechas .clear-button {
+    border: 1px solid var(--border); border-radius: 999px; padding: 7px 12px; font-size: 0.78rem; font-weight: 700;
+    cursor: pointer; background: transparent; color: var(--text-soft);
+  }
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; flex: 0 0 auto; }
+  .kpi {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 10px 14px; box-shadow: var(--shadow);
+  }
+  .kpi-label { font-size: 0.64rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); margin-bottom: 4px; line-height: 1.2; }
+  .kpi-value { font-size: 1.5rem; font-weight: 800; letter-spacing: -.02em; color: var(--text); }
+  .kpi-value small { font-size: 0.8rem; font-weight: 700; color: var(--text-dim); }
+
+  .charts-row { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 10px; flex: 1 1 40%; min-height: 0; }
+  .bottom-row { flex: 1 1 42%; min-height: 0; display: grid; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    box-shadow: var(--shadow); padding: 12px 16px; display: flex; flex-direction: column; min-height: 0;
+  }
+  .card h3 { margin: 0 0 1px; font-size: 0.86rem; font-weight: 800; flex: 0 0 auto; }
+  .card p.sub { margin: 0 0 6px; color: var(--text-soft); font-size: 0.72rem; flex: 0 0 auto; }
+  .chart-host { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+  .chart-host canvas { max-height: 100%; }
+
+  .card-head-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: 0 0 auto; }
+  .card-head-row h3 { margin: 0; }
+  .mas-info-btn {
+    flex: 0 0 auto; border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px;
+    font-size: 0.66rem; font-weight: 700; cursor: pointer; background: var(--surface-strong);
+    color: var(--primary); transition: border-color .15s, transform .15s;
+  }
+  .mas-info-btn:hover { border-color: var(--primary); transform: translateY(-1px); }
+
+  /* Popup "+ Info" / clic en un punto de ODTs por mes */
+  .detalle-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(4, 8, 18, 0.72);
+    z-index: 200; align-items: center; justify-content: center; padding: 24px;
+    backdrop-filter: blur(3px);
+  }
+  .detalle-overlay.open { display: flex; }
+  .detalle-modal {
+    width: min(1100px, 96vw); max-height: min(880px, 92vh);
+    background: var(--surface-strong); border: 1px solid var(--border); border-radius: 22px;
+    box-shadow: 0 40px 90px rgba(0,0,0,.55); display: flex; flex-direction: column; overflow: hidden;
+  }
+  .detalle-header {
+    flex: 0 0 auto; display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 16px; padding: 20px 26px; border-bottom: 1px solid var(--border);
+  }
+  .detalle-header h2 { margin: 0 0 3px; font-size: 1.15rem; font-weight: 800; }
+  .detalle-header p { margin: 0; color: var(--text-soft); font-size: 0.82rem; }
+  .detalle-close {
+    flex: 0 0 auto; border: 1px solid var(--border); border-radius: 10px; width: 32px; height: 32px;
+    background: var(--surface); color: var(--text); font-size: 1.1rem; cursor: pointer; line-height: 1;
+  }
+  .detalle-close:hover { border-color: var(--red); color: var(--red); }
+  .detalle-toolbar { flex: 0 0 auto; padding: 14px 26px 0; }
+  .detalle-toolbar input {
+    width: 100%; max-width: 360px; padding: 9px 14px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); font-size: 0.84rem;
+  }
+  .detalle-toolbar input:focus { outline: none; border-color: var(--primary); }
+  .detalle-body-table { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 26px 22px; }
+
+  /* Card "Clientes con más ODTs" */
+  .cliente-odt-list { flex: 1; min-height: 0; overflow-y: auto; }
+  .cliente-odt-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 2px; border-bottom: 1px solid var(--border); }
+  .cliente-odt-row:last-child { border-bottom: none; }
+  .semaforo-dot { flex: 0 0 auto; width: 9px; height: 9px; border-radius: 50%; margin-top: 5px; }
+  .semaforo-dot.verde { background: var(--green); box-shadow: 0 0 0 4px rgba(45,207,131,.14); }
+  .semaforo-dot.naranjo { background: var(--amber); box-shadow: 0 0 0 4px rgba(243,184,79,.14); }
+  .semaforo-dot.rojo { background: var(--red); box-shadow: 0 0 0 4px rgba(239,95,109,.14); }
+  .cliente-odt-info { flex: 1; min-width: 0; }
+  .cliente-odt-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .cliente-odt-nombre { font-size: 0.8rem; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cliente-odt-total { flex: 0 0 auto; font-size: 0.72rem; font-weight: 800; color: var(--primary); }
+  .cliente-odt-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+  .chip-tipo {
+    font-size: 0.64rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border);
+    color: var(--text-soft); background: var(--surface-strong); white-space: nowrap;
+  }
+  .chip-estado { font-size: 0.68rem; font-weight: 800; white-space: nowrap; }
+  .chip-estado.ok { color: var(--green); }
+  .chip-estado.warn { color: var(--amber); }
+  .chip-estado.bad { color: var(--red); }
+  .cliente-odt-row-click { cursor: pointer; border-radius: 10px; }
+  .cliente-odt-row-click:hover { background: var(--surface-muted); }
+
+  /* Popup de detalle por sucursal (ODT a ODT) */
+  .sucursal-odt-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 12px 14px; margin-bottom: 10px;
+  }
+  .sucursal-odt-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+  .sucursal-odt-odt { font-size: 0.88rem; font-weight: 800; color: var(--text); }
+  .sucursal-odt-problema { font-size: 0.78rem; color: var(--text-soft); margin-bottom: 8px; }
+  .sucursal-odt-detalle-row { font-size: 0.78rem; color: var(--text-soft); margin-top: 3px; }
+  .sucursal-odt-detalle-row b { color: var(--text-dim); font-weight: 700; }
+  .sucursal-odt-clock-wrap { margin-top: 6px; display: flex; align-items: center; gap: 8px; }
+  .sucursal-odt-clock-lbl { font-size: 0.7rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: .03em; }
+  .antiguedad-clock-servicio { font-variant-numeric: tabular-nums; font-weight: 800; font-size: 0.86rem; letter-spacing: .02em; }
+  .antiguedad-clock-servicio.bad { color: var(--red); }
+  .antiguedad-clock-servicio.warn { color: var(--amber); }
+  .antiguedad-clock-servicio.ok { color: var(--green); }
+
+  /* Segundo dashboard: "Instalación de cámaras" (pantalla completa, no popup) */
+  body.camaras-open .page {
+    transform: scale(.97); filter: blur(2px); opacity: .35; pointer-events: none;
+    transition: transform .38s cubic-bezier(.4,0,.2,1), filter .38s ease, opacity .38s ease;
+  }
+  .page { transition: transform .38s cubic-bezier(.4,0,.2,1), filter .38s ease, opacity .38s ease; }
+  .camaras-pagina {
+    position: fixed; inset: 0; z-index: 300; background: var(--bg);
+    display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+    opacity: 0; visibility: hidden; pointer-events: none;
+    transform: translateY(26px) scale(.98);
+    transition: opacity .38s cubic-bezier(.4,0,.2,1), transform .38s cubic-bezier(.4,0,.2,1), visibility 0s linear .38s;
+  }
+  .camaras-pagina.open {
+    opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0) scale(1);
+    transition: opacity .38s cubic-bezier(.4,0,.2,1), transform .38s cubic-bezier(.4,0,.2,1), visibility 0s linear 0s;
+  }
+  .camaras-pagina-inner { max-width: 1500px; width: 100%; margin: 0 auto; height: 100%; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box; }
+  .camaras-pagina-header { flex: 0 0 auto; display: flex; align-items: center; gap: 18px; padding: 6px 2px 2px; }
+  .camaras-pagina-header h2 { margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--text); }
+  .camaras-pagina-header p { margin: 2px 0 0; font-size: 0.8rem; color: var(--text-dim); }
+  .camaras-pagina-volver {
+    flex: 0 0 auto; border: 1px solid var(--border); background: var(--surface); color: var(--text);
+    font-size: 0.82rem; font-weight: 700; padding: 9px 16px; border-radius: 10px; cursor: pointer;
+    transition: border-color .15s, transform .15s;
+  }
+  .camaras-pagina-volver:hover { border-color: var(--primary); transform: translateX(-2px); }
+  .camaras-kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; flex: 0 0 auto; }
+  .resumen-buscar { flex: 0 0 auto; width: 100%; margin-bottom: 8px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.82rem; box-sizing: border-box; }
+  .resumen-buscar:focus { outline: none; border-color: var(--primary); }
+  .camaras-secciones { flex: 1; min-height: 0; display: grid; grid-template-columns: 2fr 1fr; gap: 10px; }
+  .camaras-card-ods { min-height: 0; }
+  .camaras-card-pronto { min-height: 0; }
+  .camaras-seccion-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; flex: 0 0 auto; }
+  .camaras-seccion-head h3 { display: flex; align-items: center; gap: 8px; }
+  .camaras-seccion-head span { font-size: 0.68rem; color: var(--text-dim); font-weight: 700; }
+  .pronto-badge {
+    font-size: 0.6rem; font-weight: 800; letter-spacing: .05em; color: var(--amber);
+    background: rgba(243,184,79,.14); border: 1px solid rgba(243,184,79,.3);
+    border-radius: 999px; padding: 2px 8px;
+  }
+  .camaras-pronto-texto { margin: 4px 0 2px; font-size: 0.8rem; color: var(--text-soft); line-height: 1.5; }
+
+  /* Card "Calidad de Visita Técnica entre Incidencias" (demo / PRONTO) */
+  .demo-badge {
+    font-size: 0.6rem; font-weight: 800; letter-spacing: .05em; color: var(--purple);
+    background: rgba(139,114,255,.14); border: 1px solid rgba(139,114,255,.3);
+    border-radius: 999px; padding: 2px 8px;
+  }
+  .visita-badge { font-weight: 800; font-size: 0.78rem; }
+  .visita-badge.alerta { color: var(--red); }
+  .visita-badge.ok { color: var(--text-soft); }
+  .alerta-repeticion {
+    display: inline-flex; align-items: center; gap: 4px; font-size: 0.68rem; font-weight: 800;
+    color: var(--red); background: rgba(239,95,109,.12); border: 1px solid rgba(239,95,109,.3);
+    border-radius: 999px; padding: 2px 8px; white-space: nowrap;
+  }
+  .estado-normal { font-size: 0.7rem; color: var(--text-dim); font-weight: 700; }
+  tbody tr.fila-alerta td { background: rgba(239,95,109,.05); }
+  .visita-detalle-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
+  .visita-detalle-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .visita-detalle-head h4 { margin: 0; font-size: 0.9rem; font-weight: 800; color: var(--text); }
+  .multi-camara-badge {
+    font-size: 0.62rem; font-weight: 800; letter-spacing: .03em; color: var(--primary);
+    background: rgba(90,140,255,.14); border: 1px solid rgba(90,140,255,.3);
+    border-radius: 999px; padding: 2px 7px; white-space: nowrap;
+  }
+  .visita-detalle-camara-block { padding: 10px 0; border-top: 1px solid var(--border); }
+  .visita-detalle-camara-block:first-of-type { border-top: none; padding-top: 0; }
+  .visita-detalle-camara-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+  .visita-detalle-camara { font-size: 0.78rem; color: var(--text-soft); font-weight: 700; }
+  .visita-item { display: grid; grid-template-columns: 110px 1fr 170px; gap: 10px; padding: 7px 4px; border-bottom: 1px solid var(--border); font-size: 0.78rem; }
+  .visita-item:last-child { border-bottom: none; }
+  .visita-item .v-fecha { color: var(--text-soft); font-weight: 700; }
+  .visita-item .v-motivo { color: var(--text); }
+  .visita-item .v-tecnico { color: var(--text-dim); text-align: right; }
+  .camaras-lista-scroll { flex: 1; min-height: 0; overflow-y: auto; margin-top: 4px; }
+  .ods-cam-row { display: grid; grid-template-columns: 1fr auto 240px; align-items: center; gap: 14px; padding: 10px 4px; border-bottom: 1px solid var(--border); }
+  .ods-cam-row:last-child { border-bottom: none; }
+  .ods-cam-info { min-width: 0; }
+  .ods-cam-nombre { display: block; font-size: 0.8rem; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ods-cam-sub { font-size: 0.7rem; color: var(--text-dim); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ods-cam-badge { flex: 0 0 auto; font-size: 0.72rem; font-weight: 800; color: var(--text-soft); white-space: nowrap; }
+  .ods-cam-timeline { flex: 0 0 auto; width: 240px; display: flex; align-items: center; gap: 8px; }
+  .ods-cam-track { flex: 1; height: 7px; border-radius: 999px; background: var(--surface-muted); overflow: hidden; position: relative; }
+  .ods-cam-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #1f9d63, #2dcf83); }
+  .ods-cam-pct { flex: 0 0 auto; font-size: 0.68rem; font-weight: 800; color: var(--green); width: 34px; text-align: right; }
+
+  .instalacion-row { padding: 10px 4px; border-bottom: 1px solid var(--border); }
+  .instalacion-row:last-child { border-bottom: none; }
+  .instalacion-row.alerta { background: rgba(239,95,109,.05); }
+  .instalacion-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .instalacion-id { font-size: 0.8rem; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .instalacion-sub { font-size: 0.7rem; color: var(--text-dim); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .instalacion-estado { flex: 0 0 auto; font-size: 0.68rem; font-weight: 800; white-space: nowrap; }
+  .instalacion-estado.ok { color: var(--green); }
+  .instalacion-estado.alerta { color: var(--red); }
+
+  @media (max-width: 900px) {
+    .camaras-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .camaras-secciones { grid-template-columns: 1fr; }
+    .ods-cam-row { grid-template-columns: 1fr; gap: 6px; }
+    .ods-cam-timeline { width: 100%; }
+  }
+
+  /* Card "Clientes con más ODTs": lista simple, una linea, sin scroll */
+  .cliente-simple-list { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: space-between; gap: 2px; }
+  .cliente-bar-row { display: flex; align-items: center; gap: 8px; }
+  .cliente-bar-rank {
+    flex: 0 0 auto; width: 16px; text-align: center; font-size: 0.62rem; font-weight: 800; color: var(--text-dim);
+  }
+  .cliente-bar-main { flex: 1; min-width: 0; }
+  .cliente-bar-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 2px; }
+  .cliente-bar-nombre { font-size: 0.74rem; font-weight: 700; color: var(--text-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cliente-bar-valor { flex: 0 0 auto; font-size: 0.74rem; font-weight: 800; color: var(--text); }
+  .cliente-bar-track { height: 5px; border-radius: 999px; background: var(--surface-muted); overflow: hidden; }
+  .cliente-bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #3d63d6, #7aa6ff); }
+
+  /* Popup "+ Info" de Clientes con más ODTs: tabs + selector de periodo */
+  .periodo-tabs { flex: 0 0 auto; display: flex; gap: 4px; padding: 16px 26px 0; border-bottom: 1px solid var(--border); }
+  .periodo-tab {
+    appearance: none; border: none; background: none; cursor: pointer;
+    padding: 8px 4px 10px; margin-right: 20px; font-size: 0.84rem; font-weight: 700;
+    color: var(--text-dim); border-bottom: 2px solid transparent;
+  }
+  .periodo-tab.active { color: var(--text); border-bottom-color: var(--primary); }
+  .periodo-tab:hover:not(.active) { color: var(--text-soft); }
+  .periodo-pills { flex: 0 0 auto; display: none; flex-wrap: wrap; gap: 6px; padding: 12px 26px 0; max-height: 84px; overflow-y: auto; }
+  .periodo-pills.visible { display: flex; }
+  .periodo-pill {
+    appearance: none; border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px;
+    font-size: 0.72rem; font-weight: 700; cursor: pointer; background: var(--surface); color: var(--text-soft);
+  }
+  .periodo-pill.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .periodo-pill:hover:not(.active) { border-color: var(--primary); }
+
+  .table-wrap { flex: 1; min-height: 0; overflow-y: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    position: sticky; top: 0; background: var(--surface-strong);
+    text-align: left; font-size: 0.66rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .04em; color: var(--text-dim); padding: 6px 10px; border-bottom: 1px solid var(--border);
+  }
+  thead th.right { text-align: right; }
+  tbody td { padding: 6px 10px; border-bottom: 1px solid var(--border); font-size: 0.8rem; color: var(--text-soft); }
+  tbody td.right { text-align: right; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody td.strong { color: var(--text); font-weight: 700; }
+  .dias-badge { font-weight: 800; }
+  .dias-badge.bad { color: var(--red); }
+  .dias-badge.warn { color: var(--amber); }
+  .dias-badge.ok { color: var(--green); }
+  .empty-row { padding: 20px; text-align: center; color: var(--text-dim); font-size: 0.82rem; }
+
+  .loading-overlay {
+    position: fixed; inset: 0; background: var(--bg); z-index: 50;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+    color: var(--text-soft); font-size: 0.9rem;
+  }
+  .loading-overlay .ring {
+    width: 38px; height: 38px; border-radius: 50%;
+    border: 3px solid var(--border); border-top-color: var(--primary);
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 980px) {
+    html, body { overflow: auto; }
+    .page { height: auto; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .charts-row { grid-template-columns: 1fr; }
+    .chart-host { height: 220px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading">
+  <div class="ring"></div>
+  <p>Cargando indicadores de Servicio Técnico…</p>
+</div>
+
+<div class="page">
+
+  <header class="topbar">
+    <div class="topbar-brand">
+      <img src="/shared-static/img/logo-atc.png" alt="ATC — Alguien Te Cuida">
+      <div class="topbar-copy">
+        <h1>Dashboard Servicio Técnico</h1>
+        <p>Vista gerencial de ODTs: volumen, resolución, SLA e instalaciones</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <div class="filtro-fechas">
+        <label for="filtroDesde">Desde</label>
+        <input type="date" id="filtroDesde">
+        <label for="filtroHasta">Hasta</label>
+        <input type="date" id="filtroHasta">
+        <button type="button" class="clear-button" id="btnLimpiar">Limpiar</button>
+      </div>
+      <a class="ghost-button" id="btnGenerarInforme" href="/servicio/indicadores/informe" target="_blank" rel="noopener" title="PDF explicativo del estado de Servicio Técnico para el rango seleccionado">Generar informe</a>
+      <a class="ghost-button" id="btnVolver" href="/?form=panelSelectorServicio">Volver</a>
+    </div>
+  </header>
+
+  <div class="kpi-grid">
+    <article class="kpi">
+      <div class="kpi-label">ODTs activas (pendientes + en proceso)</div>
+      <div class="kpi-value" id="kActivas">—</div>
+    </article>
+    <article class="kpi">
+      <div class="kpi-label">Cumplimiento SLA</div>
+      <div class="kpi-value" id="kSla">—</div>
+    </article>
+    <article class="kpi">
+      <div class="kpi-label">Tiempo promedio de cierre</div>
+      <div class="kpi-value" id="kTiempo">—</div>
+    </article>
+    <article class="kpi">
+      <div class="kpi-label">Tasa de resolución</div>
+      <div class="kpi-value" id="kTasa">—</div>
+    </article>
+  </div>
+
+  <div class="charts-row">
+    <article class="card">
+      <div class="card-head-row">
+        <h3 id="tituloMensual">ODTs por mes</h3>
+        <button type="button" class="mas-info-btn" id="btnInfoMensual">+ Info</button>
+      </div>
+      <p class="sub" id="subMensual">Finalizadas vs pendientes/en proceso · último año</p>
+      <div class="chart-host"><canvas id="chMensual"></canvas></div>
+    </article>
+    <article class="card">
+      <div class="card-head-row">
+        <h3 id="tituloClientesOdt">Clientes con más ODTs</h3>
+        <button type="button" class="mas-info-btn" id="btnInfoClientesOdt">+ Info</button>
+      </div>
+      <p class="sub" id="subClientesOdt">Histórico</p>
+      <div class="cliente-simple-list" id="clientesOdtList"><div class="empty-row">Cargando…</div></div>
+    </article>
+    <article class="card">
+      <div class="card-head-row">
+        <h3 id="tituloCamaras">Instalación de cámaras</h3>
+        <button type="button" class="mas-info-btn" id="btnInfoCamaras">+ Info</button>
+      </div>
+      <p class="sub" id="subCamaras">Avance global</p>
+      <div class="chart-host"><canvas id="chCamaras"></canvas></div>
+    </article>
+  </div>
+
+  <div class="bottom-row">
+    <article class="card">
+      <div class="card-head-row">
+        <h3 id="tituloCalidadVisita">Calidad de Visita Técnica entre Incidencias <span class="pronto-badge">PRONTO</span> <span class="demo-badge">DEMO</span></h3>
+        <button type="button" class="mas-info-btn" id="btnInfoCalidadVisita">+ Info</button>
+      </div>
+      <p class="sub" id="subCalidadVisita">Visitas repetidas a la misma cámara por sucursal · sucursales reales, datos de ejemplo</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Sucursal</th><th>Cámara</th><th class="right">Visitas</th><th class="right">Última visita</th><th class="right">Estado</th></tr>
+          </thead>
+          <tbody id="tbodyCalidadVisita"></tbody>
+        </table>
+      </div>
+    </article>
+  </div>
+
+</div>
+
+<div class="detalle-overlay" id="calidadVisitaOverlay" onclick="if(event.target===this) cerrarCalidadVisitaModal()">
+  <div class="detalle-modal">
+    <div class="detalle-header">
+      <div>
+        <h2>Calidad de Visita Técnica entre Incidencias <span class="demo-badge">DEMO</span></h2>
+        <p>Detalle de cada visita registrada por sucursal y cámara — datos de ejemplo</p>
+      </div>
+      <button type="button" class="detalle-close" onclick="cerrarCalidadVisitaModal()">&times;</button>
+    </div>
+    <div class="detalle-body-table" id="calidadVisitaDetalle"></div>
+  </div>
+</div>
+
+<div class="detalle-overlay" id="calidadInstalacionOverlay" style="z-index:310;" onclick="if(event.target===this) cerrarCalidadInstalacionModal()">
+  <div class="detalle-modal">
+    <div class="detalle-header">
+      <div>
+        <h2>Calidad de Instalación <span class="demo-badge">DEMO</span></h2>
+        <p>Cámaras caídas tras instalación, agrupadas por motivo — datos de ejemplo</p>
+      </div>
+      <button type="button" class="detalle-close" onclick="cerrarCalidadInstalacionModal()">&times;</button>
+    </div>
+    <div class="detalle-body-table" id="calidadInstalacionDetalle"></div>
+  </div>
+</div>
+
+<div class="detalle-overlay" id="odtsOverlay" onclick="if(event.target===this) cerrarOdtsModal()">
+  <div class="detalle-modal">
+    <div class="detalle-header">
+      <div>
+        <h2 id="odtsModalTitulo">ODTs</h2>
+        <p id="odtsModalSub"></p>
+      </div>
+      <button type="button" class="detalle-close" onclick="cerrarOdtsModal()">&times;</button>
+    </div>
+    <div class="detalle-toolbar">
+      <input type="text" id="odtsModalBuscar" placeholder="Buscar por ODT, cliente, problema o técnico..." oninput="filtrarOdtsModal()">
+    </div>
+    <div class="detalle-body-table">
+      <table>
+        <thead>
+          <tr><th>ODT</th><th>Cliente</th><th>Problema</th><th>Técnico</th><th class="right" id="odtsModalColDias">Días</th></tr>
+        </thead>
+        <tbody id="odtsModalTbody">
+          <tr><td colspan="5" class="empty-row">Cargando…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="detalle-overlay" id="clientesOdtOverlay" onclick="if(event.target===this) cerrarClientesOdtModal()">
+  <div class="detalle-modal">
+    <div class="detalle-header">
+      <div>
+        <h2>Clientes con más ODTs</h2>
+        <p>Tipo de incidencia y estado por cliente</p>
+      </div>
+      <button type="button" class="detalle-close" onclick="cerrarClientesOdtModal()">&times;</button>
+    </div>
+    <div class="periodo-tabs">
+      <button type="button" class="periodo-tab active" id="tabHistorico" onclick="cambiarTabPeriodo('historico')">Histórico</button>
+      <button type="button" class="periodo-tab" id="tabSemana" onclick="cambiarTabPeriodo('semana')">Por semana</button>
+      <button type="button" class="periodo-tab" id="tabMes" onclick="cambiarTabPeriodo('mes')">Por mes</button>
+    </div>
+    <div class="periodo-pills" id="periodoPillsSemana"></div>
+    <div class="periodo-pills" id="periodoPillsMes"></div>
+    <div class="detalle-body-table">
+      <div class="cliente-odt-list" id="clientesOdtModalList"></div>
+    </div>
+  </div>
+</div>
+
+<div class="detalle-overlay" id="sucursalDetalleOverlay" onclick="if(event.target===this) cerrarDetalleSucursal()">
+  <div class="detalle-modal" style="width:min(760px, 96vw);">
+    <div class="detalle-header">
+      <div>
+        <h2 id="sucursalDetalleTitulo">Sucursal</h2>
+        <p id="sucursalDetalleSub"></p>
+      </div>
+      <button type="button" class="detalle-close" onclick="cerrarDetalleSucursal()">&times;</button>
+    </div>
+    <div class="detalle-body-table" id="sucursalDetalleList"></div>
+  </div>
+</div>
+
+<div class="camaras-pagina" id="camarasPagina">
+  <div class="camaras-pagina-inner">
+    <div class="camaras-pagina-header">
+      <button type="button" class="camaras-pagina-volver" id="btnVolverCamaras">Volver</button>
+      <div>
+        <h2>Instalación de cámaras</h2>
+        <p>ODS con cámaras pendientes y calidad de instalación por cámara</p>
+      </div>
+    </div>
+
+    <div class="camaras-kpi-grid">
+      <article class="kpi">
+        <div class="kpi-label">ODS con cámaras pendientes</div>
+        <div class="kpi-value" id="camKpiOds">—</div>
+      </article>
+      <article class="kpi">
+        <div class="kpi-label">Cámaras pendientes</div>
+        <div class="kpi-value" id="camKpiPendientes">—</div>
+      </article>
+      <article class="kpi">
+        <div class="kpi-label">Cámaras instaladas</div>
+        <div class="kpi-value" id="camKpiInstaladas">—</div>
+      </article>
+    </div>
+
+    <div class="camaras-secciones">
+      <article class="card camaras-card-ods">
+        <div class="camaras-seccion-head">
+          <h3>ODS con cámaras pendientes</h3>
+          <span id="camarasOdsCount"></span>
+        </div>
+        <input type="text" id="camarasOdsBuscar" class="resumen-buscar" placeholder="Buscar por ODS, cliente o sucursal..." oninput="filtrarOdsCamaras()">
+        <div class="camaras-lista-scroll" id="camarasOdsLista"></div>
+      </article>
+      <article class="card camaras-card-pronto">
+        <div class="card-head-row">
+          <h3>Calidad de Instalación <span class="demo-badge">DEMO</span></h3>
+          <button type="button" class="mas-info-btn" id="btnInfoCalidadInstalacion">+ Info</button>
+        </div>
+        <p class="sub" style="margin:0 0 6px;" id="calidadInstalacionResumen">Cámaras recién instaladas que se cayeron · datos de ejemplo</p>
+        <div class="camaras-lista-scroll" id="calidadInstalacionLista"></div>
+      </article>
+    </div>
+  </div>
+</div>
+
+<script>
+
+  const CHART_TEXT = "#b4c0d8";
+  const CHART_GRID = "rgba(150,173,214,.12)";
+  Chart.defaults.color = CHART_TEXT;
+  Chart.defaults.font.family = "Inter, 'Segoe UI', system-ui, sans-serif";
+
+  let DATA = null;
+  let charts = {};
+  let todasAbiertas = [];
+  let camarasDataGlobal = [];
+  let odsCamarasListaActual = [];
+  let odtsModalLista = [];
+
+  function escHtml(s) {
+    return String(s || "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  }
+
+  function _renderOdtsModalTbody(lista) {
+    const tbody = document.getElementById("odtsModalTbody");
+    if (!lista.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-row">Sin resultados.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = lista.map(it => {
+      const cls = it.dias >= 60 ? "bad" : it.dias >= 30 ? "warn" : "ok";
+      return `<tr>
+        <td class="strong">${escHtml(it.odt)}</td>
+        <td>${escHtml(it.cliente)}</td>
+        <td>${escHtml(it.problema)}</td>
+        <td>${escHtml(it.tecnico)}</td>
+        <td class="right"><span class="dias-badge ${cls}">${it.dias}</span></td>
+      </tr>`;
+    }).join("");
+  }
+
+  function abrirOdtsModal(titulo, lista, colDiasLabel) {
+    odtsModalLista = lista;
+    document.getElementById("odtsModalTitulo").textContent = titulo;
+    document.getElementById("odtsModalSub").textContent = `${lista.length} ODT${lista.length === 1 ? "" : "s"}`;
+    document.getElementById("odtsModalColDias").textContent = colDiasLabel || "Días";
+    document.getElementById("odtsModalBuscar").value = "";
+    _renderOdtsModalTbody(odtsModalLista);
+    document.getElementById("odtsOverlay").classList.add("open");
+  }
+
+  function filtrarOdtsModal() {
+    const q = document.getElementById("odtsModalBuscar").value.trim().toLowerCase();
+    if (!q) { _renderOdtsModalTbody(odtsModalLista); return; }
+    const filtrado = odtsModalLista.filter(it =>
+      [it.odt, it.cliente, it.problema, it.tecnico].some(v => String(v || "").toLowerCase().includes(q))
+    );
+    _renderOdtsModalTbody(filtrado);
+  }
+
+  function cerrarOdtsModal() {
+    document.getElementById("odtsOverlay").classList.remove("open");
+  }
+
+  document.getElementById("btnInfoMensual").addEventListener("click", () => {
+    abrirOdtsModal("ODTs abiertas — Todas (más antiguas primero)", todasAbiertas, "Días abierta");
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") { cerrarOdtsModal(); cerrarClientesOdtModal(); cerrarDetalleSucursal(); cerrarCamarasModal(); cerrarCalidadVisitaModal(); cerrarCalidadInstalacionModal(); }
+  });
+
+  // Misma normalización de estado que el dashboard operativo original
+  // (static/servicio_dashboard/js/metrics.js) para no reportar cifras distintas.
+  function estadoNorm(r) {
+    const e = (r.estado || "").toLowerCase();
+    if (e.includes("termin") || e.includes("final") || e.includes("cerr")) return "finalizada";
+    if (e.includes("proceso")) return "proceso";
+    if (e.includes("pend")) return "pendiente";
+    return "otro";
+  }
+  const isFinal = r => estadoNorm(r) === "finalizada";
+  const fparse = s => s ? new Date(s) : null;
+
+  function cierreDias(r) {
+    const fr = fparse(r.fecha_registro), fc = fparse(r.fecha_cierre);
+    if (fr && fc && fc >= fr) return (fc - fr) / 864e5;
+    if (typeof r.dias_ejecucion === "number" && r.dias_ejecucion >= 0) return r.dias_ejecucion;
+    return null;
+  }
+  function diasAbierta(r) {
+    const fr = fparse(r.fecha_registro);
+    return fr ? (Date.now() - fr.getTime()) / 864e5 : null;
+  }
+  function slaStatus(r, dias) {
+    if (isFinal(r)) {
+      const d = cierreDias(r);
+      if (d === null) return null;
+      return d <= dias ? "cumplida" : "incumplida";
+    }
+    const d = diasAbierta(r);
+    if (d === null) return null;
+    return d > dias ? "incumplida" : "en_plazo";
+  }
+
+  // ── Clientes con más ODTs: agregacion, semaforo y popup "+ Info" ──
+  // Mantenciones Viña del Mar es un cliente de mantencion masiva (215
+  // puntos de camara), no una señal real de "cliente con problemas".
+  const CLIENTES_EXCLUIDOS_ODT = ["mantenciones viña del mar"];
+
+  function agruparClientesOdt(regsList) {
+    const porCliente = new Map();
+    (regsList || []).forEach(r => {
+      const nombre = (r.cliente || "Sin cliente").trim() || "Sin cliente";
+      if (CLIENTES_EXCLUIDOS_ODT.includes(nombre.toLowerCase())) return;
+      if (!porCliente.has(nombre)) porCliente.set(nombre, { cliente: nombre, total: 0, tipos: new Map(), estados: { finalizada: 0, proceso: 0, pendiente: 0, otro: 0 }, registros: [] });
+      const entry = porCliente.get(nombre);
+      entry.total += 1;
+      const tipo = (r.problema || "Sin especificar").trim() || "Sin especificar";
+      entry.tipos.set(tipo, (entry.tipos.get(tipo) || 0) + 1);
+      entry.estados[estadoNorm(r)] += 1;
+      entry.registros.push(r);
+    });
+    return [...porCliente.values()].filter(e => e.total >= 2).sort((a, b) => b.total - a.total);
+  }
+
+  function semaforoClase(total) { return total >= 4 ? "rojo" : total === 3 ? "naranjo" : "verde"; }
+
+  function renderClientesOdtSimple(lista) {
+    const cont = document.getElementById("clientesOdtList");
+    const items = lista.slice(0, 10);
+    if (!items.length) { cont.innerHTML = '<div class="empty-row">Sin datos.</div>'; return; }
+    const max = items[0].total || 1;
+    cont.innerHTML = items.map((e, i) => `
+      <div class="cliente-bar-row">
+        <span class="cliente-bar-rank">${i + 1}</span>
+        <div class="cliente-bar-main">
+          <div class="cliente-bar-top">
+            <span class="cliente-bar-nombre" title="${escHtml(e.cliente)}">${escHtml(e.cliente)}</span>
+            <span class="cliente-bar-valor">${e.total}</span>
+          </div>
+          <div class="cliente-bar-track"><div class="cliente-bar-fill" style="width:${Math.max((e.total / max) * 100, 4)}%"></div></div>
+        </div>
+      </div>`).join("");
+  }
+
+  let clientesOdtDetalleActual = [];
+
+  function renderClientesOdtDetalle(lista) {
+    clientesOdtDetalleActual = lista;
+    const cont = document.getElementById("clientesOdtModalList");
+    if (!lista.length) { cont.innerHTML = '<div class="empty-row">No hay clientes con 2 o más ODTs en este período.</div>'; return; }
+    cont.innerHTML = lista.slice(0, 25).map((e, i) => {
+      const chipsTipo = [...e.tipos.entries()].sort((a, b) => b[1] - a[1])
+        .map(([t, n]) => `<span class="chip-tipo">${n} · ${escHtml(t)}</span>`).join("");
+      const chipsEstado = [
+        e.estados.finalizada ? `<span class="chip-estado ok">${e.estados.finalizada} finalizada${e.estados.finalizada === 1 ? "" : "s"}</span>` : "",
+        e.estados.proceso ? `<span class="chip-estado warn">${e.estados.proceso} en proceso</span>` : "",
+        e.estados.pendiente ? `<span class="chip-estado bad">${e.estados.pendiente} pendiente${e.estados.pendiente === 1 ? "" : "s"}</span>` : "",
+      ].join("");
+      return `
+      <div class="cliente-odt-row cliente-odt-row-click" data-idx="${i}">
+        <span class="semaforo-dot ${semaforoClase(e.total)}"></span>
+        <div class="cliente-odt-info">
+          <div class="cliente-odt-top">
+            <span class="cliente-odt-nombre" title="${escHtml(e.cliente)}">${escHtml(e.cliente)}</span>
+            <span class="cliente-odt-total">${e.total} ODTs</span>
+          </div>
+          <div class="cliente-odt-chips">${chipsTipo}</div>
+          <div class="cliente-odt-chips">${chipsEstado}</div>
+        </div>
+      </div>`;
+    }).join("");
+    cont.querySelectorAll(".cliente-odt-row-click").forEach(el => {
+      el.addEventListener("click", () => abrirDetalleSucursal(Number(el.dataset.idx)));
+    });
+  }
+
+  function generarSemanas(n) {
+    const semanas = [];
+    const hoy = new Date();
+    const diaSemana = (hoy.getDay() + 6) % 7; // 0 = lunes
+    const lunesActual = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - diaSemana);
+    for (let i = 0; i < n; i++) {
+      const inicio = new Date(lunesActual); inicio.setDate(lunesActual.getDate() - 7 * i);
+      const fin = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate() + 6, 23, 59, 59, 999);
+      const label = `${inicio.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit" })}–${fin.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit" })}`;
+      semanas.push({ inicio, fin, label });
+    }
+    return semanas;
+  }
+
+  function generarMeses(n) {
+    const meses = [];
+    const hoy = new Date();
+    for (let i = 0; i < n; i++) {
+      const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+      const inicio = new Date(d.getFullYear(), d.getMonth(), 1);
+      const fin = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+      const label = d.toLocaleDateString("es-CL", { month: "short", year: "2-digit" });
+      meses.push({ inicio, fin, label });
+    }
+    return meses;
+  }
+
+  const periodoSemanas = generarSemanas(20);
+  const periodoMeses = generarMeses(12);
+  let indiceSemanaActiva = 0;
+  let indiceMesActivo = 0;
+
+  function _pintarPills(contId, periodos, indiceActivo, onClickFn) {
+    const cont = document.getElementById(contId);
+    cont.innerHTML = periodos.map((p, i) =>
+      `<button type="button" class="periodo-pill${i === indiceActivo ? " active" : ""}" data-i="${i}">${p.label}</button>`
+    ).join("");
+    cont.querySelectorAll(".periodo-pill").forEach(btn => {
+      btn.addEventListener("click", () => onClickFn(Number(btn.dataset.i)));
+    });
+  }
+
+  function seleccionarSemana(i) {
+    indiceSemanaActiva = i;
+    _pintarPills("periodoPillsSemana", periodoSemanas, indiceSemanaActiva, seleccionarSemana);
+    const p = periodoSemanas[i];
+    const regsPeriodo = (DATA.registros || []).filter(r => { const f = fparse(r.fecha_registro); return f && f >= p.inicio && f <= p.fin; });
+    renderClientesOdtDetalle(agruparClientesOdt(regsPeriodo));
+  }
+
+  function seleccionarMes(i) {
+    indiceMesActivo = i;
+    _pintarPills("periodoPillsMes", periodoMeses, indiceMesActivo, seleccionarMes);
+    const p = periodoMeses[i];
+    const regsPeriodo = (DATA.registros || []).filter(r => { const f = fparse(r.fecha_registro); return f && f >= p.inicio && f <= p.fin; });
+    renderClientesOdtDetalle(agruparClientesOdt(regsPeriodo));
+  }
+
+  function cambiarTabPeriodo(tab) {
+    document.getElementById("tabHistorico").classList.toggle("active", tab === "historico");
+    document.getElementById("tabSemana").classList.toggle("active", tab === "semana");
+    document.getElementById("tabMes").classList.toggle("active", tab === "mes");
+    document.getElementById("periodoPillsSemana").classList.toggle("visible", tab === "semana");
+    document.getElementById("periodoPillsMes").classList.toggle("visible", tab === "mes");
+    if (tab === "historico") {
+      renderClientesOdtDetalle(agruparClientesOdt(DATA.registros || []));
+    } else if (tab === "semana") {
+      seleccionarSemana(indiceSemanaActiva);
+    } else {
+      seleccionarMes(indiceMesActivo);
+    }
+  }
+
+  function abrirClientesOdtModal() {
+    document.getElementById("clientesOdtOverlay").classList.add("open");
+    cambiarTabPeriodo("historico");
+  }
+  function cerrarClientesOdtModal() {
+    document.getElementById("clientesOdtOverlay").classList.remove("open");
+  }
+  document.getElementById("btnInfoClientesOdt").addEventListener("click", abrirClientesOdtModal);
+
+  // ── Detalle por sucursal: quien/cuando/como finalizo, o tiempo sin
+  // resolucion en vivo (dd HH:MM:SS) si sigue pendiente/en proceso. ──
+  let relojServicioTimer = null;
+
+  function _formatoAntiguedadServicio(ms) {
+    const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+    const dias = Math.floor(totalSeconds / 86400);
+    const horas = Math.floor((totalSeconds % 86400) / 3600);
+    const min = Math.floor((totalSeconds % 3600) / 60);
+    const seg = totalSeconds % 60;
+    return `${dias}d ${String(horas).padStart(2, "0")}:${String(min).padStart(2, "0")}:${String(seg).padStart(2, "0")}`;
+  }
+
+  function _tickRelojesServicio() {
+    document.querySelectorAll(".antiguedad-clock-servicio[data-creado]").forEach(el => {
+      const creadoMs = Number(el.dataset.creado || "0");
+      if (!creadoMs) { el.textContent = "—"; return; }
+      const ms = Date.now() - creadoMs;
+      el.textContent = _formatoAntiguedadServicio(ms);
+      const dias = ms / 86400000;
+      el.classList.toggle("bad", dias >= 30);
+      el.classList.toggle("warn", dias >= 7 && dias < 30);
+      el.classList.toggle("ok", dias < 7);
+    });
+  }
+
+  function abrirDetalleSucursal(idx) {
+    const entry = clientesOdtDetalleActual[idx];
+    if (!entry) return;
+    document.getElementById("sucursalDetalleTitulo").textContent = entry.cliente;
+    document.getElementById("sucursalDetalleSub").textContent = `${entry.registros.length} ODT${entry.registros.length === 1 ? "" : "s"} en este período`;
+
+    const ordenadas = [...entry.registros].sort((a, b) => {
+      const fa = fparse(a.fecha_registro)?.getTime() || 0;
+      const fb = fparse(b.fecha_registro)?.getTime() || 0;
+      return fb - fa;
+    });
+
+    document.getElementById("sucursalDetalleList").innerHTML = ordenadas.map((r, idx) => {
+      if (isFinal(r)) {
+        const cuando = fparse(r.fecha_cierre);
+        const cuandoTxt = cuando ? cuando.toLocaleString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
+        const tecnico = (r.tecnicos || "").trim();
+        const acompanante = (r.acompanante || "").trim();
+        const etiquetaQuien = acompanante ? "Quiénes" : "Quién";
+        const valorQuien = [tecnico, acompanante].filter(Boolean).join(" y ");
+        const como = (r.observacion_final || "").trim() || "Sin observación registrada";
+        const comoId = `comoTxt${idx}`;
+        const preview = como.length > 90 ? como.slice(0, 90) + "…" : como;
+        const necesitaVer = como.length > 90;
+        return `
+        <div class="sucursal-odt-card">
+          <div class="sucursal-odt-top">
+            <span class="sucursal-odt-odt">${escHtml(r.odt)}</span>
+            <span class="chip-estado ok">Finalizada</span>
+          </div>
+          <div class="sucursal-odt-problema">${escHtml(r.problema)}</div>
+          <div class="sucursal-odt-detalle-row"><b>${etiquetaQuien}:</b> ${escHtml(valorQuien)}</div>
+          <div class="sucursal-odt-detalle-row"><b>Cuándo:</b> ${cuandoTxt}</div>
+          <div class="sucursal-odt-detalle-row">
+            <b>Cómo:</b> <span id="${comoId}" data-full="${escHtml(como)}" data-preview="${escHtml(preview)}" data-expandido="0">${escHtml(preview)}</span>
+            ${necesitaVer ? `<button type="button" class="mas-info-btn" style="margin-left:6px;" onclick="toggleComoTexto('${comoId}', this)">Ver</button>` : ""}
+          </div>
+        </div>`;
+      }
+      const enProceso = estadoNorm(r) === "proceso";
+      const creadoMs = fparse(r.fecha_registro)?.getTime() || 0;
+      return `
+      <div class="sucursal-odt-card">
+        <div class="sucursal-odt-top">
+          <span class="sucursal-odt-odt">${escHtml(r.odt)}</span>
+          <span class="chip-estado ${enProceso ? "warn" : "bad"}">${enProceso ? "En proceso" : "Pendiente"}</span>
+        </div>
+        <div class="sucursal-odt-problema">${escHtml(r.problema)}</div>
+        <div class="sucursal-odt-clock-wrap">
+          <span class="sucursal-odt-clock-lbl">Sin resolución hace</span>
+          <span class="antiguedad-clock-servicio" data-creado="${creadoMs}"></span>
+        </div>
+      </div>`;
+    }).join("");
+
+    document.getElementById("sucursalDetalleOverlay").classList.add("open");
+    if (relojServicioTimer) clearInterval(relojServicioTimer);
+    _tickRelojesServicio();
+    relojServicioTimer = setInterval(_tickRelojesServicio, 1000);
+  }
+
+  function cerrarDetalleSucursal() {
+    document.getElementById("sucursalDetalleOverlay").classList.remove("open");
+    if (relojServicioTimer) { clearInterval(relojServicioTimer); relojServicioTimer = null; }
+  }
+
+  function toggleComoTexto(spanId, btn) {
+    const span = document.getElementById(spanId);
+    if (!span) return;
+    const expandido = span.dataset.expandido === "1";
+    span.textContent = expandido ? span.dataset.preview : span.dataset.full;
+    span.dataset.expandido = expandido ? "0" : "1";
+    btn.textContent = expandido ? "Ver" : "Ocultar";
+  }
+
+  // ── Popup "+ Info" Instalación de cámaras ──
+  // Timeline de avance por ODS: 0 -> total de camaras contratadas, se llena
+  // segun cuantas camaras ya quedaron instaladas (cierre tecnico).
+  function renderOdsCamaras(lista) {
+    odsCamarasListaActual = lista;
+    const cont = document.getElementById("camarasOdsLista");
+    document.getElementById("camarasOdsCount").textContent = `${lista.length} ODS`;
+    if (!lista.length) { cont.innerHTML = '<div class="empty-row">No hay ODS con cámaras pendientes.</div>'; return; }
+    cont.innerHTML = lista.map(c => {
+      const total = c.camaras_total || 0;
+      const instaladas = c.camaras_instaladas || 0;
+      const pct = total ? Math.round((instaladas / total) * 100) : 0;
+      return `
+      <div class="ods-cam-row">
+        <div class="ods-cam-info">
+          <span class="ods-cam-nombre" title="${escHtml(c.cliente)}">${escHtml(c.cliente)}</span>
+          <div class="ods-cam-sub">${escHtml(c.ods || "")}${c.sucursal ? " · " + escHtml(c.sucursal) : ""}${c.direccion ? " · " + escHtml(c.direccion) : ""}</div>
+        </div>
+        <span class="ods-cam-badge">${instaladas} de ${total}</span>
+        <div class="ods-cam-timeline">
+          <div class="ods-cam-track"><div class="ods-cam-fill" style="width:${pct}%"></div></div>
+          <span class="ods-cam-pct">${pct}%</span>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  function filtrarOdsCamaras() {
+    const q = document.getElementById("camarasOdsBuscar").value.trim().toLowerCase();
+    const base = camarasDataGlobal.filter(c => (c.camaras_pendientes || 0) > 0).sort((a, b) => b.camaras_pendientes - a.camaras_pendientes);
+    const filtrado = q ? base.filter(c => [c.ods, c.cliente, c.sucursal].some(v => String(v || "").toLowerCase().includes(q))) : base;
+    renderOdsCamaras(filtrado);
+  }
+
+  function _pintarKpisCamaras() {
+    const pendientesOds = camarasDataGlobal.filter(c => (c.camaras_pendientes || 0) > 0);
+    const totalPendientes = camarasDataGlobal.reduce((s, c) => s + (c.camaras_pendientes || 0), 0);
+    const totalInstaladas = camarasDataGlobal.reduce((s, c) => s + (c.camaras_instaladas || 0), 0);
+    document.getElementById("camKpiOds").textContent = pendientesOds.length;
+    document.getElementById("camKpiPendientes").textContent = totalPendientes;
+    document.getElementById("camKpiInstaladas").textContent = totalInstaladas;
+  }
+
+  // ── DEMO: "Calidad de Instalación" ──
+  // Cámaras nuevas instaladas por Soporte, identificadas por ID unico por
+  // ODS+sucursal. Si esa MISMA camara (mismo ID) vuelve a reportarse caida
+  // despues de instalada, se dispara la alerta (no proviene del API real).
+  const CALIDAD_INSTALACION_DEMO = [
+    { ods: "V246", sucursal: "Desarrollo rural Concon", camaraId: "CAM-V246-01", fechaInstalacion: "2026-07-05", tecnico: "Jesus Sebastian Gonzalez Aguilera", caida: false },
+    { ods: "V246", sucursal: "Desarrollo rural Concon", camaraId: "CAM-V246-02", fechaInstalacion: "2026-07-05", tecnico: "Jesus Sebastian Gonzalez Aguilera", caida: true, fechaCaida: "2026-07-16", motivoCaida: "Desconexión" },
+    { ods: "V233", sucursal: "Wellford San Bernardo", camaraId: "CAM-V233-01", fechaInstalacion: "2026-06-18", tecnico: "Bryan Benjamin Ibaceta Fabrega", caida: false },
+    { ods: "V257", sucursal: "MC Deporte, Estadio Atlético", camaraId: "CAM-V257-04", fechaInstalacion: "2026-06-22", tecnico: "Marco Antonio Lopez Aguirre", caida: true, fechaCaida: "2026-07-01", motivoCaida: "Falla de Video" },
+    { ods: "V193", sucursal: "Nexe Curauma", camaraId: "CAM-V193-02", fechaInstalacion: "2026-07-10", tecnico: "Rafael Lia Perez", caida: false },
+    { ods: "V251", sucursal: "MC Parque La Isla", camaraId: "CAM-V251-05", fechaInstalacion: "2026-05-28", tecnico: "Daniel Armando Sarmiento García", caida: false },
+    { ods: "V267", sucursal: "Parque Vista al Mar", camaraId: "CAM-V267-01", fechaInstalacion: "2026-06-30", tecnico: "Luis Alberto Bustamante Aguilera", caida: true, fechaCaida: "2026-07-19", motivoCaida: "Desconexión" },
+    { ods: "V234", sucursal: "GR PLANTA", camaraId: "CAM-V234-03", fechaInstalacion: "2026-07-12", tecnico: "Rafael Lia Perez", caida: false },
+  ];
+
+  function _diasEntre(desde, hasta) {
+    return Math.round((new Date(hasta) - new Date(desde)) / 864e5);
+  }
+  function _fmtFechaCorta(iso) {
+    return new Date(iso + "T00:00:00").toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "2-digit" });
+  }
+
+  // Vista compacta en la tarjeta: solo lo accionable (las caídas). El resto
+  // del detalle (incluidas las cámaras OK y el agrupado por motivo) vive en
+  // el popup "+ Info" para no ocupar espacio en el dashboard.
+  function renderCalidadInstalacionDemo() {
+    const cont = document.getElementById("calidadInstalacionLista");
+    const caidas = CALIDAD_INSTALACION_DEMO.filter(c => c.caida);
+    document.getElementById("calidadInstalacionResumen").textContent =
+      `${caidas.length} de ${CALIDAD_INSTALACION_DEMO.length} cámaras nuevas caídas · datos de ejemplo`;
+    if (!caidas.length) {
+      cont.innerHTML = '<div class="empty-row">Sin caídas entre las cámaras recién instaladas.</div>';
+      return;
+    }
+    cont.innerHTML = caidas.map(c => {
+      const dias = _diasEntre(c.fechaInstalacion, c.fechaCaida);
+      return `<div class="instalacion-row alerta">
+        <div class="instalacion-top">
+          <span class="instalacion-id" title="${escHtml(c.camaraId)}">${escHtml(c.camaraId)}</span>
+          <span class="instalacion-estado alerta">⚠ ${dias}d</span>
+        </div>
+        <div class="instalacion-sub">${escHtml(c.ods)} · ${escHtml(c.sucursal)} · ${escHtml(c.motivoCaida)}</div>
+      </div>`;
+    }).join("");
+  }
+
+  function renderCalidadInstalacionDetalle() {
+    const cont = document.getElementById("calidadInstalacionDetalle");
+    const caidas = CALIDAD_INSTALACION_DEMO.filter(c => c.caida);
+    const ok = CALIDAD_INSTALACION_DEMO.filter(c => !c.caida);
+    const motivos = ["Desconexión", "Falla de Video"];
+
+    let html = `<p style="margin:0 0 14px;font-size:0.82rem;color:var(--text-soft);">
+      ${caidas.length} de ${CALIDAD_INSTALACION_DEMO.length} cámaras instaladas recientemente se cayeron,
+      agrupadas por motivo. Datos de ejemplo.
+    </p>`;
+
+    motivos.forEach(motivo => {
+      const grupo = caidas.filter(c => c.motivoCaida === motivo);
+      if (!grupo.length) return;
+      html += `<div class="visita-detalle-card">
+        <div class="visita-detalle-head">
+          <h4>${escHtml(motivo)}</h4>
+          <span class="alerta-repeticion">⚠ ${grupo.length} cámara${grupo.length === 1 ? "" : "s"}</span>
+        </div>
+        ${grupo.map(c => `
+          <div class="visita-item" style="grid-template-columns:140px 1fr 170px;">
+            <span class="v-fecha">${escHtml(c.camaraId)}</span>
+            <span class="v-motivo">${escHtml(c.ods)} · ${escHtml(c.sucursal)} · instalada ${_fmtFechaCorta(c.fechaInstalacion)} · caída ${_fmtFechaCorta(c.fechaCaida)} (${_diasEntre(c.fechaInstalacion, c.fechaCaida)}d)</span>
+            <span class="v-tecnico">${escHtml(c.tecnico)}</span>
+          </div>`).join("")}
+      </div>`;
+    });
+
+    const otros = caidas.filter(c => !motivos.includes(c.motivoCaida));
+    if (otros.length) {
+      html += `<div class="visita-detalle-card">
+        <div class="visita-detalle-head"><h4>Otros motivos</h4><span class="alerta-repeticion">⚠ ${otros.length}</span></div>
+        ${otros.map(c => `
+          <div class="visita-item" style="grid-template-columns:140px 1fr 170px;">
+            <span class="v-fecha">${escHtml(c.camaraId)}</span>
+            <span class="v-motivo">${escHtml(c.ods)} · ${escHtml(c.sucursal)} · ${escHtml(c.motivoCaida)}</span>
+            <span class="v-tecnico">${escHtml(c.tecnico)}</span>
+          </div>`).join("")}
+      </div>`;
+    }
+
+    html += `<div class="visita-detalle-card">
+      <div class="visita-detalle-head"><h4>Sin problemas</h4><span class="estado-normal">${ok.length} OK</span></div>
+      ${ok.map(c => `
+        <div class="visita-item" style="grid-template-columns:140px 1fr 170px;">
+          <span class="v-fecha">${escHtml(c.camaraId)}</span>
+          <span class="v-motivo">${escHtml(c.ods)} · ${escHtml(c.sucursal)} · instalada ${_fmtFechaCorta(c.fechaInstalacion)}</span>
+          <span class="v-tecnico">${escHtml(c.tecnico)}</span>
+        </div>`).join("")}
+    </div>`;
+
+    cont.innerHTML = html;
+  }
+
+  function abrirCalidadInstalacionModal() {
+    renderCalidadInstalacionDetalle();
+    document.getElementById("calidadInstalacionOverlay").classList.add("open");
+  }
+  function cerrarCalidadInstalacionModal() {
+    document.getElementById("calidadInstalacionOverlay").classList.remove("open");
+  }
+  document.getElementById("btnInfoCalidadInstalacion").addEventListener("click", abrirCalidadInstalacionModal);
+
+  function abrirCamarasModal() {
+    document.body.classList.add("camaras-open");
+    document.getElementById("camarasPagina").classList.add("open");
+    document.getElementById("camarasOdsBuscar").value = "";
+    _pintarKpisCamaras();
+    filtrarOdsCamaras();
+    renderCalidadInstalacionDemo();
+  }
+  function cerrarCamarasModal() {
+    document.body.classList.remove("camaras-open");
+    document.getElementById("camarasPagina").classList.remove("open");
+  }
+  document.getElementById("btnInfoCamaras").addEventListener("click", abrirCamarasModal);
+  document.getElementById("btnVolverCamaras").addEventListener("click", cerrarCamarasModal);
+
+  // ── DEMO: "Calidad de Visita Técnica entre Incidencias" ──
+  // Sucursales reales, visitas y motivos de ejemplo (no proviene del API).
+  // Un recinto puede tener 1 o mas camaras con historial propio; la alerta de
+  // repeticion (3+ visitas) se evalua POR CAMARA, no por sucursal completa
+  // (ej: Inseco tiene camara 1 con 5 visitas y camara 2 con 3, ambas alertan).
+  const CALIDAD_VISITA_DEMO = [
+    { sucursal: "Casa Nervi", camaras: [
+      { camara: "Cámara 3 - Acceso principal", visitas: [
+        { fecha: "2026-05-02", tecnico: "Jesus Sebastian Gonzalez Aguilera", motivo: "Desconexión", odt: "I11402" },
+        { fecha: "2026-06-14", tecnico: "Marco Antonio Lopez Aguirre", motivo: "Problema de Visual", odt: "I11890" },
+        { fecha: "2026-07-10", tecnico: "Jesus Sebastian Gonzalez Aguilera", motivo: "Desconexión", odt: "I12210" },
+      ]},
+    ]},
+    { sucursal: "DYS", camaras: [
+      { camara: "Cámara 1 - Bodega", visitas: [
+        { fecha: "2026-06-20", tecnico: "Bryan Benjamin Ibaceta Fabrega", motivo: "Problema de Alarma", odt: "I11955" },
+      ]},
+    ]},
+    { sucursal: "Colegio Guillermo Gronemeyer", camaras: [
+      { camara: "Cámara 5 - Patio central", visitas: [
+        { fecha: "2026-04-18", tecnico: "Daniel Armando Sarmiento García", motivo: "Falla de Video", odt: "I11120" },
+        { fecha: "2026-05-25", tecnico: "Daniel Armando Sarmiento García", motivo: "Falla de Video", odt: "I11560" },
+        { fecha: "2026-06-30", tecnico: "Rafael Lia Perez", motivo: "Falla de Video", odt: "I12040" },
+        { fecha: "2026-07-15", tecnico: "Jesus Sebastian Gonzalez Aguilera", motivo: "Cámara Sucia", odt: "I12260" },
+      ]},
+    ]},
+    { sucursal: "ASF La Ligua", camaras: [
+      { camara: "Cámara 2 - Estacionamiento", visitas: [
+        { fecha: "2026-06-05", tecnico: "Luis Alberto Bustamante Aguilera", motivo: "Desconexión", odt: "I11780" },
+        { fecha: "2026-07-02", tecnico: "Luis Alberto Bustamante Aguilera", motivo: "Desconexión", odt: "I12105" },
+      ]},
+    ]},
+    { sucursal: "Race Tech", camaras: [
+      { camara: "Cámara 4 - Recepción", visitas: [
+        { fecha: "2026-07-08", tecnico: "Marco Antonio Lopez Aguirre", motivo: "Problema de Alarma", odt: "I12180" },
+      ]},
+    ]},
+    { sucursal: "Inseco", camaras: [
+      { camara: "Cámara 1 - Portería", visitas: [
+        { fecha: "2026-03-22", tecnico: "Bryan Benjamin Ibaceta Fabrega", motivo: "Desconexión", odt: "I10820" },
+        { fecha: "2026-05-11", tecnico: "Rafael Lia Perez", motivo: "Desconexión", odt: "I11340" },
+        { fecha: "2026-06-27", tecnico: "Bryan Benjamin Ibaceta Fabrega", motivo: "Desconexión", odt: "I12010" },
+        { fecha: "2026-07-18", tecnico: "Bryan Benjamin Ibaceta Fabrega", motivo: "Desconexión", odt: "I12280" },
+        { fecha: "2026-07-19", tecnico: "Jesus Sebastian Gonzalez Aguilera", motivo: "Desconexión", odt: "I12285" },
+      ]},
+      { camara: "Cámara 2 - Bodega", visitas: [
+        { fecha: "2026-04-10", tecnico: "Rafael Lia Perez", motivo: "Falla de Video", odt: "I11080" },
+        { fecha: "2026-06-02", tecnico: "Bryan Benjamin Ibaceta Fabrega", motivo: "Falla de Video", odt: "I11760" },
+        { fecha: "2026-07-14", tecnico: "Rafael Lia Perez", motivo: "Falla de Video", odt: "I12240" },
+      ]},
+    ]},
+    { sucursal: "Casa Felipe Aris", camaras: [
+      { camara: "Cámara 6 - Jardín", visitas: [
+        { fecha: "2026-06-01", tecnico: "Daniel Armando Sarmiento García", motivo: "Problema de Visual", odt: "I11700" },
+      ]},
+    ]},
+    { sucursal: "Ing Montemar", camaras: [
+      { camara: "Cámara 2 - Sala de máquinas", visitas: [
+        { fecha: "2026-05-15", tecnico: "Rafael Lia Perez", motivo: "Falla de Video", odt: "I11420" },
+        { fecha: "2026-06-22", tecnico: "Rafael Lia Perez", motivo: "Falla de Video", odt: "I11970" },
+      ]},
+    ]},
+    { sucursal: "Astara Casa Matriz", camaras: [
+      { camara: "Cámara 7 - Perímetro norte", visitas: [
+        { fecha: "2026-04-30", tecnico: "Luis Alberto Bustamante Aguilera", motivo: "Desconexión", odt: "I11250" },
+        { fecha: "2026-06-09", tecnico: "Marco Antonio Lopez Aguirre", motivo: "Cámara Sucia", odt: "I11830" },
+        { fecha: "2026-07-05", tecnico: "Luis Alberto Bustamante Aguilera", motivo: "Desconexión", odt: "I12130" },
+      ]},
+    ]},
+    { sucursal: "Oficina CMQ", camaras: [
+      { camara: "Cámara 3 - Hall", visitas: [
+        { fecha: "2026-07-01", tecnico: "Daniel Armando Sarmiento García", motivo: "Problema de Alarma", odt: "I12060" },
+      ]},
+    ]},
+  ];
+
+  function _agruparCalidadVisita() {
+    const filtroDesdeVal = document.getElementById("filtroDesde").value;
+    const filtroHastaVal = document.getElementById("filtroHasta").value;
+    const hayFiltro = Boolean(filtroDesdeVal && filtroHastaVal);
+    return CALIDAD_VISITA_DEMO
+      .map(s => ({
+        sucursal: s.sucursal,
+        camaras: s.camaras
+          .map(c => ({
+            camara: c.camara,
+            visitas: hayFiltro
+              ? c.visitas.filter(v => v.fecha >= filtroDesdeVal && v.fecha <= filtroHastaVal)
+              : c.visitas,
+          }))
+          // Solo interesa mostrar recurrencia real: 3 visitas o mas a la
+          // misma camara. 2 o menos no se considera una alerta.
+          .filter(c => c.visitas.length >= 3)
+          .sort((a, b) => b.visitas.length - a.visitas.length),
+      }))
+      .filter(g => g.camaras.length > 0)
+      .sort((a, b) => b.camaras[0].visitas.length - a.camaras[0].visitas.length);
+  }
+
+  function renderCalidadVisitaDemo() {
+    const tbody = document.getElementById("tbodyCalidadVisita");
+    const grupos = _agruparCalidadVisita();
+    if (!grupos.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-row">Sin cámaras con 3 o más visitas en este período.</td></tr>';
+      return;
+    }
+    let html = "";
+    grupos.forEach(g => {
+      g.camaras.forEach((c, i) => {
+        const total = c.visitas.length;
+        const alerta = total >= 3;
+        const ultimaFmt = new Date(c.visitas[total - 1].fecha + "T00:00:00").toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "2-digit" });
+        html += `<tr class="${alerta ? "fila-alerta" : ""}">`;
+        if (i === 0) {
+          const multi = g.camaras.length > 1 ? ` <span class="multi-camara-badge">${g.camaras.length} cámaras</span>` : "";
+          html += `<td class="strong" rowspan="${g.camaras.length}">${escHtml(g.sucursal)}${multi}</td>`;
+        }
+        html += `
+          <td>${escHtml(c.camara)}</td>
+          <td class="right"><span class="visita-badge ${alerta ? "alerta" : "ok"}">${total}</span></td>
+          <td class="right">${ultimaFmt}</td>
+          <td class="right">${alerta ? `<span class="alerta-repeticion">⚠ ${total} visitas misma cámara</span>` : '<span class="estado-normal">Normal</span>'}</td>
+        </tr>`;
+      });
+    });
+    tbody.innerHTML = html;
+  }
+
+  function renderCalidadVisitaDetalle() {
+    const cont = document.getElementById("calidadVisitaDetalle");
+    const grupos = _agruparCalidadVisita();
+    cont.innerHTML = grupos.map(g => {
+      const camarasHtml = g.camaras.map(c => {
+        const alerta = c.visitas.length >= 3;
+        const items = c.visitas.map(v => {
+          const fechaFmt = new Date(v.fecha + "T00:00:00").toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" });
+          return `<div class="visita-item">
+            <span class="v-fecha">${fechaFmt}</span>
+            <span class="v-motivo">${escHtml(v.motivo)} · <span style="color:var(--text-dim)">${escHtml(v.odt)}</span></span>
+            <span class="v-tecnico">${escHtml(v.tecnico)}</span>
+          </div>`;
+        }).join("");
+        return `<div class="visita-detalle-camara-block">
+          <div class="visita-detalle-camara-head">
+            <span class="visita-detalle-camara">${escHtml(c.camara)}</span>
+            ${alerta ? `<span class="alerta-repeticion">⚠ ${c.visitas.length} visitas misma cámara</span>` : '<span class="estado-normal">Normal</span>'}
+          </div>
+          ${items}
+        </div>`;
+      }).join("");
+      return `<div class="visita-detalle-card">
+        <div class="visita-detalle-head">
+          <h4>${escHtml(g.sucursal)}</h4>
+          ${g.camaras.length > 1 ? `<span class="multi-camara-badge">${g.camaras.length} cámaras monitoreadas</span>` : ""}
+        </div>
+        ${camarasHtml}
+      </div>`;
+    }).join("");
+  }
+
+  function abrirCalidadVisitaModal() {
+    renderCalidadVisitaDetalle();
+    document.getElementById("calidadVisitaOverlay").classList.add("open");
+  }
+  function cerrarCalidadVisitaModal() {
+    document.getElementById("calidadVisitaOverlay").classList.remove("open");
+  }
+  document.getElementById("btnInfoCalidadVisita").addEventListener("click", abrirCalidadVisitaModal);
+
+  function filtrados() {
+    const desde = document.getElementById("filtroDesde").value;
+    const hasta = document.getElementById("filtroHasta").value;
+    return DATA.registros.filter(r => {
+      const f = (r.fecha_registro || "").slice(0, 10);
+      if (desde && (!f || f < desde)) return false;
+      if (hasta && (!f || f > hasta)) return false;
+      return true;
+    });
+  }
+
+  function destruir(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+  function render() {
+    const regs = filtrados();
+    const slaDias = (DATA.config && DATA.config.sla_dias) || 7;
+
+    const fin = regs.filter(isFinal);
+    const pend = regs.filter(r => estadoNorm(r) === "pendiente");
+    const proc = regs.filter(r => estadoNorm(r) === "proceso");
+    const otros = regs.length - fin.length - pend.length - proc.length;
+
+    const slaEval = regs.map(r => slaStatus(r, slaDias)).filter(s => s === "cumplida" || s === "incumplida");
+    const slaOk = slaEval.filter(s => s === "cumplida").length;
+    const tiempos = fin.map(cierreDias).filter(d => d !== null);
+    const tiempoProm = tiempos.length ? tiempos.reduce((s, x) => s + x, 0) / tiempos.length : null;
+
+    document.getElementById("kActivas").textContent = pend.length + proc.length;
+    document.getElementById("kSla").innerHTML = slaEval.length ? Math.round(slaOk / slaEval.length * 100) + "<small>%</small>" : "—";
+    document.getElementById("kTiempo").innerHTML = tiempoProm !== null ? (Math.round(tiempoProm * 10) / 10) + "<small> días</small>" : "—";
+    document.getElementById("kTasa").innerHTML = regs.length ? Math.round(fin.length / regs.length * 100) + "<small>%</small>" : "—";
+
+    // ODTs por mes/dia: finalizadas vs pendientes-o-en-proceso, tipo "ola".
+    // Sin filtro: ultimo año por mes. Con Desde/Hasta: sigue ese rango exacto
+    // (buckets diarios si el rango es corto, mensuales si es largo).
+    const filtroDesdeVal = document.getElementById("filtroDesde").value;
+    const filtroHastaVal = document.getElementById("filtroHasta").value;
+    let buckets = [];
+    let modoDiario = false;
+
+    // Titulo dinamico compartido: cuando hay filtro Desde/Hasta, todas las
+    // tarjetas de este dashboard (ODTs por mes, Clientes con mas ODTs,
+    // Instalacion de camaras y Calidad de Visita Tecnica) reflejan ese mismo
+    // rango en vez de su comportamiento historico/actual por defecto.
+    const hayFiltroFecha = Boolean(filtroDesdeVal && filtroHastaVal);
+    const rangoFechaLabel = hayFiltroFecha
+      ? `desde ${filtroDesdeVal.split("-").reverse().join("/")} hasta ${filtroHastaVal.split("-").reverse().join("/")}`
+      : "";
+    document.getElementById("tituloMensual").textContent = hayFiltroFecha ? `ODTs ${rangoFechaLabel}` : "ODTs por mes";
+
+    if (filtroDesdeVal && filtroHastaVal) {
+      const dDesde = new Date(filtroDesdeVal + "T00:00:00");
+      const dHasta = new Date(filtroHastaVal + "T00:00:00");
+      const diffDias = Math.round((dHasta - dDesde) / 864e5);
+      if (diffDias >= 0 && diffDias <= 62) {
+        modoDiario = true;
+        for (let d = new Date(dDesde); d <= dHasta; d.setDate(d.getDate() + 1)) {
+          buckets.push({ y: d.getFullYear(), m: d.getMonth(), d: d.getDate(), label: d.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit" }) });
+        }
+      } else {
+        const cursor = new Date(dDesde.getFullYear(), dDesde.getMonth(), 1);
+        const limite = new Date(dHasta.getFullYear(), dHasta.getMonth(), 1);
+        while (cursor <= limite && buckets.length < 24) {
+          buckets.push({ y: cursor.getFullYear(), m: cursor.getMonth(), label: cursor.toLocaleDateString("es-CL", { month: "short", year: "2-digit" }) });
+          cursor.setMonth(cursor.getMonth() + 1);
+        }
+      }
+      document.getElementById("subMensual").textContent =
+        `Finalizadas vs pendientes/en proceso · ${filtroDesdeVal.split("-").reverse().join("/")} a ${filtroHastaVal.split("-").reverse().join("/")} · Total: ${regs.length}`;
+    } else {
+      const hoy = new Date();
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+        buckets.push({ y: d.getFullYear(), m: d.getMonth(), label: d.toLocaleDateString("es-CL", { month: "short", year: "2-digit" }) });
+      }
+      document.getElementById("subMensual").textContent =
+        `Finalizadas vs pendientes/en proceso · último año · Total: ${regs.length}`;
+    }
+
+    const enBucket = (s, b) => {
+      const d = fparse(s);
+      if (!d) return false;
+      if (modoDiario) return d.getFullYear() === b.y && d.getMonth() === b.m && d.getDate() === b.d;
+      return d.getFullYear() === b.y && d.getMonth() === b.m;
+    };
+    const finalizadasSerie = buckets.map(b => regs.filter(r => isFinal(r) && enBucket(r.fecha_cierre || r.fecha_registro, b)).length);
+    const pendientesSerie = buckets.map(b => regs.filter(r => !isFinal(r) && enBucket(r.fecha_registro, b)).length);
+
+    function hexARgba(hex, alpha) {
+      const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), bl = parseInt(hex.slice(5, 7), 16);
+      return `rgba(${r}, ${g}, ${bl}, ${alpha})`;
+    }
+    function datasetOla(label, data, color) {
+      return {
+        label, data,
+        borderColor: color,
+        backgroundColor(context) {
+          const { chart } = context;
+          const { ctx: c, chartArea } = chart;
+          if (!chartArea) return hexARgba(color, 0.22);
+          const gradient = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+          gradient.addColorStop(0, hexARgba(color, 0.38));
+          gradient.addColorStop(1, hexARgba(color, 0.02));
+          return gradient;
+        },
+        pointBackgroundColor: color,
+        pointBorderColor: "#0d1424",
+        pointBorderWidth: 2,
+        borderWidth: 3,
+        tension: 0.45,
+        fill: "origin",
+        pointRadius: 3,
+        pointHoverRadius: 6,
+        cubicInterpolationMode: "monotone",
+      };
+    }
+    const pluginGlowLineas = {
+      id: "glowLineas",
+      beforeDatasetDraw(chart, args) {
+        chart.ctx.save();
+        chart.ctx.shadowColor = args.meta.dataset.options.borderColor;
+        chart.ctx.shadowBlur = 9;
+      },
+      afterDatasetDraw(chart) { chart.ctx.restore(); },
+    };
+
+    destruir("mensual");
+    charts.mensual = new Chart(document.getElementById("chMensual"), {
+      type: "line",
+      data: {
+        labels: buckets.map(b => b.label),
+        datasets: [
+          datasetOla("Finalizadas", finalizadasSerie, "#2dcf83"),
+          datasetOla("Pendientes / En proceso", pendientesSerie, "#ef5f6d"),
+        ],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { intersect: false, mode: "index" },
+        onHover: (evt, els) => { evt.native.target.style.cursor = els.length ? "pointer" : "default"; },
+        onClick: (evt, _els, chart) => {
+          const puntos = chart.getElementsAtEventForMode(evt, "nearest", { intersect: true }, true);
+          if (!puntos.length) return;
+          const { datasetIndex, index } = puntos[0];
+          const bucket = buckets[index];
+          const esPendienteSerie = datasetIndex === 1;
+          let lista, titulo, colLabel;
+          if (esPendienteSerie) {
+            lista = regs
+              .filter(r => !isFinal(r) && enBucket(r.fecha_registro, bucket))
+              .map(r => ({ odt: r.odt, cliente: r.cliente, problema: r.problema, tecnico: r.tecnicos, dias: Math.floor(diasAbierta(r) ?? 0) }))
+              .sort((a, b) => b.dias - a.dias);
+            titulo = `ODTs pendientes / en proceso — ${bucket.label}`;
+            colLabel = "Días abierta";
+          } else {
+            lista = regs
+              .filter(r => isFinal(r) && enBucket(r.fecha_cierre || r.fecha_registro, bucket))
+              .map(r => ({ odt: r.odt, cliente: r.cliente, problema: r.problema, tecnico: r.tecnicos, dias: Math.floor(cierreDias(r) ?? 0) }))
+              .sort((a, b) => b.dias - a.dias);
+            titulo = `ODTs finalizadas — ${bucket.label}`;
+            colLabel = "Días para cerrar";
+          }
+          abrirOdtsModal(titulo, lista, colLabel);
+        },
+        plugins: { legend: { position: "bottom", labels: { color: CHART_TEXT, boxWidth: 10, padding: 8, font: { size: 10 } } } },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: CHART_TEXT, font: { size: 10 }, maxRotation: 0, minRotation: 0, autoSkip: true } },
+          y: { beginAtZero: true, grid: { display: false }, ticks: { color: CHART_TEXT, precision: 0, font: { size: 10 } } },
+        },
+      },
+      plugins: [pluginGlowLineas],
+    });
+
+    // Clientes con más ODTs: card = listado simple, historico por defecto;
+    // con Desde/Hasta aplicado sigue ese mismo rango, igual que "ODTs por mes".
+    // El detalle con tipo/estado/semaforo vive en el popup "+ Info".
+    document.getElementById("tituloClientesOdt").textContent = hayFiltroFecha ? `Clientes con más ODTs ${rangoFechaLabel}` : "Clientes con más ODTs";
+    document.getElementById("subClientesOdt").textContent = hayFiltroFecha ? "Del rango seleccionado" : "Histórico";
+    renderClientesOdtSimple(agruparClientesOdt(hayFiltroFecha ? regs : (DATA.registros || [])));
+
+    // Cámaras (avance global, no depende del filtro de fecha)
+    const cam = DATA.avance_camaras || [];
+    camarasDataGlobal = cam;
+    const instaladas = cam.reduce((s, c) => s + (c.camaras_instaladas || 0), 0);
+    const pendCam = cam.reduce((s, c) => s + (c.camaras_pendientes || 0), 0);
+    const odsConPendientes = cam.filter(c => (c.camaras_pendientes || 0) > 0).length;
+    document.getElementById("subCamaras").textContent =
+      `Avance global · ${instaladas} instaladas de ${instaladas + pendCam} contratadas`;
+
+    const pluginTextoCentralCamaras = {
+      id: "textoCentralCamaras",
+      afterDraw(chart) {
+        const { ctx, chartArea: { left, right, top, bottom } } = chart;
+        const cx = (left + right) / 2;
+        const cy = (top + bottom) / 2;
+        ctx.save();
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#eef3ff";
+        ctx.font = "800 30px Inter, 'Segoe UI', system-ui, sans-serif";
+        ctx.fillText(String(odsConPendientes), cx, cy - 9);
+        ctx.fillStyle = "#8491a8";
+        ctx.font = "700 9px Inter, 'Segoe UI', system-ui, sans-serif";
+        ctx.fillText("ODS PENDIENTES", cx, cy + 13);
+        ctx.restore();
+      },
+    };
+
+    destruir("camaras");
+    charts.camaras = new Chart(document.getElementById("chCamaras"), {
+      type: "doughnut",
+      data: {
+        labels: ["Instaladas", "Pendientes"],
+        datasets: [{
+          data: [instaladas, pendCam],
+          backgroundColor: ["#2dcf83", "#ef5f6d"],
+          borderColor: "#0d1424",
+          borderWidth: 3,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        cutout: "66%",
+        plugins: { legend: { position: "bottom", labels: { color: CHART_TEXT, boxWidth: 10, padding: 8, font: { size: 10 } } } },
+      },
+      plugins: [pluginTextoCentralCamaras],
+    });
+
+    // Calidad de Visita Técnica entre Incidencias (demo): sigue el mismo
+    // rango Desde/Hasta que el resto de las tarjetas cuando hay filtro.
+    document.getElementById("tituloCalidadVisita").innerHTML = (hayFiltroFecha ? `Calidad de Visita Técnica entre Incidencias ${rangoFechaLabel} ` : "Calidad de Visita Técnica entre Incidencias ")
+      + '<span class="pronto-badge">PRONTO</span> <span class="demo-badge">DEMO</span>';
+    renderCalidadVisitaDemo();
+
+    // Lista completa de ODTs abiertas para el popup "+ Info" de ODTs por mes
+    // (el card "ODTs abiertas más antiguas" fue reemplazado por el placeholder
+    // "Calidad de Visita Técnica entre Incidencias", pero todasAbiertas se
+    // sigue usando para ese popup).
+    const abiertasTodas = regs
+      .filter(r => !isFinal(r))
+      .map(r => ({ r, dias: diasAbierta(r) }))
+      .filter(x => x.dias !== null)
+      .sort((a, b) => b.dias - a.dias);
+    todasAbiertas = abiertasTodas.map(({ r, dias }) => ({
+      odt: r.odt, cliente: r.cliente, problema: r.problema, tecnico: r.tecnicos, dias: Math.floor(dias),
+    }));
+  }
+
+  async function init() {
+    try {
+      const resp = await fetch("/api/servicio/kpis-data");
+      DATA = await resp.json();
+    } catch (e) {
+      document.getElementById("loading").innerHTML = "<p>Error al cargar los datos. Intenta recargar la página.</p>";
+      return;
+    }
+    document.getElementById("loading").style.display = "none";
+    render();
+  }
+
+  // Boton "Generar informe": el href se recalcula con las fechas actuales
+  // del formulario (aunque el usuario no haya apretado nada mas todavia).
+  function _actualizarHrefInformeServicio() {
+    const btn = document.getElementById("btnGenerarInforme");
+    if (!btn) return;
+    const params = new URLSearchParams();
+    const desde = document.getElementById("filtroDesde").value;
+    const hasta = document.getElementById("filtroHasta").value;
+    if (desde) params.set("desde", desde);
+    if (hasta) params.set("hasta", hasta);
+    const qs = params.toString();
+    btn.href = "/servicio/indicadores/informe" + (qs ? `?${qs}` : "");
+  }
+
+  document.getElementById("filtroDesde").addEventListener("change", () => { DATA && render(); _actualizarHrefInformeServicio(); });
+  document.getElementById("filtroHasta").addEventListener("change", () => { DATA && render(); _actualizarHrefInformeServicio(); });
+  document.getElementById("btnLimpiar").addEventListener("click", () => {
+    document.getElementById("filtroDesde").value = "";
+    document.getElementById("filtroHasta").value = "";
+    if (DATA) render();
+    _actualizarHrefInformeServicio();
+  });
+  _actualizarHrefInformeServicio();
+
+  init();
+</script>
+<script src="/static/auth-guard.js"></script>
+  <script src="/static/atc-logo-home.js"></script>
+<script src="/static/atc-volver.js"></script>
+</body>
+</html>

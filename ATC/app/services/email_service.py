@@ -2,10 +2,13 @@
 
 import email
 import imaplib
+import json
 import os
 import re
-from datetime import datetime, timezone
-from email.utils import parseaddr, parsedate_to_datetime
+import uuid
+from datetime import datetime, timezone, timedelta
+from email.utils import getaddresses, parseaddr, parsedate_to_datetime
+from pathlib import Path
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -19,7 +22,13 @@ from ATC.app.models.ticket import Ticket
 from ATC.app.services.ticket_status_service import apply_ticket_status_change
 
 
-UPLOAD_DIR = "uploads"
+# Absoluto y no relativo a cwd: "uploads" relativo dependía de que el proceso
+# se lanzara con cwd=raiz del repo, y con cwd distinto (p. ej. una consola
+# abierta en otra carpeta) las imagenes de correos entrantes se guardaban en
+# un directorio que la app nunca sirve — quedaban 404 pese a haberse
+# extraido bien del correo. ATC/app/main.py sirve "/uploads" desde
+# ATC/uploads exactamente; hay que escribir ahí siempre.
+UPLOAD_DIR = str(Path(__file__).resolve().parents[2] / "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 _INVALID_FILENAME_CHARS = re.compile(r'[<>:"/\\|?*\x00-\x1f]+')
 _WINDOWS_RESERVED_NAMES = {
@@ -46,6 +55,30 @@ _WINDOWS_RESERVED_NAMES = {
     "LPT8",
     "LPT9",
 }
+
+
+def _parse_header_recipients(headers: list[str], *, exclude: set[str] | None = None) -> list[str]:
+    exclude = {item.lower() for item in (exclude or set()) if item}
+    recipients: list[str] = []
+    seen: set[str] = set()
+    for _, address in getaddresses(headers or []):
+        address = (address or "").strip().lower()
+        if not address or address in exclude:
+            continue
+        if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", address):
+            continue
+        if address in seen:
+            continue
+        seen.add(address)
+        recipients.append(address)
+    return recipients
+
+
+def _email_recipient_marker(*, cc_recipients: list[str]) -> str:
+    if not cc_recipients:
+        return ""
+    payload = {"to": [], "cc": cc_recipients, "bcc": []}
+    return f"<!-- ATC_EMAIL_RECIPIENTS {json.dumps(payload, ensure_ascii=False)} -->\n"
 
 
 def _safe_attachment_filename(
@@ -78,6 +111,16 @@ def _safe_attachment_filename(
 
     if base.upper() in _WINDOWS_RESERVED_NAMES:
         base = f"file_{base}"
+
+    # Nombres como "image.png" son el default de Gmail y se repiten en
+    # correos completamente distintos. Sin un sufijo único por archivo, dos
+    # imágenes de mensajes distintos guardadas casi al mismo tiempo (p. ej.
+    # el hilo de polling IMAP procesando un correo nuevo mientras se procesa
+    # otro) pueden pisarse: el chequeo os.path.exists()+escritura de abajo
+    # no es atómico, así que "no existe todavía" deja de ser garantía real
+    # bajo concurrencia. El sufijo hace que la colisión sea prácticamente
+    # imposible sin depender de ese chequeo.
+    base = f"{base}_{uuid.uuid4().hex[:8]}"
 
     candidate = f"{base}{ext}"
     counter = 1
@@ -180,8 +223,12 @@ def _is_safe_subject_reticket_match(
 
 
 def _extract_html_and_save_images(msg) -> str | None:
+    """Extrae el HTML del correo y guarda TODAS las imágenes (con o sin
+    Content-ID). Intenta resolver cada referencia por cid, Content-Location y
+    nombre de archivo; las imágenes que igual queden sin referencia se anexan
+    al final del mensaje para no perder información."""
     html_body = None
-    cid_map: dict[str, str] = {}
+    imagenes: list[dict] = []
 
     for part in msg.walk():
         content_type = part.get_content_type()
@@ -195,29 +242,86 @@ def _extract_html_and_save_images(msg) -> str | None:
         if not content_type.startswith("image/"):
             continue
 
-        content_id = part.get("Content-ID")
-        if not content_id:
-            continue
-
-        content_id = content_id.strip("<>")
-        filename = _safe_attachment_filename(
-            part.get_filename() or f"{content_id}",
-            content_type=content_type,
-            fallback_prefix=(content_id or "inline_image"),
-        )
-
         payload = part.get_payload(decode=True)
         if not payload:
             continue
 
-        filepath = os.path.join(UPLOAD_DIR, filename)
-        with open(filepath, "wb") as file_obj:
+        content_id = str(part.get("Content-ID") or "").strip().strip("<>")
+        location = str(part.get("Content-Location") or "").strip()
+        nombre_original = decode_mime_words(part.get_filename() or "").strip()
+        filename = _safe_attachment_filename(
+            part.get_filename() or content_id or "imagen",
+            content_type=content_type,
+            fallback_prefix=(content_id or "inline_image"),
+        )
+        with open(os.path.join(UPLOAD_DIR, filename), "wb") as file_obj:
             file_obj.write(payload)
-        cid_map[content_id] = filename
+        imagenes.append({
+            "archivo": filename,
+            "cid": content_id,
+            "location": location,
+            "original": nombre_original,
+        })
 
-    if html_body and cid_map:
-        for cid, filename in cid_map.items():
-            html_body = html_body.replace(f"cid:{cid}", f"/uploads/{filename}")
+    if not imagenes:
+        return html_body
+
+    if html_body is None:
+        # Correo sin parte HTML pero con imágenes: partir del texto plano
+        # para poder anexarlas abajo.
+        html_body = _extract_body_text(msg).strip().replace("\n", "<br>")
+
+    usadas: set[str] = set()
+
+    # 1) Resolución directa: cid y Content-Location.
+    for img in imagenes:
+        url = f"/uploads/{img['archivo']}"
+        resuelta = False
+        if img["cid"] and f"cid:{img['cid']}" in html_body:
+            html_body = html_body.replace(f"cid:{img['cid']}", url)
+            resuelta = True
+        if img["location"]:
+            for patron in (f'src="{img["location"]}"', f"src='{img['location']}'"):
+                if patron in html_body:
+                    html_body = html_body.replace(patron, f'src="{url}"')
+                    resuelta = True
+        if resuelta:
+            usadas.add(img["archivo"])
+
+    # 2) cids que quedaron colgando: match laxo por nombre de archivo, y si
+    #    solo queda una imagen libre, asumirla.
+    for cid in re.findall(r'cid:([^"\'\s>)]+)', html_body):
+        cid_low = cid.lower()
+        candidata = None
+        for img in imagenes:
+            if img["archivo"] in usadas:
+                continue
+            orig = (img["original"] or "").lower()
+            base = orig.rsplit(".", 1)[0] if orig else ""
+            if orig and (orig in cid_low or (base and cid_low.startswith(base))):
+                candidata = img
+                break
+        if candidata is None:
+            libres = [i for i in imagenes if i["archivo"] not in usadas]
+            if len(libres) == 1:
+                candidata = libres[0]
+        if candidata:
+            html_body = html_body.replace(f"cid:{cid}", f"/uploads/{candidata['archivo']}")
+            usadas.add(candidata["archivo"])
+
+    # 3) Lo que siga sin referencia se anexa al final: la información no se pierde.
+    sueltas = [i for i in imagenes if i["archivo"] not in usadas]
+    if sueltas:
+        bloques = "".join(
+            f'<div style="margin:6px 0"><img src="/uploads/{i["archivo"]}" '
+            f'alt="{i["original"] or i["archivo"]}" style="max-width:100%"></div>'
+            for i in sueltas
+        )
+        html_body += (
+            '<div style="margin-top:14px;padding-top:10px;border-top:1px solid #e5e7eb;">'
+            '<div style="font-size:12px;color:#64748b;font-weight:600;margin-bottom:4px;">'
+            "Imágenes del correo</div>" + bloques + "</div>"
+        )
 
     return html_body
 
@@ -261,6 +365,8 @@ def _support_mailboxes() -> set[str]:
         _normalize_email_address(settings.IMAP_USER),
         _normalize_email_address(settings.IMAP2_USER),
         _normalize_email_address(settings.SMTP_USER),
+        _normalize_email_address(settings.smtp2_username),
+        _normalize_email_address(settings.smtp2_from_email),
         _normalize_email_address(settings.SMTP_FROM),
     }
     return {item for item in mailboxes if item}
@@ -305,17 +411,22 @@ def _get_or_create_sync_state(db: Session, mailbox_key: str) -> EmailSyncState:
 
 
 def _message_datetime(msg) -> datetime:
+    """Fecha del correo en hora local de Chile (naive), consistente con el
+    resto de los mensajes del sistema (GETDATE() del SQL Server)."""
+    from zoneinfo import ZoneInfo
+
+    tz_local = ZoneInfo("America/Santiago")
     raw_date = msg.get("Date")
     if raw_date:
         try:
             dt = parsedate_to_datetime(raw_date)
             if dt is not None:
                 if dt.tzinfo is None:
-                    return dt.replace(tzinfo=timezone.utc)
-                return dt.astimezone(timezone.utc)
+                    dt = dt.replace(tzinfo=timezone.utc)
+                return dt.astimezone(tz_local).replace(tzinfo=None)
         except Exception:
             pass
-    return datetime.now(timezone.utc)
+    return datetime.now(tz_local).replace(tzinfo=None)
 
 
 def _resolve_requester(db: Session, from_name: str, from_email: str) -> Requester:
@@ -383,7 +494,7 @@ def _strip_ticket_thread_tail(
     trimmed = re.sub(r"(?is)<blockquote\b.*$", "", trimmed).strip()
 
     quote_markers = [
-        r"(?is)(?:<br\s*/?>|\n|\r)\s*el\s+.{0,500}?escribi(?:o|Ã³)\s*:",
+        r"(?is)(?:<br\s*/?>|\n|\r)\s*el\s+.{0,500}?escribi(?:o|ó|Ã³)\s*:",
         r"(?is)(?:<br\s*/?>|\n|\r)\s*on\s+.{0,500}?wrote\s*:",
         r"(?is)(?:<br\s*/?>|\n|\r)\s*from\s*:\s*.+",
         r"(?is)(?:<br\s*/?>|\n|\r)\s*-{2,}\s*(mensaje original|original message)\s*-{2,}",
@@ -418,6 +529,7 @@ def _resolve_ticket(
     support_mailboxes: set[str],
     requester_id: int,
     message_dt: datetime,
+    inbound_mailbox: str | None = None,
 ) -> tuple[Ticket, bool]:
     ticket: Ticket | None = None
 
@@ -465,12 +577,34 @@ def _resolve_ticket(
             apply_ticket_status_change(ticket, "open")
         return ticket, True
 
+    # Deduplicación: si ya existe un ticket con el mismo asunto del mismo
+    # requester creado en los últimos 10 minutos, reutilizarlo en vez de
+    # crear un duplicado (cubre el caso de email procesado dos veces o
+    # self-send desde el compositor interno).
+    cutoff = message_dt - timedelta(minutes=10)
+    duplicate = (
+        db.query(Ticket)
+        .filter(
+            Ticket.requester_id == requester_id,
+            Ticket.subject == (subject or "Sin asunto"),
+            Ticket.source == "email",
+            Ticket.created_at >= cutoff,
+        )
+        .order_by(Ticket.created_at.desc())
+        .first()
+    )
+    if duplicate:
+        if getattr(duplicate, "status", None) == "resolved":
+            apply_ticket_status_change(duplicate, "open")
+        return duplicate, True
+
     ticket = Ticket(
         subject=subject or "Sin asunto",
         source="email",
         priority="",
         requester_id=requester_id,
         status="open",
+        inbound_mailbox=inbound_mailbox,
         created_at=message_dt,
     )
     db.add(ticket)
@@ -494,157 +628,183 @@ def fetch_emails_and_create_tickets(
     password = imap_password or settings.IMAP_PASSWORD
     folder   = imap_folder   or settings.IMAP_FOLDER
 
-    mail = imaplib.IMAP4_SSL(host, port)
-    mail.login(user, password)
+    mail = None
+    sync_state = None
+    processed = 0
 
-    status, _ = mail.select(folder)
-    if status != "OK":
-        mail.logout()
-        return {"count": 0}
-
-    mailbox_key = _mailbox_key(user, folder)
-    is_new_mailbox = db.get(EmailSyncState, mailbox_key) is None
-    sync_state = _get_or_create_sync_state(db, mailbox_key)
-    uid_validity = _parse_uid_validity(mail)
-
-    # Primera conexiÃ³n a este buzÃ³n: saltar historial, arrancar desde ahora
-    if is_new_mailbox:
-        _, uidnext_data = mail.status(folder, "(UIDNEXT)")
+    try:
         try:
-            raw = uidnext_data[0].decode() if isinstance(uidnext_data[0], bytes) else str(uidnext_data[0])
-            import re as _re
-            m = _re.search(r"UIDNEXT\s+(\d+)", raw)
-            uidnext = int(m.group(1)) if m else 1
-        except Exception:
-            uidnext = 1
-        sync_state.last_uid = max(uidnext - 1, 0)
+            imap_timeout = max(float(os.getenv("IMAP_TIMEOUT_SECONDS", "20") or 20), 5.0)
+        except ValueError:
+            imap_timeout = 20.0
+        mail = imaplib.IMAP4_SSL(host, port, timeout=imap_timeout)
+        mail.login(user, password)
+
+        status, _ = mail.select(folder)
+        if status != "OK":
+            return {"count": 0}
+
+        mailbox_key = _mailbox_key(user, folder)
+        is_new_mailbox = db.get(EmailSyncState, mailbox_key) is None
+        sync_state = _get_or_create_sync_state(db, mailbox_key)
+        uid_validity = _parse_uid_validity(mail)
+
+        # Primera conexión a este buzón: saltar historial, arrancar desde ahora.
+        if is_new_mailbox:
+            _, uidnext_data = mail.status(folder, "(UIDNEXT)")
+            try:
+                raw = uidnext_data[0].decode() if isinstance(uidnext_data[0], bytes) else str(uidnext_data[0])
+                import re as _re
+                m = _re.search(r"UIDNEXT\s+(\d+)", raw)
+                uidnext = int(m.group(1)) if m else 1
+            except Exception:
+                uidnext = 1
+            sync_state.last_uid = max(uidnext - 1, 0)
+            if uid_validity:
+                sync_state.uid_validity = uid_validity
+            db.commit()
+            return {"count": 0, "skipped_initial_sync": True}
+
+        if uid_validity and sync_state.uid_validity and sync_state.uid_validity != uid_validity:
+            sync_state.last_uid = 0
+
         if uid_validity:
             sync_state.uid_validity = uid_validity
-        db.commit()
-        mail.logout()
-        return {"count": 0, "skipped_initial_sync": True}
+            db.commit()
 
-    if uid_validity and sync_state.uid_validity and sync_state.uid_validity != uid_validity:
-        sync_state.last_uid = 0
+        start_uid = max(int(sync_state.last_uid or 0) + 1, 1)
+        search_status, data = mail.uid("search", None, f"UID {start_uid}:*")
+        if search_status != "OK":
+            return {"count": 0}
 
-    if uid_validity:
-        sync_state.uid_validity = uid_validity
-        db.commit()
+        raw_uid_list = data[0].split() if data and data[0] else []
+        uid_values = sorted(
+            {
+                int(item.decode() if isinstance(item, bytes) else item)
+                for item in raw_uid_list
+                if str(item.decode() if isinstance(item, bytes) else item).strip()
+            }
+        )
 
-    start_uid = max(int(sync_state.last_uid or 0) + 1, 1)
-    search_status, data = mail.uid("search", None, f"UID {start_uid}:*")
-    if search_status != "OK":
-        mail.logout()
-        return {"count": 0}
+        if limit > 0:
+            uid_values = uid_values[:limit]
 
-    raw_uid_list = data[0].split() if data and data[0] else []
-    uid_values = sorted(
-        {
-            int(item.decode() if isinstance(item, bytes) else item)
-            for item in raw_uid_list
-            if str(item.decode() if isinstance(item, bytes) else item).strip()
-        }
-    )
+        support_mailboxes = _support_mailboxes()
+        inbound_mailbox = _normalize_email_address(user)
 
-    if limit > 0:
-        uid_values = uid_values[:limit]
+        for uid in uid_values:
+            try:
+                fetch_status, msg_data = mail.uid("fetch", str(uid), "(RFC822)")
+                if fetch_status != "OK":
+                    raise RuntimeError(f"No se pudo descargar UID {uid}")
 
-    processed = 0
-    support_mailboxes = _support_mailboxes()
+                raw_email = _extract_raw_email(msg_data)
+                if not raw_email:
+                    raise RuntimeError(f"UID {uid} sin contenido RFC822")
 
-    for uid in uid_values:
-        try:
-            fetch_status, msg_data = mail.uid("fetch", str(uid), "(RFC822)")
-            if fetch_status != "OK":
-                raise RuntimeError(f"No se pudo descargar UID {uid}")
+                msg = email.message_from_bytes(raw_email)
+                message_dt = _message_datetime(msg)
+                message_id = _norm_msgid(msg.get("Message-ID"))
 
-            raw_email = _extract_raw_email(msg_data)
-            if not raw_email:
-                raise RuntimeError(f"UID {uid} sin contenido RFC822")
+                if message_id:
+                    exists = db.query(Message).filter(Message.external_id == message_id).first()
+                    if exists:
+                        sync_state.last_uid = uid
+                        db.commit()
+                        continue
 
-            msg = email.message_from_bytes(raw_email)
-            message_dt = _message_datetime(msg)
-            message_id = _norm_msgid(msg.get("Message-ID"))
+                from_name, from_email = parseaddr(msg.get("From"))
+                from_name = _decode_mime_text(from_name)
+                from_email = (from_email or "").strip().lower()
+                if not from_email:
+                    raise ValueError("Email sin remitente valido")
 
-            if message_id:
-                exists = db.query(Message).filter(Message.external_id == message_id).first()
-                if exists:
+                if from_email in support_mailboxes:
                     sync_state.last_uid = uid
                     db.commit()
                     continue
 
-            from_name, from_email = parseaddr(msg.get("From"))
-            from_name = _decode_mime_text(from_name)
-            from_email = (from_email or "").strip().lower()
-            if not from_email:
-                raise ValueError("Email sin remitente valido")
+                subject = _decode_subject(msg)
+                html_body = _extract_html_and_save_images(msg)
+                if html_body:
+                    body = html_body
+                else:
+                    body = _extract_body_text(msg).strip().replace("\n", "<br>")
 
-            if from_email in support_mailboxes:
-                sync_state.last_uid = uid
-                db.commit()
-                continue
-
-            subject = _decode_subject(msg)
-            html_body = _extract_html_and_save_images(msg)
-            if html_body:
-                body = html_body
-            else:
-                body = _extract_body_text(msg).strip().replace("\n", "<br>")
-
-            requester = _resolve_requester(db, from_name, from_email)
-            ticket, ticket_exists = _resolve_ticket(
-                db,
-                msg=msg,
-                subject=subject,
-                body=body,
-                from_email=from_email,
-                support_mailboxes=support_mailboxes,
-                requester_id=requester.id,
-                message_dt=message_dt,
-            )
-
-            if ticket_exists and body:
-                body = _strip_ticket_thread_tail(
-                    body,
+                requester = _resolve_requester(db, from_name, from_email)
+                ticket, ticket_exists = _resolve_ticket(
+                    db,
+                    msg=msg,
+                    subject=subject,
+                    body=body,
+                    from_email=from_email,
                     support_mailboxes=support_mailboxes,
-                    ticket_id=ticket.id,
+                    requester_id=requester.id,
+                    message_dt=message_dt,
+                    inbound_mailbox=inbound_mailbox,
                 )
 
-            db.add(
-                Message(
-                    ticket_id=ticket.id,
-                    sender_type="requester",
-                    channel="email",
-                    content=body,
-                    external_id=message_id,
-                    is_internal_note=False,
-                    sender_name=(from_name or from_email.split("@")[0]).strip() or None,
-                    sender_email=from_email,
-                    created_at=message_dt,
+                if not getattr(ticket, "inbound_mailbox", None):
+                    ticket.inbound_mailbox = inbound_mailbox
+
+                if ticket_exists and body:
+                    body = _strip_ticket_thread_tail(
+                        body,
+                        support_mailboxes=support_mailboxes,
+                        ticket_id=ticket.id,
+                    )
+
+                inbound_cc_recipients = _parse_header_recipients(
+                    msg.get_all("Cc", []),
+                    exclude={from_email, *support_mailboxes},
                 )
-            )
+                if inbound_cc_recipients:
+                    body = f"{_email_recipient_marker(cc_recipients=inbound_cc_recipients)}{body}"
 
-            sync_state.last_uid = uid
-            if uid_validity:
-                sync_state.uid_validity = uid_validity
+                db.add(
+                    Message(
+                        ticket_id=ticket.id,
+                        sender_type="requester",
+                        channel="email",
+                        content=body,
+                        external_id=message_id,
+                        is_internal_note=False,
+                        sender_name=(from_name or from_email.split("@")[0]).strip() or None,
+                        sender_email=from_email,
+                        created_at=message_dt,
+                    )
+                )
 
-            db.commit()
-            processed += 1
-            print(f"Email procesado -> Ticket #{ticket.id} (UID {uid})")
-
-        except Exception as exc:
-            db.rollback()
-            print(f"Error importando email UID {uid}: {exc}")
-            try:
-                sync_state = _get_or_create_sync_state(db, mailbox_key)
                 sync_state.last_uid = uid
                 if uid_validity:
                     sync_state.uid_validity = uid_validity
-                db.commit()
-            except Exception:
-                db.rollback()
-            continue
 
-    mail.logout()
-    return {"count": processed, "last_uid": sync_state.last_uid}
+                db.commit()
+                processed += 1
+                print(f"Email procesado -> Ticket #{ticket.id} (UID {uid})")
+
+            except Exception as exc:
+                db.rollback()
+                print(f"Error importando email UID {uid}: {exc}")
+                try:
+                    sync_state = _get_or_create_sync_state(db, mailbox_key)
+                    sync_state.last_uid = uid
+                    if uid_validity:
+                        sync_state.uid_validity = uid_validity
+                    db.commit()
+                except Exception:
+                    db.rollback()
+                continue
+
+        return {"count": processed, "last_uid": sync_state.last_uid if sync_state else None}
+
+    finally:
+        if mail is not None:
+            try:
+                mail.logout()
+            except Exception:
+                try:
+                    mail.shutdown()
+                except Exception:
+                    pass
 

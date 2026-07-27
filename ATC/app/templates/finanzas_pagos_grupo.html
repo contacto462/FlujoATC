@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ titulo }} · Finanzas</title>
+  <link rel="stylesheet" href="/static/base.css">
+<link rel="stylesheet" href="/static/finanzas_shared.css">
+<script>if(new URLSearchParams(location.search).get('embed')==='1')document.documentElement.classList.add('embed');</script>
+    <script src="/static/utils.js"></script>
+</head>
+<body>
+<main class="shell">
+  <header class="page-header">
+    <div class="brand">
+      <img src="/shared-static/img/logo-atc.png" alt="ATC" onerror="this.style.display='none'">
+      <div>
+        <h1>{{ titulo }}</h1>
+        <p class="subtitle">{{ subtitulo }}</p>
+      </div>
+    </div>
+    <nav class="actions">
+      <a class="btn" id="btnVolver" href="/venta/finanzas?token={{ token|default('') }}">Volver</a>
+      <button class="btn" type="button" onclick="cargar()">Actualizar</button>
+    </nav>
+  </header>
+
+  <section class="panel">
+    <div class="filters">
+      <label for="fQ">Buscar RUT o codigo</label>
+      <input id="fQ" type="search" placeholder="12345678-9 / 46216-...">
+      <button class="btn btn-icon" type="button" id="btnCopiar" onclick="copiarTabla()" title="Copiar tabla">
+        <svg id="iconCopiar" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        <svg id="iconCopiado" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        <span>Copiar</span>
+      </button>
+    </div>
+    <div class="sheet-note">Pagos "Por pagar" ordenados por RUT — codigos diarios repetidos ya vienen sumados en una sola fila.</div>
+  </section>
+
+  <section class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>RUT</th><th>Codigo diario</th><th style="text-align:right;">Monto a pagar</th><th style="text-align:center;">Pagar</th>
+      </tr></thead>
+      <tbody id="tbody"><tr><td class="empty-cell" colspan="4">Cargando...</td></tr></tbody>
+    </table>
+  </section>
+</main>
+<div id="toast"></div>
+<script>
+const tokenSesion = {{ token|tojson }};
+const TIPO = {{ tipo|tojson }};
+let data = [];
+
+function $(id){return document.getElementById(id);}
+function esc(t){const d=document.createElement("div");d.textContent=String(t||"");return d.innerHTML;}
+function clp(v){const n=Number(v);return Number.isFinite(n)?n.toLocaleString("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}):"$0";}
+function showToast(t,ok=true){const el=$("toast");el.className=ok?"":"error";el.textContent=t;el.style.display="block";clearTimeout(showToast._id);showToast._id=setTimeout(()=>{el.style.display="none";},2800);}
+
+function filtered(){
+  const q=$("fQ").value.trim().toLowerCase();
+  if(!q) return data;
+  return data.filter(r=>String(r.rut||"").toLowerCase().includes(q) || String(r.codigo||"").toLowerCase().includes(q));
+}
+
+function render(){
+  const rows=filtered();
+  if(!rows.length){$("tbody").innerHTML=`<tr><td class="empty-cell" colspan="4">Sin pagos pendientes.</td></tr>`;return;}
+  let rutAnterior = null;
+  $("tbody").innerHTML=rows.map(r=>{
+    const mismoRut = r.rut && r.rut === rutAnterior;
+    rutAnterior = r.rut;
+    const ids = (r.ids||[]).join(",");
+    return `
+    <tr${mismoRut ? ' class="fila-agrupada"' : ''}>
+      <td class="text-strong">${esc(r.rut || "—")}</td>
+      <td>${esc(r.codigo)}</td>
+      <td class="right text-strong">${esc(clp(r.monto))}</td>
+      <td style="text-align:center;"><button class="btn btn-primary btn-small" type="button" data-ids="${esc(ids)}" onclick="pagarGrupo(this)">Pagar</button></td>
+    </tr>
+  `;
+  }).join("");
+}
+
+async function pagarGrupo(btn){
+  const ids = (btn.dataset.ids||"").split(",").filter(Boolean).map(Number);
+  if(!ids.length){ showToast("Sin registros para marcar como pagados.", false); return; }
+  if(!confirm(`¿Marcar como pagado? Se actualizarán ${ids.length} registro(s).`)) return;
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = "Pagando...";
+  try{
+    for(const id of ids){
+      await api(`/api/rendiciones/${id}?accion=pagar&token=${encodeURIComponent(tokenSesion||"")}`, { method:"PATCH" });
+    }
+    showToast("Pago registrado.", true);
+    await cargar();
+  }catch(err){
+    showToast("Error al pagar: " + err.message, false);
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+
+async function cargar(){
+  try{
+    data = await api(`/api/finanzas/pagos-agrupados?tipo=${TIPO}`);
+    render();
+  }catch(err){
+    $("tbody").innerHTML=`<tr><td class="empty-cell" colspan="4">Error: ${esc(err.message)}</td></tr>`;
+    showToast("Error: "+err.message,false);
+  }
+}
+
+function copiarAlPortapapeles(texto){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    return navigator.clipboard.writeText(texto);
+  }
+  // Fallback para contexto no seguro (http plano): navigator.clipboard no
+  // existe fuera de https/localhost, asi que se usa el metodo clasico.
+  return new Promise((resolve, reject) => {
+    const textarea = document.createElement("textarea");
+    textarea.value = texto;
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    try{
+      const ok = document.execCommand("copy");
+      document.body.removeChild(textarea);
+      ok ? resolve() : reject(new Error("execCommand copy fallo"));
+    }catch(err){
+      document.body.removeChild(textarea);
+      reject(err);
+    }
+  });
+}
+
+async function copiarTabla(){
+  const rows = filtered();
+  if(!rows.length){ showToast("No hay filas para copiar.", false); return; }
+  const texto = rows.map(r => [r.rut || "", r.codigo || "", Math.round(Number(r.monto) || 0)].join("\t")).join("\n");
+  try{
+    await copiarAlPortapapeles(texto);
+    showToast(`Datos copiados (${rows.length} filas).`, true);
+    $("iconCopiar").style.display = "none";
+    $("iconCopiado").style.display = "";
+    clearTimeout(copiarTabla._id);
+    copiarTabla._id = setTimeout(() => {
+      $("iconCopiar").style.display = "";
+      $("iconCopiado").style.display = "none";
+    }, 1600);
+  }catch(err){
+    showToast("No se pudo copiar: " + err.message, false);
+  }
+}
+
+$("fQ").addEventListener("input",render);
+cargar();
+</script>
+<style>
+.fila-agrupada td{border-top:none;}
+.table-wrap{display:flex;justify-content:flex-start;align-items:flex-start;padding:16px;}
+.table-wrap table{width:auto;min-width:0;max-width:520px;height:auto;}
+.table-wrap tr{height:auto;}
+.btn-icon{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;margin-left:8px;}
+#iconCopiado{color:var(--success, #15803d);}
+</style>
+<script>
+</script>
+<script src="/static/auth-guard.js"></script>
+  <script src="/static/atc-logo-home.js"></script>
+<script src="/static/atc-volver.js"></script>
+</body></html>

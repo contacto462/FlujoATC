@@ -1,0 +1,688 @@
+﻿<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rendiciones</title>
+  <style>
+    :root {
+      --bg: #f7f8fa;
+      --surface: #ffffff;
+      --surface-alt: #fafbfc;
+      --surface-hover: #f3f4f6;
+      --border: #e5e7eb;
+      --border-strong: #d1d5db;
+      --text-main: #111827;
+      --text-soft: #4b5563;
+      --text-muted: #6b7280;
+      --text-faint: #9ca3af;
+      --header-bg: #f4a672;
+      --header-border: #e89254;
+      --header-text: #ffffff;
+      --accent: #f4a672;
+      --accent-hover: #e89254;
+      --accent-strong: #c2410c;
+      --ok-bg: rgba(52, 211, 153, 0.16);
+      --ok-fg: #166534;
+      --ok-bd: rgba(22, 101, 52, 0.20);
+      --danger-bg: #fff1f2;
+      --danger-fg: #be123c;
+      --danger-bd: rgba(190, 24, 93, 0.18);
+      --link: #2563eb;
+      --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+      --shadow-md: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+      --shadow-lg: 0 18px 36px rgba(15, 23, 42, 0.10);
+      --radius-sm: 6px;
+      --radius: 8px;
+      --radius-lg: 12px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      min-height: 100%;
+      height: 100%;
+    }
+
+    body {
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      height: 100vh;
+      color: var(--text-main);
+      background: var(--bg);
+      font-size: 13.5px;
+      font-weight: 500;
+      line-height: 1.5;
+      letter-spacing: -0.005em;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+      font-feature-settings: "cv11", "ss01", "ss03";
+      overflow: hidden;
+    }
+
+    .encabezado-principal {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      min-height: 108px;
+      padding: 20px 30px;
+      background: linear-gradient(180deg, #0b1424 0%, #111c2f 100%);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      flex-shrink: 0;
+    }
+
+    .marca-principal {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .logo-principal {
+      height: 68px;
+      width: auto;
+      object-fit: contain;
+      flex: 0 0 auto;
+      filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.30));
+    }
+
+    .titulo-central {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.25;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+    }
+
+    .subtitulo {
+      margin: 6px 0 0;
+      color: rgba(255, 255, 255, 0.72);
+      font-size: 13.5px;
+      line-height: 1.45;
+    }
+
+    .sesion-panel {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: auto;
+    }
+
+    #sesionInfo {
+      display: inline-flex;
+      align-items: center;
+      min-height: 36px;
+      padding: 0 4px;
+      color: rgba(255, 255, 255, 0.92);
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .page-shell {
+      width: 100%;
+      padding: 16px 24px 28px;
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+    }
+
+    .toolbar-panel {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin: 0 0 16px;
+      padding: 14px 16px;
+      flex-wrap: wrap;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .toolbar-left {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-soft);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      padding: 0 10px;
+      background: rgba(244, 166, 114, 0.18);
+      border: 1px solid rgba(244, 166, 114, 0.36);
+      color: var(--accent-strong);
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    .toolbar-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .tabla-shell {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+    }
+
+    .tabla-scroll { overflow: auto; }
+
+    table {
+      width: 100%;
+      min-width: 1280px;
+      border-collapse: collapse;
+      table-layout: fixed;
+      background: var(--surface);
+      font-size: 12.5px;
+    }
+
+    th, td {
+      padding: 8px 8px;
+      text-align: left;
+      border: 0;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+      word-break: break-word;
+    }
+
+    thead th {
+      background: var(--header-bg);
+      color: var(--header-text);
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 700;
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--header-border);
+    }
+
+    tbody td { background: var(--surface); color: var(--text-main); }
+    tbody tr:nth-child(even) td { background: var(--surface-alt); }
+    tbody tr:hover td { background: #fffaf3; }
+    .text-left { text-align: left; }
+
+    a {
+      color: var(--link);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    a:hover { text-decoration: underline; }
+
+    button {
+      padding: 8px 14px;
+      background: var(--surface);
+      color: var(--text-main);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 13px;
+      font-family: inherit;
+      transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+      box-shadow: var(--shadow-sm);
+    }
+
+    button:hover {
+      background: var(--surface-hover);
+      border-color: var(--text-faint);
+    }
+
+    .btn-primario {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent-hover);
+      font-weight: 700;
+      box-shadow: 0 1px 2px rgba(154, 52, 18, 0.15), 0 2px 6px rgba(244, 166, 114, 0.35);
+    }
+
+    .btn-primario:hover {
+      background: var(--accent-hover);
+      border-color: var(--accent-strong);
+      color: #ffffff;
+    }
+
+    .btn-secundario {
+      background: rgba(255, 255, 255, 0.04);
+      color: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: none;
+    }
+
+    .btn-secundario:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.22);
+    }
+
+    .toolbar-panel .btn-secundario {
+      background: var(--surface);
+      color: var(--text-main);
+      border: 1px solid var(--border-strong);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .toolbar-panel .btn-secundario:hover {
+      background: var(--surface-hover);
+      border-color: var(--text-faint);
+    }
+
+    .btn-ok {
+      padding: 7px 11px;
+      border-radius: 10px;
+      background: var(--ok-bg);
+      color: var(--ok-fg);
+      border: 1px solid var(--ok-bd);
+      box-shadow: none;
+    }
+
+    .btn-no {
+      padding: 7px 11px;
+      border-radius: 10px;
+      background: var(--danger-bg);
+      color: var(--danger-fg);
+      border: 1px solid var(--danger-bd);
+      box-shadow: none;
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .estado-cargando,
+    .estado-vacio {
+      text-align: center;
+      color: var(--text-soft);
+      padding: 20px;
+      font-weight: 700;
+    }
+
+    #toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      max-width: 360px;
+      z-index: 10000;
+      background: #323232;
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 16px 28px rgba(0, 0, 0, 0.28);
+      display: none;
+      line-height: 1.4;
+      font-size: 13px;
+    }
+
+    #toast.ok { background: rgba(16, 87, 61, 0.98); border-color: rgba(52, 211, 153, 0.52); }
+    #toast.error { background: rgba(103, 26, 26, 0.98); border-color: rgba(239, 68, 68, 0.52); }
+
+    @media (max-width: 960px) {
+      .encabezado-principal {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 12px;
+        padding: 18px 16px;
+      }
+
+      .marca-principal {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .sesion-panel {
+        margin-left: 0;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .page-shell {
+        padding: 14px;
+      }
+
+      .toolbar-panel {
+        justify-content: center;
+      }
+
+      .tabla-scroll {
+        max-width: 100vw;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      table th,
+      table td {
+        overflow-wrap: normal !important;
+        word-break: normal !important;
+      }
+    }
+  </style>
+    <script src="/static/utils.js"></script>
+</head>
+<body>
+  <div class="encabezado-principal">
+    <div class="marca-principal">
+      <img src="/shared-static/img/logo-atc.png" alt="Logo ATC" class="logo-principal" />
+      <div>
+        <h1 class="titulo-central">Rendicion de Gastos</h1>
+        <p class="subtitulo">Bandeja de revision y aprobacion de rendiciones pendientes.</p>
+      </div>
+    </div>
+    <div class="sesion-panel">
+      <span id="sesionInfo">Sesion: Cargando...</span>
+      <a id="btnVolver" class="btn-secundario" href="/?form=panelSelectorServicio&token={{ token|default('') }}">Volver</a>
+    </div>
+  </div>
+
+  <div class="page-shell">
+  <div class="toolbar-panel">
+    <div class="toolbar-left">
+      Pendientes
+      <span id="contadorPendientes" class="pill">0</span>
+    </div>
+  </div>
+
+  <div id="estadoCarga" class="estado-cargando">Cargando rendiciones...</div>
+
+  <div id="tablaWrapper" class="tabla-shell" style="display:none;">
+    <div class="tabla-scroll">
+      <table id="tablaRendiciones">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Tipo de Gasto</th>
+            <th>Fecha de Documento</th>
+            <th>Monto Total</th>
+            <th>Documento</th>
+            <th>Tecnico</th>
+            <th>Mail</th>
+            <th>Cliente</th>
+            <th>ODT</th>
+            <th>Rendiciones</th>
+            <th>Imagen</th>
+            <th>Aceptar</th>
+            <th>Rechazar</th>
+          </tr>
+        </thead>
+        <tbody id="tablaBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="estadoVacio" class="estado-vacio" style="display:none;">No hay registros pendientes.</div>
+  </div>
+  <div id="toast"></div>
+
+  <script>
+    const tokenPlantilla = {{ token|tojson }};
+    let tokenSesion = "";
+
+    function mostrarToast(texto, ok = true) {
+      const t = document.getElementById("toast");
+      if (!t) return;
+      t.className = ok ? "ok" : "error";
+      t.textContent = texto;
+      t.style.display = "block";
+      clearTimeout(mostrarToast._id);
+      mostrarToast._id = setTimeout(() => { t.style.display = "none"; }, 2800);
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement("div");
+      div.textContent = String(text || "");
+      return div.innerHTML;
+    }
+
+    function obtenerTokenActivo() {
+      const qp = new URLSearchParams(window.location.search).get("token") || "";
+      const ls = localStorage.getItem("atc_token") || "";
+      const base = String(tokenPlantilla || "").trim();
+      const token = qp || ls || base;
+      if (token) localStorage.setItem("atc_token", token);
+      return token;
+    }
+
+
+    async function validarSesion() {
+      tokenSesion = obtenerTokenActivo();
+      if (!tokenSesion) {
+        window.location.href = "/?form=login&next=rendiciones";
+        return false;
+      }
+
+      let data;
+      try {
+        data = await api(`/api/usuario-actual?token=${encodeURIComponent(tokenSesion)}`);
+      } catch (err) {
+        mostrarToast("Tu sesion expiro. Debes iniciar sesion nuevamente.", false);
+        window.setTimeout(() => {
+          window.location.href = "/?form=login&next=rendiciones";
+        }, 900);
+        return false;
+      }
+
+      const usuario = String(
+        typeof data === "string"
+          ? data
+          : (data?.usuario || data?.name || data?.username || "")
+      ).trim();
+
+      if (!usuario || usuario === "Desconocido") {
+        localStorage.removeItem("atc_token");
+        mostrarToast("No se pudo validar tu usuario. Inicia sesion nuevamente.", false);
+        window.setTimeout(() => {
+          window.location.href = "/?form=login&next=rendiciones";
+        }, 900);
+        return false;
+      }
+
+      const sesionEl = document.getElementById("sesionInfo");
+      if (sesionEl) sesionEl.textContent = usuario;
+      return true;
+    }
+
+    async function cerrarSesion() {
+      try {
+        if (tokenSesion) {
+          await fetch(`/api/logout?token=${encodeURIComponent(tokenSesion)}`, { method: "POST" });
+        }
+      } catch (_) {
+        // Ignorado: siempre redireccionamos.
+      }
+      window.location.href = "/?form=login&next=auto";
+    }
+
+    function volverAPanelServicio() {
+      const q = tokenSesion ? `&token=${encodeURIComponent(tokenSesion)}` : "";
+      window.location.href = `/?form=panelSelectorServicio${q}`;
+    }
+
+    function montoCLP(valor) {
+      const n = Number(valor);
+      if (!Number.isFinite(n)) return String(valor || "");
+      return n.toLocaleString("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 });
+    }
+
+    function crearEnlaceSeguro(url, texto) {
+      const href = String(url || "").trim();
+      if (!href) return "";
+      return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(texto)}</a>`;
+    }
+
+    function extraerEnlaces(valor, etiqueta, idRendicion) {
+      const texto = String(valor || "").trim();
+      if (!texto) return "";
+      const partes = texto.split(/\r?\n|;/).map((x) => x.trim()).filter(Boolean);
+      const enlaces = [];
+      partes.forEach((chunk) => {
+        const matchFormula = chunk.match(/=HYPER(?:LINK|VINCULO)\(\s*"([^"]+)",\s*"([^"]+)"\s*\)/i);
+        if (matchFormula?.[1]) {
+          enlaces.push(crearEnlaceSeguro(matchFormula[1], `${etiqueta} ${idRendicion}`));
+          return;
+        }
+        const matchAbsolute = chunk.match(/(https?:\/\/[^\s")]+)/i);
+        if (matchAbsolute?.[1]) {
+          enlaces.push(crearEnlaceSeguro(matchAbsolute[1], `${etiqueta} ${idRendicion}`));
+          return;
+        }
+        // Rutas relativas del servidor (ej. /static/rendiciones/...)
+        const matchRelative = chunk.match(/(\/[^\s")<>]+)/i);
+        if (matchRelative?.[1]) {
+          enlaces.push(crearEnlaceSeguro(matchRelative[1], `${etiqueta} ${idRendicion}`));
+        }
+      });
+      return enlaces.filter(Boolean).join("<br>");
+    }
+
+    function documentoTexto(row) {
+      const doc = String(row?.documento || "").trim();
+      if (doc) return doc;
+      const tipo = String(row?.tipoDocumento || "").trim();
+      const nro = String(row?.nroDocumento || "").trim();
+      return [tipo, nro].filter(Boolean).join(" ");
+    }
+
+    function setEstadoVista({ cargando = false, mostrarTabla = false, vacio = false }) {
+      const estadoCarga = document.getElementById("estadoCarga");
+      const tablaWrapper = document.getElementById("tablaWrapper");
+      const estadoVacio = document.getElementById("estadoVacio");
+      if (estadoCarga) estadoCarga.style.display = cargando ? "block" : "none";
+      if (tablaWrapper) tablaWrapper.style.display = mostrarTabla ? "block" : "none";
+      if (estadoVacio) estadoVacio.style.display = vacio ? "block" : "none";
+    }
+
+    function actualizarContador(total) {
+      const el = document.getElementById("contadorPendientes");
+      if (el) el.textContent = String(total);
+    }
+
+    async function marcarRendicion(idRendicion, accion, btn) {
+      const fila = btn?.closest("tr");
+      const btnAceptar = fila?.querySelector(".btn-ok");
+      const btnRechazar = fila?.querySelector(".btn-no");
+      if (!fila || !btnAceptar || !btnRechazar) return;
+
+      btnAceptar.disabled = true;
+      btnRechazar.disabled = true;
+      try {
+        await api(`/api/rendiciones/${encodeURIComponent(idRendicion)}?accion=${encodeURIComponent(accion)}`, {
+          method: "PATCH"
+        });
+        fila.remove();
+        const restantes = document.querySelectorAll("#tablaBody tr").length;
+        actualizarContador(restantes);
+        if (!restantes) {
+          setEstadoVista({ cargando: false, mostrarTabla: false, vacio: true });
+        }
+        mostrarToast(
+          accion === "aceptar"
+            ? `Rendición ${idRendicion} aceptada.`
+            : `Rendición ${idRendicion} rechazada.`,
+          true
+        );
+      } catch (err) {
+        btnAceptar.disabled = false;
+        btnRechazar.disabled = false;
+        mostrarToast(`No se pudo actualizar la rendición ${idRendicion}: ${err.message}`, false);
+      }
+    }
+
+    function renderTabla(rows) {
+      const tbody = document.getElementById("tablaBody");
+      if (!tbody) return;
+      tbody.innerHTML = "";
+
+      const pendientes = Array.isArray(rows) ? rows : [];
+      actualizarContador(pendientes.length);
+
+      if (!pendientes.length) {
+        setEstadoVista({ cargando: false, mostrarTabla: false, vacio: true });
+        return;
+      }
+
+      const fragment = document.createDocumentFragment();
+      pendientes.forEach((row) => {
+        const idRendicion = row?.id ?? "";
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escapeHtml(idRendicion)}</td>
+          <td>${escapeHtml(row?.tipoGasto || "")}</td>
+          <td>${escapeHtml(row?.fechaDocumento || "")}</td>
+          <td>${escapeHtml(montoCLP(row?.montoTotal))}</td>
+          <td>${escapeHtml(documentoTexto(row))}</td>
+          <td>${escapeHtml(row?.tecnico || "")}</td>
+          <td>${escapeHtml(row?.mail || "-")}</td>
+          <td class="text-left">${escapeHtml(row?.cliente || "")}</td>
+          <td>${escapeHtml(row?.odt || "")}</td>
+          <td>${extraerEnlaces(row?.urlInforme, "Rendicion", idRendicion)}</td>
+          <td>${extraerEnlaces(row?.urlBoleta, "Imagen", idRendicion)}</td>
+          <td><button type="button" class="btn-ok">Aceptar</button></td>
+          <td><button type="button" class="btn-no">Rechazar</button></td>
+        `;
+        const btnAceptar = tr.querySelector(".btn-ok");
+        const btnRechazar = tr.querySelector(".btn-no");
+        btnAceptar?.addEventListener("click", () => marcarRendicion(idRendicion, "aceptar", btnAceptar));
+        btnRechazar?.addEventListener("click", () => marcarRendicion(idRendicion, "rechazar", btnRechazar));
+        fragment.appendChild(tr);
+      });
+      tbody.appendChild(fragment);
+      setEstadoVista({ cargando: false, mostrarTabla: true, vacio: false });
+    }
+
+    async function cargarRendiciones() {
+      setEstadoVista({ cargando: true, mostrarTabla: false, vacio: false });
+      const estadoVacio = document.getElementById("estadoVacio");
+      if (estadoVacio) estadoVacio.textContent = "No hay registros pendientes.";
+      try {
+        const data = await api("/api/rendiciones?pendientes=true");
+        renderTabla(Array.isArray(data) ? data : []);
+      } catch (err) {
+        setEstadoVista({ cargando: false, mostrarTabla: false, vacio: true });
+        if (estadoVacio) estadoVacio.textContent = "Error cargando rendiciones.";
+        mostrarToast(`Error: ${err.message}`, false);
+      }
+    }
+
+    window.addEventListener("load", async () => {
+      const ok = await validarSesion();
+      if (!ok) return;
+      await cargarRendiciones();
+    });
+  </script>
+<script>
+</script>
+<script src="/static/auth-guard.js"></script>
+  <script src="/static/atc-logo-home.js"></script>
+<script src="/static/atc-volver.js"></script>
+</body>
+</html>

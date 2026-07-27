@@ -1,0 +1,330 @@
+﻿<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Panel Coordinación</title>
+  <link rel="stylesheet" href="/static/base.css">
+<style>
+:root{
+  --bg-1:#08161a;
+  --bg-2:#10252c;
+  --bg-3:#17363d;
+  --surface:rgba(255,255,255,.05);
+  --surface-2:rgba(255,255,255,.04);
+  --border:rgba(255,255,255,.12);
+  --text:#f4f8f9;
+  --muted:#bed0d6;
+  --primary:#ff6e23;
+  --primary-2:#ff8b33;
+  --green:#1f9c83;
+  --green-2:#147a66;
+  --blue:#2f5b72;
+  --blue-2:#24495c;
+  --shadow:0 30px 60px rgba(0,0,0,.38);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  color:var(--text);
+  background:
+    radial-gradient(circle at 18% 18%,rgba(255,255,255,.05),transparent 24%),
+    radial-gradient(circle at 82% 12%,rgba(255,125,53,.10),transparent 20%),
+    linear-gradient(145deg,var(--bg-1) 0%,var(--bg-2) 42%,var(--bg-3) 100%);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:28px;
+}
+.shell{
+  width:min(1180px,100%);
+  border:1px solid var(--border);
+  border-radius:30px;
+  background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.04));
+  backdrop-filter:blur(18px);
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+.hero{display:grid;grid-template-columns:1.05fr .95fr;min-height:680px}
+.hero-copy{
+  padding:42px;
+  background:
+    radial-gradient(580px 320px at 0% 0%, rgba(255,139,51,.16), transparent 70%),
+    linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+}
+.brand{display:flex;align-items:center;gap:14px;margin-bottom:36px}
+.brand-badge{
+  width:86px;height:86px;border-radius:20px;padding:10px;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);
+  display:flex;align-items:center;justify-content:center;
+}
+.brand-badge img{width:100%;height:100%;object-fit:contain}
+.brand-text strong{display:block;font-size:18px;font-weight:800}
+.brand-text span{display:block;margin-top:4px;color:var(--muted);font-size:13px}
+.welcome-message{margin:0 0 12px;font-size:22px;line-height:1.08;font-weight:800}
+h1{margin:20px 0 14px;font-size:46px;line-height:1.02;letter-spacing:-.03em}
+.lead{max-width:560px;color:var(--muted);font-size:16px;line-height:1.65}
+.user-chip{
+  margin-top:28px;display:inline-flex;align-items:center;gap:10px;padding:10px 14px;
+  border-radius:16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+  color:#d9e3f2;font-size:14px;font-weight:600;
+}
+.hero-side{
+  padding:32px;display:flex;flex-direction:column;justify-content:flex-start;
+  background:
+    linear-gradient(180deg, rgba(10,18,24,.52), rgba(10,18,24,.76)),
+    radial-gradient(680px 340px at 100% 0%, rgba(255,122,43,.16), transparent 65%);
+  border-left:1px solid rgba(255,255,255,.08);
+}
+.panel-title{margin:0 0 10px;font-size:28px;font-weight:800}
+.panel-sub{margin:0 0 26px;color:var(--muted);line-height:1.6}
+.grid{
+  display:grid;
+  grid-template-columns:1fr;
+  grid-template-rows:repeat(3, clamp(68px, 8.6vh, 82px));
+  gap:clamp(10px,1.4vh,13px);
+  width:100%;
+}
+.option{
+  display:flex;
+  flex-direction:row;
+  align-items:center;
+  gap:0;
+  justify-content:flex-start;
+  min-height:0;
+  padding:clamp(13px,1.8vh,17px) clamp(16px,2.2vh,20px);
+  border-radius:16px;
+  border:1px solid rgba(148,163,184,.18);
+  background:linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.032));
+  color:inherit;
+  text-decoration:none;
+  transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease, filter .18s ease, opacity .18s ease;
+}
+.grid:has(.option:hover) .option:not(:hover){filter:blur(1.8px);opacity:.5;transform:scale(.965)}
+.option:hover{
+  transform:translateY(-2px) scale(1.012);
+  border-color:rgba(var(--option-accent),.42);
+  box-shadow:0 18px 34px rgba(0,0,0,.20);
+  background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.04));
+  filter:none;
+  opacity:1;
+  z-index:2;
+}
+.option.coordinacion:hover{background:linear-gradient(135deg, rgba(255,110,35,.24), rgba(255,139,51,.18))}
+.option.tabla:hover{background:linear-gradient(135deg, rgba(47,91,114,.24), rgba(36,73,92,.18))}
+.option.envio:hover{background:linear-gradient(135deg, rgba(31,156,131,.24), rgba(20,122,102,.18))}
+.option-top{display:flex;align-items:center;justify-content:flex-start;gap:clamp(14px,2vh,18px);margin:0}
+
+.icon{
+  position:relative;
+  width:clamp(40px,5vh,48px);height:clamp(40px,5vh,48px);border-radius:14px;display:grid;place-items:center;color:#fff;
+  font-size:clamp(18px,2.4vh,21px);font-weight:800;
+  background:linear-gradient(180deg, rgba(var(--option-accent),.34), rgba(var(--option-accent),.18));
+  border:1px solid rgba(var(--option-accent),.46);
+  box-shadow:none;
+}
+.notif-badge{
+  position:absolute;
+  top:-6px;right:-6px;
+  min-width:20px;height:20px;
+  padding:0 5px;
+  border-radius:999px;
+  background:#ff3b30;
+  border:2px solid var(--bg-2,#10252c);
+  color:#fff;
+  font-size:11px;
+  font-weight:800;
+  font-family:-apple-system,'Inter',system-ui,sans-serif;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  line-height:1;
+  box-shadow:0 1px 3px rgba(0,0,0,.4);
+}
+.coordinacion{--option-accent:255,110,35}
+.tabla{--option-accent:47,91,114}
+.envio{--option-accent:31,156,131}
+.option strong{display:block;font-size:clamp(16px,2.05vh,19px);margin:0}
+.footer{margin-top:auto;padding-top:18px;display:flex;justify-content:space-between;align-items:center;gap:16px;color:var(--muted);font-size:13px}
+.area-back-btn{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 14px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:var(--text);font-size:13px;font-weight:700;text-decoration:none;transition:background .18s ease,border-color .18s ease,transform .18s ease}
+.area-back-btn:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.2);transform:translateY(-1px)}
+.Btn{
+  display:flex;align-items:center;justify-content:center;width:40px;height:40px;border:none;
+  border-radius:14px;cursor:pointer;position:relative;overflow:hidden;text-decoration:none;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);transition:all .22s ease;
+}
+.sign{
+  position:absolute;
+  left:12px;
+  width:16px;
+  height:16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:all .22s ease;
+}
+.sign svg{width:16px}
+.sign svg path{fill:#dce5f3}
+.text{
+  position:absolute;
+  left:34px;
+  width:98px;
+  font-size:12px;
+  font-weight:700;
+  color:#dce5f3;
+  opacity:0;
+  transform:translateX(-6px);
+  pointer-events:none;
+  transition:all .22s ease;
+}
+.Btn:hover{
+  width:152px;
+  background:rgba(255,255,255,.08);
+}
+.Btn:hover .sign{
+  left:12px;
+  width:16px;
+}
+.Btn:hover .text{
+  opacity:1;
+  transform:translateX(0);
+}
+@media (max-width:940px){
+  .hero{grid-template-columns:1fr}
+  .hero-side{border-left:none;border-top:1px solid rgba(255,255,255,.08)}
+  h1{font-size:34px}
+}
+@media (max-width:560px){
+  html,body{
+    height:auto;
+    min-height:100%;
+    overflow-x:hidden;
+    overflow-y:auto;
+  }
+  body{
+    display:block;
+    width:100vw;
+    max-width:100vw;
+    min-height:100dvh;
+    padding:14px;
+    margin:0;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  .shell{width:calc(100vw - 28px) !important;max-width:calc(100vw - 28px) !important;overflow:visible}
+  .hero{display:block;width:100%;min-height:0}
+  .brand,.grid{width:100%}
+  .hero-copy,.hero-side,.brand-text,.welcome-message,h1,.lead,.panel-title,.panel-sub{min-width:0;max-width:100%;overflow-wrap:anywhere}
+  .hero-copy,.hero-side{padding:22px}
+  h1{font-size:30px;line-height:1.08}
+  .welcome-message{font-size:19px;line-height:1.16}
+  .brand-badge{width:74px;height:74px}
+  .footer{flex-direction:column;align-items:stretch}
+  .Btn{width:40px}
+  .Btn:hover{width:152px}
+}
+.brand-badge{width:auto!important;height:auto!important;padding:0!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;display:flex!important;align-items:center!important;justify-content:center!important}
+.brand-badge img{width:122px!important;height:auto!important;object-fit:contain!important;filter:drop-shadow(0 6px 14px rgba(0,0,0,.22))!important}
+
+</style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="brand">
+          <div class="brand-badge">
+            <img src="/shared-static/img/logo-atc.png" alt="ATC - Alguien Te Cuida">
+          </div>
+          <div class="brand-text">
+            <strong>Alguien te Cuida</strong>
+            <span>Coordinación operaciónal</span>
+          </div>
+        </div>
+
+        <p id="welcomeMessage" class="welcome-message" data-full-name="{{ tecnico|default('') }}">¡Hola!</p>
+        <h1>Escoge el módulo con el que quieres trabajar.</h1>
+        <p class="lead">
+          Accede a las vistas de coordinacion, consulta la tabla de protocolos y ejecuta el envio de
+          informes semanales cuando corresponda.
+        </p>
+
+        <div class="user-chip">Acceso habilitado</div>
+      </div>
+
+      <aside class="hero-side">
+        <h2 class="panel-title">Abrir panel</h2>
+        <p class="panel-sub">Selecciona una vista para continuar. Puedes volver a este panel cuando quieras.</p>
+
+        {% include "_cambio_clave_inicial.html" %}
+
+        <div class="grid">
+          <a class="option coordinacion" href="/?form=coordinacion&token={{ token|default('') }}">
+            <div class="option-top">
+              <div class="icon">I{% if pendiente_incidencias_coord %}<span class="notif-badge" title="{{ pendiente_incidencias_coord }} incidencia(s) pendiente(s)">{{ pendiente_incidencias_coord if pendiente_incidencias_coord <= 99 else "99+" }}</span>{% endif %}</div>
+              <strong>Incidencias</strong>
+            </div>
+          </a>
+
+          <a class="option tabla" href="/?form=tablaProtocolos&token={{ token|default('') }}">
+            <div class="option-top">
+              <div class="icon">T</div>
+              <strong>Tabla Protocolos</strong>
+            </div>
+          </a>
+
+          <a class="option envio" href="/?form=envioProtocolosSemanales&token={{ token|default('') }}">
+            <div class="option-top">
+              <div class="icon">E{% if pendiente_protocolos_semanales %}<span class="notif-badge" title="{{ pendiente_protocolos_semanales }} protocolo(s) pendiente(s)">{{ pendiente_protocolos_semanales if pendiente_protocolos_semanales <= 99 else "99+" }}</span>{% endif %}</div>
+              <strong>Envio Protocolos Semanales</strong>
+            </div>
+          </a>
+          <a class="option" href="/compras/solicitud?token={{ token|default('')|urlencode }}" style="--option-accent:31,79,216;">
+            <div class="option-top">
+              <div class="icon">C</div>
+              <strong>Solicitar Compra</strong>
+            </div>
+          </a>
+
+        </div>
+
+        <div class="footer">
+          <span>Coordinacioón ATC 2026</span>
+          {% if show_back_button %}<a class="area-back-btn" id="btnVolver" href="{{ back_url or '/seleccionar-area' }}">Volver</a>{% endif %}
+          <a class="Btn" href="/?form=login&next=auto" aria-label="Cerrar Sesión">
+            <div class="sign"><svg viewBox="0 0 512 512" aria-hidden="true"><path d="M377.9 105.9L500.7 228.7c7.2 7.2 11.3 17.1 11.3 27.3s-4.1 20.1-11.3 27.3L377.9 406.1c-6.4 6.4-15 9.9-24 9.9c-18.7 0-33.9-15.2-33.9-33.9l0-62.1-128 0c-17.7 0-32-14.3-32-32l0-64c0-17.7 14.3-32 32-32l128 0 0-62.1c0-18.7 15.2-33.9 33.9-33.9c9 0 17.6 3.6 24 9.9zM160 96L96 96c-17.7 0-32 14.3-32 32l0 256c0 17.7 14.3 32 32 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-64 0c-53 0-96-43-96-96L0 128C0 75 43 32 96 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32z"></path></svg></div>
+            <div class="text">Cerrar Sesión</div>
+          </a>
+        </div>
+      </aside>
+    </section>
+  </main>
+  <script>
+    (function () {
+      const el = document.getElementById("welcomeMessage");
+      if (!el) return;
+      const fullName = (el.dataset.fullName || "").trim();
+      const firstName = fullName ? fullName.split(" ")[0] : "";
+      const hour = new Date().getHours();
+      let greeting = "Hola";
+      if (hour >= 6 && hour < 12) greeting = "¡Buenos días";
+      else if (hour >= 12 && hour < 20) greeting = "¡Buenas tardes";
+      else greeting = "¡Buenas noches";
+      el.textContent = firstName ? `${greeting} ${firstName}, que gusto tenerte de vuelta!` : `${greeting}!`;
+    })();
+  </script>
+<script src="/static/auth-guard.js"></script>
+  <script>window.ATC_ES_PANEL_SELECTOR = true;</script>
+  <script src="/static/atc-logo-home.js"></script>
+  <script>
+  </script>
+<script src="/static/atc-volver.js"></script>
+</body>
+</html>

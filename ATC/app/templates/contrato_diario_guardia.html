@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Contrato Diario</title>
+  <link rel="stylesheet" href="/static/base.css">
+<style>
+:root{
+  --bg-1:#0a1c20;
+  --bg-2:#10272d;
+  --bg-3:#17363d;
+  --surface:rgba(255,255,255,.06);
+  --surface-2:rgba(255,255,255,.04);
+  --border:rgba(255,255,255,.10);
+  --text:#f4f8f9;
+  --muted:#c0cfd4;
+  --primary:#ff6e23;
+  --primary-2:#ff8b33;
+  --ok:#2fbf71;
+  --error:#ff6161;
+  --shadow:0 30px 70px rgba(0,0,0,.32);
+}
+
+*{box-sizing:border-box}
+html,body{min-height:100%}
+
+body{
+  margin:0;
+  font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  color:var(--text);
+  background:
+    radial-gradient(circle at 18% 22%, rgba(255,255,255,.05), transparent 24%),
+    radial-gradient(circle at 78% 12%, rgba(255, 125, 53, 0.08), transparent 18%),
+    linear-gradient(145deg,var(--bg-1) 0%,var(--bg-2) 42%,var(--bg-3) 100%);
+  padding:20px;
+  overflow-x:hidden;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
+
+.shell{
+  width:min(980px,100%);
+  margin:0 auto;
+  border:1px solid var(--border);
+  border-radius:30px;
+  background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.04));
+  backdrop-filter:blur(18px);
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+
+.hero{
+  padding:24px 28px 18px;
+  background:
+    radial-gradient(580px 320px at 0% 0%, rgba(255,139,51,.16), transparent 70%),
+    linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));
+  border-bottom:1px solid rgba(255,255,255,.08);
+  position:relative;
+}
+
+.top-actions{
+  position:absolute;
+  top:20px;
+  right:24px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.ghost-button{
+  appearance:none;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.05);
+  color:var(--text);
+  padding:9px 14px;
+  border-radius:14px;
+  font-size:13px;
+  font-weight:700;
+  cursor:pointer;
+  text-decoration:none;
+  transition:background .18s ease,border-color .18s ease,transform .18s ease;
+}
+
+.ghost-button:hover{
+  background:rgba(255,255,255,.09);
+  border-color:rgba(255,255,255,.2);
+  transform:translateY(-1px);
+}
+
+h1{
+  margin:0 0 8px;
+  font-size:26px;
+  line-height:1.05;
+  letter-spacing:-.03em;
+  max-width:640px;
+}
+
+.lead{
+  max-width:640px;
+  color:var(--muted);
+  font-size:14px;
+  line-height:1.5;
+  margin:0;
+}
+
+.content{
+  padding:22px 28px 32px;
+}
+
+.form-section{
+  border:1px solid var(--border);
+  border-radius:18px;
+  background:var(--surface-2);
+  padding:18px 20px;
+  margin-bottom:16px;
+}
+
+.form-section h2{
+  margin:0 0 4px;
+  font-size:15px;
+  font-weight:800;
+}
+
+.form-section p.hint{
+  margin:0 0 14px;
+  color:var(--muted);
+  font-size:12.5px;
+}
+
+.form-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px 16px;
+}
+
+.field{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.field.full{ grid-column:1 / -1; }
+
+.field label{
+  font-size:12px;
+  font-weight:700;
+  color:var(--muted);
+}
+
+.field input,
+.field select{
+  appearance:none;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.05);
+  color:var(--text);
+  padding:10px 12px;
+  border-radius:12px;
+  font-size:13.5px;
+  font-family:inherit;
+  outline:none;
+  transition:border-color .15s ease,background .15s ease;
+}
+
+.field input:focus,
+.field select:focus{
+  border-color:rgba(255,139,51,.55);
+  background:rgba(255,255,255,.08);
+}
+
+.field select option{ color:#111; }
+
+.otp-row{
+  display:flex;
+  align-items:flex-end;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.otp-row .field{ flex:1 1 220px; }
+
+.btn{
+  appearance:none;
+  border:none;
+  border-radius:12px;
+  padding:11px 18px;
+  font-size:13.5px;
+  font-weight:800;
+  cursor:pointer;
+  transition:transform .15s ease,opacity .15s ease;
+  white-space:nowrap;
+}
+
+.btn:disabled{ opacity:.45; cursor:not-allowed; }
+.btn:not(:disabled):hover{ transform:translateY(-1px); }
+
+.btn-primary{
+  background:linear-gradient(180deg,var(--primary-2),var(--primary));
+  color:#1a0e05;
+}
+
+.btn-secondary{
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.14);
+  color:var(--text);
+}
+
+.otp-status{
+  font-size:12.5px;
+  color:var(--muted);
+  min-height:16px;
+}
+
+.otp-status.ok{ color:var(--ok); }
+.otp-status.error{ color:var(--error); }
+
+.submit-bar{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:14px;
+  margin-top:6px;
+}
+
+.submit-status{
+  font-size:13px;
+  color:var(--muted);
+}
+
+.submit-status.ok{ color:var(--ok); font-weight:700; }
+.submit-status.error{ color:var(--error); font-weight:700; }
+
+.legal-note{
+  font-size:11.5px;
+  color:var(--muted);
+  line-height:1.5;
+  margin-top:4px;
+}
+
+@media (max-width:720px){
+  .form-grid{ grid-template-columns:1fr; }
+  .content,.hero{ padding:20px; }
+  .top-actions{ position:static; justify-content:flex-end; margin-bottom:12px; }
+}
+</style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div class="top-actions">
+        <a class="ghost-button" id="btnVolver" href="/guardia">Volver</a>
+      </div>
+      <h1>Contrato Diario</h1>
+      <p class="lead">Completa tus datos, verifica tu correo con el código que te enviaremos y firma electrónicamente tu Contrato Diario. Se genera en PDF y se envía automáticamente para su registro.</p>
+    </section>
+
+    <section class="content">
+      <form id="contratoForm" autocomplete="off">
+        <div class="form-section">
+          <h2>Datos personales</h2>
+          <p class="hint">Como aparecen en tu cédula de identidad.</p>
+          <div class="form-grid">
+            <div class="field"><label for="f_rut">Rut</label><input id="f_rut" name="rut" type="text" placeholder="12.345.678-9" required></div>
+            <div class="field"><label for="f_fecha_nacimiento">Fecha Nacimiento</label><input id="f_fecha_nacimiento" name="fecha_nacimiento" type="date"></div>
+            <div class="field"><label for="f_nombres">Nombres</label><input id="f_nombres" name="nombres" type="text" required></div>
+            <div class="field"><label for="f_estado_civil">Estado Civil</label>
+              <select id="f_estado_civil" name="estado_civil">
+                <option value="">Selecciona</option>
+                <option>Soltero(a)</option>
+                <option>Casado(a)</option>
+                <option>Conviviente Civil</option>
+                <option>Divorciado(a)</option>
+                <option>Viudo(a)</option>
+              </select>
+            </div>
+            <div class="field"><label for="f_apellido_paterno">Apellido Paterno</label><input id="f_apellido_paterno" name="apellido_paterno" type="text" required></div>
+            <div class="field"><label for="f_apellido_materno">Apellido Materno</label><input id="f_apellido_materno" name="apellido_materno" type="text" required></div>
+            <div class="field full"><label for="f_direccion">Dirección</label><input id="f_direccion" name="direccion" type="text"></div>
+            <div class="field"><label for="f_comuna">Comuna</label><input id="f_comuna" name="comuna" type="text"></div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h2>Salud y previsión</h2>
+          <div class="form-grid">
+            <div class="field full">
+              <label for="f_institucion_salud">Institución de Salud (si es Isapre, indica nombre y monto plan)</label>
+              <input id="f_institucion_salud" name="institucion_salud" type="text" placeholder="Fonasa, o Isapre + monto plan">
+            </div>
+            <div class="field"><label for="f_prevision_afp">Previsión (AFP)</label><input id="f_prevision_afp" name="prevision_afp" type="text"></div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h2>Contacto</h2>
+          <div class="form-grid">
+            <div class="field"><label for="f_telefono_movil">Teléfono Móvil</label><input id="f_telefono_movil" name="telefono_movil" type="tel"></div>
+            <div class="field"><label for="f_telefono_fijo">Teléfono Fijo</label><input id="f_telefono_fijo" name="telefono_fijo" type="tel"></div>
+            <div class="field"><label for="f_contacto_emergencia_nombre">Nombre Contacto Emergencia</label><input id="f_contacto_emergencia_nombre" name="contacto_emergencia_nombre" type="text"></div>
+            <div class="field"><label for="f_contacto_emergencia_telefono">Teléfono Emergencia</label><input id="f_contacto_emergencia_telefono" name="contacto_emergencia_telefono" type="tel"></div>
+            <div class="field full"><label for="f_correo_electronico">Correo Electrónico</label><input id="f_correo_electronico" name="correo_electronico" type="email" required placeholder="Aquí recibirás tu código de verificación"></div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h2>Datos laborales y bancarios</h2>
+          <div class="form-grid">
+            <div class="field"><label for="f_fecha_inicio_funciones">Fecha inicio funciones</label><input id="f_fecha_inicio_funciones" name="fecha_inicio_funciones" type="date"></div>
+            <div class="field"><label for="f_banco">Banco</label><input id="f_banco" name="banco" type="text"></div>
+            <div class="field"><label for="f_tipo_cuenta">Tipo Cuenta</label><input id="f_tipo_cuenta" name="tipo_cuenta" type="text" placeholder="Vista, Corriente, RUT..."></div>
+            <div class="field"><label for="f_numero_cuenta">Número Cuenta</label><input id="f_numero_cuenta" name="numero_cuenta" type="text"></div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h2>Firma electrónica</h2>
+          <p class="hint">Te enviaremos un código de 6 dígitos al correo electrónico ingresado arriba. Al ingresarlo confirmas y firmas el Contrato Diario.</p>
+          <div class="otp-row">
+            <button type="button" class="btn btn-secondary" id="btnEnviarOtp">Enviar código de verificación</button>
+            <div class="field">
+              <label for="f_codigo_otp">Código recibido por correo</label>
+              <input id="f_codigo_otp" name="codigo_otp" type="text" inputmode="numeric" maxlength="6" placeholder="000000" disabled>
+            </div>
+          </div>
+          <p class="otp-status" id="otpStatus"></p>
+          <p class="legal-note">Firma electrónica simple conforme a la Ley 19.799: queda registrado tu RUT, nombre, fecha/hora y el correo verificado como constancia de la firma.</p>
+        </div>
+
+        <div class="submit-bar">
+          <span class="submit-status" id="submitStatus"></span>
+          <button type="submit" class="btn btn-primary" id="btnFirmar" disabled>Firmar y enviar contrato</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <script>
+
+    const form = document.getElementById("contratoForm");
+    const btnEnviarOtp = document.getElementById("btnEnviarOtp");
+    const inputOtp = document.getElementById("f_codigo_otp");
+    const otpStatus = document.getElementById("otpStatus");
+    const btnFirmar = document.getElementById("btnFirmar");
+    const submitStatus = document.getElementById("submitStatus");
+    const inputCorreo = document.getElementById("f_correo_electronico");
+    const inputNombres = document.getElementById("f_nombres");
+
+    let otpEnviado = false;
+
+    function setOtpStatus(msg, cls) {
+      otpStatus.textContent = msg;
+      otpStatus.className = "otp-status" + (cls ? " " + cls : "");
+    }
+
+    function setSubmitStatus(msg, cls) {
+      submitStatus.textContent = msg;
+      submitStatus.className = "submit-status" + (cls ? " " + cls : "");
+    }
+
+    btnEnviarOtp.addEventListener("click", async () => {
+      const correo = inputCorreo.value.trim();
+      if (!correo || !correo.includes("@")) {
+        inputCorreo.focus();
+        setOtpStatus("Ingresa un correo electrónico válido antes de pedir el código.", "error");
+        return;
+      }
+      btnEnviarOtp.disabled = true;
+      setOtpStatus("Enviando código a " + correo + "…");
+      try {
+        const r = await fetch("/api/guardia/contrato-diario/otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ correo_electronico: correo, nombres: inputNombres.value.trim() }),
+        });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data.detail || "No se pudo enviar el código.");
+        otpEnviado = true;
+        inputOtp.disabled = false;
+        inputOtp.focus();
+        btnFirmar.disabled = false;
+        setOtpStatus("Código enviado. Revisa tu correo (vence en 10 minutos).", "ok");
+      } catch (err) {
+        setOtpStatus(err.message || "No se pudo enviar el código.", "error");
+      } finally {
+        btnEnviarOtp.disabled = false;
+      }
+    });
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!otpEnviado) {
+        setSubmitStatus("Primero solicita el código de verificación.", "error");
+        return;
+      }
+      if (!form.reportValidity()) return;
+      const codigo = inputOtp.value.trim();
+      if (!/^\d{6}$/.test(codigo)) {
+        setSubmitStatus("Ingresa el código de 6 dígitos recibido por correo.", "error");
+        inputOtp.focus();
+        return;
+      }
+
+      const fd = new FormData(form);
+      const payload = Object.fromEntries(fd.entries());
+
+      btnFirmar.disabled = true;
+      setSubmitStatus("Generando y enviando contrato…");
+      try {
+        const r = await fetch("/api/guardia/contrato-diario/enviar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data.detail || "No se pudo enviar el contrato.");
+        setSubmitStatus("¡Contrato firmado y enviado correctamente!", "ok");
+        form.querySelectorAll("input,select,button").forEach((el) => (el.disabled = true));
+      } catch (err) {
+        setSubmitStatus(err.message || "No se pudo enviar el contrato.", "error");
+        btnFirmar.disabled = false;
+      }
+    });
+  </script>
+<script src="/static/atc-volver.js"></script>
+</body>
+</html>

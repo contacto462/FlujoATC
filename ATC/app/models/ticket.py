@@ -42,6 +42,12 @@ class Ticket(Base):
         nullable=False
     )# email | whatsapp | internal
 
+    inbound_mailbox: Mapped[Optional[str]] = mapped_column(
+        String(320),
+        nullable=True,
+        index=True,
+    )
+
     # =========================
     # SPAM / DELETE
     # =========================
@@ -57,11 +63,18 @@ class Ticket(Base):
         nullable=False
     )
 
+    is_no_ticket: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+        server_default="0",
+    )
+
     # =========================
     # RELACIONES
     # =========================
     requester_id: Mapped[int] = mapped_column(
-        ForeignKey("requesters.id"),
+        ForeignKey("clientes.id"),
         nullable=False
     )
 

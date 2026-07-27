@@ -198,7 +198,7 @@ def parse_resolution_value(value: object) -> bool | None:
         return value
 
     raw = str(value).strip().lower()
-    if raw in {"si", "sÃ­", "yes", "true", "1", "satisfactorio"}:
+    if raw in {"si", "sí", "yes", "true", "1", "satisfactorio"}:
         return True
     if raw in {"no", "false", "0"}:
         return False
@@ -234,10 +234,10 @@ def extract_feedback_from_payload(payload: dict) -> tuple[int | None, int | None
             marker in label
             for marker in (
                 "atencion del tecnico",
-                "atenciÃ³n del tÃ©cnico",
+                "atención del técnico",
                 "atencion_tecnico",
                 "tecnico",
-                "tÃ©cnico",
+                "técnico",
                 "technician",
                 "rating",
             )
@@ -249,7 +249,7 @@ def extract_feedback_from_payload(payload: dict) -> tuple[int | None, int | None
             marker in label
             for marker in (
                 "tiempo de resolucion",
-                "tiempo de resoluciÃ³n",
+                "tiempo de resolución",
                 "tiempo_resolucion",
                 "satisfactorio",
                 "resolution",
@@ -274,9 +274,9 @@ def extract_feedback_from_payload(payload: dict) -> tuple[int | None, int | None
             marker in normalized_key
             for marker in (
                 "atencion_tecnico",
-                "atenciÃ³n_tÃ©cnico",
+                "atención_técnico",
                 "tecnico",
-                "tÃ©cnico",
+                "técnico",
                 "technician_rating",
                 "rating",
             )
@@ -288,7 +288,7 @@ def extract_feedback_from_payload(payload: dict) -> tuple[int | None, int | None
             marker in normalized_key
             for marker in (
                 "tiempo_resolucion",
-                "tiempo_resoluciÃ³n",
+                "tiempo_resolución",
                 "resolution",
                 "satisfactorio",
                 "satisfied",
