@@ -378,8 +378,8 @@
         $("serviciosContador").textContent = `${(data.servicios || []).length} disponibles`;
         $("opcionesEstado").textContent = "Datos listos";
       } catch (err) {
-        $("opcionesEstado").textContent = "Error cargando datos";
-        mostrarEstado("error", err.message || "No se pudieron cargar las opciones.");
+        $("opcionesEstado").textContent = "Backend pendiente";
+        mostrarEstado("error", mensajeBackendNoDisponible(err));
       }
     }
 
@@ -484,10 +484,18 @@
         $("fecha").valueAsDate = new Date();
         await cargarOpciones();
       } catch (err) {
-        mostrarEstado("error", err.message || "No se pudo guardar el registro.");
+        mostrarEstado("error", mensajeBackendNoDisponible(err));
       } finally {
         setLoading(false);
       }
+    }
+
+    function mensajeBackendNoDisponible(err) {
+      const msg = String((err && err.message) || "");
+      if (msg.includes("404") || msg.toLowerCase().includes("not found")) {
+        return "La pagina ya esta actualizada, pero falta reiniciar el servidor para activar el guardado.";
+      }
+      return msg || "No se pudo completar la operacion.";
     }
 
     async function leerError(response) {
