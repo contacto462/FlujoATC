@@ -27,6 +27,7 @@ from ATC.app.services.ticket_service import create_ticket_from_public
 
 
 router = APIRouter(prefix="/public", tags=["public"])
+lavados_router = APIRouter(tags=["lavados"])
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parents[1] / "templates"))
 
 
@@ -35,6 +36,18 @@ class PublicTicketCreate(BaseModel):
     email: str
     subject: str
     message: str
+
+
+class LavadosRegistroCreate(BaseModel):
+    patente: str
+    fecha: str
+    servicio: str
+    kilometraje: str
+    observaciones: str = ""
+    imgAntes1: str = ""
+    imgAntes2: str = ""
+    imgDespues1: str = ""
+    imgDespues2: str = ""
 
 
 @router.post("/tickets")
@@ -50,6 +63,42 @@ def create_public_ticket(data: PublicTicketCreate, db: Session = Depends(get_db)
     return {
         "ticket_id": ticket.id,
         "status": "created",
+    }
+
+
+@lavados_router.get("/lavados.html", response_class=HTMLResponse)
+def lavados_page(request: Request):
+    return templates.TemplateResponse(request, "lavados.html", {})
+
+
+@lavados_router.get("/api/lavados/opciones")
+def lavados_opciones():
+    from ATC.app.services.lavados_service import LavadosServiceError, obtener_opciones_lavados
+
+    try:
+        return obtener_opciones_lavados()
+    except LavadosServiceError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@lavados_router.post("/api/lavados/registros")
+def lavados_guardar_registro(payload: LavadosRegistroCreate, background_tasks: BackgroundTasks):
+    from ATC.app.services.lavados_service import (
+        LavadosServiceError,
+        generar_pdf_lavado_background,
+        guardar_registro_lavado,
+    )
+
+    try:
+        registro = guardar_registro_lavado(payload.model_dump())
+    except LavadosServiceError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    background_tasks.add_task(generar_pdf_lavado_background, registro)
+    return {
+        "ok": True,
+        "id": registro["id"],
+        "mensaje": registro["mensaje"],
     }
 
 
@@ -269,4 +318,3 @@ def ley_karin_informe(payload: LeyKarinComprobante, background_tasks: Background
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
         background=background_tasks,
     )
-

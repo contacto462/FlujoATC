@@ -26,6 +26,7 @@ _ATC_ROOT = Path(__file__).resolve().parents[2]
 SCOPES = [
     "https://www.googleapis.com/auth/drive",
     "https://www.googleapis.com/auth/documents",
+    "https://www.googleapis.com/auth/spreadsheets",
 ]
 
 
@@ -154,16 +155,27 @@ def _load_oauth_credentials() -> UserCredentials:
 
 
 @lru_cache(maxsize=1)
-def _build_clients():
+def _build_google_credentials():
     auth_mode = _safe_text(settings.google_drive_auth_mode).lower() or "service_account"
     if auth_mode == "oauth_user":
-        creds = _load_oauth_credentials()
-    else:
-        creds_path = _load_service_account_path()
-        creds = service_account.Credentials.from_service_account_file(str(creds_path), scopes=SCOPES)
+        return _load_oauth_credentials()
+
+    creds_path = _load_service_account_path()
+    return service_account.Credentials.from_service_account_file(str(creds_path), scopes=SCOPES)
+
+
+@lru_cache(maxsize=1)
+def _build_clients():
+    creds = _build_google_credentials()
     drive = build("drive", "v3", credentials=creds, cache_discovery=False)
     docs = build("docs", "v1", credentials=creds, cache_discovery=False)
     return drive, docs
+
+
+@lru_cache(maxsize=1)
+def _build_sheets_client():
+    creds = _build_google_credentials()
+    return build("sheets", "v4", credentials=creds, cache_discovery=False)
 
 
 _FOLDER_CACHE: dict[tuple[str, str], str] = {}

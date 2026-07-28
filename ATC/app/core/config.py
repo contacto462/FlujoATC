@@ -148,6 +148,13 @@ class Settings(BaseSettings):
     google_drive_protocolos_folder_id: str = "1beVaXbf23FTHlBa2FfO1mnz55RcKf_iW"
 
     # ==============================
+    # LAVADOS / Servicios vehiculos
+    # ==============================
+    lavados_sheet_id: str = "1O3wRowhOZLcB8F7hG4vmIdGS9euEWLJO1qmpA0UevUQ"
+    lavados_drive_folder_id: str = "1Fgf3Q7W8f63tanqKmIFO5JDlEQTva8x3"
+    lavados_doc_template_id: str = "1620EPOEPbq-5f-VHbvopstsGGMSaC2xwpyBeGuHarKI"
+
+    # ==============================
     # VENTA / Catálogo externo
     # ==============================
     venta_catalogo_base_url: str = ""

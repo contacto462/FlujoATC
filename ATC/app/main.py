@@ -87,7 +87,7 @@ from ATC.app.routes.inicio_turno import (
     seed_default_inicio_turno_guardias,
 )
 from ATC.app.routes.messages import router as messages_router
-from ATC.app.routes.public import router as public_router
+from ATC.app.routes.public import lavados_router, router as public_router
 from ATC.app.routes.requesters import router as requesters_router
 from ATC.app.routes.tickets import router as tickets_router
 from ATC.app.routes.venta import router as venta_router
@@ -681,6 +681,7 @@ app.include_router(whatsapp_router, prefix="/api")
 app.include_router(requesters_router, prefix="/api")
 app.include_router(public_router, prefix="/api")
 app.include_router(public_router)
+app.include_router(lavados_router)
 
 app.include_router(unified_access_router)
 app.include_router(client_notes_router)

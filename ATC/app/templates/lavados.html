@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Registro de Servicios</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+  <style>
+    :root{
+      --bg:#eef3f6;
+      --surface:#ffffff;
+      --surface-2:#f7fafb;
+      --border:#d8e2e8;
+      --text:#16222d;
+      --muted:#657482;
+      --blue:#134f7f;
+      --blue-dark:#0e3759;
+      --green:#16865a;
+      --green-dark:#0f6543;
+      --red:#b42318;
+      --amber:#a15c06;
+      --shadow:0 18px 45px rgba(22,34,45,.12);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      color:var(--text);
+      background:linear-gradient(180deg,#dfeaf0 0,#eef3f6 320px);
+      padding:22px 14px 54px;
+    }
+    .shell{width:min(760px,100%);margin:0 auto}
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      margin-bottom:16px;
+    }
+    .brand{display:flex;align-items:center;gap:12px}
+    .brand img{width:42px;height:42px;object-fit:contain}
+    .brand-title{font-size:18px;font-weight:850;line-height:1.1}
+    .brand-sub{font-size:12px;color:var(--muted);margin-top:2px}
+    .status-pill{
+      border:1px solid rgba(19,79,127,.18);
+      color:var(--blue-dark);
+      background:#e8f2fa;
+      border-radius:999px;
+      padding:7px 12px;
+      font-size:12px;
+      font-weight:750;
+      white-space:nowrap;
+    }
+    .panel{
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:8px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .panel-head{
+      background:linear-gradient(135deg,var(--blue-dark),var(--blue));
+      color:#fff;
+      padding:20px 22px;
+    }
+    h1{font-size:22px;margin:0 0 5px;letter-spacing:0;line-height:1.2}
+    .panel-head p{margin:0;color:rgba(255,255,255,.78);font-size:13px}
+    form{padding:22px}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+    .field{display:flex;flex-direction:column;gap:7px}
+    .field.full{grid-column:1 / -1}
+    label{font-size:12px;font-weight:800;color:#425364;text-transform:uppercase;letter-spacing:0}
+    input,select,textarea{
+      width:100%;
+      border:1px solid var(--border);
+      border-radius:8px;
+      background:#fff;
+      color:var(--text);
+      font:inherit;
+      font-size:14px;
+      padding:11px 12px;
+      outline:none;
+      transition:border-color .15s ease,box-shadow .15s ease;
+    }
+    textarea{min-height:94px;resize:vertical}
+    input:focus,select:focus,textarea:focus{
+      border-color:var(--blue);
+      box-shadow:0 0 0 3px rgba(19,79,127,.12);
+    }
+    .section{
+      margin-top:22px;
+      padding-top:20px;
+      border-top:1px solid var(--border);
+    }
+    .section-title{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:13px;
+    }
+    .section-title h2{font-size:15px;margin:0;font-weight:850}
+    .hint{font-size:12px;color:var(--muted)}
+    .checks{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:10px;
+    }
+    .check{
+      display:flex;
+      align-items:flex-start;
+      gap:9px;
+      border:1px solid var(--border);
+      background:var(--surface-2);
+      border-radius:8px;
+      padding:10px 11px;
+      cursor:pointer;
+    }
+    .check input{width:16px;height:16px;margin-top:2px;accent-color:var(--blue);flex:0 0 auto}
+    .check span{font-size:13px;line-height:1.35}
+    .file-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:14px;
+    }
+    .file-box{
+      border:1px dashed #b9cad5;
+      background:#fbfdfe;
+      border-radius:8px;
+      padding:12px;
+    }
+    .file-box label{display:block;margin-bottom:8px}
+    .actions{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+      flex-wrap:wrap;
+      margin-top:24px;
+      padding-top:20px;
+      border-top:1px solid var(--border);
+    }
+    .estado{
+      display:none;
+      flex:1 1 260px;
+      border-radius:8px;
+      padding:11px 12px;
+      font-size:13px;
+      line-height:1.45;
+    }
+    .estado.info{display:block;background:#e8f2fa;color:#164568;border:1px solid #c8deef}
+    .estado.ok{display:block;background:#e7f6ee;color:#0d5638;border:1px solid #bfe4d0}
+    .estado.error{display:block;background:#fde8e7;color:var(--red);border:1px solid #f4beb9}
+    .btn{
+      border:0;
+      border-radius:8px;
+      background:linear-gradient(135deg,var(--green-dark),var(--green));
+      color:#fff;
+      font-size:14px;
+      font-weight:850;
+      padding:12px 20px;
+      min-width:180px;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:9px;
+    }
+    .btn:disabled{opacity:.68;cursor:not-allowed}
+    .spinner{
+      width:15px;
+      height:15px;
+      border:2px solid rgba(255,255,255,.45);
+      border-top-color:#fff;
+      border-radius:50%;
+      display:none;
+      animation:spin .75s linear infinite;
+    }
+    .btn.loading .spinner{display:block}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @media (max-width:640px){
+      body{padding:14px 10px 40px}
+      .topbar{align-items:flex-start;flex-direction:column}
+      .status-pill{white-space:normal}
+      form{padding:16px}
+      .grid,.checks,.file-grid{grid-template-columns:1fr}
+      .panel-head{padding:18px 16px}
+      .actions{align-items:stretch}
+      .btn{width:100%}
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="topbar">
+      <div class="brand">
+        <img src="/static/img/logo-atc.png" alt="ATC">
+        <div>
+          <div class="brand-title">Registro de Servicios</div>
+          <div class="brand-sub">Lavados y servicios de vehículos</div>
+        </div>
+      </div>
+      <div class="status-pill" id="opcionesEstado">Cargando datos</div>
+    </div>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h1>Nuevo registro</h1>
+        <p>Completa los datos del servicio y adjunta las imágenes requeridas.</p>
+      </div>
+
+      <form id="formulario">
+        <div class="grid">
+          <div class="field">
+            <label for="patente">Patente del vehículo</label>
+            <select id="patente" required>
+              <option selected disabled value="">Cargando patentes...</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="fecha">Fecha del servicio</label>
+            <input type="date" id="fecha" required>
+          </div>
+          <div class="field">
+            <label for="kilometraje">Kilometraje</label>
+            <input type="text" id="kilometraje" inputmode="numeric" placeholder="Ingrese kilometraje" required>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">
+            <h2>Servicios a realizar</h2>
+            <span class="hint" id="serviciosContador"></span>
+          </div>
+          <div id="servicioContainer" class="checks">
+            <span class="hint">Cargando servicios...</span>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">
+            <h2>Imágenes antes</h2>
+            <span class="hint">Al menos una imagen</span>
+          </div>
+          <div class="file-grid">
+            <div class="file-box">
+              <label for="imgAntes1">Imagen antes 1</label>
+              <input type="file" id="imgAntes1" accept="image/png,image/jpeg">
+            </div>
+            <div class="file-box">
+              <label for="imgAntes2">Imagen antes 2</label>
+              <input type="file" id="imgAntes2" accept="image/png,image/jpeg">
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">
+            <h2>Imágenes después</h2>
+            <span class="hint">Al menos una imagen</span>
+          </div>
+          <div class="file-grid">
+            <div class="file-box">
+              <label for="imgDespues1">Imagen después 1</label>
+              <input type="file" id="imgDespues1" accept="image/png,image/jpeg">
+            </div>
+            <div class="file-box">
+              <label for="imgDespues2">Imagen después 2</label>
+              <input type="file" id="imgDespues2" accept="image/png,image/jpeg">
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="field full">
+            <label for="observaciones">Observaciones</label>
+            <textarea id="observaciones" placeholder="Ingrese observaciones opcionales"></textarea>
+          </div>
+        </div>
+
+        <div class="actions">
+          <div id="estado" class="estado"></div>
+          <button type="submit" id="botonEnviar" class="btn">
+            <span id="textoBoton">Enviar registro</span>
+            <span class="spinner"></span>
+          </button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    document.addEventListener("DOMContentLoaded", () => {
+      $("fecha").valueAsDate = new Date();
+      $("formulario").addEventListener("submit", enviarFormulario);
+      cargarOpciones();
+    });
+
+    function mostrarEstado(tipo, mensaje) {
+      const estado = $("estado");
+      estado.className = "estado " + tipo;
+      estado.textContent = mensaje;
+    }
+
+    function setLoading(isLoading) {
+      const boton = $("botonEnviar");
+      boton.disabled = isLoading;
+      boton.classList.toggle("loading", isLoading);
+      $("textoBoton").textContent = isLoading ? "Enviando..." : "Enviar registro";
+    }
+
+    async function cargarOpciones() {
+      try {
+        const response = await fetch("/api/lavados/opciones", { headers: { "Accept": "application/json" } });
+        if (!response.ok) throw new Error(await leerError(response));
+        const data = await response.json();
+
+        const select = $("patente");
+        select.innerHTML = '<option selected disabled value="">Seleccione una patente...</option>';
+        (data.patentes || []).forEach((patente) => {
+          const option = document.createElement("option");
+          option.value = patente;
+          option.textContent = patente;
+          select.appendChild(option);
+        });
+        if (!data.patentes || data.patentes.length === 0) {
+          select.innerHTML = '<option selected disabled value="">No hay patentes disponibles</option>';
+        }
+
+        const container = $("servicioContainer");
+        container.innerHTML = "";
+        (data.servicios || []).forEach((servicio, index) => {
+          const item = document.createElement("label");
+          item.className = "check";
+          item.innerHTML = `
+            <input type="checkbox" value="${escapeHtml(servicio)}" id="servicio_${index}">
+            <span>${escapeHtml(servicio)}</span>
+          `;
+          container.appendChild(item);
+        });
+        if (!data.servicios || data.servicios.length === 0) {
+          container.innerHTML = '<span class="hint">No hay servicios disponibles.</span>';
+        }
+
+        $("serviciosContador").textContent = `${(data.servicios || []).length} disponibles`;
+        $("opcionesEstado").textContent = "Datos listos";
+      } catch (err) {
+        $("opcionesEstado").textContent = "Error cargando datos";
+        mostrarEstado("error", err.message || "No se pudieron cargar las opciones.");
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value || "").replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      }[char]));
+    }
+
+    function comprimirImagen(file) {
+      return new Promise((resolve, reject) => {
+        if (!file) {
+          resolve("");
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+            const maxWidth = 960;
+            const scale = img.width > maxWidth ? maxWidth / img.width : 1;
+            const width = Math.round(img.width * scale);
+            const height = Math.round(img.height * scale);
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL("image/jpeg", 0.62));
+          };
+          img.onerror = () => reject(new Error("No se pudo procesar una imagen."));
+          img.src = event.target.result;
+        };
+        reader.onerror = () => reject(new Error("No se pudo leer una imagen."));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function validarFormulario(payload, antesFiles, despuesFiles) {
+      if (!payload.patente) return "Debes seleccionar una patente.";
+      if (!payload.fecha) return "Debes ingresar la fecha del servicio.";
+      if (!payload.servicio) return "Debes seleccionar al menos un servicio.";
+      if (!payload.kilometraje) return "Debes ingresar el kilometraje.";
+      if (!antesFiles.some(Boolean)) return "Debes subir al menos una imagen antes.";
+      if (!despuesFiles.some(Boolean)) return "Debes subir al menos una imagen después.";
+      return "";
+    }
+
+    async function enviarFormulario(event) {
+      event.preventDefault();
+
+      const servicios = Array.from(document.querySelectorAll("#servicioContainer input:checked"))
+        .map((item) => item.value);
+      const antesFiles = [$("imgAntes1").files[0], $("imgAntes2").files[0]];
+      const despuesFiles = [$("imgDespues1").files[0], $("imgDespues2").files[0]];
+      const payload = {
+        patente: $("patente").value,
+        fecha: $("fecha").value,
+        servicio: servicios.join(", "),
+        kilometraje: $("kilometraje").value.trim(),
+        observaciones: $("observaciones").value.trim(),
+        imgAntes1: "",
+        imgAntes2: "",
+        imgDespues1: "",
+        imgDespues2: ""
+      };
+
+      const validation = validarFormulario(payload, antesFiles, despuesFiles);
+      if (validation) {
+        mostrarEstado("error", validation);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        mostrarEstado("info", "Preparando imagenes y guardando registro.");
+        const imagenes = await Promise.all([
+          comprimirImagen(antesFiles[0]),
+          comprimirImagen(antesFiles[1]),
+          comprimirImagen(despuesFiles[0]),
+          comprimirImagen(despuesFiles[1])
+        ]);
+
+        payload.imgAntes1 = imagenes[0];
+        payload.imgAntes2 = imagenes[1];
+        payload.imgDespues1 = imagenes[2];
+        payload.imgDespues2 = imagenes[3];
+
+        const response = await fetch("/api/lavados/registros", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Accept": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok) throw new Error(await leerError(response));
+        const result = await response.json();
+
+        mostrarEstado("ok", result.mensaje || "Registro guardado correctamente.");
+        $("formulario").reset();
+        $("fecha").valueAsDate = new Date();
+        await cargarOpciones();
+      } catch (err) {
+        mostrarEstado("error", err.message || "No se pudo guardar el registro.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function leerError(response) {
+      try {
+        const data = await response.json();
+        return data.detail || data.message || `Error ${response.status}`;
+      } catch (_err) {
+        return `Error ${response.status}`;
+      }
+    }
+  </script>
+</body>
+</html>
