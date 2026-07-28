@@ -11,7 +11,6 @@ from googleapiclient.errors import HttpError
 
 from ATC.app.core.config import settings
 from ATC.app.services.drive_base_service import (
-    DriveReportError,
     _build_clients,
     _build_sheets_client,
     _clean_filename,
@@ -34,6 +33,7 @@ class LavadosServiceError(RuntimeError):
 _OPTIONS_CACHE: dict[str, object] = {"ts": 0.0, "data": None}
 _OPTIONS_TTL_SECONDS = 120
 _REGISTER_LOCK = threading.Lock()
+_IMAGE_KEYS = ("antes1", "antes2", "despues1", "despues2")
 
 
 def _sheet_id() -> str:
@@ -211,25 +211,16 @@ def guardar_registro_lavado(data: dict[str, object]) -> dict[str, object]:
         raise LavadosServiceError("Falta kilometraje.")
 
     timestamp = int(time.time() * 1000)
-    image_jobs = {
+    image_payloads = {
         "antes1": ("Antes_1_" + str(timestamp), _safe_text(data.get("imgAntes1"))),
         "antes2": ("Antes_2_" + str(timestamp), _safe_text(data.get("imgAntes2"))),
         "despues1": ("Despues_1_" + str(timestamp), _safe_text(data.get("imgDespues1"))),
         "despues2": ("Despues_2_" + str(timestamp), _safe_text(data.get("imgDespues2"))),
     }
-
-    urls: dict[str, dict[str, str]] = {}
-    with ThreadPoolExecutor(max_workers=4) as pool:
-        futures = {
-            pool.submit(_upload_image, payload, patente, name): key
-            for key, (name, payload) in image_jobs.items()
-        }
-        for future in as_completed(futures):
-            urls[futures[future]] = future.result()
-
-    drive, _docs = _build_clients()
-    folder_id = _get_patente_folder(drive, patente)
-    folder_url = f"https://drive.google.com/drive/folders/{folder_id}"
+    urls = {
+        key: {"url": "Imagen pendiente" if image_payloads[key][1] else "", "embed_uri": "", "id": ""}
+        for key in _IMAGE_KEYS
+    }
 
     with _REGISTER_LOCK:
         new_id = _next_registro_id()
@@ -244,7 +235,7 @@ def guardar_registro_lavado(data: dict[str, object]) -> dict[str, object]:
             urls["antes2"]["url"],
             urls["despues1"]["url"],
             urls["despues2"]["url"],
-            folder_url,
+            "Carpeta pendiente",
             observaciones,
             "PDF pendiente",
         ]
@@ -262,8 +253,29 @@ def guardar_registro_lavado(data: dict[str, object]) -> dict[str, object]:
         "kilometraje": kilometraje,
         "observaciones": observaciones,
         "urls": urls,
-        "mensaje": f"Registro guardado correctamente con ID: {new_id}. El informe se generara automaticamente.",
+        "image_payloads": image_payloads,
+        "mensaje": f"Registro guardado correctamente con ID: {new_id}. Las imagenes y el informe se procesaran automaticamente.",
     }
+
+
+def _update_registro_links(sheet_row: int, urls: dict[str, dict[str, str]], folder_url: str) -> None:
+    if sheet_row <= 0:
+        return
+    sheets = _build_sheets_client()
+    sheets.spreadsheets().values().update(
+        spreadsheetId=_sheet_id(),
+        range=f"Registro!G{sheet_row}:K{sheet_row}",
+        valueInputOption="USER_ENTERED",
+        body={
+            "values": [[
+                urls.get("antes1", {}).get("url", ""),
+                urls.get("antes2", {}).get("url", ""),
+                urls.get("despues1", {}).get("url", ""),
+                urls.get("despues2", {}).get("url", ""),
+                folder_url,
+            ]]
+        },
+    ).execute()
 
 
 def _update_pdf_url(sheet_row: int, value: str) -> None:
@@ -276,6 +288,31 @@ def _update_pdf_url(sheet_row: int, value: str) -> None:
         valueInputOption="USER_ENTERED",
         body={"values": [[value]]},
     ).execute()
+
+
+def _upload_images_for_record(registro: dict[str, object]) -> tuple[dict[str, dict[str, str]], str]:
+    patente = _safe_text(registro.get("patente")) or "SIN_PATENTE"
+    image_payloads = registro.get("image_payloads") if isinstance(registro.get("image_payloads"), dict) else {}
+    urls = {key: {"url": "", "embed_uri": "", "id": ""} for key in _IMAGE_KEYS}
+
+    futures = {}
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        for key in _IMAGE_KEYS:
+            job = image_payloads.get(key) if isinstance(image_payloads, dict) else None
+            if not isinstance(job, tuple) and not isinstance(job, list):
+                continue
+            name = _safe_text(job[0] if len(job) > 0 else "")
+            payload = _safe_text(job[1] if len(job) > 1 else "")
+            if payload:
+                futures[pool.submit(_upload_image, payload, patente, name)] = key
+
+        for future in as_completed(futures):
+            urls[futures[future]] = future.result()
+
+    drive, _docs = _build_clients()
+    folder_id = _get_patente_folder(drive, patente)
+    folder_url = f"https://drive.google.com/drive/folders/{folder_id}"
+    return urls, folder_url
 
 
 def generar_pdf_lavado(registro: dict[str, object]) -> str:
@@ -326,10 +363,13 @@ def generar_pdf_lavado(registro: dict[str, object]) -> str:
             pass
 
 
-def generar_pdf_lavado_background(registro: dict[str, object]) -> None:
+def procesar_registro_lavado_background(registro: dict[str, object]) -> None:
     sheet_row = int(registro.get("fila") or 0)
     try:
-        url = generar_pdf_lavado(registro)
-        _update_pdf_url(sheet_row, url)
+        urls, folder_url = _upload_images_for_record(registro)
+        _update_registro_links(sheet_row, urls, folder_url)
+        registro["urls"] = urls
+        pdf_url = generar_pdf_lavado(registro)
+        _update_pdf_url(sheet_row, pdf_url)
     except Exception as exc:
         _update_pdf_url(sheet_row, f"ERROR PDF: {exc}")

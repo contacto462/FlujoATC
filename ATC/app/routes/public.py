@@ -87,8 +87,8 @@ def lavados_opciones():
 def lavados_guardar_registro(payload: LavadosRegistroCreate, background_tasks: BackgroundTasks):
     from ATC.app.services.lavados_service import (
         LavadosServiceError,
-        generar_pdf_lavado_background,
         guardar_registro_lavado,
+        procesar_registro_lavado_background,
     )
 
     try:
@@ -98,7 +98,7 @@ def lavados_guardar_registro(payload: LavadosRegistroCreate, background_tasks: B
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"No se pudo guardar el registro de lavados: {exc}") from exc
 
-    background_tasks.add_task(generar_pdf_lavado_background, registro)
+    background_tasks.add_task(procesar_registro_lavado_background, registro)
     return {
         "ok": True,
         "id": registro["id"],
