@@ -4,7 +4,7 @@ import re
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from googleapiclient.errors import HttpError
@@ -33,7 +33,9 @@ class LavadosServiceError(RuntimeError):
 _OPTIONS_CACHE: dict[str, object] = {"ts": 0.0, "data": None}
 _OPTIONS_TTL_SECONDS = 120
 _REGISTER_LOCK = threading.Lock()
+_WEEKLY_RESET_LOCK = threading.Lock()
 _IMAGE_KEYS = ("antes1", "antes2", "despues1", "despues2")
+_LISTA_RESET_METADATA_KEY = "lavados_lista_reset_week_start"
 
 
 def _sheet_id() -> str:
@@ -67,8 +69,93 @@ def _values_get(range_name: str) -> list[list[object]]:
     return response.get("values", [])
 
 
+def _current_week_start() -> str:
+    today = _now_santiago().date()
+    monday = today - timedelta(days=today.weekday())
+    return monday.isoformat()
+
+
+def _get_lista_reset_marker() -> str:
+    sheets = _build_sheets_client()
+    response = sheets.spreadsheets().developerMetadata().search(
+        spreadsheetId=_sheet_id(),
+        body={
+            "dataFilters": [{
+                "developerMetadataLookup": {
+                    "metadataKey": _LISTA_RESET_METADATA_KEY,
+                    "locationType": "SPREADSHEET",
+                }
+            }]
+        },
+    ).execute()
+    matches = response.get("matchedDeveloperMetadata", [])
+    if not matches:
+        return ""
+    metadata = matches[0].get("developerMetadata", {})
+    return _safe_text(metadata.get("metadataValue"))
+
+
+def _set_lista_reset_marker(week_start: str) -> None:
+    sheets = _build_sheets_client()
+    marker = _get_lista_reset_marker()
+    if marker:
+        request = {
+            "updateDeveloperMetadata": {
+                "dataFilters": [{
+                    "developerMetadataLookup": {
+                        "metadataKey": _LISTA_RESET_METADATA_KEY,
+                        "locationType": "SPREADSHEET",
+                    }
+                }],
+                "developerMetadata": {
+                    "metadataKey": _LISTA_RESET_METADATA_KEY,
+                    "metadataValue": week_start,
+                    "visibility": "DOCUMENT",
+                    "location": {"spreadsheet": True},
+                },
+                "fields": "metadataValue",
+            }
+        }
+    else:
+        request = {
+            "createDeveloperMetadata": {
+                "developerMetadata": {
+                    "metadataKey": _LISTA_RESET_METADATA_KEY,
+                    "metadataValue": week_start,
+                    "visibility": "DOCUMENT",
+                    "location": {"spreadsheet": True},
+                }
+            }
+        }
+
+    sheets.spreadsheets().batchUpdate(
+        spreadsheetId=_sheet_id(),
+        body={"requests": [request]},
+    ).execute()
+
+
+def _reset_lista_if_new_week() -> None:
+    if _now_santiago().weekday() != 0:
+        return
+
+    week_start = _current_week_start()
+    with _WEEKLY_RESET_LOCK:
+        if _get_lista_reset_marker() == week_start:
+            return
+
+        sheets = _build_sheets_client()
+        sheets.spreadsheets().values().clear(
+            spreadsheetId=_sheet_id(),
+            range="BBDD!J2:J",
+            body={},
+        ).execute()
+        _set_lista_reset_marker(week_start)
+        _invalidate_options_cache()
+
+
 def obtener_opciones_lavados() -> dict[str, list[str]]:
     _ensure_configured()
+    _reset_lista_if_new_week()
 
     now = time.time()
     cached = _OPTIONS_CACHE.get("data")
@@ -194,6 +281,7 @@ def _actualizar_bbdd(patente: str, servicio: str) -> None:
 
 def guardar_registro_lavado(data: dict[str, object]) -> dict[str, object]:
     _ensure_configured()
+    _reset_lista_if_new_week()
 
     patente = _safe_text(data.get("patente"))
     fecha = _safe_text(data.get("fecha"))
