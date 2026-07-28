@@ -26,6 +26,9 @@ _ATC_ROOT = Path(__file__).resolve().parents[2]
 SCOPES = [
     "https://www.googleapis.com/auth/drive",
     "https://www.googleapis.com/auth/documents",
+]
+
+SHEETS_SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
 ]
 
@@ -174,7 +177,8 @@ def _build_clients():
 
 @lru_cache(maxsize=1)
 def _build_sheets_client():
-    creds = _build_google_credentials()
+    creds_path = _load_service_account_path()
+    creds = service_account.Credentials.from_service_account_file(str(creds_path), scopes=SHEETS_SCOPES)
     return build("sheets", "v4", credentials=creds, cache_discovery=False)
 
 

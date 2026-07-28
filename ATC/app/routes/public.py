@@ -79,6 +79,8 @@ def lavados_opciones():
         return obtener_opciones_lavados()
     except LavadosServiceError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"No se pudieron cargar las opciones de lavados: {exc}") from exc
 
 
 @lavados_router.post("/api/lavados/registros")
@@ -93,6 +95,8 @@ def lavados_guardar_registro(payload: LavadosRegistroCreate, background_tasks: B
         registro = guardar_registro_lavado(payload.model_dump())
     except LavadosServiceError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"No se pudo guardar el registro de lavados: {exc}") from exc
 
     background_tasks.add_task(generar_pdf_lavado_background, registro)
     return {
