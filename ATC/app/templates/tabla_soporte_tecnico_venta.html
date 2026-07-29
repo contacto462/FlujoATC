@@ -1070,11 +1070,47 @@ tr.modal-subida {
     return partes.length === 1 && partes[0] === "televigilancia";
   }
 
+  function instalacionListaParaSoporte(fila) {
+    if (esSoloTelevigilanciaTipo(fila?.[6])) return true;
+    const valor = (fila?.[8] || "").toString().trim().toLowerCase();
+    return Boolean(valor && valor !== "pendiente");
+  }
+
+  function valorPendienteEditable(valor) {
+    const texto = (valor || "").toString().trim().toLowerCase();
+    return !texto || texto === "pendiente";
+  }
+
+  function pendientesEditablesSoporte(fila) {
+    if (!fila || (fila[19] || "").toString().trim().toLowerCase() === "anulada") return 0;
+    if (!instalacionListaParaSoporte(fila)) return 0;
+    const camposEstado = [9, 10, 11, 12, 13, 16, 17, 18];
+    let total = camposEstado.reduce((acc, idx) => acc + (valorPendienteEditable(fila[idx]) ? 1 : 0), 0);
+    if (valorPendienteEditable(fila[14])) total += 1;
+    if (valorPendienteEditable(fila[15])) total += 1;
+    return total;
+  }
+
+  function ordenarPendientesEditablesPrimero(datos) {
+    return [...(Array.isArray(datos) ? datos : [])]
+      .map((fila, index) => ({ fila, index, pendientesEditables: pendientesEditablesSoporte(fila) }))
+      .sort((a, b) => {
+        const aPrioritaria = a.pendientesEditables > 0 ? 0 : 1;
+        const bPrioritaria = b.pendientesEditables > 0 ? 0 : 1;
+        if (aPrioritaria !== bPrioritaria) return aPrioritaria - bPrioritaria;
+        if (aPrioritaria === 0 && a.pendientesEditables !== b.pendientesEditables) {
+          return b.pendientesEditables - a.pendientesEditables;
+        }
+        return a.index - b.index;
+      })
+      .map(item => item.fila);
+  }
+
   /* ===== Load table ===== */
   async function cargarDatosTablaSoporteTecnico() {
     try {
       const datos = await apiGet("/api/soporte-tecnico/ods-filas");
-      mostrarDatosEnTabla(datos);
+      mostrarDatosEnTabla(ordenarPendientesEditablesPrimero(datos));
     } catch (err) {
       if (err.message !== "401") {
         document.getElementById("cargando").textContent = "Error al cargar datos: " + err.message;
