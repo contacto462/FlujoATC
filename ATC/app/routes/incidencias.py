@@ -1349,7 +1349,9 @@ def resumen_equipos_tecnicos_page(
 ):
     if not service.usuario_autorizado_para_resumen_equipos(token):
         return RedirectResponse(url="/?form=login&next=auto", status_code=303)
-    resumen = service.obtener_resumen_equipos_tecnicos_hoy()
+    resumen = service.obtener_resumen_equipos_tecnicos_hoy(
+        incluir_pendientes_prioritarios=service.usuario_admin_para_resumen_equipos(token)
+    )
     resp = templates.TemplateResponse(
         request,
         "resumen_equipos_tecnicos.html",

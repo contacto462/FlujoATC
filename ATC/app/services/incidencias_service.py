@@ -1917,7 +1917,7 @@ class IncidenciasService:
         self.db.commit()
         return AREA_PANEL_DESTINOS.get(area_code_limpio)
 
-    def obtener_resumen_equipos_tecnicos_hoy(self) -> dict[str, Any]:
+    def obtener_resumen_equipos_tecnicos_hoy(self, *, incluir_pendientes_prioritarios: bool = False) -> dict[str, Any]:
         tz = ZoneInfo(settings.timezone or "America/Santiago")
         hoy = datetime.now(tz).date()
 
@@ -2039,6 +2039,21 @@ class IncidenciasService:
                 }
                 for index, nombre in enumerate(miembros)
             ]
+
+        def _es_equipo_jason_perez(equipo: dict[str, Any]) -> bool:
+            valores = [
+                str(equipo.get("titulo") or ""),
+                str(equipo.get("tecnico") or ""),
+                str(equipo.get("acompanante") or ""),
+            ]
+            for miembro in equipo.get("miembros") or []:
+                if isinstance(miembro, dict):
+                    valores.append(str(miembro.get("nombre") or ""))
+            return any(
+                self._normalizar_nombre_login(valor).startswith("jason perez")
+                for valor in valores
+                if valor
+            )
 
         def _fecha_referencia(row: Registro) -> datetime | None:
             return row.fecha_derivacion_tecnico or row.fecha_derivacion_area
@@ -2253,13 +2268,43 @@ class IncidenciasService:
             ],
             key=lambda item: (-len(item["odts"]), self._normalizar_nombre_login(item["titulo"])),
         )
-        equipos_ordenados.extend(equipos_extra)
+        odts_prioritarias: list[dict[str, Any]] = []
+        equipos_extra_visibles: list[dict[str, Any]] = []
+        for equipo in equipos_extra:
+            if _es_equipo_jason_perez(equipo):
+                odts_prioritarias.extend(equipo.get("odts") or [])
+                continue
+            equipos_extra_visibles.append(equipo)
+
+        equipos_ordenados.extend(equipos_extra_visibles)
+        if incluir_pendientes_prioritarios:
+            equipos_ordenados.append(
+                {
+                    "titulo": "Pendientes Prioritarios",
+                    "miembros": [{"nombre": "Pendientes Prioritarios", "patente": ""}],
+                    "patente": "",
+                    "tecnico": "",
+                    "acompanante": "",
+                    "odts": odts_prioritarias,
+                    "columna_prioritaria": True,
+                }
+            )
         return {
             "fecha": hoy.strftime("%d/%m/%Y"),
             "equipos": equipos_ordenados,
             "total_equipos": len(equipos_ordenados),
             "total_odt": total_odt,
         }
+
+    def usuario_admin_para_resumen_equipos(self, token: str) -> bool:
+        token_limpio = str(token or "").strip()
+        if not token_limpio:
+            return False
+        sesion = self.db.query(LoginSession).filter(LoginSession.token == token_limpio).first()
+        if not sesion or not sesion.user_id or sesion.expires_at <= datetime.utcnow():
+            return False
+        user = self.db.get(User, int(sesion.user_id))
+        return bool(user and user.is_active and str(user.role or "").strip().lower() in {"admin", "superadmin"})
 
     def get_usuario_actual(self, token: str) -> str:
         if not token:
