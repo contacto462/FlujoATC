@@ -183,6 +183,7 @@
     }
 
     .member-plate {
+      appearance: none;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -198,6 +199,13 @@
       font-weight: 900;
       letter-spacing: .04em;
       white-space: nowrap;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .member-plate:hover {
+      background: #cce4f2;
+      border-color: #8dbbd3;
     }
 
     .team-sub {
@@ -417,7 +425,13 @@
                 <span class="team-plates">
                   {% for miembro in equipo.miembros %}
                     {% if miembro.patente %}
-                      <span class="member-plate">{{ miembro.patente }}</span>
+                      <button
+                        type="button"
+                        class="member-plate"
+                        data-original-patente="{{ miembro.patente }}"
+                        data-plate-index="{{ loop.index0 }}"
+                        title="Editar patente visual"
+                      >{{ miembro.patente }}</button>
                     {% endif %}
                   {% endfor %}
                 </span>
@@ -597,6 +611,45 @@
         return card.closest(".team-col") === col;
       }
 
+      function plateKey(plate) {
+        const col = plate.closest(".team-col");
+        const base = [
+          String(col?.dataset?.tecnico || ""),
+          String(col?.dataset?.acompanante || ""),
+          String(col?.dataset?.patente || ""),
+          String(plate.dataset.originalPatente || ""),
+          String(plate.dataset.plateIndex || ""),
+        ].join("|");
+        return `resumenEquiposTecnicos:patenteVisual:${base}`;
+      }
+
+      function normalizePlate(value) {
+        return String(value || "").replace(/\s+/g, " ").trim().toUpperCase();
+      }
+
+      function aplicarPatentesVisuales() {
+        document.querySelectorAll(".member-plate[data-original-patente]").forEach((plate) => {
+          const stored = normalizePlate(localStorage.getItem(plateKey(plate)) || "");
+          plate.textContent = stored || normalizePlate(plate.dataset.originalPatente || "");
+        });
+      }
+
+      function editarPatenteVisual(plate) {
+        const original = normalizePlate(plate.dataset.originalPatente || "");
+        const actual = normalizePlate(plate.textContent || original);
+        const next = window.prompt("Patente visual", actual);
+        if (next === null) return;
+        const cleaned = normalizePlate(next);
+        const key = plateKey(plate);
+        if (!cleaned || cleaned === original) {
+          localStorage.removeItem(key);
+          plate.textContent = original;
+          return;
+        }
+        localStorage.setItem(key, cleaned);
+        plate.textContent = cleaned;
+      }
+
       async function moverPorDrop(card, col) {
         if (savingMove || !card || !col || sameTeam(card, col)) return;
         const cardData = cardPayload(card);
@@ -620,6 +673,12 @@
         if (!fullName) return;
         el.title = fullName;
         el.textContent = shortName(fullName);
+      });
+
+      aplicarPatentesVisuales();
+
+      document.querySelectorAll(".member-plate[data-original-patente]").forEach((plate) => {
+        plate.addEventListener("click", () => editarPatenteVisual(plate));
       });
 
       document.querySelectorAll(".odt-row[draggable='true']").forEach((card) => {
