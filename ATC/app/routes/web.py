@@ -1782,9 +1782,16 @@ def launcher_panel(
         if not _terminado:
             pendiente_ventas += 1
 
-    _ticket_estados_resueltos = {"closed", "resolved", "resolved_service", "resolved_client"}
+    _ticket_estados_activos = ("open", "pending", "pending_service", "pending_client")
     pendiente_ticketera = (
-        db.query(Ticket.id).filter(Ticket.status.notin_(_ticket_estados_resueltos)).count()
+        db.query(Ticket.id)
+        .filter(
+            Ticket.status.in_(_ticket_estados_activos),
+            Ticket.is_deleted == False,
+            Ticket.is_spam == False,
+            Ticket.is_no_ticket == False,
+        )
+        .count()
     )
 
     return templates.TemplateResponse(
