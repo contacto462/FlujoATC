@@ -1287,11 +1287,12 @@ def resumen_equipos_tecnicos_mover(
     origen = str(payload.get("origen") or "").strip().casefold()
     tecnico = re.sub(r"\s+", " ", str(payload.get("tecnico") or "").strip())
     acompanante = re.sub(r"\s+", " ", str(payload.get("acompanante") or "").strip())
+    destino_prioritario = bool(payload.get("prioritaria"))
     if not codigo:
         raise HTTPException(status_code=400, detail="ODT/ODS requerida.")
     if origen not in {"registro", "venta_ods"}:
         raise HTTPException(status_code=400, detail="Origen invalido.")
-    if not tecnico and not acompanante:
+    if not destino_prioritario and not tecnico and not acompanante:
         raise HTTPException(status_code=400, detail="Debes seleccionar un equipo destino.")
     if tecnico and acompanante and tecnico.casefold() == acompanante.casefold():
         acompanante = ""
@@ -1309,6 +1310,62 @@ def resumen_equipos_tecnicos_mover(
     )
     if not row and not ods:
         raise HTTPException(status_code=404, detail=f"No se encontro la ODT/ODS {codigo}.")
+
+    if destino_prioritario:
+        if not service.usuario_admin_para_resumen_equipos(token):
+            raise HTTPException(status_code=403, detail="Solo administradores pueden usar Pendientes Prioritarios.")
+        if origen == "registro":
+            if not row:
+                raise HTTPException(status_code=404, detail=f"No se encontro la ODT {codigo}.")
+            row.tecnicos = None
+            row.acompanante = None
+            row.fecha_derivacion_tecnico = None
+            row.derivacion = "Pendiente"
+            row.estado = "Pendiente"
+            db.commit()
+            return {
+                "ok": True,
+                "tipo": "ODT",
+                "codigo": codigo,
+                "tecnico": "",
+                "acompanante": "",
+                "prioritaria": True,
+                "sincronizado_registro": True,
+                "sincronizado_venta": False,
+            }
+        if not ods:
+            raise HTTPException(status_code=404, detail=f"No se encontro la ODS {codigo}.")
+        if str(ods.estado or "").strip().casefold() == "anulada":
+            raise HTTPException(status_code=400, detail="La ODS esta anulada.")
+        st = (
+            db.query(ServicioTecnicoVentaODT)
+            .filter(func.lower(func.trim(ServicioTecnicoVentaODT.odt)) == codigo.lower())
+            .first()
+        )
+        if st:
+            st.tecnico_a_cargo = None
+            st.acompanante = None
+            st.updated_at = now
+        adm = (
+            db.query(AdministracionODT)
+            .filter(func.lower(func.trim(AdministracionODT.odt)) == codigo.lower())
+            .first()
+        )
+        if adm:
+            adm.tecnico = None
+            adm.acompanante = None
+            adm.fecha_derivacion = None
+        db.commit()
+        return {
+            "ok": True,
+            "tipo": "ODS",
+            "codigo": codigo,
+            "tecnico": "",
+            "acompanante": "",
+            "prioritaria": True,
+            "sincronizado_registro": False,
+            "sincronizado_venta": True,
+        }
 
     sincronizado_registro = False
     sincronizado_venta = False

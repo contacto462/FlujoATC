@@ -403,6 +403,7 @@
             data-tecnico="{{ destino_tecnico }}"
             data-acompanante="{{ destino_acompanante }}"
             data-patente="{{ equipo.patente or '' }}"
+            data-prioritaria="{{ '1' if equipo.columna_prioritaria else '0' }}"
           >
             <header class="team-head">
               <h2 class="team-name">
@@ -547,7 +548,7 @@
         return token;
       }
 
-      async function guardarMovimiento({ odt, origen, tecnico, acompanante }) {
+      async function guardarMovimiento({ odt, origen, tecnico, acompanante, prioritaria }) {
         const token = obtenerTokenActivo();
         if (!token) {
           throw new Error("No hay sesión activa. Vuelve a entrar desde el panel de Servicio Técnico.");
@@ -560,6 +561,7 @@
             origen,
             tecnico,
             acompanante,
+            prioritaria,
             token,
           }),
         });
@@ -581,7 +583,13 @@
         return {
           tecnico: String(col?.dataset?.tecnico || "").trim(),
           acompanante: String(col?.dataset?.acompanante || "").trim(),
+          prioritaria: String(col?.dataset?.prioritaria || "") === "1",
         };
+      }
+
+      function canDropOnTeam(col) {
+        const team = teamPayload(col);
+        return Boolean(team.prioritaria || team.tecnico);
       }
 
       function sameTeam(card, col) {
@@ -593,7 +601,7 @@
         if (savingMove || !card || !col || sameTeam(card, col)) return;
         const cardData = cardPayload(card);
         const team = teamPayload(col);
-        if (!cardData.odt || !cardData.origen || !team.tecnico) return;
+        if (!cardData.odt || !cardData.origen || !canDropOnTeam(col)) return;
         savingMove = true;
         col.classList.add("is-saving");
         try {
@@ -630,12 +638,12 @@
 
       document.querySelectorAll(".team-col").forEach((col) => {
         col.addEventListener("dragenter", (event) => {
-          if (!draggedCard || sameTeam(draggedCard, col) || !teamPayload(col).tecnico) return;
+          if (!draggedCard || sameTeam(draggedCard, col) || !canDropOnTeam(col)) return;
           event.preventDefault();
           col.classList.add("is-drop-target");
         });
         col.addEventListener("dragover", (event) => {
-          if (!draggedCard || sameTeam(draggedCard, col) || !teamPayload(col).tecnico) return;
+          if (!draggedCard || sameTeam(draggedCard, col) || !canDropOnTeam(col)) return;
           event.preventDefault();
           event.dataTransfer.dropEffect = "move";
         });
@@ -644,7 +652,7 @@
           col.classList.remove("is-drop-target");
         });
         col.addEventListener("drop", (event) => {
-          if (!draggedCard || sameTeam(draggedCard, col) || !teamPayload(col).tecnico) return;
+          if (!draggedCard || sameTeam(draggedCard, col) || !canDropOnTeam(col)) return;
           event.preventDefault();
           col.classList.remove("is-drop-target");
           moverPorDrop(draggedCard, col);
