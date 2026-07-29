@@ -1784,7 +1784,7 @@ def launcher_panel(
 
     _ticket_estados_activos = ("open", "pending", "pending_service", "pending_client")
     pendiente_ticketera = (
-        db.query(Ticket.id)
+        _apply_ticket_visibility_for_user(db.query(Ticket.id), current_user)
         .filter(
             Ticket.status.in_(_ticket_estados_activos),
             Ticket.is_deleted == False,
