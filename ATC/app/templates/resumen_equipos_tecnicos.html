@@ -203,9 +203,18 @@
       cursor: pointer;
     }
 
-    .member-plate:hover {
+    .member-plate:hover,
+    .member-plate:focus-visible {
       background: #cce4f2;
       border-color: #8dbbd3;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(36, 91, 137, .16);
+    }
+
+    .member-plate.is-visual-edited {
+      background: #e8f6dd;
+      border-color: #96c878;
+      color: #245810;
     }
 
     .team-sub {
@@ -431,6 +440,7 @@
                         data-original-patente="{{ miembro.patente }}"
                         data-plate-index="{{ loop.index0 }}"
                         title="Editar patente visual"
+                        aria-label="Editar patente visual {{ miembro.patente }}"
                       >{{ miembro.patente }}</button>
                     {% endif %}
                   {% endfor %}
@@ -630,7 +640,9 @@
       function aplicarPatentesVisuales() {
         document.querySelectorAll(".member-plate[data-original-patente]").forEach((plate) => {
           const stored = normalizePlate(localStorage.getItem(plateKey(plate)) || "");
-          plate.textContent = stored || normalizePlate(plate.dataset.originalPatente || "");
+          const original = normalizePlate(plate.dataset.originalPatente || "");
+          plate.textContent = stored || original;
+          plate.classList.toggle("is-visual-edited", Boolean(stored && stored !== original));
         });
       }
 
@@ -644,10 +656,12 @@
         if (!cleaned || cleaned === original) {
           localStorage.removeItem(key);
           plate.textContent = original;
+          plate.classList.remove("is-visual-edited");
           return;
         }
         localStorage.setItem(key, cleaned);
         plate.textContent = cleaned;
+        plate.classList.add("is-visual-edited");
       }
 
       async function moverPorDrop(card, col) {
@@ -678,7 +692,11 @@
       aplicarPatentesVisuales();
 
       document.querySelectorAll(".member-plate[data-original-patente]").forEach((plate) => {
-        plate.addEventListener("click", () => editarPatenteVisual(plate));
+        plate.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          editarPatenteVisual(plate);
+        });
       });
 
       document.querySelectorAll(".odt-row[draggable='true']").forEach((card) => {
