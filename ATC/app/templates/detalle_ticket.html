@@ -1,12 +1,16 @@
 ﻿<!DOCTYPE html>
 <html lang="es">
 <head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Ticket #{{ ticket.id }} - {{ ticket.subject }}</title>
+<title>Ticket {{ ticket.id }} - {{ ticket.subject }}</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
+  <link rel="stylesheet" href="/static/base.css">
 <style>
 :root{
   --bg:#f0f2f5;
@@ -785,6 +789,16 @@ body{
   color:#ffffff;
   box-shadow:0 14px 24px rgba(15,23,42,.20);
 }
+.action-neutral{
+  background:#f1f5f9;
+  color:#475569;
+  border-color:#cbd5e1;
+}
+.action-neutral:hover{
+  background:#e2e8f0;
+  border-color:#94a3b8;
+  color:#334155;
+}
 
 /* ===== LEFT: FIELDS (Zendesk-ish) ===== */
 .field{
@@ -1010,7 +1024,8 @@ select::-ms-expand{
 }
 .badge-open{ background:var(--open-bg); color:var(--open-fg); border-color:rgba(34,197,94,.22); }
 .badge-pending, .badge-pending_service, .badge-pending_client{ background:var(--pending-bg); color:var(--pending-fg); border-color:rgba(245,158,11,.22); }
-.badge-resolved, .badge-resolved_service, .badge-resolved_client, .badge-closed{ background:var(--resolved-bg); color:var(--resolved-fg); border-color:rgba(99,102,241,.20); }
+.badge-resolved, .badge-resolved_service, .badge-resolved_client{ background:var(--resolved-bg); color:var(--resolved-fg); border-color:rgba(99,102,241,.20); }
+.badge-closed{ background:rgba(220,38,38,.12); color:#dc2626; border-color:rgba(220,38,38,.28); }
 
 .badge-low, .badge-none{ background:#f1f5f9; color:#475569; border-color:#e2e8f0; }
 .badge-medium{ background:var(--blue-soft); color:var(--blue); border-color:#dbeafe; }
@@ -1022,6 +1037,33 @@ select::-ms-expand{
   flex-direction:column;
   gap:8px;
 }
+
+.team-broadcast-tag{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  font-size:11.5px;
+  font-weight:700;
+  color:#b45309;
+  background:rgba(180,83,9,.1);
+  border:1px solid rgba(180,83,9,.28);
+  border-radius:999px;
+  padding:3px 10px;
+  width:fit-content;
+}
+
+.assign-team-btn{
+  border:1px solid var(--border);
+  background:var(--surface, #fff);
+  color:var(--text-soft, #475569);
+  font-size:11.5px;
+  font-weight:700;
+  border-radius:8px;
+  padding:6px 10px;
+  cursor:pointer;
+  transition:background .14s ease;
+}
+.assign-team-btn:hover{ background:rgba(37,99,235,.08); color:#1d4ed8; border-color:rgba(37,99,235,.35); }
 
 /* ===== CENTER: CONVERSATION + COMPOSER ===== */
 .center{
@@ -1170,11 +1212,29 @@ select::-ms-expand{
 }
 .msg-head .who{
   display:flex;
-  align-items:center;
+  align-items:flex-start;
   gap:7px;
   font-weight:600;
   color:#334155;
   font-size:12px;
+}
+.msg-head .who .dot{
+  margin-top:3px;
+}
+.who-text{
+  display:flex;
+  flex-direction:column;
+  gap:1px;
+  min-width:0;
+}
+.who-name{
+  overflow-wrap:anywhere;
+}
+.who-email{
+  font-weight:400;
+  color:var(--muted);
+  font-size:10.5px;
+  overflow-wrap:anywhere;
 }
 .dot{
   width:7px;height:7px;border-radius:999px;
@@ -1307,6 +1367,81 @@ select::-ms-expand{
 .reception-form{
   flex:0 0 auto;
   margin:0;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.cc-chip-box{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:5px;
+  min-height:36px;
+  padding:4px 8px;
+  border-radius:11px;
+  border:1px solid #d4dee1;
+  background:#fff;
+  width:260px;
+  cursor:text;
+}
+.cc-chip-box:focus-within{
+  border-color:#1d4ed8;
+  box-shadow:0 0 0 3px rgba(29,78,216,.12);
+}
+.cc-chip-box[data-disabled="1"]{
+  background:#f1f5f9;
+  opacity:.7;
+  cursor:not-allowed;
+}
+.cc-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  padding:3px 6px 3px 10px;
+  border-radius:999px;
+  background:var(--chip);
+  color:var(--chip-text);
+  font-size:12px;
+  font-weight:600;
+  white-space:nowrap;
+  max-width:100%;
+}
+.cc-chip.invalid{
+  background:#fef2f2;
+  color:#b91c1c;
+}
+.cc-chip-remove{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:16px;
+  height:16px;
+  border:none;
+  border-radius:50%;
+  background:rgba(0,0,0,.08);
+  color:inherit;
+  font-size:11px;
+  line-height:1;
+  cursor:pointer;
+  padding:0;
+  flex:0 0 auto;
+}
+.cc-chip-remove:hover{
+  background:rgba(0,0,0,.18);
+}
+.cc-chip-typing{
+  flex:1 1 80px;
+  min-width:80px;
+  border:none;
+  outline:none;
+  font-size:12.5px;
+  font-family:inherit;
+  color:#172124;
+  background:transparent;
+  padding:3px 2px;
+}
+.cc-chip-typing::placeholder{
+  color:#94a3b8;
 }
 .send.reception-action{
   height:36px;
@@ -1486,9 +1621,40 @@ select::-ms-expand{
 }
 .gmail-head{
   display:flex;
-  justify-content:flex-end;
+  justify-content:space-between;
   align-items:center;
+  gap:10px;
   padding:8px 12px 4px;
+}
+.gmail-to-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex:1;
+  min-width:0;
+}
+.gmail-to-row span{
+  font-size:12px;
+  color:#64748b;
+  font-weight:700;
+  flex:none;
+}
+.gmail-to-row input{
+  flex:1;
+  min-width:0;
+  height:30px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  background:#f8fafc;
+  padding:0 8px;
+  font-family:inherit;
+  font-size:12.5px;
+  color:var(--text);
+}
+.gmail-to-row input:focus{
+  outline:none;
+  border-color:#93c5fd;
+  background:#fff;
 }
 .gmail-meta-links{
   display:inline-flex;
@@ -2039,6 +2205,11 @@ body.is-inline-image-resizing{
   display:flex;
   justify-content:flex-end;
   gap:10px;
+}
+.admin-deriv-hint{
+  margin:10px 0 0;
+  font-size:12px;
+  color:#64748b;
 }
 .service-cancel{
   height:38px;
@@ -2628,7 +2799,8 @@ body.is-inline-image-resizing{
     width:100%;
     justify-content:space-between;
   }
-  .reception-form{ flex:1 1 auto; }
+  .reception-form{ flex:1 1 auto; flex-wrap:wrap; }
+  .cc-chip-box{ width:100%; }
   .send.reception-action{ width:100%; }
   .service-grid{ grid-template-columns:1fr; }
   .gmail-toolbar{
@@ -2684,19 +2856,19 @@ body.is-inline-image-resizing{
   <!-- TICKET HEADER -->
   <div class="tickethead">
     <div class="tickethead-inner">
-      
+
       <div class="tabs">
         <div class="tab active">Cliente: {{ ticket.requester.display_name if ticket.requester else "Cliente" }}</div>
-        <div class="tab active">Ticket #{{ ticket.id }}</div>
+        <div class="tab active">Ticket {{ ticket.id }}</div>
         <div class="spacer"></div>
       </div>
 
       <div class="headrow">
-        
+
         <!-- SUBJECT + REGRESAR -->
         <div class="subject">
-          <a href="/ticketera" class="smallbtn" style="margin-right:12px;">
-             Salir
+          <a id="btnVolver" href="/ticketera" class="smallbtn" style="margin-right:12px;">
+             Volver
           </a>
           <h1 style="display:inline;">{{ ticket.subject }}</h1>
         </div>
@@ -2720,9 +2892,11 @@ body.is-inline-image-resizing{
             id="ticketTimerPopover"
             class="clock-popover"
             aria-hidden="true"
+            data-created-local="{{ ticket.created_at.strftime('%Y-%m-%d %H:%M:%S') if ticket.created_at else '' }}"
+            data-resolved-local="{{ ticket.resolved_at.strftime('%Y-%m-%d %H:%M:%S') if ticket.resolved_at else '' }}"
             data-created-ms="{{ (ticket.created_at.timestamp() * 1000)|int if ticket.created_at else 0 }}"
             data-resolved-ms="{{ (ticket.resolved_at.timestamp() * 1000)|int if ticket.resolved_at else 0 }}"
-            data-status="{{ ticket_status_css(ticket.status) }}"
+            data-status="{{ ticket_status_css(ticket.status, ticket.is_no_ticket) }}"
           >
             <p id="ticketTimerTitle" class="clock-popover-title">Tiempo sin resolver</p>
             <p id="ticketTimerValue" class="clock-popover-value">00:00:00:00</p>
@@ -2730,13 +2904,13 @@ body.is-inline-image-resizing{
           </div>
 
           {% if previous_ticket_id %}
-            <a href="/ticketera/tickets/{{ previous_ticket_id }}" class="smallbtn ticket-nav-btn">
+            <a href="/ticketera/tickets/{{ previous_ticket_id }}{{ '?' ~ filter_qs if filter_qs else '' }}" class="smallbtn ticket-nav-btn">
               Anterior
             </a>
           {% endif %}
 
           {% if next_ticket_id %}
-            <a href="/ticketera/tickets/{{ next_ticket_id }}" class="smallbtn ticket-nav-btn">
+            <a href="/ticketera/tickets/{{ next_ticket_id }}{{ '?' ~ filter_qs if filter_qs else '' }}" class="smallbtn ticket-nav-btn">
               Siguiente
             </a>
           {% endif %}
@@ -2756,7 +2930,7 @@ body.is-inline-image-resizing{
       <div class="panel details-panel">
         <div class="panel-h">
           <h3>Detalles</h3>
-          <span class="mini">#{{ ticket.id }}</span>
+          <span class="mini">{{ ticket.id }}</span>
         </div>
         <div class="panel-b">
 
@@ -2767,7 +2941,7 @@ body.is-inline-image-resizing{
 
           <div class="kv">
             <span class="kv-k">Estado</span>
-            <span class="kv-v"><span class="badge badge-{{ ticket_status_css(ticket.status) }}">{{ ticket_status_label(ticket.status) }}</span></span>
+            <span class="kv-v"><span class="badge badge-{{ ticket_status_css(ticket.status, ticket.is_no_ticket) }}">{{ ticket_status_label(ticket.status, ticket.is_no_ticket) }}</span></span>
           </div>
 
           <div class="kv">
@@ -2795,6 +2969,16 @@ body.is-inline-image-resizing{
                 {% endfor %}
               </select>
             </form>
+            {% if not ticket.assigned_to_id and ticket.team_broadcast_at %}
+              <span class="team-broadcast-tag" title="Difundido a todo el equipo, todavia sin tomar">📢 Equipo (sin tomar)</span>
+            {% endif %}
+            {% if not ticket_locked %}
+              <form method="POST" action="/ticketera/tickets/{{ ticket.id }}/assign-team">
+                <button type="submit" class="assign-team-btn" title="Deja el ticket sin asignar y visible para todo el equipo de soporte">
+                  Asignar a todo el equipo
+                </button>
+              </form>
+            {% endif %}
           </div>
 
           {% if ticket_locked %}
@@ -2961,19 +3145,21 @@ body.is-inline-image-resizing{
                     <div class="msg-head">
                       <div class="who">
                         <span class="dot"></span>
+                        <div class="who-text">
                         {% if m.is_internal_note %}
-                          Nota interna · {{ m.sender.name if m.sender else "Agente" }}
+                          <div class="who-name">Nota interna · {{ m.sender.name if m.sender else "Agente" }}</div>
                         {% elif m.sender_type == "requester" %}
                           {% if m.sender_name %}
-                            {{ m.sender_name }}
+                            <div class="who-name">{{ m.sender_name }}</div>{% if m.sender_email %}<div class="who-email">{{ m.sender_email }}</div>{% endif %}
                           {% elif m.sender_email %}
-                            {{ m.sender_email }}
+                            <div class="who-name">{{ m.sender_email }}</div>
                           {% else %}
-                            {{ ticket.requester.display_name if ticket.requester else "Cliente" }}
+                            <div class="who-name">{{ ticket.requester.display_name if ticket.requester else "Cliente" }}</div>
                           {% endif %}
                         {% else %}
-                          {{ m.sender.name if m.sender else "Agente" }}
+                          <div class="who-name">{{ m.sender.name if m.sender else "Agente" }}</div>
                         {% endif %}
+                        </div>
                       </div>
                       <div>{{ m.created_at.strftime('%d-%m-%Y %H:%M') }}</div>
                     </div>
@@ -2994,7 +3180,7 @@ body.is-inline-image-resizing{
             <div class="composer-workbench-head">
               <div class="composer-workbench-title">
                 <div>
-                  <strong>Mesa tecnica</strong>
+                  <strong>Mesa técnica</strong>
                   <span>Respuesta al cliente</span>
                 </div>
               </div>
@@ -3002,6 +3188,18 @@ body.is-inline-image-resizing{
               <div class="composer-workbench-actions">
             {% if requires_reception and not reception_sent %}
               <form class="reception-form" method="POST" action="/ticketera/tickets/{{ ticket.id }}/send-reception">
+                <div id="receptionCcChips" class="cc-chip-box" {% if ticket_locked %}data-disabled="1"{% endif %}>
+                  <input
+                    id="receptionCcTyping"
+                    class="cc-chip-typing"
+                    type="text"
+                    placeholder="Copiar a (CC, opcional)"
+                    title="Escribe un correo y presiona Enter, coma o Tab"
+                    autocomplete="off"
+                    {% if ticket_locked %}disabled{% endif %}
+                  />
+                </div>
+                <input type="hidden" name="cc" id="receptionCcValue" value="" />
                 <button class="send reception-action" type="submit" {% if ticket_locked %}disabled{% endif %}>
                   Recepcion de solicitud
                 </button>
@@ -3015,7 +3213,7 @@ body.is-inline-image-resizing{
                     title="Agrandar o achicar zona de respuesta"
                     aria-label="Agrandar o achicar zona de respuesta"
                     aria-expanded="false"
-                    {% if ticket_locked or (requires_reception and not can_reply) %}disabled{% endif %}
+                    {% if ticket_locked %}disabled{% endif %}
                   >
                     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                       <path d="M16 11h-3V5.41l.79.8a1 1 0 0 0 1.42 0 1 1 0 0 0 0-1.42l-2.5-2.5a1 1 0 0 0-.33-.21 1 1 0 0 0-.76 0 1 1 0 0 0-.33.21l-2.5 2.5a1 1 0 0 0 1.42 1.42l.79-.8V11H8a1 1 0 0 0 0 2h3v5.59l-.79-.8a1 1 0 0 0-1.42 1.42l2.5 2.5a1 1 0 0 0 .33.21.94.94 0 0 0 .76 0 1 1 0 0 0 .33-.21l2.5-2.5a1 1 0 0 0-1.42-1.42l-.79.8V13h3a1 1 0 0 0 0-2" fill="currentColor"/>
@@ -3028,33 +3226,24 @@ body.is-inline-image-resizing{
             <form
               id="replyForm"
               method="POST"
-              action="/ticketera/tickets/{{ ticket.id }}/reply"
+              action="/ticketera/tickets/{{ ticket.id }}/{% if direct_reply_mode %}reply-direct{% else %}reply{% endif %}"
               enctype="multipart/form-data"
               data-ticket-source="{{ (ticket.source or '').strip().lower() }}"
             >
-              <button id="composeMiniHint" class="compose-mini-hint" type="button" {% if ticket_locked or (requires_reception and not can_reply) %}disabled{% endif %}>
+              <button id="composeMiniHint" class="compose-mini-hint" type="button" {% if ticket_locked %}disabled{% endif %}>
                 Respuesta minimizada. Haz clic para expandir y escribir.
               </button>
 
-              {% set priority_pending = (ticket.priority or '') not in ['low', 'medium', 'high', 'urgent'] %}
+              {% set priority_pending = false if direct_reply_mode else (ticket.priority or '') not in ['low', 'medium', 'high', 'urgent'] %}
               {% set send_error_text = (send_error or '')|lower %}
               {% set show_send_error = send_error and not ('prioridad' in send_error_text) %}
-              {% set reception_pending = (not priority_pending) and requires_reception and not can_reply %}
-              {% if priority_pending or reception_pending or show_send_error %}
+              {% if priority_pending or show_send_error %}
                 <div class="reply-alerts">
                     {% if not ticket_locked and priority_pending %}
                     <div class="workflow-alert warning">
                       <div>
                         <strong>Prioridad pendiente</strong>
                         <span>Selecciona la prioridad antes de enviar la recepcion de solicitud.</span>
-                      </div>
-                    </div>
-                  {% endif %}
-                  {% if not ticket_locked and reception_pending %}
-                    <div class="workflow-alert danger">
-                      <div>
-                        <strong>Recepcion pendiente</strong>
-                        <span>Envia la recepcion de solicitud para habilitar la respuesta al cliente.</span>
                       </div>
                     </div>
                   {% endif %}
@@ -3073,9 +3262,20 @@ body.is-inline-image-resizing{
               <div class="gmail-compose">
                 {% if (ticket.source or "").strip().lower() == "email" %}
                   <div class="gmail-head">
+                    <label class="gmail-to-row">
+                      <span>Para</span>
+                      <input
+                        type="text"
+                        name="to"
+                        id="replyToInput"
+                        value="{{ ticket.requester.email if ticket.requester and ticket.requester.email else '' }}"
+                        placeholder="destinatario@correo.cl"
+                        {% if ticket_locked %}disabled{% endif %}
+                      >
+                    </label>
                     <div class="gmail-meta-links">
-                      <button id="toggleCcBtn" class="gmail-meta-link" type="button" {% if ticket_locked or (requires_reception and not can_reply) %}disabled{% endif %}>CC</button>
-                      <button id="toggleBccBtn" class="gmail-meta-link" type="button" {% if ticket_locked or (requires_reception and not can_reply) %}disabled{% endif %}>CCO</button>
+                      <button id="toggleCcBtn" class="gmail-meta-link" type="button" {% if ticket_locked %}disabled{% endif %}>CC</button>
+                      <button id="toggleBccBtn" class="gmail-meta-link" type="button" {% if ticket_locked %}disabled{% endif %}>CCO</button>
                     </div>
                   </div>
                   <div id="recipientsPanel" class="gmail-meta-fields hidden">
@@ -3086,7 +3286,7 @@ body.is-inline-image-resizing{
                         name="cc"
                         value=""
                         placeholder="copias visibles"
-                        {% if ticket_locked or (requires_reception and not can_reply) %}disabled{% endif %}
+                        {% if ticket_locked %}disabled{% endif %}
                       >
                     </label>
                     <label id="bccFieldWrap" class="gmail-meta-field hidden">
@@ -3096,7 +3296,7 @@ body.is-inline-image-resizing{
                         name="bcc"
                         value=""
                         placeholder="copias ocultas"
-                        {% if ticket_locked or (requires_reception and not can_reply) %}disabled{% endif %}
+                        {% if ticket_locked %}disabled{% endif %}
                       >
                     </label>
                   </div>
@@ -3105,9 +3305,9 @@ body.is-inline-image-resizing{
                 <div
                   id="replyEditor"
                   class="gmail-editor"
-                  contenteditable="{% if ticket_locked or (requires_reception and not can_reply) %}false{% else %}true{% endif %}"
-                  data-placeholder="{% if ticket_locked %}Ticket finalizado. La respuesta quedo bloqueada.{% elif requires_reception and not can_reply %}Primero envia 'Recepcion de solicitud'.{% else %}Escribe una respuesta...{% endif %}"
-                >{% if not ticket_locked and not (requires_reception and not can_reply) and user_signature %}<div><br></div>{{ user_signature|safe }}{% endif %}</div>
+                  contenteditable="{% if ticket_locked %}false{% else %}true{% endif %}"
+                  data-placeholder="{% if ticket_locked %}Ticket finalizado. La respuesta quedo bloqueada.{% else %}Escribe una respuesta...{% endif %}"
+                >{% if not ticket_locked and user_signature and ticket.source == 'email' %}<div><br></div>{{ user_signature|safe }}{% endif %}</div>
                 <div id="inlineImageResizeToolbar" class="gmail-image-resize-toolbar hidden" role="toolbar" aria-label="Tamano de imagen">
                   <button type="button" class="gmail-image-size-btn" data-image-size="small">Pequena</button>
                   <button type="button" class="gmail-image-size-btn active" data-image-size="fit">Ajustar</button>
@@ -3210,7 +3410,7 @@ body.is-inline-image-resizing{
                   </div>
                   {% if (ticket.source or "").strip().lower() == "email" %}
                     <div class="gmail-toolbar-side">
-                      <button id="replyAttachBtn" class="gmail-clip-btn" type="button" title="Adjuntar archivo" aria-label="Adjuntar archivo" {% if ticket_locked or (requires_reception and not can_reply) %}disabled{% endif %}>
+                      <button id="replyAttachBtn" class="gmail-clip-btn" type="button" title="Adjuntar archivo" aria-label="Adjuntar archivo" {% if ticket_locked %}disabled{% endif %}>
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" xml:space="preserve" aria-hidden="true">
                           <path d="M16.5 32h-3A6.51 6.51 0 0 1 7 25.5v-21C7 2.019 9.019 0 11.5 0h3C16.981 0 19 2.019 19 4.5v21c0 1.378-1.121 2.5-2.5 2.5h-3a2.503 2.503 0 0 1-2.5-2.5V7h3v18h2V4.5c0-.827-.673-1.5-1.5-1.5h-3c-.827 0-1.5.673-1.5 1.5v21c0 1.93 1.57 3.5 3.5 3.5h3c1.93 0 3.5-1.57 3.5-3.5V7h3v18.5c0 3.584-2.916 6.5-6.5 6.5" style="fill:#111918"/>
                         </svg>
@@ -3221,7 +3421,7 @@ body.is-inline-image-resizing{
                         name="attachments"
                         multiple
                         class="hidden"
-                        {% if ticket_locked or (requires_reception and not can_reply) %}disabled{% endif %}
+                        {% if ticket_locked %}disabled{% endif %}
                       >
                     </div>
                   {% endif %}
@@ -3238,8 +3438,8 @@ body.is-inline-image-resizing{
               <div class="composer-row" style="margin-top:10px; margin-bottom:0;">
                 <div class="composer-left">
                 </div>
-                <div class="composer-right">
-                  <button class="send cta-reply" type="submit" {% if ticket_locked or (requires_reception and not can_reply) %}disabled{% endif %}>
+                <div class="composer-right" style="display:flex;gap:8px;align-items:center;">
+                  <button class="send cta-reply" type="submit" {% if ticket_locked %}disabled{% endif %}>
                     Enviar respuesta
                   </button>
                 </div>
@@ -3265,7 +3465,7 @@ body.is-inline-image-resizing{
               <div class="profile-sub">Cliente</div>
             </div>
           </div>
-          <button id="openRequesterModalBtn" class="tool" title="Expandir" type="button" aria-label="Ver informacion del cliente">
+          <button id="openRequesterModalBtn" class="tool" title="Expandir" type="button" aria-label="Ver información del cliente">
             <span id="internalNotesUnreadBadge" class="internal-notes-unread-badge {% if not unseen_total_count %}empty{% endif %}">{{ unseen_total_count if unseen_total_count is not none else 0 }}</span>
             <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke="currentColor" width="16" height="16" aria-hidden="true">
               <path d="M8 3H3v5"></path>
@@ -3277,7 +3477,7 @@ body.is-inline-image-resizing{
         </div>
         <div class="panel-b">
           <div class="req-kv req-kv-email">
-            <div class="k">Correo electronico</div>
+            <div class="k">Correo electrónico</div>
             <div class="v">{{ ticket.requester.email if ticket.requester.email else "-" }}</div>
           </div>
 
@@ -3322,7 +3522,7 @@ body.is-inline-image-resizing{
     <div class="flash-error">{{ service_error }}</div>
     {% endif %}
     {% if ticket_locked %}
-    <div class="action-lock-hint">Este ticket esta finalizado. La edicion quedo bloqueada para conservar el cierre.</div>
+    <div class="action-lock-hint">Este ticket está finalizado. La edición quedó bloqueada para conservar el cierre.</div>
     {% endif %}
 
     {% if not ticket.is_deleted %}
@@ -3334,6 +3534,32 @@ body.is-inline-image-resizing{
     >
       Derivar Ticket
     </button>
+    <button
+      id="openAdminDerivModalBtn"
+      type="button"
+      class="action-btn action-neutral cta-moderation"
+      title="Reenviar el correo original de este ticket a uno o mas correos, sin crear una incidencia"
+      {% if ticket_locked %}disabled{% endif %}
+    >
+      Reenviar
+    </button>
+    {% endif %}
+
+    <!-- NO ES UN TICKET -->
+    {% if not ticket.is_deleted and not ticket.is_spam and not ticket_locked %}
+    {% if direct_reply_mode %}
+    <form method="POST" action="/ticketera/tickets/{{ ticket.id }}/restore-no-ticket">
+      <button type="submit" class="action-btn action-success cta-moderation">
+        Volver a modo normal
+      </button>
+    </form>
+    {% else %}
+    <form method="POST" action="/ticketera/tickets/{{ ticket.id }}/no-ticket">
+      <button type="submit" class="action-btn action-neutral cta-moderation">
+        No es un ticket
+      </button>
+    </form>
+    {% endif %}
     {% endif %}
 
     <!-- SPAM -->
@@ -3370,9 +3596,10 @@ body.is-inline-image-resizing{
     </form>
     {% endif %}
 
-    <div style="height:1px; background:var(--border); margin:2px 0;"></div>
+    {% if not direct_reply_mode %}
+    <div id="ntSeparator" style="height:1px; background:var(--border); margin:2px 0;"></div>
 
-    <form method="POST" action="/ticketera/tickets/{{ ticket.id }}/quick-actions">
+    <form id="quickActionsForm" method="POST" action="/ticketera/tickets/{{ ticket.id }}/quick-actions">
       <div class="field" style="margin:0 0 12px;">
         <label>Estado</label>
         <select name="status" {% if ticket_locked %}disabled{% endif %}>
@@ -3401,6 +3628,7 @@ body.is-inline-image-resizing{
 
       <button class="send cta-save" style="margin-top:10px;" type="submit" {% if ticket_locked %}disabled{% endif %}>Guardar cambios</button>
     </form>
+    {% endif %}
 
   </div>
 </div>
@@ -3414,7 +3642,7 @@ body.is-inline-image-resizing{
   <div class="requester-modal-card">
     <div class="requester-modal-head">
       <h3>Informacion del cliente</h3>
-      <button id="closeRequesterModalBtn" class="tool" type="button" aria-label="Cerrar informacion">&times;</button>
+      <button id="closeRequesterModalBtn" class="tool" type="button" aria-label="Cerrar información">&times;</button>
     </div>
     <div class="requester-modal-body">
       <div class="requester-info-grid">
@@ -3522,7 +3750,7 @@ body.is-inline-image-resizing{
             {% if requester_info.tickets %}
               {% for rt in requester_info.tickets %}
                 <div class="hist-item">
-                  <p class="hist-title">#{{ rt.id }} - {{ rt.subject }}</p>
+                  <p class="hist-title">{{ rt.id }} - {{ rt.subject }}</p>
                   <div class="hist-meta">
                     <span>
                       {% if rt.created_at %}
@@ -3540,6 +3768,21 @@ body.is-inline-image-resizing{
             {% endif %}
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="ticketAvisoModal" class="requester-modal" aria-hidden="true">
+  <div class="requester-modal-card" style="width:min(420px, 92vw);">
+    <div class="requester-modal-head">
+      <h3 id="ticketAvisoTitulo">Aviso</h3>
+      <button id="closeTicketAvisoModalBtn" class="tool" type="button" aria-label="Cerrar">&times;</button>
+    </div>
+    <div class="requester-modal-body">
+      <p id="ticketAvisoMensaje" style="margin:0;font-size:14px;line-height:1.5;color:var(--fg,#1f2937);"></p>
+      <div style="display:flex;justify-content:flex-end;">
+        <button type="button" id="ticketAvisoAceptarBtn" class="send cta-save">Aceptar</button>
       </div>
     </div>
   </div>
@@ -3616,6 +3859,47 @@ body.is-inline-image-resizing{
           <button id="cancelServiceModalBtn" type="button" class="service-cancel">Cancelar</button>
           <button type="submit" class="action-btn action-service cta-moderation" style="width:auto; min-width:220px;">
             Derivar Ticket
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div id="adminDerivModal" class="requester-modal" aria-hidden="true">
+  <div class="requester-modal-card service-modal-card">
+    <div class="requester-modal-head">
+      <h3>Reenviar</h3>
+      <button id="closeAdminDerivModalBtn" class="tool" type="button" aria-label="Cerrar reenviar">&times;</button>
+    </div>
+    <div class="service-modal-body">
+      <form method="POST" action="/ticketera/tickets/{{ ticket.id }}/derivacion-administrativa">
+        <div class="service-grid">
+          <div class="field service-full">
+            <label>Correos de destino</label>
+            <input
+              class="input"
+              name="emails"
+              type="text"
+              placeholder="correo1@empresa.cl, correo2@empresa.cl"
+              required
+            >
+          </div>
+          <div class="field service-full">
+            <label>Nota (opcional)</label>
+            <textarea
+              class="textarea"
+              name="mensaje"
+              style="min-height:80px;"
+              placeholder="Comentario que se agrega antes del correo reenviado (opcional)"
+            ></textarea>
+          </div>
+        </div>
+        <p class="admin-deriv-hint">Reenvía el correo original recibido en este ticket a los correos indicados (como "Reenviar"), sin crear una incidencia (ODT).</p>
+        <div class="service-modal-actions">
+          <button id="cancelAdminDerivModalBtn" type="button" class="service-cancel">Cancelar</button>
+          <button type="submit" class="action-btn action-neutral cta-moderation" style="width:auto; min-width:220px;">
+            Enviar derivación
           </button>
         </div>
       </form>
@@ -3797,6 +4081,17 @@ body.is-inline-image-resizing{
         shadow.innerHTML = messageShadowStyles + template.innerHTML;
         shadow.querySelectorAll("script, link[rel='stylesheet'], meta, title, head").forEach((node) => node.remove());
         shadow.querySelectorAll("img").forEach((img) => {
+          const rawSrc = (img.getAttribute("src") || "").trim();
+          const marcarNoDisponible = () => {
+            const aviso = document.createElement("span");
+            aviso.textContent = "Imagen no disponible";
+            aviso.style.cssText = "display:inline-block;font-size:11px;color:#94a3b8;border:1px dashed #cbd5e1;border-radius:6px;padding:2px 8px;margin:2px 0;";
+            img.replaceWith(aviso);
+          };
+          // cid: sin resolver (el correo no trajo el adjunto): aviso en vez de ícono roto.
+          if (!rawSrc || rawSrc.startsWith("cid:")) { marcarNoDisponible(); return; }
+          // El navegador SÍ intenta cargarla; solo si falla se muestra el aviso.
+          img.addEventListener("error", marcarNoDisponible, { once: true });
           img.style.maxWidth = "100%";
           img.style.height = "auto";
           img.style.cursor = "zoom-in";
@@ -4013,7 +4308,7 @@ body.is-inline-image-resizing{
         anchor.className = "ticket-alert-item" + (alert.unread ? " unread" : "");
         anchor.innerHTML = `
           <div class="ticket-alert-line">
-            <p class="ticket-alert-ticket">#${escapeAlertHtml(alert.ticket_id)}</p>
+            <p class="ticket-alert-ticket">${escapeAlertHtml(alert.ticket_id)}</p>
             <p class="ticket-alert-status">${escapeAlertHtml(alert.status || "open")}</p>
           </div>
           <p class="ticket-alert-subject">${escapeAlertHtml(alert.subject || "Sin asunto")}</p>
@@ -4140,8 +4435,25 @@ body.is-inline-image-resizing{
     if (timerBtn && timerPopover && timerValue && timerTitle) {
       let timerInterval = null;
 
-      const createdMs = Number(timerPopover.dataset.createdMs || "0");
-      const resolvedMs = Number(timerPopover.dataset.resolvedMs || "0");
+      function parseLocalDateTimeMs(value) {
+        const raw = String(value || "").trim();
+        const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/);
+        if (!match) return 0;
+        const date = new Date(
+          Number(match[1]),
+          Number(match[2]) - 1,
+          Number(match[3]),
+          Number(match[4]),
+          Number(match[5]),
+          Number(match[6] || 0),
+          0
+        );
+        const ms = date.getTime();
+        return Number.isFinite(ms) ? ms : 0;
+      }
+
+      const createdMs = parseLocalDateTimeMs(timerPopover.dataset.createdLocal) || Number(timerPopover.dataset.createdMs || "0");
+      const resolvedMs = parseLocalDateTimeMs(timerPopover.dataset.resolvedLocal) || Number(timerPopover.dataset.resolvedMs || "0");
       const status = (timerPopover.dataset.status || "").toLowerCase();
       const isResolved = ["resolved", "resolved_service", "resolved_client", "closed"].includes(status) && resolvedMs > 0;
 
@@ -4273,6 +4585,72 @@ body.is-inline-image-resizing{
         editorButtons.forEach((button) => {
           button.setAttribute("disabled", "disabled");
         });
+      }
+
+      // ── Borrador (como Gmail): si escribes algo y sales del ticket sin
+      // enviar, queda guardado y aparece en "Borradores" en la ticketera —
+      // pedido explicito, jul 2026.
+      if (!isEditorDisabled) {
+        const draftKey = "atc_ticket_draft_{{ ticket.id }}";
+        const draftSubject = {{ (ticket.subject or "Sin asunto")|tojson }};
+        const draftRequester = {{ (ticket.requester.display_name if ticket.requester else "Cliente")|tojson }};
+        let draftSaveTimer = null;
+
+        function draftPlainText() {
+          // textContent (no innerText): el compose arranca colapsado
+          // (display:none) y innerText devuelve "" para elementos no
+          // renderizados, asi que el snapshot inicial con firma quedaba
+          // vacio y al expandir el compose (sin escribir nada) el texto
+          // "aparecia" y se guardaba como borrador falso -- jul 2026.
+          return String(replyEditor.textContent || "").replace(/ /g, " ").trim();
+        }
+
+        // Estado inicial (ej. firma auto-insertada) para no confundir "no
+        // escribio nada" con un borrador real.
+        const pristinePlainText = draftPlainText();
+
+        function saveDraftNow() {
+          const plain = draftPlainText();
+          if (!plain || plain === pristinePlainText) {
+            localStorage.removeItem(draftKey);
+            return;
+          }
+          const snippet = plain.length > 120 ? `${plain.slice(0, 120)}…` : plain;
+          try {
+            localStorage.setItem(draftKey, JSON.stringify({
+              ticketId: {{ ticket.id }},
+              subject: draftSubject,
+              requester: draftRequester,
+              html: replyEditor.innerHTML || "",
+              snippet,
+              savedAt: Date.now(),
+            }));
+          } catch (_err) {
+            // localStorage lleno o bloqueado: no rompe el flujo de respuesta normal.
+          }
+        }
+
+        function scheduleDraftSave() {
+          if (draftSaveTimer) clearTimeout(draftSaveTimer);
+          draftSaveTimer = setTimeout(saveDraftNow, 600);
+        }
+
+        (function restoreDraft() {
+          try {
+            const raw = localStorage.getItem(draftKey);
+            if (!raw) return;
+            const draft = JSON.parse(raw);
+            if (draft && draft.html) {
+              replyEditor.innerHTML = draft.html;
+            }
+          } catch (_err) {
+            localStorage.removeItem(draftKey);
+          }
+        })();
+
+        replyEditor.addEventListener("input", scheduleDraftSave);
+        window.addEventListener("pagehide", saveDraftNow);
+        window.addEventListener("beforeunload", saveDraftNow);
       }
 
       function formatBytes(size) {
@@ -4980,6 +5358,7 @@ body.is-inline-image-resizing{
 
       replyForm.addEventListener("submit", () => {
         replyContent.value = normalizeEditorHtml();
+        localStorage.removeItem("atc_ticket_draft_{{ ticket.id }}");
       });
 
       decorateInlineImages(replyEditor);
@@ -5377,6 +5756,32 @@ body.is-inline-image-resizing{
 
 <script>
   (function () {
+    const modal = document.getElementById("adminDerivModal");
+    const openBtn = document.getElementById("openAdminDerivModalBtn");
+    const closeBtn = document.getElementById("closeAdminDerivModalBtn");
+    const cancelBtn = document.getElementById("cancelAdminDerivModalBtn");
+    if (!modal || !openBtn) return;
+
+    function openModal() {
+      modal.classList.add("open");
+      modal.setAttribute("aria-hidden", "false");
+    }
+    function closeModal() {
+      modal.classList.remove("open");
+      modal.setAttribute("aria-hidden", "true");
+    }
+
+    openBtn.addEventListener("click", openModal);
+    if (closeBtn) closeBtn.addEventListener("click", closeModal);
+    if (cancelBtn) cancelBtn.addEventListener("click", closeModal);
+    modal.addEventListener("click", (event) => {
+      if (event.target === modal) closeModal();
+    });
+  })();
+</script>
+
+<script>
+  (function () {
     const stack = document.getElementById("liveAlertStack");
     if (!stack) return;
 
@@ -5548,6 +5953,153 @@ body.is-inline-image-resizing{
   })();
 </script>
 
+<script>
+  // Campo CC de "Recepcion de solicitud": entrada de correos como chips,
+  // igual que Gmail (escribe y presiona Enter, coma, Tab o pega una lista).
+  (function () {
+    const box = document.getElementById("receptionCcChips");
+    const typing = document.getElementById("receptionCcTyping");
+    const hidden = document.getElementById("receptionCcValue");
+    if (!box || !typing || !hidden) return;
+    if (box.dataset.disabled === "1") return;
+
+    const emails = [];
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    function sync() {
+      hidden.value = emails.join(", ");
+    }
+
+    function renderChip(addr) {
+      const valido = EMAIL_RE.test(addr);
+      const chip = document.createElement("span");
+      chip.className = "cc-chip" + (valido ? "" : " invalid");
+      chip.title = valido ? addr : `"${addr}" no parece un correo valido`;
+
+      const label = document.createElement("span");
+      label.textContent = addr;
+      chip.appendChild(label);
+
+      const removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.className = "cc-chip-remove";
+      removeBtn.setAttribute("aria-label", `Quitar ${addr}`);
+      removeBtn.textContent = "×";
+      removeBtn.addEventListener("click", () => {
+        const idx = emails.indexOf(addr);
+        if (idx !== -1) emails.splice(idx, 1);
+        chip.remove();
+        sync();
+      });
+      chip.appendChild(removeBtn);
+      box.insertBefore(chip, typing);
+    }
+
+    function addAddress(raw) {
+      const addr = raw.trim().replace(/[,;]+$/, "");
+      if (!addr) return;
+      if (emails.includes(addr)) return;
+      emails.push(addr);
+      renderChip(addr);
+      sync();
+    }
+
+    function addFromText(text) {
+      String(text || "")
+        .split(/[,;\n]+/)
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .forEach(addAddress);
+    }
+
+    typing.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === "," || event.key === ";" || event.key === "Tab") {
+        if (!typing.value.trim()) return;
+        event.preventDefault();
+        addFromText(typing.value);
+        typing.value = "";
+      } else if (event.key === "Backspace" && !typing.value && emails.length) {
+        emails.pop();
+        const chips = box.querySelectorAll(".cc-chip");
+        if (chips.length) chips[chips.length - 1].remove();
+        sync();
+      }
+    });
+
+    typing.addEventListener("blur", () => {
+      if (typing.value.trim()) {
+        addFromText(typing.value);
+        typing.value = "";
+      }
+    });
+
+    typing.addEventListener("paste", (event) => {
+      const pasted = (event.clipboardData || window.clipboardData).getData("text");
+      if (pasted && /[,;\n]/.test(pasted)) {
+        event.preventDefault();
+        addFromText(pasted);
+        typing.value = "";
+      }
+    });
+
+    box.addEventListener("click", (event) => {
+      if (event.target === box) typing.focus();
+    });
+  })();
+</script>
+
+<script>
+  // Aviso corporativo reutilizable (reemplaza al alert() nativo del navegador
+  // por un popup con el mismo estilo que el resto de los modales del ticket).
+  function mostrarAvisoTicket(mensaje, titulo) {
+    const modal = document.getElementById("ticketAvisoModal");
+    if (!modal) { alert(mensaje); return; }
+    document.getElementById("ticketAvisoTitulo").textContent = titulo || "Aviso";
+    document.getElementById("ticketAvisoMensaje").textContent = mensaje;
+    modal.classList.add("open");
+    modal.setAttribute("aria-hidden", "false");
+  }
+  (function () {
+    const modal = document.getElementById("ticketAvisoModal");
+    if (!modal) return;
+    function cerrar() {
+      modal.classList.remove("open");
+      modal.setAttribute("aria-hidden", "true");
+    }
+    document.getElementById("ticketAvisoAceptarBtn")?.addEventListener("click", cerrar);
+    document.getElementById("closeTicketAvisoModalBtn")?.addEventListener("click", cerrar);
+    modal.addEventListener("click", (event) => { if (event.target === modal) cerrar(); });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && modal.classList.contains("open")) cerrar();
+    });
+  })();
+</script>
+
+<script>
+  // No se puede marcar un ticket como Resuelto (cualquier variante) sin
+  // haber enviado antes una respuesta al cliente por "Mesa tecnica" — el
+  // registro de "que se hizo" es esa misma respuesta, no una nota aparte.
+  (function () {
+    const form = document.getElementById("quickActionsForm");
+    if (!form) return;
+    const statusSelect = form.querySelector('select[name="status"]');
+    if (!statusSelect) return;
+
+    const RESOLVED_VALUES = ["resolved", "resolved_service", "resolved_client"];
+    const HAS_AGENT_REPLY = {{ has_agent_reply|tojson }};
+
+    form.addEventListener("submit", (event) => {
+      if (RESOLVED_VALUES.includes(statusSelect.value) && !HAS_AGENT_REPLY) {
+        event.preventDefault();
+        mostrarAvisoTicket(
+          "Debes enviar una respuesta por Mesa técnica antes de marcar este ticket como resuelto.",
+          "No se puede resolver"
+        );
+      }
+    });
+  })();
+</script>
+
+<script src="/static/atc-volver.js"></script>
 </body>
 </html>
-

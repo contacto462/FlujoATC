@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{{ titulo }}</title>
+  <style>
+    :root {
+      --navy: #0b1424;
+      --navy-2: #1e3a5f;
+      --border: #d8e0ea;
+      --bg: #eef3f8;
+      --surface: #fff;
+      --text: #111827;
+      --muted: #64748b;
+      --ok: #166534;
+      --warn: #9a3412;
+      --bad: #991b1b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 12px;
+    }
+    .page-head {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 22px;
+      background: linear-gradient(135deg, var(--navy), #14243a);
+      color: #fff;
+      box-shadow: 0 4px 18px rgba(15, 23, 42, .18);
+    }
+    .page-head img { width: 68px; height: 42px; object-fit: contain; }
+    .page-head h1 { margin: 0; font-size: 18px; line-height: 1.2; }
+    .page-head p { margin: 3px 0 0; color: rgba(255,255,255,.7); font-size: 12px; }
+    .content { padding: 18px 22px 28px; }
+    .tabs {
+      position: sticky;
+      top: 74px;
+      z-index: 20;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 0 0 12px;
+      background: var(--bg);
+    }
+    .tab-btn {
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      color: #334155;
+      border-radius: 999px;
+      padding: 7px 12px;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .tab-btn.active { background: var(--navy-2); border-color: var(--navy-2); color: #fff; }
+    .section { display: none; }
+    .section.active { display: block; }
+    .section-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, .08);
+    }
+    .section-title {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      background: #f8fafc;
+    }
+    .section-title h2 { margin: 0; font-size: 14px; }
+    .section-title span { color: var(--muted); font-size: 11px; font-weight: 700; }
+    .table-scroll { overflow: auto; max-height: calc(100vh - 184px); }
+    table { border-collapse: separate; border-spacing: 0; min-width: max-content; width: 100%; }
+    th, td {
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 7px 8px;
+      vertical-align: top;
+      background: #fff;
+      white-space: pre-line;
+    }
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: var(--navy-2);
+      color: #fff;
+      font-size: 11px;
+      text-align: left;
+      white-space: nowrap;
+    }
+    tr:last-child td { border-bottom: 0; }
+    td:last-child, th:last-child { border-right: 0; }
+    .num { text-align: center; font-weight: 800; }
+    .muted { color: var(--muted); }
+    .ok { color: var(--ok); font-weight: 800; }
+    .warn { color: var(--warn); font-weight: 800; }
+    .bad { color: var(--bad); font-weight: 800; }
+    .tag-permiso {
+      display: inline-block;
+      background: var(--warn);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .02em;
+      text-transform: uppercase;
+      padding: 1px 7px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .cell-ok { background: #f0fdf4; }
+    .cell-warn { background: #fff7ed; }
+    .cell-bad { background: #fef2f2; }
+    .recinto { min-width: 220px; font-weight: 800; background: #f8fafc; }
+    .empty { padding: 28px; color: var(--muted); text-align: center; font-weight: 700; }
+    @media print {
+      .tabs { display: none; }
+      .section { display: block; break-after: page; }
+      .table-scroll { max-height: none; overflow: visible; }
+      .page-head { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <header class="page-head">
+    <img src="/shared-static/img/logo-atc.png" alt="ATC">
+    <div>
+      <h1>{{ titulo }}</h1>
+      <p>{{ periodo }}</p>
+    </div>
+  </header>
+  <main class="content">
+    {% if sections|length > 1 %}
+    <nav class="tabs">
+      {% for section in sections %}
+      <button class="tab-btn {% if loop.first %}active{% endif %}" type="button" data-tab="{{ loop.index0 }}">{{ section.title }}</button>
+      {% endfor %}
+    </nav>
+    {% endif %}
+
+    {% for section in sections %}
+    <section class="section {% if loop.first %}active{% endif %}" data-section="{{ loop.index0 }}">
+      <div class="section-card">
+        <div class="section-title">
+          <h2>{{ section.title }}</h2>
+          <span>{{ section.subtitle }}</span>
+        </div>
+        {% if section.rows %}
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                {% for header in section.headers %}
+                <th>{{ header }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in section.rows %}
+              <tr>
+                {% for cell in row %}
+                <td class="{{ cell.css|default('') }}">{% if cell.safe %}{{ cell.value|safe }}{% else %}{{ cell.value }}{% endif %}</td>
+                {% endfor %}
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty">Sin datos para este período.</div>
+        {% endif %}
+      </div>
+    </section>
+    {% endfor %}
+  </main>
+  <script>
+    document.querySelectorAll(".tab-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const tab = btn.dataset.tab;
+        document.querySelectorAll(".tab-btn").forEach((item) => item.classList.toggle("active", item === btn));
+        document.querySelectorAll(".section").forEach((section) => section.classList.toggle("active", section.dataset.section === tab));
+      });
+    });
+  </script>
+</body>
+</html>

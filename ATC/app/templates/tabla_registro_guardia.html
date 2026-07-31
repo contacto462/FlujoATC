@@ -1,0 +1,1104 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Registro de Guardias — {{ month_name }} {{ year }}</title>
+  <link rel="stylesheet" href="/static/base.css">
+  <link rel="stylesheet" href="/static/guardias-informe-preview.css">
+<style>
+:root{
+  --bg:#f7f8fa;
+  --surface:#fff;
+  --border:#e5e7eb;
+  --border-strong:#d1d5db;
+  --text:#111827;
+  --text-soft:#4b5563;
+  --muted:#6b7280;
+  --header-bg-from:#0b1424;
+  --header-bg-to:#111c2f;
+  --recinto-bg:#f3f4f6;
+  --recinto-w:230px;
+  --cell-w:110px;
+  --weekend-bg:#fdf8f4;
+  --today-border:#16a34a;
+  --shadow-sm:0 1px 2px rgba(15,23,42,.04);
+  --shadow-md:0 1px 3px rgba(15,23,42,.06),0 1px 2px rgba(15,23,42,.04);
+
+  --dia-bg:#e8eef6;      --dia-text:#2c4a72;
+  --noche-bg:#ece9f4;    --noche-text:#3e2f68;
+  --extra-bg:#f5f0e0;    --extra-text:#5c4516;
+  --contrato-bg:#e4f0e8; --contrato-text:#1e4430;
+  --parttime-bg:#f2e8ef; --parttime-text:#5c2e4a;
+  --normal-bg:#e8eef6;   --normal-text:#2c4a72;
+
+  --ok-bg:#eaf4ec;       --ok-border:#a3c9a8;     --ok-text:#1e4430;
+  --solo-qr-bg:#e8eef6;  --solo-qr-border:#9ab0cc;--solo-qr-text:#2c4a72;
+  --solo-sv-bg:#f5f0e0;  --solo-sv-border:#c8b87a;--solo-sv-text:#5c4516;
+  --mis-bg:#f4e8e8;      --mis-border:#c9a3a3;    --mis-text:#5c2020;
+
+  --alert-bg:#fffbeb;    --alert-border:#f59e0b;  --alert-text:#92400e;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;font-family:"Inter",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+body{background:var(--bg);color:var(--text);font-size:13px;font-weight:500;display:flex;flex-direction:column;height:100vh}
+
+/* ── HERO / TOPBAR ─────────────────────────────── */
+.hero{
+  flex-shrink:0;
+  display:flex;align-items:center;gap:20px;
+  padding:18px 28px;
+  background:linear-gradient(180deg,var(--header-bg-from) 0%,var(--header-bg-to) 100%);
+  border-bottom:1px solid rgba(255,255,255,.06);
+  box-shadow:0 2px 8px rgba(0,0,0,.28);
+}
+.hero-logo img{height:54px;width:auto;display:block;object-fit:contain;filter:drop-shadow(0 2px 6px rgba(0,0,0,.3))}
+.hero-copy{flex:1;min-width:0}
+.hero-copy h1{font-size:19px;font-weight:700;letter-spacing:-.02em;color:#fff;line-height:1.2}
+.hero-copy p{margin-top:4px;font-size:12.5px;color:rgba(255,255,255,.6);line-height:1.4}
+.hero-actions{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end;row-gap:8px}
+.btn-hero{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 14px;border-radius:8px;font-size:12.5px;font-weight:600;
+  text-decoration:none;cursor:pointer;
+  border:1px solid rgba(255,255,255,.16);
+  background:rgba(255,255,255,.07);color:rgba(255,255,255,.9);
+  transition:background .15s,border-color .15s;white-space:nowrap;
+}
+.btn-hero:hover{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.24)}
+.btn-hero.primary{background:#1d4ed8;border-color:#1d4ed8;color:#fff}
+.btn-hero.primary:hover{background:#1e40af}
+.month-nav{display:flex;align-items:center;gap:6px}
+.month-label{font-size:14px;font-weight:700;color:#fff;min-width:140px;text-align:center}
+
+/* ── TOOLBAR (toggle + leyenda) ─────────────────── */
+.toolbar{
+  flex-shrink:0;
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  padding:10px 28px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  box-shadow:var(--shadow-sm);
+}
+.view-toggle{display:flex;background:#f1f5f9;border-radius:8px;padding:3px;gap:2px}
+.vtab{
+  padding:5px 14px;border-radius:6px;border:none;
+  font-size:12.5px;font-weight:600;cursor:pointer;
+  background:transparent;color:var(--muted);transition:all .15s;
+}
+.vtab.active{background:#fff;color:var(--text);box-shadow:var(--shadow-sm)}
+.legend{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1}
+.chip{
+  display:inline-flex;align-items:center;
+  font-size:11px;font-weight:700;padding:3px 9px;border-radius:5px;
+}
+.chip-dia{background:var(--dia-bg);color:var(--dia-text)}
+.chip-noche{background:var(--noche-bg);color:var(--noche-text)}
+.chip-extra{background:var(--extra-bg);color:var(--extra-text)}
+.chip-contrato-diario{background:var(--contrato-bg);color:var(--contrato-text)}
+.badge{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11px;font-weight:700;padding:3px 9px;border-radius:5px;border:1px solid;
+}
+.badge-ok{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok-text)}
+.badge-solo-qr{background:var(--solo-qr-bg);border-color:var(--solo-qr-border);color:var(--solo-qr-text)}
+.badge-solo-sv{background:var(--solo-sv-bg);border-color:var(--solo-sv-border);color:var(--solo-sv-text)}
+.badge-mismatch{background:var(--mis-bg);border-color:var(--mis-border);color:var(--mis-text)}
+.legend-note{font-size:11px;color:var(--muted);margin-left:auto;white-space:nowrap}
+
+/* ── RESUMEN DE ALERTAS (toolbar) ────────────────── */
+.alert-chips{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.alert-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11px;font-weight:700;padding:3px 9px;border-radius:5px;border:1px solid;
+  cursor:default;font-family:inherit;
+}
+button.alert-chip{cursor:pointer;transition:filter .15s}
+button.alert-chip:hover{filter:brightness(0.96)}
+.chip-inasistencia{background:#fdf2f2;border-color:#fca5a5;color:#991b1b}
+.chip-discrepancia{background:#fdf6ed;border-color:#d97706;color:#92400e}
+.chip-conflicto   {background:#eff4ff;border-color:#93c5fd;color:#1e3a8a}
+.chip-jornada     {background:#fffbeb;border-color:#fcd34d;color:#92400e}
+.chip-dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+.notif-panel-body{display:none}
+.notif-panel-body.open{display:block}
+.notif-panel-caret{display:inline-block;transform:rotate(0deg)}
+.notif-panel-caret.open{transform:rotate(90deg)}
+
+/* ── POPUP DE CELDA ──────────────────────────────── */
+.cell-popup-overlay{
+  display:none;position:fixed;inset:0;z-index:100;
+}
+.cell-popup-overlay.open{display:block}
+.cell-popup{
+  position:fixed;z-index:101;
+  width:360px;max-width:calc(100vw - 32px);
+  background:#fff;border:1px solid var(--border);border-radius:8px;
+  box-shadow:0 4px 6px rgba(15,23,42,.06),0 12px 28px rgba(15,23,42,.12);
+  overflow:hidden;
+  font-size:12.5px;
+}
+.popup-header{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:8px;
+  padding:12px 14px 10px;
+  border-bottom:1px solid var(--border);
+  background:var(--recinto-bg);
+}
+.popup-recinto{font-size:12px;font-weight:700;color:var(--text);line-height:1.3;flex:1}
+.popup-fecha{font-size:11px;font-weight:600;color:var(--muted);margin-top:2px}
+.popup-close{
+  border:none;background:none;cursor:pointer;
+  color:var(--muted);font-size:16px;line-height:1;
+  padding:0 2px;flex-shrink:0;margin-top:-1px;
+}
+.popup-close:hover{color:var(--text)}
+.popup-body{padding:10px 14px;display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto}
+.popup-section-label{
+  font-size:8.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
+  padding:1px 5px;border-radius:2px;margin-bottom:3px;display:inline-block;
+}
+.popup-label-qr {background:#e8eef6;color:#1e3a5f}
+.popup-label-sv {background:#f0ece0;color:#4a3a18}
+.popup-row{font-size:12px;font-weight:600;color:var(--text);padding:1px 0}
+.popup-row-muted{font-size:11px;color:var(--muted);font-weight:400;margin-left:4px}
+.popup-divider{height:1px;background:var(--border);margin:2px 0}
+.popup-alert{
+  border-left:3px solid;padding:5px 8px;border-radius:0 4px 4px 0;
+}
+.popup-alert-label{
+  font-size:8.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
+  display:block;margin-bottom:2px;
+}
+.popup-alert-detail{font-size:11px;font-weight:500;line-height:1.4;display:block}
+.alert-inasistencia{background:#fdf2f2;border-color:#b91c1c}
+.alert-inasistencia .popup-alert-label{color:#991b1b}
+.alert-inasistencia .popup-alert-detail{color:#7f1d1d}
+.alert-discrepancia{background:#fdf6ed;border-color:#b45309}
+.alert-discrepancia .popup-alert-label{color:#92400e}
+.alert-discrepancia .popup-alert-detail{color:#78350f}
+
+/* ── TABLE WRAPPER ───────────────────────────────── */
+.table-wrap{flex:1;overflow:auto;padding:16px 28px 32px}
+.view-section{display:none}.view-section.active{display:block}
+
+table{
+  border-collapse:separate;border-spacing:0;
+  background:var(--surface);
+  border:1px solid var(--border);border-radius:10px;
+  min-width:max-content;
+  box-shadow:var(--shadow-md);
+}
+
+/* ── THEAD ───────────────────────────────────────── */
+thead tr:first-child th{
+  position:sticky;top:0;z-index:20;
+  background:linear-gradient(180deg,var(--header-bg-from),var(--header-bg-to));
+  color:rgba(255,255,255,.9);font-weight:700;font-size:11.5px;
+  padding:9px 7px;text-align:center;
+  border-bottom:1px solid rgba(255,255,255,.08);white-space:nowrap;
+  border-right:none;
+}
+thead tr:last-child th{
+  position:sticky;top:33px;z-index:20;
+  background:#1a2540;color:rgba(255,255,255,.55);
+  font-size:10px;font-weight:600;text-align:center;
+  padding:4px;border-bottom:2px solid var(--border);
+}
+thead th.col-recinto{
+  position:sticky;left:0;z-index:30;
+  background:linear-gradient(180deg,var(--header-bg-from),var(--header-bg-to));
+  text-align:left;
+  min-width:var(--recinto-w);padding:9px 16px;font-size:12px;
+}
+thead tr:last-child th.col-recinto{
+  position:sticky;left:0;top:33px;z-index:30;
+  background:#1a2540;text-align:left;padding:4px 16px;
+  font-size:10px;color:rgba(255,255,255,.45);
+}
+thead th.today-col{
+  background:#14532d;
+  border-left:2px solid var(--today-border);
+  border-right:2px solid var(--today-border);
+}
+thead tr:first-child th.today-col{border-left:none;border-right:none}
+thead tr:last-child th.today-col{background:#166534;box-shadow:0 2px 0 rgba(0,0,0,.08)}
+thead tr:last-child th{box-shadow:0 2px 4px rgba(0,0,0,.12)}
+
+/* band-alt: fila de nombre de día más clara */
+thead tr:last-child th.band-alt:not(.today-col){background:#223050}
+
+/* ── TBODY ───────────────────────────────────────── */
+tbody tr:hover td{background:#f8fafc}
+td{
+  padding:4px 5px;
+  border-bottom:1px solid var(--border);
+  border-right:1px solid var(--border);
+  vertical-align:top;min-width:var(--cell-w);white-space:nowrap;
+  background:var(--surface);
+}
+td:last-child{border-right:0}
+tbody tr:last-child td{border-bottom:0}
+td.col-recinto{
+  position:sticky;left:0;z-index:1;
+  background:var(--recinto-bg);
+  min-width:var(--recinto-w);max-width:var(--recinto-w);
+  font-size:12px;font-weight:600;
+  padding:7px 16px;line-height:1.3;
+  border-right:2px solid var(--border);white-space:normal;
+  color:var(--text-soft);
+}
+tbody tr:hover td.col-recinto{background:#eaecf0}
+td.weekend{background:#fdf8f4}
+tbody tr:hover td.weekend{background:#faf0e8}
+
+/* ── QR ENTRY CHIPS ──────────────────────────────── */
+.entries{display:flex;flex-direction:column;gap:3px}
+.entry{
+  border-radius:5px;padding:2px 6px;
+  font-size:11px;font-weight:700;line-height:1.4;
+}
+.entry-dia{background:var(--dia-bg);color:var(--dia-text)}
+.entry-noche{background:var(--noche-bg);color:var(--noche-text)}
+.entry-extra{background:var(--extra-bg);color:var(--extra-text)}
+.entry-contrato-diario{background:var(--contrato-bg);color:var(--contrato-text)}
+.entry-normal{background:var(--normal-bg);color:var(--normal-text)}
+.entry .hora{font-weight:400;font-size:10px;opacity:.65;margin-left:3px}
+.entry{position:relative}
+.entry .entry-tools{display:none;margin-left:auto;gap:2px;flex:0 0 auto}
+.entry:hover .entry-tools{display:inline-flex}
+.tool-btn{
+  background:none;border:none;cursor:pointer;font-size:10.5px;color:inherit;
+  opacity:.55;padding:0 2px;line-height:1;
+}
+.tool-btn:hover{opacity:1}
+.cell-add-btn{
+  display:block;width:100%;text-align:center;font-size:15px;line-height:1;
+  color:rgba(0,0,0,.14);background:none;border:none;cursor:pointer;padding:2px 0;
+}
+.cell-add-btn:hover{color:#1d4ed8}
+@media print{.cell-add-btn,.entry-tools{display:none!important}}
+
+/* Modal edición manual */
+.edit-overlay{
+  position:fixed;inset:0;z-index:120;background:rgba(8,22,26,.5);backdrop-filter:blur(5px);
+  display:none;align-items:center;justify-content:center;padding:20px;
+}
+.edit-overlay.open{display:flex}
+.edit-modal{
+  width:min(430px,100%);background:#fff;border-radius:16px;
+  box-shadow:0 24px 60px rgba(0,0,0,.25);padding:20px;display:grid;gap:12px;
+}
+.edit-modal h2{font-size:16px;font-weight:800;margin:0}
+.edit-modal .ctx{font-size:12px;color:#6b7280;margin-top:-6px}
+.edit-modal label{display:grid;gap:4px;font-size:12px;font-weight:700;color:#263539}
+.edit-modal input,.edit-modal select,.edit-modal textarea{
+  width:100%;min-height:40px;border:1px solid #d4dee1;border-radius:9px;
+  padding:0 11px;font:inherit;font-size:13.5px;color:#172124;background:#f8fbfb;outline:none;
+}
+.edit-modal textarea{min-height:56px;padding:9px 11px;resize:vertical}
+.edit-modal .acts{display:flex;gap:8px}
+.edit-modal .acts button{
+  flex:1;min-height:40px;border:none;border-radius:9px;font:inherit;font-size:13.5px;font-weight:800;cursor:pointer;
+}
+.edit-modal .b-save{background:linear-gradient(135deg,#1d4ed8,#1e40af);color:#fff}
+.edit-modal .b-cancel{background:#e7eef0;color:#213338}
+.popup-tools{display:inline-flex;gap:3px;margin-left:8px}
+.popup-add{
+  display:inline-block;margin-top:5px;font-size:11px;font-weight:700;color:#1d4ed8;
+  background:none;border:1px dashed #93b4f5;border-radius:7px;padding:3px 9px;cursor:pointer;
+}
+.popup-add:hover{background:#eff6ff}
+
+/* ── CRUCE CELL STATUS ───────────────────────────── */
+td.cell-clickable{cursor:pointer}
+td.cell-ok      {background:#f8fdfb;border-left:3px solid #6ee7b7}
+td.cell-solo-qr {background:#f5f8ff;border-left:3px solid #93c5fd}
+td.cell-solo-sv {background:#fdfbf0;border-left:3px solid #d4b96a}
+td.cell-falta   {background:#fdf5f5;border-left:4px solid #b91c1c}
+td.cell-mismatch{background:#fdf8f3;border-left:4px solid #b45309}
+tbody tr:hover td.cell-ok      {background:#effdf6}
+tbody tr:hover td.cell-solo-qr {background:#edf3ff}
+tbody tr:hover td.cell-solo-sv {background:#fdf6e3}
+tbody tr:hover td.cell-falta   {background:#fdeaea}
+tbody tr:hover td.cell-mismatch{background:#fdf0e3}
+
+/* ── etiquetas de fuente ── */
+.source-label{
+  display:inline-block;font-size:8.5px;font-weight:700;
+  letter-spacing:.07em;text-transform:uppercase;
+  padding:1px 5px;border-radius:2px;margin-bottom:3px;
+}
+.label-qr{background:#e8eef6;color:#1e3a5f}
+.label-sv{background:#f0ece0;color:#4a3a18}
+
+/* ── filas de cruce ── */
+.cruce-section{margin-bottom:5px}
+.cruce-section:last-child{margin-bottom:0}
+.cruce-row{
+  font-size:11px;font-weight:600;line-height:1.45;
+  white-space:nowrap;color:var(--text);
+}
+.cruce-row .turno{
+  font-size:8.5px;font-weight:700;letter-spacing:.03em;
+  border-radius:2px;padding:1px 4px;
+  background:rgba(0,0,0,.07);color:var(--text-soft);margin-left:4px;
+}
+.cruce-row .hora{font-size:10px;font-weight:400;color:var(--muted);margin-left:4px}
+
+/* ── notificaciones de irregularidad ── */
+.notif{
+  display:grid;grid-template-columns:min(260px,38%) 1fr;column-gap:16px;row-gap:2px;
+  align-items:start;
+  border-left:3px solid;
+  padding:8px 12px;
+  border-radius:0 5px 5px 0;
+  white-space:normal;
+}
+.notif-left{display:flex;flex-direction:column;gap:3px;min-width:0}
+.notif-fecha{
+  align-self:flex-start;
+  font-size:10px;font-weight:800;
+  padding:1px 6px;border-radius:4px;
+  background:rgba(0,0,0,.055);
+  white-space:nowrap;
+}
+.notif-type{
+  font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;line-height:1.3;
+}
+.notif-detail{
+  min-width:0;
+  font-size:12px;font-weight:500;line-height:1.4;
+}
+.notif-inasistencia{
+  background:#fdf2f2;border-color:#b91c1c;
+}
+.notif-inasistencia .notif-type{color:#991b1b}
+.notif-inasistencia .notif-detail{color:#7f1d1d}
+.notif-discrepancia{
+  background:#fdf6ed;border-color:#b45309;
+}
+.notif-discrepancia .notif-type{color:#92400e}
+.notif-discrepancia .notif-detail{color:#78350f}
+.notif-conflicto{
+  background:#eff4ff;border-color:#1e3a8a;
+}
+.notif-conflicto .notif-type{color:#1e3a8a}
+.notif-conflicto .notif-detail{color:#1e3a8a}
+
+/* ── POPUP DE ALERTAS (inasistencias / discrepancias / conflictos) ── */
+.alert-popup-overlay{
+  display:none;position:fixed;inset:0;z-index:110;
+  background:rgba(15,23,42,.45);
+  align-items:center;justify-content:center;
+}
+.alert-popup-overlay.open{display:flex}
+.alert-popup{
+  width:860px;max-width:calc(100vw - 32px);
+  max-height:80vh;overflow-y:auto;
+  background:#fff;border-radius:14px;
+  box-shadow:0 20px 60px rgba(0,0,0,.28);
+}
+.alert-popup-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 18px;border-bottom:1px solid var(--border);
+  position:sticky;top:0;background:#fff;
+}
+.alert-popup-head h3{font-size:15px;font-weight:800;color:var(--text)}
+.alert-popup-head-actions{display:flex;align-items:center;gap:6px}
+.alert-popup-print-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:28px;height:28px;border-radius:7px;
+  border:1px solid var(--border);background:#fff;cursor:pointer;color:var(--muted);
+}
+.alert-popup-print-btn:hover{background:var(--recinto-bg);color:var(--text)}
+.alert-popup-close{border:none;background:none;cursor:pointer;font-size:18px;color:var(--muted)}
+.alert-popup-close:hover{color:var(--text)}
+.alert-popup-body{padding:14px 18px;display:flex;flex-direction:column;gap:6px}
+
+@media print{
+  html:has(body.alert-popup-active){height:auto!important;overflow:visible!important}
+  body.alert-popup-active{height:auto!important;overflow:visible!important;margin:0!important}
+  body.alert-popup-active > *:not(.alert-popup-overlay){display:none!important}
+  body.alert-popup-active .alert-popup-overlay{
+    position:static!important;display:block!important;background:none!important;
+    inset:auto!important;height:auto!important;
+  }
+  body.alert-popup-active .alert-popup{
+    position:static!important;width:100%!important;max-width:100%!important;
+    max-height:none!important;overflow:visible!important;
+    box-shadow:none!important;border-radius:0!important;
+    padding:12mm 10mm;
+  }
+  body.alert-popup-active .alert-popup-head{position:static!important}
+  body.alert-popup-active .alert-popup-print-btn,
+  body.alert-popup-active .alert-popup-close{display:none!important}
+  @page{margin:0}
+}
+
+@media print{
+  body{background:#fff}
+  .hero{background:#0b1424!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .btn-hero,.alert-toggle .alert-caret{display:none}
+  .alert-body{display:block!important}
+  .table-wrap{padding:8px 0;overflow:visible}
+  table{border-radius:0;min-width:100%;box-shadow:none}
+  thead th.col-recinto,td.col-recinto{position:static}
+  .view-section{display:block!important}
+}
+</style>
+</head>
+<body>
+
+<!-- ── HERO ─────────────────────────────────────────── -->
+<header class="hero">
+  <div class="hero-logo">
+    <img src="/shared-static/img/logo-atc.png" alt="ATC">
+  </div>
+  <div class="hero-copy">
+    <h1 id="pageTitle">Registro de Guardias por Recinto</h1>
+    <p id="pageSub">Inicio de turno registrado — {{ month_name }} {{ year }}</p>
+  </div>
+  <div class="hero-actions">
+    <a class="btn-hero" id="btnVolver" href="/guardia">Volver</a>
+    <div class="month-nav">
+      <a class="btn-hero" id="navPrev" href="/guardia/tabla-registro-guardia?year={{ prev_y }}&month={{ prev_m }}&grupo={{ grupo }}">&#8249;</a>
+      <span class="month-label">{{ month_name }} {{ year }}</span>
+      <a class="btn-hero" id="navNext" href="/guardia/tabla-registro-guardia?year={{ next_y }}&month={{ next_m }}&grupo={{ grupo }}">&#8250;</a>
+    </div>
+    <button class="btn-hero informe-preview-trigger" type="button"
+            data-informe-preview="/guardia/tabla-registro-guardia/informes/preview?year={{ year }}&month={{ month }}&grupo={{ grupo }}"
+            data-informe-download="/guardia/tabla-registro-guardia/informes?year={{ year }}&month={{ month }}&grupo={{ grupo }}"
+            data-informe-title="Vista previa - Informes de guardias">Vista previa</button>
+    <a class="btn-hero primary" href="/guardia/tabla-registro-guardia/informes?year={{ year }}&month={{ month }}&grupo={{ grupo }}">Descargar informes</a>
+  </div>
+</header>
+
+<!-- ── TOOLBAR ───────────────────────────────────────── -->
+<div class="toolbar">
+  <div class="view-toggle">
+    <button class="vtab active" id="btnRegistro" onclick="setView('qr')">Registro</button>
+    <button class="vtab" id="btnCruce" onclick="setView('cruce')">Cruce vs Supervisor</button>
+  </div>
+  <div class="legend" id="legendQR">
+    <span class="chip chip-dia">Día</span>
+    <span class="chip chip-noche">Noche</span>
+    <span class="chip chip-extra">Extra</span>
+    <span class="chip chip-contrato-diario">Contrato Diario</span>
+    <span class="legend-note">Hora = hora del registro</span>
+  </div>
+  <div class="legend" id="legendCruce" style="display:none">
+    <span class="badge badge-ok">Conforme</span>
+    <span class="badge badge-solo-qr">Solo sistema</span>
+    <span class="badge badge-solo-sv">Solo supervisor</span>
+    <div class="alert-chips" id="alertChips" style="margin-left:8px;display:none">
+      {% if alertas_inasistencia %}<button type="button" class="alert-chip chip-inasistencia" onclick="abrirAlertPopup('inasistencia')"><span class="chip-dot"></span>{{ alertas_inasistencia|length }} inasistencia{{ 's' if alertas_inasistencia|length != 1 }}</button>{% endif %}
+      {% if alertas_discrepancia %}<button type="button" class="alert-chip chip-discrepancia" onclick="abrirAlertPopup('discrepancia')"><span class="chip-dot"></span>{{ alertas_discrepancia|length }} discrepancia{{ 's' if alertas_discrepancia|length != 1 }}</button>{% endif %}
+      {% if alertas_conflicto %}<button type="button" class="alert-chip chip-conflicto" onclick="abrirAlertPopup('conflicto')"><span class="chip-dot"></span>{{ alertas_conflicto|length }} conflicto{{ 's' if alertas_conflicto|length != 1 }} de destino</button>{% endif %}
+      {% if alertas %}<span class="alert-chip chip-jornada"><span class="chip-dot"></span>{{ alertas|length }} jornada{{ 's' if alertas|length != 1 }} extendida{{ 's' if alertas|length != 1 }}</span>{% endif %}
+    </div>
+    <span class="legend-note">Clic en una celda para ver detalle</span>
+  </div>
+</div>
+
+<!-- alertas de jornada extendida: solo si hay, en una sola línea colapsable -->
+{% if alertas %}
+<div style="flex-shrink:0;border-bottom:1px solid var(--border);background:#fffbeb">
+  <div style="display:flex;align-items:center;gap:10px;padding:7px 28px;cursor:pointer;user-select:none" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('.jc').classList.toggle('open')">
+    <span style="font-size:11.5px;font-weight:700;color:#92400e;flex:1">Jornada extendida — 5 o más días consecutivos</span>
+    <span style="background:#d97706;color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px">{{ alertas|length }}</span>
+    <span class="jc notif-panel-caret" style="font-size:9px;font-style:normal;transition:transform .18s;opacity:.55">&#9654;</span>
+  </div>
+  <div class="notif-panel-body" style="padding:0 28px 8px">
+    <div style="display:flex;flex-direction:column;gap:3px">
+      {% for a in alertas %}
+      <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #fde68a;border-left:3px solid #d97706;border-radius:4px;padding:5px 10px;font-size:11.5px">
+        <span style="background:#d97706;color:#fff;font-size:9.5px;font-weight:800;padding:1px 5px;border-radius:3px">{{ a.dias }}d</span>
+        <span style="font-weight:700;flex:1;color:#111827">{{ a.nombre }}</span>
+        <span style="font-size:10.5px;color:#92400e;font-weight:600">{{ a.desde }} — {{ a.hasta }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── TABLAS ────────────────────────────────────────── -->
+<div class="table-wrap">
+
+<!-- Vista Registro -->
+<div class="view-section active" id="viewQR">
+<table>
+  <thead>
+    <tr>
+      <th class="col-recinto">Recinto</th>
+      {% for d in days_info %}
+        <th>{{ d.day }}/{{ month }}</th>
+      {% endfor %}
+    </tr>
+    <tr>
+      <th class="col-recinto">{{ month_name }} {{ year }}</th>
+      {% for d in days_info %}
+        <th class="{% if d.day == today_day %}today-col {% endif %}{% if ((d.day - 4) // 4) % 2 == 0 %}band-alt{% endif %}">{{ d.dow }}</th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for recinto in recintos %}
+    <tr>
+      <td class="col-recinto" title="{{ recinto }}">{{ recinto.split(' - ')|last }}</td>
+      {% for d in days_info %}
+        {% set entries = matrix.get(recinto, {}).get(d.day, []) %}
+        <td class="{% if d.weekend %}weekend{% endif %}"
+            data-recinto="{{ recinto|e }}" data-day="{{ d.day }}">
+          {% if entries %}
+          <div class="entries">
+            {% for e in entries %}
+            <div class="entry entry-{{ e.turno|lower|replace(' ','-') }}"
+                 data-id="{{ e.id }}" data-nombre="{{ e.nombre|e }}" data-turno="{{ e.turno|e }}" data-hora="{{ e.hora }}">
+              {{ e.nombre or "—" }}<span class="hora">{{ e.hora }}</span>
+              <span class="entry-tools">
+                <button class="tool-btn" title="Editar" onclick="editarQRDesdeCelda(this)">✎</button>
+                <button class="tool-btn" title="Eliminar" onclick="borrarRegistro(event,'qr',{{ e.id }})">✕</button>
+              </span>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+          <button class="cell-add-btn" title="Agregar inicio de turno manual" onclick="agregarQRDesdeCelda(this)">+</button>
+        </td>
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<!-- Vista Cruce -->
+<div class="view-section" id="viewCruce">
+<table>
+  <thead>
+    <tr>
+      <th class="col-recinto">Recinto</th>
+      {% for d in days_info %}
+        <th>{{ d.day }}/{{ month }}</th>
+      {% endfor %}
+    </tr>
+    <tr>
+      <th class="col-recinto">{{ month_name }} {{ year }}</th>
+      {% for d in days_info %}
+        <th class="{% if d.day == today_day %}today-col {% endif %}{% if ((d.day - 4) // 4) % 2 == 0 %}band-alt{% endif %}">{{ d.dow }}</th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for recinto in recintos %}
+    <tr>
+      <td class="col-recinto" title="{{ recinto }}">{{ recinto.split(' - ')|last }}</td>
+      {% for d in days_info %}
+        {% set cell = cruce.get(recinto, {}).get(d.day, {"qr":[],"sv":[],"status":"empty"}) %}
+        {% set status = cell.status %}
+        {% set has_data = cell.qr or cell.sv %}
+        <td class="{% if d.weekend %}weekend {% endif %}{% if status != 'empty' %}cell-{{ status }}{% endif %} cell-clickable"
+          onclick="openPopup(event,this)" data-cell='{{ {"fecha": d.dow ~ " " ~ d.day ~ "/" ~ month, "fecha_iso": "%04d-%02d-%02d"|format(year, month, d.day), "recinto": recinto, "status": status, "qr": cell.qr|list, "sv": cell.sv|list, "razones": cell.razones|default([])}|tojson }}'>
+          {% if cell.qr %}
+          <div class="cruce-section">
+            <span class="source-label label-qr">Guardia</span>
+            {% for e in cell.qr %}<div class="cruce-row">{{ e.nombre }}<span class="turno">{{ e.turno }}</span><span class="hora">{{ e.hora }}</span></div>{% endfor %}
+          </div>
+          {% endif %}
+          {% if cell.sv %}
+          <div class="cruce-section">
+            <span class="source-label label-sv">Supervisor</span>
+            {% for e in cell.sv %}<div class="cruce-row">{{ e.nombre }}<span class="turno">{{ e.turno }}</span></div>{% endfor %}
+          </div>
+          {% endif %}
+        </td>
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+
+</div><!-- /table-wrap -->
+
+<!-- ── Popup de celda ── -->
+<div class="cell-popup-overlay" id="cellOverlay"></div>
+<div class="cell-popup" id="cellPopup" style="display:none"></div>
+
+<!-- ── Popup de alertas (inasistencias / discrepancias / conflictos) ── -->
+<div class="alert-popup-overlay" id="alertPopupOverlay" onclick="if(event.target===this) cerrarAlertPopup()">
+  <div class="alert-popup">
+    <div class="alert-popup-head">
+      <h3 id="alertPopupTitulo">Detalle</h3>
+      <div class="alert-popup-head-actions">
+        <button class="alert-popup-print-btn" type="button" onclick="window.print()" title="Imprimir" aria-label="Imprimir">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 9V3h12v6"/>
+            <path d="M6 18H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2"/>
+            <rect x="6" y="14" width="12" height="7"/>
+          </svg>
+        </button>
+        <button class="alert-popup-close" type="button" onclick="cerrarAlertPopup()">✕</button>
+      </div>
+    </div>
+    <div class="alert-popup-body" id="alertPopupBody"></div>
+  </div>
+</div>
+
+<!-- ── Modal edición manual ── -->
+<div class="edit-overlay" id="editOverlay">
+  <div class="edit-modal">
+    <h2 id="emTitle">Editar</h2>
+    <div class="ctx" id="emCtx"></div>
+    <label>
+      Guardia
+      <div style="position:relative">
+        <input id="emNombre" type="text" placeholder="Buscar por nombre o RUT…" autocomplete="off">
+        <div id="emDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:200;background:#fff;border:1px solid #d4dee1;border-radius:9px;box-shadow:0 8px 24px rgba(0,0,0,.14);margin-top:3px;max-height:180px;overflow-y:auto"></div>
+      </div>
+    </label>
+    <label>
+      Tipo de turno
+      <select id="emTurno">
+        {% for t in tipos_turno %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+      </select>
+    </label>
+    <label id="emHoraWrap">
+      Hora del registro
+      <input id="emHora" type="time">
+    </label>
+    <label id="emNotasWrap">
+      Notas (opcional)
+      <textarea id="emNotas" placeholder="Observaciones…"></textarea>
+    </label>
+    <div class="acts">
+      <button class="b-cancel" type="button" onclick="cerrarEditor()">Cancelar</button>
+      <button class="b-save" type="button" id="emGuardar" onclick="guardarEditor()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TITLES = {
+  qr:    ["Registro de Guardias por Recinto",     "Inicio de turno registrado — {{ month_name }} {{ year }}"],
+  cruce: ["Cruce Guardia vs Supervisor",           "Comparacion de registros automaticos y manuales — {{ month_name }} {{ year }}"],
+};
+const BASE = "/guardia/tabla-registro-guardia";
+const PREV = "{{ prev_y }}-{{ prev_m }}";
+const NEXT = "{{ next_y }}-{{ next_m }}";
+
+const ALERTAS_INASISTENCIA = {{ alertas_inasistencia|tojson }};
+const ALERTAS_DISCREPANCIA = {{ alertas_discrepancia|tojson }};
+const ALERTAS_CONFLICTO    = {{ alertas_conflicto|tojson }};
+
+function escHtmlAlert(s) {
+  return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function abrirAlertPopup(tipo) {
+  const CONFIG = {
+    inasistencia: {
+      titulo: "Inasistencias",
+      items: ALERTAS_INASISTENCIA,
+      render: a => `<div class="notif notif-inasistencia">
+        <div class="notif-left">
+          <span class="notif-fecha">${escHtmlAlert(a.fecha)}</span>
+          <span class="notif-type">${escHtmlAlert(a.recinto)}</span>
+        </div>
+        <span class="notif-detail">${escHtmlAlert(a.detalle)}</span>
+      </div>`,
+    },
+    discrepancia: {
+      titulo: "Discrepancias",
+      items: ALERTAS_DISCREPANCIA,
+      render: a => `<div class="notif notif-discrepancia">
+        <div class="notif-left">
+          <span class="notif-fecha">${escHtmlAlert(a.fecha)}</span>
+          <span class="notif-type">${escHtmlAlert(a.recinto)} · ${escHtmlAlert(a.tipo)}</span>
+        </div>
+        <span class="notif-detail">${escHtmlAlert(a.detalle)}</span>
+      </div>`,
+    },
+    conflicto: {
+      titulo: "Conflictos de destino",
+      items: ALERTAS_CONFLICTO,
+      render: a => `<div class="notif notif-conflicto">
+        <div class="notif-left">
+          <span class="notif-fecha">${escHtmlAlert(a.fecha)}</span>
+          <span class="notif-type">${escHtmlAlert(a.guardia)} · ${escHtmlAlert(a.turno)}</span>
+        </div>
+        <span class="notif-detail">Registrado en <strong>${escHtmlAlert(a.recinto_qr)}</strong> — supervisor lo marcó en <strong>${escHtmlAlert(a.recinto_sv)}</strong></span>
+      </div>`,
+    },
+  };
+  const cfg = CONFIG[tipo];
+  if (!cfg) return;
+  document.getElementById("alertPopupTitulo").textContent = `${cfg.titulo} (${cfg.items.length})`;
+  document.getElementById("alertPopupBody").innerHTML = cfg.items.length
+    ? cfg.items.map(cfg.render).join("")
+    : `<p style="font-size:12.5px;color:var(--muted)">Sin registros.</p>`;
+  document.getElementById("alertPopupOverlay").classList.add("open");
+  document.body.classList.add("alert-popup-active");
+}
+
+function cerrarAlertPopup() {
+  document.getElementById("alertPopupOverlay").classList.remove("open");
+  document.body.classList.remove("alert-popup-active");
+}
+
+function setView(v) {
+  document.getElementById("viewQR").classList.toggle("active",     v === "qr");
+  document.getElementById("viewCruce").classList.toggle("active",  v === "cruce");
+  document.getElementById("btnRegistro").classList.toggle("active",v === "qr");
+  document.getElementById("btnCruce").classList.toggle("active",   v === "cruce");
+  document.getElementById("legendQR").style.display    = v === "qr"    ? "flex" : "none";
+  document.getElementById("legendCruce").style.display = v === "cruce" ? "flex" : "none";
+  document.getElementById("pageTitle").textContent = TITLES[v][0];
+  document.getElementById("pageSub").textContent   = TITLES[v][1];
+  const [py, pm] = PREV.split("-");
+  const [ny, nm] = NEXT.split("-");
+  document.getElementById("navPrev").href = `${BASE}?year=${py}&month=${pm}&view=${v}`;
+  document.getElementById("navNext").href = `${BASE}?year=${ny}&month=${nm}&view=${v}`;
+  history.replaceState(null, "", `?year={{ year }}&month={{ month }}&view=${v}`);
+  const chips = document.getElementById("alertChips");
+  if (chips) chips.style.display = v === "cruce" ? "flex" : "none";
+}
+
+const _v = new URLSearchParams(location.search).get("view");
+if (_v === "cruce") setView("cruce");
+
+/* ── Popup de celda ── */
+const POPUP   = document.getElementById("cellPopup");
+const OVERLAY = document.getElementById("cellOverlay");
+
+function recintoCorto(s) {
+  const partes = String(s || "").split(" - ");
+  return (partes[partes.length - 1] || "").trim() || String(s || "");
+}
+
+function openPopup(event, td) {
+  event.stopPropagation();
+  const data = JSON.parse(td.dataset.cell);
+
+  const LABELS = {
+    ok:       null,
+    solo_qr:  null,
+    falta:    "inasistencia",
+    mismatch: "discrepancia",
+  };
+  const alertClass = LABELS[data.status];
+
+  const statusLabel = {
+    ok:       '<span style="color:#1e4430;font-weight:700">Conforme</span>',
+    solo_qr:  '<span style="color:#2c4a72;font-weight:700">Solo en sistema</span>',
+    solo_sv:  '<span style="color:#5c4516;font-weight:700">Solo en supervisor</span>',
+    falta:    '<span style="color:#991b1b;font-weight:700">Inasistencia</span>',
+    mismatch: '<span style="color:#92400e;font-weight:700">Discrepancia</span>',
+    empty:    '',
+  }[data.status] || '';
+
+  let html = `
+    <div class="popup-header">
+      <div>
+        <div class="popup-recinto">${recintoCorto(data.recinto)}</div>
+        <div class="popup-fecha">${data.fecha} &nbsp;·&nbsp; ${statusLabel}</div>
+      </div>
+      <button class="popup-close" onclick="closePopup()">&times;</button>
+    </div>
+    <div class="popup-body">`;
+
+  html += `<div><span class="popup-section-label popup-label-qr">Registro guardia</span>`;
+  data.qr.forEach(e => {
+    html += `<div class="popup-row">${e.nombre}<span class="popup-row-muted">${e.turno} &nbsp; ${e.hora}</span>
+      <span class="popup-tools">
+        <button class="tool-btn" title="Editar" onclick='abrirEditor({tipo:"qr",mode:"edit",id:${e.id},recinto:${JSON.stringify(data.recinto)},fecha:"${data.fecha_iso}",nombre:${JSON.stringify(e.nombre)},turno:${JSON.stringify(e.turno)},hora:"${e.hora}"})'>✎</button>
+        <button class="tool-btn" title="Eliminar" onclick="borrarRegistro(event,'qr',${e.id})">✕</button>
+      </span></div>`;
+  });
+  html += `<button class="popup-add" onclick='abrirEditor({tipo:"qr",mode:"add",recinto:${JSON.stringify(data.recinto)},fecha:"${data.fecha_iso}"})'>+ Inicio de turno</button></div>`;
+
+  html += `<div class="popup-divider"></div><div><span class="popup-section-label popup-label-sv">Registro supervisor</span>`;
+  data.sv.forEach(e => {
+    html += `<div class="popup-row">${e.nombre}<span class="popup-row-muted">${e.turno}</span>
+      <span class="popup-tools">
+        <button class="tool-btn" title="Editar" onclick='abrirEditor({tipo:"sv",mode:"edit",id:${e.id},recinto:${JSON.stringify(data.recinto)},fecha:"${data.fecha_iso}",nombre:${JSON.stringify(e.nombre)},turno:${JSON.stringify(e.turno)},notas:${JSON.stringify(e.notas || "")}})'>✎</button>
+        <button class="tool-btn" title="Eliminar" onclick="borrarRegistro(event,'sv',${e.id})">✕</button>
+      </span></div>`;
+  });
+  html += `<button class="popup-add" onclick='abrirEditor({tipo:"sv",mode:"add",recinto:${JSON.stringify(data.recinto)},fecha:"${data.fecha_iso}"})'>+ Registro supervisor</button></div>`;
+
+  if (data.razones.length) {
+    html += `<div class="popup-divider"></div>`;
+    data.razones.forEach(r => {
+      let cls, label, detail;
+      if (r.startsWith("Falta")) {
+        cls="alert-inasistencia"; label="Inasistencia"; detail=r.slice(8);
+      } else if (r.startsWith("Turno diferente")) {
+        cls="alert-discrepancia"; label="Discrepancia de turno"; detail=r.slice(18);
+      } else {
+        cls="alert-discrepancia"; label="Sin confirmación supervisor"; detail=r.slice(12);
+      }
+      html += `<div class="popup-alert ${cls}">
+        <span class="popup-alert-label">${label}</span>
+        <span class="popup-alert-detail">${detail}</span>
+      </div>`;
+    });
+  }
+
+  html += `</div>`;
+  POPUP.innerHTML = html;
+
+  // Posicionar cerca del cursor sin salirse de pantalla
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const pw = 360, ph = 320;
+  let x = event.clientX + 12, y = event.clientY + 12;
+  if (x + pw > vw - 8) x = event.clientX - pw - 12;
+  if (y + ph > vh - 8) y = event.clientY - ph - 12;
+  POPUP.style.left = Math.max(8, x) + "px";
+  POPUP.style.top  = Math.max(8, y) + "px";
+
+  OVERLAY.classList.add("open");
+  POPUP.style.display = "block";
+}
+
+function closePopup() {
+  OVERLAY.classList.remove("open");
+  POPUP.style.display = "none";
+}
+
+document.getElementById("cellOverlay").addEventListener("click", closePopup);
+document.addEventListener("keydown", e => { if (e.key === "Escape") { closePopup(); cerrarEditor(); } });
+
+/* ── Edición manual (super admin) ── */
+const SUPERVISOR_NOMBRE = {{ supervisor_nombre | tojson }};
+const YEAR = {{ year }}, MONTH = {{ month }};
+let ED = null;
+let _emRut = "";
+let _emSeleccionado = false;
+let _emTimer = null;
+
+document.getElementById("emNombre").addEventListener("input", () => {
+  const inp = document.getElementById("emNombre");
+  const dd  = document.getElementById("emDropdown");
+  _emRut = "";
+  _emSeleccionado = false;
+  clearTimeout(_emTimer);
+  const q = inp.value.trim();
+  if (q.length < 2) { dd.style.display = "none"; return; }
+  _emTimer = setTimeout(async () => {
+    try {
+      const res = await fetch("/api/inicio-turno/guardias/buscar?q=" + encodeURIComponent(q));
+      const data = await res.json();
+      if (!data.length) { dd.style.display = "none"; return; }
+      dd.innerHTML = data.map(g =>
+        `<div class="em-item" data-nombre="${g.nombre.replace(/"/g,"&quot;")}" data-rut="${(g.rut||"").replace(/"/g,"&quot;")}"
+          style="padding:9px 12px;cursor:pointer;font-size:13.5px;border-bottom:1px solid #f0f4f5">
+          <b>${g.nombre}</b> <span style="font-size:11px;color:#7a9199">${g.rut || ""}</span></div>`
+      ).join("");
+      dd.querySelectorAll(".em-item").forEach(el => {
+        el.addEventListener("mousedown", e => {
+          e.preventDefault();
+          inp.value = el.dataset.nombre;
+          _emRut = el.dataset.rut || "";
+          _emSeleccionado = true;
+          dd.style.display = "none";
+        });
+      });
+      dd.style.display = "block";
+    } catch (_) {}
+  }, 220);
+});
+document.getElementById("emNombre").addEventListener("blur", () => {
+  setTimeout(() => { document.getElementById("emDropdown").style.display = "none"; }, 150);
+});
+
+function abrirEditor(cfg) {
+  closePopup();
+  ED = cfg;
+  _emRut = "";
+  _emSeleccionado = false;
+  const esQR = cfg.tipo === "qr";
+  document.getElementById("emTitle").textContent =
+    (cfg.mode === "add" ? "Agregar " : "Editar ") + (esQR ? "inicio de turno" : "registro de supervisor");
+  const f = cfg.fecha.split("-");
+  document.getElementById("emCtx").textContent = recintoCorto(cfg.recinto) + " — " + f[2] + "/" + f[1] + "/" + f[0];
+  document.getElementById("emNombre").value = cfg.nombre || "";
+  document.getElementById("emTurno").value = cfg.turno || document.getElementById("emTurno").options[0].value;
+  document.getElementById("emHoraWrap").style.display = esQR ? "grid" : "none";
+  document.getElementById("emHora").value = cfg.hora || "";
+  document.getElementById("emNotasWrap").style.display = esQR ? "none" : "grid";
+  document.getElementById("emNotas").value = cfg.notas || "";
+  document.getElementById("editOverlay").classList.add("open");
+  setTimeout(() => document.getElementById("emNombre").focus(), 80);
+}
+
+function cerrarEditor() {
+  document.getElementById("editOverlay").classList.remove("open");
+  ED = null;
+}
+document.getElementById("editOverlay").addEventListener("click", e => {
+  if (e.target === document.getElementById("editOverlay")) cerrarEditor();
+});
+
+async function guardarEditor() {
+  if (!ED) return;
+  const nombre = document.getElementById("emNombre").value.trim();
+  if (!nombre) { document.getElementById("emNombre").focus(); return; }
+  if (ED.mode === "add" && !_emSeleccionado) {
+    alert("Selecciona un guardia válido desde la lista.");
+    document.getElementById("emNombre").focus();
+    return;
+  }
+  const btn = document.getElementById("emGuardar");
+  btn.disabled = true; btn.textContent = "Guardando…";
+  const esQR = ED.tipo === "qr";
+  let url, method, payload;
+  if (ED.mode === "add") {
+    method = "POST";
+    if (esQR) {
+      url = "/api/guardia/registro-guardia";
+      payload = { recinto: ED.recinto, fecha: ED.fecha, hora: document.getElementById("emHora").value || "",
+                  nombre_guardia: nombre, rut: _emRut, tipo_turno: document.getElementById("emTurno").value };
+    } else {
+      url = "/api/guardia/supervisor-registro";
+      payload = { recinto: ED.recinto, fecha: ED.fecha, nombre_guardia: nombre, rut: _emRut,
+                  tipo_turno: document.getElementById("emTurno").value,
+                  supervisor: SUPERVISOR_NOMBRE || "", notas: document.getElementById("emNotas").value.trim() };
+    }
+  } else {
+    method = "PUT";
+    if (esQR) {
+      url = "/api/guardia/registro-guardia/" + ED.id;
+      payload = { nombre_guardia: nombre, tipo_turno: document.getElementById("emTurno").value,
+                  hora: document.getElementById("emHora").value || "" };
+    } else {
+      url = "/api/guardia/supervisor-registro/" + ED.id;
+      payload = { nombre_guardia: nombre, tipo_turno: document.getElementById("emTurno").value,
+                  notas: document.getElementById("emNotas").value.trim() };
+    }
+  }
+  try {
+    const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Error al guardar");
+    _guardarScroll();
+    location.reload();
+  } catch (err) {
+    alert("Error: " + err.message);
+    btn.disabled = false; btn.textContent = "Guardar";
+  }
+}
+
+async function borrarRegistro(event, tipo, id) {
+  event.stopPropagation();
+  if (!confirm(tipo === "qr" ? "¿Eliminar este inicio de turno?" : "¿Eliminar este registro de supervisor?")) return;
+  const url = (tipo === "qr" ? "/api/guardia/registro-guardia/" : "/api/guardia/supervisor-registro/") + id;
+  try {
+    const res = await fetch(url, { method: "DELETE" });
+    if (!res.ok) { const d = await res.json(); throw new Error(d.detail || "Error"); }
+    _guardarScroll();
+    location.reload();
+  } catch (err) { alert("Error: " + err.message); }
+}
+
+function _guardarScroll() {
+  const wrap = document.querySelector(".table-wrap");
+  if (!wrap) return;
+  sessionStorage.setItem("tablaRegistroGuardiaScroll", JSON.stringify({
+    left: wrap.scrollLeft, top: wrap.scrollTop,
+  }));
+}
+
+(function _restaurarScroll() {
+  const raw = sessionStorage.getItem("tablaRegistroGuardiaScroll");
+  if (!raw) return;
+  sessionStorage.removeItem("tablaRegistroGuardiaScroll");
+  try {
+    const { left, top } = JSON.parse(raw);
+    const restore = () => {
+      const wrap = document.querySelector(".table-wrap");
+      if (wrap) { wrap.scrollLeft = left; wrap.scrollTop = top; }
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", restore);
+    } else {
+      restore();
+    }
+  } catch (_) {}
+})();
+
+function _fechaISOdesdeCelda(td) {
+  return YEAR + "-" + String(MONTH).padStart(2, "0") + "-" + String(td.dataset.day).padStart(2, "0");
+}
+
+function agregarQRDesdeCelda(btn) {
+  const td = btn.closest("td");
+  abrirEditor({ tipo: "qr", mode: "add", recinto: td.dataset.recinto, fecha: _fechaISOdesdeCelda(td) });
+}
+
+function editarQRDesdeCelda(btn) {
+  const entry = btn.closest(".entry");
+  const td = btn.closest("td");
+  abrirEditor({
+    tipo: "qr", mode: "edit", id: parseInt(entry.dataset.id, 10),
+    recinto: td.dataset.recinto, fecha: _fechaISOdesdeCelda(td),
+    nombre: entry.dataset.nombre, turno: entry.dataset.turno, hora: entry.dataset.hora,
+  });
+}
+
+</script>
+
+<!-- ── TABS DE GRUPO ─────────────────────────────────── -->
+<style>
+.grupo-tabs{
+  position:fixed;bottom:0;left:0;right:0;z-index:90;
+  display:flex;align-items:center;gap:0;
+  background:rgba(11,20,36,.92);backdrop-filter:blur(10px);
+  border-top:1px solid rgba(255,255,255,.1);
+  padding:0 20px;height:46px;
+}
+.grupo-tab{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:0 18px;height:100%;
+  font-size:13px;font-weight:700;color:rgba(255,255,255,.55);
+  text-decoration:none;border-bottom:3px solid transparent;
+  transition:color .15s,border-color .15s;white-space:nowrap;
+}
+.grupo-tab:hover{color:rgba(255,255,255,.85)}
+.grupo-tab.active{color:#fff;border-bottom-color:#ff6e23}
+.grupo-tab .dot{
+  width:8px;height:8px;border-radius:50%;flex-shrink:0;
+}
+.dot-quintero{background:#3d73a8}
+.dot-privados{background:#22c55e}
+.dot-concon{background:#20a6b8}
+</style>
+
+<nav class="grupo-tabs">
+  <a class="grupo-tab {% if grupo == 'quintero' %}active{% endif %}"
+     href="/guardia/tabla-registro-guardia?year={{ year }}&month={{ month }}&grupo=quintero">
+    <span class="dot dot-quintero"></span>Quintero
+  </a>
+  <a class="grupo-tab {% if grupo == 'privados' %}active{% endif %}"
+     href="/guardia/tabla-registro-guardia?year={{ year }}&month={{ month }}&grupo=privados">
+    <span class="dot dot-privados"></span>Privados
+  </a>
+  <a class="grupo-tab {% if grupo == 'concon' %}active{% endif %}"
+     href="/guardia/tabla-registro-guardia?year={{ year }}&month={{ month }}&grupo=concon">
+    <span class="dot dot-concon"></span>Concón
+  </a>
+</nav>
+<div style="height:46px"></div>
+  <script src="/static/atc-logo-home.js"></script>
+  <script src="/static/guardias-informe-preview.js"></script>
+  <script>
+  </script>
+<script src="/static/atc-volver.js"></script>
+</body>
+</html>
