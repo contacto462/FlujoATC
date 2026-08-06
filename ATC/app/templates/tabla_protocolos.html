@@ -221,6 +221,7 @@
     .count{
       display:inline-flex;
       align-items:center;
+      gap:4px;
       min-height:30px;
       padding:6px 13px;
       border:1px solid var(--border);
@@ -760,7 +761,7 @@
   async function cargarUsuarioActual() {
     const el = document.getElementById("usuarioActual");
     const token = new URLSearchParams(window.location.search).get("token") || localStorage.getItem("atc_token") || "";
-    if (!el || !token) return;
+    if (!el) return;
     try {
       const res = await fetch(`/api/usuario-actual?token=${encodeURIComponent(token)}`, { credentials: "include" });
       const data = await res.json().catch(() => ({}));

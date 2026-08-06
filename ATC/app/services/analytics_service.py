@@ -3,6 +3,7 @@
 from sqlalchemy import Date, and_, case, cast, func, literal_column, or_
 
 from ATC.app.models.ticket import Ticket
+from ATC.app.models.ticket_history import TicketAssignmentHistory
 from ATC.app.models.ticket_sla_feedback import TicketSlaFeedback
 from ATC.app.models.user import User
 
@@ -153,6 +154,7 @@ def get_overview_kpis(
     base_query = db.query(Ticket).filter(
         Ticket.is_deleted == False,
         Ticket.is_spam == False,
+        Ticket.is_no_ticket == False,
     )
 
     base_query = _apply_ticket_created_range(
@@ -214,6 +216,7 @@ def get_overview_kpis(
     ).filter(
         Ticket.is_deleted == False,
         Ticket.is_spam == False,
+        Ticket.is_no_ticket == False,
         Ticket.first_agent_reply_at.isnot(None),
         Ticket.created_at.isnot(None),
     )
@@ -240,6 +243,7 @@ def get_overview_kpis(
     ).filter(
         Ticket.is_deleted == False,
         Ticket.is_spam == False,
+        Ticket.is_no_ticket == False,
         Ticket.resolved_at.isnot(None),
         Ticket.created_at.isnot(None),
     )
@@ -264,6 +268,7 @@ def get_overview_kpis(
         .filter(
             Ticket.is_deleted == False,
             Ticket.is_spam == False,
+            Ticket.is_no_ticket == False,
         )
     )
 
@@ -381,6 +386,7 @@ def get_sla_summary(
     tickets_query = db.query(Ticket).filter(
         Ticket.is_deleted == False,
         Ticket.is_spam == False,
+        Ticket.is_no_ticket == False,
         Ticket.created_at.isnot(None),
     )
     tickets_query = _apply_ticket_created_range(tickets_query, date_from, date_to)
@@ -449,6 +455,7 @@ def get_ticket_volume_30d(
     ).filter(
         Ticket.is_deleted == False,
         Ticket.is_spam == False,
+        Ticket.is_no_ticket == False,
     )
 
     # Sin filtros se utilizan los últimos 30 días.
@@ -528,6 +535,7 @@ def get_ticket_volume_monthly(
     ).filter(
         Ticket.is_deleted == False,
         Ticket.is_spam == False,
+        Ticket.is_no_ticket == False,
     )
     volume_query = _apply_ticket_created_range(volume_query, date_from, date_to)
 
@@ -569,6 +577,7 @@ def get_tickets_priority_detail(
     tickets_query = db.query(Ticket).filter(
         Ticket.is_deleted == False,
         Ticket.is_spam == False,
+        Ticket.is_no_ticket == False,
     )
     tickets_query = _apply_ticket_created_range(tickets_query, date_from, date_to)
 
@@ -605,6 +614,7 @@ def get_ticket_status_breakdown(
             Ticket.status == status_code,
             Ticket.is_deleted == False,
             Ticket.is_spam == False,
+            Ticket.is_no_ticket == False,
         )
 
         query = _apply_ticket_created_range(
@@ -653,6 +663,7 @@ def get_tickets_by_priority(
     tickets_query = db.query(Ticket).filter(
         Ticket.is_deleted == False,
         Ticket.is_spam == False,
+        Ticket.is_no_ticket == False,
     )
 
     tickets_query = _apply_ticket_created_range(
@@ -732,6 +743,7 @@ def get_response_resolution_history(
     ).filter(
         Ticket.is_deleted == False,
         Ticket.is_spam == False,
+        Ticket.is_no_ticket == False,
     )
     query = _apply_ticket_created_range(query, date_from, date_to)
 
@@ -773,6 +785,7 @@ def get_response_resolution_by_agent(
         Ticket.assigned_to_id == User.id,
         Ticket.is_deleted == False,
         Ticket.is_spam == False,
+        Ticket.is_no_ticket == False,
     ]
     if date_from is not None:
         join_conditions.append(Ticket.created_at >= date_from)
@@ -829,6 +842,7 @@ def get_tickets_by_agent(
         Ticket.assigned_to_id == User.id,
         Ticket.is_deleted == False,
         Ticket.is_spam == False,
+        Ticket.is_no_ticket == False,
     ]
 
     if date_from is not None:
@@ -843,6 +857,7 @@ def get_tickets_by_agent(
 
     query = (
         db.query(
+            User.id.label("agent_id"),
             User.name.label("agent"),
             func.count(
                 Ticket.id
@@ -901,6 +916,7 @@ def get_tickets_by_agent(
 
     return [
         {
+            "agent_id": row.agent_id,
             "agent": row.agent,
             "tickets": int(
                 row.tickets or 0
@@ -936,6 +952,7 @@ def get_ticket_detail_by_agent(
         .filter(
             Ticket.is_deleted == False,
             Ticket.is_spam == False,
+            Ticket.is_no_ticket == False,
             User.is_active == True,
         )
     )
@@ -976,6 +993,7 @@ def get_ticket_aging(
         ),
         Ticket.is_deleted == False,
         Ticket.is_spam == False,
+        Ticket.is_no_ticket == False,
     )
 
     aging_query = _apply_ticket_created_range(
@@ -1011,6 +1029,353 @@ def get_ticket_aging(
             buckets["72h+"] += 1
 
     return buckets
+
+
+# =========================================================
+# HISTORIAL / LÍNEA DE TIEMPO DE UN TICKET
+# =========================================================
+def get_ticket_timeline(db, ticket_id: int) -> dict | None:
+    """Arma la linea de tiempo completa de un ticket: creacion, primera
+    asignacion, primera respuesta (con demora desde la creacion), respuestas
+    del cliente despues de esa primera respuesta ("reticket"), cada
+    re-derivacion (de quien a quien) y la finalizacion (por quien). Todos
+    los eventos se devuelven ya ordenados cronologicamente."""
+    from ATC.app.models.message import Message
+    from ATC.app.models.requester import Requester
+
+    ticket = db.get(Ticket, ticket_id)
+    if not ticket:
+        return None
+
+    requester = db.get(Requester, ticket.requester_id) if ticket.requester_id else None
+    requester_name = requester.display_name if requester else "Cliente"
+
+    assignment_events = (
+        db.query(TicketAssignmentHistory)
+        .filter(TicketAssignmentHistory.ticket_id == ticket_id)
+        .order_by(TicketAssignmentHistory.created_at.asc())
+        .all()
+    )
+
+    user_ids: set[int] = set()
+    for ev in assignment_events:
+        if ev.from_user_id:
+            user_ids.add(ev.from_user_id)
+        if ev.to_user_id:
+            user_ids.add(ev.to_user_id)
+    if ticket.assigned_to_id:
+        user_ids.add(ticket.assigned_to_id)
+
+    messages = (
+        db.query(Message)
+        .filter(Message.ticket_id == ticket_id, Message.is_internal_note == False)
+        .order_by(Message.created_at.asc())
+        .all()
+    )
+    first_agent_message = next((m for m in messages if m.sender_type == "agent"), None)
+    if first_agent_message and first_agent_message.sender_id:
+        user_ids.add(first_agent_message.sender_id)
+
+    user_names: dict[int, str] = {}
+    if user_ids:
+        for u in db.query(User.id, User.name).filter(User.id.in_(user_ids)).all():
+            user_names[u.id] = u.name
+
+    def _nombre(uid: int | None) -> str:
+        if not uid:
+            return "—"
+        return user_names.get(uid) or "—"
+
+    events: list[dict] = []
+
+    # 1) Creacion --------------------------------------------------------
+    events.append({
+        "type": "creado",
+        "label": "Ticket creado",
+        "detail": f"Ingresó por {(ticket.source or 'canal desconocido').strip().lower()} · {requester_name}",
+        "date": ticket.created_at,
+    })
+
+    # 2) Primera asignacion + re-derivaciones ----------------------------
+    for idx, ev in enumerate(assignment_events):
+        if idx == 0:
+            events.append({
+                "type": "asignacion",
+                "label": "Primera asignación",
+                "detail": f"Asignado a {_nombre(ev.to_user_id)}",
+                "date": ev.created_at,
+            })
+        else:
+            events.append({
+                "type": "rederivacion",
+                "label": "Ticket re-derivado",
+                "detail": f"De {_nombre(ev.from_user_id)} a {_nombre(ev.to_user_id)}",
+                "date": ev.created_at,
+            })
+
+    # 3) Primera respuesta (con demora desde la creacion) ----------------
+    if first_agent_message is not None:
+        delta_h = None
+        if ticket.created_at and first_agent_message.created_at:
+            delta_h = round((first_agent_message.created_at - ticket.created_at).total_seconds() / 3600, 1)
+        agent_label = (
+            user_names.get(first_agent_message.sender_id)
+            or first_agent_message.sender_name
+            or "Técnico"
+        )
+        events.append({
+            "type": "respuesta",
+            "label": "Primera respuesta",
+            "detail": f"Respondió {agent_label}",
+            "date": first_agent_message.created_at,
+            "delta_hours": delta_h,
+        })
+
+        # 4) Respuestas del cliente despues de la primera respuesta (reticket)
+        for m in messages:
+            if (
+                m.sender_type == "requester"
+                and m.created_at
+                and m.created_at > first_agent_message.created_at
+            ):
+                events.append({
+                    "type": "reticket",
+                    "label": "Respuesta del cliente",
+                    "detail": f"{m.sender_name or requester_name} volvió a escribir",
+                    "date": m.created_at,
+                })
+
+    # 5) Finalizacion ------------------------------------------------------
+    if ticket.resolved_at:
+        # Quien tenia el ticket asignado al momento de resolverlo — el ultimo
+        # evento de asignacion antes (o igual) a resolved_at, o el asignado
+        # actual si no hay historial.
+        resolved_by_id = ticket.assigned_to_id
+        for ev in assignment_events:
+            if ev.created_at and ev.created_at <= ticket.resolved_at and ev.to_user_id:
+                resolved_by_id = ev.to_user_id
+        events.append({
+            "type": "finalizado",
+            "label": "Ticket finalizado",
+            "detail": f"Cerrado por {_nombre(resolved_by_id)}",
+            "date": ticket.resolved_at,
+        })
+
+    events.sort(key=lambda e: e["date"] or datetime.min.replace(tzinfo=timezone.utc))
+
+    return {
+        "ticket_id": ticket.id,
+        "subject": ticket.subject or "(sin título)",
+        "priority": (ticket.priority or "").strip().lower() or "unassigned",
+        "status": ticket.status,
+        "requester_name": requester_name,
+        "events": [
+            {
+                "type": e["type"],
+                "label": e["label"],
+                "detail": e["detail"],
+                "date": e["date"].isoformat() if e["date"] else None,
+                "delta_hours": e.get("delta_hours"),
+            }
+            for e in events
+        ],
+    }
+
+
+# =========================================================
+# INFORME POR TÉCNICO — detalle de derivaciones/reasignaciones
+# =========================================================
+def get_agent_ticket_report(
+    db,
+    agent_user_id: int,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+):
+    """Detalle de un tecnico para su informe individual, todo acotado al
+    rango date_from/date_to (igual criterio que el resto del dashboard):
+
+    1. Tickets terminados en el rango (asignados a el, resueltos en el rango).
+    2. Tickets derivados A el "vigentes" en el rango, desglosados por canal
+       de entrada y por prioridad. Se cuentan tanto los que llegaron durante
+       el rango (evento de asignacion en TicketAssignmentHistory con
+       to_user_id=agent dentro del rango) como los que ya tenia asignados
+       de antes y termino durante el rango — de lo contrario "terminados"
+       podria superar a "derivados" y el informe no tendria sentido (un
+       tecnico no puede terminar mas tickets de los que tuvo para trabajar).
+    3. Top 10 tickets mas lentos en finalizar, midiendo desde que se le
+       derivo (evento de asignacion a este tecnico, o la creacion del
+       ticket si no hay historial) hasta su resolucion — solo sobre los
+       tickets resueltos en el rango (mismo universo que el punto 1).
+    4. De los tickets derivados a el (punto 2), cuales tuvo que re-derivar a
+       otro tecnico despues (y a quien).
+    """
+    from collections import Counter
+
+    resolved_status_set = ("resolved", "resolved_service", "resolved_client", "closed")
+    active_filters = (
+        Ticket.is_deleted == False,
+        Ticket.is_spam == False,
+        Ticket.is_no_ticket == False,
+    )
+
+    # 1) Tickets terminados en el rango ------------------------------------
+    resolved_query = db.query(Ticket).filter(
+        *active_filters,
+        Ticket.assigned_to_id == agent_user_id,
+        Ticket.status.in_(resolved_status_set),
+        Ticket.resolved_at.isnot(None),
+    )
+    if date_from is not None:
+        resolved_query = resolved_query.filter(Ticket.resolved_at >= date_from)
+    if date_to is not None:
+        resolved_query = resolved_query.filter(Ticket.resolved_at <= date_to)
+    resolved_tickets = resolved_query.all()
+    resolved_count = len(resolved_tickets)
+
+    # 2) Derivaciones A el en el rango, por canal y por prioridad ----------
+    derivation_query = (
+        db.query(TicketAssignmentHistory, Ticket)
+        .join(Ticket, Ticket.id == TicketAssignmentHistory.ticket_id)
+        .filter(TicketAssignmentHistory.to_user_id == agent_user_id, *active_filters)
+    )
+    if date_from is not None:
+        derivation_query = derivation_query.filter(TicketAssignmentHistory.created_at >= date_from)
+    if date_to is not None:
+        derivation_query = derivation_query.filter(TicketAssignmentHistory.created_at <= date_to)
+
+    derivation_rows = derivation_query.order_by(TicketAssignmentHistory.created_at.asc()).all()
+
+    by_source = {"whatsapp": 0, "email": 0, "internal": 0}
+    by_priority = {"urgent": 0, "high": 0, "medium": 0, "low": 0, "unassigned": 0}
+    derived_ticket_ids: list[int] = []
+    seen_ids: set[int] = set()
+    def _sumar_ticket(ticket) -> None:
+        # Un mismo ticket puede haberse derivado a este tecnico mas de una
+        # vez, o aparecer tanto en las derivaciones del rango como entre los
+        # resueltos del rango — se cuenta una sola vez, tanto en el total
+        # como en los desgloses, para que la suma de canal/prioridad calce
+        # con "tickets derivados".
+        if ticket.id in seen_ids:
+            return
+        seen_ids.add(ticket.id)
+        derived_ticket_ids.append(ticket.id)
+        src = (ticket.source or "").strip().lower()
+        if src in by_source:
+            by_source[src] += 1
+        pr = (ticket.priority or "").strip().lower()
+        if pr in by_priority:
+            by_priority[pr] += 1
+        else:
+            by_priority["unassigned"] += 1
+
+    for _hist, ticket in derivation_rows:
+        _sumar_ticket(ticket)
+    # Tickets que ya tenia asignados de antes del rango pero termino durante
+    # el rango — cuentan como "derivados" tambien (punto 2 del docstring),
+    # para que "terminados" nunca supere a "derivados".
+    for ticket in resolved_tickets:
+        _sumar_ticket(ticket)
+
+    total_derived = len(derived_ticket_ids)
+
+    # 4) Re-derivaciones: de esos tickets, ¿cuales paso a otro tecnico? ----
+    redirected_events = []
+    if derived_ticket_ids:
+        later_events = (
+            db.query(TicketAssignmentHistory)
+            .filter(
+                TicketAssignmentHistory.ticket_id.in_(derived_ticket_ids),
+                TicketAssignmentHistory.from_user_id == agent_user_id,
+            )
+            .order_by(TicketAssignmentHistory.ticket_id, TicketAssignmentHistory.created_at.asc())
+            .all()
+        )
+        seen_redirect: set[int] = set()
+        for ev in later_events:
+            if ev.ticket_id in seen_redirect:
+                continue
+            seen_redirect.add(ev.ticket_id)
+            if ev.to_user_id and ev.to_user_id != agent_user_id:
+                redirected_events.append(ev)
+
+    redirect_target_ids = {ev.to_user_id for ev in redirected_events if ev.to_user_id}
+    redirect_target_names: dict[int, str] = {}
+    if redirect_target_ids:
+        for u in db.query(User.id, User.name).filter(User.id.in_(redirect_target_ids)).all():
+            redirect_target_names[u.id] = u.name
+
+    redirect_ticket_ids = [ev.ticket_id for ev in redirected_events]
+    redirect_subjects: dict[int, str] = {}
+    if redirect_ticket_ids:
+        for t in db.query(Ticket.id, Ticket.subject).filter(Ticket.id.in_(redirect_ticket_ids)).all():
+            redirect_subjects[t.id] = t.subject
+
+    redirected_detail = [
+        {
+            "ticket_id": ev.ticket_id,
+            "subject": redirect_subjects.get(ev.ticket_id) or "(sin título)",
+            "to_name": redirect_target_names.get(ev.to_user_id) or "—",
+            "date": ev.created_at,
+        }
+        for ev in redirected_events
+    ]
+    redirect_counts = Counter(item["to_name"] for item in redirected_detail)
+    redirected_count = len(redirected_events)
+
+    # 3) Top 10 mas lentos: derivacion -> termino --------------------------
+    slowest = []
+    if resolved_tickets:
+        resolved_ids = [t.id for t in resolved_tickets]
+        assign_events = (
+            db.query(TicketAssignmentHistory)
+            .filter(
+                TicketAssignmentHistory.ticket_id.in_(resolved_ids),
+                TicketAssignmentHistory.to_user_id == agent_user_id,
+            )
+            .order_by(TicketAssignmentHistory.ticket_id, TicketAssignmentHistory.created_at.asc())
+            .all()
+        )
+        events_by_ticket: dict[int, list] = {}
+        for ev in assign_events:
+            events_by_ticket.setdefault(ev.ticket_id, []).append(ev)
+
+        for t in resolved_tickets:
+            if not t.resolved_at:
+                continue
+            reference_dt = None
+            for ev in events_by_ticket.get(t.id, []):
+                if ev.created_at and ev.created_at <= t.resolved_at:
+                    reference_dt = ev.created_at
+            if reference_dt is None:
+                # Sin historial de asignacion (ticket antiguo o asignado sin
+                # pasar por el flujo de derivacion) — se usa la creacion.
+                reference_dt = t.created_at
+            if not reference_dt:
+                continue
+            delay_hours = (t.resolved_at - reference_dt).total_seconds() / 3600
+            if delay_hours < 0:
+                continue
+            slowest.append({
+                "ticket_id": t.id,
+                "subject": t.subject or "(sin título)",
+                "derived_at": reference_dt,
+                "resolved_at": t.resolved_at,
+                "delay_hours": round(delay_hours, 2),
+            })
+
+    slowest.sort(key=lambda r: -r["delay_hours"])
+    top10_slowest = slowest[:10]
+
+    return {
+        "resolved_count": resolved_count,
+        "total_derived": total_derived,
+        "by_source": by_source,
+        "by_priority": by_priority,
+        "redirected_count": redirected_count,
+        "redirected_detail": redirected_detail,
+        "redirect_counts": dict(redirect_counts),
+        "top10_slowest": top10_slowest,
+    }
 
 
 # =========================================================
@@ -1584,3 +1949,369 @@ def generar_informe_soporte_pdf(
     return buf.getvalue()
 
     return buckets
+
+
+# =========================================================
+# INFORME PDF — TÉCNICO INDIVIDUAL
+# =========================================================
+def generar_informe_tecnico_pdf(
+    db,
+    agent_user_id: int,
+    agent_name: str,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+) -> bytes:
+    """Genera el PDF "Informe de Gestión — Técnico" con el mismo estilo visual
+    que generar_informe_soporte_pdf: tickets terminados, derivados (por canal
+    y prioridad), top 10 más lentos en finalizar (derivación -> término) y
+    tickets re-derivados a otro técnico. Todo acotado al rango desde/hasta."""
+    import io
+    from pathlib import Path
+
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import cm
+    from reportlab.lib.colors import HexColor, white
+    from reportlab.platypus import (
+        BaseDocTemplate, Frame, PageTemplate, PageBreak,
+        Table, TableStyle, Paragraph, Spacer, HRFlowable,
+    )
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.enums import TA_JUSTIFY
+
+    _C_DARK, _C_ORANGE, _C_ORDK = "#0b1424", "#5a8cff", "#1d4ed8"
+    _C_BG, _C_BORDER, _C_TEXT, _C_SOFT, _C_GREY = "#f7f8fa", "#e5e7eb", "#111827", "#4b5563", "#9ca3af"
+    _C_OK, _C_WARN, _C_BAD = "#1e9c83", "#d97706", "#c0392b"
+    C_DARK, C_ORANGE, C_ORDK = HexColor(_C_DARK), HexColor(_C_ORANGE), HexColor(_C_ORDK)
+    C_BG, C_BORDER, C_TEXT, C_SOFT, C_GREY = (
+        HexColor(_C_BG), HexColor(_C_BORDER), HexColor(_C_TEXT), HexColor(_C_SOFT), HexColor(_C_GREY)
+    )
+    C_OK, C_WARN, C_BAD = HexColor(_C_OK), HexColor(_C_WARN), HexColor(_C_BAD)
+
+    # ── Datos ──────────────────────────────────────────────────────────
+    reporte = get_agent_ticket_report(db, agent_user_id, date_from=date_from, date_to=date_to)
+
+    # ── Encabezado / metadatos del documento ──
+    def _fmt(d: datetime | None) -> str:
+        return d.strftime("%d/%m/%Y") if d else ""
+
+    def _fmt_dt(d: datetime | None) -> str:
+        return d.strftime("%d/%m/%Y %H:%M") if d else "—"
+
+    if date_from and date_to:
+        rango_txt = f"Período: {_fmt(date_from)} al {_fmt(date_to)}"
+    elif date_from:
+        rango_txt = f"Período: desde el {_fmt(date_from)}"
+    elif date_to:
+        rango_txt = f"Período: hasta el {_fmt(date_to)}"
+    else:
+        rango_txt = "Período: histórico completo (sin filtro de fecha)"
+
+    ahora = datetime.now()
+    fecha_emision = ahora.strftime("%d/%m/%Y %H:%M")
+    titulo_hdr = f"INFORME DE GESTIÓN — TÉCNICO: {agent_name.upper()}"
+    subtitulo_hdr = rango_txt
+
+    W, H = A4
+    pad = 1.4 * cm
+    HEADER_H = 2.7 * cm
+    ORANGE_H = 5
+    FOOTER_H = 1.0 * cm
+    BODY_TOP = HEADER_H + ORANGE_H + 12
+    BODY_BOT = FOOTER_H + 8
+    fw = W - 2 * pad
+
+    _atc_root = Path(__file__).resolve().parents[2]
+    logo_path = _atc_root / "ATC" / "static" / "img" / "logo-atc.png"
+    if not logo_path.exists():
+        logo_path = _atc_root / "static" / "img" / "logo-atc.png"
+    logo_w, logo_h = 2.8 * cm, 1.4 * cm
+
+    def draw_page(canvas, doc):
+        canvas.saveState()
+        canvas.setFillColor(C_DARK)
+        canvas.rect(0, H - HEADER_H, W, HEADER_H, fill=1, stroke=0)
+        if logo_path.exists():
+            try:
+                canvas.drawImage(
+                    str(logo_path),
+                    pad, H - HEADER_H + (HEADER_H - logo_h) / 2,
+                    width=logo_w, height=logo_h,
+                    preserveAspectRatio=True, mask="auto",
+                )
+            except Exception:
+                pass
+        tx = pad + logo_w + 0.5 * cm
+        canvas.setFillColor(white)
+        titulo_font_size = 12
+        titulo_max_width = W - tx - pad
+        while (
+            titulo_font_size > 7
+            and canvas.stringWidth(titulo_hdr, "Helvetica-Bold", titulo_font_size) > titulo_max_width
+        ):
+            titulo_font_size -= 0.5
+        canvas.setFont("Helvetica-Bold", titulo_font_size)
+        canvas.drawString(tx, H - HEADER_H + 1.35 * cm, titulo_hdr)
+        canvas.setFillColor(HexColor("#bfdbfe"))
+        canvas.setFont("Helvetica", 8.5)
+        canvas.drawString(tx, H - HEADER_H + 0.75 * cm, subtitulo_hdr)
+        canvas.setFillColor(C_ORANGE)
+        canvas.rect(0, H - HEADER_H - ORANGE_H, W, ORANGE_H, fill=1, stroke=0)
+        canvas.setFillColor(C_DARK)
+        canvas.rect(0, 0, W, FOOTER_H, fill=1, stroke=0)
+        canvas.setFillColor(C_GREY)
+        canvas.setFont("Helvetica", 7)
+        canvas.drawCentredString(
+            W / 2, FOOTER_H / 2 - 3,
+            f"Documento generado automáticamente  ·  Alguien Te Cuida  ·  {fecha_emision}",
+        )
+        canvas.setFont("Helvetica", 7)
+        canvas.drawRightString(W - pad, FOOTER_H / 2 - 3, f"Página {doc.page}")
+        canvas.restoreState()
+
+    frame = Frame(
+        pad, BODY_BOT, fw, H - BODY_TOP - BODY_BOT,
+        leftPadding=0, bottomPadding=0, rightPadding=0, topPadding=0,
+    )
+    page_tmpl = PageTemplate(id="main", frames=[frame], onPage=draw_page)
+    buf = io.BytesIO()
+    doc = BaseDocTemplate(
+        buf, pagesize=A4, pageTemplates=[page_tmpl],
+        leftMargin=0, rightMargin=0, topMargin=0, bottomMargin=0,
+        title=titulo_hdr, author="Alguien Te Cuida",
+    )
+
+    st_kpi_num = ParagraphStyle("kpiNumT", fontName="Helvetica-Bold", fontSize=20, textColor=C_TEXT, leading=22, alignment=1)
+    st_kpi_lbl = ParagraphStyle("kpiLblT", fontName="Helvetica-Bold", fontSize=7, textColor=C_SOFT, leading=9, alignment=1)
+    st_sec = ParagraphStyle("secT", fontName="Helvetica-Bold", fontSize=11, textColor=C_ORDK, leading=14, spaceBefore=14, spaceAfter=6)
+    st_body = ParagraphStyle("bodyT", fontName="Helvetica", fontSize=9.5, textColor=C_SOFT, leading=14.5, alignment=TA_JUSTIFY, spaceAfter=6)
+    st_th = ParagraphStyle("thT", fontName="Helvetica-Bold", fontSize=8, textColor=white, leading=10)
+    st_td = ParagraphStyle("tdT", fontName="Helvetica", fontSize=8, textColor=C_TEXT, leading=11)
+    st_td_soft = ParagraphStyle("tdSoftT", fontName="Helvetica", fontSize=7.5, textColor=C_SOFT, leading=10)
+
+    story: list = []
+
+    # ── KPIs ──────────────────────────────────────────────────────────
+    def kpi_card(numero: str, etiqueta: str, color) -> Table:
+        t = Table([[Paragraph(numero, st_kpi_num)], [Paragraph(etiqueta, st_kpi_lbl)]], colWidths=[fw / 3 - 8])
+        t.setStyle(TableStyle([
+            ("TOPPADDING", (0, 0), (-1, 0), 12), ("BOTTOMPADDING", (0, 0), (-1, 0), 2),
+            ("TOPPADDING", (0, 1), (-1, 1), 2), ("BOTTOMPADDING", (0, 1), (-1, 1), 12),
+            ("BOX", (0, 0), (-1, -1), 1, C_BORDER),
+            ("LINEABOVE", (0, 0), (-1, 0), 3, color),
+            ("BACKGROUND", (0, 0), (-1, -1), white),
+        ]))
+        return t
+
+    redirect_pct = _pct(reporte["redirected_count"], reporte["total_derived"])
+    color_redirect = C_OK if redirect_pct <= 10 else (C_WARN if redirect_pct <= 30 else C_BAD)
+    kpisTable = Table(
+        [[
+            kpi_card(str(reporte["resolved_count"]), "TICKETS TERMINADOS\nEN EL RANGO", C_OK),
+            kpi_card(str(reporte["total_derived"]), "TICKETS DERIVADOS\nA ESTE TÉCNICO", C_ORDK),
+            kpi_card(f"{reporte['redirected_count']} ({redirect_pct}%)", "RE-DERIVADOS A\nOTRO TÉCNICO", color_redirect),
+        ]],
+        colWidths=[fw / 3] * 3,
+    )
+    kpisTable.setStyle(TableStyle([("LEFTPADDING", (0, 0), (-1, -1), 4), ("RIGHTPADDING", (0, 0), (-1, -1), 4)]))
+    story.append(kpisTable)
+    story.append(Spacer(1, 14))
+
+    # ── Resumen general ──────────────────────────────────────────────
+    story.append(Paragraph("RESUMEN GENERAL", st_sec))
+    story.append(HRFlowable(width=fw, thickness=0.75, color=C_BORDER, spaceAfter=8))
+    if reporte["total_derived"] or reporte["resolved_count"]:
+        story.append(Paragraph(
+            f"En el período seleccionado, <b>{agent_name}</b> tuvo <b>{reporte['total_derived']} tickets</b> a su "
+            f"cargo (derivados durante el período, o ya asignados de antes y terminados en él), de los cuales "
+            f"<b>terminó {reporte['resolved_count']}</b>. De los derivados, "
+            f"<b>{reporte['redirected_count']} fueron re-derivados</b> a otro técnico ({redirect_pct}%).",
+            st_body,
+        ))
+    else:
+        story.append(Paragraph(
+            f"No se registró actividad de <b>{agent_name}</b> en el período seleccionado.",
+            st_body,
+        ))
+    story.append(Spacer(1, 6))
+
+    # ── Derivados por canal / prioridad ────────────────────────────────
+    story.append(Paragraph("TICKETS DERIVADOS — POR CANAL DE ENTRADA", st_sec))
+    story.append(HRFlowable(width=fw, thickness=0.75, color=C_BORDER, spaceAfter=8))
+    story.append(Paragraph(
+        "Incluye los tickets derivados a este técnico durante el período, más los que ya tenía asignados de "
+        "antes y terminó dentro del período — así el total nunca es menor a los tickets terminados.",
+        st_td_soft,
+    ))
+    story.append(Spacer(1, 6))
+    by_source = reporte["by_source"]
+    filas_canal = [[
+        Paragraph("WHATSAPP", st_th), Paragraph("GMAIL", st_th), Paragraph("INTERNO", st_th), Paragraph("TOTAL", st_th),
+    ], [
+        Paragraph(str(by_source.get("whatsapp", 0)), st_td),
+        Paragraph(str(by_source.get("email", 0)), st_td),
+        Paragraph(str(by_source.get("internal", 0)), st_td),
+        Paragraph(str(sum(by_source.values())), st_td),
+    ]]
+    tabla_canal = Table(filas_canal, colWidths=[fw * 0.25] * 4)
+    tabla_canal.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), C_DARK),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6), ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 5), ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [white, C_BG]),
+        ("LINEBELOW", (0, 0), (-1, -1), 0.5, C_BORDER),
+        ("BOX", (0, 0), (-1, -1), 1, C_BORDER),
+    ]))
+    story.append(tabla_canal)
+    story.append(Spacer(1, 14))
+
+    story.append(Paragraph("TICKETS DERIVADOS — POR PRIORIDAD", st_sec))
+    story.append(HRFlowable(width=fw, thickness=0.75, color=C_BORDER, spaceAfter=8))
+    by_priority = reporte["by_priority"]
+    filas_pri = [[
+        Paragraph("URGENTE", st_th), Paragraph("ALTA", st_th), Paragraph("MEDIA", st_th),
+        Paragraph("BAJA", st_th), Paragraph("SIN ASIGNAR", st_th),
+    ], [
+        Paragraph(str(by_priority.get("urgent", 0)), st_td),
+        Paragraph(str(by_priority.get("high", 0)), st_td),
+        Paragraph(str(by_priority.get("medium", 0)), st_td),
+        Paragraph(str(by_priority.get("low", 0)), st_td),
+        Paragraph(str(by_priority.get("unassigned", 0)), st_td),
+    ]]
+    tabla_pri = Table(filas_pri, colWidths=[fw * 0.2] * 5)
+    tabla_pri.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), C_DARK),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6), ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 5), ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [white, C_BG]),
+        ("LINEBELOW", (0, 0), (-1, -1), 0.5, C_BORDER),
+        ("BOX", (0, 0), (-1, -1), 1, C_BORDER),
+    ]))
+    story.append(tabla_pri)
+
+    # ── Página 2: Top 10 más lentos ────────────────────────────────────
+    story.append(PageBreak())
+    story.append(Paragraph("TOP 10 TICKETS MÁS LENTOS EN FINALIZAR", st_sec))
+    story.append(HRFlowable(width=fw, thickness=0.75, color=C_BORDER, spaceAfter=8))
+    story.append(Paragraph(
+        "Tiempo transcurrido desde que el ticket se derivó a este técnico hasta que se marcó como terminado "
+        "(si no hay historial de derivación registrado, se usa la fecha de creación del ticket).",
+        st_td_soft,
+    ))
+    story.append(Spacer(1, 6))
+
+    top10 = reporte["top10_slowest"]
+    if top10:
+        filas_top = [[
+            Paragraph("#", st_th), Paragraph("TICKET", st_th), Paragraph("DERIVADO", st_th),
+            Paragraph("TERMINADO", st_th), Paragraph("DEMORA (H)", st_th),
+        ]]
+        for idx, row in enumerate(top10, 1):
+            filas_top.append([
+                Paragraph(str(idx), st_td),
+                Paragraph(f"#{row['ticket_id']} — {row['subject']}", st_td),
+                Paragraph(_fmt_dt(row["derived_at"]), st_td_soft),
+                Paragraph(_fmt_dt(row["resolved_at"]), st_td_soft),
+                Paragraph(f"{row['delay_hours']:.1f}", st_td),
+            ])
+        tabla_top = Table(filas_top, colWidths=[fw * 0.05, fw * 0.45, fw * 0.18, fw * 0.18, fw * 0.14], repeatRows=1)
+        tabla_top.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), C_DARK),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 6), ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+            ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [white, C_BG]),
+            ("LINEBELOW", (0, 0), (-1, -1), 0.5, C_BORDER),
+            ("BOX", (0, 0), (-1, -1), 1, C_BORDER),
+        ]))
+        story.append(tabla_top)
+    else:
+        story.append(Paragraph("No hay tickets terminados en este período para calcular este ranking.", st_td_soft))
+
+    # ── Re-derivados a otro técnico ─────────────────────────────────────
+    story.append(Spacer(1, 16))
+    story.append(Paragraph("TICKETS RE-DERIVADOS A OTRO TÉCNICO", st_sec))
+    story.append(HRFlowable(width=fw, thickness=0.75, color=C_BORDER, spaceAfter=8))
+    story.append(Paragraph(
+        "De los tickets derivados a este técnico en el período, los que tuvo que traspasar a otro técnico "
+        "después.",
+        st_td_soft,
+    ))
+    story.append(Spacer(1, 6))
+
+    redirect_counts = reporte["redirect_counts"]
+    if redirect_counts:
+        filas_rcount = [[Paragraph("RE-DERIVADO A", st_th), Paragraph("CANTIDAD", st_th)]]
+        for nombre, cnt in sorted(redirect_counts.items(), key=lambda kv: -kv[1]):
+            filas_rcount.append([Paragraph(nombre, st_td), Paragraph(str(cnt), st_td)])
+        tabla_rcount = Table(filas_rcount, colWidths=[fw * 0.7, fw * 0.3], repeatRows=1)
+        tabla_rcount.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), C_DARK),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 6), ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+            ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [white, C_BG]),
+            ("LINEBELOW", (0, 0), (-1, -1), 0.5, C_BORDER),
+            ("BOX", (0, 0), (-1, -1), 1, C_BORDER),
+        ]))
+        story.append(tabla_rcount)
+        story.append(Spacer(1, 10))
+
+    redirected_detail = reporte["redirected_detail"]
+    if redirected_detail:
+        filas_rdet = [[
+            Paragraph("TICKET", st_th), Paragraph("RE-DERIVADO A", st_th), Paragraph("FECHA", st_th),
+        ]]
+        for item in redirected_detail:
+            filas_rdet.append([
+                Paragraph(f"#{item['ticket_id']} — {item['subject']}", st_td),
+                Paragraph(item["to_name"], st_td),
+                Paragraph(_fmt_dt(item["date"]), st_td_soft),
+            ])
+        tabla_rdet = Table(filas_rdet, colWidths=[fw * 0.55, fw * 0.25, fw * 0.20], repeatRows=1)
+        tabla_rdet.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), C_DARK),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 6), ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+            ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [white, C_BG]),
+            ("LINEBELOW", (0, 0), (-1, -1), 0.5, C_BORDER),
+            ("BOX", (0, 0), (-1, -1), 1, C_BORDER),
+        ]))
+        story.append(tabla_rdet)
+    else:
+        story.append(Paragraph("No se re-derivó ningún ticket a otro técnico en este período.", st_td_soft))
+
+    # ── Conclusión ───────────────────────────────────────────────────────
+    story.append(Spacer(1, 16))
+    story.append(Paragraph("CONCLUSIÓN", st_sec))
+    story.append(HRFlowable(width=fw, thickness=0.75, color=C_BORDER, spaceAfter=8))
+
+    partes: list[str] = []
+    if not reporte["total_derived"] and not reporte["resolved_count"]:
+        partes.append(f"No se registró actividad de {agent_name} en el período seleccionado.")
+    else:
+        partes.append(
+            f"<b>{agent_name}</b> terminó {reporte['resolved_count']} tickets en el período, sobre "
+            f"{reporte['total_derived']} derivados directamente a su nombre."
+        )
+        if top10:
+            peor = top10[0]
+            partes.append(
+                f"El ticket más lento en finalizar fue el <b>#{peor['ticket_id']}</b>, con "
+                f"{peor['delay_hours']:.1f} horas entre su derivación y su término."
+            )
+        if reporte["redirected_count"]:
+            partes.append(
+                f"Se re-derivaron <b>{reporte['redirected_count']} tickets</b> ({redirect_pct}%) a otro técnico "
+                "— se recomienda revisar si corresponden a una mala asignación inicial o a una escalación "
+                "justificada."
+            )
+        else:
+            partes.append("No hubo tickets re-derivados a otro técnico en este período.")
+    story.append(Paragraph(" ".join(partes), st_body))
+
+    doc.build(story)
+    buf.seek(0)
+    return buf.getvalue()

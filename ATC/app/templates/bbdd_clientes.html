@@ -426,7 +426,7 @@
 
     async function cargarUsuarioActual() {
       const el = document.getElementById("usuarioActual");
-      if (!el || !qsToken) return;
+      if (!el) return;
       try {
         const response = await fetch(`/api/usuario-actual?token=${encodeURIComponent(qsToken)}`);
         const data = await response.json().catch(() => ({}));

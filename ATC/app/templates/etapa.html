@@ -441,7 +441,7 @@
                   data-current-stage="{{ stage }}"
                 >
                   <div class="ticket-head">
-                    <span class="ticket-id">#{{ ticket.id }}</span>
+                    <span class="ticket-id">{{ ticket.id }}</span>
                     <div class="ticket-head-right">
                       <span class="ticket-source-icon" title="{{ (ticket.source or 'email')|capitalize }}">
                         {% set source_key = (ticket.source or 'email')|lower %}

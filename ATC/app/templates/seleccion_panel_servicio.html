@@ -404,13 +404,13 @@ h1{
           <p>Cierre de mantención por punto de cámara — Viña del Mar.</p>
         </a>
 
-        <a class="option" href="/servicio/indicadores?token={{ token|default('') }}" style="--option-accent:160,93,196;">
+        <a class="option" href="/servicio/indicadores?token={{ token|default('') }}&origen=servicio_tecnico" style="--option-accent:160,93,196;">
           <div class="icon">D</div>
           <strong>Dashboard</strong>
           <p>Indicadores y métricas de desempeño del servicio técnico en tiempo real.</p>
         </a>
 
-        <a class="option" href="/compras/solicitud?token={{ token|default('')|urlencode }}" style="--option-accent:31,79,216;">
+        <a class="option" href="/compras/solicitud?token={{ token|default('')|urlencode }}&origen=servicio_tecnico" style="--option-accent:31,79,216;">
           <div class="icon">C</div>
           <strong>Solicitar Compra</strong>
           <p>Ingresa una nueva solicitud de compra con ítems, destino y presupuestos adjuntos.</p>

@@ -59,6 +59,11 @@
       display: grid;
       grid-template-columns: 260px minmax(0, 1fr);
       background: var(--bg);
+      transition: grid-template-columns .22s ease;
+    }
+
+    body.sidebar-collapsed .page {
+      grid-template-columns: 0px minmax(0, 1fr);
     }
 
     .sidebar {
@@ -70,6 +75,53 @@
       flex-direction: column;
       min-height: 0;
       box-shadow: inset -1px 0 0 rgba(255,255,255,.03);
+      transition: padding .22s ease, border-color .22s ease;
+    }
+
+    body.sidebar-collapsed .sidebar {
+      padding: 0;
+      border-right-color: transparent;
+      overflow: hidden;
+    }
+
+    body.sidebar-collapsed .sidebar > * {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .sidebar-rail-toggle {
+      position: fixed;
+      top: 50%;
+      left: 244px;
+      transform: translateY(-50%);
+      width: 32px;
+      height: 52px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.24);
+      background: rgba(12,25,49,.95);
+      color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1400;
+      cursor: pointer;
+      box-shadow: 0 16px 30px rgba(2,6,23,.35);
+      transition: left .22s ease, background .18s ease, border-color .18s ease, transform .18s ease;
+    }
+
+    .sidebar-rail-toggle:hover {
+      background: rgba(17,36,67,.98);
+      border-color: rgba(147,197,253,.36);
+    }
+
+    .sidebar-rail-toggle svg {
+      width: 18px;
+      height: 18px;
+      display: block;
+    }
+
+    body.sidebar-collapsed .sidebar-rail-toggle {
+      left: 8px;
     }
 
     .brand {
@@ -119,6 +171,19 @@
       cursor: pointer;
       transition: background .16s ease, border-color .16s ease, transform .16s ease, color .16s ease, box-shadow .16s ease;
       transform: translateY(0);
+    }
+
+    .nav-badge {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 1px 8px;
+      border-radius: 999px;
+      background: #e0574f;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.6;
+      vertical-align: middle;
     }
 
     .nav-parent {
@@ -180,7 +245,7 @@
       visibility: hidden;
       transform: translate(10px, 0);
       transition: opacity .14s ease, transform .14s ease, visibility .14s ease;
-      z-index: 20;
+      z-index: 1500;
     }
 
     .nav-item:hover .submenu,
@@ -309,11 +374,13 @@
 
     .obs-panel-body { overflow-y: auto; }
 
-    /* personas-autorizadas / informacion-cliente: el panel exterior es solo un
+    /* personas-autorizadas / editar-sucursal / informacion-cliente:
+       el panel exterior es solo un
        contenedor de layout, cada .busqueda-select-card es su propia tarjeta;
        sin esto el fondo blanco del panel exterior tapa el gris de la página
        en el espacio entre las dos tarjetas y se ven pegadas. */
     .panel[data-panel="personas-autorizadas"],
+    .panel[data-panel="editar-sucursal"],
     .panel[data-panel="informacion-cliente"] {
       background: transparent;
       border: none;
@@ -1255,7 +1322,11 @@
       align-items: flex-end;
       gap: 18px;
       flex-wrap: wrap;
-      margin-bottom: 18px;
+      margin-bottom: 20px;
+      padding: 14px 16px;
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
     }
     .puestos-toolbar .field { margin: 0; min-width: 140px; }
     .puestos-toolbar .field.grow { flex: 1; min-width: 220px; }
@@ -1263,11 +1334,61 @@
     .puestos-pantallas-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 16px;
+      gap: 18px;
+    }
+    /* Puestos 13-29: 6 pantallas dispuestas como 2 filas x 3 columnas (agregan Centro) */
+    .puestos-pantallas-grid.cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
     @media (max-width: 1100px) {
       .puestos-pantallas-grid { grid-template-columns: 1fr; }
     }
+
+    /* ── Información Puestos ── */
+    .ip-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      background: #fff;
+    }
+    .ip-table th, .ip-table td {
+      padding: 9px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .ip-table th {
+      font-weight: 800;
+      color: var(--text);
+      background: var(--surface-alt);
+      cursor: pointer;
+      user-select: none;
+      position: sticky;
+      top: 0;
+    }
+    .ip-table th:hover { color: var(--primary); }
+    .ip-table th.is-sorted::after { content: " ▾"; font-size: 10px; }
+    .ip-table th.is-sorted.is-asc::after { content: " ▴"; font-size: 10px; }
+    .ip-table td.num { text-align: center; font-variant-numeric: tabular-nums; }
+    .ip-table tbody tr { cursor: pointer; }
+    .ip-table tbody tr:hover { background: var(--surface-alt); }
+    .ip-table td.ip-pendientes.has-pendientes { color: #b45309; font-weight: 800; }
+    .ip-table tr.is-active { background: rgba(222,123,54,.08); }
+
+    .ip-detalle {
+      margin-top: 20px;
+      padding: 16px 18px;
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+    }
+    .ip-detalle-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .ip-detalle-head h3 { margin: 0; font-size: 15px; font-weight: 800; color: var(--text); }
 
     .pantalla-card {
       background: #fff;
@@ -1275,67 +1396,283 @@
       border-radius: var(--radius-lg);
       box-shadow: var(--shadow);
       overflow: hidden;
+      transition: box-shadow .18s ease, transform .18s ease, border-color .18s ease;
+    }
+    .pantalla-card:hover {
+      box-shadow: 0 10px 24px rgba(15,23,42,.10), 0 2px 6px rgba(15,23,42,.05);
+      transform: translateY(-1px);
+      border-color: var(--border-strong);
     }
     .pantalla-card-head {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 12px 16px;
+      gap: 12px;
+      padding: 14px 16px 12px;
       border-bottom: 1px solid var(--border);
-      background: var(--surface-alt);
+      background: linear-gradient(180deg, var(--surface-alt) 0%, #fff 100%);
     }
-    .pantalla-card-head h3 { margin: 0; font-size: 14px; font-weight: 700; color: var(--text); }
+    .pantalla-card-head-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .pantalla-card-icon {
+      display: flex; align-items: center; justify-content: center;
+      width: 30px; height: 30px; flex: none;
+      border-radius: 8px;
+      background: var(--accent-soft, rgba(222,123,54,.12));
+      color: var(--primary);
+    }
+    .pantalla-card-icon svg { width: 16px; height: 16px; }
+    .pantalla-card-head h3 { margin: 0; font-size: 14px; font-weight: 800; color: var(--text); letter-spacing: -.01em; }
+    .pantalla-card-head .pantalla-sub { margin: 1px 0 0; font-size: 11px; color: var(--text-muted); font-weight: 600; }
+
+    .pantalla-count-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex: none; }
     .pantalla-count {
-      font-size: 12px;
-      font-weight: 700;
+      font-size: 11.5px;
+      font-weight: 800;
       color: var(--text-soft);
       border: 1px solid var(--border-strong);
       border-radius: 999px;
-      padding: 2px 10px;
+      padding: 3px 11px;
       white-space: nowrap;
+      background: #fff;
     }
     .pantalla-count.is-full { color: #16a34a; border-color: rgba(22,163,74,.35); background: rgba(22,163,74,.08); }
+    .pantalla-count-bar {
+      width: 88px;
+      height: 4px;
+      border-radius: 999px;
+      background: var(--border);
+      overflow: hidden;
+    }
+    .pantalla-count-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: var(--primary);
+      transition: width .2s ease;
+    }
+    .pantalla-count-bar-fill.is-full { background: #16a34a; }
 
     .pantalla-grid {
       display: grid;
       grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 8px;
-      padding: 12px;
+      padding: 14px;
+      background: var(--surface-alt);
     }
     .pantalla-box {
+      position: relative;
       border: 1px solid var(--border-strong);
-      border-radius: 8px;
-      padding: 8px 6px;
+      border-radius: var(--radius);
+      padding: 9px 6px 8px;
       text-align: center;
       background: #fff;
-      min-height: 52px;
+      box-shadow: 0 1px 2px rgba(15,23,42,.04);
+      min-height: 56px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 2px;
-      transition: border-color .12s, box-shadow .12s;
+      gap: 4px;
+      transition: border-color .14s ease, box-shadow .14s ease, transform .14s ease, opacity .14s ease;
     }
-    .pantalla-box .empresa { font-size: 10.5px; font-weight: 800; color: var(--text); line-height: 1.25; text-transform: uppercase; }
-    .pantalla-box .camara { font-size: 10px; color: var(--text-muted); font-weight: 600; }
+    .pantalla-box:not(.is-empty):hover {
+      border-color: var(--primary);
+      box-shadow: 0 4px 10px rgba(222,123,54,.16);
+      transform: translateY(-1px);
+    }
+
+    .pantalla-box .empresa {
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1.25;
+      text-transform: uppercase;
+      letter-spacing: .01em;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+    .pantalla-box .camara {
+      font-size: 9.5px;
+      color: var(--text-muted);
+      font-weight: 700;
+      background: var(--surface-alt);
+      border-radius: 999px;
+      padding: 1px 7px;
+      white-space: nowrap;
+    }
     .pantalla-box.is-empty {
       border-style: dashed;
-      border-color: var(--border);
-      background: var(--surface-alt);
+      border-color: var(--border-strong);
+      background: transparent;
+      box-shadow: none;
+      opacity: .55;
     }
-    .pantalla-box.is-dim { opacity: .25; }
+    .pantalla-box.is-dim { opacity: .22; }
 
-    .puestos-sin-asignar { margin-top: 22px; }
-    .puestos-sin-asignar-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
-    .puestos-sin-asignar-head h3 { margin: 0; font-size: 14px; font-weight: 700; color: var(--text); }
-    .puestos-sin-asignar-head .pantalla-count { color: #b45309; border-color: rgba(180,83,9,.35); background: rgba(180,83,9,.08); }
-    .puestos-sin-asignar-help { margin: 4px 0 10px; }
-    .puestos-sin-asignar-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 8px;
+    /* Cámara complementaria que no se monitorea activamente (columna
+       "Camaras sin monitoreo" de la planilla) — mismo puesto/pantalla que
+       las monitoreadas, pero visualmente atenuada y marcada aparte. */
+    .pantalla-box.pb-sin-monitoreo {
+      background: var(--surface-alt);
+      border-style: dashed;
     }
-    .puestos-sin-asignar-grid .pantalla-box { border-color: rgba(180,83,9,.35); background: rgba(180,83,9,.05); }
+    .pantalla-box.pb-sin-monitoreo .empresa { opacity: .7; }
+    .camara-sin-monitoreo-tag {
+      display: block;
+      font-style: normal;
+      font-size: 8px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .02em;
+      color: var(--text-muted);
+      opacity: .8;
+    }
+
+    .pantalla-box:not(.is-empty) { cursor: pointer; }
+
+    /* Puesto especial "Cámaras sin monitoreo": listado por sucursal, no grilla de pantallas */
+    .camaras-sin-monitoreo-lista {
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .csm-grupo { border-top: 1px solid var(--border); }
+    .csm-grupo:first-child { border-top: none; }
+    .csm-grupo-head {
+      padding: 10px 16px;
+      background: var(--surface-alt);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .01em;
+      color: var(--text);
+    }
+    .csm-grupo-head .csm-grupo-count { font-weight: 700; color: var(--text-muted); text-transform: none; margin-left: 6px; }
+    .csm-fila {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 16px;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .csm-fila:first-of-type { border-top: none; }
+    .csm-fila:hover { background: var(--surface-alt); }
+    .csm-fila .csm-camara { color: var(--text); font-weight: 600; }
+    .csm-fila .csm-tag {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      background: var(--surface-alt);
+      border-radius: 999px;
+      padding: 2px 9px;
+      flex: none;
+    }
+    .csm-grupo.is-dim { opacity: .22; }
+
+    /* ── Popup estado de camara (Administrar Puestos) ── */
+    .cam-status-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(11,20,36,.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 500;
+      padding: 24px;
+      backdrop-filter: blur(2px);
+    }
+    .cam-status-modal {
+      width: min(420px, 100%);
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 30px 70px rgba(15,23,42,.30);
+      padding: 30px 26px 24px;
+      text-align: center;
+      position: relative;
+      animation: camModalPop .28s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes camModalPop {
+      from { transform: scale(.85); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .cam-status-modal.is-warn {
+      animation: camModalPop .28s cubic-bezier(.34,1.56,.64,1), camModalPulse 1.8s ease-in-out .4s infinite;
+    }
+    @keyframes camModalPulse {
+      0%, 100% { box-shadow: 0 30px 70px rgba(15,23,42,.30), 0 0 0 0 rgba(220,38,38,0); }
+      50% { box-shadow: 0 30px 70px rgba(15,23,42,.30), 0 0 0 9px rgba(220,38,38,.10); }
+    }
+    .cam-status-close {
+      position: absolute; top: 12px; right: 12px;
+      width: 30px; height: 30px; border-radius: 999px;
+      border: 0; background: var(--surface-alt); color: var(--text-muted);
+      font-size: 19px; line-height: 1; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .14s ease, color .14s ease;
+    }
+    .cam-status-close:hover { background: var(--border); color: var(--text); }
+
+    .cam-status-icon {
+      width: 74px; height: 74px; margin: 0 auto 14px;
+      border-radius: 999px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .cam-status-icon svg { width: 36px; height: 36px; }
+    .cam-status-modal.is-ok .cam-status-icon {
+      background: rgba(22,163,74,.12); color: #16a34a;
+      animation: camIconPop .55s ease;
+    }
+    .cam-status-modal.is-warn .cam-status-icon {
+      background: rgba(220,38,38,.12); color: #dc2626;
+      animation: camIconShake .55s ease;
+    }
+    @keyframes camIconPop {
+      0% { transform: scale(0) rotate(-15deg); }
+      55% { transform: scale(1.18) rotate(4deg); }
+      100% { transform: scale(1) rotate(0); }
+    }
+    @keyframes camIconShake {
+      0%, 100% { transform: translateX(0) rotate(0); }
+      20% { transform: translateX(-5px) rotate(-8deg); }
+      40% { transform: translateX(5px) rotate(8deg); }
+      60% { transform: translateX(-4px) rotate(-5deg); }
+      80% { transform: translateX(4px) rotate(5deg); }
+    }
+
+    .cam-status-title { margin: 0 0 3px; font-size: 17px; font-weight: 800; color: var(--text); letter-spacing: -.01em; }
+    .cam-status-sub { margin: 0; font-size: 12.5px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+
+    .cam-status-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin: 16px 0 2px; padding: 6px 16px; border-radius: 999px;
+      font-size: 13px; font-weight: 800;
+    }
+    .cam-status-badge.is-ok { background: rgba(22,163,74,.12); color: #15803d; }
+    .cam-status-badge.is-warn { background: rgba(220,38,38,.12); color: #b91c1c; }
+
+    .cam-status-detail {
+      margin-top: 16px; padding: 12px 14px;
+      background: var(--surface-alt); border: 1px solid var(--border);
+      border-radius: var(--radius); text-align: left;
+    }
+    .cam-status-detail-row { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; padding: 3px 0; }
+    .cam-status-detail-row + .cam-status-detail-row { border-top: 1px dashed var(--border); }
+    .cam-status-detail-row span:first-child { color: var(--text-muted); font-weight: 700; flex: none; }
+    .cam-status-detail-row span:last-child { color: var(--text); font-weight: 600; text-align: right; }
+    .cam-status-detail-desc {
+      margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);
+      font-size: 12px; color: var(--text-soft); line-height: 1.5; text-align: left;
+    }
+    .cam-status-loading { padding: 10px 0 2px; color: var(--text-muted); font-size: 13px; }
 
     .form-grid {
       display: grid;
@@ -1638,6 +1975,10 @@
         border-bottom: 1px solid rgba(255,255,255,.06);
       }
 
+      .sidebar-rail-toggle {
+        display: none !important;
+      }
+
       .nav {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
@@ -1706,6 +2047,90 @@
     }
   </style>
   <style>
+    /* Sucursales pendientes — slider list/detalle (reemplaza el popup de vista previa) */
+    .pend-slider-viewport {
+      overflow: hidden;
+      position: relative;
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .pend-slider-track {
+      display: flex;
+      align-items: stretch;
+      width: 200%;
+      flex: 1 1 auto;
+      min-height: 0;
+      transition: transform .45s cubic-bezier(.16,1,.3,1);
+    }
+
+    .pend-slider-track.is-detail {
+      transform: translateX(-50%);
+    }
+
+    .pend-pane {
+      width: 50%;
+      flex: 0 0 50%;
+      min-width: 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .pend-detail-head {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    .pend-back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-soft);
+      border-radius: 999px;
+      padding: 7px 14px 7px 10px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: border-color .15s ease, color .15s ease, transform .15s ease;
+      flex: 0 0 auto;
+    }
+
+    .pend-back-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      transform: translateX(-2px);
+    }
+
+    .pend-detail-title {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .pend-detail-title h2 {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .pend-detail-actions {
+      display: flex;
+      gap: 8px;
+      flex: 0 0 auto;
+    }
+
+    @media (max-width: 860px) {
+      .pend-detail-head { flex-wrap: wrap; }
+      .pend-detail-actions { width: 100%; }
+      .pend-detail-actions .btn { flex: 1 1 0; }
+    }
+
     /* Nuevo layout de detalle de sucursal */
     .empresa-detail-grid {
       display: grid;
@@ -1757,6 +2182,223 @@
       font-weight: 600;
     }
 
+    /* Vista previa de sucursales pendientes: campos editables con doble clic
+       (mismo patron que tecnicos.html / incidencias_servicio_tecnico.html). */
+    .pend-editable {
+      cursor: pointer;
+      border-radius: 4px;
+      transition: background-color .12s ease;
+    }
+    .pend-editable:hover {
+      background: #eff6ff;
+      outline: 1px dashed #93c5fd;
+      outline-offset: -1px;
+    }
+    /* Sin esto, una celda vacía no tiene contenido para hacer doble clic —
+       el ::before le da un texto visible y área clickeable igual. */
+    .pend-editable:empty::before {
+      content: "Doble clic para editar";
+      color: #9ca3af;
+      font-size: 11.5px;
+      font-style: italic;
+      font-weight: 400;
+    }
+    .pend-editable input,
+    .pend-inline-input {
+      width: 100%;
+      border: 1px solid #93c5fd;
+      border-radius: 4px;
+      padding: 3px 6px;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+      background: #fff;
+      outline: none;
+      box-sizing: border-box;
+    }
+    .pend-add-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 12px;
+      margin-top: 8px;
+      border: 1.5px dashed #cbd5e1;
+      border-radius: 8px;
+      background: transparent;
+      color: #475569;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+    }
+    .pend-add-row:hover {
+      border-color: #93c5fd;
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+    .pend-item-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .pend-item-delete {
+      flex: 0 0 auto;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 1px solid #fecaca;
+      background: #fef2f2;
+      color: #b91c1c;
+      font-size: 13px;
+      line-height: 1;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .pend-item-delete:hover {
+      background: #fee2e2;
+    }
+    .pend-mini-form {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 10px 12px;
+      border: 1px solid #dbeafe;
+      border-radius: 10px;
+      background: #f8fbff;
+      margin-top: 8px;
+    }
+    .pend-mini-form input {
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 6px 9px;
+      font: inherit;
+      font-size: 12.5px;
+    }
+    .pend-mini-form .pend-mini-actions {
+      grid-column: 1/-1;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    /* Editor de "Días hábiles" en Vista previa: mismos chips de día que
+       registro_sucursal.html (multi-select), con los colores de bitácora. */
+    .pend-days-row { display: flex; flex-wrap: wrap; gap: 5px; margin: 0 0 8px; }
+    .pend-day-chip { position: relative; }
+    .pend-day-chip input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; }
+    .pend-day-chip label {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 38px;
+      height: 28px;
+      padding: 0 8px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #64748b;
+      background: #f8fafc;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      cursor: pointer;
+      user-select: none;
+      transition: all .12s;
+    }
+    .pend-day-chip input:checked + label {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+    .pend-day-chip label:hover { border-color: var(--primary); }
+    .pend-days-actions { display: flex; gap: 6px; }
+    .pend-days-actions button {
+      padding: 3px 11px;
+      font-size: 11.5px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    /* Checklist de "qué falta o está mal" en el modal Notificar a Comercial.
+       Fuera de .field a propósito: .field label/.field input ya tienen reglas
+       globales (uppercase, bold, width:100%, padding grande) que convertían
+       cada checkbox en una barra gigante — este bloque no debe heredar eso. */
+    .pend-notificar-label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .03em;
+      text-transform: uppercase;
+    }
+    #pendNotificarModal .clave-modal {
+      width: min(760px, calc(100vw - 48px));
+      max-height: calc(100vh - 48px);
+      overflow-y: auto;
+    }
+    .pend-notificar-checklist {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+    }
+    @media (max-width: 640px) {
+      .pend-notificar-checklist { grid-template-columns: 1fr; }
+    }
+    .pend-notificar-item {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 10px 13px;
+      font-size: 13px;
+      line-height: 16px;
+      font-weight: 500;
+      color: #334155;
+      cursor: pointer;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      background: #fff;
+      transition: background-color .12s ease, border-color .12s ease;
+      user-select: none;
+    }
+    .pend-notificar-item input[type="checkbox"] {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+      pointer-events: none;
+    }
+    .pend-notificar-item:hover { background: #f8fafc; border-color: #cbd5e1; }
+    .pend-notificar-item .pend-notificar-texto {
+      flex: 1;
+      line-height: 16px;
+    }
+    .pend-notificar-item .pend-notificar-badge {
+      flex: 0 0 auto;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: .02em;
+      text-transform: uppercase;
+      line-height: 16px;
+      color: #b45309;
+      background: #fef3c7;
+      border: 1px solid #fde68a;
+      border-radius: 999px;
+      padding: 2px 8px;
+    }
+    .pend-notificar-item.is-empty { background: #fffbeb; border-color: #fde68a; }
+    .pend-notificar-item.is-empty:hover { background: #fef3c7; }
+    .pend-notificar-item.is-empty .pend-notificar-texto { color: #92400e; font-weight: 600; }
+    .pend-notificar-item.is-selected {
+      border-color: var(--primary);
+      background: rgba(222, 123, 54, 0.07);
+    }
+    .pend-notificar-item.is-selected:hover { background: rgba(222, 123, 54, 0.12); }
+    .pend-notificar-item.is-selected .pend-notificar-texto { color: var(--primary-hover); font-weight: 700; }
+
     .empresa-contact-item {
       padding: 10px 16px;
       border-bottom: 1px solid #eef2f7;
@@ -1798,6 +2440,7 @@
     /* Panel busqueda-empresa / busqueda-rut: contenedor transparente, cada caja por separado */
     .panel[data-panel="busqueda-empresa"].active,
     .panel[data-panel="busqueda-rut"].active,
+    .panel[data-panel="editar-sucursal"].active,
     .panel[data-panel="personas-autorizadas"].active {
       background: transparent;
       border: 0;
@@ -1862,6 +2505,13 @@
   </style>
 </head>
 <body>
+  <button
+    id="sidebarRailToggle"
+    class="sidebar-rail-toggle"
+    type="button"
+    aria-label="Contraer barra lateral"
+    title="Contraer barra lateral"
+  ></button>
   <main class="page">
     <aside class="sidebar">
       <div class="brand">
@@ -1896,7 +2546,7 @@
         </div>
         {% if is_bitacora_admin %}
         <div class="nav-item">
-          <button class="nav-btn" type="button" data-panel-target="administrar-puestos">Administrar puestos</button>
+          <button class="nav-btn" type="button" data-panel-target="administrar-puestos">Administrar Puestos</button>
         </div>
         <div class="nav-item">
           <button class="nav-btn" type="button" data-panel-target="registro-usuario">Gestión de Usuarios</button>
@@ -1930,6 +2580,15 @@
         </div>
         <div class="nav-item">
           <button class="nav-btn" type="button" data-panel-target="informacion-cliente">Información Cliente</button>
+        </div>
+        <div class="nav-item">
+          <button class="nav-btn" type="button" data-panel-target="informacion-puestos">Información Puestos</button>
+        </div>
+        <div class="nav-item">
+          <button class="nav-btn" type="button" data-panel-target="sucursales-pendientes">
+            Sucursales Pendientes
+            <span class="nav-badge" id="navPendientesBadge" hidden>0</span>
+          </button>
         </div>
         {% endif %}
         {% endif %}
@@ -2016,8 +2675,8 @@
       <section class="panel" data-panel="administrar-puestos">
         <div class="panel-head">
           <div>
-            <h2>Administrar puestos</h2>
-            <p>Sucursales monitoreadas por puesto y pantalla. <em>Vista de maqueta con datos de ejemplo — se conecta a datos reales cuando esté lista la planilla de referencia.</em></p>
+            <h2>Administrar Puestos</h2>
+            <p>Sucursales monitoreadas por puesto y pantalla, según el cruce de cámaras cargado en <code>sucursal_camaras_monitoreo</code>. Las cámaras sin monitoreo no ocupan pantalla — se listan aparte en el puesto <em>"Cámaras sin monitoreo"</em>.</p>
           </div>
         </div>
         <div class="panel-body">
@@ -2033,18 +2692,99 @@
           </div>
 
           <div class="puestos-pantallas-grid" id="puestosPantallasGrid"></div>
-
-          <div class="puestos-sin-asignar">
-            <div class="puestos-sin-asignar-head">
-              <h3>Cámaras sin puesto asignado</h3>
-              <span class="pantalla-count" id="puestosSinAsignarCount">0</span>
-            </div>
-            <p class="muted puestos-sin-asignar-help">Cámaras contratadas que no están siendo monitoreadas en ningún puesto/pantalla.</p>
-            <div class="puestos-sin-asignar-grid" id="puestosSinAsignarGrid"></div>
-          </div>
         </div>
         </div>
       </section>
+
+      <section class="panel" data-panel="informacion-puestos">
+        <div class="panel-head">
+          <div>
+            <h2>Información Puestos</h2>
+            <p>Cámaras, sucursales, incidencias, protocolos y movimientos de bitácora por puesto de monitoreo (1-29). Hacé clic en un puesto para ver el detalle por sucursal.</p>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="puestos-toolbar">
+            <div class="field">
+              <label for="ipDesde">Desde</label>
+              <input id="ipDesde" type="date" />
+            </div>
+            <div class="field">
+              <label for="ipHasta">Hasta</label>
+              <input id="ipHasta" type="date" />
+            </div>
+            <div class="field">
+              <label>&nbsp;</label>
+              <button type="button" class="btn btn-primary" id="ipAplicar">Aplicar</button>
+            </div>
+            <div class="field">
+              <label>&nbsp;</label>
+              <button type="button" class="btn btn-light" id="ipExcelPreview">Descargar Excel</button>
+            </div>
+            <div class="field">
+              <label>&nbsp;</label>
+              <button type="button" class="btn btn-light" id="ipPdfPreview">Descargar PDF</button>
+            </div>
+            <div class="field">
+              <label>&nbsp;</label>
+              <button type="button" class="btn btn-light" id="ipRecintoPreview">Descargar Detalle por Recinto</button>
+            </div>
+          </div>
+
+          <div class="table-scroll">
+            <table class="ip-table" id="ipResumenTable">
+              <thead>
+                <tr>
+                  <th data-sort="puesto">Puesto</th>
+                  <th data-sort="camaras_monitoreadas">Cámaras monitoreadas</th>
+                  <th data-sort="sucursales">Sucursales</th>
+                  <th data-sort="incidencias">Incidencias</th>
+                  <th data-sort="incidencias_pendientes">Pendientes</th>
+                  <th data-sort="protocolos_preventivos">Protocolos preventivos</th>
+                  <th data-sort="protocolos_intrusivos">Protocolos intrusivos</th>
+                  <th data-sort="movimientos_bitacora">Movimientos bitácora</th>
+                </tr>
+              </thead>
+              <tbody id="ipResumenBody">
+                <tr><td colspan="8" class="muted">Cargando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="ip-detalle" id="ipDetalleWrap" hidden>
+            <div class="ip-detalle-head">
+              <h3 id="ipDetalleTitulo">Puesto</h3>
+              <button type="button" class="btn btn-light" id="ipCerrarDetalle">Cerrar</button>
+            </div>
+            <div class="table-scroll">
+              <table class="ip-table" id="ipDetalleTable">
+                <thead>
+                  <tr>
+                    <th data-sort="sucursal">Sucursal</th>
+                    <th data-sort="camaras_monitoreadas">Cámaras monitoreadas</th>
+                    <th data-sort="incidencias">Incidencias</th>
+                    <th data-sort="incidencias_pendientes">Pendientes</th>
+                    <th data-sort="protocolos_preventivos">Protocolos preventivos</th>
+                    <th data-sort="protocolos_intrusivos">Protocolos intrusivos</th>
+                    <th data-sort="movimientos_bitacora">Movimientos bitácora</th>
+                  </tr>
+                </thead>
+                <tbody id="ipDetalleBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="cam-status-overlay" id="camStatusOverlay" hidden>
+        <div class="cam-status-modal" id="camStatusModal" role="dialog" aria-modal="true" aria-labelledby="camStatusTitle">
+          <button class="cam-status-close" id="camStatusClose" type="button" aria-label="Cerrar">&times;</button>
+          <div class="cam-status-icon" id="camStatusIcon"></div>
+          <h3 class="cam-status-title" id="camStatusTitle">—</h3>
+          <p class="cam-status-sub" id="camStatusSub">—</p>
+          <div id="camStatusBody"></div>
+        </div>
+      </div>
       {% endif %}
 
       {% if is_bitacora_admin %}
@@ -2187,7 +2927,19 @@
                 <h3>Personas autorizadas</h3>
                 <span id="empresaAutorizadasCount">0 personas</span>
               </div>
-              <div class="empresa-authorized-list" id="empresaAutorizadasList"></div>
+              <div class="table-wrap">
+                <table id="empresaAutorizadasTable">
+                  <thead>
+                    <tr>
+                      <th>Nombre</th>
+                      <th>RUT</th>
+                      <th>Info</th>
+                      <th>Celular</th>
+                    </tr>
+                  </thead>
+                  <tbody id="empresaAutorizadasList"></tbody>
+                </table>
+              </div>
             </section>
 
             <section class="empresa-section">
@@ -2669,6 +3421,75 @@
             </div>
           </div>
       </section>
+
+      <!-- ── SUCURSALES PENDIENTES DE ACEPTACIÓN ── -->
+      <section class="panel" data-panel="sucursales-pendientes">
+        <div class="pend-slider-viewport" id="pendSliderViewport">
+          <div class="pend-slider-track" id="pendSliderTrack">
+
+            <div class="pend-pane pend-pane-list">
+              <div class="panel-head">
+                <div>
+                  <h2>Sucursales pendientes de aceptación</h2>
+                  <p>Toda sucursal nueva registrada desde Venta llega aquí primero. Revísala, edita lo que falte con doble clic y acéptala — si algo no está bien, notifica a Comercial en vez de rechazarla. Solo se descarta si es un duplicado de una sucursal ya aceptada.</p>
+                </div>
+              </div>
+              <div class="panel-body">
+                <div id="pendStatus" class="status"></div>
+                <div id="pendResults" class="news-list">
+                  <div class="empty">Cargando sucursales pendientes…</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="pend-pane pend-pane-detail">
+              <div class="panel-head pend-detail-head">
+                <button type="button" class="pend-back-btn" id="pendPreviewVolver" aria-label="Volver a la lista">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                  Volver a la lista
+                </button>
+                <div class="pend-detail-title">
+                  <h2 id="pendPreviewTitulo">—</h2>
+                  <p id="pendPreviewSub">Vista previa — así se vería en Buscar por Empresa</p>
+                </div>
+                <div class="pend-detail-actions">
+                  <button type="button" class="btn" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;" id="pendPreviewDuplicadoBtn">Duplicado</button>
+                  <button type="button" class="btn btn-info" id="pendPreviewNotificarBtn">Notificar a Comercial</button>
+                  <button type="button" class="btn btn-primary" id="pendPreviewAceptarBtn">Aceptar</button>
+                </div>
+              </div>
+              <div class="panel-body">
+                <div id="pendPreviewStatus" class="status"></div>
+                <div id="pendPreviewBody" hidden>
+                  <div class="empresa-detail-grid">
+                    <section class="empresa-section">
+                      <div class="empresa-section-head">
+                        <h3>Información de sucursal</h3>
+                      </div>
+                      <div id="pendPreviewFichaGrid"></div>
+                    </section>
+                    <section class="empresa-section">
+                      <div class="empresa-section-head">
+                        <h3>Contacto de Emergencia</h3>
+                        <span id="pendPreviewContactosCount">0 contactos</span>
+                      </div>
+                      <div id="pendPreviewContactosList"></div>
+                    </section>
+                  </div>
+                  <section class="empresa-section">
+                    <div class="empresa-section-head">
+                      <h3>Personas autorizadas</h3>
+                      <span id="pendPreviewAutorizadasCount">0 personas</span>
+                    </div>
+                    <div class="empresa-authorized-list" id="pendPreviewAutorizadasList"></div>
+                  </section>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
       {% endif %}
 
       <!-- ── INFORMACIÓN CLIENTE (panel dedicado) ── -->
@@ -2907,6 +3728,10 @@
           <div class="field" style="grid-column:1/-1;">
             <label for="esFldDireccion">Dirección</label>
             <input id="esFldDireccion" type="text" />
+          </div>
+          <div class="field" style="grid-column:1/-1;">
+            <label for="esFldLatLng">Latitud, Longitud</label>
+            <input id="esFldLatLng" type="text" placeholder="-33.4489, -70.6693" />
           </div>
           <div class="field" style="grid-column:1/-1;">
             <label for="esFldReferencia">Referencia ubicación</label>
@@ -3404,6 +4229,80 @@
       </div>
     </div>
   </div>
+
+  <div class="clave-modal-overlay" id="pendNotificarModal" hidden>
+    <div class="clave-modal" role="dialog" aria-modal="true" aria-labelledby="pendNotificarModalTitle">
+      <div class="clave-modal-header">
+        <h2 id="pendNotificarModalTitle">Notificar a Comercial</h2>
+        <p>Se le envía un correo a quien registró esta sucursal. La sucursal sigue pendiente y editable — no se rechaza ni se borra.</p>
+      </div>
+      <div class="clave-modal-body">
+        <div class="clave-persona-card">
+          <div>
+            <p class="clave-persona-name" id="pendNotificarNombre">—</p>
+            <p class="clave-persona-meta" id="pendNotificarEmpresa">—</p>
+          </div>
+        </div>
+        <div style="margin-top:14px;">
+          <label class="pend-notificar-label">¿Qué falta o está mal?</label>
+          <div id="pendNotificarChecklist" class="pend-notificar-checklist"></div>
+        </div>
+        <div class="field" style="margin-top:14px;">
+          <label for="pendNotificarMensaje">Detalle adicional (opcional)</label>
+          <textarea id="pendNotificarMensaje" rows="3" placeholder="Cualquier otra indicación para Comercial…" style="width:100%;box-sizing:border-box;resize:vertical;border:1px solid #cbd5e1;border-radius:8px;padding:8px 10px;font:inherit;font-size:13px;"></textarea>
+        </div>
+        <div class="clave-modal-actions">
+          <button type="button" class="clave-btn-cancel" id="pendNotificarCancelar">Cancelar</button>
+          <button type="button" class="clave-btn-accept" id="pendNotificarConfirmar">Enviar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="clave-modal-overlay" id="pendNotificarSubcampoModal" hidden style="z-index:210;">
+    <div class="clave-modal" role="dialog" aria-modal="true" aria-labelledby="pendNotificarSubcampoTitulo">
+      <div class="clave-modal-header">
+        <h2 id="pendNotificarSubcampoTitulo">¿Qué falta o está mal?</h2>
+        <p>Elige qué dato específico corregir o agregar.</p>
+      </div>
+      <div class="clave-modal-body">
+        <div id="pendNotificarSubcampoChecklist" class="pend-notificar-checklist"></div>
+        <div class="clave-modal-actions">
+          <button type="button" class="clave-btn-cancel" id="pendNotificarSubcampoCancelar">Cancelar</button>
+          <button type="button" class="clave-btn-accept" id="pendNotificarSubcampoGuardar">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="clave-modal-overlay" id="pendDuplicadoModal" hidden>
+    <div class="clave-modal" role="dialog" aria-modal="true" aria-labelledby="pendDuplicadoModalTitle">
+      <div class="clave-modal-header">
+        <h2 id="pendDuplicadoModalTitle">Marcar como duplicado</h2>
+        <p>Esto elimina el registro pendiente. Si tenía órdenes de servicio con cámaras u otros datos cargados, se reasignan a la sucursal ya aceptada antes de borrarlo — no se pierden.</p>
+      </div>
+      <div class="clave-modal-body">
+        <div class="clave-persona-card">
+          <div>
+            <p class="clave-persona-name" id="pendDuplicadoNombre">—</p>
+            <p class="clave-persona-meta" id="pendDuplicadoEmpresa">—</p>
+          </div>
+        </div>
+        <div class="field" style="margin-top:12px;">
+          <label for="pendDuplicadoSelect">Es duplicado de:</label>
+          <select id="pendDuplicadoSelect" style="width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:8px;padding:8px 10px;font:inherit;font-size:13px;">
+            <option value="">Cargando sucursales de esta empresa…</option>
+          </select>
+          <p class="copy" id="pendDuplicadoHint" style="margin-top:6px;"></p>
+        </div>
+        <div class="clave-modal-actions">
+          <button type="button" class="clave-btn-cancel" id="pendDuplicadoCancelar">Cancelar</button>
+          <button type="button" class="clave-btn-accept" id="pendDuplicadoConfirmar" style="background:#b45309;">Confirmar duplicado</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   {% endif %}
 
   <script>
@@ -3666,14 +4565,14 @@
 
       function cleanDisplay(value) {
         if (Array.isArray(value)) {
-          return value.length ? `${value.length} registro(s)` : "-";
+          return value.length ? `${value.length} registro(s)` : "";
         }
         if (value && typeof value === "object") {
           return "Registrado";
         }
         const text = String(value ?? "").trim();
         if (!text || text === "-") {
-          return "-";
+          return "";
         }
         return text;
       }
@@ -3768,26 +4667,16 @@
           return;
         }
         if (!items.length) {
-          empresaAutorizadasList.innerHTML = renderEmpresaEmpty("Sin personas autorizadas registradas.");
+          empresaAutorizadasList.innerHTML = `<tr><td colspan="4" class="empty">Sin personas autorizadas registradas.</td></tr>`;
           return;
         }
-        empresaAutorizadasList.innerHTML = items.map((item, idx) => `
-          <article class="empresa-person-card is-authorized">
-            <div>
-              <h4>${esc(cleanDisplay(item.nombre))}<span style="margin-left:8px;font-size:11px;font-weight:600;color:#64748b;background:#f1f5f9;padding:1px 7px;border-radius:20px;">Prioridad ${idx + 1}</span></h4>
-              <div class="empresa-person-meta">
-                <span>RUT: ${esc(cleanDisplay(item.rut))}</span>
-                <span>Info: ${esc(cleanDisplay(item.email))}</span>
-              </div>
-            </div>
-            <div class="empresa-person-meta">
-              <span>Celular: ${esc(cleanDisplay(item.celular))}</span>
-            </div>
-            <div class="empresa-auth-flags">
-              <button class="empresa-badge green btn-clave-action" data-tipo="Verde" data-clave="${esc(cleanDisplay(item.clave_verde))}" data-nombre="${esc(cleanDisplay(item.nombre))}" data-source="empresa" title="Registrar Clave Verde">${esc(cleanDisplay(item.clave_verde))}</button>
-              <button class="empresa-badge red btn-clave-action" data-tipo="Roja" data-clave="${esc(cleanDisplay(item.clave_roja))}" data-nombre="${esc(cleanDisplay(item.nombre))}" data-source="empresa" title="Registrar Clave Roja">${esc(cleanDisplay(item.clave_roja))}</button>
-            </div>
-          </article>
+        empresaAutorizadasList.innerHTML = items.map((item) => `
+          <tr>
+            <td>${esc(cleanDisplay(item.nombre))}</td>
+            <td><button type="button" class="rut-sucursal-button" data-persona-id="${esc(item.id)}" data-sucursal-id="${esc(window.currentSucursalId)}" data-nombre="${esc(cleanDisplay(item.nombre))}" data-empresa="${esc(selectedBuscarEmpresa)}" data-sucursal="${esc(selectedBuscarSucursal)}" data-source="empresa">${esc(cleanDisplay(item.rut))}</button></td>
+            <td>${esc(cleanDisplay(item.email))}</td>
+            <td>${esc(cleanDisplay(item.celular))}</td>
+          </tr>
         `).join("");
       }
 
@@ -3836,6 +4725,7 @@
 
           { type: "section", label: "Ubicación y contacto" },
           { label: "Dirección", value: detail.direccion },
+          { label: "Latitud, Longitud", value: detail.latitud_longitud },
           { label: "Referencia ubicación", value: detail.referencia_ubicacion },
           { label: "Contacto", value: detail.contacto },
           { label: "Correo", value: detail.correo },
@@ -4392,6 +5282,1085 @@
         } finally {
           saveNewsButton.disabled = false;
         }
+      }
+
+      // ── Sucursales pendientes de aceptación ──
+      const pendStatus = document.getElementById("pendStatus");
+      const pendResults = document.getElementById("pendResults");
+      const navPendientesBadge = document.getElementById("navPendientesBadge");
+      const pendNotificarModal = document.getElementById("pendNotificarModal");
+      const pendNotificarNombre = document.getElementById("pendNotificarNombre");
+      const pendNotificarEmpresa = document.getElementById("pendNotificarEmpresa");
+      const pendNotificarMensaje = document.getElementById("pendNotificarMensaje");
+      const pendNotificarCancelar = document.getElementById("pendNotificarCancelar");
+      const pendNotificarConfirmar = document.getElementById("pendNotificarConfirmar");
+      let pendNotificarTargetId = null;
+      const pendNotificarSubcampoModal = document.getElementById("pendNotificarSubcampoModal");
+      const pendNotificarSubcampoTitulo = document.getElementById("pendNotificarSubcampoTitulo");
+      const pendNotificarSubcampoChecklist = document.getElementById("pendNotificarSubcampoChecklist");
+      const pendNotificarSubcampoCancelar = document.getElementById("pendNotificarSubcampoCancelar");
+      const pendNotificarSubcampoGuardar = document.getElementById("pendNotificarSubcampoGuardar");
+      let pendNotificarSubcampoActual = null;
+      let pendNotificarSubcamposSeleccionados = {};
+      const pendDuplicadoModal = document.getElementById("pendDuplicadoModal");
+      const pendDuplicadoNombre = document.getElementById("pendDuplicadoNombre");
+      const pendDuplicadoEmpresa = document.getElementById("pendDuplicadoEmpresa");
+      const pendDuplicadoSelect = document.getElementById("pendDuplicadoSelect");
+      const pendDuplicadoHint = document.getElementById("pendDuplicadoHint");
+      const pendDuplicadoCancelar = document.getElementById("pendDuplicadoCancelar");
+      const pendDuplicadoConfirmar = document.getElementById("pendDuplicadoConfirmar");
+      let pendDuplicadoTargetId = null;
+
+      async function loadPendientes() {
+        if (!pendResults && !navPendientesBadge) {
+          return;
+        }
+        try {
+          const response = await fetch("/api/bitacora/sucursales-pendientes", { headers: { Accept: "application/json" } });
+          const payload = await response.json();
+          if (!response.ok) {
+            throw new Error(payload.detail || "No se pudieron cargar las sucursales pendientes.");
+          }
+          if (navPendientesBadge) {
+            navPendientesBadge.textContent = String(payload.total || 0);
+            navPendientesBadge.hidden = !payload.total;
+          }
+          if (pendResults) {
+            renderPendientes(payload.sucursales || []);
+          }
+        } catch (error) {
+          if (pendStatus) {
+            pendStatus.textContent = error.message || "No se pudieron cargar las sucursales pendientes.";
+          }
+        }
+      }
+
+      let pendientesData = [];
+
+      function renderPendientes(rows) {
+        if (!pendResults) {
+          return;
+        }
+        pendientesData = Array.isArray(rows) ? rows : [];
+        if (!pendientesData.length) {
+          pendResults.innerHTML = '<div class="empty">No hay sucursales pendientes de aceptación.</div>';
+          if (pendStatus) pendStatus.textContent = "";
+          return;
+        }
+        if (pendStatus) {
+          pendStatus.textContent = `${pendientesData.length} sucursal(es) pendiente(s).`;
+        }
+        pendResults.innerHTML = pendientesData.map((row) => {
+          const dup = row.posible_duplicado;
+          const dupHtml = dup
+            ? `<p class="copy" style="color:#b23a3a;font-weight:600;">⚠ Posible duplicado de "${esc(dup.nombre_sucursal)}" (id ${esc(dup.id)}) ya aceptada — ${esc(dup.direccion_sucursal)}</p>`
+            : "";
+          return `
+            <article class="news-item" data-pend-id="${esc(row.id)}">
+              <h3>Empresa: ${esc(row.nombre_empresa || "-")}</h3>
+              <p class="branch">Sucursal: ${esc(row.nombre_sucursal || "Sin nombre")} · RUT ${esc(row.rut || "-")}</p>
+              <p class="copy">${esc(row.direccion_sucursal || "-")}${row.comuna ? ", " + esc(row.comuna) : ""}${row.region ? ", " + esc(row.region) : ""}</p>
+              ${dupHtml}
+              <div class="news-meta">Registró ${esc(row.created_by || "-")} · ${formatDateTime(row.created_at)}</div>
+              <div class="toolbar" style="margin-top:10px;">
+                <button type="button" class="btn btn-light" data-pend-action="preview">Vista previa</button>
+                <button type="button" class="btn" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;" data-pend-action="duplicado">Duplicado</button>
+                <button type="button" class="btn btn-primary" data-pend-action="aceptar">Aceptar</button>
+              </div>
+            </article>
+          `;
+        }).join("");
+      }
+
+      async function pendAceptar(id) {
+        pendStatus.textContent = "Aceptando…";
+        try {
+          const response = await fetch(`/api/bitacora/sucursales-pendientes/${id}/aceptar`, { method: "POST" });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(payload.detail || "No se pudo aceptar la sucursal.");
+          }
+          await loadPendientes();
+        } catch (error) {
+          pendStatus.textContent = error.message || "No se pudo aceptar la sucursal.";
+        }
+      }
+
+      // Mismos campos editables de la ficha, en el mismo orden en que aparecen ahí,
+      // para que el checklist de "qué falta o está mal" sea 1:1 con lo que se ve arriba.
+      const PEND_NOTIFICAR_CAMPOS = [
+        { field: "direccion_sucursal", label: "Dirección" },
+        { field: "latitud_longitud", label: "Latitud, Longitud" },
+        { field: "referencia_ubicacion", label: "Referencia ubicación" },
+        { field: "horario_apertura", label: "Horario de apertura" },
+        { field: "horario_cierre", label: "Horario de cierre" },
+        { field: "horario_habil", label: "Días hábiles" },
+        { field: "telefono_porton", label: "Teléfono portón" },
+        { field: "telefono_recepcion", label: "Teléfono recepción" },
+        { field: "compania_electricidad", label: "Compañía electricidad" },
+        { field: "numero_cliente_electricidad", label: "N° cliente electricidad" },
+        { field: "proveedor_internet_cliente", label: "Proveedor internet cliente" },
+        { field: "internet_atc", label: "Internet ATC" },
+      ];
+
+      // Mismos campos que se pueden editar con doble clic por cada contacto/persona
+      // en la Vista previa (ver renderPendPreviewContactos/renderPendPreviewAutorizadas).
+      const PEND_SUBCAMPOS = {
+        contactos_emergencia: [
+          { field: "nombre", label: "Nombre" },
+          { field: "telefono", label: "Celular" },
+          { field: "rut", label: "RUT" },
+          { field: "email", label: "Email" },
+        ],
+        personas_autorizadas: [
+          { field: "nombre", label: "Nombre" },
+          { field: "rut", label: "RUT" },
+          { field: "telefono", label: "Celular" },
+          { field: "email", label: "Email" },
+          { field: "clave_verde", label: "Clave Verde" },
+          { field: "clave_roja", label: "Clave Roja" },
+        ],
+      };
+
+      function pendCamposVaciosSubcampo(campoPrincipal) {
+        const lista = campoPrincipal === "contactos_emergencia"
+          ? (pendPreviewContactosActuales || [])
+          : (pendPreviewAutorizadasActuales || []);
+        const subcampos = PEND_SUBCAMPOS[campoPrincipal] || [];
+        if (!lista.length) return subcampos.map((s) => s.field);
+        // pendPreviewContactosActuales/pendPreviewAutorizadasActuales guardan el
+        // teléfono bajo la clave "celular" (así lo devuelve la ficha), no "telefono"
+        // — mismo mapeo que ya usan pendEditarCampoContacto/pendEditarCampoPersona.
+        return subcampos
+          .filter((s) => {
+            const clave = s.field === "telefono" ? "celular" : s.field;
+            return lista.some((item) => !String(item[clave] || "").trim());
+          })
+          .map((s) => s.field);
+      }
+
+      function pendConstruirChecklistNotificar() {
+        const contenedor = document.getElementById("pendNotificarChecklist");
+        if (!contenedor) return;
+        // "Vacío" es solo un aviso informativo — ya no se autoselecciona nada acá,
+        // Bitácora elige a mano qué falta o está mal.
+        pendNotificarSubcamposSeleccionados = {
+          contactos_emergencia: [],
+          personas_autorizadas: [],
+        };
+        const detalle = pendPreviewDetalleActual || {};
+        const items = [
+          ...PEND_NOTIFICAR_CAMPOS.map((c) => ({
+            field: c.field,
+            label: c.label,
+            vacio: !String(detalle[c.field] || "").trim(),
+          })),
+          { field: "contactos_emergencia", label: "Contacto de emergencia", vacio: !(pendPreviewContactosActuales || []).length },
+          { field: "personas_autorizadas", label: "Personas autorizadas", vacio: !(pendPreviewAutorizadasActuales || []).length },
+        ];
+        contenedor.innerHTML = items.map((it, idx) => `
+          <label class="pend-notificar-item${it.vacio ? " is-empty" : ""}">
+            <input type="checkbox" data-notificar-item="${idx}" data-label="${esc(it.label)}" value="${esc(it.field)}" />
+            <span class="pend-notificar-texto">${esc(it.label)}</span>
+            ${it.vacio ? '<span class="pend-notificar-badge">Vacío</span>' : ""}
+          </label>
+        `).join("");
+        contenedor.querySelectorAll('input[type="checkbox"]').forEach((chk) => {
+          const esCompuesto = PEND_SUBCAMPOS[chk.value];
+          if (esCompuesto) {
+            // "Contacto de emergencia" / "Personas autorizadas" no se tildan directo:
+            // siempre abren el detalle para elegir qué dato puntual falta o está mal.
+            const label = chk.closest(".pend-notificar-item");
+            label?.addEventListener("click", (e) => {
+              e.preventDefault();
+              pendAbrirSubcampos(chk.value, chk.dataset.label || chk.value);
+            });
+            return;
+          }
+          chk.addEventListener("change", () => {
+            chk.closest(".pend-notificar-item")?.classList.toggle("is-selected", chk.checked);
+          });
+        });
+      }
+
+      function pendAbrirSubcampos(campoPrincipal, labelPrincipal) {
+        pendNotificarSubcampoActual = campoPrincipal;
+        const subcampos = PEND_SUBCAMPOS[campoPrincipal] || [];
+        const vacios = pendCamposVaciosSubcampo(campoPrincipal);
+        const preseleccion = pendNotificarSubcamposSeleccionados[campoPrincipal] || [];
+        pendNotificarSubcampoTitulo.textContent = `¿Qué falta o está mal en "${labelPrincipal}"?`;
+        pendNotificarSubcampoChecklist.innerHTML = subcampos.map((s) => {
+          const marcado = preseleccion.includes(s.field);
+          const vacio = vacios.includes(s.field);
+          return `
+            <label class="pend-notificar-item${vacio ? " is-empty" : ""}${marcado ? " is-selected" : ""}">
+              <input type="checkbox" data-subcampo="${esc(s.field)}" ${marcado ? "checked" : ""} />
+              <span class="pend-notificar-texto">${esc(s.label)}</span>
+              ${vacio ? '<span class="pend-notificar-badge">Vacío</span>' : ""}
+            </label>
+          `;
+        }).join("");
+        pendNotificarSubcampoChecklist.querySelectorAll('input[type="checkbox"]').forEach((chk) => {
+          chk.addEventListener("change", () => {
+            chk.closest(".pend-notificar-item")?.classList.toggle("is-selected", chk.checked);
+          });
+        });
+        pendNotificarSubcampoModal.hidden = false;
+      }
+
+      function pendCancelarSubcampos() {
+        pendNotificarSubcampoModal.hidden = true;
+        pendNotificarSubcampoActual = null;
+      }
+
+      function pendConfirmarSubcampos() {
+        const campo = pendNotificarSubcampoActual;
+        if (!campo) return;
+        const seleccionados = Array.from(
+          pendNotificarSubcampoChecklist.querySelectorAll('input[type="checkbox"]:checked')
+        ).map((i) => i.dataset.subcampo);
+        pendNotificarSubcamposSeleccionados[campo] = seleccionados;
+        const checkboxPrincipal = document.querySelector(`#pendNotificarChecklist input[value="${campo}"]`);
+        if (checkboxPrincipal) {
+          checkboxPrincipal.checked = seleccionados.length > 0;
+          checkboxPrincipal.closest(".pend-notificar-item")?.classList.toggle("is-selected", seleccionados.length > 0);
+        }
+        pendNotificarSubcampoModal.hidden = true;
+        pendNotificarSubcampoActual = null;
+      }
+
+      function pendAbrirNotificarPorId(id, nombreLine, empresaLine) {
+        pendNotificarTargetId = id;
+        pendNotificarNombre.textContent = nombreLine || "-";
+        pendNotificarEmpresa.textContent = empresaLine || "-";
+        pendNotificarMensaje.value = "";
+        pendConstruirChecklistNotificar();
+        pendNotificarModal.hidden = false;
+      }
+
+      async function pendConfirmarNotificar() {
+        if (!pendNotificarTargetId) return;
+        const checkboxesMarcados = Array.from(
+          document.querySelectorAll("#pendNotificarChecklist input:checked")
+        );
+        const campos = checkboxesMarcados.map((i) => i.value);
+        const etiquetas = checkboxesMarcados.map((i) => {
+          const base = i.dataset.label || i.value;
+          const sub = pendNotificarSubcamposSeleccionados[i.value];
+          if (sub && sub.length) {
+            const subLabels = sub.map((f) => (PEND_SUBCAMPOS[i.value] || []).find((s) => s.field === f)?.label || f);
+            return `${base} (${subLabels.join(", ")})`;
+          }
+          return base;
+        });
+        const detalleExtra = pendNotificarMensaje.value.trim();
+        if (!campos.length && !detalleExtra) {
+          pendPreviewStatus.textContent = "Selecciona qué falta o está mal, o escribe un detalle.";
+          return;
+        }
+        const partes = [];
+        if (etiquetas.length) {
+          partes.push(`Falta o está mal:\n${etiquetas.map((s) => `- ${s}`).join("\n")}`);
+        }
+        if (detalleExtra) partes.push(detalleExtra);
+        const mensaje = partes.join("\n\n");
+        try {
+          const response = await fetch(`/api/bitacora/sucursales-pendientes/${pendNotificarTargetId}/notificar-comercial`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ mensaje, campos, detalle: detalleExtra }),
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(payload.detail || "No se pudo enviar el aviso.");
+          }
+          pendNotificarModal.hidden = true;
+          pendNotificarTargetId = null;
+          pendPreviewStatus.textContent = `Aviso enviado a ${payload.enviado_a || "quien registró la sucursal"}.`;
+        } catch (error) {
+          pendPreviewStatus.textContent = error.message || "No se pudo enviar el aviso.";
+        }
+      }
+
+      async function pendAbrirDuplicadoPorId(id, nombreLine, empresaLine, nombreEmpresa, dup) {
+        pendDuplicadoTargetId = id;
+        pendDuplicadoNombre.textContent = nombreLine || "-";
+        pendDuplicadoEmpresa.textContent = empresaLine || "-";
+        pendDuplicadoSelect.innerHTML = '<option value="">Cargando sucursales de esta empresa…</option>';
+        pendDuplicadoHint.textContent = "";
+        pendDuplicadoModal.hidden = false;
+        try {
+          const response = await fetch(`/api/bitacora/sucursales?empresa=${encodeURIComponent(nombreEmpresa || "")}`, { headers: { Accept: "application/json" } });
+          const payload = await response.json();
+          if (!response.ok) throw new Error(payload.detail || "No se pudieron cargar las sucursales de la empresa.");
+          const opciones = payload.sucursales || [];
+          if (!opciones.length) {
+            pendDuplicadoSelect.innerHTML = '<option value="">No hay sucursales aceptadas de esta empresa</option>';
+            pendDuplicadoHint.textContent = "No se encontró ninguna sucursal ya aceptada con este RUT/empresa para fusionar.";
+            return;
+          }
+          pendDuplicadoSelect.innerHTML = `<option value="">Selecciona una sucursal…</option>${opciones.map((s) => `
+            <option value="${esc(s.id)}">${esc(s.nombre_sucursal || "Sin nombre")} — ${esc(s.direccion_sucursal || "-")} (id ${esc(s.id)})</option>
+          `).join("")}`;
+          if (dup) {
+            pendDuplicadoSelect.value = String(dup.id);
+            pendDuplicadoHint.textContent = `Sugerido automáticamente por similitud de nombre (${Math.round((dup.similitud || 0) * 100)}%).`;
+          }
+        } catch (error) {
+          pendDuplicadoSelect.innerHTML = '<option value="">Error al cargar</option>';
+          pendDuplicadoHint.textContent = error.message || "No se pudieron cargar las sucursales de la empresa.";
+        }
+      }
+
+      function pendAbrirDuplicado(article) {
+        const id = article.dataset.pendId;
+        const row = pendientesData.find((r) => String(r.id) === String(id));
+        if (!row) return;
+        pendAbrirDuplicadoPorId(
+          id,
+          article.querySelector(".branch")?.textContent,
+          article.querySelector("h3")?.textContent,
+          row.nombre_empresa,
+          row.posible_duplicado,
+        );
+      }
+
+      async function pendConfirmarDuplicado() {
+        const seleccionId = pendDuplicadoSelect.value;
+        if (!pendDuplicadoTargetId || !seleccionId) {
+          pendDuplicadoHint.textContent = "Selecciona a cuál sucursal ya aceptada corresponde el duplicado.";
+          return;
+        }
+        try {
+          const response = await fetch(`/api/bitacora/sucursales-pendientes/${pendDuplicadoTargetId}/rechazar-duplicado`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sucursal_aceptada_id: Number(seleccionId) }),
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(payload.detail || "No se pudo marcar como duplicado.");
+          }
+          pendDuplicadoModal.hidden = true;
+          const eraElActual = pendPreviewCurrentId === pendDuplicadoTargetId;
+          pendDuplicadoTargetId = null;
+          const mensaje = `Fusionada con "${payload.fusionado_con || "-"}"${payload.ods_reasignadas ? ` — ${payload.ods_reasignadas} orden(es) de servicio reasignada(s)` : ""}.`;
+          if (eraElActual) {
+            pendCerrarPreview();
+            pendStatus.textContent = mensaje;
+          } else {
+            pendPreviewStatus.textContent = mensaje;
+          }
+          await loadPendientes();
+        } catch (error) {
+          pendPreviewStatus.textContent = error.message || "No se pudo marcar como duplicado.";
+        }
+      }
+
+
+      // ── Vista previa inline (replica grande de Buscar por Empresa, sin popup) ──
+      const pendSliderTrack = document.getElementById("pendSliderTrack");
+      const pendPreviewVolver = document.getElementById("pendPreviewVolver");
+      const pendPreviewTitulo = document.getElementById("pendPreviewTitulo");
+      const pendPreviewSub = document.getElementById("pendPreviewSub");
+      const pendPreviewAceptarBtn = document.getElementById("pendPreviewAceptarBtn");
+      const pendPreviewNotificarBtn = document.getElementById("pendPreviewNotificarBtn");
+      const pendPreviewDuplicadoBtn = document.getElementById("pendPreviewDuplicadoBtn");
+      const pendPreviewStatus = document.getElementById("pendPreviewStatus");
+      const pendPreviewBody = document.getElementById("pendPreviewBody");
+      const pendPreviewFichaGrid = document.getElementById("pendPreviewFichaGrid");
+      const pendPreviewContactosList = document.getElementById("pendPreviewContactosList");
+      const pendPreviewContactosCount = document.getElementById("pendPreviewContactosCount");
+      const pendPreviewAutorizadasList = document.getElementById("pendPreviewAutorizadasList");
+      const pendPreviewAutorizadasCount = document.getElementById("pendPreviewAutorizadasCount");
+      let pendPreviewCurrentId = null;
+      let pendPreviewDetalleActual = null;
+      let pendPreviewEmpresaActual = "";
+
+      // Tipo de control por campo, calcado del formulario real de registro
+      // (registro_sucursal.html): select para los proveedores, chips de día
+      // para "Días hábiles", hora para apertura/cierre, texto para el resto.
+      const PEND_CAMPO_TIPO = {
+        email_facturas: "email",
+        horario_apertura: "hora",
+        horario_cierre: "hora",
+        horario_habil: "dias",
+        compania_electricidad: "select-electricidad",
+        proveedor_internet_cliente: "select-internet",
+      };
+      const PEND_DIAS_SEMANA = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"];
+      const PEND_DIAS_ETIQUETAS = { Lunes: "Lun", Martes: "Mar", Miercoles: "Mié", Jueves: "Jue", Viernes: "Vie", Sabado: "Sáb", Domingo: "Dom" };
+      let pendCatalogoProveedoresInternet = null;
+      let pendCatalogoProveedoresElectricidad = null;
+
+      async function pendCargarCatalogoProveedores(tipo) {
+        if (tipo === "internet") {
+          if (pendCatalogoProveedoresInternet) return pendCatalogoProveedoresInternet;
+          const r = await fetch("/api/venta/proveedores/internet");
+          const d = await r.json().catch(() => ({}));
+          pendCatalogoProveedoresInternet = d.proveedores || [];
+          return pendCatalogoProveedoresInternet;
+        }
+        if (pendCatalogoProveedoresElectricidad) return pendCatalogoProveedoresElectricidad;
+        const r = await fetch("/api/venta/proveedores/electricidad");
+        const d = await r.json().catch(() => ({}));
+        pendCatalogoProveedoresElectricidad = d.proveedores || [];
+        return pendCatalogoProveedoresElectricidad;
+      }
+
+      function renderPendPreviewFicha(payload) {
+        const detail = payload.detalle || {};
+        pendPreviewDetalleActual = {
+          sucursal_id: payload.sucursal_id,
+          nombre_sucursal: payload.sucursal_actual || "",
+          direccion_sucursal: detail.direccion || "",
+          referencia_ubicacion: detail.referencia_ubicacion || "",
+          email_facturas: detail.correo || "",
+          horario_apertura: detail.horario_apertura || "",
+          horario_cierre: detail.horario_cierre || "",
+          horario_habil: detail.horario_habil || "",
+          horario_no_habil: detail.horario_no_habil || "",
+          plan_cuadrante: detail.plan_cuadrante || "",
+          carabineros: detail.carabineros || "",
+          bomberos: detail.bomberos || "",
+          seguridad_ciudadana: detail.seguridad_ciudadana || "",
+          camaras_contratadas: detail.camaras_contratadas || "",
+          camaras_televigiladas: detail.camaras_televigiladas || "",
+          codigo_p2p: detail.codigo_p2p || "",
+          codigo_dss: detail.codigo_dss || "",
+          telefono_porton: detail.telefono_porton || "",
+          telefono_recepcion: detail.telefono_recepcion || "",
+          internet_atc: detail.internet_atc || "",
+          compania_electricidad: detail.compania_electricidad || "",
+          numero_cliente_electricidad: detail.numero_cliente_electricidad || "",
+          proveedor_internet_cliente: detail.proveedor_internet_cliente || "",
+          latitud_longitud: detail.latitud_longitud || "",
+        };
+        pendPreviewEmpresaActual = payload.empresa || detail.empresa || "";
+
+        const items = [
+          { type: "section", label: "Identificación" },
+          { label: "Empresa", value: detail.empresa },
+          { label: "RUT", value: detail.rut },
+          { label: "Sucursal", value: payload.sucursal_actual, field: "nombre_sucursal" },
+
+          { type: "section", label: "Ubicación y contacto" },
+          { label: "Dirección", value: detail.direccion, field: "direccion_sucursal" },
+          { label: "Latitud, Longitud", value: detail.latitud_longitud, field: "latitud_longitud" },
+          { label: "Referencia ubicación", value: detail.referencia_ubicacion, field: "referencia_ubicacion" },
+          { label: "Contacto", value: detail.contacto },
+          { label: "Correo", value: detail.correo, field: "email_facturas" },
+
+          { type: "section", label: "Horario" },
+          { label: "Apertura", value: detail.horario_apertura, field: "horario_apertura" },
+          { label: "Cierre", value: detail.horario_cierre, field: "horario_cierre" },
+          { label: "Días hábiles", value: detail.horario_habil, field: "horario_habil" },
+          { label: "Días no hábiles", value: detail.horario_no_habil },
+
+          { type: "section", label: "Seguridad pública" },
+          { label: "Plan cuadrante", value: detail.plan_cuadrante, field: "plan_cuadrante" },
+          { label: "Carabineros", value: detail.carabineros, field: "carabineros" },
+          { label: "Bomberos", value: detail.bomberos, field: "bomberos" },
+          { label: "Seguridad ciudadana", value: detail.seguridad_ciudadana, field: "seguridad_ciudadana" },
+
+          { type: "section", label: "Vigilancia y cámaras" },
+          { label: "Tipo vigilancia", value: detail.tipo_vigilancia },
+          { label: "Cámaras a instalar", value: detail.camaras_contratadas, field: "camaras_contratadas" },
+          { label: "Cámaras televigiladas", value: detail.camaras_televigiladas, field: "camaras_televigiladas" },
+          { label: "Código P2P", value: detail.codigo_p2p, field: "codigo_p2p" },
+          { label: "Código DSS", value: detail.codigo_dss, field: "codigo_dss" },
+          { label: "Teléfono portón", value: detail.telefono_porton, field: "telefono_porton" },
+          { label: "Teléfono recepción", value: detail.telefono_recepcion, field: "telefono_recepcion" },
+
+          { type: "section", label: "Electricidad e internet" },
+          { label: "Compañía electricidad", value: detail.compania_electricidad, field: "compania_electricidad" },
+          { label: "N° cliente electricidad", value: detail.numero_cliente_electricidad, field: "numero_cliente_electricidad" },
+          { label: "Proveedor internet cliente", value: detail.proveedor_internet_cliente, field: "proveedor_internet_cliente" },
+          { label: "Internet ATC", value: detail.internet_atc, field: "internet_atc" },
+        ];
+        const rows = items.map((item) => {
+          if (item.type === "section") {
+            return `<tr class="info-section-row"><td colspan="2">${esc(item.label)}</td></tr>`;
+          }
+          if (item.field) {
+            return `<tr class="info-row"><td>${esc(item.label)}</td><td class="pend-editable" data-field="${esc(item.field)}" title="Doble clic para editar">${esc(cleanInfoDisplay(item.value))}</td></tr>`;
+          }
+          return `<tr class="info-row"><td>${esc(item.label)}</td><td>${esc(cleanInfoDisplay(item.value))}</td></tr>`;
+        }).join("");
+        pendPreviewFichaGrid.innerHTML = `<table class="empresa-info-table"><tbody>${rows}</tbody></table>`;
+        pendPreviewFichaGrid.querySelectorAll("td.pend-editable").forEach((td) => {
+          td.addEventListener("dblclick", pendEditarCampoFicha);
+        });
+      }
+
+      async function pendGuardarCampoFicha(td, campo, nuevoValor, valorOriginal, textoMostrado) {
+        const valorFinal = textoMostrado != null ? textoMostrado : nuevoValor;
+        if (nuevoValor === (pendPreviewDetalleActual[campo] || "")) {
+          td.textContent = valorOriginal;
+          return;
+        }
+        const valorPrevio = pendPreviewDetalleActual[campo];
+        pendPreviewDetalleActual[campo] = nuevoValor;
+        td.textContent = valorFinal;
+        try {
+          const response = await fetch("/api/bitacora/sucursal-editar", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(pendPreviewDetalleActual),
+          });
+          const body = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(body.detail || "No se pudo guardar el cambio.");
+          pendPreviewStatus.textContent = "Cambios guardados.";
+          if (campo === "nombre_sucursal") {
+            pendPreviewTitulo.textContent = `${pendPreviewEmpresaActual || "-"} · ${nuevoValor || "-"}`;
+          }
+          loadPendientes();
+        } catch (error) {
+          pendPreviewDetalleActual[campo] = valorPrevio;
+          td.textContent = valorOriginal;
+          pendPreviewStatus.textContent = error.message || "No se pudo guardar el cambio.";
+        }
+      }
+
+      function pendEditarCampoTexto(td, campo, valorOriginal, tipoInput) {
+        const input = document.createElement("input");
+        input.type = tipoInput || "text";
+        input.className = "pend-inline-input";
+        let valorActual = pendPreviewDetalleActual[campo] || "";
+        if (tipoInput === "time" && !/^([01]\d|2[0-3]):[0-5]\d$/.test(valorActual)) {
+          input.type = "text";
+          input.placeholder = "HH:MM";
+        }
+        input.value = valorActual;
+        td.textContent = "";
+        td.appendChild(input);
+        input.focus();
+        if (input.select) input.select();
+
+        const guardar = () => pendGuardarCampoFicha(td, campo, input.value.trim(), valorOriginal);
+        input.addEventListener("blur", guardar);
+        input.addEventListener("keydown", (ev) => {
+          if (ev.key === "Enter") {
+            ev.preventDefault();
+            input.blur();
+          } else if (ev.key === "Escape") {
+            ev.preventDefault();
+            input.removeEventListener("blur", guardar);
+            td.textContent = valorOriginal;
+          }
+        });
+      }
+
+      async function pendEditarCampoSelect(td, campo, valorOriginal, tipoCatalogo) {
+        td.textContent = "Cargando…";
+        const catalogo = await pendCargarCatalogoProveedores(tipoCatalogo);
+        if (!td.isConnected || td.dataset.field !== campo) return;
+        const valorActual = pendPreviewDetalleActual[campo] || "";
+        const opciones = catalogo.slice();
+        if (valorActual && !opciones.some((o) => o.toLowerCase() === valorActual.toLowerCase())) {
+          opciones.unshift(valorActual);
+        }
+        const select = document.createElement("select");
+        select.className = "pend-inline-input";
+        select.innerHTML = `<option value="">-- Seleccionar --</option>` +
+          opciones.map((o) => `<option value="${esc(o)}">${esc(o)}</option>`).join("");
+        select.value = valorActual;
+        td.textContent = "";
+        td.appendChild(select);
+        select.focus();
+
+        let comprometido = false;
+        const guardar = () => {
+          comprometido = true;
+          pendGuardarCampoFicha(td, campo, select.value.trim(), valorOriginal);
+        };
+        select.addEventListener("change", guardar);
+        select.addEventListener("blur", () => { if (!comprometido) td.textContent = valorOriginal; });
+        select.addEventListener("keydown", (ev) => {
+          if (ev.key === "Escape") {
+            ev.preventDefault();
+            td.textContent = valorOriginal;
+          }
+        });
+      }
+
+      function pendEditarCampoDias(td, campo, valorOriginal) {
+        const actuales = new Set(
+          String(pendPreviewDetalleActual[campo] || "")
+            .split(",")
+            .map((d) => d.trim())
+            .filter(Boolean)
+        );
+        const uid = `pendDias${Date.now()}`;
+        td.innerHTML = `
+          <div class="pend-days-row">
+            ${PEND_DIAS_SEMANA.map((d, i) => `
+              <span class="pend-day-chip">
+                <input type="checkbox" id="${uid}-${i}" value="${esc(d)}" ${actuales.has(d) ? "checked" : ""} />
+                <label for="${uid}-${i}">${esc(PEND_DIAS_ETIQUETAS[d])}</label>
+              </span>
+            `).join("")}
+          </div>
+          <div class="pend-days-actions">
+            <button type="button" class="btn btn-light" data-dias-cancelar>Cancelar</button>
+            <button type="button" class="btn btn-primary" data-dias-guardar>Guardar</button>
+          </div>
+        `;
+        td.querySelector("[data-dias-cancelar]").addEventListener("click", () => {
+          td.textContent = valorOriginal;
+        });
+        td.querySelector("[data-dias-guardar]").addEventListener("click", () => {
+          const marcados = PEND_DIAS_SEMANA.filter((d, i) => td.querySelector(`#${uid}-${i}`)?.checked);
+          pendGuardarCampoFicha(td, campo, marcados.join(", "), valorOriginal);
+        });
+      }
+
+      function pendEditarCampoFicha(e) {
+        const td = e.currentTarget;
+        if (td.querySelector("input, select") || !pendPreviewDetalleActual) return;
+        const campo = td.dataset.field;
+        const valorOriginal = td.textContent.trim();
+        const tipo = PEND_CAMPO_TIPO[campo] || "texto";
+
+        if (tipo === "dias") return pendEditarCampoDias(td, campo, valorOriginal);
+        if (tipo === "select-electricidad") return pendEditarCampoSelect(td, campo, valorOriginal, "electricidad");
+        if (tipo === "select-internet") return pendEditarCampoSelect(td, campo, valorOriginal, "internet");
+        if (tipo === "email") return pendEditarCampoTexto(td, campo, valorOriginal, "email");
+        if (tipo === "hora") return pendEditarCampoTexto(td, campo, valorOriginal, "time");
+        return pendEditarCampoTexto(td, campo, valorOriginal, "text");
+      }
+
+      let pendPreviewContactosActuales = [];
+      let pendPreviewAutorizadasActuales = [];
+
+      function renderPendPreviewContactos(rows) {
+        const items = Array.isArray(rows) ? rows.map((r) => ({ ...r })) : [];
+        pendPreviewContactosActuales = items;
+        pendPreviewContactosCount.textContent = countText(items.length, "contacto", "contactos");
+        const listHtml = items.length
+          ? items.map((item, idx) => `
+            <div class="empresa-contact-item" data-contacto-id="${esc(item.id)}">
+              <div class="contact-name">
+                <span class="pend-editable" data-field="nombre">${esc(cleanDisplay(item.nombre))}</span>
+                <span style="margin-left:8px;font-size:11px;font-weight:600;color:#64748b;background:#f1f5f9;padding:1px 7px;border-radius:20px;">Prioridad ${idx + 1}</span>
+                <button type="button" class="pend-item-delete" style="float:right;" data-contacto-delete="${esc(item.id)}" title="Eliminar contacto">×</button>
+              </div>
+              <div class="contact-row">
+                <span class="contact-row-label">Celular</span>
+                <span class="contact-row-value pend-editable" data-field="telefono">${esc(cleanDisplay(item.celular))}</span>
+              </div>
+              <div class="contact-row">
+                <span class="contact-row-label">RUT</span>
+                <span class="contact-row-value">${esc(cleanDisplay(item.rut))}</span>
+              </div>
+              <div class="contact-row">
+                <span class="contact-row-label">Email</span>
+                <span class="contact-row-value">${esc(cleanDisplay(item.email))}</span>
+              </div>
+            </div>
+          `).join("")
+          : '<div class="empresa-empty">Sin contactos registrados.</div>';
+        pendPreviewContactosList.innerHTML = `${listHtml}<button type="button" class="pend-add-row" id="pendContactoAgregarBtn">+ Agregar contacto</button>`;
+        pendPreviewContactosList.querySelectorAll(".pend-editable").forEach((el) => {
+          el.addEventListener("dblclick", pendEditarCampoContacto);
+        });
+        pendPreviewContactosList.querySelectorAll("[data-contacto-delete]").forEach((btn) => {
+          btn.addEventListener("click", () => pendBorrarContacto(btn.dataset.contactoDelete));
+        });
+        const addBtn = document.getElementById("pendContactoAgregarBtn");
+        if (addBtn) addBtn.addEventListener("click", pendMostrarFormNuevoContacto);
+      }
+
+      function pendEditarCampoContacto(e) {
+        const span = e.currentTarget;
+        if (span.querySelector("input")) return;
+        const card = span.closest("[data-contacto-id]");
+        const contactoId = Number(card?.dataset.contactoId || 0);
+        const registro = pendPreviewContactosActuales.find((c) => Number(c.id) === contactoId);
+        if (!registro) return;
+        const campo = span.dataset.field;
+        const campoLocal = campo === "telefono" ? "celular" : campo;
+        const valorOriginal = span.textContent.trim();
+        const input = document.createElement("input");
+        input.type = campo === "email" ? "email" : "text";
+        input.className = "pend-inline-input";
+        input.value = registro[campoLocal] || "";
+        span.textContent = "";
+        span.appendChild(input);
+        input.focus();
+        input.select();
+
+        const guardar = async () => {
+          const nuevoValor = input.value.trim();
+          span.textContent = nuevoValor;
+          if (nuevoValor === (registro[campoLocal] || "")) return;
+          const valorPrevio = registro[campoLocal];
+          registro[campoLocal] = nuevoValor;
+          try {
+            const response = await fetch(`/api/bitacora/contactos-emergencia/${contactoId}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                nombre: registro.nombre || "",
+                rut: registro.rut || "",
+                telefono: registro.celular || "",
+                email: registro.email || "",
+              }),
+            });
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(body.detail || "No se pudo guardar el contacto.");
+            pendPreviewStatus.textContent = "Cambios guardados.";
+          } catch (error) {
+            registro[campoLocal] = valorPrevio;
+            span.textContent = valorOriginal;
+            pendPreviewStatus.textContent = error.message || "No se pudo guardar el contacto.";
+          }
+        };
+        input.addEventListener("blur", guardar);
+        input.addEventListener("keydown", (ev) => {
+          if (ev.key === "Enter") {
+            ev.preventDefault();
+            input.blur();
+          } else if (ev.key === "Escape") {
+            ev.preventDefault();
+            input.removeEventListener("blur", guardar);
+            span.textContent = valorOriginal;
+          }
+        });
+      }
+
+      async function pendRecargarContactos() {
+        if (!pendPreviewCurrentId) return;
+        try {
+          const response = await fetch(`/api/bitacora/sucursal/${pendPreviewCurrentId}/contactos-emergencia`);
+          const rows = await response.json();
+          if (!response.ok) throw new Error((rows && rows.detail) || "No se pudieron recargar los contactos.");
+          renderPendPreviewContactos(rows.map((r) => ({ ...r, celular: r.telefono })));
+        } catch (error) {
+          pendPreviewStatus.textContent = error.message || "No se pudieron recargar los contactos.";
+        }
+      }
+
+      async function pendBorrarContacto(id) {
+        if (!confirm("¿Eliminar este contacto de emergencia?")) return;
+        try {
+          const response = await fetch(`/api/bitacora/contactos-emergencia/${id}`, { method: "DELETE" });
+          const body = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(body.detail || "No se pudo eliminar el contacto.");
+          pendPreviewStatus.textContent = "Contacto eliminado.";
+          await pendRecargarContactos();
+        } catch (error) {
+          pendPreviewStatus.textContent = error.message || "No se pudo eliminar el contacto.";
+        }
+      }
+
+      function pendMostrarFormNuevoContacto() {
+        const addBtn = document.getElementById("pendContactoAgregarBtn");
+        if (!addBtn || addBtn.dataset.formAbierto === "1") return;
+        addBtn.dataset.formAbierto = "1";
+        addBtn.hidden = true;
+        addBtn.insertAdjacentHTML("beforebegin", `
+          <div class="pend-mini-form" id="pendContactoNuevoForm">
+            <input type="text" id="pendContactoNuevoNombre" placeholder="Nombre" />
+            <input type="text" id="pendContactoNuevoTelefono" placeholder="Celular" />
+            <input type="text" id="pendContactoNuevoRut" placeholder="RUT" />
+            <input type="email" id="pendContactoNuevoEmail" placeholder="Email" />
+            <div class="pend-mini-actions">
+              <button type="button" class="btn btn-light" id="pendContactoNuevoCancelar">Cancelar</button>
+              <button type="button" class="btn btn-primary" id="pendContactoNuevoGuardar">Guardar</button>
+            </div>
+          </div>
+        `);
+        document.getElementById("pendContactoNuevoCancelar").addEventListener("click", () => {
+          document.getElementById("pendContactoNuevoForm")?.remove();
+          addBtn.hidden = false;
+          addBtn.dataset.formAbierto = "0";
+        });
+        document.getElementById("pendContactoNuevoGuardar").addEventListener("click", async () => {
+          const nombre = document.getElementById("pendContactoNuevoNombre").value.trim();
+          if (!nombre) { pendPreviewStatus.textContent = "El nombre del contacto es obligatorio."; return; }
+          try {
+            const response = await fetch("/api/bitacora/contactos-emergencia", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                sucursal_id: pendPreviewCurrentId,
+                nombre,
+                telefono: document.getElementById("pendContactoNuevoTelefono").value.trim(),
+                rut: document.getElementById("pendContactoNuevoRut").value.trim(),
+                email: document.getElementById("pendContactoNuevoEmail").value.trim(),
+              }),
+            });
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(body.detail || "No se pudo agregar el contacto.");
+            pendPreviewStatus.textContent = "Contacto agregado.";
+            await pendRecargarContactos();
+          } catch (error) {
+            pendPreviewStatus.textContent = error.message || "No se pudo agregar el contacto.";
+          }
+        });
+      }
+
+      function renderPendPreviewAutorizadas(rows) {
+        const items = Array.isArray(rows) ? rows.map((r) => ({ ...r })) : [];
+        pendPreviewAutorizadasActuales = items;
+        pendPreviewAutorizadasCount.textContent = countText(items.length, "persona", "personas");
+        const listHtml = items.length
+          ? items.map((item) => `
+            <article class="empresa-person-card is-authorized" data-persona-id="${esc(item.id)}">
+              <div>
+                <h4 class="pend-editable" data-field="nombre">${esc(cleanDisplay(item.nombre))}</h4>
+                <div class="empresa-person-meta">
+                  <span>RUT: ${esc(cleanDisplay(item.rut))}</span>
+                  <span>Info: ${esc(cleanDisplay(item.email))}</span>
+                </div>
+              </div>
+              <div class="empresa-person-meta">
+                <span>Celular: <span class="pend-editable" data-field="telefono">${esc(cleanDisplay(item.celular))}</span></span>
+                <span>Clave verde: <span class="pend-editable" data-field="clave_verde">${esc(cleanDisplay(item.clave_verde))}</span></span>
+                <span>Clave roja: <span class="pend-editable" data-field="clave_roja">${esc(cleanDisplay(item.clave_roja))}</span></span>
+                <button type="button" class="pend-item-delete" data-persona-delete="${esc(item.id)}" title="Eliminar persona">×</button>
+              </div>
+            </article>
+          `).join("")
+          : '<div class="empresa-empty">Sin personas autorizadas registradas.</div>';
+        pendPreviewAutorizadasList.innerHTML = `${listHtml}<button type="button" class="pend-add-row" id="pendPersonaAgregarBtn">+ Agregar persona</button>`;
+        pendPreviewAutorizadasList.querySelectorAll(".pend-editable").forEach((el) => {
+          el.addEventListener("dblclick", pendEditarCampoPersona);
+        });
+        pendPreviewAutorizadasList.querySelectorAll("[data-persona-delete]").forEach((btn) => {
+          btn.addEventListener("click", () => pendBorrarPersona(btn.dataset.personaDelete));
+        });
+        const addBtn = document.getElementById("pendPersonaAgregarBtn");
+        if (addBtn) addBtn.addEventListener("click", pendMostrarFormNuevaPersona);
+      }
+
+      function pendEditarCampoPersona(e) {
+        const el = e.currentTarget;
+        if (el.querySelector("input")) return;
+        const card = el.closest("[data-persona-id]");
+        const personaId = Number(card?.dataset.personaId || 0);
+        const registro = pendPreviewAutorizadasActuales.find((p) => Number(p.id) === personaId);
+        if (!registro) return;
+        const campo = el.dataset.field;
+        const campoLocal = campo === "telefono" ? "celular" : campo;
+        const valorOriginal = el.textContent.trim();
+        const input = document.createElement("input");
+        input.type = campo === "email" ? "email" : "text";
+        input.className = "pend-inline-input";
+        input.value = registro[campoLocal] || "";
+        el.textContent = "";
+        el.appendChild(input);
+        input.focus();
+        input.select();
+
+        const guardar = async () => {
+          const nuevoValor = input.value.trim();
+          el.textContent = nuevoValor;
+          if (nuevoValor === (registro[campoLocal] || "")) return;
+          const valorPrevio = registro[campoLocal];
+          registro[campoLocal] = nuevoValor;
+          try {
+            const response = await fetch(`/api/bitacora/personas-autorizadas/${personaId}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                nombre: registro.nombre || "",
+                rut: registro.rut || "",
+                telefono: registro.celular || "",
+                email: registro.email || "",
+                clave_verde: registro.clave_verde || "",
+                clave_roja: registro.clave_roja || "",
+              }),
+            });
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(body.detail || "No se pudo guardar la persona.");
+            pendPreviewStatus.textContent = "Cambios guardados.";
+          } catch (error) {
+            registro[campoLocal] = valorPrevio;
+            el.textContent = valorOriginal;
+            pendPreviewStatus.textContent = error.message || "No se pudo guardar la persona.";
+          }
+        };
+        input.addEventListener("blur", guardar);
+        input.addEventListener("keydown", (ev) => {
+          if (ev.key === "Enter") {
+            ev.preventDefault();
+            input.blur();
+          } else if (ev.key === "Escape") {
+            ev.preventDefault();
+            input.removeEventListener("blur", guardar);
+            el.textContent = valorOriginal;
+          }
+        });
+      }
+
+      async function pendRecargarAutorizadas() {
+        if (!pendPreviewCurrentId) return;
+        try {
+          const response = await fetch(`/api/bitacora/sucursal/${pendPreviewCurrentId}/personas-autorizadas`);
+          const rows = await response.json();
+          if (!response.ok) throw new Error((rows && rows.detail) || "No se pudieron recargar las personas autorizadas.");
+          renderPendPreviewAutorizadas(rows.map((r) => ({ ...r, celular: r.telefono })));
+        } catch (error) {
+          pendPreviewStatus.textContent = error.message || "No se pudieron recargar las personas autorizadas.";
+        }
+      }
+
+      async function pendBorrarPersona(id) {
+        if (!confirm("¿Eliminar esta persona autorizada?")) return;
+        try {
+          const response = await fetch(`/api/bitacora/personas-autorizadas/${id}`, { method: "DELETE" });
+          const body = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(body.detail || "No se pudo eliminar la persona.");
+          pendPreviewStatus.textContent = "Persona eliminada.";
+          await pendRecargarAutorizadas();
+        } catch (error) {
+          pendPreviewStatus.textContent = error.message || "No se pudo eliminar la persona.";
+        }
+      }
+
+      function pendMostrarFormNuevaPersona() {
+        const addBtn = document.getElementById("pendPersonaAgregarBtn");
+        if (!addBtn || addBtn.dataset.formAbierto === "1") return;
+        addBtn.dataset.formAbierto = "1";
+        addBtn.hidden = true;
+        addBtn.insertAdjacentHTML("beforebegin", `
+          <div class="pend-mini-form" id="pendPersonaNuevoForm">
+            <input type="text" id="pendPersonaNuevoNombre" placeholder="Nombre" />
+            <input type="text" id="pendPersonaNuevoTelefono" placeholder="Celular" />
+            <input type="text" id="pendPersonaNuevoRut" placeholder="RUT" />
+            <input type="email" id="pendPersonaNuevoEmail" placeholder="Email" />
+            <input type="text" id="pendPersonaNuevoClaveVerde" placeholder="Clave Verde" />
+            <input type="text" id="pendPersonaNuevoClaveRoja" placeholder="Clave Roja" />
+            <div class="pend-mini-actions">
+              <button type="button" class="btn btn-light" id="pendPersonaNuevoCancelar">Cancelar</button>
+              <button type="button" class="btn btn-primary" id="pendPersonaNuevoGuardar">Guardar</button>
+            </div>
+          </div>
+        `);
+        document.getElementById("pendPersonaNuevoCancelar").addEventListener("click", () => {
+          document.getElementById("pendPersonaNuevoForm")?.remove();
+          addBtn.hidden = false;
+          addBtn.dataset.formAbierto = "0";
+        });
+        document.getElementById("pendPersonaNuevoGuardar").addEventListener("click", async () => {
+          const nombre = document.getElementById("pendPersonaNuevoNombre").value.trim();
+          if (!nombre) { pendPreviewStatus.textContent = "El nombre de la persona es obligatorio."; return; }
+          try {
+            const response = await fetch("/api/bitacora/personas-autorizadas", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                sucursal_id: pendPreviewCurrentId,
+                nombre,
+                telefono: document.getElementById("pendPersonaNuevoTelefono").value.trim(),
+                rut: document.getElementById("pendPersonaNuevoRut").value.trim(),
+                email: document.getElementById("pendPersonaNuevoEmail").value.trim(),
+                clave_verde: document.getElementById("pendPersonaNuevoClaveVerde").value.trim(),
+                clave_roja: document.getElementById("pendPersonaNuevoClaveRoja").value.trim(),
+              }),
+            });
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(body.detail || "No se pudo agregar la persona.");
+            pendPreviewStatus.textContent = "Persona agregada.";
+            await pendRecargarAutorizadas();
+          } catch (error) {
+            pendPreviewStatus.textContent = error.message || "No se pudo agregar la persona.";
+          }
+        });
+      }
+
+      function pendMostrarDetalle() {
+        if (pendSliderTrack) pendSliderTrack.classList.add("is-detail");
+      }
+
+      function pendCerrarPreview() {
+        if (pendSliderTrack) pendSliderTrack.classList.remove("is-detail");
+        pendPreviewCurrentId = null;
+      }
+
+      async function pendAbrirPreview(id) {
+        pendPreviewCurrentId = id;
+        pendMostrarDetalle();
+        pendPreviewBody.hidden = true;
+        pendPreviewTitulo.textContent = "Cargando…";
+        pendPreviewSub.textContent = "Vista previa — así se vería en Buscar por Empresa";
+        pendPreviewStatus.textContent = "";
+        try {
+          const response = await fetch(`/api/bitacora/sucursales-pendientes/${id}/preview`, { headers: { Accept: "application/json" } });
+          const payload = await response.json();
+          if (!response.ok) {
+            throw new Error(payload.detail || "No se pudo cargar la vista previa.");
+          }
+          pendPreviewTitulo.textContent = `${payload.empresa || "-"} · ${payload.sucursal_actual || "-"}`;
+          renderPendPreviewFicha(payload);
+          renderPendPreviewContactos(payload.contactos_emergencia || []);
+          renderPendPreviewAutorizadas(payload.personas_autorizadas || []);
+          pendPreviewBody.hidden = false;
+        } catch (error) {
+          pendPreviewTitulo.textContent = "Sucursal pendiente";
+          pendPreviewStatus.textContent = error.message || "No se pudo cargar la vista previa.";
+        }
+      }
+
+      if (pendPreviewVolver) {
+        pendPreviewVolver.addEventListener("click", pendCerrarPreview);
+      }
+      if (pendPreviewAceptarBtn) {
+        pendPreviewAceptarBtn.addEventListener("click", async () => {
+          if (!pendPreviewCurrentId) return;
+          await pendAceptar(pendPreviewCurrentId);
+          pendCerrarPreview();
+        });
+      }
+      if (pendPreviewNotificarBtn) {
+        pendPreviewNotificarBtn.addEventListener("click", () => {
+          if (!pendPreviewCurrentId) return;
+          pendAbrirNotificarPorId(pendPreviewCurrentId, pendPreviewTitulo.textContent, "Se le enviará un correo a quien registró esta sucursal.");
+        });
+      }
+      if (pendPreviewDuplicadoBtn) {
+        pendPreviewDuplicadoBtn.addEventListener("click", () => {
+          if (!pendPreviewCurrentId) return;
+          const row = pendientesData.find((r) => String(r.id) === String(pendPreviewCurrentId));
+          pendAbrirDuplicadoPorId(pendPreviewCurrentId, pendPreviewTitulo.textContent, "", row ? row.nombre_empresa : "", row ? row.posible_duplicado : null);
+        });
+      }
+
+      if (pendResults) {
+        pendResults.addEventListener("click", (e) => {
+          const btn = e.target.closest("[data-pend-action]");
+          if (!btn) return;
+          const article = btn.closest("[data-pend-id]");
+          if (!article) return;
+          const id = article.dataset.pendId;
+          const action = btn.dataset.pendAction;
+          if (action === "aceptar") pendAceptar(id);
+          else if (action === "preview") pendAbrirPreview(id);
+          else if (action === "duplicado") pendAbrirDuplicado(article);
+        });
+      }
+      if (pendNotificarCancelar) {
+        pendNotificarCancelar.addEventListener("click", () => { pendNotificarModal.hidden = true; pendNotificarTargetId = null; });
+      }
+      if (pendNotificarConfirmar) {
+        pendNotificarConfirmar.addEventListener("click", pendConfirmarNotificar);
+      }
+      if (pendNotificarSubcampoCancelar) {
+        pendNotificarSubcampoCancelar.addEventListener("click", pendCancelarSubcampos);
+      }
+      if (pendNotificarSubcampoGuardar) {
+        pendNotificarSubcampoGuardar.addEventListener("click", pendConfirmarSubcampos);
+      }
+      if (pendDuplicadoCancelar) {
+        pendDuplicadoCancelar.addEventListener("click", () => { pendDuplicadoModal.hidden = true; pendDuplicadoTargetId = null; });
+      }
+      if (pendDuplicadoConfirmar) {
+        pendDuplicadoConfirmar.addEventListener("click", pendConfirmarDuplicado);
+      }
+      if (navPendientesBadge) {
+        loadPendientes();
       }
 
       function filterUsers() {
@@ -5263,6 +7232,7 @@
         nombre_sucursal:           document.getElementById("esFldNombre"),
         email_facturas:            document.getElementById("esFldCorreo"),
         direccion_sucursal:        document.getElementById("esFldDireccion"),
+        latitud_longitud:          document.getElementById("esFldLatLng"),
         referencia_ubicacion:      document.getElementById("esFldReferencia"),
         horario_apertura:          document.getElementById("esFldApertura"),
         horario_cierre:            document.getElementById("esFldCierre"),
@@ -6183,147 +8153,484 @@
     })();
   </script>
 
-  <!-- ── Administrar Puestos: maqueta con datos de ejemplo ──
-       Cuando llegue la planilla real, reemplazar MOCK_PUESTOS_DATA y
-       MOCK_CAMARAS_SIN_PUESTO por un fetch a un endpoint real; el resto
-       (render, filtro por cliente, selector de puesto) no debería cambiar. -->
+  <!-- ── Administrar Puestos: mapa real de puestos/pantallas/cámaras ──
+       Se carga desde GET /api/bitacora/puestos (tabla sucursal_camaras_monitoreo),
+       ver ATC/app/routes/bitacora.py. El resto (render, filtro por cliente,
+       selector de puesto) no depende del origen de los datos. -->
   <script>
     (() => {
-      const MOCK_PUESTOS_DATA = {
-        "1": [
-          {
-            nombre: "Pantalla 1",
-            capacidad: 25,
-            items: [
-              { empresa: "AGRICOLA IZARO", camara: "1" },
-              { empresa: "AGRICOLA IZARO", camara: "2" },
-              { empresa: "AGRICOLA IZARO", camara: "3" },
-              { empresa: "AUDIO PRO", camara: "1" },
-              { empresa: "AUDIO PRO", camara: "2" },
-              { empresa: "CASA M SUEZ", camara: "4" },
-              { empresa: "CASA M SUEZ", camara: "5" },
-              { empresa: "FELIPE ARIS CASA", camara: "1" },
-              { empresa: "FELIPE ARIS CASA", camara: "4" },
-              { empresa: "KAISER", camara: "8" },
-            ],
-          },
-          {
-            nombre: "Pantalla 2",
-            capacidad: 25,
-            items: [
-              { empresa: "LC OFICINA", camara: "1" },
-              { empresa: "LC OFICINA", camara: "2" },
-              { empresa: "LICOVAL CASA", camara: "9" },
-              { empresa: "LICOVAL CASA", camara: "10" },
-              { empresa: "MCV CASA", camara: "1" },
-              { empresa: "MCV CASA", camara: "2" },
-              { empresa: "LUMINARI", camara: "1" },
-              { empresa: "LUMINARI", camara: "2" },
-              { empresa: "TRANSPORTE NAVARRO", camara: "1" },
-              { empresa: "TRANSPORTE NAVARRO", camara: "2" },
-            ],
-          },
-          {
-            nombre: "Pantalla 3",
-            capacidad: 25,
-            items: [
-              { empresa: "FROZEN MEYER", camara: "2" },
-              { empresa: "FROZEN MEYER", camara: "4" },
-              { empresa: "ROLIMAQ", camara: "ROLIMAQ 1" },
-              { empresa: "KAISER", camara: "Kaiser 2" },
-              { empresa: "KAISER", camara: "Kaiser 3" },
-              { empresa: "KAISER", camara: "Kaiser 6" },
-              { empresa: "BEZMAN", camara: "BEZMANN 3" },
-            ],
-          },
-          {
-            nombre: "Pantalla 4",
-            capacidad: 25,
-            items: [
-              { empresa: "GM FROILA ROA 1120", camara: "2" },
-              { empresa: "GM FROILA ROA 1120", camara: "3" },
-              { empresa: "GM FROILA ROA 1120", camara: "4" },
-              { empresa: "SALINAS GREEN", camara: "1" },
-              { empresa: "STA INES", camara: "PTZ ENTRADA" },
-              { empresa: "STA INES", camara: "CHINCOL" },
-              { empresa: "STA INES", camara: "PTZ 1" },
-              { empresa: "STA INES", camara: "ZORZAL" },
-            ],
-          },
-        ],
-        "2": [
-          { nombre: "Pantalla 1", capacidad: 25, items: [] },
-          { nombre: "Pantalla 2", capacidad: 25, items: [] },
-          { nombre: "Pantalla 3", capacidad: 25, items: [] },
-          { nombre: "Pantalla 4", capacidad: 25, items: [] },
-        ],
-      };
-
-      const MOCK_CAMARAS_SIN_PUESTO = [
-        { empresa: "BODEGA CENTRAL", camara: "Ingreso" },
-        { empresa: "BODEGA CENTRAL", camara: "Patio" },
-        { empresa: "OFICINA QUILPUE", camara: "Recepción" },
-      ];
+      let PUESTOS_DATA = {};
+      let CAMARAS_SIN_MONITOREO = [];
+      const PUESTO_SIN_MONITOREO = "sin-monitoreo";
 
       const puestoSelect = document.getElementById("puestoSelect");
       const puestoClienteFiltro = document.getElementById("puestoClienteFiltro");
       const puestosPantallasGrid = document.getElementById("puestosPantallasGrid");
-      const puestosSinAsignarGrid = document.getElementById("puestosSinAsignarGrid");
-      const puestosSinAsignarCount = document.getElementById("puestosSinAsignarCount");
       if (!puestoSelect || !puestosPantallasGrid) return;
+
+      function escaparAtributo(v) {
+        return String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+      }
 
       function puestoBoxHtml(item) {
         if (!item) return '<div class="pantalla-box is-empty"></div>';
+        const empresaRaw = String(item.empresa || "");
+        const camaraRaw = String(item.camara || "");
         return `
-          <div class="pantalla-box" data-empresa="${String(item.empresa || "").toLowerCase()}">
-            <span class="empresa">${item.empresa || "-"}</span>
-            <span class="camara">${item.camara || "-"}</span>
+          <div class="pantalla-box" data-empresa="${empresaRaw.toLowerCase()}" data-empresa-raw="${escaparAtributo(empresaRaw)}" data-camara="${escaparAtributo(camaraRaw)}">
+            <span class="empresa">${empresaRaw || "-"}</span>
+            <span class="camara">${camaraRaw || "-"}</span>
           </div>`;
+      }
+
+      function csmFilaHtml(item) {
+        const camaraRaw = String(item.camara || "");
+        return `
+          <div class="csm-fila">
+            <span class="csm-camara">${camaraRaw ? escaparAtributo(camaraRaw) : "-"}</span>
+            <span class="csm-tag">sin monitoreo</span>
+          </div>`;
+      }
+
+      const PANTALLA_MONITOR_ICON = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+          <line x1="8" y1="21" x2="16" y2="21"></line>
+          <line x1="12" y1="17" x2="12" y2="21"></line>
+        </svg>`;
+
+      function renderCamarasSinMonitoreo() {
+        puestosPantallasGrid.classList.remove("cols-3");
+        if (!CAMARAS_SIN_MONITOREO.length) {
+          puestosPantallasGrid.innerHTML = '<p class="muted">No hay cámaras sin monitoreo registradas.</p>';
+          return;
+        }
+        const grupos = [];
+        let grupoActual = null;
+        CAMARAS_SIN_MONITOREO.forEach((item) => {
+          const empresa = String(item.empresa || "");
+          if (!grupoActual || grupoActual.empresa !== empresa) {
+            grupoActual = { empresa, items: [] };
+            grupos.push(grupoActual);
+          }
+          grupoActual.items.push(item);
+        });
+        const html = grupos.map((g) => `
+          <div class="csm-grupo" data-empresa="${g.empresa.toLowerCase()}">
+            <div class="csm-grupo-head">${escaparAtributo(g.empresa)}<span class="csm-grupo-count">${g.items.length} cámara${g.items.length === 1 ? "" : "s"}</span></div>
+            ${g.items.map(csmFilaHtml).join("")}
+          </div>`).join("");
+        puestosPantallasGrid.innerHTML = `<div class="camaras-sin-monitoreo-lista">${html}</div>`;
       }
 
       function renderPuestosPantallas() {
         const puestoId = puestoSelect.value;
-        const pantallas = MOCK_PUESTOS_DATA[puestoId] || [];
+        if (puestoId === PUESTO_SIN_MONITOREO) {
+          renderCamarasSinMonitoreo();
+          return;
+        }
+        puestosPantallasGrid.classList.toggle("cols-3", parseInt(puestoId, 10) > 12);
+        const pantallas = PUESTOS_DATA[puestoId] || [];
         puestosPantallasGrid.innerHTML = pantallas.map((pantalla) => {
           const ocupado = pantalla.items.length;
           const slots = Math.max(pantalla.capacidad, ocupado);
           const celdas = [];
           for (let i = 0; i < slots; i++) celdas.push(puestoBoxHtml(pantalla.items[i]));
           const full = ocupado >= pantalla.capacidad;
+          const pct = Math.min(100, Math.round((ocupado / pantalla.capacidad) * 100));
           return `
             <div class="pantalla-card">
               <div class="pantalla-card-head">
-                <h3>${pantalla.nombre}</h3>
-                <span class="pantalla-count${full ? " is-full" : ""}">${ocupado}/${pantalla.capacidad}</span>
+                <div class="pantalla-card-head-title">
+                  <span class="pantalla-card-icon">${PANTALLA_MONITOR_ICON}</span>
+                  <div>
+                    <h3>${pantalla.nombre}</h3>
+                    <p class="pantalla-sub">${ocupado} cámara${ocupado === 1 ? "" : "s"} asignada${ocupado === 1 ? "" : "s"}</p>
+                  </div>
+                </div>
+                <div class="pantalla-count-wrap">
+                  <span class="pantalla-count${full ? " is-full" : ""}">${ocupado}/${pantalla.capacidad}</span>
+                  <div class="pantalla-count-bar"><div class="pantalla-count-bar-fill${full ? " is-full" : ""}" style="width:${pct}%"></div></div>
+                </div>
               </div>
               <div class="pantalla-grid">${celdas.join("")}</div>
             </div>`;
         }).join("") || '<p class="muted">Este puesto todavía no tiene pantallas configuradas.</p>';
       }
 
-      function renderCamarasSinPuesto() {
-        if (!puestosSinAsignarGrid) return;
-        puestosSinAsignarCount.textContent = String(MOCK_CAMARAS_SIN_PUESTO.length);
-        puestosSinAsignarGrid.innerHTML = MOCK_CAMARAS_SIN_PUESTO.map(puestoBoxHtml).join("")
-          || '<p class="muted">No hay cámaras sin asignar.</p>';
-      }
-
       function aplicarFiltroCliente() {
         const q = (puestoClienteFiltro.value || "").trim().toLowerCase();
-        document.querySelectorAll("#puestosPantallasGrid .pantalla-box[data-empresa], #puestosSinAsignarGrid .pantalla-box[data-empresa]").forEach((box) => {
+        document.querySelectorAll("#puestosPantallasGrid .pantalla-box[data-empresa]").forEach((box) => {
           box.classList.toggle("is-dim", !!q && !box.dataset.empresa.includes(q));
+        });
+        document.querySelectorAll("#puestosPantallasGrid .csm-grupo[data-empresa]").forEach((grupo) => {
+          grupo.classList.toggle("is-dim", !!q && !grupo.dataset.empresa.includes(q));
         });
       }
 
-      const puestosDisponibles = Object.keys(MOCK_PUESTOS_DATA);
-      puestoSelect.innerHTML = puestosDisponibles.map((id) => `<option value="${id}">Puesto ${id}</option>`).join("");
       puestoSelect.addEventListener("change", renderPuestosPantallas);
       puestoClienteFiltro.addEventListener("input", aplicarFiltroCliente);
 
-      renderPuestosPantallas();
-      renderCamarasSinPuesto();
+      puestosPantallasGrid.innerHTML = '<p class="muted">Cargando puestos...</p>';
+      fetch("/api/bitacora/puestos", { credentials: "same-origin" })
+        .then((r) => {
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return r.json();
+        })
+        .then((data) => {
+          PUESTOS_DATA = data.puestos || {};
+          CAMARAS_SIN_MONITOREO = data.camaras_sin_monitoreo || [];
+          const puestosDisponibles = Object.keys(PUESTOS_DATA);
+          const opciones = puestosDisponibles.map((id) => `<option value="${id}">Puesto ${id}</option>`);
+          opciones.push(`<option value="${PUESTO_SIN_MONITOREO}">Cámaras sin monitoreo</option>`);
+          puestoSelect.innerHTML = opciones.join("");
+          renderPuestosPantallas();
+        })
+        .catch((err) => {
+          puestosPantallasGrid.innerHTML = '<p class="muted">No se pudo cargar el mapa de puestos. Reintenta recargando la página.</p>';
+          console.error("Error cargando /api/bitacora/puestos", err);
+        });
+
+      // ── Popup de estado de camara (cruce con incidencias reales) ──
+      const ICON_OK = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>`;
+      const ICON_WARN = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>`;
+
+      const camOverlay = document.getElementById("camStatusOverlay");
+      const camModal = document.getElementById("camStatusModal");
+      const camIcon = document.getElementById("camStatusIcon");
+      const camTitle = document.getElementById("camStatusTitle");
+      const camSub = document.getElementById("camStatusSub");
+      const camBody = document.getElementById("camStatusBody");
+      const camClose = document.getElementById("camStatusClose");
+
+      function cerrarEstadoCamara() {
+        if (!camOverlay) return;
+        camOverlay.hidden = true;
+      }
+
+      async function consultarEstadoCamara(empresaRaw, camaraRaw) {
+        const params = new URLSearchParams({ empresa: empresaRaw, camara: camaraRaw });
+        const response = await fetch(`/api/bitacora/estado-camara?${params.toString()}`, {
+          headers: { Accept: "application/json" },
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.detail || "No se pudo consultar el estado.");
+        }
+        return payload;
+      }
+
+      async function abrirEstadoCamara(empresaRaw, camaraRaw) {
+        if (!camOverlay || !camModal) return;
+        camModal.className = "cam-status-modal";
+        camIcon.innerHTML = "";
+        camTitle.textContent = camaraRaw || "Cámara";
+        camSub.textContent = empresaRaw || "";
+        camBody.innerHTML = '<div class="cam-status-loading">Consultando incidencias…</div>';
+        camOverlay.hidden = false;
+
+        try {
+          const data = await consultarEstadoCamara(empresaRaw, camaraRaw);
+          const incidencias = data.incidencias || [];
+          if (data.estado === "problema" && incidencias.length) {
+            camModal.classList.add("is-warn");
+            camIcon.innerHTML = ICON_WARN;
+            const n = incidencias.length;
+            const bloques = incidencias.map((inc) => `
+              <div class="cam-status-detail">
+                <div class="cam-status-detail-row"><span>ODT</span><span>${escaparAtributo(inc.odt || "—")}</span></div>
+                <div class="cam-status-detail-row"><span>Tipo</span><span>${escaparAtributo(inc.tipo || "—")}</span></div>
+                <div class="cam-status-detail-row"><span>Registrado</span><span>${escaparAtributo(inc.fecha_registro || "—")}</span></div>
+                ${inc.detalle ? `<div class="cam-status-detail-desc">${escaparAtributo(inc.detalle)}</div>` : ""}
+              </div>`).join("");
+            camBody.innerHTML = `
+              <span class="cam-status-badge is-warn">⚠ ${n > 1 ? `${n} problemas detectados` : "Problema detectado"}</span>
+              ${bloques}`;
+          } else {
+            camModal.classList.add("is-ok");
+            camIcon.innerHTML = ICON_OK;
+            camBody.innerHTML = `<span class="cam-status-badge is-ok">✓ En línea</span>`;
+          }
+        } catch (err) {
+          camModal.classList.add("is-warn");
+          camIcon.innerHTML = ICON_WARN;
+          camBody.innerHTML = `<div class="cam-status-detail"><div class="cam-status-detail-desc">No se pudo consultar el estado: ${escaparAtributo(err.message || "error desconocido")}</div></div>`;
+        }
+      }
+
+      document.addEventListener("click", (event) => {
+        const box = event.target.closest("#puestosPantallasGrid .pantalla-box[data-camara]");
+        if (box) {
+          abrirEstadoCamara(box.dataset.empresaRaw || box.dataset.empresa || "", box.dataset.camara || "");
+          return;
+        }
+        if (event.target === camOverlay) cerrarEstadoCamara();
+      });
+      if (camClose) camClose.addEventListener("click", cerrarEstadoCamara);
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && camOverlay && !camOverlay.hidden) cerrarEstadoCamara();
+      });
     })();
 
+  </script>
+
+  <!-- ── Información Puestos ── -->
+  <script>
+    (() => {
+      const ipResumenBody = document.getElementById("ipResumenBody");
+      if (!ipResumenBody) return;
+
+      const ipResumenTable = document.getElementById("ipResumenTable");
+      const ipDetalleWrap = document.getElementById("ipDetalleWrap");
+      const ipDetalleTitulo = document.getElementById("ipDetalleTitulo");
+      const ipDetalleBody = document.getElementById("ipDetalleBody");
+      const ipCerrarDetalle = document.getElementById("ipCerrarDetalle");
+      const ipDesde = document.getElementById("ipDesde");
+      const ipHasta = document.getElementById("ipHasta");
+      const ipAplicar = document.getElementById("ipAplicar");
+      const ipExcelPreview = document.getElementById("ipExcelPreview");
+      const ipPdfPreview = document.getElementById("ipPdfPreview");
+      const ipRecintoPreview = document.getElementById("ipRecintoPreview");
+
+      const ipDetalleTable = document.getElementById("ipDetalleTable");
+
+      let IP_DATA = [];
+      let ipSortKey = "puesto";
+      let ipSortAsc = true;
+      let ipDetalleSortKey = "sucursal";
+      let ipDetalleSortAsc = true;
+      let ipPuestoActivo = null;
+
+      function ipEscapar(v) {
+        return String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+      }
+
+      function ipFilaResumenHtml(p) {
+        return `
+          <tr data-puesto="${p.puesto}" class="${ipPuestoActivo === p.puesto ? "is-active" : ""}">
+            <td>Puesto ${p.puesto}</td>
+            <td class="num">${p.camaras_monitoreadas}</td>
+            <td class="num">${p.sucursales}</td>
+            <td class="num">${p.incidencias}</td>
+            <td class="num ip-pendientes${p.incidencias_pendientes > 0 ? " has-pendientes" : ""}">${p.incidencias_pendientes}</td>
+            <td class="num">${p.protocolos_preventivos}</td>
+            <td class="num">${p.protocolos_intrusivos}</td>
+            <td class="num">${p.movimientos_bitacora}</td>
+          </tr>`;
+      }
+
+      function ipOrdenar(lista, key, asc) {
+        const copia = lista.slice();
+        copia.sort((a, b) => {
+          const va = a[key];
+          const vb = b[key];
+          const cmp = typeof va === "string" ? va.localeCompare(vb) : va - vb;
+          return asc ? cmp : -cmp;
+        });
+        return copia;
+      }
+
+      function ipRenderResumen() {
+        const lista = ipOrdenar(IP_DATA, ipSortKey, ipSortAsc);
+        ipResumenBody.innerHTML = lista.map(ipFilaResumenHtml).join("")
+          || '<tr><td colspan="8" class="muted">Sin datos.</td></tr>';
+        ipResumenTable.querySelectorAll("th[data-sort]").forEach((th) => {
+          th.classList.toggle("is-sorted", th.dataset.sort === ipSortKey);
+          th.classList.toggle("is-asc", th.dataset.sort === ipSortKey && ipSortAsc);
+        });
+      }
+
+      function ipFilaDetalleHtml(s) {
+        return `
+          <tr>
+            <td>${ipEscapar(s.sucursal)}</td>
+            <td class="num">${s.camaras_monitoreadas}</td>
+            <td class="num">${s.incidencias}</td>
+            <td class="num ip-pendientes${s.incidencias_pendientes > 0 ? " has-pendientes" : ""}">${s.incidencias_pendientes}</td>
+            <td class="num">${s.protocolos_preventivos}</td>
+            <td class="num">${s.protocolos_intrusivos}</td>
+            <td class="num">${s.movimientos_bitacora}</td>
+          </tr>`;
+      }
+
+      function ipAbrirDetalle(puestoNum) {
+        const p = IP_DATA.find((x) => x.puesto === puestoNum);
+        if (!p) return;
+        ipPuestoActivo = puestoNum;
+        ipDetalleTitulo.textContent = `Puesto ${puestoNum} — ${p.sucursales} sucursal${p.sucursales === 1 ? "" : "es"}`;
+        const lista = ipOrdenar(p.detalle_sucursales, ipDetalleSortKey, ipDetalleSortAsc);
+        ipDetalleBody.innerHTML = lista.map(ipFilaDetalleHtml).join("")
+          || '<tr><td colspan="7" class="muted">Este puesto no tiene sucursales con cámaras asignadas.</td></tr>';
+        ipDetalleTable.querySelectorAll("th[data-sort]").forEach((th) => {
+          th.classList.toggle("is-sorted", th.dataset.sort === ipDetalleSortKey);
+          th.classList.toggle("is-asc", th.dataset.sort === ipDetalleSortKey && ipDetalleSortAsc);
+        });
+        ipDetalleWrap.hidden = false;
+        ipRenderResumen();
+        ipDetalleWrap.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+
+      ipResumenTable.querySelectorAll("th[data-sort]").forEach((th) => {
+        th.addEventListener("click", () => {
+          const key = th.dataset.sort;
+          if (ipSortKey === key) {
+            ipSortAsc = !ipSortAsc;
+          } else {
+            ipSortKey = key;
+            ipSortAsc = key === "puesto";
+          }
+          ipRenderResumen();
+        });
+      });
+
+      ipDetalleTable.querySelectorAll("th[data-sort]").forEach((th) => {
+        th.addEventListener("click", () => {
+          if (!ipPuestoActivo) return;
+          const key = th.dataset.sort;
+          if (ipDetalleSortKey === key) {
+            ipDetalleSortAsc = !ipDetalleSortAsc;
+          } else {
+            ipDetalleSortKey = key;
+            ipDetalleSortAsc = key === "sucursal";
+          }
+          ipAbrirDetalle(ipPuestoActivo);
+        });
+      });
+
+      ipResumenBody.addEventListener("click", (event) => {
+        const row = event.target.closest("tr[data-puesto]");
+        if (!row) return;
+        ipAbrirDetalle(parseInt(row.dataset.puesto, 10));
+      });
+
+      ipCerrarDetalle.addEventListener("click", () => {
+        ipPuestoActivo = null;
+        ipDetalleWrap.hidden = true;
+        ipRenderResumen();
+      });
+
+      function ipCargar() {
+        ipResumenBody.innerHTML = '<tr><td colspan="8" class="muted">Cargando...</td></tr>';
+        const params = new URLSearchParams();
+        if (ipDesde.value) params.set("desde", ipDesde.value);
+        if (ipHasta.value) params.set("hasta", ipHasta.value);
+        fetch(`/api/bitacora/informacion-puestos?${params.toString()}`, { credentials: "same-origin" })
+          .then((r) => {
+            if (!r.ok) throw new Error("HTTP " + r.status);
+            return r.json();
+          })
+          .then((data) => {
+            IP_DATA = data.puestos || [];
+            ipRenderResumen();
+            if (ipPuestoActivo) ipAbrirDetalle(ipPuestoActivo);
+          })
+          .catch((err) => {
+            ipResumenBody.innerHTML = '<tr><td colspan="8" class="muted">No se pudo cargar. Reintenta recargando la página.</td></tr>';
+            console.error("Error cargando /api/bitacora/informacion-puestos", err);
+          });
+      }
+
+      ipAplicar.addEventListener("click", ipCargar);
+
+      function ipParamsActuales() {
+        const params = new URLSearchParams();
+        if (ipDesde.value) params.set("desde", ipDesde.value);
+        if (ipHasta.value) params.set("hasta", ipHasta.value);
+        return params.toString();
+      }
+
+      if (ipExcelPreview) ipExcelPreview.addEventListener("click", () => {
+        window.open(`/api/bitacora/informacion-puestos/excel/preview?${ipParamsActuales()}`, "_blank");
+      });
+      if (ipPdfPreview) ipPdfPreview.addEventListener("click", () => {
+        window.open(`/api/bitacora/informacion-puestos/pdf/preview?${ipParamsActuales()}`, "_blank");
+      });
+      if (ipRecintoPreview) ipRecintoPreview.addEventListener("click", () => {
+        window.open(`/api/bitacora/informacion-puestos/recintos/preview?${ipParamsActuales()}`, "_blank");
+      });
+
+      document.querySelector('[data-panel-target="informacion-puestos"]').addEventListener("click", () => {
+        if (!IP_DATA.length) ipCargar();
+      }, { once: true });
+    })();
+  </script>
+
+  <script>
+  (function () {
+    const body = document.body;
+    const railToggle = document.getElementById("sidebarRailToggle");
+    const storageKey = "bitacora_sidebar_collapsed";
+
+    if (!railToggle) return;
+
+    const iconCollapsed = `
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <polyline points="8.5 19 15.5 12 8.5 5" style="fill:none;stroke:rgb(44,169,188);stroke-linecap:round;stroke-linejoin:round;stroke-width:2;"></polyline>
+        <polyline points="14 5 21 12 14 19" style="fill:none;stroke:rgb(255,255,255);stroke-linecap:round;stroke-linejoin:round;stroke-width:2;"></polyline>
+        <polyline points="3 19 10 12 3 5" style="fill:none;stroke:rgb(255,255,255);stroke-linecap:round;stroke-linejoin:round;stroke-width:2;"></polyline>
+      </svg>
+    `;
+
+    const iconExpanded = `
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <polyline points="15.5 5 8.5 12 15.5 19" style="fill:none;stroke:rgb(44,169,188);stroke-linecap:round;stroke-linejoin:round;stroke-width:2;"></polyline>
+        <polyline points="10 19 3 12 10 5" style="fill:none;stroke:rgb(255,255,255);stroke-linecap:round;stroke-linejoin:round;stroke-width:2;"></polyline>
+        <polyline points="21 5 14 12 21 19" style="fill:none;stroke:rgb(255,255,255);stroke-linecap:round;stroke-linejoin:round;stroke-width:2;"></polyline>
+      </svg>
+    `;
+
+    function isMobile() {
+      return window.matchMedia("(max-width: 1120px)").matches;
+    }
+
+    function updateToggleVisual(collapsed) {
+      railToggle.innerHTML = collapsed ? iconCollapsed : iconExpanded;
+      railToggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+      const label = collapsed ? "Expandir barra lateral" : "Contraer barra lateral";
+      railToggle.setAttribute("title", label);
+      railToggle.setAttribute("aria-label", label);
+    }
+
+    function setCollapsed(collapsed, persist = true) {
+      if (isMobile()) {
+        body.classList.remove("sidebar-collapsed");
+        updateToggleVisual(false);
+        return;
+      }
+      body.classList.toggle("sidebar-collapsed", collapsed);
+      updateToggleVisual(collapsed);
+      if (persist) {
+        localStorage.setItem(storageKey, collapsed ? "1" : "0");
+      }
+    }
+
+    const initialCollapsed = localStorage.getItem(storageKey) === "1";
+    setCollapsed(initialCollapsed, false);
+
+    railToggle.addEventListener("click", () => {
+      const collapsed = !body.classList.contains("sidebar-collapsed");
+      setCollapsed(collapsed, true);
+    });
+
+    window.addEventListener("resize", () => {
+      if (isMobile()) {
+        body.classList.remove("sidebar-collapsed");
+        updateToggleVisual(false);
+        return;
+      }
+      const collapsed = localStorage.getItem(storageKey) === "1";
+      body.classList.toggle("sidebar-collapsed", collapsed);
+      updateToggleVisual(collapsed);
+    });
+  })();
   </script>
   <script src="/static/atc-logo-home.js"></script>
 <script src="/static/atc-volver.js"></script>

@@ -11,7 +11,7 @@ from typing import Any
 from urllib.parse import unquote, urlparse
 
 from fastapi import HTTPException
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, text
 from sqlalchemy.orm import Session
 
 from ATC.app.core.incidencias_config import settings
@@ -49,6 +49,7 @@ from ATC.app.services.venta_trace_email_service import (
     notify_oc_requerida,
     notify_ods_registered,
     notify_recepcion_administracion_cliente,
+    notify_sucursal_lista_para_bitacora,
 )
 from ATC.app.schemas.venta import VentaClienteCreateRequest, VentaODSArchivoRequest, VentaODSCreateRequest, VentaSucursalCreateRequest
 
@@ -652,6 +653,8 @@ def create_sucursal(db: Session, payload: VentaSucursalCreateRequest, usuario_em
         raise HTTPException(status_code=400, detail="Debes completar al menos un contacto de emergencia con todos sus datos.")
 
     lat, lng, latlng = _split_lat_lng(payload.latitudLongitud, payload.latitud, payload.longitud)
+    if not lat or not lng:
+        raise HTTPException(status_code=400, detail="Debes ingresar latitud y longitud.")
 
     record = SucursalBBDD(
         rut=rut,
@@ -672,6 +675,10 @@ def create_sucursal(db: Session, payload: VentaSucursalCreateRequest, usuario_em
         horario_cierre=_clean_text(payload.horarioCierre),
         dias_funcionamiento=_clean_text(payload.diasFuncionamiento),
         created_by=_clean_text(usuario_email),
+        # Nace pendiente de aceptación en Bitácora — un operador la revisa (por si es
+        # un duplicado o le falta info) antes de que aparezca en las búsquedas/listados
+        # de bitacora.py. Ver sección "Sucursales pendientes de aceptación".
+        aceptada_bitacora=False,
     )
     db.add(record)
     db.flush()
@@ -2153,6 +2160,150 @@ def update_sucursal_row(db: Session, row_id: int, values: list[str]) -> None:
         ))
 
     db.commit()
+
+
+# Mismas claves/etiquetas que PEND_NOTIFICAR_CAMPOS en bitacora.html — el checklist
+# de "Notificar a Comercial" manda estas claves, y acá se usan para resaltar los
+# campos correspondientes en Venta y armar el resumen de "lo que rellenó".
+CAMPOS_BITACORA_LABELS: dict[str, str] = {
+    "direccion_sucursal": "Dirección",
+    "latitud_longitud": "Latitud, Longitud",
+    "referencia_ubicacion": "Referencia ubicación",
+    "email_facturas": "Correo",
+    "horario_apertura": "Horario de apertura",
+    "horario_cierre": "Horario de cierre",
+    "horario_habil": "Días hábiles",
+    "plan_cuadrante": "Plan cuadrante",
+    "carabineros": "Carabineros",
+    "bomberos": "Bomberos",
+    "seguridad_ciudadana": "Seguridad ciudadana",
+    "camaras_contratadas": "Cámaras a instalar",
+    "camaras_televigiladas": "Cámaras televigiladas",
+    "codigo_p2p": "Código P2P",
+    "codigo_dss": "Código DSS",
+    "telefono_porton": "Teléfono portón",
+    "telefono_recepcion": "Teléfono recepción",
+    "compania_electricidad": "Compañía electricidad",
+    "numero_cliente_electricidad": "N° cliente electricidad",
+    "proveedor_internet_cliente": "Proveedor internet cliente",
+    "internet_atc": "Internet ATC",
+    "contactos_emergencia": "Contacto de emergencia",
+    "personas_autorizadas": "Personas autorizadas",
+}
+
+
+def get_sucursal_revision_bitacora(db: Session, sucursal_id: int) -> dict[str, Any]:
+    """Qué marcó Bitácora como "falta o está mal" la última vez que notificó a
+    Comercial sobre esta sucursal, y si sigue pendiente de aceptación."""
+    row = db.execute(text("""
+        SELECT s.aceptada_bitacora,
+               e.campos_pendientes, e.campos_pendientes_obs,
+               e.campos_pendientes_fecha, e.campos_pendientes_por
+        FROM bbdd_sucursales s
+        LEFT JOIN sucursal_info_extra e ON e.sucursal_id = s.id
+        WHERE s.id = :sid
+    """), {"sid": sucursal_id}).mappings().first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Sucursal no encontrada.")
+    campos_raw = str(row.get("campos_pendientes") or "").strip()
+    campos = [c.strip() for c in campos_raw.split(",") if c.strip()]
+    fecha = row.get("campos_pendientes_fecha")
+    return {
+        "pendiente": not bool(row.get("aceptada_bitacora")),
+        "campos": campos,
+        "observacion": str(row.get("campos_pendientes_obs") or "").strip(),
+        "observado_en": fecha.isoformat(sep=" ", timespec="minutes") if isinstance(fecha, datetime) else "",
+        "observado_por": str(row.get("campos_pendientes_por") or "").strip(),
+    }
+
+
+def _valores_actuales_para_resumen(db: Session, sucursal_id: int, campos: list[str]) -> list[tuple[str, str]]:
+    """Valor actual de cada campo marcado, para mostrar en el correo de "avisar
+    que está listo" qué quedó cargado — sin replicar el detalle de fallback fino
+    que usa la ficha de Bitácora, solo un resumen informativo."""
+    if not campos:
+        return []
+    row = db.execute(text("""
+        SELECT
+            b.direccion_sucursal, b.latitud_longitud, b.email_facturas,
+            b.horario_apertura, b.horario_cierre,
+            COALESCE(NULLIF(TRIM(b.referencia_ubicacion), ''), e.referencia_ubicacion) AS referencia_ubicacion,
+            COALESCE(NULLIF(TRIM(b.dias_funcionamiento), ''), e.horario_habil) AS horario_habil,
+            e.plan_cuadrante, e.carabineros, e.bomberos, e.seguridad_ciudadana,
+            e.camaras_contratadas, e.camaras_televigiladas, e.codigo_p2p, e.codigo_dss,
+            e.telefono_porton, e.telefono_recepcion, e.internet_atc,
+            b.proveedor_electricidad, b.nro_proveedor_electricidad, b.proveedor_internet
+        FROM bbdd_sucursales b
+        LEFT JOIN sucursal_info_extra e ON e.sucursal_id = b.id
+        WHERE b.id = :sid
+    """), {"sid": sucursal_id}).mappings().first()
+    if not row:
+        return []
+
+    alias = {
+        "compania_electricidad": "proveedor_electricidad",
+        "numero_cliente_electricidad": "nro_proveedor_electricidad",
+        "proveedor_internet_cliente": "proveedor_internet",
+    }
+    contactos = db.execute(text(
+        "SELECT COUNT(*) FROM sucursal_contactos_emergencia WHERE sucursal_id = :sid"
+    ), {"sid": sucursal_id}).scalar() or 0
+    personas = db.execute(text(
+        "SELECT COUNT(*) FROM sucursal_personas_autorizadas WHERE sucursal_id = :sid"
+    ), {"sid": sucursal_id}).scalar() or 0
+
+    resumen: list[tuple[str, str]] = []
+    for campo in campos:
+        label = CAMPOS_BITACORA_LABELS.get(campo, campo)
+        if campo == "contactos_emergencia":
+            resumen.append((label, f"{contactos} contacto(s) registrado(s)"))
+            continue
+        if campo == "personas_autorizadas":
+            resumen.append((label, f"{personas} persona(s) registrada(s)"))
+            continue
+        columna = alias.get(campo, campo)
+        valor = str(row.get(columna) or "").strip() or "-"
+        resumen.append((label, valor))
+    return resumen
+
+
+def avisar_sucursal_lista_bitacora(
+    db: Session,
+    sucursal_id: int,
+    usuario: str,
+    mensaje: str,
+    campos_seleccionados: list[str] | None = None,
+) -> dict[str, Any]:
+    """Comercial ya corrigió (algunos o todos) los campos que Bitácora había marcado
+    como pendientes en una sucursal (desde BBDD Sucursales o Información Clientes) y
+    avisa al equipo de Bitácora para que la revise de nuevo. campos_seleccionados es
+    lo que Comercial tildó como "esto sí lo corregí" en el popup — no
+    necesariamente todo lo que estaba marcado, así que solo esos se limpian del
+    flag y solo esos entran en el resumen; el resto sigue pendiente para la
+    próxima vez."""
+    revision = get_sucursal_revision_bitacora(db, sucursal_id)
+    todos_los_marcados = revision["campos"]
+    seleccionados = (
+        [c for c in campos_seleccionados if c in todos_los_marcados]
+        if campos_seleccionados is not None
+        else todos_los_marcados
+    )
+    resumen = _valores_actuales_para_resumen(db, sucursal_id, seleccionados)
+    resultado = notify_sucursal_lista_para_bitacora(db, sucursal_id, usuario, mensaje, resumen)
+    if resultado.get("email_sent"):
+        restantes = [c for c in todos_los_marcados if c not in seleccionados]
+        db.execute(text("""
+            UPDATE sucursal_info_extra SET campos_pendientes = :campos, campos_pendientes_obs = :obs
+            WHERE sucursal_id = :sid
+        """), {
+            "sid": sucursal_id,
+            "campos": ",".join(restantes),
+            # Si queda algo pendiente se conserva la observación original de Bitácora
+            # como contexto; si ya se resolvió todo, se limpia.
+            "obs": revision["observacion"] if restantes else "",
+        })
+        db.commit()
+    return resultado
 
 
 _CHILE_REGIONES_COMUNAS: dict[str, list[str]] = {

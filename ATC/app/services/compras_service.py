@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 
 GESTORS_COMPRA = [
     "gponce@soporteatc.cl",
-    "hrosales@centralatc.cl",
+    "compras@alguientecuida.cl",
     "finanzas@alguientecuida.cl",
     "contabilidad@alguientecuida.cl",
     "nguzman@alguientecuida.cl",
@@ -54,6 +54,11 @@ UMBRAL_GERENCIA = 500_000  # CLP
 
 # Áreas que saltan la aprobación de Operaciones (van directo a Contabilidad)
 BYPASS_OPS_AREAS = {"operaciones", "administracion", "coordinacion", "finanzas", "rrhh"}
+
+# Usuarios especificos que saltan Operaciones sin importar su departamento
+# (pedido explicito, jul 2026: Hector Rosales, sus solicitudes van directo a
+# Contabilidad sin pasar por ningun aprobador intermedio).
+BYPASS_OPS_EMAILS = {"compras@alguientecuida.cl"}
 
 # Mapa de department-string → area_code (subconjunto relevante para compras)
 _DEPT_AREA_MAP: dict[str, str] = {
@@ -97,6 +102,9 @@ def _area_codes_for_user(user: User) -> list[str]:
 
 def requiere_aprobacion_operaciones(user: User) -> bool:
     """True → la solicitud pasa primero por Operaciones antes de Contabilidad."""
+    email = (user.email or user.username or "").strip().casefold()
+    if email in BYPASS_OPS_EMAILS:
+        return False
     codes = set(_area_codes_for_user(user))
     return not bool(codes & BYPASS_OPS_AREAS)
 

@@ -15,6 +15,7 @@ from urllib.request import Request as UrlRequest, urlopen
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Query, Request, Response, UploadFile
+from jose import JWTError, jwt
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from sqlalchemy import MetaData, Table, inspect, or_, select, text
 from fastapi.templating import Jinja2Templates
@@ -38,6 +39,7 @@ from ATC.app.schemas.incidencias import (
     FinalizarIncidenciaRequest,
     FormularioRegistro,
     IncidenciaNueva,
+    IniciarTrabajoRequest,
     LoginRequest,
     LoginResponse,
     ProtocoloRegistroCreateRequest,
@@ -707,6 +709,8 @@ def _ensure_servicio_tecnico_ventas_optional_columns() -> None:
         "solicitud_materiales": "TEXT",
         "fecha_inicio_instalacion": "VARCHAR(40)",
         "fecha_fin_instalacion": "VARCHAR(40)",
+        "fecha_inicio_trabajo": "DATETIME2",
+        "fecha_fin_trabajo": "DATETIME2",
         "tecnico_a_cargo": "VARCHAR(255)",
         "acompanante": "VARCHAR(255)",
         "instalacion_finalizada": "BIT NOT NULL DEFAULT 0",
@@ -873,8 +877,56 @@ def _ensure_identity_views() -> None:
         LOGGER.warning("No fue posible limpiar vista users_con_areas: %s", exc)
 
 
+def _require_login(request: Request, db: Annotated[Session, Depends(get_db)]):
+    """Dependencia para endpoints /api/* de este router que leen o modifican
+    datos reales (incidencias, catalogo de clientes, rendiciones, finanzas,
+    protocolos, etc.): exige la misma cookie de sesion que ya usan las
+    paginas HTML (access_token, ver web.py._decode_cookie_token), o la sesion
+    unificada de incidencias (atc_token/LoginSession), devolviendo 401 en vez
+    de redirigir. Antes la gran mayoria de estos endpoints no verificaba
+    ninguna sesion (hallazgo de auditoria de seguridad, ago 2026)."""
+    from ATC.app.routes.web import COOKIE_NAME as _COOKIE_NAME, _decode_cookie_token as _decode_cookie_token_web
+    from ATC.app.services.user_service import UserService as _UserService
+
+    cookie = request.cookies.get(_COOKIE_NAME, "")
+    if cookie:
+        try:
+            login = _decode_cookie_token_web(cookie)
+            user = _UserService.find_by_login(db, login)
+            if user and user.is_active:
+                return user
+        except Exception:
+            pass
+
+    token = (
+        str(request.query_params.get("token") or "").strip()
+        or str(request.cookies.get("atc_token") or "").strip()
+    )
+    if token:
+        try:
+            sesion = db.get(LoginSession, token)
+            expires_at = getattr(sesion, "expires_at", None) if sesion else None
+            if expires_at:
+                now = datetime.now(expires_at.tzinfo) if getattr(expires_at, "tzinfo", None) else datetime.utcnow()
+                if expires_at > now and getattr(sesion, "user_id", None):
+                    user = db.get(User, int(sesion.user_id))
+                    if user and user.is_active:
+                        return user
+        except Exception:
+            pass
+    raise HTTPException(status_code=401, detail="No autenticado.")
+
+
 def get_service(db: Annotated[Session, Depends(get_db)]) -> IncidenciasService:
     return IncidenciasService(db)
+
+
+def _current_user_label(current_user: object) -> str:
+    for attr in ("name", "usuario", "login", "email"):
+        value = str(getattr(current_user, attr, "") or "").strip()
+        if value:
+            return value
+    return ""
 
 
 def get_protocolos_service(db: Annotated[Session, Depends(get_db)]) -> ProtocolosService:
@@ -993,6 +1045,38 @@ def _protocolos_weekly_worker_loop() -> None:
         time.sleep(900)
 
 
+def _resolver_token_atc(
+    request: Request,
+    service: IncidenciasService,
+    token: str,
+) -> tuple[str, RedirectResponse | None]:
+    """Recupera el token de sesion desde la cookie "atc_token" (seteada en
+    /api/login) cuando la URL no trae uno, para no depender de tenerlo
+    siempre visible en la barra de direcciones. Si SI llega un token valido
+    por la URL, arma el redirect que lo deja en la cookie y limpia la URL
+    (mismo patron que venta.py._guard_page). Devuelve (token_a_usar,
+    redirect_o_None) — si hay redirect, el caller debe devolverlo tal cual."""
+    token_url = str(token or "").strip()
+    if not token_url:
+        token_cookie = str(request.cookies.get("atc_token") or "").strip()
+        if token_cookie and service.usuario_logueado_por_token(token_cookie):
+            return token_cookie, None
+        return token, None
+    if service.usuario_logueado_por_token(token_url):
+        sesion = service.db.get(LoginSession, token_url)
+        clean_url = str(request.url.remove_query_params(["token"]))
+        resp = RedirectResponse(url=clean_url, status_code=303)
+        resp.set_cookie(
+            key="atc_token",
+            value=token_url,
+            httponly=False,
+            samesite="lax",
+            max_age=max_age_cookie_segundos(sesion.user_id if sesion else None, 60 * 60 * 18),
+        )
+        return token_url, resp
+    return token, None
+
+
 @router.get("/", response_class=HTMLResponse)
 def do_get(
     request: Request,
@@ -1004,6 +1088,10 @@ def do_get(
     next_form: str = Query(default="auto", alias="next"),
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
 ):
+    token, _token_redirect = _resolver_token_atc(request, service, token)
+    if _token_redirect:
+        return _token_redirect
+
     form_aliases = {
         "tabla": "servicioTecnico",
         "STVentas": "stVentas",
@@ -1028,6 +1116,7 @@ def do_get(
         "panelSelectorGerencia",
         "incidencias",
         "cierreAperturaClientes",
+        "cierreAperturaImagenes",
         "controlProtocolos",
         "tablaProtocolos",
         "envioProtocolosSemanales",
@@ -1066,6 +1155,7 @@ def do_get(
         "panelSelectorGerencia",
         "incidencias",
         "cierreAperturaClientes",
+        "cierreAperturaImagenes",
         "controlProtocolos",
         "tablaProtocolos",
         "envioProtocolosSemanales",
@@ -1136,6 +1226,7 @@ def do_get(
         "stVentas": "tabla_servicio_tecnico_venta.html",
         "incidencias": "incidencias_puestos.html",
         "cierreAperturaClientes": "cierre_apertura_clientes.html",
+        "cierreAperturaImagenes": "cierre_apertura_imagenes.html",
         "controlProtocolos": "control_protocolos.html",
         "tablaProtocolos": "tabla_protocolos.html",
         "envioProtocolosSemanales": "envio_protocolos_semanales.html",
@@ -1286,6 +1377,7 @@ def do_get(
             "panelSelectorGerencia",
             "incidencias",
             "cierreAperturaClientes",
+            "cierreAperturaImagenes",
             "controlProtocolos",
             "tablaProtocolos",
             "envioProtocolosSemanales",
@@ -1315,6 +1407,12 @@ def check_login(
     response: Response,
     service: Annotated[IncidenciasService, Depends(get_service)],
 ):
+    from ATC.app.core.rate_limit import is_locked_out, record_failure, record_success
+
+    identificador = str(payload.nombre_tecnico or "").strip()
+    if is_locked_out(identificador):
+        return LoginResponse(success=False, message="Demasiados intentos fallidos. Espera unos minutos antes de volver a intentar.")
+
     app_url = str(request.base_url).rstrip("/")
     data = service.check_login(
         payload.nombre_tecnico,
@@ -1323,6 +1421,10 @@ def check_login(
         app_url,
         payload.destino or "auto",
     )
+    if data.get("success"):
+        record_success(identificador)
+    else:
+        record_failure(identificador)
     if data.get("success") and data.get("token"):
         response.set_cookie(
             key="atc_token",
@@ -1347,6 +1449,9 @@ def resumen_equipos_tecnicos_page(
     token: str = Query(default=""),
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
 ):
+    token, _token_redirect = _resolver_token_atc(request, service, token)
+    if _token_redirect:
+        return _token_redirect
     if not service.usuario_autorizado_para_resumen_equipos(token):
         return RedirectResponse(url="/?form=login&next=auto", status_code=303)
     resumen = service.obtener_resumen_equipos_tecnicos_hoy(
@@ -1473,7 +1578,7 @@ def mantenciones_vina_del_mar_set_tecnico(
     odt: str,
     payload: dict,
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
-):
+current_user=Depends(_require_login)):
     odt_limpia = str(odt or "").strip()
     if not odt_limpia.startswith(MANTENCION_VINA_PREFIJO):
         raise HTTPException(status_code=400, detail="Punto invalido.")
@@ -1490,7 +1595,7 @@ def mantenciones_vina_del_mar_set_tecnico(
 def mantenciones_vina_del_mar_set_total(
     payload: dict,
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
-):
+current_user=Depends(_require_login)):
     try:
         nuevo_total = int(payload.get("total"))
     except (TypeError, ValueError):
@@ -1510,7 +1615,7 @@ def mantenciones_vina_del_mar_marcar_pendiente(
     odt: str,
     payload: dict,
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
-):
+current_user=Depends(_require_login)):
     odt_limpia = str(odt or "").strip()
     if not odt_limpia.startswith(MANTENCION_VINA_PREFIJO):
         raise HTTPException(status_code=400, detail="Punto invalido.")
@@ -1540,6 +1645,9 @@ def tabla_soporte_local_page(
     token: str = Query(default=""),
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
 ):
+    token, _token_redirect = _resolver_token_atc(request, service, token)
+    if _token_redirect:
+        return _token_redirect
     if not service.usuario_logueado_por_token(token):
         return RedirectResponse(url="/?form=login&next=auto", status_code=303)
     return templates.TemplateResponse(
@@ -1553,7 +1661,7 @@ def tabla_soporte_local_page(
 def get_usuarios_login(
     destino: str = "tecnicos",
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
-):
+current_user=Depends(_require_login)):
     return {
         "usuarios": service.obtener_usuarios_login_tecnicos(destino),
         "detalles": service.obtener_usuarios_login_detalle(destino),
@@ -1561,7 +1669,7 @@ def get_usuarios_login(
 
 
 @router.get("/api/listas/bbdd")
-def obtener_listas_bbdd(service: Annotated[IncidenciasService, Depends(get_service)]):
+def obtener_listas_bbdd(service: Annotated[IncidenciasService, Depends(get_service)], current_user=Depends(_require_login)):
     return service.obtener_listas_bbdd()
 
 
@@ -1570,7 +1678,7 @@ def buscar_materiales(
     q: str = "",
     limit: int = 10,
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
-):
+current_user=Depends(_require_login)):
     try:
         return service.buscar_materiales_excel(q, limit)
     except ValueError as exc:
@@ -1578,12 +1686,12 @@ def buscar_materiales(
 
 
 @router.get("/api/listas/incidencias")
-def obtener_listas_incidencias(service: Annotated[IncidenciasService, Depends(get_service)]):
+def obtener_listas_incidencias(service: Annotated[IncidenciasService, Depends(get_service)], current_user=Depends(_require_login)):
     return service.obtener_listas_incidencias()
 
 
 @router.get("/api/catalogo-clientes")
-def obtener_catalogo_clientes(service: Annotated[IncidenciasService, Depends(get_service)]):
+def obtener_catalogo_clientes(service: Annotated[IncidenciasService, Depends(get_service)], current_user=Depends(_require_login)):
     return service.obtener_catalogo_clientes()
 
 
@@ -1591,7 +1699,7 @@ def obtener_catalogo_clientes(service: Annotated[IncidenciasService, Depends(get
 def obtener_registros(
     tecnico: str = "",
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
-):
+current_user=Depends(_require_login)):
     try:
         return service.obtener_registros(tecnico)
     except ValueError as exc:
@@ -1602,7 +1710,7 @@ def obtener_registros(
 def obtener_registros_administracion(
     tecnico: str = "",
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
-):
+current_user=Depends(_require_login)):
     try:
         return service.obtener_registros_desde_administracion(tecnico)
     except ValueError as exc:
@@ -1628,7 +1736,7 @@ def obtener_incidencias_por_puesto(
     service: Annotated[IncidenciasService, Depends(get_service)],
     tecnico: str = "",
     vista: str = "",
-):
+current_user=Depends(_require_login)):
     try:
         return service.obtener_incidencias_por_puesto(
             tecnico,
@@ -1641,7 +1749,7 @@ def obtener_incidencias_por_puesto(
 @router.get("/api/incidencias/servicio-tecnico")
 def obtener_incidencias_servicio_tecnico(
     service: Annotated[IncidenciasService, Depends(get_service)],
-):
+current_user=Depends(_require_login)):
     try:
         return service.obtener_incidencias_servicio_tecnico()
     except ValueError as exc:
@@ -1652,7 +1760,7 @@ def obtener_incidencias_servicio_tecnico(
 def obtener_ruta_optima_tecnico(
     service: Annotated[IncidenciasService, Depends(get_service)],
     tecnico: str = "",
-):
+current_user=Depends(_require_login)):
     try:
         return service.obtener_ruta_optima_tecnico(tecnico=tecnico)
     except ValueError as exc:
@@ -1662,7 +1770,7 @@ def obtener_ruta_optima_tecnico(
 @router.get("/api/incidencias/coordinacion")
 def obtener_incidencias_coordinacion(
     service: Annotated[IncidenciasService, Depends(get_service)],
-):
+current_user=Depends(_require_login)):
     try:
         return service.obtener_incidencias_derivadas_cliente()
     except ValueError as exc:
@@ -1673,7 +1781,7 @@ def obtener_incidencias_coordinacion(
 def obtener_detalle_sucursal(
     odt: str,
     service: Annotated[IncidenciasService, Depends(get_service)],
-):
+current_user=Depends(_require_login)):
     return service.obtener_datos_sucursal_con_coordenadas(odt)
 
 
@@ -1681,7 +1789,7 @@ def obtener_detalle_sucursal(
 def obtener_historial_sucursal(
     cliente: str,
     service: Annotated[IncidenciasService, Depends(get_service)],
-):
+current_user=Depends(_require_login)):
     return service.obtener_ultimas_incidencias_sucursal(cliente)
 
 
@@ -1689,7 +1797,7 @@ def obtener_historial_sucursal(
 def obtener_imagenes_incidencia(
     odt: str,
     service: Annotated[IncidenciasService, Depends(get_service)],
-):
+current_user=Depends(_require_login)):
     return service.obtener_imagenes_finalizacion(odt)
 
 
@@ -1697,14 +1805,14 @@ def obtener_imagenes_incidencia(
 def obtener_imagenes_tabla(
     odt: str,
     service: Annotated[IncidenciasService, Depends(get_service)],
-):
+current_user=Depends(_require_login)):
     return {"odt": odt, "imagenes": service.obtener_imagenes_tabla(odt)}
 
 
 @router.get("/api/incidencias/informes-odt-cierre")
 def obtener_informes_odt_cierre(
     service: Annotated[IncidenciasService, Depends(get_service)],
-):
+current_user=Depends(_require_login)):
     return {"items": service.obtener_informes_cierre_odt()}
 
 
@@ -1722,7 +1830,7 @@ def _drive_odt_client():
 
 
 @router.get("/api/incidencias/drive-odt/listar")
-def drive_odt_listar(folder_id: str = Query(default="")):
+def drive_odt_listar(folder_id: str = Query(default=""), current_user=Depends(_require_login)):
     import time as _time
 
     fid = (folder_id or "").strip() or str(settings.google_drive_root_folder_id or "").strip()
@@ -1759,7 +1867,7 @@ def drive_odt_listar(folder_id: str = Query(default="")):
 
 
 @router.get("/api/incidencias/drive-odt/buscar")
-def drive_odt_buscar(q: str = Query(default="")):
+def drive_odt_buscar(q: str = Query(default=""), current_user=Depends(_require_login)):
     texto = str(q or "").strip().replace("'", "")
     if len(texto) < 2:
         return {"folders": []}
@@ -1776,15 +1884,37 @@ def drive_odt_buscar(q: str = Query(default="")):
     return {"folders": [{"id": f["id"], "name": f["name"]} for f in res.get("files", [])]}
 
 
+def _incidencias_jwt_cookie_autorizado(request: Request, db: Session) -> bool:
+    # Los usuarios del panel unificado (/soporte, cookie JWT "access_token")
+    # no tienen "atc_token" — sin este fallback, las miniaturas de "Imagenes
+    # ODT" nunca cargaban para ellos aunque la imagen SI existiera en Drive
+    # (pedido explicito, jul 2026).
+    raw_token = request.cookies.get("access_token")
+    if not raw_token:
+        return False
+    try:
+        payload = jwt.decode(raw_token, settings.JWT_SECRET, algorithms=[settings.JWT_ALG])
+    except (JWTError, ValueError):
+        return False
+    username = payload.get("sub")
+    if not username:
+        return False
+    user = db.query(User).filter(User.username == username).first()
+    return bool(user and user.is_active)
+
+
 @router.get("/api/incidencias/drive-image/{file_id}")
 def obtener_drive_image(
     file_id: str,
     request: Request,
     token: str = Query(default=""),
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
-):
+current_user=Depends(_require_login)):
     tok = (token or "").strip() or str(request.cookies.get("atc_token") or "").strip()
-    if not service or not service.usuario_logueado_por_token(tok):
+    autorizado = bool(service and service.usuario_logueado_por_token(tok))
+    if not autorizado and service:
+        autorizado = _incidencias_jwt_cookie_autorizado(request, service.db)
+    if not autorizado:
         return RedirectResponse(url="/?form=login&next=auto", status_code=302)
 
     try:
@@ -1812,7 +1942,7 @@ async def subir_imagenes_tabla(
     token: str = Form(""),
     files: list[UploadFile] = File(default=[]),
     service: IncidenciasService = Depends(get_service),
-):
+current_user=Depends(_require_login)):
     payloads: list[dict[str, object]] = []
     for upload in files or []:
         if not upload:
@@ -1834,11 +1964,36 @@ async def subir_imagenes_tabla(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+@router.post("/api/incidencias/cierre-apertura/imagen")
+async def subir_imagen_cierre_apertura(
+    client_id: str = Form(...),
+    client_name: str = Form(""),
+    token: str = Form(""),
+    file: UploadFile = File(...),
+    service: IncidenciasService = Depends(get_service),
+current_user=Depends(_require_login)):
+    content = await file.read()
+    try:
+        return service.guardar_imagen_cierre_apertura(
+            client_id=client_id, client_name=client_name, content=content, token=token
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/api/incidencias/cierre-apertura/imagenes")
+def obtener_imagenes_cierre_apertura(
+    client_id: str = Query(default=""),
+    service: Annotated[IncidenciasService, Depends(get_service)] = None,
+current_user=Depends(_require_login)):
+    return {"imagenes": service.listar_imagenes_cierre_apertura(client_id)}
+
+
 @router.post("/api/formulario")
 def enviar_formulario(
     payload: FormularioRegistro,
     service: Annotated[IncidenciasService, Depends(get_service)],
-):
+current_user=Depends(_require_login)):
     try:
         message = service.enviar_formulario(payload)
     except ValueError as exc:
@@ -1850,9 +2005,9 @@ def enviar_formulario(
 def guardar_incidencia_nueva(
     payload: IncidenciaNueva,
     service: Annotated[IncidenciasService, Depends(get_service)],
-):
+current_user=Depends(_require_login)):
     try:
-        odt = service.guardar_incidencia_nueva(payload)
+        odt = service.guardar_incidencia_nueva(payload, usuario_fallback=_current_user_label(current_user))
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"odt": odt}
@@ -1862,9 +2017,9 @@ def guardar_incidencia_nueva(
 def enviar_multiples_incidencias(
     payload: list[IncidenciaNueva],
     service: Annotated[IncidenciasService, Depends(get_service)],
-):
+current_user=Depends(_require_login)):
     try:
-        odts = service.enviar_multiples_incidencias(payload)
+        odts = service.enviar_multiples_incidencias(payload, usuario_fallback=_current_user_label(current_user))
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"odts": odts}
@@ -1874,7 +2029,7 @@ def enviar_multiples_incidencias(
 def cerrar_incidencia(
     payload: CerrarIncidenciaRequest,
     service: Annotated[IncidenciasService, Depends(get_service)],
-):
+current_user=Depends(_require_login)):
     try:
         ok = service.registrar_finalizacion_rapida(
             payload.odt,
@@ -1887,6 +2042,7 @@ def cerrar_incidencia(
             materiales=payload.materiales,
             materiales_sin_uso=payload.materiales_sin_uso,
             requiere_seguimiento=payload.requiere_seguimiento,
+            token=payload.token,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -1897,7 +2053,7 @@ def cerrar_incidencia(
 def finalizar_incidencia_completo(
     payload: FinalizarIncidenciaRequest,
     service: Annotated[IncidenciasService, Depends(get_service)],
-):
+current_user=Depends(_require_login)):
     try:
         result = service.continuar_finalizacion_asincrona(
             payload.odt,
@@ -1964,9 +2120,10 @@ async def _stage_cierre_odt_uploads(
 async def finalizar_incidencia_completo_archivos(
     odt: str = Form(...),
     diagnostico: str = Form(...),
+    token: str = Form(""),
     files: list[UploadFile] = File(default=[]),
     service: IncidenciasService = Depends(get_service),
-):
+current_user=Depends(_require_login)):
     odt_limpia = str(odt or "").strip()
     try:
         data = json.loads(diagnostico or "{}")
@@ -1993,6 +2150,7 @@ async def finalizar_incidencia_completo_archivos(
             materiales=data.get("materiales") or [],
             materiales_sin_uso=bool(data.get("materialesSinUso")),
             requiere_seguimiento=bool(data.get("requiereSeguimiento")),
+            token=token,
         )
         result = service.continuar_finalizacion_asincrona(
             odt_limpia,
@@ -2020,7 +2178,7 @@ async def finalizar_incidencia_completo_archivos(
 def cerrar_instalacion_venta(
     service: Annotated[IncidenciasService, Depends(get_service)],
     payload: dict = Body(...),
-):
+current_user=Depends(_require_login)):
     try:
         return service.cerrar_instalacion_venta(
             str(payload.get("odt") or ""),
@@ -2041,7 +2199,7 @@ async def cerrar_instalacion_venta_archivos(
     diagnostico: str = Form(...),
     files: list[UploadFile] = File(default=[]),
     service: IncidenciasService = Depends(get_service),
-):
+current_user=Depends(_require_login)):
     odt_limpia = str(odt or "").strip()
     try:
         data = json.loads(diagnostico or "{}")
@@ -2079,7 +2237,7 @@ async def cerrar_mantencion_con_imagenes(
     diagnostico: str = Form(...),
     files: list[UploadFile] = File(default=[]),
     service: IncidenciasService = Depends(get_service),
-):
+current_user=Depends(_require_login)):
     odt_limpia = str(odt or "").strip()
     try:
         data = json.loads(diagnostico or "{}")
@@ -2152,11 +2310,23 @@ async def cerrar_mantencion_con_imagenes(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+@router.post("/api/incidencias/iniciar-trabajo")
+def iniciar_trabajo_incidencia(
+    payload: IniciarTrabajoRequest,
+    service: Annotated[IncidenciasService, Depends(get_service)],
+current_user=Depends(_require_login)):
+    try:
+        ok = service.marcar_inicio_trabajo(payload.odt, payload.token or "")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"result": ok}
+
+
 @router.post("/api/incidencias/en-proceso")
 def guardar_incidencia_en_proceso(
     payload: EnProcesoRequest,
     service: Annotated[IncidenciasService, Depends(get_service)],
-):
+current_user=Depends(_require_login)):
     try:
         ok = service.guardar_datos_en_proceso(
             payload.odt,
@@ -2173,7 +2343,7 @@ def guardar_incidencia_en_proceso(
 def derivar_incidencia_tecnico(
     payload: DerivarTecnicoRequest,
     service: Annotated[IncidenciasService, Depends(get_service)],
-):
+current_user=Depends(_require_login)):
     try:
         ok = service.derivar_odt_a_tecnico(
             payload.odt,
@@ -2193,7 +2363,7 @@ def derivar_incidencia_tecnico(
 def editar_incidencia_tabla(
     payload: EditarIncidenciaTablaRequest,
     service: Annotated[IncidenciasService, Depends(get_service)],
-):
+current_user=Depends(_require_login)):
     try:
         result = service.editar_incidencia_tabla(
             token=payload.token,
@@ -2204,6 +2374,7 @@ def editar_incidencia_tabla(
             observacion_servicio=payload.observacion_servicio,
             observacion_final=payload.observacion_final,
             repetida_odt_ref=payload.repetida_odt_ref,
+            editar_ultima_observacion_servicio=payload.editar_ultima_observacion_servicio,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -2216,7 +2387,7 @@ def editar_incidencia_tabla(
 def obtener_observacion_cierre(
     odt: str,
     service: Annotated[IncidenciasService, Depends(get_service)],
-):
+current_user=Depends(_require_login)):
     return {"odt": odt, "observacion_final": service.obtener_observacion_cierre_odt(odt)}
 
 
@@ -2224,7 +2395,7 @@ def obtener_observacion_cierre(
 def regenerar_informe_cierre(
     payload: RegenerarInformeCierreRequest,
     service: Annotated[IncidenciasService, Depends(get_service)],
-):
+current_user=Depends(_require_login)):
     if not service.usuario_logueado_por_token(payload.token):
         raise HTTPException(status_code=401, detail="Sesión expirada. Inicia sesión nuevamente.")
     try:
@@ -2244,7 +2415,7 @@ def cerrar_incidencia_encargado(
     odt: str,
     fecha_cierre: str,
     service: Annotated[IncidenciasService, Depends(get_service)],
-):
+current_user=Depends(_require_login)):
     try:
         dt = datetime.fromisoformat(fecha_cierre)
     except ValueError as exc:
@@ -2256,12 +2427,12 @@ def cerrar_incidencia_encargado(
 
 
 @router.get("/api/tecnicos/pendientes")
-def obtener_tecnicos_pendientes(service: Annotated[IncidenciasService, Depends(get_service)]):
+def obtener_tecnicos_pendientes(service: Annotated[IncidenciasService, Depends(get_service)], current_user=Depends(_require_login)):
     return service.obtener_tecnicos_pendientes()
 
 
 @router.get("/api/mantencion/sucursales")
-def listar_sucursales_mantencion():
+def listar_sucursales_mantencion(current_user=Depends(_require_login)):
     from ATC.app.services.incidencias_service import (
         MANTENCIONES_PROGRAMADAS_QUILPUE,
         MANTENCIONES_TRIMESTRALES_QUINTERO,
@@ -2289,7 +2460,7 @@ def listar_sucursales_mantencion():
 def guardar_mantencion_correctiva(
     payload: dict,
     service: Annotated[IncidenciasService, Depends(get_service)],
-):
+current_user=Depends(_require_login)):
     return {"result": service.guardar_mantencion_correctiva(payload)}
 
 
@@ -2297,7 +2468,7 @@ def guardar_mantencion_correctiva(
 def obtener_plantilla_mantencion_programada(
     sucursal: str,
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
-):
+current_user=Depends(_require_login)):
     if not str(sucursal or "").strip():
         raise HTTPException(status_code=400, detail="sucursal es obligatoria.")
     imagenes = service.obtener_plantilla_imagenes_mantencion(sucursal)
@@ -2308,7 +2479,7 @@ def obtener_plantilla_mantencion_programada(
 def guardar_plantilla_mantencion_programada(
     payload: dict,
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
-):
+current_user=Depends(_require_login)):
     try:
         sucursal = str(payload.get("sucursal") or "").strip()
         imagenes = payload.get("imagenes") or []
@@ -2321,7 +2492,7 @@ def guardar_plantilla_mantencion_programada(
 def guardar_plantilla_mantencion_programada_desde_odt(
     payload: dict,
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
-):
+current_user=Depends(_require_login)):
     try:
         sucursal = str(payload.get("sucursal") or "").strip()
         odt_origen = str(payload.get("odt_origen") or "").strip()
@@ -2334,7 +2505,7 @@ def guardar_plantilla_mantencion_programada_desde_odt(
 
 
 @router.get("/api/sucursales/por-cliente")
-def obtener_sucursales_por_cliente(db: Annotated[Session, Depends(get_db)]):
+def obtener_sucursales_por_cliente(db: Annotated[Session, Depends(get_db)], current_user=Depends(_require_login)):
     from ATC.app.models.incidencias import ClienteBBDD, SucursalBBDD
     rows = (
         db.query(ClienteBBDD.cliente, SucursalBBDD.nombre_sucursal, SucursalBBDD.direccion_sucursal)
@@ -2349,18 +2520,14 @@ def obtener_sucursales_por_cliente(db: Annotated[Session, Depends(get_db)]):
 
 
 @router.get("/api/contactos/sucursal")
-def obtener_contactos_por_sucursal(service: Annotated[IncidenciasService, Depends(get_service)]):
+def obtener_contactos_por_sucursal(service: Annotated[IncidenciasService, Depends(get_service)], current_user=Depends(_require_login)):
     return service.obtener_contactos_por_sucursal()
 
 
 # ──────────────────────────────────────────────
-# Cámaras por sucursal — origen: CSV "Cruce de Información Cámaras"
-# (uso experimental en incidencias_puestos_copia.html)
+# Cámaras por sucursal — desde sucursal_camaras_monitoreo (BBDD real)
+# (usado en incidencias_puestos_copia.html)
 # ──────────────────────────────────────────────
-_CAMARAS_CSV_PATH = Path(__file__).resolve().parents[3] / "Cruce de Información Cámaras - Hoja1.csv"
-_camaras_por_sucursal_cache: dict | None = None
-_camaras_por_sucursal_cache_mtime: float | None = None
-
 
 def _normalizar_nombre_sucursal_camaras(valor: str) -> str:
     s = unicodedata.normalize("NFD", str(valor or ""))
@@ -2368,66 +2535,62 @@ def _normalizar_nombre_sucursal_camaras(valor: str) -> str:
     return " ".join(s.strip().lower().split())
 
 
-def _cargar_camaras_por_sucursal() -> dict:
-    global _camaras_por_sucursal_cache, _camaras_por_sucursal_cache_mtime
-    if not _CAMARAS_CSV_PATH.exists():
-        return {}
-    mtime = _CAMARAS_CSV_PATH.stat().st_mtime
-    if _camaras_por_sucursal_cache is not None and _camaras_por_sucursal_cache_mtime == mtime:
-        return _camaras_por_sucursal_cache
+def _cargar_camaras_por_sucursal(db: Session) -> dict:
+    from ATC.app.models.incidencias import SucursalBBDD, SucursalCamaraMonitoreo
+
+    rows = (
+        db.query(
+            SucursalBBDD.nombre_sucursal,
+            SucursalCamaraMonitoreo.nombre_camara_monitoreo,
+            SucursalCamaraMonitoreo.camara_sin_monitoreo,
+            SucursalCamaraMonitoreo.cantidad_camaras,
+            SucursalCamaraMonitoreo.cantidad_equipos,
+        )
+        .join(SucursalBBDD, SucursalCamaraMonitoreo.sucursal_id == SucursalBBDD.id)
+        .all()
+    )
 
     agrupado: dict[str, dict] = {}
-    with _CAMARAS_CSV_PATH.open(encoding="utf-8-sig", newline="") as f:
-        reader = csv.reader(f)
-        next(reader, None)
-        for row in reader:
-            if len(row) < 8:
-                continue
-            nombre_sucursal = (row[0] or "").strip()
-            if not nombre_sucursal:
-                continue
-            cantidad_camaras = (row[4] or "").strip()
-            camara_monitoreo = (row[5] or "").strip()
-            cantidad_equipos = (row[6] or "").strip()
-            camara_sin_monitoreo = (row[7] or "").strip()
-
-            clave = _normalizar_nombre_sucursal_camaras(nombre_sucursal)
-            entrada = agrupado.setdefault(clave, {
-                "sucursal": nombre_sucursal,
-                "camaras": [],
-                "_vistas": set(),
-                "cantidad_equipos": 0,
-                "cantidad_camaras": 0,
-            })
-            if cantidad_camaras.isdigit():
-                entrada["cantidad_camaras"] = max(entrada["cantidad_camaras"], int(cantidad_camaras))
-            if cantidad_equipos.isdigit():
-                entrada["cantidad_equipos"] = max(entrada["cantidad_equipos"], int(cantidad_equipos))
-            for camara in (camara_monitoreo, camara_sin_monitoreo):
-                if camara and camara not in entrada["_vistas"]:
-                    entrada["_vistas"].add(camara)
-                    entrada["camaras"].append(camara)
+    for nombre_sucursal, camara_monitoreo, camara_sin_monitoreo, cantidad_camaras, cantidad_equipos in rows:
+        nombre_sucursal = (nombre_sucursal or "").strip()
+        if not nombre_sucursal:
+            continue
+        clave = _normalizar_nombre_sucursal_camaras(nombre_sucursal)
+        entrada = agrupado.setdefault(clave, {
+            "sucursal": nombre_sucursal,
+            "camaras": [],
+            "_vistas": set(),
+            "cantidad_equipos": 0,
+            "cantidad_camaras": 0,
+        })
+        if cantidad_camaras:
+            entrada["cantidad_camaras"] = max(entrada["cantidad_camaras"], int(cantidad_camaras))
+        if cantidad_equipos:
+            entrada["cantidad_equipos"] = max(entrada["cantidad_equipos"], int(cantidad_equipos))
+        for camara in (camara_monitoreo, camara_sin_monitoreo):
+            camara = (camara or "").strip()
+            if camara and camara not in entrada["_vistas"]:
+                entrada["_vistas"].add(camara)
+                entrada["camaras"].append(camara)
 
     for entrada in agrupado.values():
         entrada.pop("_vistas", None)
         if entrada["cantidad_equipos"] < 1:
             entrada["cantidad_equipos"] = 1
 
-    _camaras_por_sucursal_cache = agrupado
-    _camaras_por_sucursal_cache_mtime = mtime
     return agrupado
 
 
 @router.get("/api/incidencias/camaras-por-sucursal")
-def obtener_camaras_por_sucursal():
-    return _cargar_camaras_por_sucursal()
+def obtener_camaras_por_sucursal(db: Session = Depends(get_db), current_user=Depends(_require_login)):
+    return _cargar_camaras_por_sucursal(db)
 
 
 @router.post("/api/contacto-cliente/enviar-info")
 def enviar_info_contacto_cliente(
     payload: EnviarInformacionContactoRequest,
     service: Annotated[IncidenciasService, Depends(get_service)],
-):
+current_user=Depends(_require_login)):
     try:
         return service.registrar_envio_informacion_contacto(payload)
     except ValueError as exc:
@@ -2435,19 +2598,19 @@ def enviar_info_contacto_cliente(
 
 
 @router.get("/api/clientes-soporte")
-def obtener_clientes_soporte(service: Annotated[IncidenciasService, Depends(get_service)]):
+def obtener_clientes_soporte(service: Annotated[IncidenciasService, Depends(get_service)], current_user=Depends(_require_login)):
     return service.obtener_clientes_soporte()
 
 
 @router.get("/api/tareas/tipos")
-def obtener_tipos_especificaciones():
+def obtener_tipos_especificaciones(current_user=Depends(_require_login)):
     return TIPOS_Y_ESPECIFICACIONES
 
 
 @router.get("/api/protocolos/listas")
 def obtener_listas_protocolos(
     service: Annotated[ProtocolosService, Depends(get_protocolos_service)],
-):
+current_user=Depends(_require_login)):
     return service.obtener_listas()
 
 
@@ -2455,7 +2618,7 @@ def obtener_listas_protocolos(
 def crear_registro_protocolo(
     payload: ProtocoloRegistroCreateRequest,
     service: Annotated[ProtocolosService, Depends(get_protocolos_service)],
-):
+current_user=Depends(_require_login)):
     try:
         return service.guardar_registro(payload)
     except ValueError as exc:
@@ -2471,7 +2634,7 @@ def listar_registros_protocolos(
     fecha_hasta: str = "",
     limit: int = 300,
     service: Annotated[ProtocolosService, Depends(get_protocolos_service)] = None,
-):
+current_user=Depends(_require_login)):
     try:
         return service.listar_registros(
             cliente=cliente,
@@ -2489,7 +2652,7 @@ def listar_registros_protocolos(
 def ejecutar_reportes_semanales_protocolos(
     forzar: bool = False,
     service: Annotated[ProtocolosService, Depends(get_protocolos_service)] = None,
-):
+current_user=Depends(_require_login)):
     try:
         return service.generar_resumenes_semanales_pendientes(forzar=forzar)
     except ValueError as exc:
@@ -2503,7 +2666,7 @@ def listar_informes_protocolos(
     tipo_informe: str = "",
     limit: int = 200,
     service: Annotated[ProtocolosService, Depends(get_protocolos_service)] = None,
-):
+current_user=Depends(_require_login)):
     try:
         return service.listar_informes(
             cliente=cliente,
@@ -2519,7 +2682,7 @@ def listar_informes_protocolos(
 def obtener_contactos_informe_protocolo(
     informe_id: int,
     service: Annotated[ProtocolosService, Depends(get_protocolos_service)] = None,
-):
+current_user=Depends(_require_login)):
     try:
         return service.obtener_contactos_informe(informe_id)
     except ValueError as exc:
@@ -2531,7 +2694,7 @@ def enviar_informe_semanal_protocolo(
     informe_id: int,
     payload: dict = Body(default_factory=dict),
     service: Annotated[ProtocolosService, Depends(get_protocolos_service)] = None,
-):
+current_user=Depends(_require_login)):
     try:
         return service.enviar_informe_semanal(informe_id, payload)
     except ValueError as exc:
@@ -2545,7 +2708,7 @@ def rechazar_informe_semanal_protocolo(
     informe_id: int,
     payload: dict = Body(default_factory=dict),
     service: Annotated[ProtocolosService, Depends(get_protocolos_service)] = None,
-):
+current_user=Depends(_require_login)):
     try:
         return service.rechazar_informe_semanal(informe_id, payload)
     except ValueError as exc:
@@ -2556,7 +2719,7 @@ def rechazar_informe_semanal_protocolo(
 def eliminar_informe_protocolo(
     informe_id: int,
     service: Annotated[ProtocolosService, Depends(get_protocolos_service)] = None,
-):
+current_user=Depends(_require_login)):
     try:
         return service.eliminar_informe(informe_id)
     except ValueError as exc:
@@ -2564,7 +2727,7 @@ def eliminar_informe_protocolo(
 
 
 @router.get("/api/derivaciones")
-def obtener_registros_derivaciones(service: Annotated[IncidenciasService, Depends(get_service)]):
+def obtener_registros_derivaciones(service: Annotated[IncidenciasService, Depends(get_service)], current_user=Depends(_require_login)):
     return service.obtener_registros_derivaciones()
 
 
@@ -2572,7 +2735,7 @@ def obtener_registros_derivaciones(service: Annotated[IncidenciasService, Depend
 def finalizar_odt_coordinacion(
     payload: dict,
     service: Annotated[IncidenciasService, Depends(get_service)],
-):
+current_user=Depends(_require_login)):
     try:
         result = service.finalizar_odt_coordinacion(
             str(payload.get("odt") or ""),
@@ -2589,7 +2752,7 @@ def finalizar_odt_coordinacion(
 def guardar_observacion_final_coordinacion(
     payload: dict,
     service: Annotated[IncidenciasService, Depends(get_service)],
-):
+current_user=Depends(_require_login)):
     try:
         result = service.actualizar_observacion_final_coordinacion(
             str(payload.get("odt") or ""),
@@ -2606,7 +2769,7 @@ def guardar_observacion_final_coordinacion(
 def enviar_correo_coordinacion(
     payload: EnviarInformacionContactoRequest,
     service: Annotated[IncidenciasService, Depends(get_service)],
-):
+current_user=Depends(_require_login)):
     try:
         return service.registrar_envio_correo_coordinacion(payload)
     except ValueError as exc:
@@ -2617,7 +2780,7 @@ def enviar_correo_coordinacion(
 def registrar_rendicion(
     payload: RendicionRequest,
     service: Annotated[IncidenciasService, Depends(get_service)],
-):
+current_user=Depends(_require_login)):
     try:
         return service.registrar_gasto(payload)
     except ValueError as exc:
@@ -2625,7 +2788,7 @@ def registrar_rendicion(
 
 
 @router.get("/api/rendiciones/url")
-def obtener_url_formulario_rendicion(request: Request):
+def obtener_url_formulario_rendicion(request: Request, current_user=Depends(_require_login)):
     return {"url": str(request.base_url).rstrip("/")}
 
 
@@ -2633,7 +2796,7 @@ def obtener_url_formulario_rendicion(request: Request):
 def verificar_nro_documento_duplicado(
     nro_documento: str,
     service: Annotated[IncidenciasService, Depends(get_service)],
-):
+current_user=Depends(_require_login)):
     return {"duplicado": service.existe_nro_documento_duplicado(nro_documento)}
 
 
@@ -2643,7 +2806,7 @@ async def subir_boleta_rendicion(
     tecnico: str = Form(""),
     odt: str = Form(""),
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
-):
+current_user=Depends(_require_login)):
     if not file:
         raise HTTPException(status_code=400, detail="Debes adjuntar una imagen de boleta.")
     if not str(file.content_type or "").lower().startswith("image/"):
@@ -2672,7 +2835,7 @@ def obtener_rendiciones(
     tecnico: str = "",
     pendientes: bool = False,
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
-):
+current_user=Depends(_require_login)):
     result = service.obtener_rendiciones(tecnico=tecnico, pendientes_only=pendientes)
     if pendientes:
         estados_finales = {"acept", "rechaz", "pagad"}
@@ -2687,7 +2850,7 @@ def obtener_rendiciones(
 def obtener_pagos_agrupados(
     tipo: str = Query(default="atc"),
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
-):
+current_user=Depends(_require_login)):
     tipo_norm = str(tipo or "").strip().lower()
     if tipo_norm not in ("atc", "vl"):
         raise HTTPException(status_code=400, detail="tipo debe ser 'atc' o 'vl'.")
@@ -2698,7 +2861,7 @@ def obtener_pagos_agrupados(
 @router.get("/api/rendiciones/exportar")
 def exportar_pagos_rendiciones(
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
-):
+current_user=Depends(_require_login)):
     buffer = service.generar_excel_pagos_rendiciones()
     filename = f"pagos_rendiciones_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
     headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
@@ -2714,7 +2877,7 @@ def actualizar_monto_rendicion(
     rendicion_id: int,
     monto: float,
     service: Annotated[IncidenciasService, Depends(get_service)],
-):
+current_user=Depends(_require_login)):
     try:
         resultado = service.actualizar_monto_rendicion(rendicion_id, monto)
     except ValueError as exc:
@@ -2730,7 +2893,7 @@ def marcar_rendicion(
     accion: str,
     service: Annotated[IncidenciasService, Depends(get_service)],
     token: str = "",
-):
+current_user=Depends(_require_login)):
     try:
         usuario = service.get_usuario_actual(token) if token else ""
         usuario = usuario if usuario and usuario != "Desconocido" else ""
@@ -2745,7 +2908,7 @@ def marcar_rendicion(
 # ---------- Finanzas: vistas de rendiciones ----------
 
 @router.get("/api/finanzas/consolidado")
-def finanzas_consolidado(service: Annotated[IncidenciasService, Depends(get_service)]):
+def finanzas_consolidado(service: Annotated[IncidenciasService, Depends(get_service)], current_user=Depends(_require_login)):
     return service.obtener_consolidado()
 
 
@@ -2754,7 +2917,7 @@ def finanzas_viatico_especial(
     codigo: str = "",
     personalizados: bool = False,
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
-):
+current_user=Depends(_require_login)):
     return service.obtener_viatico_especial(codigo=codigo, personalizados=personalizados)
 
 
@@ -2764,7 +2927,7 @@ def finanzas_set_viatico_cap(
     monto: float,
     token: str = "",
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
-):
+current_user=Depends(_require_login)):
     try:
         usuario = service.get_usuario_actual(token) if token else ""
         usuario = usuario if usuario and usuario != "Desconocido" else ""
@@ -2774,7 +2937,7 @@ def finanzas_set_viatico_cap(
 
 
 @router.get("/api/finanzas/pagos")
-def finanzas_listar_pagos(service: Annotated[IncidenciasService, Depends(get_service)]):
+def finanzas_listar_pagos(service: Annotated[IncidenciasService, Depends(get_service)], current_user=Depends(_require_login)):
     return service.obtener_pagos()
 
 
@@ -2783,7 +2946,7 @@ def finanzas_registrar_pago(
     payload: dict,
     token: str = "",
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
-):
+current_user=Depends(_require_login)):
     try:
         usuario = service.get_usuario_actual(token) if token else ""
         usuario = usuario if usuario and usuario != "Desconocido" else ""
@@ -2797,7 +2960,7 @@ def finanzas_actualizar_pago(
     pago_id: int,
     payload: dict,
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
-):
+current_user=Depends(_require_login)):
     try:
         return service.actualizar_pago(pago_id, payload)
     except ValueError as exc:
@@ -2808,7 +2971,7 @@ def finanzas_actualizar_pago(
 def finanzas_eliminar_pago(
     pago_id: int,
     service: Annotated[IncidenciasService, Depends(get_service)],
-):
+current_user=Depends(_require_login)):
     ok = service.eliminar_pago(pago_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Pago no encontrado")
@@ -2816,7 +2979,7 @@ def finanzas_eliminar_pago(
 
 
 @router.get("/api/finanzas/suma-pagos")
-def finanzas_suma_pagos(service: Annotated[IncidenciasService, Depends(get_service)]):
+def finanzas_suma_pagos(service: Annotated[IncidenciasService, Depends(get_service)], current_user=Depends(_require_login)):
     return service.obtener_suma_pagos()
 
 
@@ -2827,7 +2990,7 @@ def obtener_planificacion_total(
     estado: str = "Todos",
     tecnico: str = "Todos",
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
-):
+current_user=Depends(_require_login)):
     return service.obtener_planificacion_total(mes, anio, estado, tecnico)
 
 
@@ -2835,7 +2998,7 @@ def obtener_planificacion_total(
 def debug_db(
     db: Annotated[Session, Depends(get_db)],
     service: Annotated[IncidenciasService, Depends(get_service)],
-):
+current_user=Depends(_require_login)):
     out = {
         "database_url": settings.database_url,
         "db_schema_setting": settings.db_schema,
@@ -2904,7 +3067,7 @@ def servicio_indicadores_page(request: Request):
 
 
 @router.get("/api/servicio/kpis-data")
-def servicio_kpis_data(db: Annotated[Session, Depends(get_db)]):
+def servicio_kpis_data(db: Annotated[Session, Depends(get_db)], current_user=Depends(_require_login)):
     from sqlalchemy import func, select as sa_select
     from ATC.app.models.incidencias import Registro, ServicioTecnicoVentaODT, SoporteTecnicoVentaODT, VentaODS
 
@@ -2980,6 +3143,9 @@ def servicio_kpis_data(db: Annotated[Session, Depends(get_db)]):
         Registro.accion_cierre.label("accion_cierre"),
         Registro.resultado_cierre.label("resultado_cierre"),
         Registro.observacion_final.label("observacion_final"),
+        Registro.fecha_inicio_trabajo.label("fecha_inicio_trabajo"),
+        Registro.fecha_fin_trabajo.label("fecha_fin_trabajo"),
+        Registro.tecnico_cierre.label("tecnico_cierre"),
     )
 
     try:
@@ -3103,6 +3269,9 @@ def servicio_kpis_data(db: Annotated[Session, Depends(get_db)]):
                 "accion_cierre": (r.get("accion_cierre") or "")[:200],
                 "resultado_cierre": (r.get("resultado_cierre") or "")[:200],
                 "observacion_final": (r.get("observacion_final") or "")[:1000],
+                "fecha_inicio_trabajo": r.get("fecha_inicio_trabajo").isoformat() if r.get("fecha_inicio_trabajo") else None,
+                "fecha_fin_trabajo": r.get("fecha_fin_trabajo").isoformat() if r.get("fecha_fin_trabajo") else None,
+                "tecnico_cierre": (r.get("tecnico_cierre") or "")[:120],
             }
             for r in registros
         ],
@@ -3142,7 +3311,7 @@ def servicio_indicadores_informe(
 # ─────────────────────────────────────────────────────────────
 
 @router.get("/api/pruebas-sonido/sucursales")
-def pruebas_sonido_sucursales(db: Session = Depends(get_db)):
+def pruebas_sonido_sucursales(db: Session = Depends(get_db), current_user=Depends(_require_login)):
     """Devuelve sucursales agrupadas en 4 semanas por zona geográfica."""
     import unicodedata as _ud
 
@@ -3770,7 +3939,7 @@ def pruebas_sonido_sucursales(db: Session = Depends(get_db)):
 def registrar_prueba_sonido(
     payload: dict = Body(...),
     db: Session = Depends(get_db),
-):
+current_user=Depends(_require_login)):
     """Registra resultado de prueba de sonido. Si es exitoso envía email; si falla crea incidencia."""
     from ATC.app.models.incidencias import SucursalBBDD, Registro
     import threading as _thr
@@ -4051,7 +4220,7 @@ def registrar_prueba_sonido(
 
 
 @router.delete("/api/pruebas-sonido/{prueba_id}")
-def eliminar_prueba_sonido(prueba_id: int, db: Session = Depends(get_db)):
+def eliminar_prueba_sonido(prueba_id: int, db: Session = Depends(get_db), current_user=Depends(_require_login)):
     """Elimina el registro de prueba (permite re-marcar)."""
     prueba = db.get(PruebaSonido, prueba_id)
     if not prueba:

@@ -36,7 +36,7 @@ from ATC.app.models.automation_log import AutomationLog  # noqa: F401
 from ATC.app.models.compras import SolicitudCompra  # noqa: F401
 from ATC.app.models.email_sync_state import EmailSyncState  # noqa: F401
 from ATC.app.models.prevencion import EstatusGestionItem, EstatusDocumentacionTecnico  # noqa: F401
-from ATC.app.models.incidencias import PruebaSonido, MantencionVinaConfig  # noqa: F401
+from ATC.app.models.incidencias import PruebaSonido, MantencionVinaConfig, CierreAperturaImagen  # noqa: F401
 from ATC.app.models.inicio_turno import (  # noqa: F401
     GuardiaJustificacion,
     InicioTurnoGuardia,
@@ -46,6 +46,7 @@ from ATC.app.models.inicio_turno import (  # noqa: F401
     SupervisorRegistro,
 )
 from ATC.app.models.message import Message  # noqa: F401
+from ATC.app.models.portal_cliente import PortalPersonaLogin  # noqa: F401
 from ATC.app.models.requester import Requester  # noqa: F401
 from ATC.app.models.requester_internal_note_read_state import (  # noqa: F401
     RequesterInternalNoteReadState,
@@ -87,6 +88,7 @@ from ATC.app.routes.inicio_turno import (
     seed_default_inicio_turno_guardias,
 )
 from ATC.app.routes.messages import router as messages_router
+from ATC.app.routes.portal_cliente import router as portal_cliente_router
 from ATC.app.routes.public import lavados_router, router as public_router
 from ATC.app.routes.requesters import router as requesters_router
 from ATC.app.routes.tickets import router as tickets_router
@@ -265,6 +267,7 @@ def ensure_users_unified_columns() -> None:
                 "role": "VARCHAR(100) NOT NULL DEFAULT 'agent'",
                 "is_activate": "BIT NOT NULL DEFAULT 1",
                 "departament": "VARCHAR(500)",
+                "cliente_rut": "VARCHAR(40)",
                 "email": "VARCHAR(255)",
                 "created_at": "DATETIME DEFAULT GETDATE()",
                 "updated_at": "DATETIME DEFAULT GETDATE()",
@@ -672,6 +675,62 @@ def ensure_tickets_inbound_mailbox_column() -> None:
         print("Error ensuring tickets.inbound_mailbox:", exc)
 
 
+def ensure_tickets_team_broadcast_column() -> None:
+    try:
+        with engine.begin() as conn:
+            inspector = inspect(conn)
+
+            if not inspector.has_table("tickets"):
+                return
+
+            column_names = {
+                column["name"]
+                for column in inspector.get_columns("tickets")
+            }
+
+            if "team_broadcast_at" not in column_names:
+                add_column(
+                    conn,
+                    "tickets",
+                    "team_broadcast_at",
+                    "DATETIME",
+                )
+
+                print("Schema updated: tickets.team_broadcast_at")
+
+    except Exception as exc:
+        print("Error ensuring tickets.team_broadcast_at:", exc)
+
+
+def ensure_incidencias_trabajo_columns() -> None:
+    try:
+        with engine.begin() as conn:
+            inspector = inspect(conn)
+
+            if not inspector.has_table("incidencias"):
+                return
+
+            column_names = {
+                column["name"]
+                for column in inspector.get_columns("incidencias")
+            }
+
+            if "fecha_inicio_trabajo" not in column_names:
+                add_column(conn, "incidencias", "fecha_inicio_trabajo", "DATETIME")
+                print("Schema updated: incidencias.fecha_inicio_trabajo")
+
+            if "fecha_fin_trabajo" not in column_names:
+                add_column(conn, "incidencias", "fecha_fin_trabajo", "DATETIME")
+                print("Schema updated: incidencias.fecha_fin_trabajo")
+
+            if "tecnico_cierre" not in column_names:
+                add_column(conn, "incidencias", "tecnico_cierre", "VARCHAR(255)")
+                print("Schema updated: incidencias.tecnico_cierre")
+
+    except Exception as exc:
+        print("Error ensuring incidencias trabajo columns:", exc)
+
+
 # =========================
 # ROUTERS API
 # =========================
@@ -686,6 +745,7 @@ app.include_router(lavados_router)
 app.include_router(unified_access_router)
 app.include_router(client_notes_router)
 app.include_router(bitacora_router)
+app.include_router(portal_cliente_router)
 app.include_router(incidencias_router)
 app.include_router(venta_router)
 app.include_router(inicio_turno_router)
@@ -1060,6 +1120,8 @@ def startup_tasks() -> None:
     ensure_requesters_phone_column()
     ensure_messages_sender_identity_columns()
     ensure_tickets_inbound_mailbox_column()
+    ensure_tickets_team_broadcast_column()
+    ensure_incidencias_trabajo_columns()
 
     # Normalización de información existente.
     normalize_requester_names()

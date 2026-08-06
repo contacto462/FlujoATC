@@ -78,12 +78,16 @@ def usuario_actual_unificado(
 ):
     token = (token or "").strip()
 
+    if not token:
+        # Sin token en la URL (ya limpiada por el guard de sesion): recupera
+        # el token crudo desde la cookie "atc_token" (incidencias.py) antes
+        # de caer a la cookie JWT del panel unificado.
+        token = (request.cookies.get("atc_token") or "").strip()
+
     if token:
-        return {
-            "usuario": _incidencias_user_name_from_token(
-                token
-            )
-        }
+        usuario = _incidencias_user_name_from_token(token)
+        if usuario and usuario != "Desconocido":
+            return {"usuario": usuario}
 
     web_user_name = _web_user_name_from_cookie(
         request,

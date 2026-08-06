@@ -1,0 +1,1007 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Portal Cliente</title>
+<style>
+  :root {
+    --bg: #f7f8fa;
+    --surface: #ffffff;
+    --surface-alt: #fafbfc;
+    --surface-hover: #f3f4f6;
+    --border: #e5e7eb;
+    --border-strong: #d1d5db;
+    --text: #111827;
+    --text-soft: #4b5563;
+    --text-muted: #6b7280;
+    --primary: #de7b36;
+    --primary-hover: #c96a2d;
+    --accent: #0a1c20;
+    --shadow: 0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-in { animation: fadeInUp .45s ease both; }
+
+  /* ── Hero (bloque unico: marca + bienvenida, sin barra separada) ── */
+  .hero {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(180deg, #0a1c20 0%, #10272d 55%, #17363d 100%);
+    color: #fff;
+    padding: 20px 24px 68px;
+    text-align: center;
+  }
+  .hero-topline {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 16px;
+    margin-bottom: 34px;
+    text-align: left;
+  }
+  .hero-brand { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1 1 auto; }
+  .hero-brand img { height: 32px; width: auto; display: block; flex: none; }
+  .hero-brand span {
+    font-size: 15px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .btn-logout {
+    flex: none;
+    white-space: nowrap;
+    color: rgba(255,255,255,.85);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 8px 14px;
+    border-radius: var(--radius);
+    border: 1px solid rgba(255,255,255,.25);
+    transition: background .14s ease;
+  }
+  .btn-logout:hover { background: rgba(255,255,255,.08); }
+  .hero-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; flex: none; margin-left: auto; }
+  .hero-glow {
+    position: absolute;
+    top: -70px;
+    right: -60px;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,140,60,.25), transparent 70%);
+    animation: heroGlowDrift 9s ease-in-out infinite;
+    pointer-events: none;
+  }
+  .hero-glow.two {
+    top: auto; bottom: -90px; right: auto; left: -70px;
+    width: 260px; height: 260px;
+    background: radial-gradient(circle, rgba(120,170,200,.18), transparent 70%);
+    animation-duration: 11s;
+    animation-direction: reverse;
+  }
+  @keyframes heroGlowDrift {
+    0%, 100% { transform: translate(0,0) scale(1); }
+    50% { transform: translate(-24px, 22px) scale(1.15); }
+  }
+  .hero-content { position: relative; z-index: 1; max-width: 640px; margin: 0 auto; animation: fadeInUp .5s ease both; }
+  .hero-eyebrow {
+    margin: 0 0 8px; font-size: 12px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: .09em; color: rgba(255,150,70,.95);
+  }
+  .hero-title { margin: 0 0 10px; font-size: 30px; font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+  .hero-company { margin: -6px 0 14px; font-size: 13.5px; font-weight: 700; color: rgba(255,255,255,.6); }
+  .hero-sub { margin: 0; font-size: 14px; color: rgba(255,255,255,.72); line-height: 1.55; }
+  .hero-stat {
+    display: inline-flex; align-items: center; gap: 7px; margin-top: 16px;
+    padding: 6px 14px; border-radius: 999px; font-size: 12.5px; font-weight: 700;
+    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); color: rgba(255,255,255,.85);
+  }
+  .hero-stat svg { width: 14px; height: 14px; }
+
+  .content { max-width: 980px; margin: 0 auto; padding: 0 20px 60px; }
+
+  /* ── Tarjeta de sucursal (flota sobre el borde del hero) ── */
+  .sucursal-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 12px 30px rgba(15,23,42,.14);
+    padding: 16px 18px;
+    margin: -40px 0 22px;
+    position: relative;
+    z-index: 2;
+    animation: fadeInUp .5s ease .05s both;
+  }
+  .sucursal-card-icon {
+    display: flex; align-items: center; justify-content: center;
+    width: 42px; height: 42px; border-radius: 12px; flex: none;
+    background: rgba(222,123,54,.12); color: var(--primary);
+  }
+  .sucursal-card-icon svg { width: 22px; height: 22px; }
+  .sucursal-card-body { flex: 1; min-width: 0; }
+  .sucursal-card-body label { display: block; font-size: 12.5px; font-weight: 700; color: var(--text-soft); margin-bottom: 6px; }
+  .sucursal-card select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    background: var(--surface-alt);
+    font-size: 14px;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .sucursal-card select:focus { outline: none; border-color: var(--primary); }
+
+  /* ── Estado vacio ── */
+  .empty-state {
+    text-align: center;
+    padding: 48px 24px;
+    border: 1.5px dashed var(--border-strong);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    color: var(--text-soft);
+    animation: fadeInUp .4s ease both;
+  }
+  .empty-state-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 56px; height: 56px; border-radius: 50%;
+    background: rgba(222,123,54,.1); color: var(--primary);
+    margin-bottom: 14px;
+  }
+  .empty-state-icon svg { width: 28px; height: 28px; }
+  .empty-state h3 { margin: 0 0 6px; font-size: 16px; font-weight: 800; color: var(--text); }
+  .empty-state p { margin: 0 auto; font-size: 13.5px; max-width: 360px; }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    padding: 18px 20px;
+    margin-bottom: 22px;
+    transition: box-shadow .18s ease, transform .18s ease;
+  }
+  .panel:hover { box-shadow: 0 8px 24px rgba(15,23,42,.08); }
+  .panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .panel-head h2 { margin: 0; font-size: 15px; font-weight: 800; display: flex; align-items: center; gap: 9px; }
+  .panel-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border-radius: 9px; flex: none;
+    background: rgba(222,123,54,.1); color: var(--primary);
+  }
+  .panel-icon svg { width: 17px; height: 17px; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 700;
+    padding: 8px 14px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background .14s ease, border-color .14s ease, transform .14s ease;
+  }
+  .btn:hover { background: var(--surface-hover); }
+  .btn:active { transform: translateY(1px); }
+  .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(222,123,54,.28); }
+  .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+  .btn-small { padding: 5px 10px; font-size: 12px; }
+  .btn-danger {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: none; border: none; padding: 4px; margin: 0;
+    color: #b91c1c; cursor: pointer; border-radius: 6px; box-shadow: none;
+    transition: color .14s ease, transform .14s ease;
+  }
+  .btn-danger:hover { background: none; color: #7f1d1d; transform: translateY(-1px); }
+  .btn-danger:active { transform: translateY(0); }
+  .btn-danger svg { width: 17px; height: 17px; display: block; }
+  .btn-danger .icon-hover { display: none; }
+  .btn-danger:hover .icon-default, .btn-danger:focus-visible .icon-default, .btn-danger:active .icon-default { display: none; }
+  .btn-danger:hover .icon-hover, .btn-danger:focus-visible .icon-hover, .btn-danger:active .icon-hover { display: block; }
+
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 10px;
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  tbody tr { transition: background .14s ease; }
+  tbody tr:hover { background: var(--surface-alt); }
+  .muted { color: var(--text-muted); font-size: 13px; padding: 14px 4px; }
+  .actions-cell { white-space: nowrap; }
+  .actions-inner { display: flex; align-items: center; gap: 6px; width: 100%; }
+
+  .cell-name { display: flex; align-items: center; gap: 10px; }
+  .avatar {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border-radius: 50%; flex: none;
+    background: var(--accent); color: #fff; font-size: 11.5px; font-weight: 800;
+    box-shadow: 0 1px 2px rgba(15,23,42,.25);
+  }
+
+  .col-orden { width: 44px; }
+  .orden-cell { width: 44px; }
+  .orden-handle {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border-radius: 50%; flex: none;
+    background: var(--accent); color: #fff; font-size: 12.5px; font-weight: 800;
+    box-shadow: 0 1px 2px rgba(15,23,42,.25);
+    cursor: grab; user-select: none;
+  }
+  .orden-handle:active { cursor: grabbing; }
+  tr.orden-row[draggable="true"] { cursor: default; }
+  tr.orden-row.is-dragging { opacity: .45; }
+  tr.orden-row.drag-over-top td { box-shadow: inset 0 2px 0 0 var(--primary); }
+  tr.orden-row.drag-over-bottom td { box-shadow: inset 0 -2px 0 0 var(--primary); }
+
+  .cell-value-estado { display: inline-flex; align-items: center; }
+
+  .switch { position: relative; display: inline-block; width: 36px; height: 20px; flex: none; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch-track {
+    position: absolute; inset: 0; background: var(--border-strong); border-radius: 999px;
+    cursor: pointer; transition: background .14s ease;
+  }
+  .switch-track::before {
+    content: ""; position: absolute; left: 2px; top: 2px; width: 16px; height: 16px;
+    background: #fff; border-radius: 50%; transition: transform .14s ease;
+    box-shadow: 0 1px 2px rgba(15,23,42,.25);
+  }
+  .switch input:checked + .switch-track { background: #16a34a; }
+  .switch input:checked + .switch-track::before { transform: translateX(16px); }
+
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(11,20,36,.5);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 500; padding: 20px;
+  }
+  .modal-box {
+    width: min(440px, 100%);
+    max-height: 90vh;
+    overflow-y: auto;
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 24px 60px rgba(15,23,42,.28);
+    padding: 22px 22px 20px;
+    animation: fadeInUp .25s ease both;
+  }
+  .modal-box h3 { margin: 0 0 16px; font-size: 15px; font-weight: 800; }
+  .form-field { margin-bottom: 12px; }
+  .form-field label { display: block; font-size: 12.5px; font-weight: 700; color: var(--text-soft); margin-bottom: 5px; }
+  .form-field input {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--border-strong);
+    border-radius: var(--radius); font-size: 13.5px; font-family: inherit; color: var(--text);
+    transition: border-color .14s ease, box-shadow .14s ease;
+  }
+  .form-field input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(222,123,54,.14); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+  .modal-error { color: #b91c1c; font-size: 12.5px; margin-top: 8px; min-height: 16px; }
+
+  /* ── Tablet / mobile ── */
+  @media (max-width: 720px) {
+    .content { padding: 0 14px 50px; }
+
+    .hero { padding: 18px 18px 60px; }
+    .hero-title { font-size: 23px; }
+
+    .sucursal-card { margin-top: -34px; padding: 14px; }
+
+    .panel { padding: 16px; }
+    .panel-head { flex-wrap: wrap; gap: 10px; }
+    .panel-head .btn { flex: 1 1 auto; justify-content: center; }
+
+    /* Tabla -> tarjetas: cada <tr> se convierte en una tarjeta propia */
+    table, thead, tbody, tr, td { display: block; width: 100%; }
+    thead { display: none; }
+    .table-wrap { overflow-x: visible; }
+
+    tbody tr {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 14px 10px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow);
+    }
+    tbody tr:hover { background: var(--surface); }
+    tbody tr:last-child { margin-bottom: 0; }
+
+    tbody td {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 7px 0;
+      border-bottom: 1px dashed var(--border);
+      text-align: right;
+    }
+    tbody td:last-of-type { border-bottom: none; }
+    tbody td::before {
+      content: attr(data-label);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .03em;
+      color: var(--text-muted);
+      text-align: left;
+      flex: none;
+    }
+    tbody td .cell-value {
+      flex: 1;
+      min-width: 0;
+      overflow-wrap: anywhere;
+      text-align: right;
+    }
+    tbody td .cell-value-estado {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    tbody td.cell-title {
+      font-size: 14.5px;
+      font-weight: 800;
+      color: var(--text);
+      justify-content: flex-start;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+      margin-bottom: 4px;
+    }
+    tbody td.cell-title::before { content: none; }
+    tbody td.cell-title .cell-value { text-align: left; }
+
+    tbody td.actions-cell {
+      justify-content: flex-end;
+      border-bottom: none;
+      padding-top: 10px;
+    }
+    tbody td.actions-cell::before { content: none; }
+    tbody td.actions-cell .btn { flex: 1; justify-content: center; }
+  }
+
+  /* ── Telefono ── */
+  @media (max-width: 480px) {
+    .hero-brand { gap: 8px; }
+    .hero-brand img { height: 26px; }
+    .hero-brand span { font-size: 13px; }
+    .hero-actions { gap: 6px; width: 100%; justify-content: flex-start; }
+    .btn-logout { padding: 7px 11px; font-size: 12px; }
+
+    .hero-title { font-size: 19.5px; }
+    .hero-sub { font-size: 13px; }
+
+    .panel-head { flex-direction: column; align-items: stretch; }
+    .panel-head h2 { font-size: 14px; }
+
+    .form-row { grid-template-columns: 1fr; }
+    .modal-box { padding: 18px 16px 16px; border-radius: var(--radius-lg); }
+    .modal-actions { flex-direction: column-reverse; }
+    .modal-actions .btn { width: 100%; justify-content: center; }
+    .form-field input { font-size: 16px; padding: 10px 11px; }
+  }
+</style>
+</head>
+<body>
+  <section class="hero">
+    <div class="hero-glow" aria-hidden="true"></div>
+    <div class="hero-glow two" aria-hidden="true"></div>
+    <div class="hero-topline">
+      <div class="hero-brand">
+        <img src="/shared-static/img/logo-atc.png" alt="Logo ATC" />
+        <span>Portal Cliente</span>
+      </div>
+      <div class="hero-actions">
+        {% if multi_empresa %}
+        <a class="btn-logout" href="/portal-cliente/cambiar-empresa">Cambiar de empresa</a>
+        {% endif %}
+        <a class="btn-logout" href="/portal-cliente/logout">Cerrar sesión</a>
+      </div>
+    </div>
+    <div class="hero-content">
+      <p class="hero-eyebrow">Bienvenido</p>
+      <h2 class="hero-title">{{ display_name if is_persona else (cliente_nombre or cliente_rut) }}</h2>
+      {% if is_persona %}<p class="hero-company">{{ cliente_nombre or cliente_rut }}</p>{% endif %}
+      <p class="hero-sub">Administra las personas autorizadas y los contactos de emergencia de tus sucursales, todo en un solo lugar.</p>
+      <span class="hero-stat" id="heroStat" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="1"></rect><path d="M9 22v-4h6v4"></path></svg>
+        <span id="heroStatText">0 sucursales</span>
+      </span>
+    </div>
+  </section>
+
+  <main class="content">
+    <section class="sucursal-card">
+      <div class="sucursal-card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="1"></rect><path d="M9 22v-4h6v4"></path><path d="M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01"></path></svg>
+      </div>
+      <div class="sucursal-card-body">
+        <label for="sucursalSelect">Selecciona una sucursal</label>
+        <select id="sucursalSelect"></select>
+      </div>
+    </section>
+
+    <div id="emptyState" class="empty-state">
+      <div class="empty-state-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+      </div>
+      <h3>Selecciona una sucursal</h3>
+      <p>Elige una sucursal arriba para ver y administrar sus personas autorizadas y contactos de emergencia.</p>
+    </div>
+
+    <div id="panelesSucursal" hidden>
+      <section class="panel">
+        <div class="panel-head">
+          <h2>
+            <span class="panel-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+            </span>
+            Contactos de emergencia
+          </h2>
+          <button class="btn btn-primary" id="btnNuevoContacto" type="button">+ Agregar contacto</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th class="col-orden">Orden</th>
+                <th>Nombre</th>
+                <th>RUT</th>
+                <th>Teléfono</th>
+                <th>Email</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tablaContactosBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>
+            <span class="panel-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </span>
+            Personas autorizadas
+          </h2>
+          <button class="btn btn-primary" id="btnNuevaPersona" type="button">+ Agregar persona</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>RUT</th>
+                <th>Teléfono</th>
+                <th>Email</th>
+                <th>Estado</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tablaPersonasBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div class="modal-overlay" id="modalPersonaOverlay" hidden>
+    <div class="modal-box">
+      <h3 id="modalPersonaTitulo">Agregar persona autorizada</h3>
+      <input type="hidden" id="personaId" />
+      <div class="form-field">
+        <label for="personaNombre">Nombre</label>
+        <input id="personaNombre" type="text" placeholder="Nombre completo" />
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label for="personaRut">RUT</label>
+          <input id="personaRut" type="text" placeholder="12345678-9" />
+        </div>
+        <div class="form-field">
+          <label for="personaTelefono">Teléfono</label>
+          <input id="personaTelefono" type="text" placeholder="+56 9 1234 5678" />
+        </div>
+      </div>
+      <div class="form-field">
+        <label for="personaEmail">Email</label>
+        <input id="personaEmail" type="email" placeholder="correo@empresa.cl" />
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label for="personaClaveVerde">Clave verde</label>
+          <input id="personaClaveVerde" type="text" placeholder="Clave de todo normal" />
+        </div>
+        <div class="form-field">
+          <label for="personaClaveRoja">Clave roja</label>
+          <input id="personaClaveRoja" type="text" placeholder="Clave de coacción" />
+        </div>
+      </div>
+      <div class="modal-error" id="personaError"></div>
+      <div class="modal-actions">
+        <button class="btn" type="button" id="btnCancelarPersona">Cancelar</button>
+        <button class="btn btn-primary" type="button" id="btnGuardarPersona">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modalContactoOverlay" hidden>
+    <div class="modal-box">
+      <h3 id="modalContactoTitulo">Agregar contacto de emergencia</h3>
+      <input type="hidden" id="contactoId" />
+      <div class="form-field">
+        <label for="contactoNombre">Nombre</label>
+        <input id="contactoNombre" type="text" placeholder="Nombre completo" />
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label for="contactoRut">RUT</label>
+          <input id="contactoRut" type="text" placeholder="12345678-9" />
+        </div>
+        <div class="form-field">
+          <label for="contactoTelefono">Teléfono</label>
+          <input id="contactoTelefono" type="text" placeholder="+56 9 1234 5678" />
+        </div>
+      </div>
+      <div class="form-field">
+        <label for="contactoEmail">Email</label>
+        <input id="contactoEmail" type="email" placeholder="correo@empresa.cl" />
+      </div>
+      <div class="modal-error" id="contactoError"></div>
+      <div class="modal-actions">
+        <button class="btn" type="button" id="btnCancelarContacto">Cancelar</button>
+        <button class="btn btn-primary" type="button" id="btnGuardarContacto">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const sucursalSelect = document.getElementById("sucursalSelect");
+    const tablaPersonasBody = document.getElementById("tablaPersonasBody");
+    const tablaContactosBody = document.getElementById("tablaContactosBody");
+    const emptyState = document.getElementById("emptyState");
+    const panelesSucursal = document.getElementById("panelesSucursal");
+    const heroStat = document.getElementById("heroStat");
+    const heroStatText = document.getElementById("heroStatText");
+
+    function escaparAtributo(v) {
+      return String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+
+    function inicialesDe(nombre) {
+      const partes = String(nombre || "").trim().split(/\s+/).filter(Boolean);
+      if (!partes.length) return "?";
+      return partes[0][0].toUpperCase();
+    }
+
+    async function fetchJson(url, options) {
+      const response = await fetch(url, {
+        ...options,
+        headers: { Accept: "application/json", ...(options && options.headers) },
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (response.status === 401) {
+          window.location.href = "/portal-cliente";
+          throw new Error("Sesión expirada");
+        }
+        throw new Error(payload.detail || "Ocurrió un error inesperado.");
+      }
+      return payload;
+    }
+
+    function sucursalActualId() {
+      return sucursalSelect.value ? Number(sucursalSelect.value) : null;
+    }
+
+    function mostrarEstadoSinSucursal() {
+      emptyState.hidden = false;
+      panelesSucursal.hidden = true;
+    }
+
+    function mostrarPaneles() {
+      emptyState.hidden = true;
+      panelesSucursal.hidden = false;
+      panelesSucursal.classList.remove("animate-in");
+      void panelesSucursal.offsetWidth;
+      panelesSucursal.classList.add("animate-in");
+    }
+
+    async function cargarSucursales() {
+      const sucursales = await fetchJson("/api/portal-cliente/sucursales");
+      if (!sucursales.length) {
+        sucursalSelect.innerHTML = '<option value="">Sin sucursales asociadas</option>';
+        sucursalSelect.disabled = true;
+        emptyState.querySelector("h3").textContent = "Sin sucursales asociadas";
+        emptyState.querySelector("p").textContent = "Tu empresa todavía no tiene sucursales cargadas.";
+        mostrarEstadoSinSucursal();
+        return;
+      }
+      heroStat.hidden = false;
+      heroStatText.textContent = `${sucursales.length} sucursal${sucursales.length === 1 ? "" : "es"}`;
+      sucursalSelect.innerHTML =
+        '<option value="" selected disabled hidden>Selecciona una sucursal…</option>' +
+        sucursales
+          .map((s) => `<option value="${s.id}">${escaparAtributo(s.nombre_sucursal)}${s.comuna ? ` — ${escaparAtributo(s.comuna)}` : ""}</option>`)
+          .join("");
+      mostrarEstadoSinSucursal();
+    }
+
+    async function recargarTablas() {
+      const sucursalId = sucursalActualId();
+      if (!sucursalId) {
+        mostrarEstadoSinSucursal();
+        return;
+      }
+      mostrarPaneles();
+      await Promise.all([cargarPersonas(sucursalId), cargarContactos(sucursalId)]);
+    }
+
+    const TRASH_ICON_HTML = `<svg class="icon-default" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 297 297" xml:space="preserve"><path d="M221.227 32.615H191V9.884C191 4.426 186.575 0 181.116 0h-65.231c-5.458 0-9.884 4.425-9.884 9.884v22.732H75.773c-19.301 0-35.004 15.703-35.004 35.004v23.803c0 5.458 4.425 9.884 9.884 9.884h6.967l11.124 186.399A9.883 9.883 0 0 0 78.61 297h139.78a9.884 9.884 0 0 0 9.866-9.295l11.124-186.399h6.967c5.458 0 9.884-4.425 9.884-9.884V67.619c0-19.301-15.703-35.004-35.004-35.004m-95.459-12.848h45.464v12.849h-45.464zM89.693 277.233h-1.772L77.452 101.8h12.241zm31.451 0H109.46V101.306h11.684zm34.946 0h-15.179V101.8h15.179zm31.45 0h-11.684V101.306h11.684zm21.539 0h-1.772V101.8h12.241zm27.384-195.694H60.537v-13.92c0-8.401 6.835-15.236 15.236-15.236h145.453c8.402 0 15.237 6.835 15.237 15.236z"/></svg><svg class="icon-hover" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 297 297" xml:space="preserve"><path d="M248.596 80.468c-3.988-8.124-10.903-14.209-19.467-17.133l-27.689-9.453 7.109-20.824c1.707-5-.962-10.437-5.962-12.144L142.833.512a9.57 9.57 0 0 0-12.146 5.963l-7.109 20.823-27.69-9.454c-17.676-6.036-36.974 3.438-43.012 21.118l-7.444 21.804a9.57 9.57 0 0 0 5.962 12.146l46.897 16.011H57.694a9.566 9.566 0 0 0-9.55 10.136L59.42 288.003A9.57 9.57 0 0 0 68.97 297h135.3a9.567 9.567 0 0 0 9.55-8.997l9.336-156.45 7.502 2.561a9.6 9.6 0 0 0 3.092.516 9.57 9.57 0 0 0 9.053-6.478l7.444-21.805c2.924-8.564 2.338-17.756-1.651-25.879M79.697 277.866h-1.715l-10.134-169.81h11.849zM145.704 21.71l41.647 14.219-4.018 11.77-41.647-14.219zM110.14 277.866H98.831v-169.81h11.309zm33.826 0h-14.692v-169.81h14.692zm30.442.001h-11.309V111.049l11.309 3.861zm20.849-.001h-1.715V121.442l10.83 3.698zm36.883-177.701-4.353 12.751L66.631 57.895l4.354-12.75c2.628-7.695 11.03-11.818 18.722-9.193l133.241 45.491a14.65 14.65 0 0 1 8.474 7.457 14.65 14.65 0 0 1 .718 11.265"/></svg>`;
+
+    function personaRowHtml(p) {
+      return `
+        <tr data-id="${p.id}">
+          <td class="cell-title" data-label="Nombre">
+            <span class="cell-name">
+              <span class="avatar">${escaparAtributo(inicialesDe(p.nombre))}</span>
+              <span class="cell-value">${escaparAtributo(p.nombre) || "—"}</span>
+            </span>
+          </td>
+          <td data-label="RUT"><span class="cell-value">${escaparAtributo(p.rut) || "—"}</span></td>
+          <td data-label="Teléfono"><span class="cell-value">${escaparAtributo(p.telefono) || "—"}</span></td>
+          <td data-label="Email"><span class="cell-value">${escaparAtributo(p.email) || "—"}</span></td>
+          <td data-label="Estado">
+            <span class="cell-value cell-value-estado">
+              <label class="switch">
+                <input type="checkbox" class="persona-toggle" data-id="${p.id}" ${p.habilitado ? "checked" : ""} />
+                <span class="switch-track"></span>
+              </label>
+            </span>
+          </td>
+          <td class="actions-cell">
+            <span class="actions-inner">
+              <button class="btn btn-small persona-editar" data-id="${p.id}" type="button">Editar</button>
+              <button class="btn-danger persona-eliminar" data-id="${p.id}" type="button" aria-label="Eliminar persona autorizada">${TRASH_ICON_HTML}</button>
+            </span>
+          </td>
+        </tr>`;
+    }
+
+    function contactoRowHtml(c) {
+      return `
+        <tr data-id="${c.id}" class="orden-row" draggable="true">
+          <td class="orden-cell" data-label="Orden">
+            <span class="orden-handle" title="Arrastra para reordenar">${escaparAtributo(c.orden ?? "")}</span>
+          </td>
+          <td class="cell-title" data-label="Nombre">
+            <span class="cell-name">
+              <span class="cell-value">${escaparAtributo(c.nombre) || "—"}</span>
+            </span>
+          </td>
+          <td data-label="RUT"><span class="cell-value">${escaparAtributo(c.rut) || "—"}</span></td>
+          <td data-label="Teléfono"><span class="cell-value">${escaparAtributo(c.telefono) || "—"}</span></td>
+          <td data-label="Email"><span class="cell-value">${escaparAtributo(c.email) || "—"}</span></td>
+          <td class="actions-cell">
+            <span class="actions-inner">
+              <button class="btn btn-small contacto-editar" data-id="${c.id}" type="button">Editar</button>
+              <button class="btn-danger contacto-eliminar" data-id="${c.id}" type="button" aria-label="Eliminar contacto de emergencia">${TRASH_ICON_HTML}</button>
+            </span>
+          </td>
+        </tr>`;
+    }
+
+    let personasCache = [];
+    let contactosCache = [];
+
+    async function cargarPersonas(sucursalId) {
+      const rows = await fetchJson(`/api/portal-cliente/sucursal/${sucursalId}/personas-autorizadas`);
+      personasCache = rows;
+      tablaPersonasBody.innerHTML = rows.length
+        ? rows.map(personaRowHtml).join("")
+        : '<tr><td colspan="6" class="muted">No hay personas autorizadas registradas para esta sucursal.</td></tr>';
+    }
+
+    async function cargarContactos(sucursalId) {
+      const rows = await fetchJson(`/api/portal-cliente/sucursal/${sucursalId}/contactos-emergencia`);
+      contactosCache = rows;
+      tablaContactosBody.innerHTML = rows.length
+        ? rows.map(contactoRowHtml).join("")
+        : '<tr><td colspan="6" class="muted">No hay contactos de emergencia registrados para esta sucursal.</td></tr>';
+    }
+
+    // ── Modal persona autorizada ──
+    const modalPersonaOverlay = document.getElementById("modalPersonaOverlay");
+    function abrirModalPersona(persona) {
+      document.getElementById("personaId").value = persona ? persona.id : "";
+      document.getElementById("personaNombre").value = persona ? persona.nombre : "";
+      document.getElementById("personaRut").value = persona ? persona.rut : "";
+      document.getElementById("personaTelefono").value = persona ? persona.telefono : "";
+      document.getElementById("personaEmail").value = persona ? persona.email : "";
+      document.getElementById("personaClaveVerde").value = persona ? persona.clave_verde : "";
+      document.getElementById("personaClaveRoja").value = persona ? persona.clave_roja : "";
+      document.getElementById("modalPersonaTitulo").textContent = persona ? "Editar persona autorizada" : "Agregar persona autorizada";
+      document.getElementById("personaError").textContent = "";
+      modalPersonaOverlay.hidden = false;
+    }
+    function cerrarModalPersona() { modalPersonaOverlay.hidden = true; }
+
+    async function guardarPersona() {
+      const sucursalId = sucursalActualId();
+      const id = document.getElementById("personaId").value;
+      const payload = {
+        nombre: document.getElementById("personaNombre").value.trim(),
+        rut: document.getElementById("personaRut").value.trim(),
+        telefono: document.getElementById("personaTelefono").value.trim(),
+        email: document.getElementById("personaEmail").value.trim(),
+        clave_verde: document.getElementById("personaClaveVerde").value.trim(),
+        clave_roja: document.getElementById("personaClaveRoja").value.trim(),
+      };
+      if (!payload.nombre) {
+        document.getElementById("personaError").textContent = "El nombre es obligatorio.";
+        return;
+      }
+      try {
+        if (id) {
+          await fetchJson(`/api/portal-cliente/personas-autorizadas/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+        } else {
+          await fetchJson("/api/portal-cliente/personas-autorizadas", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...payload, sucursal_id: sucursalId }),
+          });
+        }
+        cerrarModalPersona();
+        await cargarPersonas(sucursalId);
+      } catch (err) {
+        document.getElementById("personaError").textContent = err.message;
+      }
+    }
+
+    async function togglePersona(id, checkbox) {
+      try {
+        await fetchJson(`/api/portal-cliente/personas-autorizadas/${id}/toggle`, { method: "PATCH" });
+        await cargarPersonas(sucursalActualId());
+      } catch (err) {
+        checkbox.checked = !checkbox.checked;
+        alert(err.message);
+      }
+    }
+
+    // ── Modal contacto de emergencia ──
+    const modalContactoOverlay = document.getElementById("modalContactoOverlay");
+    function abrirModalContacto(contacto) {
+      document.getElementById("contactoId").value = contacto ? contacto.id : "";
+      document.getElementById("contactoNombre").value = contacto ? contacto.nombre : "";
+      document.getElementById("contactoRut").value = contacto ? contacto.rut : "";
+      document.getElementById("contactoTelefono").value = contacto ? contacto.telefono : "";
+      document.getElementById("contactoEmail").value = contacto ? contacto.email : "";
+      document.getElementById("modalContactoTitulo").textContent = contacto ? "Editar contacto de emergencia" : "Agregar contacto de emergencia";
+      document.getElementById("contactoError").textContent = "";
+      modalContactoOverlay.hidden = false;
+    }
+    function cerrarModalContacto() { modalContactoOverlay.hidden = true; }
+
+    async function guardarContacto() {
+      const sucursalId = sucursalActualId();
+      const id = document.getElementById("contactoId").value;
+      const payload = {
+        nombre: document.getElementById("contactoNombre").value.trim(),
+        rut: document.getElementById("contactoRut").value.trim(),
+        telefono: document.getElementById("contactoTelefono").value.trim(),
+        email: document.getElementById("contactoEmail").value.trim(),
+      };
+      if (!payload.nombre) {
+        document.getElementById("contactoError").textContent = "El nombre es obligatorio.";
+        return;
+      }
+      try {
+        if (id) {
+          await fetchJson(`/api/portal-cliente/contactos-emergencia/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+        } else {
+          await fetchJson("/api/portal-cliente/contactos-emergencia", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...payload, sucursal_id: sucursalId }),
+          });
+        }
+        cerrarModalContacto();
+        await cargarContactos(sucursalId);
+      } catch (err) {
+        document.getElementById("contactoError").textContent = err.message;
+      }
+    }
+
+    async function eliminarContacto(id) {
+      if (!confirm("¿Eliminar este contacto de emergencia?")) return;
+      try {
+        await fetchJson(`/api/portal-cliente/contactos-emergencia/${id}`, { method: "DELETE" });
+        await cargarContactos(sucursalActualId());
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    async function eliminarPersona(id) {
+      if (!confirm("¿Eliminar esta persona autorizada?")) return;
+      try {
+        await fetchJson(`/api/portal-cliente/personas-autorizadas/${id}`, { method: "DELETE" });
+        await cargarPersonas(sucursalActualId());
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    // ── Reordenar contactos de emergencia (drag and drop) ──
+    let filaArrastrada = null;
+
+    async function persistirOrdenContactos() {
+      const sucursalId = sucursalActualId();
+      const ids = Array.from(tablaContactosBody.querySelectorAll("tr[data-id]")).map((tr) => Number(tr.dataset.id));
+      try {
+        await fetchJson("/api/portal-cliente/contactos-emergencia/reordenar", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sucursal_id: sucursalId, orden_ids: ids }),
+        });
+        await cargarContactos(sucursalId);
+      } catch (err) {
+        alert(err.message);
+        await cargarContactos(sucursalId);
+      }
+    }
+
+    tablaContactosBody.addEventListener("dragstart", (event) => {
+      const fila = event.target.closest("tr.orden-row");
+      if (!fila) return;
+      filaArrastrada = fila;
+      fila.classList.add("is-dragging");
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", fila.dataset.id);
+    });
+
+    tablaContactosBody.addEventListener("dragover", (event) => {
+      const fila = event.target.closest("tr.orden-row");
+      if (!fila || !filaArrastrada || fila === filaArrastrada) return;
+      event.preventDefault();
+      const rect = fila.getBoundingClientRect();
+      const esArriba = event.clientY - rect.top < rect.height / 2;
+      tablaContactosBody.querySelectorAll(".drag-over-top, .drag-over-bottom").forEach((tr) => {
+        tr.classList.remove("drag-over-top", "drag-over-bottom");
+      });
+      fila.classList.add(esArriba ? "drag-over-top" : "drag-over-bottom");
+    });
+
+    tablaContactosBody.addEventListener("drop", (event) => {
+      const fila = event.target.closest("tr.orden-row");
+      tablaContactosBody.querySelectorAll(".drag-over-top, .drag-over-bottom").forEach((tr) => {
+        tr.classList.remove("drag-over-top", "drag-over-bottom");
+      });
+      if (!fila || !filaArrastrada || fila === filaArrastrada) return;
+      event.preventDefault();
+      const rect = fila.getBoundingClientRect();
+      const esArriba = event.clientY - rect.top < rect.height / 2;
+      fila.insertAdjacentElement(esArriba ? "beforebegin" : "afterend", filaArrastrada);
+      persistirOrdenContactos();
+    });
+
+    tablaContactosBody.addEventListener("dragend", () => {
+      if (filaArrastrada) filaArrastrada.classList.remove("is-dragging");
+      filaArrastrada = null;
+      tablaContactosBody.querySelectorAll(".drag-over-top, .drag-over-bottom").forEach((tr) => {
+        tr.classList.remove("drag-over-top", "drag-over-bottom");
+      });
+    });
+
+    sucursalSelect.addEventListener("change", recargarTablas);
+
+    document.getElementById("btnNuevaPersona").addEventListener("click", () => {
+      if (!sucursalActualId()) return;
+      abrirModalPersona(null);
+    });
+    document.getElementById("btnCancelarPersona").addEventListener("click", cerrarModalPersona);
+    document.getElementById("btnGuardarPersona").addEventListener("click", guardarPersona);
+    modalPersonaOverlay.addEventListener("click", (e) => { if (e.target === modalPersonaOverlay) cerrarModalPersona(); });
+
+    document.getElementById("btnNuevoContacto").addEventListener("click", () => {
+      if (!sucursalActualId()) return;
+      abrirModalContacto(null);
+    });
+    document.getElementById("btnCancelarContacto").addEventListener("click", cerrarModalContacto);
+    document.getElementById("btnGuardarContacto").addEventListener("click", guardarContacto);
+    modalContactoOverlay.addEventListener("click", (e) => { if (e.target === modalContactoOverlay) cerrarModalContacto(); });
+
+    document.addEventListener("click", (event) => {
+      const editarPersona = event.target.closest(".persona-editar");
+      if (editarPersona) {
+        const persona = personasCache.find((p) => String(p.id) === editarPersona.dataset.id);
+        if (persona) abrirModalPersona(persona);
+        return;
+      }
+      const editarContacto = event.target.closest(".contacto-editar");
+      if (editarContacto) {
+        const contacto = contactosCache.find((c) => String(c.id) === editarContacto.dataset.id);
+        if (contacto) abrirModalContacto(contacto);
+        return;
+      }
+      const eliminarContactoBtn = event.target.closest(".contacto-eliminar");
+      if (eliminarContactoBtn) {
+        eliminarContacto(eliminarContactoBtn.dataset.id);
+        return;
+      }
+      const eliminarPersonaBtn = event.target.closest(".persona-eliminar");
+      if (eliminarPersonaBtn) {
+        eliminarPersona(eliminarPersonaBtn.dataset.id);
+        return;
+      }
+    });
+
+    document.addEventListener("change", (event) => {
+      const toggle = event.target.closest(".persona-toggle");
+      if (toggle) togglePersona(toggle.dataset.id, toggle);
+    });
+
+    mostrarEstadoSinSucursal();
+    cargarSucursales().catch((err) => {
+      emptyState.querySelector("h3").textContent = "No se pudo cargar tu información";
+      emptyState.querySelector("p").textContent = err.message;
+      mostrarEstadoSinSucursal();
+    });
+  </script>
+</body>
+</html>

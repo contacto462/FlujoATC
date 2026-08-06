@@ -420,7 +420,7 @@ td input[type=text].campo-deshabilitado.campo-vacio{
 
   async function cargarUsuarioActual() {
     const el = document.getElementById("usuarioActual");
-    if (!el || !TOKEN) return;
+    if (!el) return;
     try {
       const response = await fetch(`/api/usuario-actual?token=${encodeURIComponent(TOKEN)}`);
       const data = await response.json().catch(() => ({}));

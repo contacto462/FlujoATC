@@ -57,6 +57,114 @@ _WINDOWS_RESERVED_NAMES = {
 }
 
 
+# Sanitizacion de HTML de correos entrantes: el remitente es 100% externo y
+# no confiable (cualquiera puede mandar un correo a la casilla de soporte),
+# y ese HTML se guarda tal cual en Message.content y se renderiza con
+# "{{ m.content | safe }}" en detalle_ticket.html — sin este filtro, un
+# correo con <script>/onerror=... ejecuta contra la sesion del agente que
+# abre el ticket. Se implementa a mano con html.parser (stdlib) en vez de
+# una libreria externa (bleach/nh3) para no depender de que se instale un
+# paquete nuevo en el Python de produccion del Windows Server.
+import html as _html_mod
+from html.parser import HTMLParser as _HTMLParser
+
+_EMAIL_HTML_ALLOWED_TAGS = {
+    "a", "b", "strong", "i", "em", "u", "p", "br", "div", "span",
+    "ul", "ol", "li", "table", "thead", "tbody", "tr", "td", "th",
+    "img", "blockquote", "pre", "code", "h1", "h2", "h3", "h4", "h5",
+    "h6", "hr", "small", "font", "sub", "sup", "center",
+}
+_EMAIL_HTML_VOID_TAGS = {"br", "hr", "img"}
+_EMAIL_HTML_DROP_CONTENT_TAGS = {
+    "script", "style", "iframe", "object", "embed", "form", "input",
+    "button", "link", "meta", "base", "noscript", "svg",
+}
+_EMAIL_HTML_ALLOWED_ATTRS = {
+    "a": {"href", "title"},
+    "img": {"src", "alt", "width", "height"},
+    "font": {"color", "size", "face"},
+    "td": {"colspan", "rowspan"},
+    "th": {"colspan", "rowspan"},
+}
+
+
+class _EmailHtmlSanitizer(_HTMLParser):
+    """Allowlist de tags/atributos para HTML de correos entrantes. Descarta
+    cualquier tag no listado (incluye su contenido si es script/style/etc.),
+    todo atributo que no sea de la lista explicita por tag (nada de
+    on*=, style=, class=), y cualquier href/src con esquema javascript:/
+    data:text/html."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.out: list[str] = []
+        self._skip_stack: list[str] = []
+
+    def handle_starttag(self, tag, attrs):
+        tag = tag.lower()
+        if tag in _EMAIL_HTML_DROP_CONTENT_TAGS:
+            self._skip_stack.append(tag)
+            return
+        if self._skip_stack:
+            return
+        if tag not in _EMAIL_HTML_ALLOWED_TAGS:
+            return
+        allowed = _EMAIL_HTML_ALLOWED_ATTRS.get(tag, set())
+        safe_attrs = []
+        for name, value in attrs:
+            name_l = (name or "").lower()
+            if name_l not in allowed:
+                continue
+            value = (value or "").strip()
+            if name_l in ("href", "src"):
+                v_low = value.lower()
+                if v_low.startswith(("javascript:", "vbscript:", "data:text/html")):
+                    continue
+                if name_l == "href" and not v_low.startswith(("http://", "https://", "mailto:", "/", "#")):
+                    continue
+                if name_l == "src" and not v_low.startswith(("http://", "https://", "/uploads/", "data:image/")):
+                    continue
+            safe_attrs.append(f'{name_l}="{_html_mod.escape(value, quote=True)}"')
+        attr_str = (" " + " ".join(safe_attrs)) if safe_attrs else ""
+        self.out.append(f"<{tag}{attr_str}>")
+
+    def handle_startendtag(self, tag, attrs):
+        self.handle_starttag(tag, attrs)
+
+    def handle_endtag(self, tag):
+        tag = tag.lower()
+        if self._skip_stack:
+            if self._skip_stack[-1] == tag:
+                self._skip_stack.pop()
+            return
+        if tag in _EMAIL_HTML_ALLOWED_TAGS and tag not in _EMAIL_HTML_VOID_TAGS:
+            self.out.append(f"</{tag}>")
+
+    def handle_data(self, data):
+        if self._skip_stack:
+            return
+        self.out.append(_html_mod.escape(data, quote=False))
+
+    def get_html(self) -> str:
+        return "".join(self.out)
+
+
+def _sanitize_email_html(raw_html: str | None) -> str:
+    if not raw_html:
+        return raw_html or ""
+    parser = _EmailHtmlSanitizer()
+    try:
+        parser.feed(raw_html)
+        parser.close()
+        return parser.get_html()
+    except Exception:
+        return _html_mod.escape(raw_html, quote=False)
+
+
+def _escape_plain_text_to_html(text: str) -> str:
+    return _html_mod.escape(text or "", quote=False).replace("\n", "<br>")
+
+
 def _parse_header_recipients(headers: list[str], *, exclude: set[str] | None = None) -> list[str]:
     exclude = {item.lower() for item in (exclude or set()) if item}
     recipients: list[str] = []
@@ -694,7 +802,9 @@ def fetch_emails_and_create_tickets(
 
         for uid in uid_values:
             try:
-                fetch_status, msg_data = mail.uid("fetch", str(uid), "(RFC822)")
+                # BODY.PEEK[] (no RFC822) para no marcar el correo como leido
+                # en el buzon real al descargarlo (pedido explicito, jul 2026).
+                fetch_status, msg_data = mail.uid("fetch", str(uid), "(BODY.PEEK[])")
                 if fetch_status != "OK":
                     raise RuntimeError(f"No se pudo descargar UID {uid}")
 
@@ -727,9 +837,9 @@ def fetch_emails_and_create_tickets(
                 subject = _decode_subject(msg)
                 html_body = _extract_html_and_save_images(msg)
                 if html_body:
-                    body = html_body
+                    body = _sanitize_email_html(html_body)
                 else:
-                    body = _extract_body_text(msg).strip().replace("\n", "<br>")
+                    body = _escape_plain_text_to_html(_extract_body_text(msg).strip())
 
                 requester = _resolve_requester(db, from_name, from_email)
                 ticket, ticket_exists = _resolve_ticket(

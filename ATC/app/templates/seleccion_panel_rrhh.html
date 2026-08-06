@@ -354,7 +354,7 @@ h1{
       {% include "_cambio_clave_inicial.html" %}
 
       <div class="grid">
-        <a class="option" href="/guardia/tabla-registro-guardia" style="--option-accent:120,48,120;">
+        <a class="option" href="/guardia/tabla-registro-guardia?origen=rrhh" style="--option-accent:120,48,120;">
           <div class="option-top">
             <div class="icon">AS</div>
             <strong>Tabla Asistencia</strong>
@@ -362,7 +362,7 @@ h1{
           <p>Registros de asistencia via QR por recinto y dia.</p>
         </a>
 
-        <a class="option" href="/compras/solicitud?token={{ token|default('')|urlencode }}" style="--option-accent:31,79,216;">
+        <a class="option" href="/compras/solicitud?token={{ token|default('')|urlencode }}&origen=rrhh" style="--option-accent:31,79,216;">
           <div class="option-top">
             <div class="icon">C</div>
             <strong>Solicitar Compra</strong>

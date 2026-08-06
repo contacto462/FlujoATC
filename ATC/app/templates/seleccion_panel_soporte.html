@@ -522,13 +522,13 @@ h1{
             <strong>Ticketera</strong>
           </a>
 
-          <a class="option indicadores" href="/sso/login?token={{ t }}&next=/panel-indicadores">
+          <a class="option indicadores" href="/sso/login?token={{ t }}&next=/panel-indicadores?origen=soporte">
             <div class="option-top">
               <div class="icon">D</div>
             </div>
             <strong>Dashboard</strong>
           </a>
-          <a class="option" href="/compras/solicitud?token={{ token|default('')|urlencode }}" style="--option-accent:31,79,216;">
+          <a class="option" href="/compras/solicitud?token={{ token|default('')|urlencode }}&origen=soporte" style="--option-accent:31,79,216;">
             <div class="option-top">
               <div class="icon">C</div>
             </div>

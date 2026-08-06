@@ -53,20 +53,20 @@
   }
   .ghost-button:hover { transform: translateY(-1px); border-color: rgba(90,140,255,.34); }
   .topbar-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .filtro-fechas { display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; box-shadow: var(--shadow); }
+  .filtro-fechas { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 6px 14px; box-shadow: var(--shadow); }
   .filtro-fechas label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); }
   .filtro-fechas input[type="date"] {
-    background: var(--surface-strong); border: 1px solid var(--border); border-radius: 8px;
-    color: var(--text); font-size: 0.78rem; padding: 5px 7px; color-scheme: dark;
+    background: transparent; border: none; border-bottom: 1px solid var(--border); border-radius: 0;
+    color: var(--text); font-size: 0.78rem; padding: 4px 2px; color-scheme: dark; transition: border-color .15s;
   }
-  .filtro-fechas .primary-button {
-    border: none; border-radius: 999px; padding: 7px 14px; font-size: 0.78rem; font-weight: 700;
-    cursor: pointer; background: var(--primary); color: #fff;
-  }
+  .filtro-fechas input[type="date"]:focus { outline: none; border-bottom-color: var(--primary); }
   .filtro-fechas .clear-button {
-    border: 1px solid var(--border); border-radius: 999px; padding: 7px 12px; font-size: 0.78rem; font-weight: 700;
+    border: none; border-radius: 0; padding: 4px 2px; font-size: 0.78rem; font-weight: 700;
     cursor: pointer; background: transparent; color: var(--text-soft);
+    text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--border);
+    transition: color .15s, text-decoration-color .15s;
   }
+  .filtro-fechas .clear-button:hover { color: var(--primary); text-decoration-color: var(--primary); }
 
   .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; flex: 0 0 auto; }
   .kpi {
@@ -92,9 +92,9 @@
   .mas-info-btn {
     flex: 0 0 auto; border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px;
     font-size: 0.66rem; font-weight: 700; cursor: pointer; background: var(--surface-strong);
-    color: var(--primary); transition: border-color .15s, transform .15s;
+    color: var(--text-soft); transition: border-color .15s, color .15s, transform .15s;
   }
-  .mas-info-btn:hover { border-color: var(--primary); transform: translateY(-1px); }
+  .mas-info-btn:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
 
   /* ── Popup "+ Info" Informes semanales ── */
   .detalle-overlay {
@@ -114,11 +114,6 @@
   }
   .detalle-header h2 { margin: 0 0 4px; font-size: 1.3rem; font-weight: 800; letter-spacing: -.01em; }
   .detalle-header p { margin: 0; color: var(--text-soft); font-size: 0.85rem; }
-  .detalle-close {
-    flex: 0 0 auto; border: 1px solid var(--border); border-radius: 10px; width: 34px; height: 34px;
-    background: var(--surface); color: var(--text); font-size: 1.2rem; cursor: pointer; line-height: 1;
-  }
-  .detalle-close:hover { border-color: var(--red); color: var(--red); }
   .detalle-kpis { flex: 0 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 20px 28px 0; }
   .detalle-kpi {
     background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px 18px;
@@ -167,11 +162,8 @@
   .cliente-total.bad { color: var(--red); }
   .cliente-total.warn { color: var(--amber); }
   .cliente-total.ok { color: var(--green); }
-  .problema-chips { display: flex; flex-wrap: wrap; gap: 6px; padding-left: 38px; }
-  .problema-chip {
-    font-size: 0.74rem; font-weight: 600; color: var(--text-soft); background: var(--surface-strong);
-    border: 1px solid var(--border); border-radius: 999px; padding: 4px 11px;
-  }
+  .problema-chips { display: flex; flex-wrap: wrap; gap: 4px 12px; padding-left: 38px; }
+  .problema-chip { font-size: 0.74rem; font-weight: 600; color: var(--text-soft); }
   .problema-chip b { color: var(--text); font-weight: 800; }
 
   /* Popup "+ Info" Incidencias pendientes mas antiguas (resumen) */
@@ -182,10 +174,10 @@
   .resumen-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 4px; border-bottom: 1px solid var(--border); }
   .resumen-row:last-child { border-bottom: none; }
   .resumen-nombre { font-size: 0.86rem; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .resumen-badge {
-    flex: 0 0 auto; font-size: 0.78rem; font-weight: 800; color: var(--primary);
-    background: rgba(90,140,255,.12); border: 1px solid rgba(90,140,255,.3); padding: 3px 12px; border-radius: 999px;
-  }
+  .resumen-badge { flex: 0 0 auto; font-size: 0.82rem; font-weight: 800; }
+  .resumen-badge.bad { color: var(--red); }
+  .resumen-badge.warn { color: var(--amber); }
+  .resumen-badge.ok { color: var(--green); }
   .resumen-buscar {
     flex: 0 0 auto; width: 100%; margin-bottom: 8px; padding: 8px 12px; border-radius: 10px;
     border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.82rem;
@@ -260,7 +252,7 @@
         <input type="date" id="filtroDesde" name="desde" value="{{ filtro_desde|default('') }}">
         <label for="filtroHasta">Hasta</label>
         <input type="date" id="filtroHasta" name="hasta" value="{{ filtro_hasta|default('') }}">
-        <button type="submit" class="primary-button">Aplicar</button>
+        <button type="submit" class="ghost-button">Aplicar</button>
         {% if filtro_desde or filtro_hasta %}
         <a class="clear-button" href="/venta/operaciones/dashboard-coordinacion?token={{ token|default('') }}">Limpiar</a>
         {% endif %}
@@ -361,7 +353,6 @@
         <h2>Informes semanales — Detalle</h2>
         <p>Estado de envío por sucursal y antigüedad de los pendientes</p>
       </div>
-      <button type="button" class="detalle-close" onclick="cerrarDetalleInformes()">&times;</button>
     </div>
 
     <div class="detalle-kpis">
@@ -400,7 +391,6 @@
         <h2>Clientes con más incidencias pendientes</h2>
         <p>Top 10 · Desglose por tipo de problema</p>
       </div>
-      <button type="button" class="detalle-close" onclick="cerrarDetalleClientes()">&times;</button>
     </div>
     <div class="detalle-list" id="detalleClientesLista">
       <div class="detalle-empty">Cargando…</div>
@@ -415,7 +405,6 @@
         <h2>Incidencias pendientes — Resumen</h2>
         <p>Todas las incidencias pendientes de Cliente/Coordinación, por sucursal y por tipo</p>
       </div>
-      <button type="button" class="detalle-close" onclick="cerrarDetallePendientesResumen()">&times;</button>
     </div>
     <div class="detalle-two-col">
       <div class="detalle-subcol">
@@ -438,7 +427,6 @@
         <h2 id="detalleBucketTitulo">Antigüedad — Detalle</h2>
         <p>Sucursales con incidencias en este rango de antigüedad, y sus tipos</p>
       </div>
-      <button type="button" class="detalle-close" onclick="cerrarDetalleBucket()">&times;</button>
     </div>
     <div class="bucket-toolbar">
       <input type="text" id="bucketBuscar" placeholder="Buscar sucursal..." oninput="filtrarDetalleBucket()">
@@ -868,7 +856,7 @@
     el.innerHTML = items.map((it) => `
       <div class="resumen-row">
         <span class="resumen-nombre" title="${esc(it[nombreKey])}">${esc(it[nombreKey])}</span>
-        <span class="resumen-badge">${it.cantidad}</span>
+        <span class="resumen-badge ${it.cantidad >= 4 ? "bad" : it.cantidad >= 2 ? "warn" : "ok"}">${it.cantidad}</span>
       </div>
     `).join("");
   }

@@ -14,18 +14,12 @@
   --bg-1:#08161a;
   --bg-2:#10252c;
   --bg-3:#17363d;
-  --surface:rgba(255,255,255,.05);
-  --surface-2:rgba(255,255,255,.04);
   --border:rgba(255,255,255,.12);
   --text:#f4f8f9;
-  --muted:#bed0d6;
+  --muted:#9fb3ba;
   --primary:#ff6e23;
   --primary-2:#ff8b33;
-  --green:#1f9c83;
-  --green-2:#147a66;
-  --blue:#2f5b72;
-  --blue-2:#24495c;
-  --shadow:0 30px 60px rgba(0,0,0,.38);
+  --shadow:0 40px 80px rgba(0,0,0,.42);
 }
 *{box-sizing:border-box}
 html,body{height:100%}
@@ -40,172 +34,203 @@ body{
   display:flex;
   align-items:center;
   justify-content:center;
-  padding:28px;
+  padding:24px;
 }
 .shell{
-  width:min(1180px,100%);
+  width:min(1360px,96vw);
+  max-height:94vh;
   border:1px solid var(--border);
-  border-radius:30px;
+  border-radius:28px;
   background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.04));
   backdrop-filter:blur(18px);
   box-shadow:var(--shadow);
   overflow:hidden;
 }
-.hero{display:grid;grid-template-columns:1.05fr .95fr;min-height:680px}
+.hero{display:grid;grid-template-columns:1fr 1.08fr;min-height:min(760px,92vh)}
+
+/* ── LEFT: BRAND ── */
 .hero-copy{
-  padding:42px;
+  padding:clamp(32px,4vh,48px);
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-start;
   background:
     radial-gradient(580px 320px at 0% 0%, rgba(255,139,51,.16), transparent 70%),
     linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
 }
-.brand{display:flex;align-items:center;gap:14px;margin-bottom:36px}
-.brand-badge{
-  width:86px;height:86px;border-radius:20px;padding:10px;
-  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);
-  display:flex;align-items:center;justify-content:center;
-}
-.brand-badge img{width:100%;height:100%;object-fit:contain}
-.brand-text strong{display:block;font-size:18px;font-weight:800}
-.brand-text span{display:block;margin-top:4px;color:var(--muted);font-size:13px}
-.welcome-message{margin:0 0 12px;font-size:22px;line-height:1.08;font-weight:800}
-h1{margin:20px 0 14px;font-size:46px;line-height:1.02;letter-spacing:-.03em}
-.lead{max-width:560px;color:var(--muted);font-size:16px;line-height:1.65}
+.brand{display:flex;align-items:center;gap:14px;margin-bottom:clamp(24px,4vh,40px)}
+.brand-badge{display:flex;align-items:center;justify-content:center}
+.brand-badge img{width:112px;height:auto;object-fit:contain;filter:drop-shadow(0 6px 14px rgba(0,0,0,.22))}
+.brand-text strong{display:block;font-size:17px;font-weight:800}
+.brand-text span{display:block;margin-top:3px;color:var(--muted);font-size:12.5px;letter-spacing:.02em;text-transform:uppercase}
+.welcome-message{margin:0 0 10px;font-size:20px;line-height:1.1;font-weight:700;color:var(--muted)}
+h1{margin:0 0 16px;font-size:clamp(30px,3.4vw,42px);line-height:1.05;letter-spacing:-.03em;font-weight:800}
+.lead{max-width:480px;color:var(--muted);font-size:15px;line-height:1.65}
 .user-chip{
-  margin-top:28px;display:inline-flex;align-items:center;gap:10px;padding:10px 14px;
-  border-radius:16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
-  color:#d9e3f2;font-size:14px;font-weight:600;
+  margin-top:clamp(20px,3.6vh,32px);display:inline-flex;align-items:center;gap:9px;padding:9px 14px;
+  width:fit-content;
+  border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+  color:#d9e3f2;font-size:13px;font-weight:600;
 }
+.user-chip::before{
+  content:"";width:7px;height:7px;border-radius:999px;background:var(--primary);
+  box-shadow:0 0 0 3px rgba(255,110,35,.18);
+}
+
+/* ── RIGHT: PANEL SELECTOR ── */
 .hero-side{
-  padding:32px;display:flex;flex-direction:column;justify-content:flex-start;
+  padding:clamp(28px,4vh,40px) clamp(28px,3.6vw,44px);
+  display:flex;flex-direction:column;
+  height:100%;
+  overflow:hidden;
   background:
     linear-gradient(180deg, rgba(10,18,24,.52), rgba(10,18,24,.76)),
-    radial-gradient(680px 340px at 100% 0%, rgba(255,122,43,.16), transparent 65%);
+    radial-gradient(680px 340px at 100% 0%, rgba(255,122,43,.14), transparent 65%);
   border-left:1px solid rgba(255,255,255,.08);
 }
+.panel-view{display:flex;flex-direction:column;flex:1;min-height:0}
 .panel-view[hidden]{display:none}
-.panel-title{margin:0 0 10px;font-size:28px;font-weight:800}
-.panel-sub{margin:0 0 26px;color:var(--muted);line-height:1.6}
-.grid{
-  display:grid;
-  grid-template-columns:1fr;
-  grid-auto-rows:clamp(72px, 8.8vh, 86px);
-  gap:clamp(10px,1.4vh,13px);
-  width:100%;
+.panel-title{margin:0 0 6px;font-size:22px;font-weight:800;letter-spacing:-.01em}
+.panel-sub{margin:0;color:var(--muted);font-size:13.5px;line-height:1.55}
+
+/* ── ROW LIST ── */
+.opt-list{margin-top:10px;padding:4px 0}
+.opt-list > * + *{border-top:1px solid rgba(255,255,255,.07)}
+.opt-form{margin:0}
+
+.opt-row{
+  width:100%;display:flex;align-items:center;gap:15px;
+  padding:13px 6px;border-radius:10px;border:none;background:none;
+  color:inherit;text-decoration:none;text-align:left;cursor:pointer;font:inherit;
+  transition:background .15s ease, transform .15s ease;
 }
-.areas-grid{
-  grid-auto-rows:minmax(70px, auto);
-  max-height:462px;
-  overflow-y:auto;
-  padding-right:4px;
+.opt-row:hover{background:rgba(255,255,255,.045);transform:translateX(4px)}
+.opt-row:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+
+.opt-icon{
+  flex-shrink:0;width:42px;height:42px;border-radius:11px;
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.035);
+  color:var(--muted);transition:border-color .15s ease,color .15s ease;
 }
-.areas-grid::-webkit-scrollbar{width:8px}
-.areas-grid::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:999px}
-.area-form{margin:0}
-.option{
-  width:100%;
-  display:flex;
-  flex-direction:row;
-  align-items:center;
-  gap:0;
-  justify-content:flex-start;
-  min-height:0;
-  padding:clamp(13px,1.8vh,17px) clamp(16px,2.2vh,20px);
-  border-radius:16px;
-  border:1px solid rgba(148,163,184,.18);
-  background:linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.032));
-  color:inherit;
-  text-align:left;
-  text-decoration:none;
-  cursor:pointer;
-  font:inherit;
-  transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease, filter .18s ease, opacity .18s ease;
+.opt-icon svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.opt-icon--letters{font-size:13.5px;font-weight:800;letter-spacing:.01em}
+.opt-row:hover .opt-icon{border-color:rgba(255,139,51,.5);color:var(--primary-2)}
+
+.opt-title{flex:1;min-width:0;font-size:15.5px;font-weight:650;letter-spacing:-.005em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.opt-chevron{
+  flex-shrink:0;width:16px;height:16px;color:var(--muted);
+  opacity:0;transform:translateX(-4px);transition:opacity .15s ease,transform .15s ease;
 }
-.grid:has(.option:hover) .option:not(:hover){filter:blur(1.8px);opacity:.5;transform:scale(.965)}
-.option:hover{
-  transform:translateY(-2px) scale(1.012);
-  border-color:rgba(var(--option-accent),.42);
-  box-shadow:0 18px 34px rgba(0,0,0,.20);
-  background:linear-gradient(135deg, rgba(var(--option-accent),.24), rgba(var(--option-accent),.16));
-  filter:none;
-  opacity:1;
-  z-index:2;
+.opt-chevron svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.opt-row:hover .opt-chevron{opacity:1;transform:translateX(0)}
+
+/* large variant — top-level menus (2 items, keep a description line) */
+.opt-row--lg{padding:16px 8px;gap:16px}
+.opt-row--lg .opt-icon{width:48px;height:48px;border-radius:13px}
+.opt-row--lg .opt-icon svg{width:21px;height:21px}
+.opt-row--lg .opt-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.opt-row--lg .opt-title{font-size:15.5px;font-weight:700;white-space:normal}
+.opt-row--lg .opt-desc{font-size:12.5px;color:var(--muted);line-height:1.4}
+
+/* two-column areas list */
+.opt-list--cols{display:grid;grid-template-columns:1fr 1fr;column-gap:30px;align-content:center}
+.opt-col{display:flex;flex-direction:column}
+.opt-col--divider{border-left:1px solid rgba(255,255,255,.08);padding-left:30px}
+
+.footer{
+  flex-shrink:0;margin-top:14px;padding-top:16px;border-top:1px solid rgba(255,255,255,.07);
+  display:flex;justify-content:space-between;align-items:center;gap:16px;color:var(--muted);font-size:13px;
 }
-.option-top{display:flex;align-items:center;justify-content:flex-start;gap:clamp(14px,2vh,18px);margin:0}
-.icon{
-  width:clamp(40px,5vh,48px);height:clamp(40px,5vh,48px);border-radius:14px;display:grid;place-items:center;color:#fff;
-  font-size:clamp(16px,2.2vh,20px);font-weight:800;
-  background:linear-gradient(180deg, rgba(var(--option-accent),.34), rgba(var(--option-accent),.18));
-  border:1px solid rgba(var(--option-accent),.46);
-  box-shadow:none;
-}
-.option strong{display:block;font-size:clamp(16px,2.05vh,19px);margin:0}
-.option small{display:block;margin-top:4px;color:var(--muted);font-size:12px;line-height:1.35}
-.footer{margin-top:auto;padding-top:18px;display:flex;justify-content:space-between;align-items:center;gap:16px;color:var(--muted);font-size:13px}
 .panel-back-btn{
-  display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 14px;border-radius:14px;
+  display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:0 14px;border-radius:12px;
   border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:var(--text);
   font-size:13px;font-weight:700;text-decoration:none;cursor:pointer;
   transition:background .18s ease,border-color .18s ease,transform .18s ease;
 }
+.panel-back-btn[hidden],#footerLabel[hidden]{display:none}
 .panel-back-btn:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.2);transform:translateY(-1px)}
 .Btn{
-  display:flex;align-items:center;justify-content:center;width:40px;height:40px;border:none;
-  border-radius:14px;cursor:pointer;position:relative;overflow:hidden;text-decoration:none;
+  display:flex;align-items:center;justify-content:center;width:38px;height:38px;border:none;
+  border-radius:12px;cursor:pointer;position:relative;overflow:hidden;text-decoration:none;
   background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);transition:all .22s ease;
 }
 .sign{
-  position:absolute;left:12px;width:16px;height:16px;display:flex;align-items:center;justify-content:center;transition:all .22s ease;
+  position:absolute;left:11px;width:16px;height:16px;display:flex;align-items:center;justify-content:center;transition:all .22s ease;
 }
 .sign svg{width:16px}
 .sign svg path{fill:#dce5f3}
 .text{
-  position:absolute;left:34px;width:98px;font-size:12px;font-weight:700;color:#dce5f3;
+  position:absolute;left:33px;width:98px;font-size:12px;font-weight:700;color:#dce5f3;
   opacity:0;transform:translateX(-6px);pointer-events:none;transition:all .22s ease;
 }
-.Btn:hover{width:152px;background:rgba(255,255,255,.08)}
-.Btn:hover .sign{left:12px;width:16px}
+.Btn:hover{width:150px;background:rgba(255,255,255,.08)}
+.Btn:hover .sign{left:11px}
 .Btn:hover .text{opacity:1;transform:translateX(0)}
+
 @media (max-width:940px){
-  .hero{grid-template-columns:1fr}
+  .hero{grid-template-columns:1fr;min-height:0}
   .hero-side{border-left:none;border-top:1px solid rgba(255,255,255,.08)}
-  h1{font-size:34px}
-  .areas-grid{max-height:none;overflow:visible;padding-right:0}
+  .opt-list--cols{grid-template-columns:1fr}
+  .opt-col--divider{border-left:none;padding-left:0;border-top:1px solid rgba(255,255,255,.09);padding-top:8px;margin-top:8px}
 }
 @media (max-width:560px){
-  html,body{
-    height:auto;
-    min-height:100%;
-    overflow-x:hidden;
-    overflow-y:auto;
-  }
-  body{
-    display:block;
-    width:100vw;
-    max-width:100vw;
-    min-height:100dvh;
-    padding:14px;
-    margin:0;
-    overflow-y:auto;
-    -webkit-overflow-scrolling:touch;
-  }
-  .shell{width:calc(100vw - 28px) !important;max-width:calc(100vw - 28px) !important;overflow:visible}
+  html,body{height:auto;min-height:100%;overflow-x:hidden;overflow-y:auto}
+  body{display:block;width:100vw;max-width:100vw;min-height:100dvh;padding:14px;margin:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .shell{width:calc(100vw - 28px) !important;max-width:calc(100vw - 28px) !important;max-height:none;overflow:visible}
   .hero{display:block;width:100%;min-height:0}
-  .brand,.grid{width:100%}
+  .hero-copy,.hero-side{padding:22px;overflow:visible}
   .hero-copy,.hero-side,.brand-text,.welcome-message,h1,.lead,.panel-title,.panel-sub{min-width:0;max-width:100%;overflow-wrap:anywhere}
-  .hero-copy,.hero-side{padding:22px}
-  h1{font-size:30px;line-height:1.08}
-  .welcome-message{font-size:19px;line-height:1.16}
-  .brand-badge{width:74px;height:74px}
+  h1{font-size:28px;line-height:1.1}
+  .welcome-message{font-size:18px}
+  .brand-badge img{width:88px}
   .footer{flex-direction:column;align-items:stretch}
-  .Btn{width:40px}
-  .Btn:hover{width:152px}
 }
-.brand-badge{width:auto!important;height:auto!important;padding:0!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;display:flex!important;align-items:center!important;justify-content:center!important}
-.brand-badge img{width:122px!important;height:auto!important;object-fit:contain!important;filter:drop-shadow(0 6px 14px rgba(0,0,0,.22))!important}
-
 </style>
 </head>
 <body>
+{% set AREA_ICONS = {
+  "_gerencia": '<path d="M12 2.5 14.6 8.3 21 9l-4.8 4.3L17.7 20 12 16.6 6.3 20l1.5-6.7L3 9l6.4-.7L12 2.5z"/>',
+  "_areas": '<rect x="3" y="3" width="7.2" height="7.2" rx="1.6"/><rect x="13.8" y="3" width="7.2" height="7.2" rx="1.6"/><rect x="3" y="13.8" width="7.2" height="7.2" rx="1.6"/><rect x="13.8" y="13.8" width="7.2" height="7.2" rx="1.6"/>',
+  "_aprobacion": '<circle cx="12" cy="12" r="9"/><path d="M8 12.3l2.6 2.6L16.3 9"/>',
+  "soporte": '<path d="M4 13v-1a8 8 0 1 1 16 0v1"/><rect x="2.6" y="13" width="4.2" height="6.2" rx="1.6"/><rect x="17.2" y="13" width="4.2" height="6.2" rx="1.6"/><path d="M19.4 19.2v.8a3 3 0 0 1-3 3h-2.6"/>',
+  "materiales": '<path d="M12 3 3.5 7.5 12 12l8.5-4.5L12 3z"/><path d="M3.5 7.5v9L12 21l8.5-4.5v-9"/><path d="M12 12v9"/>',
+  "servicio_tecnico": '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.2L3.8 17l3.2 3.2 5.5-5.5a4 4 0 0 0 5.2-5.4l-2.9 2.9-2.6-2.6 2.9-2.9z"/>',
+  "tecnicos": '<path d="M4.5 15.2A7.5 7.5 0 0 1 12 8a7.5 7.5 0 0 1 7.5 7.2"/><path d="M2.5 15.2h19"/><path d="M12 8V5.3"/>',
+  "incidencias": '<circle cx="12" cy="9" r="3.2"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/>',
+  "coordinacion": '<path d="M4 18h3l9-12h4"/><path d="M17 3l3 3-3 3"/><path d="M4 6h3l2.2 3"/><path d="M17 21l3-3-3-3"/>',
+  "venta": '<path d="M3.5 16.5 9 11l4 4 7-8"/><path d="M15 6.5h5v5"/>',
+  "finanzas": '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v9M9.7 9.8c0-1.3 1-1.9 2.3-1.9s2.3.7 2.3 1.9c0 1.2-1 1.7-2.3 2.1-1.3.4-2.3 1-2.3 2.1 0 1.2 1 1.9 2.3 1.9s2.3-.6 2.3-1.9"/>',
+  "administracion": '<rect x="3" y="7.5" width="18" height="11.5" rx="2"/><path d="M8.5 7.5V6a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v1.5"/><path d="M3 12.5h18"/>',
+  "operaciones": '<circle cx="12" cy="12" r="3"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .3 1.9v.1a2 2 0 1 1-2.8 2.7h-.1a1.7 1.7 0 0 0-1.9.3 1.7 1.7 0 0 0-1 1.6v.2a2 2 0 1 1-4 0v-.2a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9-.3H8a2 2 0 1 1-2.8-2.7v-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H3.7a2 2 0 1 1 0-4h.2a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1A2 2 0 1 1 8 5.9l.1.1a1.7 1.7 0 0 0 1.9.3H10a1.7 1.7 0 0 0 1-1.6V4.5a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.7 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.6 1h.2a2 2 0 1 1 0 4h-.2a1.7 1.7 0 0 0-1.5 1.1z"/>',
+  "guardia": '<path d="M12 3.5 19 6.3v5.4c0 4.6-3 7.9-7 8.8-4-.9-7-4.2-7-8.8V6.3l7-2.8z"/>',
+  "supervisores": '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/>',
+  "rrhh": '<circle cx="9" cy="8.3" r="3"/><path d="M3.5 19.5c0-3.3 2.5-5.8 5.5-5.8s5.5 2.5 5.5 5.8"/><path d="M15.5 8.6a2.8 2.8 0 1 1 0 5.6"/><path d="M20 19.5c0-2.3-1.6-4.3-3.7-5.1"/>',
+  "prevencion": '<path d="M12 3.5 19 6.3v5.4c0 4.6-3 7.9-7 8.8-4-.9-7-4.2-7-8.8V6.3l7-2.8z"/><path d="M9.2 12.2l2 2 3.6-4"/>',
+  "bitacora": '<path d="M5 3.8A2.3 2.3 0 0 1 7.3 1.5H19v18.2H7.3A2.3 2.3 0 0 0 5 22V3.8z"/><path d="M19 19.7H7.3A2.3 2.3 0 0 0 5 22"/>',
+  "compras_control": '<rect x="5.5" y="4" width="13" height="17" rx="2"/><path d="M9 4a1.2 1.2 0 0 1 1.2-1.2h3.6A1.2 1.2 0 0 1 15 4v1H9V4z"/><path d="M9.3 13l1.8 1.8L14.8 11"/>',
+  "compras_solicitud": '<rect x="5.5" y="4" width="13" height="17" rx="2"/><path d="M9 4a1.2 1.2 0 0 1 1.2-1.2h3.6A1.2 1.2 0 0 1 15 4v1H9V4z"/><path d="M12 10.5v5M9.5 13h5"/>',
+  "_default": '<circle cx="7.5" cy="7.5" r="1.5"/><circle cx="16.5" cy="7.5" r="1.5"/><circle cx="7.5" cy="16.5" r="1.5"/><circle cx="16.5" cy="16.5" r="1.5"/>',
+  "_chevron": '<path d="M9 6l6 6-6 6"/>',
+} %}
+{% set AREA_INITIALS = {
+  "soporte": "SO",
+  "materiales": "M",
+  "servicio_tecnico": "SE",
+  "tecnicos": "T",
+  "incidencias": "OP",
+  "coordinacion": "CO",
+  "venta": "CM",
+  "finanzas": "F",
+  "administracion": "A",
+  "operaciones": "OA",
+  "guardia": "G",
+  "supervisores": "SU",
+  "rrhh": "R",
+  "prevencion": "P",
+  "bitacora": "B",
+} %}
   <main class="shell">
     <section class="hero">
       <div class="hero-copy">
@@ -235,25 +260,23 @@ h1{margin:20px 0 14px;font-size:46px;line-height:1.02;letter-spacing:-.03em}
 
           {% include "_cambio_clave_inicial.html" %}
 
-          <div class="grid">
-            <button class="option" type="button" data-open-panel="gerencia" style="--option-accent:91,33,182;">
-              <div class="option-top">
-                <div class="icon">G</div>
-                <div>
-                  <strong>Gerencia</strong>
-                  <small>Aprobación Gerencia y Comercial.</small>
-                </div>
-              </div>
+          <div class="opt-list">
+            <button class="opt-row opt-row--lg" type="button" data-open-panel="gerencia">
+              <span class="opt-icon"><svg viewBox="0 0 24 24">{{ AREA_ICONS["_gerencia"]|safe }}</svg></span>
+              <span class="opt-body">
+                <span class="opt-title">Gerencia</span>
+                <span class="opt-desc">Aprobación Gerencia y Comercial.</span>
+              </span>
+              <span class="opt-chevron"><svg viewBox="0 0 24 24">{{ AREA_ICONS["_chevron"]|safe }}</svg></span>
             </button>
 
-            <button class="option" type="button" data-open-panel="areas" style="--option-accent:47,91,114;">
-              <div class="option-top">
-                <div class="icon">A</div>
-                <div>
-                  <strong>Áreas</strong>
-                  <small>Todos los accesos operativos disponibles.</small>
-                </div>
-              </div>
+            <button class="opt-row opt-row--lg" type="button" data-open-panel="areas">
+              <span class="opt-icon"><svg viewBox="0 0 24 24">{{ AREA_ICONS["_areas"]|safe }}</svg></span>
+              <span class="opt-body">
+                <span class="opt-title">Áreas</span>
+                <span class="opt-desc">Todos los accesos operativos disponibles.</span>
+              </span>
+              <span class="opt-chevron"><svg viewBox="0 0 24 24">{{ AREA_ICONS["_chevron"]|safe }}</svg></span>
             </button>
           </div>
         </div>
@@ -262,25 +285,23 @@ h1{margin:20px 0 14px;font-size:46px;line-height:1.02;letter-spacing:-.03em}
           <h2 class="panel-title">Gerencia</h2>
           <p class="panel-sub">Accesos principales de supervisión y gestión.</p>
 
-          <div class="grid">
-            <a class="option" href="/compras/panel-gerencia?token={{ token|default('')|urlencode }}" style="--option-accent:91,33,182;">
-              <div class="option-top">
-                <div class="icon">G</div>
-                <div>
-                  <strong>Aprobación Gerencia</strong>
-                  <small>Solicitudes que requieren visación de Gerencia.</small>
-                </div>
-              </div>
+          <div class="opt-list">
+            <a class="opt-row opt-row--lg" href="/compras/panel-gerencia?token={{ token|default('')|urlencode }}">
+              <span class="opt-icon opt-icon--letters">A</span>
+              <span class="opt-body">
+                <span class="opt-title">Aprobación Gerencia</span>
+                <span class="opt-desc">Solicitudes que requieren visación de Gerencia.</span>
+              </span>
+              <span class="opt-chevron"><svg viewBox="0 0 24 24">{{ AREA_ICONS["_chevron"]|safe }}</svg></span>
             </a>
 
-            <a class="option" href="/venta/panel-selector?token={{ token|default('')|urlencode }}&next=panelSelectorVenta" style="--option-accent:255,110,35;">
-              <div class="option-top">
-                <div class="icon">C</div>
-                <div>
-                  <strong>Comercial</strong>
-                  <small>Clientes, sucursales, ODS y seguimiento comercial.</small>
-                </div>
-              </div>
+            <a class="opt-row opt-row--lg" href="/venta/panel-selector?token={{ token|default('')|urlencode }}&next=panelSelectorVenta">
+              <span class="opt-icon opt-icon--letters">C</span>
+              <span class="opt-body">
+                <span class="opt-title">Comercial</span>
+                <span class="opt-desc">Clientes, sucursales, ODS y seguimiento comercial.</span>
+              </span>
+              <span class="opt-chevron"><svg viewBox="0 0 24 24">{{ AREA_ICONS["_chevron"]|safe }}</svg></span>
             </a>
           </div>
         </div>
@@ -289,21 +310,32 @@ h1{margin:20px 0 14px;font-size:46px;line-height:1.02;letter-spacing:-.03em}
           <h2 class="panel-title">Áreas</h2>
           <p class="panel-sub">Elige el área operativa en la que deseas trabajar.</p>
 
-          <div class="grid areas-grid">
-            {% for area in areas %}
-            <form class="area-form" method="post" action="/seleccionar-area">
-              <input type="hidden" name="area_code" value="{{ area.code }}" />
-              <button class="option" type="submit" style="--option-accent:47,91,114;">
-                <div class="option-top">
-                  <div class="icon">{{ "OP" if area.code == "incidencias" else area.initials }}</div>
-                  <div>
-                    <strong>{{ "Operadores" if area.code == "incidencias" else area.title }}</strong>
-                    <small>{{ area.description }}</small>
-                  </div>
-                </div>
-              </button>
-            </form>
-            {% endfor %}
+          {% set half = (areas|length + 1) // 2 %}
+          <div class="opt-list opt-list--cols">
+            <div class="opt-col">
+              {% for area in areas[:half] %}
+              <form class="opt-form" method="post" action="/seleccionar-area">
+                <input type="hidden" name="area_code" value="{{ area.code }}" />
+                <button class="opt-row" type="submit">
+                  <span class="opt-icon opt-icon--letters">{{ AREA_INITIALS.get(area.code, area.title[0]|upper) }}</span>
+                  <span class="opt-title">{{ "Operadores" if area.code == "incidencias" else area.title }}</span>
+                  <span class="opt-chevron"><svg viewBox="0 0 24 24">{{ AREA_ICONS["_chevron"]|safe }}</svg></span>
+                </button>
+              </form>
+              {% endfor %}
+            </div>
+            <div class="opt-col opt-col--divider">
+              {% for area in areas[half:] %}
+              <form class="opt-form" method="post" action="/seleccionar-area">
+                <input type="hidden" name="area_code" value="{{ area.code }}" />
+                <button class="opt-row" type="submit">
+                  <span class="opt-icon opt-icon--letters">{{ AREA_INITIALS.get(area.code, area.title[0]|upper) }}</span>
+                  <span class="opt-title">{{ "Operadores" if area.code == "incidencias" else area.title }}</span>
+                  <span class="opt-chevron"><svg viewBox="0 0 24 24">{{ AREA_ICONS["_chevron"]|safe }}</svg></span>
+                </button>
+              </form>
+              {% endfor %}
+            </div>
           </div>
         </div>
 

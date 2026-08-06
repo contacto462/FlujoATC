@@ -262,6 +262,7 @@
     </div>
     <div class="header-actions">
       <a id="btnVolver" class="volver-link" href="/?form=panelSelector&token={{ token|default('') }}">Volver</a>
+      <a class="volver-link" href="/?form=cierreAperturaImagenes&token={{ token|default('') }}">Ver imágenes guardadas</a>
       <a class="volver-link" href="/?form=login&next=auto">Cambiar sesión</a>
     </div>
   </header>
@@ -598,6 +599,18 @@
       return sheet;
     }
 
+    const TOKEN = new URLSearchParams(location.search).get("token") || "";
+
+    function subirImagenClienteAlServidor(clientId, clientName, blob) {
+      if (!blob) return;
+      const form = new FormData();
+      form.append("client_id", clientId);
+      form.append("client_name", clientName || clientId);
+      form.append("token", TOKEN);
+      form.append("file", blob, `cierre_apertura_${clientId}.png`);
+      fetch("/api/incidencias/cierre-apertura/imagen", { method: "POST", body: form }).catch(() => {});
+    }
+
     async function guardarImagenCliente(clientId) {
       const target = buildExportSheet(clientId);
       if (!target) return;
@@ -606,6 +619,7 @@
         return;
       }
 
+      const client = getClientById(clientId);
       document.body.appendChild(target);
       try {
         await new Promise(resolve => setTimeout(resolve, 80));
@@ -624,6 +638,7 @@
         link.download = `cierre_apertura_${clientId}_${stamp}.png`;
         link.href = canvas.toDataURL("image/png");
         link.click();
+        canvas.toBlob(blob => subirImagenClienteAlServidor(clientId, client ? client.name : clientId, blob), "image/png");
       } catch (err) {
         alert("No se pudo guardar la imagen. Intenta nuevamente.");
       } finally {

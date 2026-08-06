@@ -563,7 +563,7 @@ td textarea { resize: vertical; min-height: 48px; }
   const token = new URLSearchParams(window.location.search).get("token") || "";
   async function cargarUsuarioActual() {
     const el = document.getElementById("usuarioActual");
-    if (!el || !token) return;
+    if (!el) return;
     try {
       const res = await fetch(`/api/usuario-actual?token=${encodeURIComponent(token)}`, { credentials: "include" });
       const data = await res.json().catch(() => ({}));
@@ -575,6 +575,7 @@ td textarea { resize: vertical; min-height: 48px; }
   }
   const tbody = document.getElementById("tablaDatos");
   const tecnicos = [
+    "Alejandra Isabel Figueroa Delgado",
     "Cristopher Enrique Soto Diaz",
     "Dwait German Aros Contreras",
     "Luis Alberto Bustamante Aguilera",

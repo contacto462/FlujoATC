@@ -579,8 +579,8 @@
             <div class="f span-2"><label>Referencia de Ubicación</label><input type="text" id="referenciaUbicacion" placeholder="Ej: Frente al Parque Central"></div>
             <div class="f"><label>Región</label><select id="region" required><option value="" disabled selected>Seleccionar</option></select></div>
             <div class="f"><label>Comuna</label><select id="comuna" required><option value="" disabled selected>Seleccionar</option></select></div>
-            <div class="f"><label>Latitud</label><input type="text" id="latitud" placeholder="-33.4569"></div>
-            <div class="f"><label>Longitud</label><input type="text" id="longitud" placeholder="-70.6483"></div>
+            <div class="f"><label>Latitud</label><input type="text" id="latitud" placeholder="-33.4569" required></div>
+            <div class="f"><label>Longitud</label><input type="text" id="longitud" placeholder="-70.6483" required></div>
           </div>
         </div>
 
@@ -812,6 +812,7 @@
       const personasAutorizadas = mapContactos('#personasAutorizadas .entry-card', { nombre: 'input[name="nombreAutorizado[]"]', rut: 'input[name="rutAutorizado[]"]', telefono: 'input[name="telefonoAutorizado[]"]', email: 'input[name="emailAutorizado[]"]', claveVerde: 'input[name="claveVerde[]"]', claveRoja: 'input[name="claveRoja[]"]' });
       if (!contactosEmergencia.some(c => c.nombre && c.rut && c.telefono && c.email)) throw new Error("Debes completar al menos un contacto de emergencia con todos sus datos.");
       const lat = getValue("latitud"); const lng = getValue("longitud");
+      if (!lat || !lng) throw new Error("Debes ingresar latitud y longitud.");
       const latitudLongitud = lat && lng ? `${lat}, ${lng}` : getValue("latitudLongitud");
       const payload = { rut: limpiarRUT(getValue("rut")), nombreEmpresa: getValue("nombreEmpresa"), nombreSucursal: getValue("nombreSucursal"), direccionSucursal: getValue("direccionSucursal"), latitud: lat, longitud: lng, region: getValue("region"), comuna: getValue("comuna"), referenciaUbicacion: getValue("referenciaUbicacion"), proveedorInternet: getValue("proveedorInternet"), proveedorElectricidad: getValue("proveedorElectricidad"), nroProveedorElectricidad: getValue("nroProveedorElectricidad"), horarioApertura: getValue("horarioApertura"), horarioCierre: getValue("horarioCierre"), diasFuncionamiento, latitudLongitud, emailFacturas: getValue("emailFacturas"), contactosEmergencia, personasAutorizadas, guardias };
       const response = await fetch(withToken("/api/venta/sucursales"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });

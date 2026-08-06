@@ -89,46 +89,56 @@
   .chart-host canvas { max-height: 100%; }
 
   .card-head-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: 0 0 auto; }
-  .card-head-row h3 { margin: 0; }
+  .card-head-row h3 { margin: 0; flex: 1 1 auto; min-width: 0; overflow-wrap: break-word; }
   .mas-info-btn {
     flex: 0 0 auto; border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px;
     font-size: 0.66rem; font-weight: 700; cursor: pointer; background: var(--surface-strong);
-    color: var(--primary); transition: border-color .15s, transform .15s;
+    color: var(--text-soft); transition: border-color .15s, color .15s, transform .15s;
   }
-  .mas-info-btn:hover { border-color: var(--primary); transform: translateY(-1px); }
+  .mas-info-btn:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
 
   .detalle-overlay {
-    display: none; position: fixed; inset: 0; background: rgba(4, 8, 18, 0.72);
+    display: flex; position: fixed; inset: 0; background: rgba(4, 8, 18, 0.72);
     z-index: 200; align-items: center; justify-content: center; padding: 24px;
     backdrop-filter: blur(3px);
+    opacity: 0; pointer-events: none;
+    transition: opacity .18s ease;
   }
-  .detalle-overlay.open { display: flex; }
+  .detalle-overlay.open { opacity: 1; pointer-events: auto; }
   .detalle-modal {
     width: min(720px, 96vw); max-height: min(800px, 92vh);
     background: var(--surface-strong); border: 1px solid var(--border); border-radius: 22px;
     box-shadow: 0 40px 90px rgba(0,0,0,.55); display: flex; flex-direction: column; overflow: hidden;
+    transform: scale(.96) translateY(8px);
+    transition: transform .22s cubic-bezier(.16,1,.3,1);
   }
+  .detalle-overlay.open .detalle-modal { transform: scale(1) translateY(0); }
   .detalle-header {
     flex: 0 0 auto; display: flex; align-items: flex-start; justify-content: space-between;
     gap: 16px; padding: 20px 26px; border-bottom: 1px solid var(--border);
   }
   .detalle-header h2 { margin: 0 0 3px; font-size: 1.15rem; font-weight: 800; }
   .detalle-header p { margin: 0; color: var(--text-soft); font-size: 0.82rem; }
-  .detalle-close {
-    flex: 0 0 auto; border: 1px solid var(--border); border-radius: 10px; width: 32px; height: 32px;
-    background: var(--surface); color: var(--text); font-size: 1.1rem; cursor: pointer; line-height: 1;
-  }
-  .detalle-close:hover { border-color: var(--red); color: var(--red); }
   .detalle-body-table { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 26px 22px; }
   .detalle-toolbar { flex: 0 0 auto; padding: 14px 26px 0; }
   .input-filtro {
     background: var(--surface-strong); border: 1px solid var(--border); border-radius: 8px;
     color: var(--text); font-size: 0.8rem; padding: 7px 9px; color-scheme: dark;
   }
+  .input-filtro-wide { width: 100%; min-height: 38px; }
   .input-filtro:focus { outline: none; border-color: var(--primary); }
+  .detalle-count {
+    display: block; margin-top: 6px; color: var(--text-dim); font-size: 0.72rem; font-weight: 700;
+  }
 
-  .prioridad-row { display: flex; align-items: center; gap: 10px; padding: 9px 2px; border-bottom: 1px solid var(--border); }
+  .prioridad-row {
+    display: flex; align-items: center; gap: 10px; padding: 9px 8px; margin: 0 -8px;
+    border-bottom: 1px solid var(--border); border-radius: 8px; cursor: pointer;
+    transition: background .12s ease;
+  }
   .prioridad-row:last-child { border-bottom: none; }
+  .prioridad-row:hover { background: var(--surface-muted); }
+  .prioridad-row:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
   .prioridad-chip {
     flex: 0 0 auto; font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: .03em;
     border-radius: 999px; padding: 3px 9px; white-space: nowrap;
@@ -153,7 +163,48 @@
   tbody td.right { text-align: right; }
   tbody tr:last-child td { border-bottom: none; }
   tbody td.strong { color: var(--text); font-weight: 700; }
+  .tecnico-link {
+    color: var(--text); text-decoration: none; cursor: pointer;
+  }
+  .tecnico-link:hover { color: var(--primary); }
   .empty-row { padding: 20px; text-align: center; color: var(--text-dim); font-size: 0.82rem; }
+
+  /* ── Historial / línea de tiempo del ticket ── */
+  .historial-modal { width: min(620px, 96vw); }
+  .historial-meta { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+  .historial-ticket-id { font-size: 0.7rem; color: var(--text-dim); font-weight: 700; }
+
+  .timeline { position: relative; }
+  .timeline-item { position: relative; padding: 0 0 20px 36px; }
+  .timeline-item:last-child { padding-bottom: 2px; }
+  .timeline-item::after {
+    content: ""; position: absolute; left: 11px; top: 24px; bottom: -2px; width: 2px;
+    background: var(--border);
+  }
+  .timeline-item:last-child::after { display: none; }
+  .timeline-dot {
+    position: absolute; left: 0; top: 1px; width: 24px; height: 24px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface); border: 2px solid var(--border); color: var(--text-dim);
+  }
+  .timeline-dot svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .timeline-item.tl-creado .timeline-dot,
+  .timeline-item.tl-asignacion .timeline-dot { border-color: var(--primary); color: var(--primary); background: rgba(90,140,255,.12); }
+  .timeline-item.tl-respuesta .timeline-dot,
+  .timeline-item.tl-finalizado .timeline-dot { border-color: var(--green); color: var(--green); background: rgba(45,207,131,.12); }
+  .timeline-item.tl-reticket .timeline-dot { border-color: var(--amber); color: var(--amber); background: rgba(243,184,79,.12); }
+  .timeline-item.tl-rederivacion .timeline-dot { border-color: var(--purple); color: var(--purple); background: rgba(139,114,255,.12); }
+  .timeline-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .timeline-label { font-size: 0.86rem; font-weight: 800; color: var(--text); }
+  .timeline-time { font-size: 0.68rem; font-weight: 700; color: var(--text-dim); white-space: nowrap; }
+  .timeline-detail { margin-top: 3px; font-size: 0.78rem; color: var(--text-soft); line-height: 1.45; }
+  .timeline-delta {
+    display: inline-block; margin-top: 5px; font-size: 0.64rem; font-weight: 800;
+    padding: 2px 8px; border-radius: 999px; background: var(--surface-muted); color: var(--text-dim);
+  }
+  .historial-loading, .historial-error {
+    padding: 30px 4px; text-align: center; color: var(--text-dim); font-size: 0.82rem;
+  }
 
   @media (max-width: 980px) {
     html, body { overflow: auto; }
@@ -256,22 +307,33 @@
         <h3>Desempeño por técnico</h3>
         <button type="button" class="mas-info-btn" id="btnInfoAgentes">+ Info</button>
       </div>
-      <p class="sub">Historial completo · asignados, resueltos y resueltos en los últimos 7 días</p>
+      <p class="sub">Historial completo · asignados y resueltos</p>
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>Técnico</th><th class="right">Asignados</th><th class="right">Resueltos</th><th class="right">Últimos 7d</th></tr>
+            <tr><th>Técnico</th><th class="right">Asignados</th><th class="right">Resueltos</th></tr>
           </thead>
           <tbody>
             {% for a in agents %}
             <tr>
-              <td class="strong">{{ a.agent }}</td>
+              <td class="strong">
+                {% if a.agent_id %}
+                <a
+                  class="tecnico-link"
+                  href="/panel-indicadores/informe-tecnico?agent_id={{ a.agent_id }}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}"
+                  target="_blank"
+                  rel="noopener"
+                  title="Generar informe individual de {{ a.agent }}{% if has_date_filter %} (rango de fechas aplicado){% endif %}"
+                >{{ a.agent }}</a>
+                {% else %}
+                {{ a.agent }}
+                {% endif %}
+              </td>
               <td class="right">{{ a.tickets }}</td>
               <td class="right">{{ a.resolved }}</td>
-              <td class="right">{{ a.resolved_7d }}</td>
             </tr>
             {% else %}
-            <tr><td colspan="4" class="empty-row">Sin datos de técnicos.</td></tr>
+            <tr><td colspan="3" class="empty-row">Sin datos de técnicos.</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -286,11 +348,37 @@
     <div class="detalle-header">
       <div>
         <h2>Tickets por prioridad</h2>
-        <p>Del período mostrado en el gráfico de tickets por mes, de más urgente a menos urgente</p>
+        <p>Todos los tickets registrados, de más urgente a menos urgente</p>
       </div>
-      <button type="button" class="detalle-close" onclick="cerrarVolumenModal()">&times;</button>
+    </div>
+    <div class="detalle-toolbar">
+      <input
+        type="search"
+        class="input-filtro input-filtro-wide"
+        id="volumenFiltroTicket"
+        placeholder="Buscar por nombre o ID del ticket..."
+        autocomplete="off"
+      >
+      <span class="detalle-count" id="volumenDetalleCount"></span>
     </div>
     <div class="detalle-body-table" id="volumenDetalleList"></div>
+  </div>
+</div>
+
+<div class="detalle-overlay" id="historialOverlay" onclick="if(event.target===this) cerrarTicketHistorialModal()">
+  <div class="detalle-modal historial-modal">
+    <div class="detalle-header">
+      <div>
+        <h2 id="historialTitulo">Historial del ticket</h2>
+        <div class="historial-meta">
+          <span class="historial-ticket-id" id="historialTicketId"></span>
+          <span class="prioridad-chip" id="historialPrioridadChip"></span>
+        </div>
+      </div>
+    </div>
+    <div class="detalle-body-table" id="historialBody">
+      <div class="historial-loading">Cargando historial…</div>
+    </div>
   </div>
 </div>
 
@@ -301,7 +389,6 @@
         <h2>Primera respuesta V/S tiempo de Resolución — por usuario</h2>
         <p>Del período mostrado en el gráfico, promedio en horas por agente asignado (incluye pendientes sin responder)</p>
       </div>
-      <button type="button" class="detalle-close" onclick="cerrarFrtResModal()">&times;</button>
     </div>
     <div class="detalle-body-table">
       <table>
@@ -321,7 +408,6 @@
         <h2>Desempeño por técnico — detalle</h2>
         <p>Historial completo, filtrable por tipo de entrada, prioridad y fecha</p>
       </div>
-      <button type="button" class="detalle-close" onclick="cerrarAgentesModal()">&times;</button>
     </div>
     <div class="detalle-toolbar" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
       <div>
@@ -452,28 +538,130 @@
 
   function renderVolumenDetalle() {
     const cont = document.getElementById("volumenDetalleList");
+    const input = document.getElementById("volumenFiltroTicket");
+    const count = document.getElementById("volumenDetalleCount");
+    const filtro = (input?.value || "").trim().toLowerCase().replace(/^#/, "");
     if (!volumeTickets.length) {
-      cont.innerHTML = '<div class="empty-row">No hay tickets en este período.</div>';
+    cont.innerHTML = '<div class="empty-row">No hay tickets registrados.</div>';
+      if (count) count.textContent = "0 tickets";
       return;
     }
-    cont.innerHTML = volumeTickets.map(t => `
-      <div class="prioridad-row">
+    const filtrados = filtro
+      ? volumeTickets.filter(t => {
+          const id = String(t.id || "").toLowerCase();
+          const subject = String(t.subject || "").toLowerCase();
+          return id.includes(filtro) || subject.includes(filtro);
+        })
+      : volumeTickets;
+    if (count) {
+      count.textContent = filtro
+        ? `${filtrados.length} de ${volumeTickets.length} tickets`
+        : `${volumeTickets.length} tickets`;
+    }
+    if (!filtrados.length) {
+      cont.innerHTML = '<div class="empty-row">No hay tickets que coincidan con la búsqueda.</div>';
+      return;
+    }
+    cont.innerHTML = filtrados.map(t => `
+      <div class="prioridad-row" tabindex="0" role="button" data-ticket-id="${t.id}" data-priority="${escHtmlSoporte(t.priority)}" data-subject="${escHtmlSoporte(t.subject)}">
         <span class="prioridad-chip ${t.priority}">${escHtmlSoporte(PRIORIDAD_LABEL[t.priority] || t.priority)}</span>
         <span class="prioridad-titulo" title="${escHtmlSoporte(t.subject)}">${escHtmlSoporte(t.subject)}</span>
-        <span class="prioridad-id">#${t.id}</span>
+        <span class="prioridad-id">${t.id}</span>
       </div>`).join("");
+    cont.querySelectorAll(".prioridad-row").forEach(row => {
+      const abrir = () => abrirTicketHistorial(row.dataset.ticketId, row.dataset.priority, row.dataset.subject);
+      row.addEventListener("click", abrir);
+      row.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrir(); }
+      });
+    });
   }
   function abrirVolumenModal() {
+    const input = document.getElementById("volumenFiltroTicket");
+    if (input) input.value = "";
     renderVolumenDetalle();
     document.getElementById("volumenOverlay").classList.add("open");
+    setTimeout(() => input?.focus(), 0);
   }
   function cerrarVolumenModal() {
     document.getElementById("volumenOverlay").classList.remove("open");
   }
+
+  // ── Historial / línea de tiempo del ticket ──────────────────────────
+  const TIMELINE_ICONS = {
+    creado: '<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>',
+    asignacion: '<circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 11l1.6 1.6L21 9"/>',
+    respuesta: '<path d="M9 17 4 12l5-5"/><path d="M4 12h10a6 6 0 0 1 6 6v1"/>',
+    reticket: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+    rederivacion: '<path d="M4 18h3l9-12h4"/><path d="M17 3l3 3-3 3"/><path d="M4 6h3l2.2 3"/><path d="M17 21l3-3-3-3"/>',
+    finalizado: '<circle cx="12" cy="12" r="9"/><path d="M8 12.3l2.6 2.6L16.3 9"/>',
+  };
+  const TIMELINE_LOCALE_OPTS = { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" };
+
+  function renderHistorialTimeline(data) {
+    const body = document.getElementById("historialBody");
+    document.getElementById("historialTitulo").textContent = data.subject;
+    document.getElementById("historialTicketId").textContent = `${data.ticket_id}`;
+    const chip = document.getElementById("historialPrioridadChip");
+    chip.textContent = escHtmlSoporte(PRIORIDAD_LABEL[data.priority] || data.priority);
+    chip.className = `prioridad-chip ${data.priority}`;
+
+    if (!data.events || !data.events.length) {
+      body.innerHTML = '<div class="historial-error">No hay historial registrado para este ticket.</div>';
+      return;
+    }
+
+    body.innerHTML = `<div class="timeline">${data.events.map(ev => {
+      const fecha = ev.date ? new Date(ev.date).toLocaleString("es-CL", TIMELINE_LOCALE_OPTS) : "—";
+      const delta = (ev.delta_hours !== null && ev.delta_hours !== undefined)
+        ? `<span class="timeline-delta">${ev.delta_hours}h desde la creación</span>`
+        : "";
+      return `
+        <div class="timeline-item tl-${ev.type}">
+          <span class="timeline-dot"><svg viewBox="0 0 24 24">${TIMELINE_ICONS[ev.type] || TIMELINE_ICONS.creado}</svg></span>
+          <div class="timeline-head">
+            <span class="timeline-label">${escHtmlSoporte(ev.label)}</span>
+            <span class="timeline-time">${fecha}</span>
+          </div>
+          <div class="timeline-detail">${escHtmlSoporte(ev.detail)}</div>
+          ${delta}
+        </div>`;
+    }).join("")}</div>`;
+  }
+
+  async function abrirTicketHistorial(ticketId, priority, subject) {
+    // Cierra el popup de prioridad y, tras un breve instante (para que la
+    // transición se sienta intencional y no un salto brusco), abre el
+    // historial — con estado de carga mientras llega el detalle real.
+    cerrarVolumenModal();
+    const overlay = document.getElementById("historialOverlay");
+    const body = document.getElementById("historialBody");
+    document.getElementById("historialTitulo").textContent = subject || "Historial del ticket";
+    document.getElementById("historialTicketId").textContent = `${ticketId}`;
+    const chip = document.getElementById("historialPrioridadChip");
+    if (priority) {
+      chip.textContent = escHtmlSoporte(PRIORIDAD_LABEL[priority] || priority);
+      chip.className = `prioridad-chip ${priority}`;
+    }
+    body.innerHTML = '<div class="historial-loading">Cargando historial…</div>';
+
+    setTimeout(() => overlay.classList.add("open"), 160);
+
+    try {
+      const res = await fetch(`/panel-indicadores/ticket-historial/${ticketId}`);
+      if (!res.ok) throw new Error("No se pudo cargar el historial");
+      const data = await res.json();
+      renderHistorialTimeline(data);
+    } catch (err) {
+      body.innerHTML = '<div class="historial-error">No se pudo cargar el historial de este ticket.</div>';
+    }
+  }
+  function cerrarTicketHistorialModal() {
+    document.getElementById("historialOverlay").classList.remove("open");
+  }
+
   document.getElementById("btnInfoVolumen")?.addEventListener("click", abrirVolumenModal);
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") cerrarVolumenModal();
-  });
+  document.getElementById("volumenFiltroTicket")?.addEventListener("input", renderVolumenDetalle);
 
   const frtResBuckets = frtResData.buckets || [];
   {% if has_date_filter %}
@@ -527,9 +715,6 @@
     document.getElementById("frtResOverlay").classList.remove("open");
   }
   document.getElementById("btnInfoFrtRes")?.addEventListener("click", abrirFrtResModal);
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") cerrarFrtResModal();
-  });
 
   const agentTicketDetail = {{ agent_ticket_detail|tojson }};
   const CANAL_LABEL = { whatsapp: "WhatsApp", email: "Gmail", internal: "Interno" };
@@ -595,9 +780,6 @@
     document.getElementById("agentesFiltroDesde").value = "";
     document.getElementById("agentesFiltroHasta").value = "";
     renderAgentesDetalle();
-  });
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") cerrarAgentesModal();
   });
 
   const _gradientesAging = {

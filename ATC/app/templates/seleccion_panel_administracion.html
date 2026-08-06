@@ -382,7 +382,7 @@ h1{
           <strong>Informacion del Cliente</strong>
           <p>Consulta y gestion de informacion de clientes vinculados a las ordenes de servicio activas.</p>
         </a>
-        <a class="option" href="/compras/solicitud?token={{ token|default('')|urlencode }}" style="--option-accent:31,79,216;">
+        <a class="option" href="/compras/solicitud?token={{ token|default('')|urlencode }}&origen=administracion" style="--option-accent:31,79,216;">
           <div class="icon">C</div>
           <strong>Solicitar Compra</strong>
           <p>Ingresa una nueva solicitud de compra con ítems, destino y presupuestos adjuntos.</p>
@@ -421,7 +421,7 @@ h1{
 
     async function cargarUsuarioActual() {
       const target = document.getElementById("usuarioActual");
-      if (!target || !tokenSesionAdmin) {
+      if (!target) {
         actualizarSaludo("");
         return;
       }

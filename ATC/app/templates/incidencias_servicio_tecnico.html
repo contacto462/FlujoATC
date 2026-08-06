@@ -208,6 +208,47 @@
       color: #ffffff;
     }
 
+    .celda-imagenes {
+      position: relative;
+    }
+
+    .btn-timer-odt {
+      position: absolute;
+      right: -18px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      border-radius: 999px;
+      border: 2px solid #fff;
+      background: #eef2ff;
+      color: #4338ca;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.22);
+      z-index: 2;
+    }
+    .btn-timer-odt:hover { background: #e0e7ff; }
+    .btn-timer-odt svg { width: 11px; height: 11px; display: block; }
+
+    .clock-popover-odt {
+      position: absolute;
+      z-index: 400;
+      min-width: 190px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border, #d8e0ea);
+      background: #fff;
+      box-shadow: 0 16px 34px rgba(15, 23, 42, .2);
+      display: none;
+    }
+    .clock-popover-odt.open { display: block; }
+    .clock-popover-odt-title { margin: 0 0 6px; font-size: 11px; color: #64748b; font-weight: 700; }
+    .clock-popover-odt-value { margin: 0; font-size: 18px; line-height: 1; letter-spacing: .6px; font-weight: 800; color: #0f172a; font-variant-numeric: tabular-nums; }
+    .clock-popover-odt-hint { margin: 6px 0 0; font-size: 11px; color: #64748b; }
+
     .btn-ver {
       background: var(--surface);
       color: var(--text-main);
@@ -314,7 +355,7 @@
     }
 
     .tabla-scroll {
-      overflow-x: hidden;
+      overflow: visible;
       width: 100%;
       padding: 0;
       border-radius: var(--radius-lg);
@@ -330,7 +371,7 @@
       background-color: var(--surface);
       font-size: 12.5px;
       border-radius: var(--radius-lg);
-      overflow: hidden;
+      overflow: visible;
     }
 
     thead th {
@@ -613,6 +654,52 @@
       box-shadow: var(--shadow-lg);
     }
 
+    .odt-preview-panel {
+      width: min(1240px, calc(100vw - 32px));
+      height: min(860px, calc(100vh - 32px));
+      margin: 16px auto;
+      padding: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      background: #ffffff;
+      color: #111827;
+    }
+
+    .odt-preview-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid #d8dee7;
+      background: #111827;
+      color: #ffffff;
+    }
+
+    .odt-preview-title {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .odt-preview-close {
+      border: 1px solid rgba(255,255,255,.22);
+      background: rgba(255,255,255,.08);
+      color: #fff;
+      border-radius: 7px;
+      padding: 7px 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .odt-preview-frame {
+      flex: 1;
+      width: 100%;
+      border: 0;
+      background: #e8edf4;
+    }
+
     .grid-2 {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -806,6 +893,27 @@
       font-size: 13px;
     }
 
+    .panel-derivar { width: min(440px, 100%); }
+    .derivar-opciones { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 2px; }
+    .derivar-opcion {
+      display: block; width: 100%; text-align: left; padding: 11px 14px;
+      border-radius: var(--radius); border: 1px solid var(--border);
+      background: var(--surface); color: var(--text-main);
+      font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer;
+      transition: border-color .15s ease, background-color .15s ease, transform .15s ease;
+    }
+    .derivar-opcion:hover {
+      border-color: var(--accent-hover); background: var(--surface-hover); transform: translateX(2px);
+    }
+    .derivar-confirm-texto { margin: 4px 0 6px; font-size: 15px; color: var(--text-main); line-height: 1.55; }
+    .derivar-confirm-texto b { color: var(--accent-strong); }
+    .derivar-back-btn {
+      border: none; background: none; padding: 0; margin-bottom: 12px; cursor: pointer;
+      font-size: 12.5px; font-weight: 700; color: var(--muted); font-family: inherit;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .derivar-back-btn:hover { color: var(--text-main); }
+
     .obs-modal-header {
       display: flex;
       align-items: center;
@@ -959,6 +1067,147 @@
       padding: 22px;
     }
 
+    /* Asignacion masiva por sucursal: tarjetas grandes con la observacion
+       completa de cada ODT y toggle individual (verde=incluida, rojo=excluida). */
+    .panel.panel-asignar-masivo {
+      width: min(720px, 96vw);
+      max-height: 86vh;
+      display: flex;
+      flex-direction: column;
+      padding: 26px 26px 22px;
+    }
+    .panel-asignar-masivo h3 {
+      font-size: 19px;
+      font-weight: 800;
+      margin: 0 0 6px;
+      color: #111827;
+      letter-spacing: -0.01em;
+    }
+    .panel-asignar-masivo .am-ctx {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.55;
+      margin-bottom: 16px;
+    }
+    .panel-asignar-masivo .am-ctx b {
+      color: var(--accent-strong);
+    }
+    .panel-asignar-masivo .am-lista {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 52vh;
+      overflow-y: auto;
+      margin-bottom: 18px;
+      padding-right: 2px;
+    }
+    .panel-asignar-masivo .am-item {
+      border: 2px solid #86efac;
+      background: #f0fdf4;
+      border-radius: var(--radius-lg);
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: border-color .15s ease, background-color .15s ease, transform .1s ease;
+    }
+    .panel-asignar-masivo .am-item:hover {
+      transform: translateY(-1px);
+    }
+    .panel-asignar-masivo .am-item.am-excluido {
+      border-color: #fca5a5;
+      background: #fef2f2;
+    }
+    .panel-asignar-masivo .am-item-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .panel-asignar-masivo .am-item-titulo {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      min-width: 0;
+    }
+    .panel-asignar-masivo .am-odt {
+      font-weight: 800;
+      font-size: 14px;
+      color: #111827;
+      white-space: nowrap;
+    }
+    .panel-asignar-masivo .am-problema {
+      color: var(--text-muted);
+      font-size: 12.5px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .panel-asignar-masivo .am-toggle {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #16a34a;
+      color: #fff;
+      transition: background-color .15s ease;
+    }
+    .panel-asignar-masivo .am-item.am-excluido .am-toggle {
+      background: #dc2626;
+    }
+    .panel-asignar-masivo .am-item .obs-origen-grid {
+      gap: 5px;
+    }
+    .panel-asignar-masivo .am-sin-obs {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+    .panel-asignar-masivo .am-acts {
+      display: flex;
+      gap: 10px;
+      flex: 0 0 auto;
+    }
+    .panel-asignar-masivo .am-acts button {
+      flex: 1;
+      min-height: 44px;
+      border: none;
+      border-radius: var(--radius);
+      font: inherit;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: background-color .15s ease, transform .1s ease, opacity .15s ease;
+    }
+    .panel-asignar-masivo .am-save {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 8px 18px rgba(244, 166, 114, .35);
+    }
+    .panel-asignar-masivo .am-save:hover:not(:disabled) {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+    .panel-asignar-masivo .am-save:disabled {
+      background: #e5e7eb;
+      color: #9ca3af;
+      box-shadow: none;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .panel-asignar-masivo .am-cancel {
+      background: #f3f4f6;
+      color: #374151;
+    }
+    .panel-asignar-masivo .am-cancel:hover {
+      background: #e5e7eb;
+    }
+
 
     .tabla-imagen-header {
       display: flex;
@@ -1032,7 +1281,7 @@
 
     .tabla-imagen-item {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto auto;
+      grid-template-columns: auto minmax(0, 1fr) auto auto;
       align-items: center;
       gap: 10px;
       background: var(--surface);
@@ -1040,6 +1289,16 @@
       border-radius: var(--radius);
       padding: 8px 10px;
       font-size: 13px;
+    }
+
+    .tabla-imagen-thumb {
+      width: 40px;
+      height: 40px;
+      flex-shrink: 0;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      cursor: pointer;
     }
 
     .tabla-imagen-item a {
@@ -1365,6 +1624,12 @@
   </div>
   </div>
 
+  <div id="timerPopoverOdt" class="clock-popover-odt" aria-hidden="true">
+    <p id="timerPopoverOdtTitle" class="clock-popover-odt-title">Tiempo trabajado</p>
+    <p id="timerPopoverOdtValue" class="clock-popover-odt-value">00:00:00:00</p>
+    <p class="clock-popover-odt-hint">dd:hh:mm:ss</p>
+  </div>
+
   <div id="mensaje" class="mensaje"></div>
 
   <div id="modalOdt" class="modal">
@@ -1405,6 +1670,16 @@
           <button type="submit" class="btn-odt">Guardar</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <div id="modalOdtPreview" class="modal" aria-hidden="true">
+    <div class="panel odt-preview-panel">
+      <div class="odt-preview-head">
+        <h3 class="odt-preview-title">Crear ODT</h3>
+        <button type="button" class="odt-preview-close" onclick="cerrarOdt()">Cerrar</button>
+      </div>
+      <iframe id="odtPreviewFrame" class="odt-preview-frame" title="Crear ODT"></iframe>
     </div>
   </div>
 
@@ -1477,6 +1752,47 @@
     </div>
   </div>
 
+  <div id="modalFinalizadoSinVT" class="modal">
+    <div class="panel panel-finalizar">
+      <div class="finalizar-header">
+        <h3 class="finalizar-titulo">Finalizado Sin VT</h3>
+        <div id="finalizarSinVTOdt" class="finalizar-odt"></div>
+      </div>
+      <p class="finalizar-ayuda">Indica por qué se finaliza esta ODT sin Visita Técnica.</p>
+      <textarea id="finalizarSinVTObservacion" rows="4" placeholder="Ejemplo: Se resolvio de forma remota, no fue necesario enviar tecnico."></textarea>
+      <div class="acciones-form">
+        <button type="button" onclick="cancelarFinalizadoSinVT()">Cancelar</button>
+        <button type="button" class="btn-odt" onclick="confirmarFinalizadoSinVT()">Guardar y terminar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalDerivar" class="modal">
+    <div class="panel panel-derivar">
+      <div class="finalizar-header">
+        <h3 class="finalizar-titulo">Derivar ODT</h3>
+        <div id="derivarOdt" class="finalizar-odt"></div>
+      </div>
+      <div id="derivarPasoElegir">
+        <p class="finalizar-ayuda">Selecciona el área o estado al que quieres derivar esta ODT.</p>
+        <div id="derivarOpciones" class="derivar-opciones"></div>
+        <div class="acciones-form">
+          <button type="button" onclick="cancelarDerivarPrompt()">Cancelar</button>
+        </div>
+      </div>
+      <div id="derivarPasoConfirmar" style="display:none;">
+        <button type="button" class="derivar-back-btn" onclick="volverElegirDerivacionPrompt()">&larr; Elegir otra opción</button>
+        <p class="derivar-confirm-texto">
+          ¿Deseas derivar la ODT <b id="derivarConfirmOdt">-</b> a <b id="derivarConfirmValor">-</b>?
+        </p>
+        <div class="acciones-form">
+          <button type="button" onclick="cancelarDerivarPrompt()">Cancelar</button>
+          <button type="button" class="btn-odt" onclick="confirmarDerivarPrompt()">Sí, derivar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="modalEditarObsCierre" class="modal">
     <div class="panel" style="max-width:620px;width:92vw;display:flex;flex-direction:column;max-height:88vh;padding:0;border-radius:10px;overflow:hidden;">
       <div class="obs-modal-header" style="padding:16px 20px;border-bottom:1px solid #e5e7eb;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
@@ -1536,6 +1852,18 @@
       <div class="acciones-form">
         <button type="button" onclick="cancelarModalRepetida()">Cancelar</button>
         <button type="button" id="btnConfirmarRepetida" class="btn-repetida-confirm" onclick="confirmarModalRepetida()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalAsignarMasivo" class="modal">
+    <div class="panel panel-asignar-masivo">
+      <h3>¿Quieres asignarle?</h3>
+      <div class="am-ctx" id="amCtx"></div>
+      <div class="am-lista" id="amLista"></div>
+      <div class="am-acts">
+        <button type="button" class="am-cancel" onclick="cancelarAsignacionMasiva()">No, gracias</button>
+        <button type="button" class="am-save" id="amConfirmarBtn" onclick="confirmarAsignacionMasiva()">Sí, asignar</button>
       </div>
     </div>
   </div>
@@ -1616,12 +1944,18 @@
       "Repetida"
     ];
 
+    let CURRENT_USER_LABEL = "";
+    const OBS_EDIT_WINDOW_MINUTES = 15;
     let listasGlobales = { clientes: [], sucursales: [], tecnicos: [], problemas: [] };
     let sucursalesPorCliente = {};
     let incidenciasRaw = [];
     let resolverFinalizadoSoporte = null;
+    let resolverFinalizadoSinVT = null;
     let resolverRepetida = null;
     let odtRepetidaSeleccionada = "";
+    let derivarResolver = null;
+    let derivarOdtActual = "";
+    let derivarValorElegido = "";
     let recargaDiferidaTimer = null;
     const RECARGA_DIFERIDA_MS = 15000;
     let imagenesTablaOdtActual = "";
@@ -1773,12 +2107,13 @@
     async function cargarUsuarioActual() {
       const el = document.getElementById("usuarioActual");
       const token = obtenerTokenActivo();
-      if (!el || !token) return;
+      if (!el) return;
       try {
         const res = await fetch(`/api/usuario-actual?token=${encodeURIComponent(token)}`, { credentials: "include" });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error("No se pudo cargar usuario");
         el.textContent = data?.usuario || "Desconocido";
+        CURRENT_USER_LABEL = data?.usuario || "";
       } catch (_err) {
         el.textContent = "Desconocido";
       }
@@ -1819,6 +2154,8 @@
         observacionSoporte: row?.[15] || "",
         observacionServicio: row?.[16] || "",
         enviosInfo: row?.[18] || { total: 0, claves: [], contactos: [], ultimo_envio: "" },
+        fechaInicioTrabajo: row?.[19] || "",
+        fechaFinTrabajo: row?.[20] || "",
         imagenes: []
       };
     }
@@ -1905,6 +2242,9 @@
         const prioridadEditable = estado === "En Proceso";
         const correoBtn = renderBotonContactoCliente(r, estado);
         const imagenBtn = `<button class="btn-imagenes" type="button" onclick="abrirModalImagenesTabla('${esc(r.odt)}')">Imagenes</button>`;
+        const timerBtn = `<button class="btn-timer-odt" type="button" data-inicio="${esc(r.fechaInicioTrabajo)}" data-fin="${esc(r.fechaFinTrabajo)}" title="Tiempo trabajado" aria-label="Tiempo trabajado" onclick="toggleTimerPopoverOdt(this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v5l3 2"></path><path d="M9 2h6"></path></svg>
+          </button>`;
 
         const tr = document.createElement("tr");
         tr.dataset.odt = String(r.odt || "");
@@ -1917,13 +2257,13 @@
           <td class="editable-derivacion" data-odt="${esc(r.odt)}" title="Doble clic para editar">${esc(r.derivacion)}</td>
           <td class="editable-tecnico" data-odt="${esc(r.odt)}" title="Doble clic para asignar técnico">${esc(r.tecnico)}</td>
           <td class="editable-acompanante" data-odt="${esc(r.odt)}" title="Doble clic para asignar acompañante">${esc(r.acompanante)}</td>
-          <td>${esc(estado)}</td>
+          <td class="celda-estado">${esc(estado)}</td>
           <td>${esc(r.fechaCierre)}</td>
           <td class="${prioridadEditable ? "editable-prioridad" : ""}" data-odt="${esc(r.odt)}" title="${prioridadEditable ? "Doble clic para editar prioridad" : ""}">${esc(r.prioridad)}</td>
           <td>${correoBtn}</td>
           <td>${esc(r.direccion)}</td>
           <td>${renderBotonObsPendiente(r.odt, r.obsPendiente)}</td>
-          <td>${imagenBtn}</td>
+          <td class="celda-imagenes">${imagenBtn}${timerBtn}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -1931,6 +2271,86 @@
       agregarFiltrosSelect();
       activarEdicionCeldas();
     }
+
+    // ── Popover de tiempo trabajado (Inicio -> Finalizado/Pendiente) ──
+    // Un solo popover compartido, reposicionado junto al botón-reloj clickeado
+    // (las filas se regeneran en cada renderTabla, no conviene un popover por fila).
+    let timerPopoverOdtInterval = null;
+
+    function parseLocalDateTimeMsOdt(value) {
+      const raw = String(value || "").trim();
+      const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/);
+      if (!match) return 0;
+      const date = new Date(
+        Number(match[1]), Number(match[2]) - 1, Number(match[3]),
+        Number(match[4]), Number(match[5]), Number(match[6] || 0), 0
+      );
+      const ms = date.getTime();
+      return Number.isFinite(ms) ? ms : 0;
+    }
+
+    function formatDurationOdt(ms) {
+      const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+      const days = Math.floor(totalSeconds / 86400);
+      const hours = Math.floor((totalSeconds % 86400) / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      return [days, hours, minutes, seconds].map((v) => String(v).padStart(2, "0")).join(":");
+    }
+
+    function cerrarTimerPopoverOdt() {
+      const pop = document.getElementById("timerPopoverOdt");
+      pop.classList.remove("open");
+      pop.setAttribute("aria-hidden", "true");
+      if (timerPopoverOdtInterval) {
+        clearInterval(timerPopoverOdtInterval);
+        timerPopoverOdtInterval = null;
+      }
+    }
+
+    function toggleTimerPopoverOdt(btn) {
+      const pop = document.getElementById("timerPopoverOdt");
+      const yaAbiertoParaEsteBoton = pop.classList.contains("open") && pop.dataset.btnOdt === (btn.closest("tr")?.dataset.odt || "");
+      cerrarTimerPopoverOdt();
+      if (yaAbiertoParaEsteBoton) return;
+
+      const title = document.getElementById("timerPopoverOdtTitle");
+      const value = document.getElementById("timerPopoverOdtValue");
+      const hint = pop.querySelector(".clock-popover-odt-hint");
+
+      const inicioMs = parseLocalDateTimeMsOdt(btn.dataset.inicio);
+      const finMs = parseLocalDateTimeMsOdt(btn.dataset.fin);
+
+      if (!inicioMs) {
+        title.textContent = "Tiempo trabajado";
+        value.textContent = "No iniciado";
+        hint.textContent = "El técnico nunca presionó \"Inicio\"";
+      } else if (finMs) {
+        title.textContent = "Tiempo trabajado";
+        value.textContent = formatDurationOdt(finMs - inicioMs);
+        hint.textContent = "dd:hh:mm:ss";
+      } else {
+        title.textContent = "Trabajo en curso";
+        const render = () => { value.textContent = formatDurationOdt(Date.now() - inicioMs); };
+        render();
+        timerPopoverOdtInterval = setInterval(render, 1000);
+        hint.textContent = "dd:hh:mm:ss";
+      }
+
+      const rect = btn.getBoundingClientRect();
+      pop.style.top = `${window.scrollY + rect.bottom + 6}px`;
+      pop.style.left = `${window.scrollX + rect.right - 190}px`;
+      pop.dataset.btnOdt = btn.closest("tr")?.dataset.odt || "";
+      pop.classList.add("open");
+      pop.setAttribute("aria-hidden", "false");
+    }
+
+    document.addEventListener("click", (event) => {
+      const pop = document.getElementById("timerPopoverOdt");
+      if (!pop || !pop.classList.contains("open")) return;
+      if (event.target.closest("#timerPopoverOdt") || event.target.closest(".btn-timer-odt")) return;
+      cerrarTimerPopoverOdt();
+    });
 
     function activarEdicionCeldas() {
       const tbody = document.getElementById("registrosExistentes");
@@ -1999,6 +2419,110 @@
       cerrarModalFinalizadoSoporte({ confirmado: true, observacion: texto });
     }
 
+    function abrirModalFinalizadoSinVT(odt) {
+      const modal = document.getElementById("modalFinalizadoSinVT");
+      const odtBox = document.getElementById("finalizarSinVTOdt");
+      const ta = document.getElementById("finalizarSinVTObservacion");
+      if (odtBox) odtBox.textContent = `ODT ${odt}`;
+      if (ta) ta.value = "";
+      modal.style.display = "block";
+      setTimeout(() => ta?.focus(), 40);
+      return new Promise((resolve) => {
+        resolverFinalizadoSinVT = resolve;
+      });
+    }
+
+    function cerrarModalFinalizadoSinVT(resultado) {
+      const modal = document.getElementById("modalFinalizadoSinVT");
+      if (modal) modal.style.display = "none";
+      if (resolverFinalizadoSinVT) {
+        resolverFinalizadoSinVT(resultado || { confirmado: false, observacion: "" });
+        resolverFinalizadoSinVT = null;
+      }
+    }
+
+    function cancelarFinalizadoSinVT() {
+      cerrarModalFinalizadoSinVT({ confirmado: false, observacion: "" });
+    }
+
+    function confirmarFinalizadoSinVT() {
+      const ta = document.getElementById("finalizarSinVTObservacion");
+      const texto = String(ta?.value || "").trim();
+      if (!texto) {
+        setMensaje("Debes indicar por qué se finaliza sin VT.", false);
+        ta?.focus();
+        return;
+      }
+      cerrarModalFinalizadoSinVT({ confirmado: true, observacion: texto });
+    }
+
+    function abrirDerivarPrompt(odt, valorActual) {
+      const modal = document.getElementById("modalDerivar");
+      const odtBadge = document.getElementById("derivarOdt");
+      const opciones = document.getElementById("derivarOpciones");
+      if (!modal || !opciones) {
+        return Promise.resolve({ confirmado: false, valor: "" });
+      }
+
+      derivarOdtActual = (odt || "").toString().trim();
+      derivarValorElegido = "";
+      if (odtBadge) odtBadge.textContent = `ODT ${derivarOdtActual || "-"}`;
+
+      const actualNorm = normalizarTextoComparable(valorActual || "");
+      opciones.innerHTML = "";
+      DERIVACIONES_EDITABLES
+        .filter((opt) => normalizarTextoComparable(opt) !== actualNorm)
+        .forEach((opt) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "derivar-opcion";
+          btn.textContent = opt;
+          btn.onclick = () => elegirDerivacionPrompt(opt);
+          opciones.appendChild(btn);
+        });
+
+      document.getElementById("derivarPasoElegir").style.display = "";
+      document.getElementById("derivarPasoConfirmar").style.display = "none";
+      modal.style.display = "block";
+
+      return new Promise((resolve) => {
+        derivarResolver = resolve;
+      });
+    }
+
+    function elegirDerivacionPrompt(valor) {
+      derivarValorElegido = valor;
+      const odtEl = document.getElementById("derivarConfirmOdt");
+      const valorEl = document.getElementById("derivarConfirmValor");
+      if (odtEl) odtEl.textContent = derivarOdtActual || "-";
+      if (valorEl) valorEl.textContent = valor;
+      document.getElementById("derivarPasoElegir").style.display = "none";
+      document.getElementById("derivarPasoConfirmar").style.display = "";
+    }
+
+    function volverElegirDerivacionPrompt() {
+      document.getElementById("derivarPasoElegir").style.display = "";
+      document.getElementById("derivarPasoConfirmar").style.display = "none";
+    }
+
+    function cerrarDerivarPrompt(resultado) {
+      const modal = document.getElementById("modalDerivar");
+      if (modal) modal.style.display = "none";
+      const resolver = derivarResolver;
+      derivarResolver = null;
+      derivarValorElegido = "";
+      if (resolver) resolver(resultado || { confirmado: false, valor: "" });
+    }
+
+    function cancelarDerivarPrompt() {
+      cerrarDerivarPrompt({ confirmado: false, valor: "" });
+    }
+
+    function confirmarDerivarPrompt() {
+      if (!derivarValorElegido) return;
+      cerrarDerivarPrompt({ confirmado: true, valor: derivarValorElegido });
+    }
+
     function normalizarTextoComparable(valor) {
       return String(valor || "")
         .toLowerCase()
@@ -2006,6 +2530,19 @@
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/\s+/g, " ")
         .trim();
+    }
+
+    // Espeja la logica de editar_incidencia_tabla() en incidencias_service.py:
+    // el backend no devuelve el estado nuevo en la respuesta de guardarEdicionTabla,
+    // asi que se calcula igual ac\u00e1 para reflejarlo altiro en la celda mientras
+    // cargarIncidencias() confirma/reconcilia contra la BD en segundo plano.
+    function calcularEstadoPorDerivacion(derivacion) {
+      const norm = normalizarTextoComparable(derivacion);
+      if (norm === normalizarTextoComparable("Finalizado por Soporte")) return "Terminado";
+      if (norm === normalizarTextoComparable("Finalizado Sin VT")) return "Terminado";
+      if (norm === normalizarTextoComparable("Repetida")) return "Repetida";
+      if (norm === normalizarTextoComparable("T\u00e9cnico Externo")) return "En Proceso";
+      return "Pendiente";
     }
 
     function buscarCandidatasRepetida(odtActual) {
@@ -2111,6 +2648,125 @@
       return new Promise((resolve) => {
         resolverRepetida = resolve;
       });
+    }
+
+    // ── Asignacion masiva: si la sucursal tiene otras ODT pendientes al
+    // momento de derivar tecnico/acompanante, ofrece asignarselas tambien.
+    // Cada ODT se puede incluir/excluir individualmente (verde=incluida,
+    // rojo=excluida) antes de confirmar. ──
+    let resolverAsignacionMasiva = null;
+    let amIncluidos = new Map(); // odt -> boolean
+
+    function cerrarModalAsignacionMasiva(confirmado) {
+      const modal = document.getElementById("modalAsignarMasivo");
+      if (modal) modal.style.display = "none";
+      const resolver = resolverAsignacionMasiva;
+      resolverAsignacionMasiva = null;
+      if (!resolver) return;
+      if (!confirmado) {
+        resolver(null);
+        return;
+      }
+      resolver([...amIncluidos.entries()].filter(([, incluido]) => incluido).map(([odt]) => odt));
+    }
+
+    function cancelarAsignacionMasiva() {
+      cerrarModalAsignacionMasiva(false);
+    }
+
+    function confirmarAsignacionMasiva() {
+      cerrarModalAsignacionMasiva(true);
+    }
+
+    function _amActualizarBotonConfirmar() {
+      const btn = document.getElementById("amConfirmarBtn");
+      if (!btn) return;
+      const total = [...amIncluidos.values()].filter(Boolean).length;
+      btn.disabled = total === 0;
+      btn.textContent = total > 0 ? `Sí, asignar a ${total}` : "Sí, asignar";
+    }
+
+    function _amToggleItem(odt) {
+      amIncluidos.set(odt, !amIncluidos.get(odt));
+      const card = document.querySelector(`.am-item[data-odt="${CSS.escape(odt)}"]`);
+      if (card) {
+        const excluido = !amIncluidos.get(odt);
+        card.classList.toggle("am-excluido", excluido);
+        const badge = card.querySelector(".am-toggle");
+        if (badge) badge.textContent = excluido ? "✕ Excluida" : "✓ Incluida";
+      }
+      _amActualizarBotonConfirmar();
+    }
+
+    function abrirModalAsignacionMasiva(cliente, tecnico, acompanante, otras) {
+      const modal = document.getElementById("modalAsignarMasivo");
+      const ctx = document.getElementById("amCtx");
+      const lista = document.getElementById("amLista");
+      if (!modal || !lista) return Promise.resolve(null);
+
+      amIncluidos = new Map(otras.map((item) => [item.odt, true]));
+
+      const quien = acompanante ? `${tecnico} y ${acompanante}` : tecnico;
+      if (ctx) {
+        ctx.innerHTML = `${otras.length} ODT${otras.length === 1 ? "" : "s"} pendiente${otras.length === 1 ? "" : "s"} más en <b>${esc(cliente)}</b>. ¿Asignar también a <b>${esc(quien)}</b>? Toca una tarjeta para excluirla.`;
+      }
+
+      lista.innerHTML = otras.map((item) => {
+        const obsHtml = formatearObservacionHTML(item.observacion, item.observacionSoporte, item.observacionServicio);
+        return `
+          <div class="am-item" data-odt="${esc(item.odt)}">
+            <div class="am-item-head">
+              <div class="am-item-titulo">
+                <span class="am-odt">ODT ${esc(item.odt)}</span>
+                <span class="am-problema">${esc(item.problema || "")}</span>
+              </div>
+              <span class="am-toggle">✓ Incluida</span>
+            </div>
+            ${obsHtml || '<div class="am-sin-obs">Sin observaciones registradas.</div>'}
+          </div>
+        `;
+      }).join("");
+
+      lista.querySelectorAll(".am-item").forEach((card) => {
+        card.addEventListener("click", () => _amToggleItem(card.dataset.odt));
+      });
+
+      _amActualizarBotonConfirmar();
+      modal.style.display = "block";
+      return new Promise((resolve) => {
+        resolverAsignacionMasiva = resolve;
+      });
+    }
+
+    async function revisarYOfrecerAsignacionMasiva(odtActual, cliente, tecnico, acompanante) {
+      const clienteNorm = normalizarTextoFiltro(cliente);
+      if (!clienteNorm || !tecnico) return;
+
+      const otras = incidenciasRaw.filter((r) => (
+        String(r.odt || "") !== String(odtActual || "")
+        && normalizarTextoFiltro(r.cliente) === clienteNorm
+        && normalizarTextoFiltro(r.estado) === "pendiente"
+      ));
+      if (!otras.length) return;
+
+      const incluidos = await abrirModalAsignacionMasiva(cliente, tecnico, acompanante, otras);
+      if (!incluidos || !incluidos.length) return;
+
+      const porOdt = new Map(otras.map((item) => [item.odt, item]));
+      let ok = 0;
+      let fallidas = 0;
+      for (const odtInc of incluidos) {
+        const item = porOdt.get(odtInc);
+        if (!item) continue;
+        try {
+          await guardarDerivacionTecnicoFlexible(item.odt, tecnico, acompanante || "", item.derivacion || "Servicio Tecnico", "En Proceso");
+          ok += 1;
+        } catch (err) {
+          fallidas += 1;
+        }
+      }
+      if (ok) setMensaje(`Asignado a ${ok} ODT${ok === 1 ? "" : "s"} adicional${ok === 1 ? "" : "es"}${fallidas ? ` (${fallidas} fallaron)` : ""}.`, fallidas === 0);
+      programarRecargaDiferida();
     }
 
     function getRegistroPorOdt(odt) {
@@ -2530,6 +3186,9 @@
           } else {
             setMensaje("Tecnico derivado correctamente.");
           }
+          if (!limpiarAsignacion) {
+            await revisarYOfrecerAsignacionMasiva(odt, r?.cliente || "", tecnicoObjetivo, acompananteObjetivo);
+          }
           programarRecargaDiferida();
         } catch (err) {
           td.textContent = original;
@@ -2581,6 +3240,7 @@
             estado: "En Proceso",
           });
           setMensaje("Acompanante actualizado.");
+          await revisarYOfrecerAsignacionMasiva(odt, r?.cliente || "", tecnicoActual, nuevo);
           programarRecargaDiferida();
         } catch (err) {
           td.textContent = original;
@@ -2590,50 +3250,39 @@
     }
 
     function iniciarEdicionDerivacion(td) {
-      if (!td || td.querySelector("select")) return;
+      if (!td) return;
       const odt = td.dataset.odt || td.parentElement?.dataset?.odt || "";
       const original = td.textContent.trim();
 
-      const select = document.createElement("select");
-      select.innerHTML = `<option value="">-- Seleccionar --</option>` +
-        DERIVACIONES_EDITABLES.map((v) => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
+      // No se inyecta un <select> nativo en la celda: la recarga diferida de la
+      // tabla (programarRecargaDiferida) puede re-renderizar y cerrar el popup
+      // antes de poder elegir una opci\u00f3n. Se elige y confirma en un modal
+      // controlado, igual que en incidencias_soporte.html.
+      if (document.getElementById("modalDerivar")?.style.display === "block") return;
 
-      const normalizar = (v) => String(v || "")
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .trim();
-      const origNorm = normalizar(original);
-      Array.from(select.options).forEach((opt) => {
-        if (normalizar(opt.value) === origNorm) {
-          opt.selected = true;
-        }
-      });
+      (async () => {
+        const eleccion = await abrirDerivarPrompt(odt, original);
+        if (!eleccion || !eleccion.confirmado) return;
+        const nuevo = eleccion.valor;
 
-      td.innerHTML = "";
-      td.appendChild(select);
-      select.focus();
-
-      const cancelar = () => { td.textContent = original; };
-      select.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") cancelar();
-      });
-      select.addEventListener("blur", async () => {
-        const nuevo = select.value.trim();
-        if (!nuevo || nuevo === original) {
-          td.textContent = original;
-          return;
-        }
         try {
-          const esFinalizadoSoporte = normalizar(nuevo) === normalizar("Finalizado por Soporte");
-          const esRepetida = normalizar(nuevo) === normalizar("Repetida");
+          const esFinalizadoSoporte = normalizarTextoComparable(nuevo) === normalizarTextoComparable("Finalizado por Soporte");
+          const esFinalizadoSinVT = normalizarTextoComparable(nuevo) === normalizarTextoComparable("Finalizado Sin VT");
+          const esRepetida = normalizarTextoComparable(nuevo) === normalizarTextoComparable("Repetida");
           let payload = { odt, derivacion: nuevo };
 
           if (esFinalizadoSoporte) {
             const resp = await abrirModalFinalizadoSoporte(odt);
             if (!resp?.confirmado) {
-              td.textContent = original;
               setMensaje("Finalizacion por soporte cancelada.", false);
+              return;
+            }
+            payload = { ...payload, observacionFinal: resp.observacion };
+          }
+          if (esFinalizadoSinVT) {
+            const resp = await abrirModalFinalizadoSinVT(odt);
+            if (!resp?.confirmado) {
+              setMensaje("Finalizacion sin VT cancelada.", false);
               return;
             }
             payload = { ...payload, observacionFinal: resp.observacion };
@@ -2641,7 +3290,6 @@
           if (esRepetida) {
             const respRep = await abrirModalRepetida(odt);
             if (!respRep?.confirmado || !String(respRep?.odtRef || "").trim()) {
-              td.textContent = original;
               setMensaje("Marcado de ODT repetida cancelado.", false);
               return;
             }
@@ -2655,8 +3303,20 @@
 
           td.textContent = nuevo;
           await guardarEdicionTabla(payload);
+
+          // Feedback instantaneo: el backend no devuelve el estado nuevo en esta
+          // respuesta, así que se pinta altiro con la misma lógica que aplica el
+          // servidor, sin esperar el round-trip completo de cargarIncidencias().
+          const nuevoEstado = calcularEstadoPorDerivacion(nuevo);
+          const estadoCell = td.closest("tr")?.querySelector(".celda-estado");
+          if (estadoCell) estadoCell.textContent = nuevoEstado;
+          const registroLocal = getRegistroPorOdt(odt);
+          if (registroLocal) registroLocal.estado = nuevoEstado;
+
           if (esFinalizadoSoporte) {
             setMensaje("ODT finalizada por soporte.");
+          } else if (esFinalizadoSinVT) {
+            setMensaje("ODT finalizada sin VT.");
           } else if (esRepetida) {
             setMensaje("ODT marcada como repetida.");
           } else {
@@ -2664,10 +3324,25 @@
           }
           await cargarIncidencias();
         } catch (err) {
-          td.textContent = original;
           setMensaje(`Error actualizando derivacion: ${err.message}`, false);
         }
-      });
+      })();
+    }
+
+    function _stParseObsEntryDate(dateStr) {
+      const m = String(dateStr || "").match(/^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})$/);
+      if (!m) return null;
+      const [, dd, mm, yyyy, hh, min] = m;
+      return new Date(Number(yyyy), Number(mm) - 1, Number(dd), Number(hh), Number(min));
+    }
+
+    function _stObsEntryIsEditable(entry) {
+      if (!entry || !entry.author || !entry.date || !CURRENT_USER_LABEL) return false;
+      if (entry.author.trim().toLowerCase() !== CURRENT_USER_LABEL.trim().toLowerCase()) return false;
+      const entryDate = _stParseObsEntryDate(entry.date);
+      if (!entryDate) return false;
+      const diffMinutes = (Date.now() - entryDate.getTime()) / 60000;
+      return diffMinutes >= 0 && diffMinutes <= OBS_EDIT_WINDOW_MINUTES;
     }
 
     function _stParseObsEntries(raw) {
@@ -2701,12 +3376,12 @@
       if (!hist) return;
       hist.innerHTML = "";
       const sections = [
-        { label: "Registro Operaciones",      value: registro?.observacion || "",        color: "#0e4f2d" },
-        { label: "Gesti\u00f3n Soporte",            value: registro?.observacionSoporte || "", color: "#1d4ed8" },
-        { label: "Gesti\u00f3n Servicio T\u00e9cnico",   value: registro?.observacionServicio || "", color: "#7c3aed" },
+        { label: "Registro Operaciones",      value: registro?.observacion || "",        color: "#0e4f2d", kind: "puestos" },
+        { label: "Gesti\u00f3n Soporte",            value: registro?.observacionSoporte || "", color: "#1d4ed8", kind: "soporte" },
+        { label: "Gesti\u00f3n Servicio T\u00e9cnico",   value: registro?.observacionServicio || "", color: "#7c3aed", kind: "servicio" },
       ];
       let hasContent = false;
-      sections.forEach(({ label, value, color }) => {
+      sections.forEach(({ label, value, color, kind }) => {
         const entries = _stParseObsEntries(value);
         if (!entries.length) return;
         hasContent = true;
@@ -2716,7 +3391,8 @@
         title.style.cssText = `font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:${color};margin-bottom:2px;`;
         title.textContent = label;
         section.appendChild(title);
-        entries.forEach(({ author, date, lines }) => {
+        entries.forEach((entry, idx) => {
+          const { author, date, lines } = entry;
           const card = document.createElement("div");
           card.style.cssText = "background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:8px 12px;";
           if (author) {
@@ -2734,6 +3410,14 @@
           body.style.cssText = "font-size:13px;color:#374151;line-height:1.55;white-space:pre-wrap;";
           body.textContent = lines.filter(Boolean).join("\n");
           card.appendChild(body);
+          if (kind === "servicio" && idx === entries.length - 1 && _stObsEntryIsEditable(entry)) {
+            const editBtn = document.createElement("button");
+            editBtn.type = "button";
+            editBtn.textContent = "\u270f\ufe0f Editar (15 min)";
+            editBtn.style.cssText = "margin-top:6px;border:none;background:none;color:#7c3aed;font-size:11.5px;font-weight:700;cursor:pointer;padding:0;";
+            editBtn.onclick = () => _stStartEditObsEntry(lines.filter(Boolean).join("\n"));
+            card.appendChild(editBtn);
+          }
           section.appendChild(card);
         });
         hist.appendChild(section);
@@ -2745,15 +3429,29 @@
 
     let _stObsCtx = null;
     function _stOpenObsModal(td, odt, registro) {
-      _stObsCtx = { td, odt, registro };
+      _stObsCtx = { td, odt, registro, editMode: false };
       const modal = document.getElementById("stObsEditorModal");
       const odtLabel = document.getElementById("stObsEditorOdt");
       const input = document.getElementById("stObsEditorInput");
+      const saveBtn = document.getElementById("stObsEditorSaveBtn");
       if (odtLabel) odtLabel.textContent = odt || "";
       if (input) input.value = "";
+      if (saveBtn) saveBtn.textContent = "Guardar nota";
       _stRenderObsHistory(registro);
       modal.style.display = "flex";
       setTimeout(() => { if (input) input.focus(); }, 50);
+    }
+
+    function _stStartEditObsEntry(textoActual) {
+      if (!_stObsCtx) return;
+      _stObsCtx.editMode = true;
+      const input = document.getElementById("stObsEditorInput");
+      const saveBtn = document.getElementById("stObsEditorSaveBtn");
+      if (input) {
+        input.value = textoActual;
+        input.focus();
+      }
+      if (saveBtn) saveBtn.textContent = "Guardar edici\u00f3n";
     }
 
     function _stCloseObsModal() {
@@ -2766,14 +3464,16 @@
       if (!_stObsCtx) return;
       const input = document.getElementById("stObsEditorInput");
       const nota = (input ? input.value : "").trim();
-      const { td, odt, registro } = _stObsCtx;
+      const { td, odt, registro, editMode } = _stObsCtx;
       _stCloseObsModal();
       if (!nota) return;
       const observacionInicial = String(registro?.observacion || "").trim();
       const originalSoporte = String(registro?.observacionSoporte || "").trim();
       const originalServicio = String(registro?.observacionServicio || "").trim();
       try {
-        const res = await guardarEdicionTabla({ odt, observacionServicio: nota });
+        const res = editMode
+          ? await guardarEdicionTabla({ odt, observacionServicio: nota, editarUltimaObservacionServicio: true })
+          : await guardarEdicionTabla({ odt, observacionServicio: nota });
         const obsServicio = res?.observacion_servicio || originalServicio;
         td.innerHTML = formatearObservacionHTML(observacionInicial, originalSoporte, obsServicio);
         setMensaje("Gesti\u00f3n Servicio T\u00e9cnico actualizada.");
@@ -3286,6 +3986,7 @@
         imagenesTablaExistentes.forEach((url, i) => {
           bloques.push(`
             <div class="tabla-imagen-item">
+              <img class="tabla-imagen-thumb" src="${esc(url)}" alt="Imagen ${i + 1}" loading="lazy" onclick="window.open('${esc(url)}', '_blank', 'noopener')">
               <a href="${esc(url)}" target="_blank" rel="noopener noreferrer">Imagen ${i + 1}</a>
               <span class="tabla-imagen-tag">Guardada</span>
               <span></span>
@@ -3294,8 +3995,10 @@
         });
 
         imagenesTablaPendientes.forEach((file, idx) => {
+          if (!file._previewUrl) file._previewUrl = URL.createObjectURL(file);
           bloques.push(`
             <div class="tabla-imagen-item">
+              <img class="tabla-imagen-thumb" src="${file._previewUrl}" alt="${esc(file.name)}" onclick="window.open('${file._previewUrl}', '_blank', 'noopener')">
               <span>${esc(file.name)}</span>
               <span class="tabla-imagen-tag">Imagen ${imagenesTablaExistentes.length + idx + 1}</span>
               <button type="button" class="btn-tabla-imagen-remove" onclick="quitarImagenPendienteTabla(${idx})">Quitar</button>
@@ -3347,6 +4050,8 @@
 
     function quitarImagenPendienteTabla(index) {
       if (index < 0 || index >= imagenesTablaPendientes.length) return;
+      const file = imagenesTablaPendientes[index];
+      if (file && file._previewUrl) URL.revokeObjectURL(file._previewUrl);
       imagenesTablaPendientes.splice(index, 1);
       renderImagenesTablaLista();
     }
@@ -3563,15 +4268,25 @@
     }
 
     function abrirOdt() {
-      document.getElementById("formOdt").reset();
-      document.getElementById("odtExtraWrap").style.display = "none";
-      document.getElementById("odtExtraWrap").innerHTML = "";
-      odtPrefijoFijo = "";
-      document.getElementById("modalOdt").style.display = "block";
+      const modal = document.getElementById("modalOdtPreview");
+      const frame = document.getElementById("odtPreviewFrame");
+      const token = obtenerTokenActivo();
+      const qs = token ? `?token=${encodeURIComponent(token)}` : "";
+      if (frame) frame.src = `/public/preview/incidencias-puestos-copia${qs}`;
+      if (modal) {
+        modal.style.display = "block";
+        modal.setAttribute("aria-hidden", "false");
+      }
     }
 
     function cerrarOdt() {
-      document.getElementById("modalOdt").style.display = "none";
+      const modal = document.getElementById("modalOdtPreview");
+      const frame = document.getElementById("odtPreviewFrame");
+      if (modal) {
+        modal.style.display = "none";
+        modal.setAttribute("aria-hidden", "true");
+      }
+      if (frame) frame.src = "about:blank";
       llenarDatalist("listaSucursales", listasGlobales.sucursales);
     }
 
@@ -3786,18 +4501,29 @@
       cerrarMantencion();
       cerrarObsPendiente();
       cancelarFinalizadoSoporte();
+      cancelarFinalizadoSinVT();
       cancelarModalRepetida();
       cerrarModalContactoCliente();
       cerrarModalImagenesTabla();
+      cancelarAsignacionMasiva();
+      cancelarDerivarPrompt();
     });
 
-    ["modalOdt", "modalMant", "modalObsPendiente", "modalFinalizadoSoporte", "modalRepetida", "modalContactoCliente", "modalImagenesTabla"].forEach((id) => {
+    ["modalOdt", "modalOdtPreview", "modalMant", "modalObsPendiente", "modalFinalizadoSoporte", "modalFinalizadoSinVT", "modalRepetida", "modalContactoCliente", "modalImagenesTabla", "modalAsignarMasivo", "modalDerivar"].forEach((id) => {
       const modal = document.getElementById(id);
       if (!modal) return;
       modal.addEventListener("click", (e) => {
         if (e.target !== modal) return;
+        if (id === "modalOdtPreview") {
+          cerrarOdt();
+          return;
+        }
         if (id === "modalFinalizadoSoporte") {
           cancelarFinalizadoSoporte();
+          return;
+        }
+        if (id === "modalFinalizadoSinVT") {
+          cancelarFinalizadoSinVT();
           return;
         }
         if (id === "modalRepetida") {
@@ -3812,8 +4538,22 @@
           cerrarModalImagenesTabla();
           return;
         }
+        if (id === "modalAsignarMasivo") {
+          cancelarAsignacionMasiva();
+          return;
+        }
+        if (id === "modalDerivar") {
+          cancelarDerivarPrompt();
+          return;
+        }
         modal.style.display = "none";
       });
+    });
+
+    window.addEventListener("message", (event) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type !== "atc:odt-creada") return;
+      cargarIncidencias();
     });
 
     window.addEventListener("load", async () => {

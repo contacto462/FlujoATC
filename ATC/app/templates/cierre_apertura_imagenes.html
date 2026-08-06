@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Imágenes de Cierre y Apertura</title>
+  <link rel="stylesheet" href="/static/base.css">
+  <style>
+    :root{
+      --bg:#f7f8fa;
+      --surface:#ffffff;
+      --text:#111827;
+      --text-soft:#4b5563;
+      --muted:#6b7280;
+      --text-faint:#9ca3af;
+      --border:#e5e7eb;
+      --border-strong:#d1d5db;
+      --accent:#f4a672;
+      --accent-strong:#c2410c;
+      --field-bg:#ffffff;
+      --field-border:#d1d5db;
+      --field-focus:#f4a672;
+      --radius-sm:6px;
+      --radius:8px;
+      --radius-lg:12px;
+      --shadow-sm:0 1px 2px rgba(15,23,42,.04);
+      --shadow-md:0 1px 3px rgba(15,23,42,.06),0 1px 2px rgba(15,23,42,.04);
+      --shadow-lg:0 18px 36px rgba(15,23,42,.10);
+    }
+
+    *{box-sizing:border-box}
+    html,body{min-height:100%}
+    body{
+      margin:0;
+      font-family:"Inter","Segoe UI",system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      font-size:13.5px;
+      font-weight:500;
+      line-height:1.5;
+      letter-spacing:-.005em;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    .page-hero{
+      position:sticky;top:0;z-index:50;
+      display:flex;align-items:center;gap:18px;
+      min-height:96px;padding:18px 30px;
+      background:linear-gradient(180deg,#0b1424 0%,#111c2f 100%);
+      border-bottom:1px solid rgba(255,255,255,.06);
+    }
+    .logo-atc{height:60px;width:auto;display:flex;align-items:center}
+    .logo-atc img{height:60px;width:auto;object-fit:contain;display:block;filter:drop-shadow(0 2px 6px rgba(0,0,0,.30))}
+    .hero-copy{flex:1;min-width:0;text-align:left}
+    .titulo-central{margin:0;font-size:20px;line-height:1.25;font-weight:700;letter-spacing:-.02em;color:#fff}
+    .hero-subtitle{margin:6px 0 0;font-size:13.5px;line-height:1.45;color:rgba(255,255,255,.72)}
+    .header-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .volver-link{
+      display:inline-flex;align-items:center;justify-content:center;
+      min-height:0;padding:8px 14px;border-radius:7px;
+      border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);
+      color:rgba(255,255,255,.92);font-size:13px;font-weight:600;
+      text-decoration:none;cursor:pointer;font-family:inherit;
+      transition:background-color .15s ease,border-color .15s ease;
+    }
+    .volver-link:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.22)}
+
+    .page-shell{max-width:1500px;margin:0 auto;padding:24px 28px 40px;display:flex;flex-direction:column;gap:20px}
+
+    .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-md)}
+
+    .filters{
+      padding:16px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    }
+    .filters label{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+    .filters select{
+      padding:8px 11px;font-size:13px;border-radius:var(--radius-sm);
+      border:1px solid var(--field-border);background:var(--field-bg);color:var(--text);
+      min-width:220px;
+    }
+    .filters select:focus,.filters input:focus{outline:none;border-color:var(--field-focus)}
+    .filters input[type="date"]{
+      padding:8px 11px;font-size:13px;border-radius:var(--radius-sm);
+      border:1px solid var(--field-border);background:var(--field-bg);color:var(--text);
+      width:auto;
+    }
+    .btn-limpiar-fecha{
+      padding:8px 12px;font-size:12.5px;font-weight:700;color:var(--text-soft);
+      background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius-sm);
+      cursor:pointer;
+    }
+    .btn-limpiar-fecha:hover{background:var(--bg)}
+    .filters .count{margin-left:auto;font-size:12.5px;color:var(--muted);font-weight:600}
+
+    .gallery{
+      display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;
+      padding:20px;
+    }
+    .empty{
+      grid-column:1 / -1;padding:48px 20px;text-align:center;color:var(--text-faint);font-size:14px;font-weight:600;
+    }
+
+    .card{
+      border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;
+      background:var(--surface);box-shadow:var(--shadow-sm);
+      display:flex;flex-direction:column;
+      transition:box-shadow .15s ease,transform .15s ease;
+    }
+    .card:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px)}
+    .card-thumb{
+      display:block;width:100%;aspect-ratio:4/3;object-fit:cover;background:#f1f5f9;cursor:zoom-in;
+      border-bottom:1px solid var(--border);
+    }
+    .card-body{padding:12px 14px;display:flex;flex-direction:column;gap:4px;flex:1}
+    .card-client{font-size:13.5px;font-weight:800;color:var(--text)}
+    .card-meta{font-size:11.5px;color:var(--muted)}
+    .card-actions{display:flex;gap:8px;margin-top:auto;padding-top:10px}
+    .card-actions a{
+      flex:1;text-align:center;padding:6px 8px;border-radius:var(--radius-sm);
+      font-size:12px;font-weight:700;text-decoration:none;
+      border:1px solid var(--border-strong);color:var(--text-soft);
+    }
+    .card-actions a:hover{background:var(--bg)}
+    .card-actions a.primary{background:var(--accent-strong);border-color:var(--accent-strong);color:#fff}
+    .card-actions a.primary:hover{background:#a3350a}
+
+    .lightbox-overlay{
+      position:fixed;inset:0;z-index:200;display:none;
+      align-items:center;justify-content:center;padding:24px;
+      background:rgba(11,20,36,.88);
+    }
+    .lightbox-overlay.open{display:flex}
+    .lightbox-overlay img{max-width:100%;max-height:100%;border-radius:8px;box-shadow:0 24px 60px rgba(0,0,0,.4)}
+    .lightbox-close{
+      position:fixed;top:20px;right:24px;z-index:201;
+      background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);
+      color:#fff;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;
+    }
+  </style>
+</head>
+<body>
+  <header class="page-hero">
+    <div class="logo-atc"><img src="/shared-static/img/logo-atc.png" alt="Logo ATC" /></div>
+    <div class="hero-copy">
+      <h1 class="titulo-central">Imágenes de Cierre y Apertura</h1>
+      <p class="hero-subtitle">Revisión de los comprobantes guardados por cliente.</p>
+    </div>
+    <div class="header-actions">
+      <a class="volver-link" href="/?form=cierreAperturaClientes&token={{ token|default('') }}">Volver</a>
+    </div>
+  </header>
+
+  <div class="page-shell">
+    <section class="panel filters">
+      <label for="filtroCliente">Cliente</label>
+      <select id="filtroCliente">
+        <option value="">Todos</option>
+      </select>
+      <label for="filtroFecha">Fecha</label>
+      <input type="date" id="filtroFecha">
+      <button type="button" class="btn-limpiar-fecha" id="btnLimpiarFecha">Limpiar fecha</button>
+      <span class="count" id="contador">0 imágenes</span>
+    </section>
+
+    <section class="panel gallery" id="galeria">
+      <div class="empty">Cargando…</div>
+    </section>
+  </div>
+
+  <div class="lightbox-overlay" id="lightbox">
+    <button type="button" class="lightbox-close" id="lightboxClose">Cerrar ✕</button>
+    <img id="lightboxImg" src="" alt="Imagen ampliada">
+  </div>
+
+  <script>
+    const filtroCliente = document.getElementById("filtroCliente");
+    const filtroFecha = document.getElementById("filtroFecha");
+    const btnLimpiarFecha = document.getElementById("btnLimpiarFecha");
+    const galeria = document.getElementById("galeria");
+    const contador = document.getElementById("contador");
+    const lightbox = document.getElementById("lightbox");
+    const lightboxImg = document.getElementById("lightboxImg");
+
+    let todasLasImagenes = [];
+
+    function esc(v) {
+      return String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+
+    function fmtFecha(iso) {
+      if (!iso) return "";
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return iso;
+      return d.toLocaleString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    }
+
+    function poblarFiltro(imagenes) {
+      const vistos = new Map();
+      imagenes.forEach(img => { if (!vistos.has(img.client_id)) vistos.set(img.client_id, img.client_name); });
+      const valorActual = filtroCliente.value;
+      filtroCliente.innerHTML = `<option value="">Todos</option>` +
+        Array.from(vistos.entries()).map(([id, name]) => `<option value="${esc(id)}">${esc(name)}</option>`).join("");
+      filtroCliente.value = valorActual;
+    }
+
+    function fechaLocalISO(iso) {
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return "";
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    }
+
+    function renderGaleria() {
+      const cliente = filtroCliente.value;
+      const fecha = filtroFecha.value;
+      let items = todasLasImagenes;
+      if (cliente) items = items.filter(i => i.client_id === cliente);
+      if (fecha) items = items.filter(i => fechaLocalISO(i.created_at) === fecha);
+      contador.textContent = items.length === 1 ? "1 imagen" : `${items.length} imágenes`;
+      if (!items.length) {
+        galeria.innerHTML = `<div class="empty">Sin imágenes guardadas.</div>`;
+        return;
+      }
+      galeria.innerHTML = items.map(img => `
+        <article class="card">
+          <img class="card-thumb" src="${esc(img.url)}" alt="${esc(img.client_name)}" loading="lazy" onclick="abrirLightbox('${esc(img.url)}')">
+          <div class="card-body">
+            <div class="card-client">${esc(img.client_name)}</div>
+            <div class="card-meta">${esc(fmtFecha(img.created_at))}${img.created_by ? " · " + esc(img.created_by) : ""}</div>
+            <div class="card-actions">
+              <a href="${esc(img.url)}" download class="primary">Descargar</a>
+              <a href="${esc(img.url)}" target="_blank" rel="noopener">Abrir</a>
+            </div>
+          </div>
+        </article>
+      `).join("");
+    }
+
+    function abrirLightbox(url) {
+      lightboxImg.src = url;
+      lightbox.classList.add("open");
+    }
+    function cerrarLightbox() {
+      lightbox.classList.remove("open");
+      lightboxImg.src = "";
+    }
+    document.getElementById("lightboxClose").addEventListener("click", cerrarLightbox);
+    lightbox.addEventListener("click", (e) => { if (e.target === lightbox) cerrarLightbox(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrarLightbox(); });
+
+    filtroCliente.addEventListener("change", renderGaleria);
+    filtroFecha.addEventListener("change", renderGaleria);
+    btnLimpiarFecha.addEventListener("click", () => { filtroFecha.value = ""; renderGaleria(); });
+
+    async function cargar() {
+      try {
+        const res = await fetch("/api/incidencias/cierre-apertura/imagenes");
+        const data = await res.json();
+        todasLasImagenes = Array.isArray(data.imagenes) ? data.imagenes : [];
+        poblarFiltro(todasLasImagenes);
+        renderGaleria();
+      } catch (err) {
+        galeria.innerHTML = `<div class="empty">No se pudieron cargar las imágenes.</div>`;
+      }
+    }
+    cargar();
+  </script>
+</body>
+</html>

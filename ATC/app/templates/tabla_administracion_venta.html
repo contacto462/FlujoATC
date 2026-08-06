@@ -514,7 +514,7 @@ tbody tr td a:not(.link-estilo):hover { text-decoration: underline; }
 
   async function cargarUsuarioActual() {
     const el = document.getElementById("usuarioActual");
-    if (!el || !tokenSesion) return;
+    if (!el) return;
     try {
       const response = await fetch(`/api/usuario-actual?token=${encodeURIComponent(tokenSesion)}`);
       const data = await response.json().catch(() => ({}));

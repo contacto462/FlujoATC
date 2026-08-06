@@ -425,6 +425,75 @@
         padding-right: 14px;
       }
     }
+
+    .success-overlay {
+      position: fixed; inset: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+      background: linear-gradient(135deg, rgba(13,42,48,.97), rgba(23,59,66,.97));
+      backdrop-filter: blur(4px);
+      opacity: 0; pointer-events: none;
+      transition: opacity .25s ease;
+    }
+    .success-overlay.show { opacity: 1; pointer-events: auto; }
+
+    .success-card {
+      background: #fff; border-radius: 24px; padding: 38px 28px 30px;
+      max-width: 360px; width: 100%; text-align: center;
+      box-shadow: 0 24px 60px rgba(0,0,0,.35);
+      transform: scale(.85) translateY(10px); opacity: 0;
+      transition: transform .35s cubic-bezier(.34,1.56,.64,1), opacity .3s ease;
+    }
+    .success-overlay.show .success-card { transform: scale(1) translateY(0); opacity: 1; }
+
+    .success-badge {
+      width: 96px; height: 96px; border-radius: 50%;
+      margin: 0 auto 22px;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #2fbf7e, var(--green));
+      box-shadow: 0 10px 26px rgba(31,122,77,.4);
+      animation: badgePop .5s cubic-bezier(.34,1.56,.64,1) .05s both;
+    }
+    @keyframes badgePop {
+      0% { transform: scale(0); }
+      70% { transform: scale(1.14); }
+      100% { transform: scale(1); }
+    }
+
+    .success-check { width: 46px; height: 46px; display: block; }
+    .success-check circle {
+      fill: none; stroke: rgba(255,255,255,.5); stroke-width: 2;
+      stroke-dasharray: 138; stroke-dashoffset: 138;
+      animation: ringDraw .5s ease .1s forwards;
+    }
+    .success-check path {
+      fill: none; stroke: #fff; stroke-width: 5;
+      stroke-linecap: round; stroke-linejoin: round;
+      stroke-dasharray: 30; stroke-dashoffset: 30;
+      animation: checkDraw .35s ease .45s forwards;
+    }
+    @keyframes ringDraw { to { stroke-dashoffset: 0; } }
+    @keyframes checkDraw { to { stroke-dashoffset: 0; } }
+
+    .success-title {
+      font-size: 22px; font-weight: 900; color: var(--ink); margin: 0 0 8px;
+      letter-spacing: -.01em;
+      opacity: 0; animation: fadeUp .35s ease .3s forwards;
+    }
+    .success-subtitle {
+      font-size: 14px; color: var(--muted); line-height: 1.5; margin: 0;
+      opacity: 0; animation: fadeUp .35s ease .4s forwards;
+    }
+    .success-meta {
+      margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line);
+      font-size: 12.5px; color: var(--muted); line-height: 1.6;
+      opacity: 0; animation: fadeUp .35s ease .5s forwards;
+    }
+    .success-meta strong { color: var(--ink); }
+    .success-hint {
+      margin-top: 16px; font-size: 11.5px; color: var(--muted); opacity: .8;
+    }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
 <body class="location-disabled">
@@ -488,6 +557,21 @@
     </div>
   </div>
 
+  <div class="success-overlay" id="successOverlay">
+    <div class="success-card">
+      <div class="success-badge">
+        <svg class="success-check" viewBox="0 0 48 48">
+          <circle cx="24" cy="24" r="22"></circle>
+          <path d="M14 24.5l6.5 6.5L34.5 17"></path>
+        </svg>
+      </div>
+      <h2 class="success-title">¡Turno iniciado con éxito!</h2>
+      <p class="success-subtitle">Tu llegada a este recinto quedó registrada.</p>
+      <div class="success-meta" id="successMeta"></div>
+      <div class="success-hint">Toca para continuar</div>
+    </div>
+  </div>
+
   <script>
     const form = document.getElementById("turnoForm");
     const rutInput = document.getElementById("rut");
@@ -515,6 +599,33 @@
       el.className = `status visible ${type || ""}`.trim();
       el.innerHTML = `<strong>${title}</strong>${text}`;
     }
+
+    function escHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, (c) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+      }[c]));
+    }
+
+    let _successHideTimer = null;
+    function mostrarExito({ nombre, hora, recinto }) {
+      const overlay = document.getElementById("successOverlay");
+      document.getElementById("successMeta").innerHTML =
+        `<strong>${escHtml(nombre)}</strong>${hora ? " · " + escHtml(hora) : ""}<br>${escHtml(recinto)}`;
+
+      overlay.classList.remove("show");
+      void overlay.offsetWidth;
+      overlay.classList.add("show");
+
+      clearTimeout(_successHideTimer);
+      _successHideTimer = setTimeout(ocultarExito, 30000);
+    }
+
+    function ocultarExito() {
+      clearTimeout(_successHideTimer);
+      document.getElementById("successOverlay").classList.remove("show");
+    }
+
+    document.getElementById("successOverlay")?.addEventListener("click", ocultarExito);
 
     function showModal(title, text) {
       appModalTitle.textContent = title;
@@ -803,7 +914,11 @@
           throw new Error(detalle);
         }
 
-        setStatus(formStatus, "ok", "Turno iniciado", `Registro guardado en ${data.recinto}.`);
+        mostrarExito({
+          nombre: data.nombre || "",
+          hora: (data.registrado_at || "").split(" ")[1] || data.registrado_at || "",
+          recinto: data.recinto || "",
+        });
         form.reset();
         configurarUbicacionInhabilitada();
         recintoIdInput.value = "{{ recinto_id or '' }}";

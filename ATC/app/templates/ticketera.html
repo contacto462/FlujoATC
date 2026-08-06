@@ -317,7 +317,7 @@ body.sidebar-collapsed .main{
 }
 
 .container{
-  width:min(100%, 1420px);
+  width:min(100%, 1800px);
   margin: 0 auto;
 }
 
@@ -929,6 +929,140 @@ body.sidebar-collapsed .main{
   align-items:center;
 }
 
+.borradores-modal{
+  width:min(820px, 96vw);
+  max-height:82vh;
+  display:flex;
+  flex-direction:column;
+}
+
+.borradores-modal .modal-header{
+  align-items:center;
+}
+
+.borradores-list{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  padding:16px 20px 20px;
+  overflow-y:auto;
+}
+
+.borradores-empty{
+  margin:10px 0 4px;
+  font-size:13.5px;
+  color:var(--text-muted, #64748b);
+  text-align:center;
+}
+
+.borrador-item-row{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  border:1px solid rgba(15,23,42,.10);
+  border-radius:14px;
+  padding:6px 6px 6px 14px;
+  background:rgba(248,250,252,.7);
+  transition:background .16s ease, border-color .16s ease, transform .16s ease;
+}
+
+.borrador-item-row:hover{
+  background:rgba(226,232,240,.7);
+  border-color:rgba(37,99,235,.28);
+  transform:translateY(-1px);
+}
+
+.borrador-item{
+  display:block;
+  flex:1;
+  min-width:0;
+  text-decoration:none;
+  color:inherit;
+  padding:6px 0;
+}
+
+.borrador-item-delete{
+  flex:none;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:34px;
+  height:34px;
+  border:none;
+  border-radius:10px;
+  background:transparent;
+  color:#94a3b8;
+  cursor:pointer;
+  transition:background .14s ease, color .14s ease;
+}
+
+.borrador-item-delete:hover{
+  background:rgba(220,38,38,.10);
+  color:#dc2626;
+}
+
+.borrador-item-delete svg{
+  width:18px;
+  height:18px;
+}
+
+.borrador-item-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:4px;
+}
+
+.borrador-item-ticket{
+  font-size:12px;
+  font-weight:800;
+  color:#1d4ed8;
+}
+
+.borrador-item-date{
+  font-size:11px;
+  color:var(--text-muted, #94a3b8);
+  white-space:nowrap;
+}
+
+.borrador-item-subject{
+  font-size:13.5px;
+  font-weight:700;
+  color:#0f172a;
+  margin-bottom:2px;
+}
+
+.borrador-item-snippet{
+  font-size:12.5px;
+  color:#475569;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+body.dark-mode .borrador-item-row{
+  background:rgba(15,23,41,.55);
+  border-color:rgba(148,163,184,.16);
+}
+body.dark-mode .borrador-item-row:hover{
+  background:rgba(30,58,138,.28);
+  border-color:rgba(96,165,250,.32);
+}
+body.dark-mode .borrador-item-subject{
+  color:#e6edf8;
+}
+body.dark-mode .borrador-item-snippet{
+  color:#9fb0c9;
+}
+body.dark-mode .borrador-item-delete{
+  color:#94a3b8;
+}
+body.dark-mode .borrador-item-delete:hover{
+  background:rgba(220,38,38,.20);
+  color:#fca5a5;
+}
+
 .filter-form{
   display:flex;
   flex-direction:column;
@@ -1464,6 +1598,9 @@ body.dark-mode .card.unread-ticket .ticket-title{
   color:#dbeafe;
   font-weight:900;
 }
+body.dark-mode .card-main::before{
+  background:rgba(148,163,184,.45);
+}
 body.dark-mode .card.unread-ticket .card-main::before{
   background:linear-gradient(180deg,#60a5fa,#3b82f6);
 }
@@ -1693,6 +1830,31 @@ body.dark-mode .status-badge.resolved_client{
   border-color:rgba(129,140,248,.52);
 }
 
+body.dark-mode .status-badge.closed{
+  background:rgba(153,27,27,.36);
+  color:#fca5a5;
+  border-color:rgba(248,113,113,.52);
+}
+
+body.dark-mode .bulk-actions-bar{
+  background: rgba(58,111,212,.18);
+  border-color: rgba(96,165,250,.4);
+  color:#93c5fd;
+}
+body.dark-mode .bulk-mark-read-btn:hover{
+  background:#4b7fe0;
+}
+body.dark-mode .bulk-cancel-btn{
+  background: rgba(255,255,255,.06);
+  color:#cbd5e1;
+  border-color: rgba(148,163,184,.28);
+}
+body.dark-mode .bulk-cancel-btn:hover{
+  background: rgba(255,255,255,.12);
+  border-color: rgba(148,163,184,.42);
+  color:#f1f5f9;
+}
+
 body.dark-mode .status-badge.spam{
   background:rgba(71,85,105,.38);
   color:#e2e8f0;
@@ -1703,6 +1865,12 @@ body.dark-mode .status-badge.trash{
   background:rgba(100,116,139,.38);
   color:#e2e8f0;
   border-color:rgba(148,163,184,.52);
+}
+
+body.dark-mode .ticket-id{
+  color:#93c5fd;
+  background:rgba(58,111,212,.32);
+  border-color:rgba(96,165,250,.55);
 }
 
 body.dark-mode .ticket-source-mini{
@@ -2097,6 +2265,7 @@ body.dark-mode .modal .btn-secondary:hover{
 }
 
 .card{
+  position:relative;
   background: rgba(255,255,255,.90);
   padding:15px 18px;
   width:100%;
@@ -2117,11 +2286,55 @@ body.dark-mode .modal .btn-secondary:hover{
   border-color: var(--border-strong);
 }
 
+.ticket-select-check{
+  display:flex;
+  align-items:flex-start;
+  align-self:center;
+  flex:none;
+  cursor:pointer;
+}
+.ticket-select-check input{
+  width:16px;
+  height:16px;
+  cursor:pointer;
+  accent-color:#2563eb;
+}
+
+.bulk-actions-bar{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:9px 10px 9px 18px;
+  margin: 0 0 12px;
+  background: rgba(58,111,212,.08);
+  border:1px solid rgba(58,111,212,.22);
+  border-radius: 999px;
+  font-size:13px;
+  font-weight:700;
+  color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+.bulk-actions-bar button{
+  border:1px solid transparent;
+  border-radius:999px;
+  padding:7px 16px;
+  font-size:12.5px;
+  font-weight:700;
+  cursor:pointer;
+  transition: transform .15s ease, background .15s ease, border-color .15s ease, color .15s ease;
+}
+.bulk-actions-bar button:hover{ transform: translateY(-1px); }
+.bulk-mark-read-btn{ background:var(--primary); color:#fff; box-shadow:var(--shadow-sm); }
+.bulk-mark-read-btn:hover{ background:#2e57ad; }
+.bulk-cancel-btn{ background:var(--surface); color:var(--muted); border-color:var(--border); }
+.bulk-cancel-btn:hover{ background:var(--surface-2); border-color:var(--border-strong); color:var(--text); }
+
 .card-main{
   flex: 1;
   min-width: 0;
   position: relative;
   padding-right: 108px;
+  padding-left: 12px;
 }
 
 .card-side{
@@ -2188,7 +2401,7 @@ body.dark-mode .modal .btn-secondary:hover{
   font-weight:800;
   color:#0d3273;
 }
-.card.unread-ticket .card-main::before{
+.card-main::before{
   content:"";
   position:absolute;
   left:-8px;
@@ -2196,6 +2409,9 @@ body.dark-mode .modal .btn-secondary:hover{
   bottom:8px;
   width:3px;
   border-radius:999px;
+  background:rgba(71,85,105,.55);
+}
+.card.unread-ticket .card-main::before{
   background:linear-gradient(180deg, var(--primary), var(--primary-2));
 }
 .ticket-new-message-dot{
@@ -2244,8 +2460,30 @@ body.dark-mode .modal .btn-secondary:hover{
   display:block;
 }
 
+.ticket-id{
+  position:absolute;
+  top:2px;
+  left:8px;
+  z-index:1;
+  display:inline-flex;
+  align-items:center;
+  font-family:"SF Mono","JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  font-variant-numeric:tabular-nums;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.02em;
+  color:var(--primary);
+  background:rgba(58,111,212,.10);
+  border:1px solid rgba(58,111,212,.30);
+  border-radius:var(--r-sm);
+  padding:1.5px 7px;
+  line-height:1.25;
+  box-shadow:var(--shadow-sm);
+}
+
 .ticket-title{
   display:block;
+  flex:1;
   font-weight:800;
   font-size:14px;
   letter-spacing:.15px;
@@ -2527,6 +2765,7 @@ body.dark-mode .ticket-date{
 .open{ background: var(--open-bg); color: var(--open-fg); border-color: rgba(34,197,94,.22); }
 .pending, .pending_service, .pending_client{ background: var(--pending-bg); color: var(--pending-fg); border-color: rgba(245,158,11,.22); }
 .resolved, .resolved_service, .resolved_client{ background: var(--resolved-bg); color: var(--resolved-fg); border-color: rgba(99,102,241,.20); }
+.closed{ background: rgba(220,38,38,.12); color: #dc2626; border-color: rgba(220,38,38,.28); }
 
 /* If you ever show these as statuses */
 .spam{ background: var(--spam-bg); color: var(--spam-fg); border-color: rgba(148,163,184,.28); }
@@ -2911,10 +3150,6 @@ body.dark-mode .kpi.kpi-resolved{
   <div class="sidebar">
     <div class="brand">
       <img class="logo" src="/static/img/logo-atc.png" alt="ATC">
-      <div>
-        <h2>Alguien Te Cuida</h2>
-        <div class="sub">Panel de soporte</div>
-      </div>
     </div>
 
     <button class="nuevo-ticket-btn" onclick="openTicketModal()">
@@ -2925,6 +3160,10 @@ body.dark-mode .kpi.kpi-resolved{
 <nav class="nav">
   <a href="/etapa">
     Etapa
+  </a>
+  <a href="#" id="borradoresNavLink" onclick="openBorradoresModal(); return false;">
+    <span>Borradores</span>
+    <span class="pill" id="borradoresCountBadge" hidden>0</span>
   </a>
 </nav>
 
@@ -3032,13 +3271,27 @@ body.dark-mode .kpi.kpi-resolved{
       </div>
 
 </div>
+      <div id="bulkActionsBar" class="bulk-actions-bar" hidden>
+        <span id="bulkSelectedCount">0 seleccionados</span>
+        <button type="button" class="bulk-mark-read-btn" data-mode="read" onclick="bulkMarkSelectedToggle()">Marcar como leídos</button>
+        <button type="button" class="bulk-cancel-btn" onclick="clearTicketSelection()">Cancelar selección</button>
+      </div>
       <div id="ticketsContent" class="tickets-content">
       <div class="list">
         {% for ticket in tickets %}
         {% set manual_unread = (ticket_manually_unread|default({})).get(ticket.id) %}
+        {% set _qparts = [] %}
+        {% if filter_qs %}{% set _ = _qparts.append(filter_qs) %}{% endif %}
+        {% if ticket_unseen_message_id.get(ticket.id) %}{% set _ = _qparts.append('focus_message_id=' ~ ticket_unseen_message_id.get(ticket.id)) %}{% endif %}
         <div class="card {% if ticket_has_new_message.get(ticket.id) or manual_unread %}unread-ticket{% endif %}">
 
-          <div class="card-main clickable" onclick="location.href='/ticketera/tickets/{{ ticket.id }}{% if ticket_unseen_message_id.get(ticket.id) %}?focus_message_id={{ ticket_unseen_message_id.get(ticket.id) }}{% endif %}'">
+          <span class="ticket-id">{{ ticket.id }}</span>
+
+          <label class="ticket-select-check" title="Seleccionar ticket">
+            <input type="checkbox" class="ticket-bulk-checkbox" value="{{ ticket.id }}" onchange="onTicketCheckboxChange()">
+          </label>
+
+          <div class="card-main clickable" onclick="location.href='/ticketera/tickets/{{ ticket.id }}{{ '?' ~ _qparts|join('&') if _qparts else '' }}'">
             {% if manual_unread and not ticket_has_new_message.get(ticket.id) %}
             <span class="ticket-new-message-dot ticket-manual-unread-dot" title="Marcado como no leído">
               <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -3082,13 +3335,13 @@ body.dark-mode .kpi.kpi-resolved{
                   <img src="/static/img/Gmail_icon_(2026).svg" alt="" aria-hidden="true" />
                 {% endif %}
               </span>
-              <div class="status-badge {{ ticket_status_css(ticket.status) }} ticket-status-corner">
-                {{ ticket_status_label(ticket.status) }}
+              <div class="status-badge {{ ticket_status_css(ticket.status, ticket.is_no_ticket) }} ticket-status-corner">
+                {{ ticket_status_label(ticket.status, ticket.is_no_ticket) }}
               </div>
             </div>
             <div class="ticket-header">
-              <div class="ticket-title" title="#{{ ticket.id }} - {{ ticket.subject }}">
-                #{{ ticket.id }} - {{ ticket.subject }}
+              <div class="ticket-title" title="#{{ ticket.id }} · {{ ticket.subject }}">
+                {{ ticket.subject }}
               </div>
             </div>
 
@@ -3097,7 +3350,7 @@ body.dark-mode .kpi.kpi-resolved{
               <span class="meta-sep">&middot;</span>
               <span><strong>Prioridad:</strong> {{ {"low":"Baja","medium":"Media","high":"Alta","urgent":"Urgente"}.get(ticket.priority, "No Asignada") }}</span>
               <span class="meta-sep">&middot;</span>
-              <span><strong>Asignado:</strong> {{ ticket.assigned_to.name if ticket.assigned_to else 'Sin asignar' }}</span>
+              <span><strong>Asignado:</strong> {{ ticket.assigned_to.name if ticket.assigned_to else ('📢 Equipo' if ticket.team_broadcast_at else 'Sin asignar') }}</span>
 
               <span class="meta-sep">&middot;</span>
               <span class="ticket-date">{{ ticket.created_at | localdt }}</span>
@@ -3117,15 +3370,15 @@ body.dark-mode .kpi.kpi-resolved{
       </div>
 
       {% if total_pages > 1 %}
-      <div class="tickets-pager" aria-label="Paginaci&oacute;n de tickets">
+      <div class="tickets-pager" aria-label="Paginación de tickets">
         {% if first_page_url %}
-          <a class="pager-arrow" href="{{ first_page_url }}" aria-label="Primera p&aacute;gina">&laquo;</a>
+          <a class="pager-arrow" href="{{ first_page_url }}" aria-label="Primera página">&laquo;</a>
         {% else %}
           <span class="pager-arrow disabled" aria-hidden="true">&laquo;</span>
         {% endif %}
 
         {% if prev_page_url %}
-          <a class="pager-arrow" href="{{ prev_page_url }}" aria-label="P&aacute;gina anterior">&larr;</a>
+          <a class="pager-arrow" href="{{ prev_page_url }}" aria-label="Página anterior">&larr;</a>
         {% else %}
           <span class="pager-arrow disabled" aria-hidden="true">&larr;</span>
         {% endif %}
@@ -3137,17 +3390,17 @@ body.dark-mode .kpi.kpi-resolved{
           aria-haspopup="true"
           aria-expanded="false"
         >
-          P&aacute;gina <strong>{{ current_page }}</strong> de <strong>{{ total_pages }}</strong>
+          Página <strong>{{ current_page }}</strong> de <strong>{{ total_pages }}</strong>
         </button>
 
         {% if next_page_url %}
-          <a class="pager-arrow" href="{{ next_page_url }}" aria-label="P&aacute;gina siguiente">&rarr;</a>
+          <a class="pager-arrow" href="{{ next_page_url }}" aria-label="Página siguiente">&rarr;</a>
         {% else %}
           <span class="pager-arrow disabled" aria-hidden="true">&rarr;</span>
         {% endif %}
 
         {% if last_page_url %}
-          <a class="pager-arrow" href="{{ last_page_url }}" aria-label="Ultima p&aacute;gina">&raquo;</a>
+          <a class="pager-arrow" href="{{ last_page_url }}" aria-label="Última página">&raquo;</a>
         {% else %}
           <span class="pager-arrow disabled" aria-hidden="true">&raquo;</span>
         {% endif %}
@@ -3159,7 +3412,7 @@ body.dark-mode .kpi.kpi-resolved{
         data-current-page="{{ current_page }}"
         data-total-pages="{{ total_pages }}"
       >
-        <p class="pager-jump-title">P&aacute;gina</p>
+        <p class="pager-jump-title">Página</p>
         <div id="pagerJumpGrid" class="pager-jump-grid"></div>
       </div>
       <p class="pager-meta">Mostrando {{ page_start }}-{{ page_end }} de {{ total_filtered }} tickets</p>
@@ -3295,10 +3548,10 @@ body.dark-mode .kpi.kpi-resolved{
             <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="scope" value="all" {{ 'checked' if 'all' in scope_filters else '' }}><span>Todos ({{ counts['all'] }})</span></label>
             <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="scope" value="open" {{ 'checked' if 'open' in scope_filters else '' }}><span>Open ({{ counts['open'] }})</span></label>
             <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="scope" value="pending" {{ 'checked' if 'pending' in scope_filters else '' }}><span>Pendiente ({{ counts['pending'] }})</span></label>
-            <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="scope" value="resolved" {{ 'checked' if 'resolved' in scope_filters else '' }}><span>Cerrado ({{ counts['resolved'] }})</span></label>
+            <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="scope" value="resolved" {{ 'checked' if 'resolved' in scope_filters else '' }}><span>Resuelto ({{ counts['resolved'] }})</span></label>
             <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="scope" value="spam" {{ 'checked' if 'spam' in scope_filters else '' }}><span>Spam ({{ counts['spam'] }})</span></label>
             <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="scope" value="trash" {{ 'checked' if 'trash' in scope_filters else '' }}><span>Papelera ({{ counts['trash'] }})</span></label>
-            <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="scope" value="no_ticket" {{ 'checked' if 'no_ticket' in scope_filters else '' }}><span>No ticket ({{ counts.get('no_ticket', 0) }})</span></label>
+            <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="scope" value="no_ticket" {{ 'checked' if 'no_ticket' in scope_filters else '' }}><span>Cerrado ({{ counts.get('no_ticket', 0) }})</span></label>
           </div>
         </section>
 
@@ -3362,6 +3615,19 @@ body.dark-mode .kpi.kpi-resolved{
   </div>
 </div>
 
+<div id="borradoresModal" class="modal-overlay">
+  <div class="modal borradores-modal">
+    <div class="modal-header">
+      <div>
+        <h3>Borradores</h3>
+        <p class="modal-sub">Respuestas sin enviar que quedaron escritas en algun ticket.</p>
+      </div>
+      <button class="modal-close" type="button" onclick="closeBorradoresModal()" aria-label="Cerrar">&times;</button>
+    </div>
+    <div id="borradoresList" class="borradores-list"></div>
+  </div>
+</div>
+
 <!-- ================= MODAL NUEVO TICKET ================= -->
 
 <div id="ticketModal" class="modal-overlay">
@@ -3404,8 +3670,8 @@ body.dark-mode .kpi.kpi-resolved{
       </div>
 
       <div class="field">
-        <label>Descripci&oacute;n</label>
-        <textarea name="content" rows="4" placeholder="Describe contexto, impacto y proximos pasos..." required></textarea>
+        <label>Descripción</label>
+        <textarea name="content" rows="4" placeholder="Describe contexto, impacto y próximos pasos..." required></textarea>
       </div>
 
       <div class="modal-actions">
@@ -3687,6 +3953,72 @@ body.dark-mode .kpi.kpi-resolved{
 </script>
 
 <script>
+function selectedTicketCheckboxes() {
+  return Array.from(document.querySelectorAll(".ticket-bulk-checkbox:checked"));
+}
+
+function bulkSelectionMode() {
+  // Si hay al menos un ticket no leido en la seleccion, predomina "Marcar
+  // como leidos"; solo si TODOS los seleccionados ya estaban leidos se
+  // ofrece "Marcar como no leidos" (pedido explicito, jul 2026).
+  const selected = selectedTicketCheckboxes();
+  const hasUnread = selected.some((cb) => {
+    const card = cb.closest(".card");
+    return card && card.classList.contains("unread-ticket");
+  });
+  return hasUnread ? "read" : "unread";
+}
+
+function onTicketCheckboxChange() {
+  const bar = document.getElementById("bulkActionsBar");
+  const countEl = document.getElementById("bulkSelectedCount");
+  const btn = document.querySelector(".bulk-mark-read-btn");
+  const selected = selectedTicketCheckboxes();
+  if (!bar || !countEl) return;
+  if (selected.length > 0) {
+    bar.hidden = false;
+    countEl.textContent = `${selected.length} seleccionado${selected.length === 1 ? "" : "s"}`;
+    if (btn) {
+      const mode = bulkSelectionMode();
+      btn.dataset.mode = mode;
+      btn.textContent = mode === "unread" ? "Marcar como no leídos" : "Marcar como leídos";
+    }
+  } else {
+    bar.hidden = true;
+  }
+}
+
+function clearTicketSelection() {
+  document.querySelectorAll(".ticket-bulk-checkbox:checked").forEach((cb) => { cb.checked = false; });
+  onTicketCheckboxChange();
+}
+
+async function bulkMarkSelectedToggle() {
+  const ids = selectedTicketCheckboxes().map((cb) => Number(cb.value));
+  if (!ids.length) return;
+  const btn = document.querySelector(".bulk-mark-read-btn");
+  const mode = (btn && btn.dataset.mode) || "read";
+  const url = mode === "unread" ? "/ticketera/tickets/bulk-mark-unread" : "/ticketera/tickets/bulk-mark-read";
+  const labelByMode = { read: "Marcar como leídos", unread: "Marcar como no leídos" };
+  if (btn) { btn.disabled = true; btn.textContent = "Marcando..."; }
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ ticket_ids: ids }),
+    });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.detail || "No se pudo actualizar el estado de lectura.");
+    }
+    window.location.reload();
+  } catch (err) {
+    alert(err.message || "No se pudo actualizar el estado de lectura.");
+    if (btn) { btn.disabled = false; btn.textContent = labelByMode[mode]; }
+  }
+}
+
 function openFilterModal(){
   const modal = document.getElementById('filterModal');
   if (!modal) return;
@@ -3700,6 +4032,110 @@ function closeFilterModal(){
   modal.classList.remove('active');
   document.body.style.overflow = "";
 }
+
+// ── Borradores (respuestas sin enviar guardadas por ticket, como Gmail) ──
+const DRAFT_KEY_PREFIX = "atc_ticket_draft_";
+
+function getAllTicketDrafts() {
+  const drafts = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key || !key.startsWith(DRAFT_KEY_PREFIX)) continue;
+    try {
+      const draft = JSON.parse(localStorage.getItem(key) || "null");
+      if (draft && draft.ticketId) drafts.push(draft);
+    } catch (_err) {
+      localStorage.removeItem(key);
+    }
+  }
+  drafts.sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+  return drafts;
+}
+
+function refreshBorradoresBadge() {
+  const badge = document.getElementById("borradoresCountBadge");
+  if (!badge) return;
+  const total = getAllTicketDrafts().length;
+  if (total > 0) {
+    badge.textContent = String(total);
+    badge.hidden = false;
+  } else {
+    badge.hidden = true;
+  }
+}
+
+function _escapeHtmlDraft(value) {
+  const div = document.createElement("div");
+  div.textContent = String(value || "");
+  return div.innerHTML;
+}
+
+function _formatDraftDate(ts) {
+  if (!ts) return "";
+  try {
+    return new Date(ts).toLocaleString("es-CL", {
+      day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
+    });
+  } catch (_err) {
+    return "";
+  }
+}
+
+function openBorradoresModal() {
+  const modal = document.getElementById("borradoresModal");
+  const list = document.getElementById("borradoresList");
+  if (!modal || !list) return;
+  const drafts = getAllTicketDrafts();
+  if (!drafts.length) {
+    list.innerHTML = '<p class="borradores-empty">No tienes borradores guardados.</p>';
+  } else {
+    list.innerHTML = drafts.map((draft) => `
+      <div class="borrador-item-row">
+        <a class="borrador-item" href="/ticketera/tickets/${encodeURIComponent(draft.ticketId)}">
+          <div class="borrador-item-head">
+            <span class="borrador-item-ticket">${draft.ticketId} · ${_escapeHtmlDraft(draft.requester || "Cliente")}</span>
+            <span class="borrador-item-date">${_escapeHtmlDraft(_formatDraftDate(draft.savedAt))}</span>
+          </div>
+          <div class="borrador-item-subject">${_escapeHtmlDraft(draft.subject || "Sin asunto")}</div>
+          <div class="borrador-item-snippet">${_escapeHtmlDraft(draft.snippet || "")}</div>
+        </a>
+        <button type="button" class="borrador-item-delete" data-ticket-id="${draft.ticketId}" title="Descartar borrador" aria-label="Descartar borrador">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+        </button>
+      </div>
+    `).join("");
+  }
+  modal.classList.add("active");
+  document.body.style.overflow = "hidden";
+}
+
+function closeBorradoresModal() {
+  const modal = document.getElementById("borradoresModal");
+  if (!modal) return;
+  modal.classList.remove("active");
+  document.body.style.overflow = "";
+}
+
+document.getElementById("borradoresModal")?.addEventListener("click", (e) => {
+  if (e.target && e.target.id === "borradoresModal") closeBorradoresModal();
+});
+
+document.getElementById("borradoresList")?.addEventListener("click", (e) => {
+  const deleteBtn = e.target.closest(".borrador-item-delete");
+  if (!deleteBtn) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const ticketId = deleteBtn.dataset.ticketId;
+  if (!ticketId) return;
+  localStorage.removeItem(DRAFT_KEY_PREFIX + ticketId);
+  refreshBorradoresBadge();
+  openBorradoresModal();
+});
+
+refreshBorradoresBadge();
+window.addEventListener("storage", (e) => {
+  if (e.key && e.key.startsWith(DRAFT_KEY_PREFIX)) refreshBorradoresBadge();
+});
 
 function openTicketModal(){
   const modal = document.getElementById('ticketModal');
@@ -3825,8 +4261,10 @@ function initDashboardPagerJump() {
 
   function buildPageUrl(pageNumber) {
     const url = new URL(window.location.href);
-    url.searchParams.set("page", String(pageNumber));
-    return `${url.pathname}?${url.searchParams.toString()}`;
+    const basePath = url.pathname.replace(/\/pagina\/\d+\/?$/, "") || "/ticketera";
+    const newPath = pageNumber > 1 ? `${basePath}/pagina/${pageNumber}` : basePath;
+    const query = url.searchParams.toString();
+    return query ? `${newPath}?${query}` : newPath;
   }
 
   function renderGrid() {
@@ -3925,11 +4363,10 @@ initDashboardPagerJump();
 
   function extractTicketStats(root) {
     const titles = Array.from(root.querySelectorAll(".ticket-title"));
+    const ids = Array.from(root.querySelectorAll(".ticket-id"));
     let maxId = 0;
-    titles.forEach((item) => {
-      const m = (item.textContent || "").match(/#\s*(\d+)/);
-      if (!m) return;
-      const id = Number(m[1]);
+    ids.forEach((item) => {
+      const id = Number((item.textContent || "").trim());
       if (!Number.isNaN(id)) maxId = Math.max(maxId, id);
     });
     return {
@@ -3993,8 +4430,8 @@ initDashboardPagerJump();
           title: delta > 1 ? `${delta} tickets nuevos` : "Nuevo ticket",
           message:
             delta > 1
-              ? `Se registraron ${delta} tickets nuevos (último #${afterStats.maxId}).`
-              : `Se registró el ticket #${afterStats.maxId} en la bandeja.`,
+              ? `Se registraron ${delta} tickets nuevos (último ${afterStats.maxId}).`
+              : `Se registró el ticket ${afterStats.maxId} en la bandeja.`,
           actionLabel: "Ver recientes",
           onAction: () => window.scrollTo({ top: 0, behavior: "smooth" }),
         });
@@ -4731,9 +5168,16 @@ body.dark-mode .cw-status.err{color:#f87171;}
   decorateImgs(cwEditor);
 
   // ── Autocomplete de contactos (Para / CC / CCO) ──────
-  function _cwContactAC(inputId, afterSelectId){
+  function _cwContactAC(inputId, afterSelectId, options){
     const input = document.getElementById(inputId);
     if(!input) return;
+    const multiple = !!(options && options.multiple);
+
+    function currentQuery(){
+      if(!multiple) return input.textContent.trim();
+      const parts = (input.textContent || "").split(",");
+      return parts[parts.length - 1].trim();
+    }
 
     const dd = document.createElement("div");
     dd.style.cssText = "position:absolute;z-index:9999;left:0;right:0;top:calc(100% + 2px);background:var(--surface);border:1px solid var(--border-strong);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);overflow:hidden;display:none;max-height:280px;overflow-y:auto;";
@@ -4780,6 +5224,20 @@ body.dark-mode .cw-status.err{color:#f87171;}
 
     function selectItem(i){
       const item=currentItems[i]; if(!item) return;
+      if(multiple){
+        const parts = (input.textContent || "").split(",");
+        parts[parts.length - 1] = ` ${item.email}`;
+        input.textContent = parts.map(p=>p.trim()).join(", ") + ", ";
+        closeDd();
+        const range = document.createRange();
+        range.selectNodeContents(input);
+        range.collapse(false);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        input.focus();
+        return;
+      }
       input.textContent=item.email; closeDd();
       if(afterSelectId) document.getElementById(afterSelectId)?.focus();
     }
@@ -4796,7 +5254,7 @@ body.dark-mode .cw-status.err{color:#f87171;}
 
     input.addEventListener("input",()=>{
       clearTimeout(debTimer);
-      debTimer=setTimeout(()=>fetchContacts(input.textContent.trim()),200);
+      debTimer=setTimeout(()=>fetchContacts(currentQuery()),200);
     });
     input.addEventListener("keydown",e=>{
       if(dd.style.display==="none") return;
@@ -4809,13 +5267,13 @@ body.dark-mode .cw-status.err{color:#f87171;}
       if(!dd.contains(e.target)&&e.target!==input) closeDd();
     });
     input.addEventListener("focus",()=>{
-      if(input.textContent.trim().length>=1) fetchContacts(input.textContent.trim());
+      if(currentQuery().length>=1) fetchContacts(currentQuery());
     });
   }
 
   _cwContactAC("cwTo",  "cwSubject");
-  _cwContactAC("cwCc",  "cwBcc");
-  _cwContactAC("cwBcc", "cwSubject");
+  _cwContactAC("cwCc",  "cwBcc", { multiple: true });
+  _cwContactAC("cwBcc", "cwSubject", { multiple: true });
 })();
 </script>
 
@@ -4987,7 +5445,7 @@ body.dark-mode .cw-status.err{color:#f87171;}
         const data = await resp.json();
         bg.remove();
         if(data.ok){
-          if(cwStatus){ cwStatus.textContent = `✓ Ticket #${data.ticket_id} creado`; cwStatus.className = "cw-status ok"; }
+          if(cwStatus){ cwStatus.textContent = `✓ Ticket ${data.ticket_id} creado`; cwStatus.className = "cw-status ok"; }
           // Cerrar compose y navegar al ticket
           setTimeout(() => {
             // Llamar a closeWin del compose (iife expone closeWin via evento)

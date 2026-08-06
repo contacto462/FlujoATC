@@ -94,6 +94,43 @@ def _resolve_from_header() -> str:
     return from_header
 
 
+def _smtp_bool(value: object, default: bool) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in {"1", "true", "yes", "si", "on"}
+
+
+def _format_from_header(from_email: str, from_name: str, username: str) -> str:
+    email_value = (parseaddr(from_email)[1] or parseaddr(username)[1] or from_email or username).strip()
+    name_value = (from_name or "").strip()
+    if not email_value:
+        raise ValueError("SMTP_INFORME_FROM_EMAIL/SMTP_INFORME_USERNAME invalido: falta direccion de correo.")
+    return f"{name_value} <{email_value}>" if name_value else email_value
+
+
+def _smtp_informe_config() -> dict[str, object]:
+    username = str(settings.smtp_informe_username or "").strip()
+    password = str(settings.smtp_informe_password or "")
+    if not username or not password:
+        raise ValueError("SMTP_INFORME_USERNAME/SMTP_INFORME_PASSWORD no configurados.")
+
+    from_email = str(settings.smtp_informe_from_email or username).strip()
+    from_name = str(settings.smtp_informe_from_name or "Alguien Te Cuida").strip()
+    return {
+        "host": str(settings.smtp_informe_host or "smtp.gmail.com").strip(),
+        "port": int(settings.smtp_informe_port or 587),
+        "username": username,
+        "password": password,
+        "from_email": parseaddr(from_email)[1] or from_email,
+        "from_header": _format_from_header(from_email, from_name, username),
+        "use_tls": _smtp_bool(settings.smtp_informe_use_tls, True),
+        "use_ssl": _smtp_bool(settings.smtp_informe_use_ssl, False),
+        "timeout": int(settings.smtp_informe_timeout_sec or 20),
+    }
+
+
 def _deliver_message(msg: EmailMessage, envelope_to: list[str] | None = None) -> None:
     host = settings.SMTP_HOST
     port = int(settings.SMTP_PORT or 587)
@@ -130,6 +167,39 @@ def _deliver_message(msg: EmailMessage, envelope_to: list[str] | None = None) ->
         errors.append(f"SMTPS: {exc}")
 
     raise RuntimeError("No se pudo enviar correo SMTP. " + " | ".join(errors))
+
+
+def _deliver_message_with_smtp_config(
+    msg,
+    cfg: dict[str, object],
+    envelope_to: list[str] | None = None,
+) -> None:
+    host = str(cfg.get("host") or "").strip()
+    port = int(cfg.get("port") or 587)
+    username = str(cfg.get("username") or "").strip()
+    password = str(cfg.get("password") or "")
+    from_email = str(cfg.get("from_email") or username).strip()
+    use_tls = _smtp_bool(cfg.get("use_tls"), True)
+    use_ssl = _smtp_bool(cfg.get("use_ssl"), False)
+    timeout = int(cfg.get("timeout") or 20)
+
+    if not host:
+        raise ValueError("SMTP_INFORME_HOST no configurado.")
+
+    if use_ssl:
+        with smtplib.SMTP_SSL(host, port, timeout=timeout) as server:
+            server.ehlo()
+            server.login(username, password)
+            server.send_message(msg, from_addr=from_email, to_addrs=envelope_to or None)
+        return
+
+    with smtplib.SMTP(host, port, timeout=timeout) as server:
+        server.ehlo()
+        if use_tls:
+            server.starttls(context=ssl.create_default_context())
+            server.ehlo()
+        server.login(username, password)
+        server.send_message(msg, from_addr=from_email, to_addrs=envelope_to or None)
 
 
 def _normalize_recipients(value: str | Iterable[str] | None, *, field_name: str) -> list[str]:
@@ -403,15 +473,19 @@ def send_corporate_image_email(
     subtitulo: str,
     cuerpo_html: str,
     images: list[dict],
+    usar_smtp_informe: bool = False,
 ) -> str:
     """
     Envía un correo corporativo con imágenes inline usando estructura MIME explícita.
     `images` = [{"bytes": b"...", "mime_type": "image/png", "filename": "foto.png"}]
     """
-    if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
-        raise ValueError("SMTP_USER/SMTP_PASSWORD no configurados.")
-
-    from_header = _resolve_from_header()
+    smtp_informe_cfg: dict[str, object] | None = _smtp_informe_config() if usar_smtp_informe else None
+    if smtp_informe_cfg:
+        from_header = str(smtp_informe_cfg["from_header"])
+    else:
+        if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
+            raise ValueError("SMTP_USER/SMTP_PASSWORD no configurados.")
+        from_header = _resolve_from_header()
     from_email = parseaddr(from_header)[1].strip().lower()
     msgid_domain = from_email.split("@", 1)[1] if "@" in from_email else "atc.cl"
     msgid = make_msgid(domain=msgid_domain)
@@ -652,5 +726,9 @@ def send_corporate_image_email(
         img_part.add_header("Content-Disposition", "inline", filename=filename)
         msg_related.attach(img_part)
 
-    _deliver_message(msg_outer, envelope_to=[parseaddr(to)[1] or to])
+    envelope_to = [parseaddr(to)[1] or to]
+    if smtp_informe_cfg:
+        _deliver_message_with_smtp_config(msg_outer, smtp_informe_cfg, envelope_to=envelope_to)
+    else:
+        _deliver_message(msg_outer, envelope_to=envelope_to)
     return _norm_msgid(msgid) or ""

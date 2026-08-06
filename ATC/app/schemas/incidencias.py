@@ -56,6 +56,7 @@ class FormularioRegistro(BaseModel):
 class CerrarIncidenciaRequest(BaseModel):
     odt: str
     observacion: str
+    token: str = ""
     responsable_cierre: str = Field(alias="responsableCierre")
     causa_cierre: list[str] = Field(default_factory=list, alias="causaCierre")
     accion_cierre: list[str] = Field(default_factory=list, alias="accionCierre")
@@ -107,6 +108,11 @@ class EnProcesoRequest(BaseModel):
     token: Optional[str] = ""
 
 
+class IniciarTrabajoRequest(BaseModel):
+    odt: str
+    token: Optional[str] = ""
+
+
 class DerivarTecnicoRequest(BaseModel):
     odt: str
     tecnico: str
@@ -124,6 +130,7 @@ class EditarIncidenciaTablaRequest(BaseModel):
     observacion_servicio: Optional[str] = Field(default=None, alias="observacionServicio")
     observacion_final: Optional[str] = Field(default=None, alias="observacionFinal")
     repetida_odt_ref: Optional[str] = Field(default=None, alias="repetidaOdtRef")
+    editar_ultima_observacion_servicio: bool = Field(default=False, alias="editarUltimaObservacionServicio")
 
 
 class RegenerarInformeCierreRequest(BaseModel):

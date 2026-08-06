@@ -10,6 +10,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Registro de Guardias — {{ month_name }} {{ year }}</title>
   <link rel="stylesheet" href="/static/base.css">
+  <link rel="stylesheet" href="/static/guardias-informe-preview.css">
 <style>
 :root{
   --bg:#f7f8fa;
@@ -115,8 +116,10 @@ body{background:var(--bg);color:var(--text);font-size:13px;font-weight:500;displ
 .alert-chip{
   display:inline-flex;align-items:center;gap:5px;
   font-size:11px;font-weight:700;padding:3px 9px;border-radius:5px;border:1px solid;
-  cursor:default;
+  cursor:default;font-family:inherit;
 }
+button.alert-chip{cursor:pointer;transition:filter .15s}
+button.alert-chip:hover{filter:brightness(0.96)}
 .chip-inasistencia{background:#fdf2f2;border-color:#fca5a5;color:#991b1b}
 .chip-discrepancia{background:#fdf6ed;border-color:#d97706;color:#92400e}
 .chip-conflicto   {background:#eff4ff;border-color:#93c5fd;color:#1e3a8a}
@@ -238,6 +241,11 @@ td{
   vertical-align:top;min-width:var(--cell-w);white-space:nowrap;
   background:var(--surface);
 }
+/* Solo la vista "Registro" limita el ancho de columna para que el nombre
+   largo salte de línea en vez de agrandar la tabla (ver .entry más abajo).
+   La vista "Cruce" (GUARDIA + SUPERVISOR apilados) necesita el ancho libre
+   original, si no el contenido se superpone visualmente entre columnas. */
+#viewQR td{max-width:var(--cell-w)}
 td:last-child{border-right:0}
 tbody tr:last-child td{border-bottom:0}
 td.col-recinto{
@@ -258,6 +266,7 @@ tbody tr:hover td.weekend{background:#faf0e8}
 .entry{
   border-radius:5px;padding:2px 6px;
   font-size:11px;font-weight:700;line-height:1.4;
+  white-space:normal;overflow-wrap:break-word;
 }
 .entry-dia{background:var(--dia-bg);color:var(--dia-text)}
 .entry-noche{background:var(--noche-bg);color:var(--noche-text)}
@@ -266,7 +275,7 @@ tbody tr:hover td.weekend{background:#faf0e8}
 .entry-normal{background:var(--normal-bg);color:var(--normal-text)}
 .entry .hora{font-weight:400;font-size:10px;opacity:.65;margin-left:3px}
 .entry{position:relative}
-.entry .entry-tools{display:none;margin-left:auto;gap:2px;flex:0 0 auto}
+.entry .entry-tools{display:none;gap:2px}
 .entry:hover .entry-tools{display:inline-flex}
 .tool-btn{
   background:none;border:none;cursor:pointer;font-size:10.5px;color:inherit;
@@ -324,6 +333,20 @@ tbody tr:hover td.cell-solo-sv {background:#fdf6e3}
 tbody tr:hover td.cell-falta   {background:#fdeaea}
 tbody tr:hover td.cell-mismatch{background:#fdf0e3}
 
+/* ── aviso inline de inasistencia dentro de la celda ── */
+.alerta-cruce{
+  display:flex;align-items:flex-start;gap:5px;
+  background:#fef2f2;border:1.5px solid #fca5a5;color:#991b1b;
+  border-radius:6px;padding:4px 6px;margin-bottom:4px;
+  font-size:10.5px;font-weight:700;line-height:1.35;
+}
+.alerta-cruce .alerta-icon{font-size:12px;line-height:1;flex-shrink:0;margin-top:1px}
+.tag-permiso-inline{
+  display:inline-block;background:#7c5cbf;color:#fff;
+  font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.02em;
+  padding:1px 6px;border-radius:999px;white-space:nowrap;margin-left:2px;
+}
+
 /* ── etiquetas de fuente ── */
 .source-label{
   display:inline-block;font-size:8.5px;font-weight:700;
@@ -349,31 +372,100 @@ tbody tr:hover td.cell-mismatch{background:#fdf0e3}
 
 /* ── notificaciones de irregularidad ── */
 .notif{
-  margin-top:5px;
+  display:grid;grid-template-columns:min(260px,38%) 1fr;column-gap:16px;row-gap:2px;
+  align-items:start;
   border-left:3px solid;
-  padding:4px 6px 4px 8px;
-  border-radius:0 3px 3px 0;
+  padding:8px 12px;
+  border-radius:0 5px 5px 0;
   white-space:normal;
 }
+.notif-left{display:flex;flex-direction:column;gap:3px;min-width:0}
+.notif-fecha{
+  align-self:flex-start;
+  font-size:10px;font-weight:800;
+  padding:1px 6px;border-radius:4px;
+  background:rgba(0,0,0,.055);
+  white-space:nowrap;
+}
 .notif-type{
-  display:block;
-  font-size:8.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
-  margin-bottom:2px;
+  font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;line-height:1.3;
 }
 .notif-detail{
-  display:block;
-  font-size:9.5px;font-weight:500;line-height:1.4;
+  min-width:0;
+  font-size:12px;font-weight:500;line-height:1.4;
 }
 .notif-inasistencia{
   background:#fdf2f2;border-color:#b91c1c;
 }
 .notif-inasistencia .notif-type{color:#991b1b}
 .notif-inasistencia .notif-detail{color:#7f1d1d}
+.notif-permiso-badge{
+  display:inline-flex;align-items:center;
+  width:max-content;margin-top:4px;
+  font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+  padding:1px 6px;border-radius:999px;
+  background:#9a3412;color:#fff;
+}
 .notif-discrepancia{
   background:#fdf6ed;border-color:#b45309;
 }
 .notif-discrepancia .notif-type{color:#92400e}
 .notif-discrepancia .notif-detail{color:#78350f}
+.notif-conflicto{
+  background:#eff4ff;border-color:#1e3a8a;
+}
+.notif-conflicto .notif-type{color:#1e3a8a}
+.notif-conflicto .notif-detail{color:#1e3a8a}
+
+/* ── POPUP DE ALERTAS (inasistencias / discrepancias / conflictos) ── */
+.alert-popup-overlay{
+  display:none;position:fixed;inset:0;z-index:110;
+  background:rgba(15,23,42,.45);
+  align-items:center;justify-content:center;
+}
+.alert-popup-overlay.open{display:flex}
+.alert-popup{
+  width:860px;max-width:calc(100vw - 32px);
+  max-height:80vh;overflow-y:auto;
+  background:#fff;border-radius:14px;
+  box-shadow:0 20px 60px rgba(0,0,0,.28);
+}
+.alert-popup-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 18px;border-bottom:1px solid var(--border);
+  position:sticky;top:0;background:#fff;
+}
+.alert-popup-head h3{font-size:15px;font-weight:800;color:var(--text)}
+.alert-popup-head-actions{display:flex;align-items:center;gap:6px}
+.alert-popup-print-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:28px;height:28px;border-radius:7px;
+  border:1px solid var(--border);background:#fff;cursor:pointer;color:var(--muted);
+}
+.alert-popup-print-btn:hover{background:var(--recinto-bg);color:var(--text)}
+.alert-popup-close{border:none;background:none;cursor:pointer;font-size:18px;color:var(--muted)}
+.alert-popup-close:hover{color:var(--text)}
+.alert-popup-body{padding:14px 18px;display:flex;flex-direction:column;gap:6px}
+
+@media print{
+  html:has(body.alert-popup-active){height:auto!important;overflow:visible!important}
+  body.alert-popup-active{height:auto!important;overflow:visible!important;margin:0!important}
+  body.alert-popup-active > *:not(.alert-popup-overlay){display:none!important}
+  body.alert-popup-active .alert-popup-overlay{
+    position:static!important;display:block!important;background:none!important;
+    inset:auto!important;height:auto!important;
+  }
+  body.alert-popup-active .alert-popup{
+    position:static!important;width:100%!important;max-width:100%!important;
+    max-height:none!important;overflow:visible!important;
+    box-shadow:none!important;border-radius:0!important;
+    padding:12mm 10mm;
+  }
+  body.alert-popup-active .alert-popup-head{position:static!important}
+  body.alert-popup-active .alert-popup-print-btn,
+  body.alert-popup-active .alert-popup-close{display:none!important}
+  @page{margin:0}
+}
 
 @media print{
   body{background:#fff}
@@ -405,6 +497,10 @@ tbody tr:hover td.cell-mismatch{background:#fdf0e3}
       <span class="month-label">{{ month_name }} {{ year }}</span>
       <a class="btn-hero" id="navNext" href="/guardia/tabla-registro-guardia?year={{ next_y }}&month={{ next_m }}&grupo={{ grupo }}">&#8250;</a>
     </div>
+    <button class="btn-hero informe-preview-trigger" type="button"
+            data-informe-preview="/guardia/tabla-registro-guardia/informes/preview?year={{ year }}&month={{ month }}&grupo={{ grupo }}"
+            data-informe-download="/guardia/tabla-registro-guardia/informes?year={{ year }}&month={{ month }}&grupo={{ grupo }}"
+            data-informe-title="Vista previa - Informes de guardias">Vista previa</button>
     <a class="btn-hero primary" href="/guardia/tabla-registro-guardia/informes?year={{ year }}&month={{ month }}&grupo={{ grupo }}">Descargar informes</a>
   </div>
 </header>
@@ -426,12 +522,10 @@ tbody tr:hover td.cell-mismatch{background:#fdf0e3}
     <span class="badge badge-ok">Conforme</span>
     <span class="badge badge-solo-qr">Solo sistema</span>
     <span class="badge badge-solo-sv">Solo supervisor</span>
-    <span class="badge" style="background:#fdf2f2;border-color:#b91c1c;color:#991b1b">Inasistencia</span>
-    <span class="badge" style="background:#fdf6ed;border-color:#b45309;color:#92400e">Discrepancia</span>
     <div class="alert-chips" id="alertChips" style="margin-left:8px;display:none">
-      {% if alertas_inasistencia %}<span class="alert-chip chip-inasistencia"><span class="chip-dot"></span>{{ alertas_inasistencia|length }} inasistencia{{ 's' if alertas_inasistencia|length != 1 }}</span>{% endif %}
-      {% if alertas_discrepancia %}<span class="alert-chip chip-discrepancia"><span class="chip-dot"></span>{{ alertas_discrepancia|length }} discrepancia{{ 's' if alertas_discrepancia|length != 1 }}</span>{% endif %}
-      {% if alertas_conflicto %}<span class="alert-chip chip-conflicto"><span class="chip-dot"></span>{{ alertas_conflicto|length }} conflicto{{ 's' if alertas_conflicto|length != 1 }} de destino</span>{% endif %}
+      {% if alertas_inasistencia %}<button type="button" class="alert-chip chip-inasistencia" onclick="abrirAlertPopup('inasistencia')"><span class="chip-dot"></span>{{ alertas_inasistencia|length }} inasistencia{{ 's' if alertas_inasistencia|length != 1 }}</button>{% endif %}
+      {% if alertas_discrepancia %}<button type="button" class="alert-chip chip-discrepancia" onclick="abrirAlertPopup('discrepancia')"><span class="chip-dot"></span>{{ alertas_discrepancia|length }} discrepancia{{ 's' if alertas_discrepancia|length != 1 }}</button>{% endif %}
+      {% if alertas_conflicto %}<button type="button" class="alert-chip chip-conflicto" onclick="abrirAlertPopup('conflicto')"><span class="chip-dot"></span>{{ alertas_conflicto|length }} conflicto{{ 's' if alertas_conflicto|length != 1 }} de destino</button>{% endif %}
       {% if alertas %}<span class="alert-chip chip-jornada"><span class="chip-dot"></span>{{ alertas|length }} jornada{{ 's' if alertas|length != 1 }} extendida{{ 's' if alertas|length != 1 }}</span>{% endif %}
     </div>
     <span class="legend-note">Clic en una celda para ver detalle</span>
@@ -444,9 +538,9 @@ tbody tr:hover td.cell-mismatch{background:#fdf0e3}
   <div style="display:flex;align-items:center;gap:10px;padding:7px 28px;cursor:pointer;user-select:none" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('.jc').classList.toggle('open')">
     <span style="font-size:11.5px;font-weight:700;color:#92400e;flex:1">Jornada extendida — 5 o más días consecutivos</span>
     <span style="background:#d97706;color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px">{{ alertas|length }}</span>
-    <span class="jc notif-panel-caret open" style="font-size:9px;font-style:normal;transition:transform .18s;opacity:.55">&#9654;</span>
+    <span class="jc notif-panel-caret" style="font-size:9px;font-style:normal;transition:transform .18s;opacity:.55">&#9654;</span>
   </div>
-  <div class="notif-panel-body open" style="padding:0 28px 8px">
+  <div class="notif-panel-body" style="padding:0 28px 8px">
     <div style="display:flex;flex-direction:column;gap:3px">
       {% for a in alertas %}
       <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #fde68a;border-left:3px solid #d97706;border-radius:4px;padding:5px 10px;font-size:11.5px">
@@ -538,6 +632,14 @@ tbody tr:hover td.cell-mismatch{background:#fdf0e3}
         {% set has_data = cell.qr or cell.sv %}
         <td class="{% if d.weekend %}weekend {% endif %}{% if status != 'empty' %}cell-{{ status }}{% endif %} cell-clickable"
           onclick="openPopup(event,this)" data-cell='{{ {"fecha": d.dow ~ " " ~ d.day ~ "/" ~ month, "fecha_iso": "%04d-%02d-%02d"|format(year, month, d.day), "recinto": recinto, "status": status, "qr": cell.qr|list, "sv": cell.sv|list, "razones": cell.razones|default([])}|tojson }}'>
+          {% for razon in cell.razones|default([]) %}
+            {% if razon.startswith('Falta') %}
+            <div class="alerta-cruce alerta-falta-inline">
+              <span class="alerta-icon">⚠</span>
+              <span>{{ razon.replace(' (Permiso sin Goce)', '') }}{% if ' (Permiso sin Goce)' in razon %} <span class="tag-permiso-inline">Permiso sin Goce</span>{% endif %}</span>
+            </div>
+            {% endif %}
+          {% endfor %}
           {% if cell.qr %}
           <div class="cruce-section">
             <span class="source-label label-qr">Guardia</span>
@@ -563,6 +665,26 @@ tbody tr:hover td.cell-mismatch{background:#fdf0e3}
 <!-- ── Popup de celda ── -->
 <div class="cell-popup-overlay" id="cellOverlay"></div>
 <div class="cell-popup" id="cellPopup" style="display:none"></div>
+
+<!-- ── Popup de alertas (inasistencias / discrepancias / conflictos) ── -->
+<div class="alert-popup-overlay" id="alertPopupOverlay" onclick="if(event.target===this) cerrarAlertPopup()">
+  <div class="alert-popup">
+    <div class="alert-popup-head">
+      <h3 id="alertPopupTitulo">Detalle</h3>
+      <div class="alert-popup-head-actions">
+        <button class="alert-popup-print-btn" type="button" onclick="window.print()" title="Imprimir" aria-label="Imprimir">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 9V3h12v6"/>
+            <path d="M6 18H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2"/>
+            <rect x="6" y="14" width="12" height="7"/>
+          </svg>
+        </button>
+        <button class="alert-popup-close" type="button" onclick="cerrarAlertPopup()">✕</button>
+      </div>
+    </div>
+    <div class="alert-popup-body" id="alertPopupBody"></div>
+  </div>
+</div>
 
 <!-- ── Modal edición manual ── -->
 <div class="edit-overlay" id="editOverlay">
@@ -605,6 +727,65 @@ const TITLES = {
 const BASE = "/guardia/tabla-registro-guardia";
 const PREV = "{{ prev_y }}-{{ prev_m }}";
 const NEXT = "{{ next_y }}-{{ next_m }}";
+
+const ALERTAS_INASISTENCIA = {{ alertas_inasistencia|tojson }};
+const ALERTAS_DISCREPANCIA = {{ alertas_discrepancia|tojson }};
+const ALERTAS_CONFLICTO    = {{ alertas_conflicto|tojson }};
+
+function escHtmlAlert(s) {
+  return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function abrirAlertPopup(tipo) {
+  const CONFIG = {
+    inasistencia: {
+      titulo: "Inasistencias",
+      items: ALERTAS_INASISTENCIA,
+      render: a => `<div class="notif notif-inasistencia">
+        <div class="notif-left">
+          <span class="notif-fecha">${escHtmlAlert(a.fecha)}</span>
+          <span class="notif-type">${escHtmlAlert(a.recinto)}</span>
+        </div>
+        <span class="notif-detail">${escHtmlAlert(a.detalle)}${a.permiso_sin_goce ? '<span class="notif-permiso-badge">Permiso sin Goce</span>' : ''}</span>
+      </div>`,
+    },
+    discrepancia: {
+      titulo: "Discrepancias",
+      items: ALERTAS_DISCREPANCIA,
+      render: a => `<div class="notif notif-discrepancia">
+        <div class="notif-left">
+          <span class="notif-fecha">${escHtmlAlert(a.fecha)}</span>
+          <span class="notif-type">${escHtmlAlert(a.recinto)} · ${escHtmlAlert(a.tipo)}</span>
+        </div>
+        <span class="notif-detail">${escHtmlAlert(a.detalle)}</span>
+      </div>`,
+    },
+    conflicto: {
+      titulo: "Conflictos de destino",
+      items: ALERTAS_CONFLICTO,
+      render: a => `<div class="notif notif-conflicto">
+        <div class="notif-left">
+          <span class="notif-fecha">${escHtmlAlert(a.fecha)}</span>
+          <span class="notif-type">${escHtmlAlert(a.guardia)} · ${escHtmlAlert(a.turno)}</span>
+        </div>
+        <span class="notif-detail">Registrado en <strong>${escHtmlAlert(a.recinto_qr)}</strong> — supervisor lo marcó en <strong>${escHtmlAlert(a.recinto_sv)}</strong></span>
+      </div>`,
+    },
+  };
+  const cfg = CONFIG[tipo];
+  if (!cfg) return;
+  document.getElementById("alertPopupTitulo").textContent = `${cfg.titulo} (${cfg.items.length})`;
+  document.getElementById("alertPopupBody").innerHTML = cfg.items.length
+    ? cfg.items.map(cfg.render).join("")
+    : `<p style="font-size:12.5px;color:var(--muted)">Sin registros.</p>`;
+  document.getElementById("alertPopupOverlay").classList.add("open");
+  document.body.classList.add("alert-popup-active");
+}
+
+function cerrarAlertPopup() {
+  document.getElementById("alertPopupOverlay").classList.remove("open");
+  document.body.classList.remove("alert-popup-active");
+}
 
 function setView(v) {
   document.getElementById("viewQR").classList.toggle("active",     v === "qr");
@@ -693,6 +874,10 @@ function openPopup(event, td) {
       let cls, label, detail;
       if (r.startsWith("Falta")) {
         cls="alert-inasistencia"; label="Inasistencia"; detail=r.slice(8);
+        if (detail.includes(" (Permiso sin Goce)")) {
+          label="Permiso sin Goce";
+          detail=detail.replace(" (Permiso sin Goce)", "");
+        }
       } else if (r.startsWith("Turno diferente")) {
         cls="alert-discrepancia"; label="Discrepancia de turno"; detail=r.slice(18);
       } else {
@@ -734,12 +919,14 @@ const SUPERVISOR_NOMBRE = {{ supervisor_nombre | tojson }};
 const YEAR = {{ year }}, MONTH = {{ month }};
 let ED = null;
 let _emRut = "";
+let _emSeleccionado = false;
 let _emTimer = null;
 
 document.getElementById("emNombre").addEventListener("input", () => {
   const inp = document.getElementById("emNombre");
   const dd  = document.getElementById("emDropdown");
   _emRut = "";
+  _emSeleccionado = false;
   clearTimeout(_emTimer);
   const q = inp.value.trim();
   if (q.length < 2) { dd.style.display = "none"; return; }
@@ -758,6 +945,7 @@ document.getElementById("emNombre").addEventListener("input", () => {
           e.preventDefault();
           inp.value = el.dataset.nombre;
           _emRut = el.dataset.rut || "";
+          _emSeleccionado = true;
           dd.style.display = "none";
         });
       });
@@ -773,6 +961,7 @@ function abrirEditor(cfg) {
   closePopup();
   ED = cfg;
   _emRut = "";
+  _emSeleccionado = false;
   const esQR = cfg.tipo === "qr";
   document.getElementById("emTitle").textContent =
     (cfg.mode === "add" ? "Agregar " : "Editar ") + (esQR ? "inicio de turno" : "registro de supervisor");
@@ -800,9 +989,29 @@ async function guardarEditor() {
   if (!ED) return;
   const nombre = document.getElementById("emNombre").value.trim();
   if (!nombre) { document.getElementById("emNombre").focus(); return; }
+  if (ED.mode === "add" && !_emSeleccionado) {
+    alert("Selecciona un guardia válido desde la lista.");
+    document.getElementById("emNombre").focus();
+    return;
+  }
+  const esQR = ED.tipo === "qr";
+  if (ED.mode === "add" && !esQR) {
+    try {
+      const rRacha = await fetch("/api/guardia/racha?nombre=" + encodeURIComponent(nombre) + "&fecha=" + encodeURIComponent(ED.fecha));
+      if (rRacha.ok) {
+        const dRacha = await rRacha.json();
+        if (dRacha.dias_consecutivos >= 6) {
+          const seguir = confirm(
+            "Este registro sería el día " + dRacha.dias_consecutivos + " seguido trabajado para " + nombre + ".\n\n" +
+            "Se notificará a jefatura. ¿Estás seguro de registrar igualmente?"
+          );
+          if (!seguir) return;
+        }
+      }
+    } catch (err) { /* si falla la verificación de racha, no bloquea el guardado */ }
+  }
   const btn = document.getElementById("emGuardar");
   btn.disabled = true; btn.textContent = "Guardando…";
-  const esQR = ED.tipo === "qr";
   let url, method, payload;
   if (ED.mode === "add") {
     method = "POST";
@@ -941,6 +1150,7 @@ function editarQRDesdeCelda(btn) {
 </nav>
 <div style="height:46px"></div>
   <script src="/static/atc-logo-home.js"></script>
+  <script src="/static/guardias-informe-preview.js"></script>
   <script>
   </script>
 <script src="/static/atc-volver.js"></script>

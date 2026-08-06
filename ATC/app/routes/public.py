@@ -322,3 +322,56 @@ def ley_karin_informe(payload: LeyKarinComprobante, background_tasks: Background
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
         background=background_tasks,
     )
+
+
+# ──────────────────────────────────────────────
+# Toma de Conocimiento — Capacitación Ley Karin (jefaturas) — formulario
+# público, sin login. Documento distinto y más acotado que el comprobante
+# general de arriba: acredita la participación en UNA capacitación puntual.
+# ──────────────────────────────────────────────
+
+class LeyKarinCapacitacionComprobante(BaseModel):
+    nombre_completo: str
+    rut: str
+    cargo: str = ""
+    correo: str = ""
+    fecha_capacitacion: str = ""
+    modalidad: str = ""
+
+
+@router.get("/ley-karin-capacitacion", response_class=HTMLResponse)
+def ley_karin_capacitacion_form(request: Request):
+    return templates.TemplateResponse(request, "public_ley_karin_capacitacion.html", {})
+
+
+@router.post("/ley-karin-capacitacion/informe")
+def ley_karin_capacitacion_informe(payload: LeyKarinCapacitacionComprobante, background_tasks: BackgroundTasks):
+    from io import BytesIO
+
+    from fastapi.responses import StreamingResponse
+
+    from ATC.app.services.ley_karin_service import (
+        enviar_toma_conocimiento_capacitacion_email,
+        generar_toma_conocimiento_capacitacion_pdf,
+    )
+
+    if not payload.nombre_completo.strip() or not payload.rut.strip():
+        raise HTTPException(status_code=422, detail="Nombre completo y RUT son obligatorios.")
+
+    pdf_bytes = generar_toma_conocimiento_capacitacion_pdf(payload.model_dump())
+
+    correo = payload.correo.strip()
+    if correo:
+        background_tasks.add_task(
+            enviar_toma_conocimiento_capacitacion_email, correo, pdf_bytes, payload.nombre_completo
+        )
+
+    import re as _re
+    nombre_ascii = _re.sub(r"[^A-Za-z0-9_-]+", "_", f"TomaConocimiento_Capacitacion_LeyKarin_{payload.nombre_completo}")[:80]
+    filename = f"{nombre_ascii}.pdf"
+    return StreamingResponse(
+        BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        background=background_tasks,
+    )

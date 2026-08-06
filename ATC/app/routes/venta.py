@@ -37,6 +37,7 @@ from ATC.app.services.venta_service import (
     _normalize_text,
     add_persona_registro,
     anular_ods_venta,
+    avisar_sucursal_lista_bitacora,
     create_cliente,
     create_ods,
     create_sucursal,
@@ -62,6 +63,7 @@ from ATC.app.services.venta_service import (
     get_servicio_tecnico_ventas_contacto,
     get_servicio_tecnico_ventas_detail,
     get_servicio_tecnico_ventas_rows,
+    get_sucursal_revision_bitacora,
     get_sucursales_table,
     resolve_ods_archivo_path,
     rut_exists,
@@ -107,14 +109,47 @@ def _guard_page(
     next_form: str = "panelSelectorVenta",
 ) -> RedirectResponse | None:
     """Para paginas HTML (no API): en vez de un 401, redirige a login si no
-    hay sesion activa. Revisa el token primero (navegacion con ?token=...) y
-    si no hay token valido cae a la cookie de sesion (navegacion interna sin
-    token, ej. un boton "Volver" a una pagina que no propaga el query param)."""
-    token_limpio = str(token or "").strip()
-    if token_limpio and service.usuario_logueado_por_token(token_limpio):
-        return None
+    hay sesion activa. Revisa el token primero (navegacion con ?token=...): si
+    es valido, lo consume — crea la cookie de sesion web y redirige a la misma
+    URL sin el token en la barra de direcciones (mismo patron que
+    compras.py._consume_session_token), para no dejar el token de sesion
+    expuesto. Si no hay token valido cae a la cookie de sesion (navegacion
+    interna sin token, ej. un boton "Volver" a una pagina que no propaga el
+    query param)."""
+    from ATC.app.core.config import settings as _settings
+    from ATC.app.core.security import create_access_token as _create_access_token
+    from ATC.app.core.session_policy import max_age_cookie_segundos as _max_age_cookie_segundos
+    from ATC.app.models.incidencias import LoginSession as _LoginSession
+    from ATC.app.models.user import User as _User
     from ATC.app.routes.web import COOKIE_NAME as _COOKIE_NAME, _decode_cookie_token as _decode_cookie_token_web
     from ATC.app.services.user_service import UserService as _UserService
+    from datetime import datetime as _dt, timezone as _timezone
+
+    token_limpio = str(token or "").strip()
+    if token_limpio:
+        row = (
+            db.query(_User.username, _User.id)
+            .join(_LoginSession, _User.id == _LoginSession.user_id)
+            .filter(
+                _LoginSession.token == token_limpio,
+                _LoginSession.expires_at > _dt.now(_timezone.utc),
+                _User.is_active == 1,
+            )
+            .first()
+        )
+        if row:
+            web_token = _create_access_token({"sub": row[0]})
+            clean_url = str(request.url.remove_query_params(["token"]))
+            response = RedirectResponse(url=clean_url, status_code=303)
+            response.set_cookie(
+                key=_COOKIE_NAME,
+                value=web_token,
+                httponly=True,
+                samesite="lax",
+                secure=False,
+                max_age=_max_age_cookie_segundos(row[1], _settings.JWT_EXPIRES_MIN * 60),
+            )
+            return response
     try:
         cookie = request.cookies.get(_COOKIE_NAME, "")
         if cookie:
@@ -127,8 +162,46 @@ def _guard_page(
     return _login_redirect(next_form)
 
 
-def _usuario_actual(service: IncidenciasService, token: str) -> str:
+def _require_login(request: Request, db: Session = Depends(get_db)):
+    """Dependencia para endpoints /api/venta/* y /api/prevencion/* que leen o
+    modifican datos reales (clientes, sucursales, ODS, finanzas, prevencion):
+    exige la misma cookie de sesion que ya validan las paginas HTML de este
+    router via _guard_page, pero devolviendo 401 en vez de redirigir. Antes
+    estos endpoints no verificaban ninguna sesion — cualquiera con la URL
+    podia leer/escribir estos datos sin login (hallazgo de auditoria de
+    seguridad, ago 2026)."""
+    from ATC.app.routes.web import COOKIE_NAME as _COOKIE_NAME, _decode_cookie_token as _decode_cookie_token_web
+    from ATC.app.services.user_service import UserService as _UserService
+
+    cookie = request.cookies.get(_COOKIE_NAME, "")
+    if cookie:
+        try:
+            login = _decode_cookie_token_web(cookie)
+            user = _UserService.find_by_login(db, login)
+            if user and user.is_active:
+                return user
+        except Exception:
+            pass
+    raise HTTPException(status_code=401, detail="No autenticado.")
+
+
+def _usuario_actual(service: IncidenciasService, token: str, request: Request | None = None) -> str:
     usuario = service.get_usuario_actual(str(token or "").strip())
+    if (not usuario or usuario == "Desconocido") and request is not None:
+        # Sin token valido (o vacio, ej. tras _guard_page limpiar la URL): cae
+        # a la cookie de sesion web antes de dar por "Desconocido" al usuario.
+        try:
+            from ATC.app.routes.web import COOKIE_NAME as _COOKIE_NAME, _decode_cookie_token as _decode_cookie_token_web
+            from ATC.app.services.user_service import UserService as _UserService
+
+            cookie = request.cookies.get(_COOKIE_NAME, "")
+            if cookie:
+                login = _decode_cookie_token_web(cookie)
+                user = _UserService.find_by_login(service.db, login)
+                if user and user.is_active:
+                    return user.name or user.username
+        except Exception:
+            pass
     return "" if not usuario or usuario == "Desconocido" else usuario
 
 
@@ -201,8 +274,9 @@ def venta_panel_selector_page(
     db: Session = Depends(get_db),
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
 ):
-    if token and not service.usuario_logueado_por_token(token):
-        return _login_redirect("panelSelectorVenta")
+    guard = _guard_page(request, db, service, token, next_form="panelSelectorVenta")
+    if guard:
+        return guard
     return _template(request, "seleccion_panel_venta.html", token)
 
 
@@ -636,7 +710,7 @@ def venta_detalle_informes_semanales(
     token: str = Query(default=""),
     db: Session = Depends(get_db),
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
-):
+current_user=Depends(_require_login)):
     if token and not service.usuario_logueado_por_token(token):
         raise HTTPException(status_code=401, detail="Sesión inválida.")
     return service.obtener_detalle_informes_semanales()
@@ -657,132 +731,170 @@ def venta_tabla_operaciones_page(
 
 @router.get("/api/venta/usuario-actual")
 def venta_usuario_actual(
+    request: Request,
     token: str = Query(default=""),
     db: Session = Depends(get_db),
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
-):
-    usuario = _usuario_actual(service, token)
+current_user=Depends(_require_login)):
+    usuario = _usuario_actual(service, token, request)
     return {"name": usuario, "username": usuario, "usuario": usuario}
 
 
 @router.get("/api/venta/catalogo/regiones")
-def venta_catalogo_regiones():
+def venta_catalogo_regiones(current_user=Depends(_require_login)):
     return {"regiones": fetch_regiones()}
 
 
 @router.get("/api/venta/catalogo/comunas")
-def venta_catalogo_comunas(region: str = Query(default="")):
+def venta_catalogo_comunas(region: str = Query(default=""), current_user=Depends(_require_login)):
     return {"comunas": fetch_comunas(region)}
 
 
 @router.get("/api/venta/proveedores/internet")
-def venta_proveedores_internet():
+def venta_proveedores_internet(current_user=Depends(_require_login)):
     return {"proveedores": get_proveedores_internet()}
 
 
 @router.get("/api/venta/proveedores/electricidad")
-def venta_proveedores_electricidad():
+def venta_proveedores_electricidad(current_user=Depends(_require_login)):
     return {"proveedores": get_proveedores_electricidad()}
 
 
 @router.get("/api/venta/coordenadas")
-def venta_coordenadas(direccion: str = Query(default=""), comuna: str = Query(default=""), db: Session = Depends(get_db)):
+def venta_coordenadas(direccion: str = Query(default=""), comuna: str = Query(default=""), db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return get_coordinates_for_address(db, direccion, comuna)
 
 
 @router.get("/api/venta/clientes/verificar-rut")
-def venta_clientes_verificar_rut(rut: str = Query(default=""), db: Session = Depends(get_db)):
+def venta_clientes_verificar_rut(rut: str = Query(default=""), db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return {"exists": rut_exists(db, rut), "existe": rut_exists(db, rut)}
 
 
 @router.get("/api/venta/clientes/buscar-por-rut")
-def venta_clientes_buscar_por_rut(rut: str = Query(default=""), db: Session = Depends(get_db)):
+def venta_clientes_buscar_por_rut(rut: str = Query(default=""), db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return {"nombre": get_cliente_nombre_by_rut(db, rut)}
 
 
 @router.post("/api/venta/clientes", response_model=VentaClienteCreateResponse)
 def venta_clientes_crear(
+    request: Request,
     payload: VentaClienteCreateRequest,
     token: str = Query(default=""),
     db: Session = Depends(get_db),
-):
-    usuario = _usuario_actual(IncidenciasService(db), token)
+current_user=Depends(_require_login)):
+    usuario = _usuario_actual(IncidenciasService(db), token, request)
     cliente = create_cliente(db, payload, usuario)
     return {"ok": True, "cliente_id": cliente.id, "message": "Cliente creado correctamente."}
 
 
 @router.post("/api/venta/sucursales", response_model=VentaSucursalCreateResponse)
 def venta_sucursales_crear(
+    request: Request,
     payload: VentaSucursalCreateRequest,
     token: str = Query(default=""),
     db: Session = Depends(get_db),
-):
-    usuario = _usuario_actual(IncidenciasService(db), token)
+current_user=Depends(_require_login)):
+    usuario = _usuario_actual(IncidenciasService(db), token, request)
     sucursal = create_sucursal(db, payload, usuario)
     return {"ok": True, "sucursal_id": sucursal.id, "message": "Sucursal creada correctamente."}
 
 
 @router.get("/api/venta/ods/datos-por-rut")
-def venta_ods_datos_por_rut(rut: str = Query(default=""), db: Session = Depends(get_db)):
+def venta_ods_datos_por_rut(rut: str = Query(default=""), db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return get_ods_data_by_rut(db, rut)
 
 
 @router.post("/api/venta/ods", response_model=VentaODSCreateResponse)
 def venta_ods_crear(
+    request: Request,
     payload: VentaODSCreateRequest,
     token: str = Query(default=""),
     db: Session = Depends(get_db),
-):
-    usuario = _usuario_actual(IncidenciasService(db), token)
+current_user=Depends(_require_login)):
+    usuario = _usuario_actual(IncidenciasService(db), token, request)
     ods = create_ods(db, payload, usuario)
     return {"ok": True, "ods_id": ods.id, "codigo": ods.codigo, "message": "ODS creada correctamente."}
 
 
 @router.get("/api/venta/ods/lista")
-def venta_ods_lista(db: Session = Depends(get_db)):
+def venta_ods_lista(db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return {"ods": get_ods_codes(db), "items": get_ods_codes(db)}
 
 
 @router.get("/api/venta/ods/detalle")
-def venta_ods_detalle(codigo: str = Query(default=""), db: Session = Depends(get_db)):
+def venta_ods_detalle(codigo: str = Query(default=""), db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return get_ods_detail(db, codigo)
 
 
 @router.post("/api/venta/ods/guardar")
 def venta_ods_guardar(
+    request: Request,
     payload: VentaODSUpdateRequest,
     token: str = Query(default=""),
     db: Session = Depends(get_db),
-):
-    usuario = _usuario_actual(IncidenciasService(db), token)
+current_user=Depends(_require_login)):
+    usuario = _usuario_actual(IncidenciasService(db), token, request)
     ods = update_ods(db, payload, usuario)
     return {"ok": True, "codigo": ods.codigo}
 
 
 @router.get("/api/venta/clientes/tabla")
-def venta_clientes_tabla(db: Session = Depends(get_db)):
+def venta_clientes_tabla(db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return get_clientes_table(db)
 
 
 @router.post("/api/venta/clientes/tabla/guardar-fila")
-def venta_clientes_tabla_guardar(payload: VentaClienteTableUpdateRequest, db: Session = Depends(get_db)):
+def venta_clientes_tabla_guardar(payload: VentaClienteTableUpdateRequest, db: Session = Depends(get_db), current_user=Depends(_require_login)):
     update_cliente_row(db, payload.row_id, payload.values)
     return {"ok": True}
 
 
 @router.get("/api/venta/sucursales/tabla")
-def venta_sucursales_tabla(db: Session = Depends(get_db)):
+def venta_sucursales_tabla(db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return get_sucursales_table(db)
 
 
 @router.post("/api/venta/sucursales/tabla/guardar-fila")
-def venta_sucursales_tabla_guardar(payload: VentaSucursalTableUpdateRequest, db: Session = Depends(get_db)):
+def venta_sucursales_tabla_guardar(payload: VentaSucursalTableUpdateRequest, db: Session = Depends(get_db), current_user=Depends(_require_login)):
     update_sucursal_row(db, payload.row_id, payload.values)
     return {"ok": True}
 
 
+@router.get("/api/venta/sucursales/{sucursal_id}/revision-bitacora")
+def venta_sucursal_revision_bitacora(sucursal_id: int, db: Session = Depends(get_db), current_user=Depends(_require_login)):
+    """Qué campos marcó Bitácora como falta/mal la última vez que notificó sobre
+    esta sucursal, y si sigue pendiente de aceptación — para que BBDD Sucursales /
+    Información Clientes resalten esos campos y muestren el botón "Avisar que está
+    listo" solo cuando corresponde."""
+    return get_sucursal_revision_bitacora(db, sucursal_id)
+
+
+class SucursalAvisarListoRequest(BaseModel):
+    mensaje: str = ""
+    campos: list[str] = []
+
+
+@router.post("/api/venta/sucursales/{sucursal_id}/avisar-listo")
+def venta_sucursal_avisar_listo(
+    sucursal_id: int,
+    payload: SucursalAvisarListoRequest,
+    request: Request,
+    token: str = Query(default=""),
+    db: Session = Depends(get_db),
+current_user=Depends(_require_login)):
+    """Comercial avisa a Bitácora que ya corrigió lo que le habían marcado como
+    pendiente/incompleto en una sucursal (botón en BBDD Sucursales e Información
+    Clientes). payload.campos es lo que Comercial tildó como corregido en el
+    popup — puede ser solo una parte de lo marcado; el resto queda pendiente."""
+    usuario = _usuario_actual(IncidenciasService(db), token, request)
+    resultado = avisar_sucursal_lista_bitacora(db, sucursal_id, usuario, payload.mensaje, payload.campos)
+    if not resultado.get("email_sent"):
+        raise HTTPException(status_code=400, detail=resultado.get("email_error") or "No se pudo enviar el aviso.")
+    return {"ok": True, "enviado_a": resultado.get("email_to") or []}
+
+
 @router.get("/api/venta/clientes/resumen")
-def venta_cliente_resumen(rut: str = Query(default=""), db: Session = Depends(get_db)):
+def venta_cliente_resumen(rut: str = Query(default=""), db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return get_cliente_resumen_by_rut(db, rut)
 
 
@@ -791,24 +903,24 @@ def venta_cliente_sucursal_resumen(
     rut: str = Query(default=""),
     sucursal_id: int = Query(default=0),
     db: Session = Depends(get_db),
-):
+current_user=Depends(_require_login)):
     return get_cliente_sucursal_resumen(db, rut, sucursal_id)
 
 
 @router.post("/api/venta/clientes/persona")
-def venta_cliente_persona(payload: VentaPersonaRegistroRequest, db: Session = Depends(get_db)):
+def venta_cliente_persona(payload: VentaPersonaRegistroRequest, db: Session = Depends(get_db), current_user=Depends(_require_login)):
     add_persona_registro(db, payload)
     return {"ok": True}
 
 
 @router.post("/api/venta/clientes/persona/editar")
-def venta_cliente_persona_editar(payload: VentaPersonaCampoUpdateRequest, db: Session = Depends(get_db)):
+def venta_cliente_persona_editar(payload: VentaPersonaCampoUpdateRequest, db: Session = Depends(get_db), current_user=Depends(_require_login)):
     update_persona_campo(db, payload)
     return {"ok": True}
 
 
 @router.post("/api/venta/clientes/sucursal-info-extra")
-def venta_sucursal_info_extra(payload: dict, db: Session = Depends(get_db)):
+def venta_sucursal_info_extra(payload: dict, db: Session = Depends(get_db), current_user=Depends(_require_login)):
     sucursal_id = int(payload.get("sucursalId") or payload.get("sucursal_id") or 0)
     campo = str(payload.get("campo") or "").strip()
     valor = str(payload.get("valor") or payload.get("nuevoValor") or "")
@@ -817,108 +929,108 @@ def venta_sucursal_info_extra(payload: dict, db: Session = Depends(get_db)):
 
 
 @router.get("/api/venta/comercial-todo")
-def venta_comercial_todo(db: Session = Depends(get_db)):
+def venta_comercial_todo(db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return get_comercial_todo(db)
 
 
 @router.post("/api/venta/ods/anular")
-def venta_ods_anular(payload: VentaAnularODSRequest, db: Session = Depends(get_db)):
+def venta_ods_anular(payload: VentaAnularODSRequest, db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return anular_ods_venta(db, payload.codigo)
 
 
 @router.post("/api/venta/ods/subir-contrato")
-def venta_ods_subir_contrato(payload: VentaContratoUploadRequest, db: Session = Depends(get_db)):
+def venta_ods_subir_contrato(payload: VentaContratoUploadRequest, db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return subir_contrato_venta(db, payload.codigo, payload.nombre, payload.data)
 
 
 @router.get("/api/venta/ods/archivo/{archivo_id}")
-def venta_ods_archivo(archivo_id: int, db: Session = Depends(get_db)):
+def venta_ods_archivo(archivo_id: int, db: Session = Depends(get_db), current_user=Depends(_require_login)):
     path, filename = resolve_ods_archivo_path(db, archivo_id)
     return FileResponse(path, filename=filename)
 
 
 @router.get("/api/venta/admin-ods")
-def venta_admin_ods(db: Session = Depends(get_db)):
+def venta_admin_ods(db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return {"rows": get_admin_ods_rows(db)}
 
 
 @router.get("/api/venta/admin-ods/{codigo}/detalle")
-def venta_admin_ods_detalle(codigo: str, db: Session = Depends(get_db)):
+def venta_admin_ods_detalle(codigo: str, db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return get_admin_ods_detail(db, codigo)
 
 
 @router.post("/api/venta/admin-ods/estado")
-def venta_admin_ods_estado(payload: VentaAdminEstadoRequest, db: Session = Depends(get_db)):
+def venta_admin_ods_estado(payload: VentaAdminEstadoRequest, db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return update_admin_ods_estado(db, payload.codigo, payload.campo, payload.valor)
 
 
 @router.get("/api/venta/finanzas-ods")
-def venta_finanzas_ods(db: Session = Depends(get_db)):
+def venta_finanzas_ods(db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return get_finanzas_ods_rows(db)
 
 
 @router.get("/api/venta/finanzas-ods/{codigo}/detalle")
-def venta_finanzas_ods_detalle(codigo: str, db: Session = Depends(get_db)):
+def venta_finanzas_ods_detalle(codigo: str, db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return get_finanzas_ods_detail(db, codigo)
 
 
 @router.get("/api/venta/finanzas-ods/{codigo}/facturacion")
-def venta_finanzas_ods_facturacion(codigo: str, db: Session = Depends(get_db)):
+def venta_finanzas_ods_facturacion(codigo: str, db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return get_finanzas_ods_facturacion(db, codigo)
 
 
 @router.post("/api/venta/finanzas-ods/estado")
-def venta_finanzas_ods_estado(payload: VentaFinanzasEstadoRequest, db: Session = Depends(get_db)):
+def venta_finanzas_ods_estado(payload: VentaFinanzasEstadoRequest, db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return update_finanzas_ods_estado(db, payload.codigo, payload.campo, payload.valor)
 
 
 @router.get("/api/venta/operaciones-ods")
-def venta_operaciones_ods(db: Session = Depends(get_db)):
+def venta_operaciones_ods(db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return get_operaciones_ods_rows(db)
 
 
 @router.post("/api/venta/operaciones-ods/actualizar-estado")
-def venta_operaciones_ods_estado(payload: VentaOperacionesEstadoRequest, db: Session = Depends(get_db)):
+def venta_operaciones_ods_estado(payload: VentaOperacionesEstadoRequest, db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return update_operaciones_ods_estado(db, payload.codigo, payload.campo, payload.valor)
 
 
 @router.post("/api/venta/operaciones-ods/actualizar-fecha")
-def venta_operaciones_ods_fecha(payload: VentaOperacionesFechaRequest, db: Session = Depends(get_db)):
+def venta_operaciones_ods_fecha(payload: VentaOperacionesFechaRequest, db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return update_operaciones_ods_fecha(db, payload.codigo, payload.fecha)
 
 
 @router.post("/api/venta/operaciones-ods/notificar-inicio")
-def venta_operaciones_ods_notificar(payload: VentaOperacionesFechaRequest):
+def venta_operaciones_ods_notificar(payload: VentaOperacionesFechaRequest, current_user=Depends(_require_login)):
     return {"ok": True, "notificacion_gestionada_al_actualizar_fecha": True}
 
 
 @router.get("/api/venta/servicio-tecnico-ods")
-def venta_servicio_tecnico_ods(db: Session = Depends(get_db)):
+def venta_servicio_tecnico_ods(db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return {"rows": get_servicio_tecnico_ventas_rows(db)}
 
 
 @router.get("/api/venta/servicio-tecnico-ods/{codigo}/detalle")
-def venta_servicio_tecnico_ods_detalle(codigo: str, db: Session = Depends(get_db)):
+def venta_servicio_tecnico_ods_detalle(codigo: str, db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return get_servicio_tecnico_ventas_detail(db, codigo)
 
 
 @router.get("/api/venta/servicio-tecnico-ods/contacto")
-def venta_servicio_tecnico_ods_contacto(direccion: str = Query(default=""), db: Session = Depends(get_db)):
+def venta_servicio_tecnico_ods_contacto(direccion: str = Query(default=""), db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return get_servicio_tecnico_ventas_contacto(db, direccion)
 
 
 @router.post("/api/venta/servicio-tecnico-ods/estado")
-def venta_servicio_tecnico_ods_estado(payload: VentaServicioTecnicoEstadoRequest, db: Session = Depends(get_db)):
+def venta_servicio_tecnico_ods_estado(payload: VentaServicioTecnicoEstadoRequest, db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return update_servicio_tecnico_ventas_estado(db, payload.codigo, payload.campo, payload.valor)
 
 
 @router.post("/api/venta/servicio-tecnico-ods/valor")
-def venta_servicio_tecnico_ods_valor(payload: VentaServicioTecnicoValorRequest, db: Session = Depends(get_db)):
+def venta_servicio_tecnico_ods_valor(payload: VentaServicioTecnicoValorRequest, db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return update_servicio_tecnico_ventas_valor(db, payload.codigo, payload.campo, payload.valor)
 
 
 @router.post("/api/venta/servicio-tecnico-ods/layout-final")
-def venta_servicio_tecnico_ods_layout(payload: VentaServicioTecnicoLayoutFinalRequest, db: Session = Depends(get_db)):
+def venta_servicio_tecnico_ods_layout(payload: VentaServicioTecnicoLayoutFinalRequest, db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return update_servicio_tecnico_layout_final(db, payload.codigo, payload.nombre, payload.data)
 
 
@@ -1041,7 +1153,7 @@ def actualizar_estatus_gestion_avance(
     item_id: int,
     payload: EstatusGestionAvanceRequest,
     db: Session = Depends(get_db),
-):
+current_user=Depends(_require_login)):
     from ATC.app.models.prevencion import EstatusGestionItem
 
     item = db.get(EstatusGestionItem, item_id)
@@ -1183,7 +1295,7 @@ def actualizar_estatus_documentacion_tecnico(
     item_id: int,
     payload: EstatusDocumentacionTecnicoUpdateRequest,
     db: Session = Depends(get_db),
-):
+current_user=Depends(_require_login)):
     from ATC.app.models.prevencion import DOCUMENTACION_TECNICO_CHECK_FIELDS, EstatusDocumentacionTecnico
 
     item = db.get(EstatusDocumentacionTecnico, item_id)
@@ -1262,11 +1374,12 @@ def supervisores_panel_page(
     rut_norm = rut.replace(".", "").strip().casefold()
     departamentos = {p.strip().casefold() for p in departamento.split(";") if p.strip()}
     solo_quintero = "supervisorquintero" in departamentos and not es_admin
+    solo_concon = "supervisorconcon" in departamentos and not es_admin
     # "Privados" solo lo veia el rut hardcodeado del supervisor de esa zona;
     # se agrega tambien para admin/superadmin para poder verla desde el panel
     # sin perder la de Quintero (que sigue mostrandose salvo a ese supervisor
     # especifico de privados).
-    mostrar_privados = (rut_norm in ("11825227-6", "11111111-1") or es_admin) and not solo_quintero
+    mostrar_privados = (rut_norm in ("11825227-6", "11111111-1") or es_admin) and not solo_quintero and not solo_concon
 
     return _template(
         request,
@@ -1276,5 +1389,5 @@ def supervisores_panel_page(
         rut=rut,
         mostrar_privados=mostrar_privados,
         mostrar_concon=not solo_quintero,
-        mostrar_quintero=es_admin or rut_norm != "11825227-6",
+        mostrar_quintero=(es_admin or rut_norm != "11825227-6") and not solo_concon,
     )

@@ -10,6 +10,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Tabla de Rondas — {{ month_name }} {{ year }}</title>
 <link rel="stylesheet" href="/static/base.css">
+<link rel="stylesheet" href="/static/guardias-informe-preview.css">
 <style>
 :root{
   --bg:#f7f8fa;
@@ -81,13 +82,13 @@ body{background:var(--bg);color:var(--text);font-size:13px;font-weight:500;displ
 .legend-note{font-size:11px;color:var(--muted);margin-left:auto;white-space:nowrap}
 
 /* ── TABLE ────────────────────────────────────────── */
-.table-wrap{flex:1;overflow:auto;padding:16px 28px 32px}
+.table-wrap{flex:1;overflow-y:auto;overflow-x:hidden;padding:16px 28px 32px}
 
 table{
   border-collapse:separate;border-spacing:0;
   background:var(--surface);
   border:1px solid var(--border);border-radius:10px;
-  min-width:max-content;
+  width:100%;table-layout:fixed;
   box-shadow:var(--shadow-md);
 }
 
@@ -108,7 +109,7 @@ thead th.col-recinto{
   position:sticky;left:0;z-index:30;
   background:linear-gradient(180deg,var(--header-bg-from),var(--header-bg-to));
   text-align:left;
-  min-width:var(--recinto-w);padding:9px 16px;font-size:12px;
+  width:var(--recinto-w);padding:9px 16px;font-size:12px;
 }
 thead tr:last-child th.col-recinto{
   position:sticky;left:0;top:33px;z-index:30;
@@ -122,16 +123,17 @@ td{
   padding:6px 4px;
   border-bottom:1px solid var(--border);
   border-right:1px solid var(--border);
-  vertical-align:middle;min-width:var(--cell-w);
+  vertical-align:middle;
   background:var(--surface);
   text-align:center;
+  overflow:hidden;
 }
 td:last-child{border-right:0}
 tbody tr:last-child td{border-bottom:0}
 td.col-recinto{
   position:sticky;left:0;z-index:1;
   background:var(--recinto-bg);
-  min-width:var(--recinto-w);max-width:var(--recinto-w);
+  width:var(--recinto-w);
   font-size:12px;font-weight:600;
   padding:7px 16px;line-height:1.3;
   border-right:2px solid var(--border);white-space:normal;
@@ -144,6 +146,20 @@ td.weekend{background:#fdf8f4}
 
 tr.grupo-inicio td{border-top:2px solid var(--border-strong)}
 tr.grupo-inicio:first-child td{border-top:none}
+
+/* ── ACORDEÓN DE SUCURSALES: fila de nombre + filas de checkpoints plegables ── */
+tr.recinto-header{cursor:pointer;user-select:none}
+tr.recinto-header td{border-top:2px solid var(--border-strong)}
+tr.recinto-header:first-child td{border-top:none}
+tr.recinto-header:hover td{background:#eaecf0}
+tr.recinto-header.open td{background:#e2e8f0}
+tr.grupo-fila{display:none}
+tr.grupo-fila.open{display:table-row}
+.recinto-caret{
+  display:inline-block;margin-right:6px;font-size:10px;color:var(--muted);
+  transition:transform .15s;
+}
+tr.recinto-header.open .recinto-caret{transform:rotate(90deg)}
 
 .estado{
   display:inline-flex;align-items:center;justify-content:center;
@@ -241,6 +257,10 @@ tr.grupo-inicio:first-child td{border-top:none}
       <span class="month-label">{{ month_name }} {{ year }}</span>
       <a class="btn-hero" href="/guardia/tabla-rondas?year={{ next_y }}&month={{ next_m }}&grupo={{ grupo }}">&#8250;</a>
     </div>
+    <button class="btn-hero informe-preview-trigger" type="button"
+            data-informe-preview="/guardia/tabla-rondas/informes/preview?year={{ year }}&month={{ month }}"
+            data-informe-download="/guardia/tabla-rondas/informes?year={{ year }}&month={{ month }}"
+            data-informe-title="Vista previa - Informe de rondas">Vista previa</button>
     <a class="btn-hero" href="/guardia/tabla-rondas/informes?year={{ year }}&month={{ month }}" title="Informe de rondas (Quintero, Privados y Concón) del 1 al {{ days_info|length }}">Descargar informes</a>
   </div>
 </header>
@@ -273,10 +293,15 @@ tr.grupo-inicio:first-child td{border-top:none}
   <tbody>
     {% if filas %}
       {% for fila in filas %}
-      <tr class="{% if fila.es_inicio_grupo %}grupo-inicio{% endif %}">
         {% if fila.es_inicio_grupo %}
-          <td class="col-recinto" rowspan="{{ fila.tamano_grupo }}">{{ fila.recinto_label }}</td>
+        <tr class="recinto-header" data-grupo="{{ fila.recinto_label|e }}" onclick="toggleGrupo(this)">
+          <td class="col-recinto" colspan="{{ days_info|length + 1 }}">
+            <span class="recinto-caret">▸</span>{{ fila.recinto_label }}
+          </td>
+        </tr>
         {% endif %}
+      <tr class="grupo-fila" data-grupo="{{ fila.recinto_label|e }}">
+        <td class="col-recinto"></td>
         {% for d in days_info %}
           {% set info = fila.dias.get(d.day, {"cantidad": 0, "pendiente": False}) %}
           <td class="{% if d.weekend %}weekend{% endif %}">
@@ -354,6 +379,12 @@ tr.grupo-inicio:first-child td{border-top:none}
     }
   }
 
+  function esc(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+    }[c]));
+  }
+
   function renderPopup(items) {
     const body = document.getElementById("popupBody");
     if (!items.length) {
@@ -362,11 +393,11 @@ tr.grupo-inicio:first-child td{border-top:none}
     }
     body.innerHTML = items.map(it => `
       <div class="registro-item ${it.aprobado ? 'aprobado' : 'pendiente'}" data-id="${it.id}">
-        <div class="registro-linea"><strong>${it.nombre_guardia || it.rut_guardia || 'Sin identificar'}</strong></div>
-        <div class="registro-linea">${it.rut_guardia || '—'} · ${it.registrado_at}</div>
-        ${it.nota ? `<div class="registro-nota">${it.nota}</div>` : ""}
+        <div class="registro-linea"><strong>${esc(it.nombre_guardia || it.rut_guardia || 'Sin identificar')}</strong></div>
+        <div class="registro-linea">${esc(it.rut_guardia || '—')} · ${esc(it.registrado_at)}</div>
+        ${it.nota ? `<div class="registro-nota">${esc(it.nota)}</div>` : ""}
         ${it.aprobado
-          ? `<div class="aprobado-tag">✓ Aprobado${it.aprobado_por ? ' por ' + it.aprobado_por : ''}</div>`
+          ? `<div class="aprobado-tag">✓ Aprobado${it.aprobado_por ? ' por ' + esc(it.aprobado_por) : ''}</div>`
           : `<button class="btn-aprobar" onclick="aprobar(${it.id}, this)">Dar visto bueno</button>`
         }
       </div>
@@ -395,8 +426,22 @@ tr.grupo-inicio:first-child td{border-top:none}
   function cerrarPopup() {
     document.getElementById("popupOverlay").classList.remove("open");
   }
+
+  let _grupoAbierto = null;
+  function toggleGrupo(headerRow) {
+    const key = headerRow.dataset.grupo;
+    const abrir = key !== _grupoAbierto;
+    document.querySelectorAll(".grupo-fila").forEach(f => {
+      f.classList.toggle("open", abrir && f.dataset.grupo === key);
+    });
+    document.querySelectorAll(".recinto-header").forEach(h => {
+      h.classList.toggle("open", abrir && h.dataset.grupo === key);
+    });
+    _grupoAbierto = abrir ? key : null;
+  }
 </script>
   <script src="/static/atc-logo-home.js"></script>
+  <script src="/static/guardias-informe-preview.js"></script>
   <script>
   </script>
 <script src="/static/atc-volver.js"></script>

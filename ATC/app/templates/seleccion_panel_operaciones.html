@@ -389,7 +389,7 @@ h1{
           </div>
           <p>Seguimiento de coordinacion, fechas de inicio, reuniones y cierre operacional de cada ODS.</p>
         </a>
-        <a class="option" href="/compras/solicitud?token={{ token|default('')|urlencode }}" style="--option-accent:31,79,216;">
+        <a class="option" href="/compras/solicitud?token={{ token|default('')|urlencode }}&origen=operaciones" style="--option-accent:31,79,216;">
           <div class="option-top">
             <div class="icon">C</div>
             <strong>Solicitar Compra</strong>
@@ -410,14 +410,14 @@ h1{
           </div>
           <p>Indicadores del área de Coordinación.</p>
         </a>
-        <a class="option" href="/servicio/indicadores" style="--option-accent:45,207,131;">
+        <a class="option" href="/servicio/indicadores?origen=operaciones" style="--option-accent:45,207,131;">
           <div class="option-top">
             <div class="icon" style="--option-accent:45,207,131;">S</div>
             <strong>Dashboard Servicio</strong>
           </div>
           <p>Indicadores del área de Servicio.</p>
         </a>
-        <a class="option" href="/panel-indicadores" style="--option-accent:6,182,212;">
+        <a class="option" href="/panel-indicadores?origen=operaciones" style="--option-accent:6,182,212;">
           <div class="option-top">
             <div class="icon" style="--option-accent:6,182,212;">S</div>
             <strong>Dashboard Soporte</strong>

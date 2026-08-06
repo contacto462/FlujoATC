@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
+import json
 import traceback
 from datetime import datetime, timezone
 
@@ -164,12 +167,27 @@ def verify_webhook(
     return PlainTextResponse(content=hub_challenge, status_code=200)
 
 
+def _verify_meta_signature(raw_body: bytes, signature_header: str | None) -> bool:
+    app_secret = (settings.WA_APP_SECRET or "").strip()
+    if not app_secret:
+        # Sin secreto configurado no hay forma de distinguir un POST real de
+        # Meta de uno fabricado — fail closed en vez de aceptar cualquier cosa.
+        return False
+    if not signature_header or not signature_header.startswith("sha256="):
+        return False
+    expected = "sha256=" + hmac.new(app_secret.encode("utf-8"), raw_body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(signature_header, expected)
+
+
 @router.post("/")
 async def receive_webhook(request: Request, db: Session = Depends(get_db)):
     # Meta espera siempre 200 dentro de 20s. Si tardamos o devolvemos error
     # vuelve a reintentar con el mismo payload (duplicados).
+    raw_body = await request.body()
+    if not _verify_meta_signature(raw_body, request.headers.get("X-Hub-Signature-256")):
+        raise HTTPException(status_code=403, detail="Firma invalida")
     try:
-        payload = await request.json()
+        payload = json.loads(raw_body)
     except Exception:
         return {"status": "ignored", "reason": "payload no JSON"}
 

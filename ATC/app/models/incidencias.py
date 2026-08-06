@@ -41,6 +41,11 @@ class Registro(Base):
     fecha_cierre: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     fecha_derivacion_area: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     fecha_derivacion_tecnico: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    fecha_inicio_trabajo: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    fecha_fin_trabajo: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    # Quien presionó Pendiente/Finalizar en tecnicos.html — puede diferir de
+    # `tecnicos` (el técnico originalmente derivado a la ODT).
+    tecnico_cierre: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     direccion: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     observacion_final: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     observacion_pendiente: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -110,6 +115,7 @@ class SucursalBBDD(Base):
     estado: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     created_by: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    aceptada_bitacora: Mapped[bool] = mapped_column(Boolean, default=True, server_default="1")
 
     cliente_ref: Mapped[Optional["ClienteBBDD"]] = relationship(back_populates="sucursales")
     contactos_emergencia: Mapped[list["SucursalContactoEmergencia"]] = relationship(
@@ -129,6 +135,7 @@ class SucursalBBDD(Base):
         uselist=False,
         cascade="all, delete-orphan",
     )
+    camaras_monitoreo: Mapped[list["SucursalCamaraMonitoreo"]] = relationship(back_populates="sucursal")
 
 
 class SucursalInfoExtra(Base):
@@ -158,6 +165,7 @@ class SucursalContactoEmergencia(Base):
     rut: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
     telefono: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    orden: Mapped[Optional[int]] = mapped_column(nullable=True)
 
     sucursal: Mapped["SucursalBBDD"] = relationship(back_populates="contactos_emergencia")
 
@@ -190,6 +198,32 @@ class SucursalGuardia(Base):
     horario_hasta: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
 
     sucursal: Mapped["SucursalBBDD"] = relationship(back_populates="guardias")
+
+
+class SucursalCamaraMonitoreo(Base):
+    """Cruce de cámaras de monitoreo por sucursal (central/servidor/pantalla física
+    donde se ve cada cámara) — importado desde 'Cruce de Información Cámaras' (ago 2026).
+    Una fila por cámara/complemento; sucursal_id queda NULL si nombre_bitacora no calzó
+    exactamente con bbdd_sucursales.nombre_sucursal al importar."""
+
+    __tablename__ = "sucursal_camaras_monitoreo"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    sucursal_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("bbdd_sucursales.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    nombre_bitacora: Mapped[str] = mapped_column(String(255), index=True)
+    nombre_servidor: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    central: Mapped[Optional[int]] = mapped_column(nullable=True)
+    servidor: Mapped[Optional[str]] = mapped_column(String(60), nullable=True)
+    cantidad_camaras: Mapped[Optional[int]] = mapped_column(nullable=True)
+    nombre_camara_monitoreo: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    cantidad_equipos: Mapped[Optional[int]] = mapped_column(nullable=True)
+    camara_sin_monitoreo: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    ubicacion_pantalla: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    sucursal: Mapped[Optional["SucursalBBDD"]] = relationship(back_populates="camaras_monitoreo")
 
 
 class VentaODS(Base):
@@ -325,6 +359,8 @@ class ServicioTecnicoVentaODT(Base):
     solicitud_materiales: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     fecha_inicio_instalacion: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
     fecha_fin_instalacion: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    fecha_inicio_trabajo: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    fecha_fin_trabajo: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     tecnico_a_cargo: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     acompanante: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
@@ -412,6 +448,17 @@ class MantencionImagenSucursal(Base):
     created_by: Mapped[Optional[str]] = mapped_column(String(180), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(), onupdate=lambda: datetime.now())
+
+
+class CierreAperturaImagen(Base):
+    __tablename__ = "cierre_apertura_imagenes"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    client_id: Mapped[str] = mapped_column(String(80), index=True)
+    client_name: Mapped[str] = mapped_column(String(255))
+    ruta_archivo: Mapped[str] = mapped_column(String(500))
+    created_by: Mapped[Optional[str]] = mapped_column(String(180), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(), index=True)
 
 
 class LoginSession(Base):

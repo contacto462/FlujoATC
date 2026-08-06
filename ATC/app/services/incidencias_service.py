@@ -45,6 +45,7 @@ from ATC.app.services.incidencias_drive_report_service import (
 from ATC.app.models.prevencion import EstatusDocumentacionTecnico
 from ATC.app.models.incidencias import (
     AdministracionODT,
+    CierreAperturaImagen,
     ClienteBBDD,
     IncidenciaImagenTabla,
     MantencionImagenSucursal,
@@ -592,6 +593,58 @@ def seed_default_identity_data(db: Session) -> None:
     db.commit()
 
 
+# Edicion de la ultima nota de observacion_servicio, con ventana de tiempo
+# tipo "editar mensaje de WhatsApp" (pedido explicito, jul 2026): solo el
+# mismo usuario que escribio la ultima linea puede modificarla, y solo
+# dentro de OBSERVACION_EDIT_WINDOW_MINUTES desde que la escribio.
+OBSERVACION_EDIT_WINDOW_MINUTES = 15
+_OBS_ENTRY_RE = re.compile(
+    r"^\[(?P<user>.+) - (?P<fecha>\d{2}/\d{2}/\d{4} \d{2}:\d{2})\]\s*(?:\(editado\)\s*)?(?P<texto>.*)$"
+)
+
+
+def _obs_last_entry(text: str) -> dict | None:
+    lines = (text or "").splitlines()
+    start_idx = None
+    match = None
+    for idx in range(len(lines) - 1, -1, -1):
+        m = _OBS_ENTRY_RE.match(lines[idx].strip())
+        if m:
+            start_idx = idx
+            match = m
+            break
+    if start_idx is None or match is None:
+        return None
+    try:
+        fecha_dt = datetime.strptime(match.group("fecha"), "%d/%m/%Y %H:%M")
+    except ValueError:
+        return None
+    return {
+        "start_idx": start_idx,
+        "user": match.group("user").strip(),
+        "fecha_str": match.group("fecha"),
+        "fecha_dt": fecha_dt,
+    }
+
+
+def _obs_can_edit_entry(entry: dict | None, usuario: str) -> bool:
+    if not entry:
+        return False
+    if entry["user"].strip().casefold() != (usuario or "").strip().casefold():
+        return False
+    tz_name = (settings.timezone or "America/Santiago").strip() or "America/Santiago"
+    ahora = datetime.now(ZoneInfo(tz_name)).replace(tzinfo=None)
+    elapsed = ahora - entry["fecha_dt"]
+    return timedelta(0) <= elapsed <= timedelta(minutes=OBSERVACION_EDIT_WINDOW_MINUTES)
+
+
+def _obs_edit_last_line(current_text: str, entry: dict, usuario: str, nuevo_texto: str) -> str:
+    lines = (current_text or "").splitlines()
+    nueva_linea = f"[{usuario} - {entry['fecha_str']}] (editado) {nuevo_texto}"
+    nuevas_lineas = lines[: entry["start_idx"]] + [nueva_linea]
+    return "\n".join(nuevas_lineas).strip()
+
+
 class IncidenciasService:
     MANTENCION_CIERRE_MAX_IMAGENES = 80
     MANTENCION_CIERRE_MAX_BYTES = 10 * 1024 * 1024
@@ -1120,6 +1173,67 @@ class IncidenciasService:
             "use_tls": use_tls,
             "use_ssl": use_ssl,
             "timeout": timeout,
+        }
+
+    def _contacto_smtp_runtime_config(self) -> dict[str, Any]:
+        """Cuenta contacto@alguientecuida.cl, ya provisionada en .env (misma que
+        usan contrato_diario_service.py / ley_karin_service.py / compras_service.py)."""
+        env_file = self._load_env_runtime()
+        env_get = lambda k, d="": (os.getenv(k) or env_file.get(k) or d)
+
+        host = str(env_get("CONTACTO_SMTP_HOST", "smtp.gmail.com")).strip()
+        port_raw = env_get("CONTACTO_SMTP_PORT", "587")
+        try:
+            port = int(port_raw)
+        except Exception:
+            port = 587
+        username = str(env_get("CONTACTO_SMTP_USERNAME", "")).strip()
+        password = str(env_get("CONTACTO_SMTP_PASSWORD", ""))
+        from_email = str(env_get("CONTACTO_SMTP_FROM_EMAIL", username)).strip()
+        from_name = str(env_get("CONTACTO_SMTP_FROM_NAME", "Alguien Te Cuida")).strip()
+        use_tls = self._to_bool_env(env_get("CONTACTO_SMTP_USE_TLS", "true"), True)
+
+        return {
+            "enabled": True,
+            "host": host,
+            "port": port,
+            "username": username,
+            "password": password,
+            "from_email": from_email,
+            "from_name": from_name,
+            "use_tls": use_tls,
+            "use_ssl": False,
+            "timeout": 20,
+        }
+
+    def _visita_smtp_runtime_config(self) -> dict[str, Any]:
+        """Cuenta catalina.silva@soporteatc.cl para el aviso de visita tecnica ATC."""
+        env_file = self._load_env_runtime()
+        env_get = lambda k, d="": (os.getenv(k) or env_file.get(k) or d)
+
+        host = str(env_get("SMTP_VISITA_HOST", "mail.soporteatc.cl")).strip()
+        port_raw = env_get("SMTP_VISITA_PORT", "587")
+        try:
+            port = int(port_raw)
+        except Exception:
+            port = 587
+        username = str(env_get("SMTP_VISITA_USERNAME", "")).strip()
+        password = str(env_get("SMTP_VISITA_PASSWORD", ""))
+        from_email = str(env_get("SMTP_VISITA_FROM_EMAIL", username)).strip()
+        from_name = str(env_get("SMTP_VISITA_FROM_NAME", "Alguien Te Cuida")).strip()
+        use_tls = self._to_bool_env(env_get("SMTP_VISITA_USE_TLS", "true"), True)
+
+        return {
+            "enabled": bool(host and username and password),
+            "host": host,
+            "port": port,
+            "username": username,
+            "password": password,
+            "from_email": from_email,
+            "from_name": from_name,
+            "use_tls": use_tls,
+            "use_ssl": False,
+            "timeout": 20,
         }
 
     def _logo_atc_bytes(self) -> bytes | None:
@@ -2568,21 +2682,41 @@ class IncidenciasService:
             return 0
         if obj == cand:
             return 100
+        # Antes esto devolvía 75 fijo con solo que uno fuera substring del otro,
+        # sin importar cuánto abarcaba — un candidato corto tipo "DIDECO" que
+        # aparece por casualidad dentro de un nombre mucho más largo y distinto
+        # ("Imq Carozzi 2 Dideco/secpla/obras") le ganaba a la sucursal correcta
+        # ("IMQ Dideco/secpla/obras", que no matcheaba como substring por el
+        # "Carozzi 2" en el medio) aunque esta última compartiera más tokens.
+        # Causó que una Mantención Preventiva de Quilpué quedara con la dirección
+        # de una sucursal de Quintero (ago 2026). Ahora se escala por cuánto del
+        # string más largo cubre el más corto, para que un match parcial chico no
+        # opaque a un match por tokens más fuerte.
         if len(obj) >= 4 and len(cand) >= 4 and (obj in cand or cand in obj):
-            return 75
+            cobertura_substr = min(len(obj), len(cand)) / max(len(obj), len(cand))
+            substr_score = int(75 * cobertura_substr)
+        else:
+            substr_score = 0
 
         stopwords = {"de", "del", "la", "el", "los", "las", "y", "ex", "n", "s", "sn", "sin"}
         obj_tokens = {t for t in obj.split() if len(t) > 1 and t not in stopwords}
         cand_tokens = {t for t in cand.split() if len(t) > 1 and t not in stopwords}
         if not obj_tokens or not cand_tokens:
-            return 0
+            return substr_score
         inter = obj_tokens & cand_tokens
         if not inter:
-            return 0
-        cobertura = len(inter) / max(1, len(obj_tokens))
-        if len(obj_tokens) <= 2 and cobertura < 1:
-            return 0
-        return int(cobertura * 60) + len(inter)
+            return substr_score
+        cobertura_obj = len(inter) / max(1, len(obj_tokens))
+        if len(obj_tokens) <= 2 and cobertura_obj < 1:
+            return substr_score
+        # Coeficiente de Dice (simétrico): premia que la intersección cubra bien
+        # AMBOS lados, no solo el objetivo. La fórmula anterior (cobertura del
+        # objetivo * 60 + cantidad de tokens en común) le daba solo 52 puntos a
+        # "IMQ Dideco/secpla/obras" contra el objetivo "Imq Carozzi 2
+        # Dideco/secpla/obras" (comparte 4 de 5 tokens) — por debajo del piso de
+        # 60 para aceptar el match, aunque fuera claramente la sucursal correcta.
+        token_score = int(200 * len(inter) / (len(obj_tokens) + len(cand_tokens)))
+        return max(substr_score, token_score)
 
     def _direccion_cliente(self, cliente: str) -> str:
         cliente_txt = str(cliente or "").strip()
@@ -3286,14 +3420,20 @@ class IncidenciasService:
             raise _build_db_write_error(exc) from exc
         return "Registro guardado en SQL"
 
-    def _firmar_observacion_registro(self, token: str | None, observacion: str, fecha: datetime) -> str:
+    def _firmar_observacion_registro(
+        self,
+        token: str | None,
+        observacion: str,
+        fecha: datetime,
+        usuario_fallback: str | None = None,
+    ) -> str:
         texto = (observacion or "").strip()
         if not texto:
             return ""
         token_limpio = (token or "").strip()
         usuario = self.get_usuario_actual(token_limpio) if token_limpio else "Usuario no identificado"
         if not usuario or usuario == "Desconocido":
-            usuario = "Usuario no identificado"
+            usuario = (usuario_fallback or "").strip() or "Usuario no identificado"
         tz_name = (settings.timezone or "America/Santiago").strip() or "America/Santiago"
         fecha_local = fecha.replace(tzinfo=timezone.utc).astimezone(ZoneInfo(tz_name))
         marca = fecha_local.strftime("%d/%m/%Y %H:%M")
@@ -3319,12 +3459,17 @@ class IncidenciasService:
             acompanante = match_acompanante.group(1).strip()
         return tecnico, acompanante
 
-    def guardar_incidencia_nueva(self, data: IncidenciaNueva) -> str:
+    def guardar_incidencia_nueva(self, data: IncidenciaNueva, usuario_fallback: str | None = None) -> str:
         odt = self._proximo_odt("I")
         ahora = datetime.now()
         cliente = (data.cliente or "").strip()
         descripcion = (data.descripcion or "").strip()
-        observacion_registro = self._firmar_observacion_registro(data.token, descripcion, ahora)
+        observacion_registro = self._firmar_observacion_registro(
+            data.token,
+            descripcion,
+            ahora,
+            usuario_fallback=usuario_fallback,
+        )
 
         derivacion = (data.derivacion or "").strip() or "Pendiente"
         estado = (data.estado or "").strip() or "Pendiente"
@@ -3414,6 +3559,10 @@ class IncidenciasService:
         row.estado = estado_final
         if not row.fecha_derivacion_area:
             row.fecha_derivacion_area = ahora
+        if estado_final == "Pendiente" and row.fecha_inicio_trabajo and not row.fecha_fin_trabajo:
+            # Sacar al tecnico de la ODT (o dejarla pendiente) mientras tenia
+            # el cronometro corriendo equivale a que el mismo marcara "Pendiente".
+            row.fecha_fin_trabajo = ahora
         self.db.commit()
         if estado_final == "En Proceso":
             self._sync_estado_ticket_soporte_silencioso(odt_limpia, TICKET_STATUS_PENDIENTE_SERVICIO)
@@ -3431,6 +3580,7 @@ class IncidenciasService:
         observacion_servicio: str | None = None,
         observacion_final: str | None = None,
         repetida_odt_ref: str | None = None,
+        editar_ultima_observacion_servicio: bool = False,
     ) -> dict[str, Any]:
         odt_limpia = (odt or "").strip()
         if not odt_limpia:
@@ -3610,7 +3760,19 @@ class IncidenciasService:
                 row.observacion_soporte = f"{base}\n{linea}".strip() if base else linea
                 observacion_soporte_final = row.observacion_soporte
 
-        if observacion_servicio_in:
+        if editar_ultima_observacion_servicio:
+            # Edicion de la ultima nota de observacion_servicio (ventana de
+            # 15 min, solo el autor) — pedido explicito, jul 2026.
+            base_servicio = str(getattr(row, "observacion_servicio", "") or "").strip()
+            entry = _obs_last_entry(base_servicio)
+            if not _obs_can_edit_entry(entry, usuario):
+                raise ValueError("Ya no puedes editar esta observacion (limite de 15 minutos).")
+            nuevo_texto = observacion_servicio_in.strip()
+            if not nuevo_texto:
+                raise ValueError("La observacion no puede quedar vacia.")
+            row.observacion_servicio = _obs_edit_last_line(base_servicio, entry, usuario, nuevo_texto)
+            observacion_servicio_final = row.observacion_servicio
+        elif observacion_servicio_in:
             base_servicio = str(getattr(row, "observacion_servicio", "") or "").strip()
             nuevo_servicio = observacion_servicio_in.strip()
             if base_servicio:
@@ -3657,12 +3819,16 @@ class IncidenciasService:
             "correo_derivacion": correo_derivacion_result,
         }
 
-    def enviar_multiples_incidencias(self, incidencias: list[IncidenciaNueva]) -> list[str]:
+    def enviar_multiples_incidencias(
+        self,
+        incidencias: list[IncidenciaNueva],
+        usuario_fallback: str | None = None,
+    ) -> list[str]:
         odts_creadas: list[str] = []
         for inc in incidencias:
             if not inc.cliente or not inc.tipo_incidencia:
                 continue
-            odt = self.guardar_incidencia_nueva(inc)
+            odt = self.guardar_incidencia_nueva(inc, usuario_fallback=usuario_fallback)
             odts_creadas.append(odt)
         if not odts_creadas:
             raise ValueError("No se encontrÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³ ninguna incidencia vÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡lida para registrar.")
@@ -3931,6 +4097,13 @@ class IncidenciasService:
             except Exception:
                 return s
 
+        def _fmt_fecha_raw(v: Any) -> str:
+            # Formato parseable por el popover de tiempo (ver detalle_ticket.html),
+            # a diferencia de _fmt_fecha que devuelve dd/mm/yyyy solo para mostrar.
+            if isinstance(v, datetime):
+                return v.strftime("%Y-%m-%d %H:%M:%S")
+            return ""
+
         def _build_direccion_cache() -> dict[str, str]:
             cache: dict[str, str] = {}
 
@@ -4083,6 +4256,8 @@ class IncidenciasService:
                 obs_servicio,
                 str(getattr(r, "observacion_final", "") or "").strip(),
                 envios_info.get(str(r.odt or "").strip(), {"total": 0, "claves": [], "contactos": [], "ultimo_envio": ""}),
+                _fmt_fecha_raw(getattr(r, "fecha_inicio_trabajo", None)),
+                _fmt_fecha_raw(getattr(r, "fecha_fin_trabajo", None)),
             ])
             odt_key = self._normalizar_texto(r.odt)
             if odt_key:
@@ -4124,7 +4299,15 @@ class IncidenciasService:
                     continue
 
                 estado_venta = str(ods.estado or "").strip() or "Pendiente"
-                estado_visible = "Terminado" if bool(getattr(st, "finalizado", False)) else "En Proceso"
+                venta_finalizada = bool(
+                    st
+                    and (
+                        getattr(st, "finalizado", False)
+                        or getattr(st, "instalacion_finalizada", False)
+                        or getattr(st, "fecha_cierre", None)
+                    )
+                )
+                estado_visible = "Terminado" if venta_finalizada else "En Proceso"
                 fecha_ref = (
                     getattr(st, "fecha_recepcion_solicitud_instalacion", None)
                     or getattr(st, "updated_at", None)
@@ -4153,6 +4336,8 @@ class IncidenciasService:
                     "",
                     estado_venta,
                     envios_info.get(str(ods.codigo or "").strip(), {"total": 0, "claves": [], "contactos": [], "ultimo_envio": ""}),
+                    _fmt_fecha_raw(getattr(st, "fecha_inicio_trabajo", None)),
+                    _fmt_fecha_raw(getattr(st, "fecha_fin_trabajo", None)),
                 ])
         return self._filtrar_incidencias_para_tecnico(out, "" if solo_panel_tecnico else tecnico)
 
@@ -6376,6 +6561,7 @@ class IncidenciasService:
         materiales: list[Any] | None = None,
         materiales_sin_uso: bool = False,
         requiere_seguimiento: bool = False,
+        token: str = "",
     ) -> str:
         odt_limpia = (odt or "").strip()
         if not odt_limpia:
@@ -6410,6 +6596,14 @@ class IncidenciasService:
         row.prioridad = None
         if row.fecha_registro:
             row.dias_ejecucion = (row.fecha_cierre.date() - row.fecha_registro.date()).days
+        if row.fecha_inicio_trabajo and not row.fecha_fin_trabajo:
+            row.fecha_fin_trabajo = ahora
+        if (token or "").strip():
+            usuario_token = str(self.get_usuario_actual((token or "").strip()) or "").strip()
+            if usuario_token and usuario_token != "Desconocido":
+                # Quien realmente finalizó la ODT, aunque haya sido derivada
+                # a otro técnico (row.tecnicos no se toca acá).
+                row.tecnico_cierre = usuario_token
         self._marcar_instalacion_venta_finalizada(odt_limpia, ahora)
         self.db.commit()
         self._sync_estado_ticket_soporte_silencioso(
@@ -6506,13 +6700,14 @@ class IncidenciasService:
             st_row = ServicioTecnicoVentaODT(odt=odt_limpia)
             self.db.add(st_row)
 
+        usuario_token = ""
+        if (token or "").strip():
+            usuario_token = str(self.get_usuario_actual((token or "").strip()) or "").strip()
+            if usuario_token == "Desconocido":
+                usuario_token = ""
+
         row = self.db.scalar(select(Registro).where(func.lower(func.trim(Registro.odt)) == odt_limpia.lower()))
         if not row:
-            usuario_token = ""
-            if (token or "").strip():
-                usuario_token = str(self.get_usuario_actual((token or "").strip()) or "").strip()
-                if usuario_token == "Desconocido":
-                    usuario_token = ""
             row = Registro(
                 odt=odt_limpia,
                 fecha_registro=ahora,
@@ -6547,6 +6742,14 @@ class IncidenciasService:
         row.materiales = json.dumps({"sin_uso": True, "items": []}, ensure_ascii=False)
         row.requiere_seguimiento = False
         row.porcentaje_avance = f"{total_camaras if total_camaras > 0 else 100}%"
+        if not row.fecha_inicio_trabajo and getattr(st_row, "fecha_inicio_trabajo", None):
+            row.fecha_inicio_trabajo = st_row.fecha_inicio_trabajo
+        if row.fecha_inicio_trabajo and not row.fecha_fin_trabajo:
+            row.fecha_fin_trabajo = ahora
+        if usuario_token:
+            # Quien realmente cerró la instalación, aunque haya sido derivada
+            # a otro técnico (row.tecnicos no se toca acá).
+            row.tecnico_cierre = usuario_token
         if len(fotos) >= 1:
             row.foto_1 = fotos[0]
         if len(fotos) >= 2:
@@ -6565,7 +6768,12 @@ class IncidenciasService:
 
         st_row.instalacion_finalizada = True
         st_row.fecha_instalacion_finalizada = st_row.fecha_instalacion_finalizada or ahora
+        st_row.finalizado = True
         st_row.fecha_cierre = ahora
+        if not getattr(st_row, "fecha_inicio_trabajo", None) and getattr(row, "fecha_inicio_trabajo", None):
+            st_row.fecha_inicio_trabajo = row.fecha_inicio_trabajo
+        if getattr(st_row, "fecha_inicio_trabajo", None) and not getattr(st_row, "fecha_fin_trabajo", None):
+            st_row.fecha_fin_trabajo = ahora
         self.db.commit()
         drive_enabled = bool(settings.google_drive_enabled)
         if drive_enabled:
@@ -7120,24 +7328,54 @@ class IncidenciasService:
         if not odt_limpia:
             return []
         row_odt = self.db.scalar(select(Registro).where(Registro.odt == odt_limpia))
+        row = self.db.scalar(select(IncidenciaImagenTabla).where(IncidenciaImagenTabla.odt == odt_limpia))
         if self._es_registro_mantencion_preventiva(row_odt):
             sucursal_real = str(getattr(row_odt, "cliente", "") or "").strip()
+            unified_images = [
+                self._normalizar_url_imagen(u) for u in self._parse_image_list(row.imagenes if row else "[]")
+            ]
+            drive_images = list_support_images_for_odt(
+                odt=odt_limpia,
+                root_folder_id=str(settings.google_drive_support_folder_id or "").strip(),
+            )
+            drive_images = [self._normalizar_url_imagen(u) for u in (drive_images or [])]
+
+            merged_odt: list[str] = []
+            for img in [*drive_images, *unified_images]:
+                url = str(img or "").strip()
+                if not url or url in merged_odt:
+                    continue
+                merged_odt.append(url)
+                if len(merged_odt) >= 3:
+                    break
+
+            if merged_odt:
+                if merged_odt != unified_images[:3]:
+                    self._upsert_unified_images(
+                        odt=odt_limpia,
+                        sucursal=sucursal_real,
+                        usuario="sync_mantencion_por_odt",
+                        imagenes=merged_odt,
+                    )
+                    self.db.commit()
+                return merged_odt[:3]
+
             imagenes_sucursal = self._imagenes_programadas_para_sucursal(sucursal_real)
             imagenes_publicas = [
                 self._normalizar_url_imagen(str(url or "").strip())
                 for url in (imagenes_sucursal or [])
                 if self._es_url_publica_imagen(str(url or "").strip())
             ][:3]
-            self._upsert_unified_images(
-                odt=odt_limpia,
-                sucursal=sucursal_real,
-                usuario="sync_mantencion_por_sucursal",
-                imagenes=imagenes_publicas,
-            )
-            self.db.commit()
+            if imagenes_publicas:
+                self._upsert_unified_images(
+                    odt=odt_limpia,
+                    sucursal=sucursal_real,
+                    usuario="sync_mantencion_por_sucursal",
+                    imagenes=imagenes_publicas,
+                )
+                self.db.commit()
             return imagenes_publicas
 
-        row = self.db.scalar(select(IncidenciaImagenTabla).where(IncidenciaImagenTabla.odt == odt_limpia))
         unified_images = [
             self._normalizar_url_imagen(u) for u in self._parse_image_list(row.imagenes if row else "[]")
         ]
@@ -7289,6 +7527,71 @@ class IncidenciasService:
             "drive_folder_name": str(drive_result.get("folder_name") or ""),
         }
 
+    _CIERRE_APERTURA_UPLOADS_DIR = Path(__file__).resolve().parents[2] / "uploads" / "cierre_apertura"
+
+    def guardar_imagen_cierre_apertura(
+        self,
+        client_id: str,
+        client_name: str,
+        content: bytes,
+        token: str = "",
+    ) -> dict[str, Any]:
+        client_id_limpio = (client_id or "").strip()
+        if not client_id_limpio:
+            raise ValueError("client_id es obligatorio.")
+        if not content:
+            raise ValueError("Debes adjuntar una imagen valida.")
+
+        usuario = self.get_usuario_actual((token or "").strip())
+        if not usuario or usuario == "Desconocido":
+            usuario = "Usuario no identificado"
+
+        carpeta_cliente = self._CIERRE_APERTURA_UPLOADS_DIR / re.sub(r"[^A-Za-z0-9_-]+", "_", client_id_limpio)
+        carpeta_cliente.mkdir(parents=True, exist_ok=True)
+
+        ahora = datetime.now()
+        stamp = ahora.strftime("%Y%m%d_%H%M%S")
+        filename = f"{stamp}_{uuid.uuid4().hex[:8]}.png"
+        ruta_absoluta = carpeta_cliente / filename
+        ruta_absoluta.write_bytes(content)
+
+        ruta_relativa = f"cierre_apertura/{carpeta_cliente.name}/{filename}"
+        fila = CierreAperturaImagen(
+            client_id=client_id_limpio,
+            client_name=(client_name or client_id_limpio).strip(),
+            ruta_archivo=ruta_relativa,
+            created_by=usuario,
+            created_at=ahora,
+        )
+        self.db.add(fila)
+        self.db.commit()
+        self.db.refresh(fila)
+
+        return {
+            "ok": True,
+            "id": fila.id,
+            "url": f"/uploads/{ruta_relativa}",
+            "created_at": fila.created_at.isoformat(),
+        }
+
+    def listar_imagenes_cierre_apertura(self, client_id: str = "") -> list[dict[str, Any]]:
+        query = self.db.query(CierreAperturaImagen)
+        client_id_limpio = (client_id or "").strip()
+        if client_id_limpio:
+            query = query.filter(CierreAperturaImagen.client_id == client_id_limpio)
+        filas = query.order_by(CierreAperturaImagen.created_at.desc()).all()
+        return [
+            {
+                "id": fila.id,
+                "client_id": fila.client_id,
+                "client_name": fila.client_name,
+                "url": f"/uploads/{fila.ruta_archivo}",
+                "created_by": fila.created_by or "",
+                "created_at": fila.created_at.isoformat() if fila.created_at else None,
+            }
+            for fila in filas
+        ]
+
     def obtener_informes_cierre_odt(self) -> list[dict[str, Any]]:
         """ODTs con informe de cierre (pdf_url) y/o fotos, para el navegador
         tipo Drive de "Ver informe e imagenes ODT". Solo metadatos livianos;
@@ -7390,6 +7693,76 @@ class IncidenciasService:
 
         return []
 
+    def marcar_inicio_trabajo(self, odt: str, token: str = "") -> str:
+        odt_limpia = (odt or "").strip()
+        if not odt_limpia:
+            raise ValueError("ODT invalida")
+
+        ahora = datetime.now()
+        usuario_token = ""
+        if (token or "").strip():
+            usuario_token = str(self.get_usuario_actual((token or "").strip()) or "").strip()
+            if usuario_token == "Desconocido":
+                usuario_token = ""
+
+        row = self.db.scalar(select(Registro).where(func.lower(func.trim(Registro.odt)) == odt_limpia.lower()))
+        venta_row = self.db.scalar(
+            select(VentaODS).where(func.lower(func.trim(VentaODS.codigo)) == odt_limpia.lower())
+        )
+        st_row = None
+        if venta_row:
+            st_row = self.db.scalar(
+                select(ServicioTecnicoVentaODT).where(
+                    func.lower(func.trim(ServicioTecnicoVentaODT.odt)) == odt_limpia.lower()
+                )
+            )
+            if not st_row:
+                st_row = ServicioTecnicoVentaODT(odt=odt_limpia)
+                self.db.add(st_row)
+
+            if (
+                getattr(st_row, "finalizado", False)
+                or getattr(st_row, "instalacion_finalizada", False)
+                or getattr(st_row, "fecha_cierre", None)
+                or (row and str(getattr(row, "estado", "") or "").strip().lower() in {"terminado", "finalizado"})
+            ):
+                raise ValueError(f"La ODT {odt_limpia} ya esta cerrada.")
+
+            st_row.fecha_inicio_trabajo = getattr(st_row, "fecha_inicio_trabajo", None) or ahora
+            st_row.fecha_fin_trabajo = None
+            if not str(getattr(st_row, "tecnico_a_cargo", "") or "").strip() and usuario_token:
+                st_row.tecnico_a_cargo = usuario_token
+
+        if not row:
+            if not venta_row:
+                raise ValueError(f"No se encontro la ODT {odt_limpia}")
+
+            row = Registro(
+                odt=odt_limpia,
+                fecha_registro=ahora,
+                puesto=None,
+                cliente=str(venta_row.nombre_sucursal or venta_row.razon_social or "").strip()
+                or str(venta_row.razon_social or "").strip(),
+                problema=str(venta_row.tipo_servicio or "").strip() or "Servicio Tecnico",
+                detalle_problema=str(venta_row.observacion or venta_row.consideraciones or "").strip() or None,
+                derivacion="Servicio Técnico",
+                observacion=str(venta_row.observacion or venta_row.consideraciones or "").strip() or None,
+                observacion_soporte=None,
+                observacion_servicio=None,
+                tecnicos=str(getattr(st_row, "tecnico_a_cargo", "") or "").strip() or usuario_token or None,
+                acompanante=str(getattr(st_row, "acompanante", "") or "").strip() or None,
+                estado="En Proceso",
+                fecha_derivacion_area=ahora,
+                fecha_derivacion_tecnico=ahora,
+                direccion=str(venta_row.direccion_sucursal or "").strip() or None,
+            )
+            self.db.add(row)
+
+        row.fecha_inicio_trabajo = row.fecha_inicio_trabajo or ahora
+        row.fecha_fin_trabajo = None
+        self.db.commit()
+        return "OK"
+
     def guardar_datos_en_proceso(self, odt: str, avance: int, observacion: str, token: str = "") -> str:
         odt_limpia = (odt or "").strip()
         if not odt_limpia:
@@ -7461,8 +7834,15 @@ class IncidenciasService:
         nota = f"[{usuario} - {marca}] {observacion.strip()} (Avance: {avance_num}%)"
 
         row.estado = "Pendiente"
+        ahora_fin = datetime.now()
+        if row.fecha_inicio_trabajo and not row.fecha_fin_trabajo:
+            row.fecha_fin_trabajo = ahora_fin
         if not str(getattr(row, "tecnicos", "") or "").strip() and usuario_token:
             row.tecnicos = usuario_token
+        if usuario_token:
+            # Quien realmente dejó la ODT en Pendiente, aunque haya sido
+            # derivada a otro técnico (row.tecnicos no se toca arriba).
+            row.tecnico_cierre = usuario_token
         row.porcentaje_avance = f"{avance_num}%"
         base = (getattr(row, "observacion_pendiente", "") or "").strip()
         row.observacion_pendiente = f"{base}\n{nota}".strip() if base else nota
@@ -7472,14 +7852,16 @@ class IncidenciasService:
         # se sincroniza: evita que "tabla servicio tecnico venta" muestre el
         # ODT sin tecnico mientras "resumen_equipos_tecnicos" si lo muestra.
         tecnico_actual = str(getattr(row, "tecnicos", "") or "").strip()
-        if tecnico_actual:
-            st_sync = self.db.scalar(
-                select(ServicioTecnicoVentaODT).where(
-                    func.lower(func.trim(ServicioTecnicoVentaODT.odt)) == odt_limpia.lower()
-                )
+        st_sync = self.db.scalar(
+            select(ServicioTecnicoVentaODT).where(
+                func.lower(func.trim(ServicioTecnicoVentaODT.odt)) == odt_limpia.lower()
             )
-            if st_sync and not str(st_sync.tecnico_a_cargo or "").strip():
+        )
+        if st_sync:
+            if tecnico_actual and not str(st_sync.tecnico_a_cargo or "").strip():
                 st_sync.tecnico_a_cargo = tecnico_actual
+            if getattr(st_sync, "fecha_inicio_trabajo", None) and not getattr(st_sync, "fecha_fin_trabajo", None):
+                st_sync.fecha_fin_trabajo = ahora_fin
 
         self.db.commit()
         return "OK"
@@ -8670,7 +9052,12 @@ class IncidenciasService:
     @staticmethod
     def _es_url_publica_imagen(valor: str) -> bool:
         txt = str(valor or "").strip().lower()
-        return txt.startswith("http://") or txt.startswith("https://")
+        return (
+            txt.startswith("http://")
+            or txt.startswith("https://")
+            or txt.startswith("/api/incidencias/drive-image/")
+            or txt.startswith("/uploads/")
+        )
 
     def _payloads_imagenes_programadas(self, fuentes: list[str]) -> list[dict[str, object]]:
         payloads: list[dict[str, object]] = []
@@ -9092,6 +9479,7 @@ class IncidenciasService:
         )
         asunto = f"ATC | Derivacion a {derivacion_txt} - {sucursal}"
         logo_atc = self._logo_atc_bytes()
+        cfg_contacto = self._contacto_smtp_runtime_config()
 
         enviados: set[str] = set()
         errores: list[str] = []
@@ -9103,6 +9491,7 @@ class IncidenciasService:
                     cuerpo,
                     html_body=cuerpo_html,
                     logo_bytes=logo_atc,
+                    cfg_override=cfg_contacto,
                 )
                 enviados.add(email.lower())
             except Exception as exc:
@@ -9161,8 +9550,10 @@ class IncidenciasService:
         html_body: str | None = None,
         logo_bytes: bytes | None = None,
         attachments: list[dict[str, Any]] | None = None,
+        cfg_override: dict[str, Any] | None = None,
+        cc_emails: list[str] | None = None,
     ) -> None:
-        cfg = self._smtp_runtime_config()
+        cfg = cfg_override if cfg_override is not None else self._smtp_runtime_config()
         if not cfg["enabled"]:
             raise ValueError("El envio automatico de correo esta deshabilitado (SMTP_ENABLED=false).")
 
@@ -9188,6 +9579,8 @@ class IncidenciasService:
         else:
             msg["From"] = from_email
         msg["To"] = to_email
+        if cc_emails:
+            msg["Cc"] = ", ".join(cc_emails)
         if bcc_emails:
             msg["Bcc"] = ", ".join(bcc_emails)
         msg.set_content(body)
@@ -9326,20 +9719,31 @@ class IncidenciasService:
                 "",
             )
 
+        # EN PAUSA: la cuenta propia (SMTP_VISITA_* / jperez@alguientecuida.cl)
+        # todavia no tiene password configurado, asi que por ahora se sigue
+        # enviando por contacto@alguientecuida.cl, con jperez en copia. Cuando
+        # esa cuenta este lista, cambiar cfg_override a
+        # self._visita_smtp_runtime_config() y sacar jperez de cc_destinatarios.
+        cfg_contacto = self._contacto_smtp_runtime_config()
         emails_enviados: set[str] = set()
         errores_email: list[str] = []
-        for to_email in emails_unicos:
-            try:
-                self._enviar_correo_automatico(
-                    to_email,
-                    asunto,
-                    cuerpo,
-                    html_body=cuerpo_html,
-                    logo_bytes=logo_atc,
-                )
-                emails_enviados.add(to_email.lower())
-            except Exception as exc:
-                errores_email.append(str(exc))
+        # Un solo correo con el resto de los contactos + jperez en copia, en
+        # vez de un correo individual por cada destinatario.
+        to_principal = emails_unicos[0]
+        cc_destinatarios = emails_unicos[1:] + ["jperez@alguientecuida.cl"]
+        try:
+            self._enviar_correo_automatico(
+                to_principal,
+                asunto,
+                cuerpo,
+                html_body=cuerpo_html,
+                logo_bytes=logo_atc,
+                cfg_override=cfg_contacto,
+                cc_emails=cc_destinatarios,
+            )
+            emails_enviados.update(email.lower() for email in emails_unicos)
+        except Exception as exc:
+            errores_email.append(str(exc))
 
         for destino in destinos_pendientes:
             nombre = str(destino.nombre or "").strip()
@@ -9573,6 +9977,7 @@ class IncidenciasService:
             con_imagenes=bool(imagenes),
         )
         logo_atc = self._logo_atc_bytes()
+        cfg_contacto = self._contacto_smtp_runtime_config()
         emails_enviados: set[str] = set()
         errores: list[str] = []
         for email in emails_unicos:
@@ -9587,6 +9992,7 @@ class IncidenciasService:
                     html_body=cuerpo_html,
                     logo_bytes=logo_atc,
                     attachments=imagenes,
+                    cfg_override=cfg_contacto,
                 )
                 emails_enviados.add(email_key)
             except Exception as exc:
@@ -9635,20 +10041,56 @@ class IncidenciasService:
         stmt = (
             select(
                 RegistroCorreoCliente.odt,
-                func.count(RegistroCorreoCliente.id),
-                func.max(RegistroCorreoCliente.fecha_envio),
+                RegistroCorreoCliente.fecha_envio,
+                RegistroCorreoCliente.observacion,
             )
-            .group_by(RegistroCorreoCliente.odt)
-            .order_by(RegistroCorreoCliente.odt)
+            .order_by(RegistroCorreoCliente.odt, RegistroCorreoCliente.fecha_envio, RegistroCorreoCliente.id)
         )
-        return {
-            odt: {"total": total, "ultimo_envio": ultimo_envio}
-            for odt, total, ultimo_envio in self.db.execute(stmt).all()
-        }
+        resumen: dict[str, dict[str, Any]] = {}
+        for odt, fecha_envio, observacion in self.db.execute(stmt).all():
+            odt_key = str(odt or "").strip()
+            if not odt_key:
+                continue
+            obs = str(observacion or "")
+            obs_norm = self._normalizar_texto(obs)
+            estado_correo = self._normalizar_texto(self._extraer_valor_log_envio(obs, "Estado correo"))
+            estado_whatsapp = self._normalizar_texto(self._extraer_valor_log_envio(obs, "Estado WhatsApp"))
+            email = self._extraer_valor_log_envio(obs, "Correo")
+            telefono = self._extraer_valor_log_envio(obs, "Telefono")
+
+            es_correo_enviado = estado_correo == "enviado" and bool(str(email or "").strip())
+            es_mensaje_enviado = estado_whatsapp == "enviado" or (
+                "envio de mensaje" in obs_norm and "enviado" in obs_norm and bool(str(telefono or "").strip())
+            )
+            if not es_correo_enviado and not es_mensaje_enviado:
+                continue
+
+            item = resumen.setdefault(
+                odt_key,
+                {
+                    "cantidad_correos": 0,
+                    "cantidad_mensajes": 0,
+                    "ultimo_correo": None,
+                    "ultimo_mensaje": None,
+                },
+            )
+            if es_correo_enviado:
+                item["cantidad_correos"] = int(item.get("cantidad_correos") or 0) + 1
+                if fecha_envio and (not item.get("ultimo_correo") or fecha_envio > item["ultimo_correo"]):
+                    item["ultimo_correo"] = fecha_envio
+            if es_mensaje_enviado:
+                item["cantidad_mensajes"] = int(item.get("cantidad_mensajes") or 0) + 1
+                if fecha_envio and (not item.get("ultimo_mensaje") or fecha_envio > item["ultimo_mensaje"]):
+                    item["ultimo_mensaje"] = fecha_envio
+
+        for item in resumen.values():
+            item["total"] = int(item.get("cantidad_correos") or 0)
+            item["ultimo_envio"] = item.get("ultimo_correo")
+        return resumen
 
     def obtener_cantidad_correos_por_odt(self) -> dict[str, int]:
         return {
-            odt: int(info.get("total") or 0)
+            odt: int(info.get("cantidad_correos") or info.get("total") or 0)
             for odt, info in self.obtener_resumen_correos_por_odt().items()
         }
 
@@ -9668,10 +10110,12 @@ class IncidenciasService:
                     r.observacion,
                     r.estado,
                     r.observacion_final,
-                    int(correo_info.get("total") or 0),
+                    int(correo_info.get("cantidad_correos") or correo_info.get("total") or 0),
                     getattr(r, "observacion_soporte", "") or "",
                     getattr(r, "observacion_servicio", "") or "",
-                    _to_ddmmyyyy_hhmm(correo_info.get("ultimo_envio")),
+                    _to_ddmmyyyy_hhmm(correo_info.get("ultimo_correo") or correo_info.get("ultimo_envio")),
+                    _to_ddmmyyyy_hhmm(correo_info.get("ultimo_mensaje")),
+                    int(correo_info.get("cantidad_mensajes") or 0),
                 ]
             )
         return out

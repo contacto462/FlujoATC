@@ -9,6 +9,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Registro Supervisor Quintero — {{ month_name }} {{ year }}</title>
+<link rel="stylesheet" href="/static/guardias-informe-preview.css">
 <style>
 :root{
   --bg:#f7f8fa;
@@ -53,6 +54,8 @@ body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:#172124;f
   color:#fff;cursor:pointer;transition:background .15s;
 }
 .hero-nav a:hover,.hero-nav button:hover{background:rgba(255,255,255,.15)}
+.hero-nav a.primary{background:#1d4ed8;border-color:#1d4ed8}
+.hero-nav a.primary:hover{background:#1e40af}
 .hero-nav .month-label{font-size:14px;font-weight:700;min-width:150px;text-align:center;color:#fff}
 
 .legend{
@@ -210,6 +213,122 @@ td.data-cell:hover{background:#e8f1fc !important}
 }
 #toastSv.error{background:#c0392b}
 
+/* ── Advertencia de jornada extendida (6º+ día consecutivo) ── */
+.racha-overlay{
+  position:fixed;inset:0;z-index:400;
+  display:flex;align-items:center;justify-content:center;padding:24px;
+  background:linear-gradient(135deg,rgba(11,20,36,.95),rgba(17,28,47,.95));
+  backdrop-filter:blur(4px);
+  opacity:0;pointer-events:none;
+  transition:opacity .22s ease;
+}
+.racha-overlay.show{opacity:1;pointer-events:auto}
+.racha-card{
+  background:#fff;border-radius:20px;padding:34px 30px 28px;
+  max-width:380px;width:100%;text-align:center;
+  box-shadow:0 24px 60px rgba(0,0,0,.35);
+  transform:scale(.9) translateY(8px);opacity:0;
+  transition:transform .32s cubic-bezier(.34,1.4,.64,1),opacity .28s ease;
+}
+.racha-overlay.show .racha-card{transform:scale(1) translateY(0);opacity:1}
+
+.racha-badge{
+  width:84px;height:84px;border-radius:50%;position:relative;
+  margin:0 auto 20px;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#f59e0b,#b45309);
+  box-shadow:0 10px 24px rgba(180,83,9,.38);
+}
+.racha-card.animate .racha-badge{animation:rachaBadgePop .45s cubic-bezier(.34,1.4,.64,1) .05s both}
+.racha-badge::before{
+  content:"";position:absolute;inset:-7px;border-radius:50%;
+  border:2px solid rgba(245,158,11,.4);opacity:0;
+}
+.racha-card.animate .racha-badge::before{animation:rachaPulse 1.7s ease-out .5s infinite}
+@keyframes rachaBadgePop{0%{transform:scale(0)}65%{transform:scale(1.1)}100%{transform:scale(1)}}
+@keyframes rachaPulse{0%{transform:scale(1);opacity:.65}100%{transform:scale(1.4);opacity:0}}
+
+.racha-icon{width:38px;height:38px;display:block}
+.racha-icon .ring{fill:none;stroke:rgba(255,255,255,.45);stroke-width:2;stroke-dasharray:138;stroke-dashoffset:138}
+.racha-card.animate .racha-icon .ring{animation:rachaRingDraw .45s ease .08s forwards}
+.racha-icon .bang{fill:none;stroke:#fff;stroke-width:4.4;stroke-linecap:round;stroke-dasharray:15;stroke-dashoffset:15}
+.racha-card.animate .racha-icon .bang{animation:rachaDraw .3s ease .38s forwards}
+.racha-icon .dot{fill:#fff;transform:scale(0);transform-origin:24px 34px}
+.racha-card.animate .racha-icon .dot{animation:rachaDotPop .25s cubic-bezier(.34,1.6,.64,1) .58s forwards}
+@keyframes rachaRingDraw{to{stroke-dashoffset:0}}
+@keyframes rachaDraw{to{stroke-dashoffset:0}}
+@keyframes rachaDotPop{to{transform:scale(1)}}
+
+.racha-title{font-size:19px;font-weight:900;color:#172124;margin:0 0 6px;letter-spacing:-.01em;opacity:0}
+.racha-card.animate .racha-title{animation:rachaFadeUp .3s ease .28s forwards}
+.racha-subtitle{font-size:13.5px;color:#607176;line-height:1.5;margin:0;opacity:0}
+.racha-card.animate .racha-subtitle{animation:rachaFadeUp .3s ease .35s forwards}
+
+.racha-meta{
+  margin-top:16px;padding:12px 14px;border-radius:12px;
+  background:#fffbeb;border:1px solid #fcd34d;
+  display:grid;gap:5px;text-align:left;font-size:12.5px;color:#92400e;
+  opacity:0;
+}
+.racha-card.animate .racha-meta{animation:rachaFadeUp .3s ease .42s forwards}
+.racha-meta .racha-row{display:flex;justify-content:space-between;gap:10px}
+.racha-meta strong{color:#172124;font-weight:800}
+
+.racha-notify{
+  margin-top:12px;display:flex;align-items:center;justify-content:center;gap:6px;
+  font-size:11.5px;color:#78350f;font-weight:700;opacity:0;
+}
+.racha-card.animate .racha-notify{animation:rachaFadeUp .3s ease .48s forwards}
+.racha-notify svg{width:13px;height:13px;flex-shrink:0}
+
+.racha-actions{margin-top:20px;display:flex;gap:10px;opacity:0}
+.racha-card.animate .racha-actions{animation:rachaFadeUp .3s ease .54s forwards}
+.racha-actions button{
+  flex:1;min-height:44px;border:none;border-radius:10px;
+  font:inherit;font-size:13.5px;font-weight:800;cursor:pointer;
+  transition:filter .15s,transform .1s;
+}
+.racha-actions button:active{transform:scale(.97)}
+.racha-btn-cancel{background:#e7eef0;color:#213338}
+.racha-btn-cancel:hover{background:#dde6e8}
+.racha-btn-confirm{background:linear-gradient(135deg,#f59e0b,#b45309);color:#fff}
+.racha-btn-confirm:hover{filter:brightness(1.06)}
+.racha-btn-confirm:focus-visible,.racha-btn-cancel:focus-visible{outline:2px solid #1d4ed8;outline-offset:2px}
+
+@keyframes rachaFadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* Variante roja: confirmación de eliminar */
+.racha-badge.badge-danger{background:linear-gradient(135deg,#ef4444,#b91c1c);box-shadow:0 10px 24px rgba(185,28,28,.36)}
+.racha-badge.badge-danger::before{border-color:rgba(239,68,68,.4)}
+.racha-btn-confirm.btn-danger{background:linear-gradient(135deg,#ef4444,#b91c1c)}
+
+/* ── Toast de éxito: "¡Registrado!" ── */
+.saved-toast{
+  position:fixed;top:24px;left:50%;
+  transform:translateX(-50%) translateY(-14px);
+  z-index:500;
+  background:#fff;border-radius:16px;
+  padding:12px 20px 12px 12px;
+  display:flex;align-items:center;gap:12px;
+  box-shadow:0 16px 40px rgba(0,0,0,.2);
+  opacity:0;pointer-events:none;
+  transition:opacity .22s ease,transform .3s cubic-bezier(.22,1,.36,1);
+}
+.saved-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.saved-badge{
+  width:36px;height:36px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#2fbf7e,#1f7a4d);
+  box-shadow:0 4px 10px rgba(31,122,77,.35);
+}
+.saved-toast.show .saved-badge{animation:rachaBadgePop .4s cubic-bezier(.3,1.2,.5,1) .02s both}
+.saved-icon{width:17px;height:17px;display:block}
+.saved-icon path{fill:none;stroke:#fff;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:20;stroke-dashoffset:20}
+.saved-toast.show .saved-icon path{animation:rachaDraw .3s ease .18s forwards}
+.saved-copy{display:flex;flex-direction:column;gap:1px;text-align:left}
+.saved-title{font-size:13.5px;font-weight:900;color:#172124;line-height:1.3}
+.saved-subtitle{font-size:11.5px;color:#607176;line-height:1.3}
+
 @media print{
   body{background:white}
   .page-hero{background:#0b1424!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -236,6 +355,11 @@ td.data-cell:hover{background:#e8f1fc !important}
     <a href="/guardia/tabla-supervisor?year={{ prev_y }}&month={{ prev_m }}&grupo={{ grupo|default('quintero')|urlencode }}&origen={{ origen|default('supervisores') }}">&#8249;</a>
     <span class="month-label">{{ month_name }} {{ year }}</span>
     <a href="/guardia/tabla-supervisor?year={{ next_y }}&month={{ next_m }}&grupo={{ grupo|default('quintero')|urlencode }}&origen={{ origen|default('supervisores') }}">&#8250;</a>
+    <button class="informe-preview-trigger" type="button"
+            data-informe-preview="/guardia/tabla-supervisor/informes/preview?year={{ year }}&month={{ month }}&grupo={{ grupo|default('quintero')|urlencode }}"
+            data-informe-download="/guardia/tabla-supervisor/informes?year={{ year }}&month={{ month }}&grupo={{ grupo|default('quintero')|urlencode }}"
+            data-informe-title="Vista previa - Registro supervisor">Vista previa</button>
+    <a class="primary" href="/guardia/tabla-supervisor/informes?year={{ year }}&month={{ month }}&grupo={{ grupo|default('quintero')|urlencode }}">Descargar informe</a>
   </div>
 </header>
 
@@ -309,8 +433,18 @@ td.data-cell:hover{background:#e8f1fc !important}
       <div><span style="font-weight:700;color:#607176">Supervisor:</span> <span id="dSupervisor"></span></div>
     </div>
     <div id="dNotasWrap" style="display:none">
-      <div style="font-weight:700;font-size:12px;color:#607176;margin-bottom:4px">Observaciones</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div style="font-weight:700;font-size:12px;color:#607176">Observaciones</div>
+        <button type="button" id="btnEditNotas" style="background:none;border:none;cursor:pointer;font-size:12px;font-weight:700;color:#1d4ed8;padding:2px 4px">✎ Editar</button>
+      </div>
       <div id="dNotas" style="background:#f5f8f9;border:1px solid #d4dee1;border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.5;white-space:pre-wrap"></div>
+      <div id="dNotasEditWrap" style="display:none">
+        <textarea id="dNotasEdit" style="width:100%;min-height:70px;background:#f5f8f9;border:1px solid #d4dee1;border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.5;font-family:inherit;resize:vertical;box-sizing:border-box"></textarea>
+        <div style="display:flex;gap:8px;margin-top:6px;justify-content:flex-end">
+          <button type="button" class="btn-cancel" id="btnCancelarNotas" style="padding:4px 12px;font-size:12px">Cancelar</button>
+          <button type="button" class="btn-save" id="btnGuardarNotas" style="padding:4px 12px;font-size:12px">Guardar</button>
+        </div>
+      </div>
     </div>
     <div class="modal-actions" style="margin-top:4px">
       <button class="btn-cancel" onclick="document.getElementById('overlayDetalle').classList.remove('open')">Cerrar</button>
@@ -372,6 +506,69 @@ td.data-cell:hover{background:#e8f1fc !important}
       <button class="btn-cancel" id="btnCancelarJust" type="button">Cancelar</button>
       <button class="btn-save" id="btnGuardarJust" type="button" style="display:none">Confirmar reemplazo</button>
     </div>
+  </div>
+</div>
+
+<!-- Advertencia: jornada extendida (6º+ día consecutivo) -->
+<div class="racha-overlay" id="overlayRacha" role="alertdialog" aria-modal="true" aria-labelledby="rachaTitle" aria-describedby="rachaSubtitleText">
+  <div class="racha-card">
+    <div class="racha-badge">
+      <svg class="racha-icon" viewBox="0 0 48 48" aria-hidden="true">
+        <circle class="ring" cx="24" cy="24" r="22"></circle>
+        <path class="bang" d="M24 13v14"></path>
+        <circle class="dot" cx="24" cy="34" r="2.4"></circle>
+      </svg>
+    </div>
+    <h2 class="racha-title" id="rachaTitle">Jornada extendida</h2>
+    <p class="racha-subtitle" id="rachaSubtitleText"></p>
+    <div class="racha-meta">
+      <div class="racha-row"><span>Guardia</span><strong id="rachaMetaNombre"></strong></div>
+      <div class="racha-row"><span>Este registro sería el</span><strong id="rachaMetaDias"></strong></div>
+    </div>
+    <div class="racha-notify">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 3a6 6 0 0 0-6 6c0 3.6-1.4 5.2-2 6.2A1 1 0 0 0 4.8 17h14.4a1 1 0 0 0 .8-1.8c-.6-1-2-2.6-2-6.2a6 6 0 0 0-6-6Z"></path>
+        <path d="M9.5 19a2.6 2.6 0 0 0 5 0"></path>
+      </svg>
+      Se notificará automáticamente a jefatura
+    </div>
+    <div class="racha-actions">
+      <button type="button" class="racha-btn-cancel" id="rachaBtnCancelar">Cancelar</button>
+      <button type="button" class="racha-btn-confirm" id="rachaBtnConfirmar">Sí, registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirmación: eliminar registro -->
+<div class="racha-overlay" id="overlayEliminar" role="alertdialog" aria-modal="true" aria-labelledby="elimTitle" aria-describedby="elimSubtitleText">
+  <div class="racha-card">
+    <div class="racha-badge badge-danger">
+      <svg class="racha-icon" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 7h16"></path>
+        <path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+        <path d="M6 7l1 12.5A2 2 0 0 0 9 21h6a2 2 0 0 0 2-1.5L18 7"></path>
+        <path d="M10 11v6M14 11v6"></path>
+      </svg>
+    </div>
+    <h2 class="racha-title" id="elimTitle">¿Eliminar este registro?</h2>
+    <p class="racha-subtitle" id="elimSubtitleText"></p>
+    <div class="racha-actions">
+      <button type="button" class="racha-btn-cancel" id="elimBtnCancelar">Cancelar</button>
+      <button type="button" class="racha-btn-confirm btn-danger" id="elimBtnConfirmar">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast de éxito: registro guardado -->
+<div class="saved-toast" id="savedToast" role="status" aria-live="polite">
+  <div class="saved-badge">
+    <svg class="saved-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M5 12.5l4.5 4.5L19 7.5"></path>
+    </svg>
+  </div>
+  <div class="saved-copy">
+    <div class="saved-title">¡Registrado!</div>
+    <div class="saved-subtitle" id="savedToastSubtitle"></div>
   </div>
 </div>
 
@@ -542,6 +739,68 @@ function recintoCorto(s) {
   return (partes[partes.length - 1] || "").trim() || String(s || "");
 }
 
+function _abrirConfirmModal(overlayId, btnCancelarId, btnConfirmarId) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById(overlayId);
+    const card = overlay.querySelector(".racha-card");
+    const btnCancelar  = document.getElementById(btnCancelarId);
+    const btnConfirmar = document.getElementById(btnConfirmarId);
+    const prevFocus = document.activeElement;
+
+    const cerrar = (resultado) => {
+      overlay.classList.remove("show");
+      card.classList.remove("animate");
+      btnCancelar.removeEventListener("click", onCancelar);
+      btnConfirmar.removeEventListener("click", onConfirmar);
+      document.removeEventListener("keydown", onKeydown);
+      if (prevFocus && typeof prevFocus.focus === "function") prevFocus.focus();
+      resolve(resultado);
+    };
+    const onCancelar = () => cerrar(false);
+    const onConfirmar = () => cerrar(true);
+    const onKeydown = (e) => {
+      if (e.key === "Escape") { e.preventDefault(); cerrar(false); }
+      if (e.key === "Enter")  { e.preventDefault(); cerrar(true); }
+    };
+    btnCancelar.addEventListener("click", onCancelar);
+    btnConfirmar.addEventListener("click", onConfirmar);
+    document.addEventListener("keydown", onKeydown);
+
+    // Reinicia la animación de entrada cada vez que se abre (no solo la primera)
+    card.classList.remove("animate");
+    overlay.classList.add("show");
+    void card.offsetWidth;
+    card.classList.add("animate");
+    setTimeout(() => btnCancelar.focus(), 60);
+  });
+}
+
+function mostrarConfirmRacha(nombre, dias) {
+  document.getElementById("rachaSubtitleText").textContent =
+    "Este registro dejaría a " + nombre + " con " + dias + " días seguidos trabajados, sin descanso.";
+  document.getElementById("rachaMetaNombre").textContent = nombre;
+  document.getElementById("rachaMetaDias").textContent = dias + "º día seguido";
+  return _abrirConfirmModal("overlayRacha", "rachaBtnCancelar", "rachaBtnConfirmar");
+}
+
+function mostrarConfirmEliminar(nombre) {
+  document.getElementById("elimSubtitleText").textContent = nombre
+    ? "Se eliminará el registro de " + nombre + " para este día. Esta acción no se puede deshacer."
+    : "Esta acción no se puede deshacer.";
+  return _abrirConfirmModal("overlayEliminar", "elimBtnCancelar", "elimBtnConfirmar");
+}
+
+let _savedToastTimer = null;
+function mostrarRegistrado(nombre, turno) {
+  const toast = document.getElementById("savedToast");
+  document.getElementById("savedToastSubtitle").textContent = nombre + " · " + turno;
+  toast.classList.remove("show");
+  void toast.offsetWidth;
+  toast.classList.add("show");
+  clearTimeout(_savedToastTimer);
+  _savedToastTimer = setTimeout(() => toast.classList.remove("show"), 1700);
+}
+
 function abrirModal(td) {
   _celda = td;
   _nombreGuardia = null;
@@ -572,13 +831,30 @@ document.getElementById("btnGuardar").addEventListener("click", async () => {
   if (!_celda) return;
   const nombre = _nombreGuardia || document.getElementById("mNombre").value.trim();
   if (!nombre) { document.getElementById("mNombre").focus(); return; }
+  if (!_rutGuardia && !_nombreGuardia) {
+    mostrarToastSv("Selecciona un guardia válido desde la lista.");
+    document.getElementById("mNombre").focus();
+    return;
+  }
+
+  const fechaPayload = _celda.dataset.year + "-" + _celda.dataset.month + "-" + String(_celda.dataset.day).padStart(2,"0");
+  try {
+    const rRacha = await fetch("/api/guardia/racha?nombre=" + encodeURIComponent(nombre) + "&fecha=" + encodeURIComponent(fechaPayload));
+    if (rRacha.ok) {
+      const dRacha = await rRacha.json();
+      if (dRacha.dias_consecutivos >= 6) {
+        const seguir = await mostrarConfirmRacha(nombre, dRacha.dias_consecutivos);
+        if (!seguir) return;
+      }
+    }
+  } catch (err) { /* si falla la verificación de racha, no bloquea el guardado */ }
 
   const btn = document.getElementById("btnGuardar");
   btn.disabled = true; btn.textContent = "Guardando…";
 
   const payload = {
     recinto:        _celda.dataset.recinto,
-    fecha:          _celda.dataset.year + "-" + _celda.dataset.month + "-" + String(_celda.dataset.day).padStart(2,"0"),
+    fecha:          fechaPayload,
     nombre_guardia: nombre,
     rut:            _rutGuardia,
     tipo_turno:     document.getElementById("mTurno").value,
@@ -594,6 +870,7 @@ document.getElementById("btnGuardar").addEventListener("click", async () => {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || "Error al guardar");
+    const nombreGuardado = data.nombre || nombre;
 
     const turnoClass = "entry-" + payload.tipo_turno.toLowerCase().replace(/ /g, "-");
     const div = document.createElement("div");
@@ -602,11 +879,12 @@ document.getElementById("btnGuardar").addEventListener("click", async () => {
     div.dataset.turno = payload.tipo_turno;
     div.dataset.supervisor = payload.supervisor;
     div.dataset.notas = payload.notas;
-    div.innerHTML = `<span class="entry-nombre" onclick="verDetalle(this.closest('.entry'))">${escHtml(nombre)}</span>
+    div.innerHTML = `<span class="entry-nombre" onclick="verDetalle(this.closest('.entry'))">${escHtml(nombreGuardado)}</span>
       <button class="del-btn" title="Eliminar" onclick="eliminar(event,${data.id})">✕</button>`;
     _celda.querySelector(".entries").appendChild(div);
     cerrarModal();
     refreshGhosts();
+    mostrarRegistrado(nombreGuardado, payload.tipo_turno);
   } catch(err) {
     mostrarToastSv("Error: " + err.message);
   } finally {
@@ -616,8 +894,10 @@ document.getElementById("btnGuardar").addEventListener("click", async () => {
 
 async function eliminar(event, id) {
   event.stopPropagation();
-  if (!confirm("¿Eliminar este registro?")) return;
   const chip = event.target.closest(".entry");
+  const nombreChip = chip ? (chip.querySelector(".entry-nombre")?.textContent || "").trim() : "";
+  const seguir = await mostrarConfirmEliminar(nombreChip);
+  if (!seguir) return;
   try {
     const res = await fetch("/api/guardia/supervisor-registro/" + id, { method: "DELETE" });
     if (!res.ok) { const d = await res.json(); throw new Error(d.detail); }
@@ -650,12 +930,57 @@ function verDetalle(entry) {
   } else {
     notasWrap.style.display = "none";
   }
+  _mostrarNotasView();
   document.getElementById("overlayDetalle").classList.add("open");
 }
 
 document.getElementById("overlayDetalle").addEventListener("click", e => {
   if (e.target === document.getElementById("overlayDetalle"))
     document.getElementById("overlayDetalle").classList.remove("open");
+});
+
+function _mostrarNotasView() {
+  document.getElementById("dNotas").style.display = "block";
+  document.getElementById("dNotasEditWrap").style.display = "none";
+  document.getElementById("btnEditNotas").style.display = "";
+}
+
+document.getElementById("btnEditNotas").addEventListener("click", () => {
+  document.getElementById("dNotasEdit").value = (_entryDetalle && _entryDetalle.dataset.notas) || "";
+  document.getElementById("dNotas").style.display = "none";
+  document.getElementById("dNotasEditWrap").style.display = "block";
+  document.getElementById("btnEditNotas").style.display = "none";
+  document.getElementById("dNotasEdit").focus();
+});
+
+document.getElementById("btnCancelarNotas").addEventListener("click", _mostrarNotasView);
+
+document.getElementById("btnGuardarNotas").addEventListener("click", async () => {
+  if (!_entryDetalle) return;
+  const nuevaNota = document.getElementById("dNotasEdit").value.trim();
+  const id = _entryDetalle.dataset.id;
+  const btn = document.getElementById("btnGuardarNotas");
+  btn.disabled = true; btn.textContent = "Guardando…";
+  try {
+    const res = await fetch("/api/guardia/supervisor-registro/" + id, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notas: nuevaNota }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Error al guardar");
+    _entryDetalle.dataset.notas = nuevaNota;
+    if (nuevaNota) {
+      document.getElementById("dNotas").textContent = nuevaNota;
+      _mostrarNotasView();
+    } else {
+      document.getElementById("dNotasWrap").style.display = "none";
+    }
+  } catch(err) {
+    mostrarToastSv("Error: " + err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = "Guardar";
+  }
 });
 
 // ── Justificación: motivo + reemplazar guardia y dejar nota automática ──
@@ -880,12 +1205,23 @@ function refreshGhosts() {
 async function aceptarGhost(g, td, s) {
   const key = td.dataset.recinto + "|" + td.dataset.day + "|" + s.nombre;
   if (_GHOST_SAVING.has(key)) return;
+  const fechaGhost = td.dataset.year + "-" + td.dataset.month + "-" + String(td.dataset.day).padStart(2, "0");
+  try {
+    const rRacha = await fetch("/api/guardia/racha?nombre=" + encodeURIComponent(s.nombre) + "&fecha=" + encodeURIComponent(fechaGhost));
+    if (rRacha.ok) {
+      const dRacha = await rRacha.json();
+      if (dRacha.dias_consecutivos >= 6) {
+        const seguir = await mostrarConfirmRacha(s.nombre, dRacha.dias_consecutivos);
+        if (!seguir) return;
+      }
+    }
+  } catch (err) { /* si falla la verificación de racha, no bloquea el guardado */ }
   _GHOST_SAVING.add(key);
   g.style.pointerEvents = "none";
   g.style.opacity = ".35";
   const payload = {
     recinto:        td.dataset.recinto,
-    fecha:          td.dataset.year + "-" + td.dataset.month + "-" + String(td.dataset.day).padStart(2, "0"),
+    fecha:          fechaGhost,
     nombre_guardia: s.nombre,
     rut:            "",
     tipo_turno:     s.turno,
@@ -900,16 +1236,18 @@ async function aceptarGhost(g, td, s) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || "Error al guardar");
+    const nombreGuardado = data.nombre || s.nombre;
     const div = document.createElement("div");
     div.className = "entry entry-" + payload.tipo_turno.toLowerCase().replace(/ /g, "-");
     div.dataset.id = data.id;
     div.dataset.turno = payload.tipo_turno;
     div.dataset.supervisor = payload.supervisor;
     div.dataset.notas = payload.notas;
-    div.innerHTML = `<span class="entry-nombre" onclick="verDetalle(this.closest('.entry'))">${escHtml(s.nombre)}</span>
+    div.innerHTML = `<span class="entry-nombre" onclick="verDetalle(this.closest('.entry'))">${escHtml(nombreGuardado)}</span>
       <button class="del-btn" title="Eliminar" onclick="eliminar(event,${data.id})">✕</button>`;
     g.replaceWith(div);
     refreshGhosts();
+    mostrarRegistrado(nombreGuardado, payload.tipo_turno);
   } catch (err) {
     mostrarToastSv("Error: " + err.message);
     g.style.pointerEvents = "";
@@ -966,6 +1304,7 @@ renderGhosts();
 <div style="height:46px"></div>
 {% endif %}
   <script src="/static/atc-logo-home.js"></script>
+  <script src="/static/guardias-informe-preview.js"></script>
   <script>
   </script>
 <script src="/static/atc-volver.js"></script>

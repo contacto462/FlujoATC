@@ -257,6 +257,51 @@
     .btn-submit:active { transform: translateY(0); }
     .btn-submit:disabled { opacity: .5; cursor: not-allowed; transform: none; }
 
+    .btn-danger {
+      margin-top: 12px;
+      width: 100%;
+      height: 46px;
+      background: #fff;
+      color: #dc2626;
+      border: 1.5px solid #dc2626;
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-size: 14.5px;
+      font-weight: 700;
+      letter-spacing: -.01em;
+      cursor: pointer;
+      transition: background .15s, color .15s, transform .12s;
+    }
+    .btn-danger:hover { background: #dc2626; color: #fff; transform: translateY(-1px); }
+    .btn-danger:active { transform: translateY(0); }
+    .btn-danger:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    /* ── Modal de confirmación (mismo patrón que registro_supervisor_privado.html) ── */
+    .confirm-overlay {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(11,20,32,.55); backdrop-filter: blur(6px);
+      display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    .confirm-overlay.open { display: flex; }
+    .confirm-modal {
+      width: min(420px, 100%);
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 24px 60px rgba(0,0,0,.25);
+      padding: 24px;
+      display: grid;
+      gap: 14px;
+    }
+    .confirm-modal h2 { font-size: 17px; font-weight: 800; color: var(--text); }
+    .confirm-modal p { font-size: 13.5px; color: var(--muted); line-height: 1.5; }
+    .confirm-actions { display: flex; gap: 10px; }
+    .confirm-actions button {
+      flex: 1; min-height: 44px; border: none; border-radius: var(--radius);
+      font: inherit; font-size: 14px; font-weight: 800; cursor: pointer;
+    }
+    .confirm-btn-cancel { background: #e7eef0; color: #213338; }
+    .confirm-btn-danger { background: linear-gradient(135deg, var(--danger), #991b1b); color: #fff; }
+
     .feedback {
       margin-top: 14px;
       padding: 12px 14px;
@@ -493,11 +538,23 @@
             </select>
           </div>
 
+          <button class="btn-danger" id="btnEliminar" onclick="eliminarGuardia()">Eliminar</button>
           <button class="btn-submit" id="btnActualizar" onclick="actualizarGuardia()">Guardar cambios</button>
           <div class="feedback" id="feedbackEditar"></div>
         </div>
       </div>
     </main>
+  </div>
+
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-modal">
+      <h2>Eliminar guardia</h2>
+      <p id="confirmMensaje"></p>
+      <div class="confirm-actions">
+        <button type="button" class="confirm-btn-cancel" id="confirmCancelar">Cancelar</button>
+        <button type="button" class="confirm-btn-danger" id="confirmAceptar">Eliminar</button>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -586,6 +643,12 @@
       }
     }
 
+    function esc(value) {
+      return String(value ?? "").replace(/[&<>"']/g, (c) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+      }[c]));
+    }
+
     function renderGuardiaList(items) {
       const lista = document.getElementById("guardiaList");
       if (!items.length) {
@@ -595,10 +658,10 @@
       lista.innerHTML = items.map(g => `
         <div class="guardia-item${_guardiaSeleccionado === g.id ? ' active' : ''}" onclick="seleccionarGuardia(${g.id})">
           <div class="guardia-item-info">
-            <div class="guardia-item-nombre">${g.nombre}</div>
-            <div class="guardia-item-meta">${g.rut}</div>
+            <div class="guardia-item-nombre">${esc(g.nombre)}</div>
+            <div class="guardia-item-meta">${esc(g.rut)}</div>
           </div>
-          ${g.tipo_contrato ? `<span class="guardia-item-tipo">${g.tipo_contrato}</span>` : ""}
+          ${g.tipo_contrato ? `<span class="guardia-item-tipo">${esc(g.tipo_contrato)}</span>` : ""}
         </div>
       `).join("");
     }
@@ -674,6 +737,67 @@
       } finally {
         btnAct.disabled = false;
         btnAct.textContent = "Guardar cambios";
+      }
+    }
+
+    function pedirConfirmacion(mensaje) {
+      return new Promise((resolve) => {
+        const overlay = document.getElementById("confirmOverlay");
+        const btnOk = document.getElementById("confirmAceptar");
+        const btnCancel = document.getElementById("confirmCancelar");
+        document.getElementById("confirmMensaje").textContent = mensaje;
+        overlay.classList.add("open");
+
+        function cerrar(resultado) {
+          overlay.classList.remove("open");
+          btnOk.removeEventListener("click", onOk);
+          btnCancel.removeEventListener("click", onCancel);
+          overlay.removeEventListener("click", onOverlayClick);
+          resolve(resultado);
+        }
+        function onOk() { cerrar(true); }
+        function onCancel() { cerrar(false); }
+        function onOverlayClick(e) { if (e.target === overlay) cerrar(false); }
+
+        btnOk.addEventListener("click", onOk);
+        btnCancel.addEventListener("click", onCancel);
+        overlay.addEventListener("click", onOverlayClick);
+      });
+    }
+
+    async function eliminarGuardia() {
+      if (!_guardiaSeleccionado) return;
+      const g = _guardias.find(x => x.id === _guardiaSeleccionado);
+      const fbEdit = document.getElementById("feedbackEditar");
+      const btnDel = document.getElementById("btnEliminar");
+
+      const confirmado = await pedirConfirmacion(
+        `¿Eliminar a ${g ? g.nombre : "este guardia"}? Esta acción también elimina su usuario y no se puede deshacer.`
+      );
+      if (!confirmado) return;
+
+      btnDel.disabled = true;
+      btnDel.textContent = "Eliminando…";
+      fbEdit.className = "feedback";
+
+      try {
+        const res = await fetch(`/api/inicio-turno/guardias/${_guardiaSeleccionado}`, { method: "DELETE" });
+        const data = await res.json();
+        if (!res.ok) {
+          fbEdit.textContent = data.detail || "Error al eliminar.";
+          fbEdit.className = "feedback err";
+        } else {
+          _guardias = _guardias.filter(x => x.id !== _guardiaSeleccionado);
+          _guardiaSeleccionado = null;
+          document.getElementById("editForm").classList.remove("visible");
+          renderGuardiaList(_guardiaActuales());
+        }
+      } catch (e) {
+        fbEdit.textContent = "Error de red. Intenta de nuevo.";
+        fbEdit.className = "feedback err";
+      } finally {
+        btnDel.disabled = false;
+        btnDel.textContent = "Eliminar";
       }
     }
 

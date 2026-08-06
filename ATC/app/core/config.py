@@ -80,6 +80,7 @@ class Settings(BaseSettings):
     WA_VERIFY_TOKEN: Optional[str] = None
     WA_ACCESS_TOKEN: Optional[str] = None
     WA_PHONE_NUMBER_ID: Optional[str] = None
+    WA_APP_SECRET: Optional[str] = None
 
     # ==============================
     # GOOGLE DRIVE / DOCS (Helpdesk)
@@ -124,6 +125,17 @@ class Settings(BaseSettings):
     smtp2_use_tls: bool = True
     smtp2_use_ssl: bool = False
     smtp2_timeout_sec: int = 20
+
+    # SMTP informes/protocolos y visualizacion de camaras
+    smtp_informe_host: str = ""
+    smtp_informe_port: int = 587
+    smtp_informe_username: str = ""
+    smtp_informe_password: str = ""
+    smtp_informe_from_email: str = ""
+    smtp_informe_from_name: str = "Alguien Te Cuida"
+    smtp_informe_use_tls: bool = True
+    smtp_informe_use_ssl: bool = False
+    smtp_informe_timeout_sec: int = 20
 
     # ==============================
     # IA (OpenAI / Anthropic)

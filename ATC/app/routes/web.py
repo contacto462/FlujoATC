@@ -16,7 +16,7 @@ import unicodedata
 
 from email.utils import parseaddr
 
-from urllib.parse import urlencode
+from urllib.parse import parse_qsl, urlencode, urlsplit
 from pathlib import Path
 
 from fastapi import APIRouter, Body, Depends, Request, Form, HTTPException, Query, File, UploadFile
@@ -106,7 +106,7 @@ _TZ_LOCAL = ZoneInfo("America/Santiago")
 router = APIRouter(tags=["web"])
 
 _ATC_APP_DIR = Path(__file__).resolve().parents[1]
-_jinja_env = _Jinja2Env(loader=_FSLoader([str(_ATC_APP_DIR / "templates")]))
+_jinja_env = _Jinja2Env(loader=_FSLoader([str(_ATC_APP_DIR / "templates")]), autoescape=True)
 
 # Ruta absoluta al logo para imagenes inline (cid:) en correos: una ruta
 # relativa como "static/img/logo-atc.png" depende del cwd del proceso y
@@ -169,6 +169,9 @@ def _ticket_support_mailboxes() -> set[str]:
 
 RESTRICTED_SUPPORT_MAILBOX = "soporte@alguientecuida.cl"
 RONALD_MONTILLA_RUTS = {"26332060-3", "26.332.060-3", "263320603"}
+# Pedido explicito, jul 2026: Fernando tambien debe ver TODOS los tickets del
+# buzon restringido soporte@alguientecuida.cl, igual que Ronald Montilla.
+FERNANDO_LUBIANO_RUTS = {"21134285-4", "21.134.285-4", "211342854"}
 
 
 def _is_ronald_montilla_user(user: User | None) -> bool:
@@ -187,8 +190,28 @@ def _is_ronald_montilla_user(user: User | None) -> bool:
     ) or any(rut.replace(".", "").replace("-", "").casefold() in digits for rut in RONALD_MONTILLA_RUTS)
 
 
+def _is_fernando_lubiano_user(user: User | None) -> bool:
+    if not user:
+        return False
+    raw_values = [
+        getattr(user, "username", None),
+        getattr(user, "name", None),
+        getattr(user, "email", None),
+    ]
+    joined = " ".join(str(value or "") for value in raw_values).strip().casefold()
+    digits = re.sub(r"[^0-9kK]", "", joined).casefold()
+    return (
+        "fernando" in joined
+        and "lubiano" in joined
+    ) or any(rut.replace(".", "").replace("-", "").casefold() in digits for rut in FERNANDO_LUBIANO_RUTS)
+
+
+def _has_unrestricted_support_mailbox_access(user: User | None) -> bool:
+    return _is_ronald_montilla_user(user) or _is_fernando_lubiano_user(user)
+
+
 def _apply_ticket_visibility_for_user(query, user: User):
-    if _is_ronald_montilla_user(user):
+    if _has_unrestricted_support_mailbox_access(user):
         return query
     restricted = RESTRICTED_SUPPORT_MAILBOX.casefold()
     return query.filter(
@@ -206,7 +229,7 @@ def _can_view_ticket(ticket: Ticket | None, user: User) -> bool:
     mailbox = str(getattr(ticket, "inbound_mailbox", "") or "").strip().casefold()
     if mailbox != RESTRICTED_SUPPORT_MAILBOX:
         return True
-    return _is_ronald_montilla_user(user) or int(ticket.assigned_to_id or 0) == int(user.id or 0)
+    return _has_unrestricted_support_mailbox_access(user) or int(ticket.assigned_to_id or 0) == int(user.id or 0)
 
 
 def _strip_ticket_thread_tail_for_display(content: str, *, ticket_id: int) -> str:
@@ -321,16 +344,23 @@ def _extract_saved_email_copy_recipients(ticket: Ticket) -> list[str]:
 def _resolve_ticket_email_recipients(
     ticket: Ticket,
     *,
+    to: str | None = "",
     cc: str | None = "",
     bcc: str | None = "",
 ) -> tuple[list[str], list[str], list[str]]:
-    requester_email = (ticket.requester.email if ticket.requester and ticket.requester.email else "").strip()
-    if not requester_email:
-        raise ValueError("El ticket no tiene correo del solicitante para responder.")
+    to_override = (to or "").strip()
+    if to_override:
+        # El agente cambio el destinatario a mano para este envio puntual —
+        # no toca el email guardado del solicitante (pedido explicito, jul 2026).
+        to_recipients = _parse_recipient_list(to_override, field_name="destinatario")
+    else:
+        requester_email = (ticket.requester.email if ticket.requester and ticket.requester.email else "").strip()
+        if not requester_email:
+            raise ValueError("El ticket no tiene correo del solicitante para responder.")
+        to_recipients = _parse_recipient_list(requester_email, field_name="correo del cliente")
 
-    to_recipients = _parse_recipient_list(requester_email, field_name="correo del cliente")
     if not to_recipients:
-        raise ValueError("El correo del solicitante no es valido para responder.")
+        raise ValueError("El correo del destinatario no es valido para responder.")
 
     thread_requester_emails: list[str] = []
     for message in getattr(ticket, "messages", []) or []:
@@ -892,9 +922,9 @@ def _send_sla_satisfaction_email(ticket: Ticket) -> None:
           <table role="presentation" cellspacing="0" cellpadding="0" width="100%" style="border-collapse:collapse;">
             <tr>
               <td style="vertical-align:top;padding-right:16px;">
-                <div style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;opacity:.82;">Soporte ATC</div>
-                <h1 style="margin:10px 0 0;font-size:28px;line-height:1.2;">Encuesta de satisfaccion</h1>
-                <p style="margin:10px 0 0;font-size:15px;line-height:1.6;opacity:.92;">Ticket #{ticket_id}</p>
+                <div style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#ffffff;opacity:.82;">Soporte ATC</div>
+                <h1 style="margin:10px 0 0;font-size:28px;line-height:1.2;color:#ffffff;">Encuesta de satisfaccion</h1>
+                <p style="margin:10px 0 0;font-size:15px;line-height:1.6;color:#ffffff;opacity:.92;">Ticket #{ticket_id}</p>
               </td>
               <td align="right" style="vertical-align:top;">
                 <img src="cid:{logo_cid}" alt="ATC" style="display:block;width:110px;max-width:110px;height:auto;">
@@ -1424,6 +1454,8 @@ def resumen_equipos_tecnicos_mover(
 def _redirect_for_authenticated_user(db: Session, user: User) -> RedirectResponse:
     if getattr(user, "is_super_admin", False):
         return RedirectResponse(url="/gerencia", status_code=303)
+    if getattr(user, "cliente_rut", None):
+        return RedirectResponse(url="/portal-cliente", status_code=303)
     areas = _active_user_areas(db, user.id)
     if len(areas) > 1:
         return RedirectResponse(url="/seleccionar-area", status_code=303)
@@ -1499,6 +1531,246 @@ def _redirect_for_user_area(area_code: str | None, session_token: str) -> str:
     if area == "incidencias":
         return f"{prefix}/?form=panelSelector&token={session_token}&next=panelSelector"
     return "/panel"
+
+
+def _append_token(url: str, token: str | None) -> str:
+    token = str(token or "").strip()
+    if not token or "token=" in url:
+        return url
+    sep = "&" if "?" in url else "?"
+    return f"{url}{sep}token={token}"
+
+
+def _selector_url(token: str | None = "") -> str:
+    return _append_token("/seleccionar-area", token)
+
+
+def _area_panel_url(area_code: str | None, token: str | None = "") -> str:
+    area = str(area_code or "").strip()
+    panel_map = {
+        "soporte": "/panel?area=soporte",
+        "incidencias": "/?form=panelSelector",
+        "servicio_tecnico": "/?form=panelSelectorServicio",
+        "coordinacion": "/?form=panelSelectorCoordinacion",
+        "venta": "/venta/panel-selector",
+        "finanzas": "/venta/finanzas",
+        "administracion": "/venta/administracion",
+        "operaciones": "/venta/operaciones",
+        "guardia": "/guardia",
+        "supervisores": "/supervisores",
+        "rrhh": "/rrhh",
+        "prevencion": "/prevencion",
+        "tecnicos": "/?form=tecnicos",
+        "compras_control": "/compras/panel-control",
+        "compras_solicitud": "/compras/solicitud",
+        "materiales": "/materiales",
+        "bitacora": "/bitacora",
+    }
+    return _append_token(panel_map.get(area, "/seleccionar-area"), token)
+
+
+def _session_context_for_nav(
+    request: Request,
+    db: Session,
+    token: str | None,
+) -> tuple[User | None, str, str]:
+    """Devuelve usuario, token de LoginSession y area activa si existen."""
+    token_limpio = str(token or "").strip()
+    if token_limpio:
+        ses = (
+            db.query(LoginSession)
+            .filter(LoginSession.token == token_limpio)
+            .first()
+        )
+        if ses and ses.user_id:
+            expires_at = ses.expires_at
+            now = datetime.now(timezone.utc)
+            if expires_at and getattr(expires_at, "tzinfo", None) is None:
+                now = now.replace(tzinfo=None)
+            if expires_at and expires_at <= now:
+                ses = None
+        if ses and ses.user_id:
+            user = db.get(User, int(ses.user_id))
+            if user and user.is_active:
+                return user, token_limpio, str(ses.area_code or "").strip()
+
+    cookie_token = request.cookies.get(COOKIE_NAME)
+    if cookie_token:
+        try:
+            username = _decode_cookie_token(cookie_token)
+            user = UserService.find_by_login(db, username)
+            if user and user.is_active:
+                return user, token_limpio, ""
+        except Exception:
+            pass
+    return None, token_limpio, ""
+
+
+def _ticketera_parent_url(params: dict[str, str]) -> str:
+    keep = {
+        "scope",
+        "source",
+        "priority",
+        "user_filter",
+        "q",
+        "date_from",
+        "date_to",
+        "page",
+        "view",
+    }
+    filtered = {k: v for k, v in params.items() if k in keep and v}
+    return "/ticketera" + (f"?{urlencode(filtered)}" if filtered else "")
+
+
+def _infer_area_from_path(path: str, form: str, active_area: str) -> str:
+    if active_area:
+        return active_area
+    if path.startswith(("/ticketera", "/soporte", "/tabla-soporte", "/panel-indicadores")):
+        return "soporte"
+    if path.startswith("/venta/administracion"):
+        return "administracion"
+    if path.startswith("/venta/finanzas"):
+        return "finanzas"
+    if path.startswith("/venta/operaciones"):
+        return "operaciones"
+    if path.startswith("/venta"):
+        return "venta"
+    if path.startswith("/guardia"):
+        return "supervisores" if "tabla-supervisor" in path else "guardia"
+    if path.startswith("/supervisores"):
+        return "supervisores"
+    if path.startswith("/rrhh"):
+        return "rrhh"
+    if path.startswith("/prevencion"):
+        return "prevencion"
+    if path.startswith("/servicio") or path.startswith("/resumen-equipos-tecnicos") or path.startswith("/tecnico-externo"):
+        return "servicio_tecnico"
+    if form in {"panelSelector", "incidencias", "controlProtocolos", "cierreAperturaClientes", "pruebasSonido"}:
+        return "incidencias"
+    if form in {"panelSelectorServicio", "servicioTecnico", "stVentas", "TablaServicioTecnico", "tablaServicioTecnico", "rendiciones"}:
+        return "servicio_tecnico"
+    if form in {"panelSelectorCoordinacion", "coordinacion", "tablaProtocolos", "envioProtocolosSemanales"}:
+        return "coordinacion"
+    if form in {"tecnicos", "rendicionesTecnico", "formularioViatico"}:
+        return "tecnicos"
+    return ""
+
+
+def _nav_back_destination(
+    *,
+    path: str,
+    params: dict[str, str],
+    token: str,
+    active_area: str,
+    area_count: int,
+) -> tuple[str, bool]:
+    form = str(params.get("form") or "").strip()
+    area = _infer_area_from_path(path, form, active_area)
+
+    if path.startswith("/ticketera/tickets/") or re.match(r"^/ticketera/\d+", path):
+        return _ticketera_parent_url(params), True
+
+    if path == "/panel-indicadores":
+        # Dashboard Soporte tiene 2 padres de nivel 2: Seleccion Panel
+        # Operaciones y Seleccion Panel Soporte. Sin "origen" no hay forma de
+        # saber por cual se entro, asi que por defecto vuelve a Soporte.
+        if params.get("origen") == "operaciones":
+            return _area_panel_url("operaciones", token), True
+        return _area_panel_url("soporte", token), True
+
+    if path == "/servicio/indicadores":
+        # Mismo caso: Dashboard Servicio tiene padres Operaciones y Servicio.
+        if params.get("origen") == "operaciones":
+            return _area_panel_url("operaciones", token), True
+        return _area_panel_url("servicio_tecnico", token), True
+
+    if path == "/ticketera" or path in {"/soporte", "/tabla-soporte"}:
+        return _area_panel_url("soporte", token), True
+
+    if path == "/" and form in {"incidencias", "controlProtocolos", "cierreAperturaClientes", "pruebasSonido"}:
+        return _area_panel_url("incidencias", token), True
+    if path == "/" and form in {"servicioTecnico", "stVentas", "TablaServicioTecnico", "tablaServicioTecnico", "rendiciones"}:
+        return _area_panel_url("servicio_tecnico", token), True
+    if path == "/" and form in {"coordinacion", "tablaProtocolos", "envioProtocolosSemanales"}:
+        return _area_panel_url("coordinacion", token), True
+    if path == "/" and form in {"formularioViatico", "rendicionesTecnico"}:
+        return _area_panel_url("tecnicos", token), True
+
+    if path.startswith("/venta/administracion/"):
+        return _area_panel_url("administracion", token), True
+    if path.startswith("/venta/finanzas/"):
+        if params.get("from") == "servicio":
+            return _area_panel_url("servicio_tecnico", token), True
+        return _area_panel_url("finanzas", token), True
+    if path.startswith("/venta/operaciones/"):
+        return _area_panel_url("operaciones", token), True
+    if path.startswith("/venta/") and path != "/venta/panel-selector":
+        return _area_panel_url("venta", token), True
+
+    if path.startswith("/prevencion/"):
+        return _area_panel_url("prevencion", token), True
+    if path.startswith("/rrhh/"):
+        return _area_panel_url("rrhh", token), True
+
+    if path.startswith("/guardia/") or path.startswith("/inicio-turno"):
+        if params.get("origen") == "guardia":
+            return _area_panel_url("guardia", token), True
+        if params.get("origen") == "rrhh":
+            return _area_panel_url("rrhh", token), True
+        if params.get("origen") == "supervisores" or area == "supervisores":
+            return _area_panel_url("supervisores", token), True
+        return _area_panel_url("guardia", token), True
+
+    if path.startswith("/compras/"):
+        # /compras/solicitud es un accion compartida enlazada desde ~8
+        # seleccion_panel_*.html distintos; su propia ruta consume y limpia
+        # el token de la URL (compras.py._consume_session_token) sin volver a
+        # renderizarlo en la pagina, asi que active_area/token quedan sin
+        # forma confiable de saber de que panel se vino. "origen" (agregado a
+        # cada uno de esos links) es la unica senal fiable en ese caso.
+        origen = str(params.get("origen") or "").strip()
+        if origen:
+            return _area_panel_url(origen, token), True
+        return _area_panel_url(area, token) if area else _selector_url(token), True
+
+    if path in {
+        "/panel",
+        "/venta/panel-selector",
+        "/venta/administracion",
+        "/venta/finanzas",
+        "/venta/operaciones",
+        "/guardia",
+        "/supervisores",
+        "/rrhh",
+        "/prevencion",
+    } or (path == "/" and form.startswith("panelSelector")):
+        return _selector_url(token), area_count > 1
+
+    if path == "/bitacora":
+        return _selector_url(token), area_count > 1
+
+    if area:
+        return _area_panel_url(area, token), True
+    return _selector_url(token), area_count > 1
+
+
+def _nav_home_destination(db: Session, user: User | None, session_token: str) -> str:
+    if not user:
+        return "/login"
+    if getattr(user, "is_super_admin", False):
+        return "/gerencia"
+    if getattr(user, "cliente_rut", None):
+        return "/portal-cliente"
+
+    areas = _active_user_areas(db, user.id)
+    if len(areas) > 1:
+        return _selector_url(session_token)
+
+    area_info = areas[0] if areas else None
+    token = session_token
+    if not token:
+        token = _create_unified_login_session(db, user, area_info)
+    return _redirect_for_user_area(area_info.get("area_code") if area_info else None, token)
 
 def _set_web_cookie(resp: RedirectResponse, token: str, user_id: int | None = None) -> RedirectResponse:
     resp.set_cookie(
@@ -1593,6 +1865,7 @@ _SSO_NEXT_ALLOWED_PREFIXES = (
     "/panel",
     "/panel-indicadores",
     "/compras",
+    "/portal-cliente",
 )
 
 
@@ -1774,12 +2047,55 @@ def seleccionar_area(
     )
 
 
+@router.get("/api/navigation/volver")
+def navigation_volver(
+    request: Request,
+    current: str = Query(default=""),
+    token: str = Query(default=""),
+    db: Session = Depends(get_db),
+):
+    parsed = urlsplit(current or str(request.headers.get("referer") or "/"))
+    path = parsed.path or "/"
+    params = {k: v for k, v in parse_qsl(parsed.query, keep_blank_values=False)}
+    token_limpio = (token or params.get("token") or "").strip()
+    user, session_token, active_area = _session_context_for_nav(request, db, token_limpio)
+    area_count = len(_active_user_areas(db, user.id)) if user else 0
+    destino, visible = _nav_back_destination(
+        path=path,
+        params=params,
+        token=session_token,
+        active_area=active_area,
+        area_count=area_count,
+    )
+    return {"ok": True, "href": destino, "visible": bool(visible)}
+
+
+@router.get("/api/navigation/home")
+def navigation_home(
+    request: Request,
+    token: str = Query(default=""),
+    db: Session = Depends(get_db),
+):
+    user, session_token, _active_area = _session_context_for_nav(request, db, token)
+    destino = _nav_home_destination(db, user, session_token)
+    return {"ok": True, "href": destino}
+
+
 @router.get("/panel", response_class=HTMLResponse)
 def launcher_panel(
     request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
 ):
+    # current_user ya viene autenticado por la cookie de sesion (JWT), asi que
+    # un ?token= en la URL de esta pagina no aporta nada para el acceso — solo
+    # quedaba expuesto en la barra de direcciones. Si llega uno, lo limpiamos
+    # antes de renderizar (el token para los links salientes se sigue armando
+    # mas abajo, pero ya no en la URL visible de /panel).
+    if request.query_params.get("token"):
+        clean_url = str(request.url.remove_query_params(["token"]))
+        return RedirectResponse(url=clean_url, status_code=303)
+
     areas = _active_user_areas(db, current_user.id)
     if len(areas) > 1 and request.query_params.get("area") != "soporte":
         return RedirectResponse(url="/seleccionar-area", status_code=303)
@@ -1794,8 +2110,15 @@ def launcher_panel(
     # Igual que incidencias_soporte.html: el filtro por defecto de esa tabla
     # es "Derivacion = Pendiente" (aun no se ha derivado a ningun area), no
     # el estado de la incidencia.
+    odt_incidencia = func.upper(func.trim(func.coalesce(Registro.odt, "")))
     pendiente_incidencias = (
-        db.query(Registro.id).filter(Registro.derivacion == "Pendiente").count()
+        db.query(Registro.id)
+        .filter(
+            func.lower(func.trim(func.coalesce(Registro.derivacion, ""))) == "pendiente",
+            ~odt_incidencia.like("V%"),
+            ~odt_incidencia.like("S%"),
+        )
+        .count()
     )
 
     _ventas_rows = db.execute(text("""
@@ -1898,12 +2221,29 @@ def _apply_ticket_search(query, term: str):
     return query.filter(or_(*clauses))
 
 
-@router.get("/ticketera", response_class=HTMLResponse)
-def ticketera(
+_TICKETERA_FILTER_PARAM_NAMES = (
+    "scope", "source", "priority", "user_filter", "q", "date_from", "date_to", "view", "status",
+)
+
+
+def _ticketera_filter_querystring(request: Request) -> str:
+    """Serializa los filtros activos de /ticketera (scope/source/priority/
+    user_filter/q/fechas) para poder propagarlos al abrir un ticket y a los
+    botones Anterior/Siguiente, de forma que la navegacion se quede dentro
+    del filtro elegido en la lista (pedido explicito, jul 2026)."""
+    pairs: list[tuple[str, str]] = []
+    for name in _TICKETERA_FILTER_PARAM_NAMES:
+        for value in request.query_params.getlist(name):
+            if (value or "").strip():
+                pairs.append((name, value))
+    return urlencode(pairs)
+
+
+def _ticketera_build_filtered_query(
     request: Request,
-    db: Session = Depends(get_db),
-    incidencias_db: Session = Depends(get_incidencias_db),
-    current_user: User = Depends(get_current_user_web),
+    db: Session,
+    current_user: User,
+    *,
     status: str | None = None,
     q: str | None = None,
     user_filter: str | None = None,
@@ -1912,10 +2252,12 @@ def ticketera(
     scope: str | None = None,
     date_from: str | None = None,
     date_to: str | None = None,
-    page: int = 1,
 ):
+    """Arma el Query de Ticket filtrado segun los mismos criterios que usa la
+    lista de /ticketera (scope/source/priority/user_filter/q/fechas, mas la
+    visibilidad del usuario). Reusado por ticket_detail() para que Anterior/
+    Siguiente respeten el filtro activo en vez de recorrer todos los tickets."""
     view = request.query_params.get("view")
-    _require_area_access(db, current_user, "soporte")
 
     allowed_scopes = {"all", "open", "pending", "resolved", "spam", "trash", "no_ticket"}
     allowed_sources = {"all", "email", "whatsapp", "internal"}
@@ -2064,6 +2406,11 @@ def ticketera(
             user_clauses.append(Ticket.assigned_to_id.in_(selected_user_ids))
         if "unassigned" in user_filters:
             user_clauses.append(Ticket.assigned_to_id.is_(None))
+        # Ronald Montilla sigue viendo los tickets que pasaron por
+        # "Asignar a todo el equipo", aunque ya se los haya tomado otro
+        # agente y el filtro no lo incluya a el (pedido explicito, jul 2026).
+        if user_clauses and _is_ronald_montilla_user(current_user):
+            user_clauses.append(Ticket.team_broadcast_at.isnot(None))
         if user_clauses:
             query = query.filter(or_(*user_clauses))
 
@@ -2083,6 +2430,70 @@ def ticketera(
     if date_to_dt:
         query = query.filter(Ticket.created_at < (date_to_dt + timedelta(days=1)))
 
+    filter_state = {
+        "scope_filters": scope_filters,
+        "source_filters": source_filters,
+        "priority_filters": priority_filters,
+        "user_filters": user_filters,
+        "scope_filter": scope_filter,
+        "source_filter": source_filter,
+        "priority_filter": priority_filter,
+        "user_filter_value": user_filter_value,
+        "date_from_value": date_from_value,
+        "date_to_value": date_to_value,
+        "users": users,
+    }
+    return query, filter_state
+
+
+@router.get("/ticketera", response_class=HTMLResponse)
+@router.get("/ticketera/pagina/{page}", response_class=HTMLResponse)
+def ticketera(
+    request: Request,
+    db: Session = Depends(get_db),
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_web),
+    status: str | None = None,
+    q: str | None = None,
+    user_filter: str | None = None,
+    source: str | None = None,
+    priority: str | None = None,
+    scope: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    page: int = 1,
+):
+    _require_area_access(db, current_user, "soporte")
+
+    query, _filter_state = _ticketera_build_filtered_query(
+        request, db, current_user,
+        status=status, q=q, user_filter=user_filter, source=source,
+        priority=priority, scope=scope, date_from=date_from, date_to=date_to,
+    )
+    scope_filters = _filter_state["scope_filters"]
+    source_filters = _filter_state["source_filters"]
+    priority_filters = _filter_state["priority_filters"]
+    user_filters = _filter_state["user_filters"]
+    scope_filter = _filter_state["scope_filter"]
+    source_filter = _filter_state["source_filter"]
+    priority_filter = _filter_state["priority_filter"]
+    user_filter_value = _filter_state["user_filter_value"]
+    date_from_value = _filter_state["date_from_value"]
+    date_to_value = _filter_state["date_to_value"]
+    users = _filter_state["users"]
+
+    # Orden por ultima actividad (como Gmail): si un tercero responde un
+    # ticket ya creado, ese ticket sube arriba de la lista en vez de quedarse
+    # clavado en el orden de creacion original — pedido explicito, jul 2026.
+    latest_activity_subq = (
+        db.query(Message.ticket_id, func.max(Message.created_at).label("last_activity"))
+        .group_by(Message.ticket_id)
+        .subquery()
+    )
+    query = query.outerjoin(
+        latest_activity_subq, latest_activity_subq.c.ticket_id == Ticket.id
+    )
+
     page_size = 30
     safe_page = max(1, page)
     total_filtered = query.count()
@@ -2092,7 +2503,10 @@ def ticketera(
         safe_page = total_pages
 
     tickets = (
-        query.order_by(Ticket.id.desc())
+        query.order_by(
+            func.coalesce(latest_activity_subq.c.last_activity, Ticket.created_at).desc(),
+            Ticket.id.desc(),
+        )
         .offset((safe_page - 1) * page_size)
         .limit(page_size)
         .all()
@@ -2197,50 +2611,55 @@ def ticketera(
             params.append(("date_from", date_from_value_override))
         if date_to_value_override:
             params.append(("date_to", date_to_value_override))
-        if page_number is not None:
-            params.append(("page", page_number))
+
+        base = f"/ticketera/pagina/{page_number}" if page_number and page_number > 1 else "/ticketera"
 
         if not params:
-            return "/ticketera"
-        return f"/ticketera?{urlencode(params)}"
+            return base
+        return f"{base}?{urlencode(params)}"
 
     prev_page_url = build_ticketera_url(page_number=safe_page - 1) if safe_page > 1 else None
     next_page_url = build_ticketera_url(page_number=safe_page + 1) if safe_page < total_pages else None
     first_page_url = build_ticketera_url(page_number=1) if safe_page > 1 else None
     last_page_url = build_ticketera_url(page_number=total_pages) if safe_page < total_pages else None
 
+    # Los conteos deben reflejar lo que este usuario puede ver realmente en
+    # la lista (mismo filtro de visibilidad por buzon restringido que la
+    # query de tickets), no el total global de la BBDD (bug reportado: el
+    # modal mostraba "Open (1)" para un ticket que el usuario no podia ver
+    # porque pertenecia al buzon restringido y no le estaba asignado).
     counts = {
-        "all": db.query(Ticket).filter(
+        "all": _apply_ticket_visibility_for_user(db.query(Ticket), current_user).filter(
             Ticket.is_deleted == False,
             Ticket.is_spam == False,
             Ticket.is_no_ticket == False,
         ).count(),
-        "open": db.query(Ticket).filter(
+        "open": _apply_ticket_visibility_for_user(db.query(Ticket), current_user).filter(
             Ticket.status == "open",
             Ticket.is_deleted == False,
             Ticket.is_spam == False,
             Ticket.is_no_ticket == False,
         ).count(),
-        "pending": db.query(Ticket).filter(
+        "pending": _apply_ticket_visibility_for_user(db.query(Ticket), current_user).filter(
             Ticket.status.in_(PENDING_TICKET_STATUSES),
             Ticket.is_deleted == False,
             Ticket.is_spam == False,
             Ticket.is_no_ticket == False,
         ).count(),
-        "resolved": db.query(Ticket).filter(
+        "resolved": _apply_ticket_visibility_for_user(db.query(Ticket), current_user).filter(
             Ticket.status == "resolved",
             Ticket.is_deleted == False,
             Ticket.is_spam == False,
             Ticket.is_no_ticket == False,
         ).count(),
-        "spam": db.query(Ticket).filter(
+        "spam": _apply_ticket_visibility_for_user(db.query(Ticket), current_user).filter(
             Ticket.is_spam == True,
             Ticket.is_deleted == False,
         ).count(),
-        "trash": db.query(Ticket).filter(
+        "trash": _apply_ticket_visibility_for_user(db.query(Ticket), current_user).filter(
             Ticket.is_deleted == True,
         ).count(),
-        "no_ticket": db.query(Ticket).filter(
+        "no_ticket": _apply_ticket_visibility_for_user(db.query(Ticket), current_user).filter(
             Ticket.is_no_ticket == True,
             Ticket.is_deleted == False,
         ).count(),
@@ -2287,6 +2706,7 @@ def ticketera(
             "ticket_unseen_message_id": ticket_unseen_message_id,
             "ticket_unseen_message_count": ticket_unseen_message_count,
             "ticket_manually_unread": ticket_manually_unread,
+            "filter_qs": _ticketera_filter_querystring(request),
             "status": scope_filter if scope_filter in {"open", "pending", "resolved"} else None,
             "scope_filter": scope_filter,
             "scope_filters": scope_filters,
@@ -2330,6 +2750,12 @@ def etapa_board(
     query = _apply_ticket_visibility_for_user(db.query(Ticket), current_user).options(
         joinedload(Ticket.requester),
         joinedload(Ticket.assigned_to),
+    )
+    # Los tickets marcados "no_ticket" no cuentan como Open/Pendiente/Cerrado
+    # real (mismo criterio que ticketera, que los excluye de esos conteos) —
+    # solo se muestran aqui si ademas cayeron en Spam o Papelera.
+    query = query.filter(
+        or_(Ticket.is_no_ticket == False, Ticket.is_deleted == True, Ticket.is_spam == True)
     )
 
     search_value = (q or "").strip()
@@ -2991,6 +3417,57 @@ def _support_append_user_observation(current_text: str, user_label: str, obs_tex
     return f"{current_text.rstrip()}\n{line}"
 
 
+# Edicion de la ultima nota de observacion, con ventana de tiempo tipo
+# "editar mensaje de WhatsApp" (pedido explicito, jul 2026): solo el mismo
+# usuario que escribio la ultima linea puede modificarla, y solo dentro de
+# los OBSERVACION_EDIT_WINDOW_MINUTES desde que la escribio.
+OBSERVACION_EDIT_WINDOW_MINUTES = 15
+_OBS_ENTRY_RE = re.compile(
+    r"^\[(?P<user>.+) - (?P<fecha>\d{2}/\d{2}/\d{4} \d{2}:\d{2})\]\s*(?:\(editado\)\s*)?(?P<texto>.*)$"
+)
+
+
+def _support_last_observation_entry(text: str) -> dict | None:
+    lines = (text or "").splitlines()
+    start_idx = None
+    match = None
+    for idx in range(len(lines) - 1, -1, -1):
+        m = _OBS_ENTRY_RE.match(lines[idx].strip())
+        if m:
+            start_idx = idx
+            match = m
+            break
+    if start_idx is None or match is None:
+        return None
+    try:
+        fecha_dt = datetime.strptime(match.group("fecha"), "%d/%m/%Y %H:%M")
+    except ValueError:
+        return None
+    return {
+        "start_idx": start_idx,
+        "user": match.group("user").strip(),
+        "fecha_str": match.group("fecha"),
+        "fecha_dt": fecha_dt,
+    }
+
+
+def _support_can_edit_observation_entry(entry: dict | None, user_label: str) -> bool:
+    if not entry:
+        return False
+    if entry["user"].strip().casefold() != (user_label or "").strip().casefold():
+        return False
+    ahora = datetime.now().astimezone().replace(tzinfo=None)
+    elapsed = ahora - entry["fecha_dt"]
+    return timedelta(0) <= elapsed <= timedelta(minutes=OBSERVACION_EDIT_WINDOW_MINUTES)
+
+
+def _support_edit_last_observation_line(current_text: str, entry: dict, user_label: str, nuevo_texto: str) -> str:
+    lines = current_text.splitlines()
+    nueva_linea = f"[{user_label} - {entry['fecha_str']}] (editado) {nuevo_texto}"
+    nuevas_lineas = lines[: entry["start_idx"]] + [nueva_linea]
+    return "\n".join(nuevas_lineas).strip()
+
+
 def _support_parse_image_list(value: object) -> list[str]:
     parsed_images: list[str] = []
     if isinstance(value, list):
@@ -3516,47 +3993,61 @@ def soporte_actualizar_celda(
                 select(table.c[support_observation_col]).where(table.c.id == incidencia_id)
             ).scalar_one_or_none()
             current_text = _support_text(current_text)
+            user_label = (current_user.name or current_user.username or "Usuario").strip()
 
-            edited_text = valor
-            original_text = valor_original
-            if not edited_text:
-                # Permite borrar completamente la observacion.
-                values_to_update[support_observation_col] = None
-            elif not current_text:
-                # Primera observacion: se registra con metadata.
-                timestamp = datetime.now().astimezone().strftime("%d/%m/%Y %H:%M")
-                user_label = (current_user.name or current_user.username or "Usuario").strip()
-                values_to_update[support_observation_col] = f"[{user_label} - {timestamp}] {edited_text}"
-            elif edited_text == (original_text or current_text):
-                # Sin cambios reales.
-                pass
-            else:
-                compare_base = original_text or current_text
-
-                # Si enviaron historial original + nota al final, agrega solo la nota.
-                if compare_base and edited_text.startswith(compare_base):
-                    new_note = edited_text[len(compare_base) :].lstrip()
-                    if new_note:
-                        timestamp = datetime.now().astimezone().strftime("%d/%m/%Y %H:%M")
-                        user_label = (current_user.name or current_user.username or "Usuario").strip()
-                        log_line = f"[{user_label} - {timestamp}] {new_note}"
-                        values_to_update[support_observation_col] = f"{current_text.rstrip()}\n{log_line}"
-                else:
-                    # Si parece una nota corta nueva, la agrega con metadata.
-                    # Si no, respeta la edicion/borrado exacto del usuario.
-                    looks_like_new_note = (
-                        "\n" not in edited_text
-                        and "[" not in edited_text
-                        and "]" not in edited_text
-                        and len(edited_text) <= 300
+            if bool(payload.get("editar_ultima")):
+                # Edicion de la ultima nota (ventana de 15 min, solo el autor) —
+                # pedido explicito, jul 2026.
+                entry = _support_last_observation_entry(current_text)
+                if not _support_can_edit_observation_entry(entry, user_label):
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Ya no puedes editar esta observacion (limite de 15 minutos).",
                     )
-                    if looks_like_new_note:
-                        timestamp = datetime.now().astimezone().strftime("%d/%m/%Y %H:%M")
-                        user_label = (current_user.name or current_user.username or "Usuario").strip()
-                        log_line = f"[{user_label} - {timestamp}] {edited_text}"
-                        values_to_update[support_observation_col] = f"{current_text.rstrip()}\n{log_line}"
+                nuevo_texto = valor.strip()
+                if not nuevo_texto:
+                    raise HTTPException(status_code=400, detail="La observacion no puede quedar vacia.")
+                values_to_update[support_observation_col] = _support_edit_last_observation_line(
+                    current_text, entry, user_label, nuevo_texto
+                )
+            else:
+                edited_text = valor
+                original_text = valor_original
+                if not edited_text:
+                    # Permite borrar completamente la observacion.
+                    values_to_update[support_observation_col] = None
+                elif not current_text:
+                    # Primera observacion: se registra con metadata.
+                    timestamp = datetime.now().astimezone().strftime("%d/%m/%Y %H:%M")
+                    values_to_update[support_observation_col] = f"[{user_label} - {timestamp}] {edited_text}"
+                elif edited_text == (original_text or current_text):
+                    # Sin cambios reales.
+                    pass
+                else:
+                    compare_base = original_text or current_text
+
+                    # Si enviaron historial original + nota al final, agrega solo la nota.
+                    if compare_base and edited_text.startswith(compare_base):
+                        new_note = edited_text[len(compare_base) :].lstrip()
+                        if new_note:
+                            timestamp = datetime.now().astimezone().strftime("%d/%m/%Y %H:%M")
+                            log_line = f"[{user_label} - {timestamp}] {new_note}"
+                            values_to_update[support_observation_col] = f"{current_text.rstrip()}\n{log_line}"
                     else:
-                        values_to_update[support_observation_col] = edited_text
+                        # Si parece una nota corta nueva, la agrega con metadata.
+                        # Si no, respeta la edicion/borrado exacto del usuario.
+                        looks_like_new_note = (
+                            "\n" not in edited_text
+                            and "[" not in edited_text
+                            and "]" not in edited_text
+                            and len(edited_text) <= 300
+                        )
+                        if looks_like_new_note:
+                            timestamp = datetime.now().astimezone().strftime("%d/%m/%Y %H:%M")
+                            log_line = f"[{user_label} - {timestamp}] {edited_text}"
+                            values_to_update[support_observation_col] = f"{current_text.rstrip()}\n{log_line}"
+                        else:
+                            values_to_update[support_observation_col] = edited_text
     elif columna == 8:
         tecnico_titular = str(payload.get("tecnico") or valor or "").strip()
         tecnico_acompanante = str(payload.get("acompanante") or "").strip()
@@ -4649,12 +5140,16 @@ def _normalize_ticket_status_code(status: str | None) -> str:
     return aliases.get(key, key or "open")
 
 
-def _ticket_status_label(status: str | None) -> str:
+def _ticket_status_label(status: str | None, is_no_ticket: bool = False) -> str:
+    if is_no_ticket:
+        return TICKET_STATUS_LABELS["closed"]
     code = _normalize_ticket_status_code(status)
     return TICKET_STATUS_LABELS.get(code, (status or "Open").strip() or "Open")
 
 
-def _ticket_status_css(status: str | None) -> str:
+def _ticket_status_css(status: str | None, is_no_ticket: bool = False) -> str:
+    if is_no_ticket:
+        return "closed"
     return re.sub(r"[^a-z0-9_-]+", "-", _normalize_ticket_status_code(status)).strip("-") or "open"
 
 
@@ -4705,6 +5200,14 @@ def ticket_detail(
     request: Request,
     ticket_id: int,
     focus_message_id: int | None = None,
+    status: str | None = None,
+    q: str | None = None,
+    user_filter: str | None = None,
+    source: str | None = None,
+    priority: str | None = None,
+    scope: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
     db: Session = Depends(get_db),
     incidencias_db: Session = Depends(get_incidencias_db),
     current_user: User = Depends(get_current_user_web),
@@ -4722,52 +5225,38 @@ def ticket_detail(
 
     _normalize_requester_name(ticket.requester)
 
+    # Anterior/Siguiente respetan el filtro que estaba activo en la lista de
+    # /ticketera (scope/source/priority/user_filter/q/fechas), no el listado
+    # general completo (pedido explicito, jul 2026).
+    filter_qs = _ticketera_filter_querystring(request)
+    filtered_query, _ = _ticketera_build_filtered_query(
+        request, db, current_user,
+        status=status, q=q, user_filter=user_filter, source=source,
+        priority=priority, scope=scope, date_from=date_from, date_to=date_to,
+    )
+
     # Ticket anterior
     previous_ticket = (
-        _apply_ticket_visibility_for_user(db.query(Ticket), current_user)
-        .filter(
-            Ticket.id < ticket_id,
-            Ticket.is_deleted == False,
-            Ticket.is_spam == False,
-        )
+        filtered_query
+        .filter(Ticket.id < ticket_id)
         .order_by(Ticket.id.desc())
         .first()
     )
 
     # Ticket siguiente
     next_ticket = (
-        _apply_ticket_visibility_for_user(db.query(Ticket), current_user)
-        .filter(
-            Ticket.id > ticket_id,
-            Ticket.is_deleted == False,
-            Ticket.is_spam == False,
-        )
+        filtered_query
+        .filter(Ticket.id > ticket_id)
         .order_by(Ticket.id.asc())
         .first()
     )
 
-    # Loop inteligente
+    # Loop inteligente (dentro del mismo filtro)
     if not previous_ticket:
-        previous_ticket = (
-            _apply_ticket_visibility_for_user(db.query(Ticket), current_user)
-            .filter(
-                Ticket.is_deleted == False,
-                Ticket.is_spam == False,
-            )
-            .order_by(Ticket.id.desc())
-            .first()
-        )
+        previous_ticket = filtered_query.order_by(Ticket.id.desc()).first()
 
     if not next_ticket:
-        next_ticket = (
-            _apply_ticket_visibility_for_user(db.query(Ticket), current_user)
-            .filter(
-                Ticket.is_deleted == False,
-                Ticket.is_spam == False,
-            )
-            .order_by(Ticket.id.asc())
-            .first()
-        )
+        next_ticket = filtered_query.order_by(Ticket.id.asc()).first()
 
     # Mensajes
     messages = (
@@ -5088,6 +5577,7 @@ def ticket_detail(
             "ticket_alert_unread_count": ticket_alert_unread_count,
             "previous_ticket_id": previous_ticket.id if previous_ticket else None,
             "next_ticket_id": next_ticket.id if next_ticket else None,
+            "filter_qs": filter_qs,
             "send_error": send_error,
             "service_success": service_success,
             "service_error": service_error,
@@ -5493,6 +5983,36 @@ def assign_to_me(
 
     )
 
+
+@router.post("/ticketera/tickets/{ticket_id}/assign-team")
+def assign_ticket_to_team(
+    ticket_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    """Difunde el ticket a todo el equipo de soporte (queda sin asignar,
+    visible para todos); en cuanto alguien lo tome via 'Tomar'/'Asignar a',
+    deja de estar disponible para el resto. Se guarda una marca permanente
+    para que Ronald Montilla lo siga viendo aunque otro agente ya lo haya
+    tomado (pedido explicito, jul 2026)."""
+    _require_area_access(db, current_user, "soporte")
+    ticket = db.get(Ticket, ticket_id)
+    if not ticket:
+        return HTMLResponse("Ticket no encontrado", status_code=404)
+    if not _can_view_ticket(ticket, current_user):
+        return HTMLResponse("Ticket no autorizado", status_code=403)
+    if _ticket_is_locked(ticket):
+        return RedirectResponse(
+            url=f"/ticketera/tickets/{ticket_id}?service_error=El+ticket+ya+esta+resuelto+y+no+permite+cambios.",
+            status_code=303,
+        )
+
+    assign_ticket_logic(db, ticket, None, current_user)
+    ticket.team_broadcast_at = datetime.now(timezone.utc)
+    db.commit()
+    return RedirectResponse(url=f"/ticketera/tickets/{ticket_id}", status_code=303)
+
+
 @router.post("/ticketera/tickets/{ticket_id}/assign")
 
 def assign_ticket(
@@ -5560,6 +6080,118 @@ def mark_ticket_unread(
         db.commit()
 
     return JSONResponse({"ok": True, "ticket_id": ticket_id})
+
+
+@router.post("/ticketera/tickets/bulk-mark-read")
+def bulk_mark_tickets_read(
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    """Marca como leidos varios tickets seleccionados en la lista, con la
+    misma logica que se aplica al abrir un ticket individual (pedido
+    explicito, jul 2026)."""
+    _require_area_access(db, current_user, "soporte")
+
+    raw_ids = payload.get("ticket_ids") if isinstance(payload, dict) else None
+    if not isinstance(raw_ids, list) or not raw_ids:
+        raise HTTPException(status_code=400, detail="Debes indicar al menos un ticket.")
+    try:
+        ticket_ids = sorted({int(value) for value in raw_ids})
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="ticket_ids invalido.")
+
+    tickets = (
+        _apply_ticket_visibility_for_user(db.query(Ticket), current_user)
+        .filter(Ticket.id.in_(ticket_ids))
+        .all()
+    )
+    if not tickets:
+        return JSONResponse({"ok": True, "updated": 0})
+
+    latest_message_by_ticket = dict(
+        db.query(Message.ticket_id, func.max(Message.id))
+        .filter(Message.ticket_id.in_(ticket_ids), Message.is_internal_note == False)
+        .group_by(Message.ticket_id)
+        .all()
+    )
+
+    existing_states = {
+        state.ticket_id: state
+        for state in db.query(TicketMessageReadState).filter(
+            TicketMessageReadState.user_id == current_user.id,
+            TicketMessageReadState.ticket_id.in_(ticket_ids),
+        )
+    }
+
+    updated = 0
+    for ticket in tickets:
+        latest_message_id = int(latest_message_by_ticket.get(ticket.id) or 0)
+        state = existing_states.get(ticket.id)
+        if state is None:
+            db.add(TicketMessageReadState(
+                user_id=current_user.id,
+                ticket_id=ticket.id,
+                last_seen_message_id=latest_message_id,
+            ))
+            updated += 1
+        elif latest_message_id > (state.last_seen_message_id or 0):
+            state.last_seen_message_id = latest_message_id
+            updated += 1
+
+        manual_unread_row = db.get(TicketManualUnread, (current_user.id, ticket.id))
+        if manual_unread_row is not None:
+            db.delete(manual_unread_row)
+            updated += 1
+
+    db.commit()
+    return JSONResponse({"ok": True, "updated": updated, "ticket_ids": [t.id for t in tickets]})
+
+
+@router.post("/ticketera/tickets/bulk-mark-unread")
+def bulk_mark_tickets_unread(
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    """Marca como no leidos varios tickets seleccionados en la lista. La UI
+    solo ofrece esta accion cuando TODOS los tickets seleccionados ya estaban
+    leidos; si la seleccion mezcla leidos y no leidos, predomina "Marcar como
+    leidos" (pedido explicito, jul 2026)."""
+    _require_area_access(db, current_user, "soporte")
+
+    raw_ids = payload.get("ticket_ids") if isinstance(payload, dict) else None
+    if not isinstance(raw_ids, list) or not raw_ids:
+        raise HTTPException(status_code=400, detail="Debes indicar al menos un ticket.")
+    try:
+        ticket_ids = sorted({int(value) for value in raw_ids})
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="ticket_ids invalido.")
+
+    tickets = (
+        _apply_ticket_visibility_for_user(db.query(Ticket), current_user)
+        .filter(Ticket.id.in_(ticket_ids))
+        .all()
+    )
+    if not tickets:
+        return JSONResponse({"ok": True, "updated": 0})
+
+    existing_manual_unread_ids = {
+        row.ticket_id
+        for row in db.query(TicketManualUnread.ticket_id).filter(
+            TicketManualUnread.user_id == current_user.id,
+            TicketManualUnread.ticket_id.in_(ticket_ids),
+        )
+    }
+
+    updated = 0
+    for ticket in tickets:
+        if ticket.id not in existing_manual_unread_ids:
+            db.add(TicketManualUnread(user_id=current_user.id, ticket_id=ticket.id))
+            updated += 1
+
+    db.commit()
+    return JSONResponse({"ok": True, "updated": updated, "ticket_ids": [t.id for t in tickets]})
 
 # ======================================================
 
@@ -5970,9 +6602,9 @@ def send_ticket_to_service(
                       <table role="presentation" cellspacing="0" cellpadding="0" width="100%" style="border-collapse:collapse;">
                         <tr>
                           <td style="vertical-align:top;padding-right:16px;">
-                            <div style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;opacity:.82;">Soporte ATC</div>
-                            <h1 style="margin:10px 0 0;font-size:27px;line-height:1.2;">Actualización de su solicitud</h1>
-                            <p style="margin:10px 0 0;font-size:15px;line-height:1.6;opacity:.92;">Ticket #{ticket.id}</p>
+                            <div style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#ffffff;opacity:.82;">Soporte ATC</div>
+                            <h1 style="margin:10px 0 0;font-size:27px;line-height:1.2;color:#ffffff;">Actualización de su solicitud</h1>
+                            <p style="margin:10px 0 0;font-size:15px;line-height:1.6;color:#ffffff;opacity:.92;">Ticket #{ticket.id}</p>
                           </td>
                           <td align="right" style="vertical-align:top;">
                             <img src="cid:{logo_cid}" alt="ATC" style="display:block;width:110px;max-width:110px;height:auto;">
@@ -6034,6 +6666,134 @@ def send_ticket_to_service(
         db.rollback()
 
     query = urlencode({"service_success": f"Incidencia creada y enviada a {derivacion_clean} (ODT: {odt_value}).{correo_info}"})
+    return RedirectResponse(url=f"/ticketera/tickets/{ticket_id}?{query}", status_code=303)
+
+
+@router.post("/ticketera/tickets/{ticket_id}/derivacion-administrativa")
+def derivacion_administrativa(
+    ticket_id: int,
+    emails: str = Form(...),
+    mensaje: str = Form(""),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    """Deriva/reenvia el ticket a uno o mas correos libres, SIN crear una
+    incidencia (distinto de 'Derivar Ticket', que si crea una) — pedido
+    explicito, jul 2026. Es un "Reenviar" estilo Gmail: sin asunto editable,
+    solo un comentario opcional antes del correo original."""
+    _require_area_access(db, current_user, "soporte")
+    ticket = db.get(Ticket, ticket_id)
+    if not ticket:
+        return HTMLResponse("Ticket no encontrado", status_code=404)
+    if not _can_view_ticket(ticket, current_user):
+        return HTMLResponse("Ticket no autorizado", status_code=403)
+    if _ticket_is_locked(ticket):
+        query = urlencode({"send_error": "El ticket ya esta resuelto y no permite cambios."})
+        return RedirectResponse(url=f"/ticketera/tickets/{ticket_id}?{query}", status_code=303)
+
+    try:
+        destinatarios = _parse_recipient_list(emails, field_name="correos de destino")
+    except ValueError as exc:
+        query = urlencode({"send_error": str(exc)})
+        return RedirectResponse(url=f"/ticketera/tickets/{ticket_id}?{query}", status_code=303)
+
+    if not destinatarios:
+        query = urlencode({"send_error": "Debes indicar al menos un correo de destino."})
+        return RedirectResponse(url=f"/ticketera/tickets/{ticket_id}?{query}", status_code=303)
+
+    mensaje_limpio = (mensaje or "").strip()
+
+    # "Derivacion administrativa" reenvia el correo original recibido (como
+    # un "Reenviar" de cliente de correo), no un mensaje nuevo redactado a
+    # mano — pedido explicito, jul 2026. Se busca el primer correo del
+    # solicitante que origino el ticket para armar el bloque reenviado.
+    original_message = (
+        db.query(Message)
+        .filter(
+            Message.ticket_id == ticket.id,
+            Message.sender_type == "requester",
+            Message.channel == "email",
+        )
+        .order_by(Message.created_at.asc(), Message.id.asc())
+        .first()
+    )
+
+    if original_message is None:
+        query = urlencode({"send_error": "Este ticket no tiene un correo recibido para reenviar."})
+        return RedirectResponse(url=f"/ticketera/tickets/{ticket_id}?{query}", status_code=303)
+
+    asunto_limpio = f"Fwd: {(ticket.subject or 'Sin asunto').strip()}"
+
+    original_from_name = (original_message.sender_name or "").strip() or (
+        ticket.requester.name.strip() if ticket.requester and ticket.requester.name else ""
+    )
+    original_from_email = (original_message.sender_email or "").strip() or (
+        ticket.requester.email.strip() if ticket.requester and ticket.requester.email else ""
+    )
+    original_from = f"{original_from_name} <{original_from_email}>".strip() if original_from_email else (original_from_name or "Desconocido")
+    original_to = (ticket.inbound_mailbox or "").strip() or "-"
+    original_date = _jinja_localdt(original_message.created_at)
+
+    base_url = (settings.PUBLIC_BASE_URL or "https://soporteatc.cl").strip().rstrip("/")
+    original_html = original_message.content or ""
+    original_html = original_html.replace('src="/uploads/', f'src="{base_url}/uploads/')
+    original_html = original_html.replace("src='/uploads/", f"src='{base_url}/uploads/")
+    original_html = original_html.replace('href="/uploads/', f'href="{base_url}/uploads/')
+    original_html = original_html.replace("href='/uploads/", f"href='{base_url}/uploads/")
+
+    forward_header = (
+        '<div style="margin:16px 0 12px;padding-top:10px;border-top:1px solid #ccc;'
+        'color:#555;font-size:13px;">'
+        "---------- Mensaje reenviado ---------<br>"
+        f"<b>De:</b> {html.escape(original_from)}<br>"
+        f"<b>Fecha:</b> {html.escape(original_date)}<br>"
+        f"<b>Asunto:</b> {html.escape(ticket.subject or 'Sin asunto')}<br>"
+        f"<b>Para:</b> {html.escape(original_to)}"
+        "</div>"
+    )
+    body_parts = []
+    if mensaje_limpio:
+        body_parts.append(html.escape(mensaje_limpio).replace("\n", "<br>"))
+    body_parts.append(forward_header)
+    body_parts.append(original_html)
+    email_body = "<br>".join(body_parts)
+
+    from ATC.app.integrations.email_smtp import send_email_reply
+    try:
+        send_email_reply(
+            to=destinatarios,
+            subject=asunto_limpio,
+            body=email_body,
+        )
+    except Exception as exc:
+        query = urlencode({"send_error": f"No se pudo reenviar el correo: {exc}"})
+        return RedirectResponse(url=f"/ticketera/tickets/{ticket_id}?{query}", status_code=303)
+
+    audit_note = Message(
+        ticket_id=ticket.id,
+        sender_type="agent",
+        sender_id=current_user.id,
+        channel="email",
+        # Mismo estilo visual que una respuesta normal ("Correo enviado" con
+        # Para/CC), en vez del texto plano "Derivacion administrativa... /
+        # Nota:" — pedido explicito, jul 2026.
+        content=_prepend_email_recipient_summary(
+            html.escape(mensaje_limpio).replace("\n", "<br>") if mensaje_limpio else "",
+            to_recipients=destinatarios,
+            cc_recipients=[],
+            bcc_recipients=[],
+        ),
+        # Visible en el chat principal (is_internal_note=False): la ticketera
+        # necesita ver quien reenvio, que se reenvio y a quien — pedido
+        # explicito, jul 2026. Antes quedaba como nota interna y la query de
+        # ticket_detail() excluye is_internal_note=True del chat, asi que
+        # nunca se veia.
+        is_internal_note=False,
+    )
+    db.add(audit_note)
+    db.commit()
+
+    query = urlencode({"service_success": f"Reenviado a {', '.join(destinatarios)}."})
     return RedirectResponse(url=f"/ticketera/tickets/{ticket_id}?{query}", status_code=303)
 
 # ======================================================
@@ -6382,6 +7142,7 @@ def ticketera_compose_agents(
 def reply_ticket(
     ticket_id: int,
     content: str = Form(""),
+    to: str = Form(""),
     cc: str = Form(""),
     bcc: str = Form(""),
     attachments: list[UploadFile] = File(default=[]),
@@ -6420,8 +7181,6 @@ def reply_ticket(
             path.unlink(missing_ok=True)
 
     ticket_source = (ticket.source or "").strip().lower()
-    if ticket_source == "email" and not _has_reception_sent(db, ticket_id):
-        return _redirect_with_error("Primero debes enviar 'Recepcion de solicitud' antes de responder.")
 
     if ticket_source != "email" and uploaded_count:
         return _redirect_with_error("Los adjuntos solo estan disponibles para respuestas por correo.")
@@ -6433,12 +7192,13 @@ def reply_ticket(
 
     if ticket_source == "email":
         requester_email = (ticket.requester.email if ticket.requester and ticket.requester.email else "").strip()
-        if not requester_email:
+        if not requester_email and not (to or "").strip():
             return _redirect_with_error("El ticket no tiene correo del solicitante para responder.")
 
         try:
             to_recipients, cc_recipients, bcc_recipients = _resolve_ticket_email_recipients(
                 ticket,
+                to=to,
                 cc=cc,
                 bcc=bcc,
             )
@@ -6693,6 +7453,7 @@ def mark_no_ticket(
 async def reply_direct(
     ticket_id: int,
     content: str = Form(""),
+    to: str = Form(""),
     cc: str = Form(""),
     bcc: str = Form(""),
     db: Session = Depends(get_db),
@@ -6709,6 +7470,7 @@ async def reply_direct(
         try:
             to_recipients, cc_recipients, bcc_recipients = _resolve_ticket_email_recipients(
                 ticket,
+                to=to,
                 cc=cc,
                 bcc=bcc,
             )
@@ -7007,7 +7769,7 @@ def panel_indicadores(
     sla = get_sla_summary(db, date_from=date_from_dt, date_to=date_to_dt)
 
     volume = get_ticket_volume_monthly(db, date_from=volume_from_dt, date_to=volume_to_dt)
-    volume_tickets = get_tickets_priority_detail(db, date_from=volume_from_dt, date_to=volume_to_dt)
+    volume_tickets = get_tickets_priority_detail(db)
 
     if volume_from_obj or volume_to_obj:
         volume_title = "Cantidad de tickets desde {} hasta {}".format(
@@ -7197,6 +7959,79 @@ def panel_indicadores_informe(
         media_type="application/pdf",
         headers={"Content-Disposition": f'inline; filename="{nombre}"'},
     )
+
+
+@router.get("/panel-indicadores/informe-tecnico")
+def panel_indicadores_informe_tecnico(
+    request: Request,
+    agent_id: int = Query(...),
+    date_from: str | None = Query(default=None),
+    date_to: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    import io
+
+    from fastapi.responses import StreamingResponse
+
+    from ATC.app.services.analytics_service import generar_informe_tecnico_pdf
+
+    _require_area_access(db, current_user, "soporte")
+
+    agente = db.get(User, agent_id)
+    if not agente:
+        raise HTTPException(status_code=404, detail="Técnico no encontrado")
+
+    def _parse_iso_date(raw_value: str | None):
+        if not raw_value:
+            return None
+        try:
+            return datetime.strptime(raw_value, "%Y-%m-%d").date()
+        except ValueError:
+            return None
+
+    from_date_obj = _parse_iso_date(date_from)
+    to_date_obj = _parse_iso_date(date_to)
+    if from_date_obj and to_date_obj and from_date_obj > to_date_obj:
+        from_date_obj, to_date_obj = to_date_obj, from_date_obj
+
+    from_dt = (
+        datetime(from_date_obj.year, from_date_obj.month, from_date_obj.day, 0, 0, 0, tzinfo=timezone.utc)
+        if from_date_obj else None
+    )
+    to_dt = (
+        datetime(to_date_obj.year, to_date_obj.month, to_date_obj.day, 23, 59, 59, 999999, tzinfo=timezone.utc)
+        if to_date_obj else None
+    )
+
+    pdf_bytes = generar_informe_tecnico_pdf(
+        db, agent_user_id=agent_id, agent_name=agente.name or "Técnico",
+        date_from=from_dt, date_to=to_dt,
+    )
+    sufijo = f"_{date_from}_a_{date_to}" if (date_from and date_to) else ""
+    nombre_seguro = "".join(ch if ch.isalnum() else "_" for ch in (agente.name or "tecnico"))
+    nombre = f"Informe_Tecnico_{nombre_seguro}{sufijo}_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="{nombre}"'},
+    )
+
+
+@router.get("/panel-indicadores/ticket-historial/{ticket_id}")
+def panel_indicadores_ticket_historial(
+    ticket_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    from ATC.app.services.analytics_service import get_ticket_timeline
+
+    _require_area_access(db, current_user, "soporte")
+
+    timeline = get_ticket_timeline(db, ticket_id)
+    if timeline is None:
+        raise HTTPException(status_code=404, detail="Ticket no encontrado")
+    return timeline
 
 
 @router.get("/ticketera/tickets/new")
@@ -7426,6 +8261,8 @@ def _ensure_st_campos(db: Session) -> None:
         return
     extras = [
         ("materiales_bodega", "TEXT"),
+        ("fecha_inicio_trabajo", "DATETIME2"),
+        ("fecha_fin_trabajo", "DATETIME2"),
     ]
     try:
         for col, ctype in extras:
@@ -8160,6 +8997,7 @@ async def st_ods_upload_imagenes(
                 subtitulo=nombre_sucursal,
                 cuerpo_html=cuerpo,
                 images=inline_images_bytes,
+                usar_smtp_informe=True,
             )
             email_sent = True
         except Exception as mail_exc:

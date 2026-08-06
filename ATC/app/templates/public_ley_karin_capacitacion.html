@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Toma de Conocimiento — Capacitación Ley Karin</title>
+<style>
+:root{
+  --bg:#f3f2f7;
+  --surface:#ffffff;
+  --border:#e4e1ec;
+  --text:#1f1b2e;
+  --muted:#6b6478;
+  --purple:#4b1d78;
+  --purple-dark:#37134f;
+  --orange:#f4a672;
+  --orange-dark:#c2410c;
+  --ok:#1e9c83;
+  --error:#c0392b;
+  --shadow:0 20px 50px rgba(31,17,54,.14);
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{
+  margin:0;
+  font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  color:var(--text);
+  background:var(--bg);
+  padding:24px 16px 60px;
+}
+
+.shell{
+  width:min(880px,100%);
+  margin:0 auto;
+}
+
+.hero{
+  border-radius:18px 18px 0 0;
+  background:linear-gradient(135deg,var(--purple-dark),var(--purple));
+  padding:26px 30px;
+  position:relative;
+  overflow:hidden;
+}
+.hero-top{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+}
+.hero-brand{display:flex;align-items:center;gap:12px}
+.hero-brand img{height:38px;width:auto;display:block}
+.hero-brand .name{color:#fff;font-weight:800;font-size:15px;letter-spacing:-.01em}
+.hero-brand .rut{color:rgba(255,255,255,.65);font-size:11.5px}
+.badge-karin{
+  background:var(--orange);color:#3a1600;font-weight:800;font-size:12px;
+  padding:8px 14px;border-radius:10px;letter-spacing:.03em;text-align:center;line-height:1.2;
+}
+.hero h1{
+  color:#fff;font-size:21px;margin:20px 0 4px;letter-spacing:-.01em;line-height:1.25;
+}
+.hero p{
+  color:rgba(255,255,255,.7);margin:0;font-size:12.5px;
+}
+.accent-bar{height:4px;background:var(--orange)}
+
+.content{
+  background:var(--surface);
+  border-radius:0 0 18px 18px;
+  box-shadow:var(--shadow);
+  padding:8px 30px 30px;
+}
+
+.section{
+  border-top:1px solid var(--border);
+  padding:22px 0;
+}
+.section:first-child{border-top:none}
+.section h2{
+  font-size:14.5px;font-weight:800;color:var(--purple);margin:0 0 4px;
+}
+.section .hint{
+  margin:0 0 14px;font-size:12px;color:var(--muted);
+}
+
+.grid{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 20px;
+}
+.field{display:flex;flex-direction:column;gap:6px}
+.field.full{grid-column:1 / -1}
+.field label{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.field input,.field select{
+  border:1px solid var(--border);border-radius:10px;padding:10px 12px;
+  font-size:13.5px;font-family:inherit;color:var(--text);background:#fff;outline:none;
+  transition:border-color .15s ease;
+}
+.field input:focus,.field select:focus{border-color:var(--purple)}
+
+.modalidad-group{display:flex;gap:10px}
+.modalidad-opt{
+  flex:1;display:flex;align-items:center;gap:8px;
+  border:1px solid var(--border);border-radius:10px;padding:10px 12px;
+  cursor:pointer;transition:border-color .15s ease;
+}
+.modalidad-opt:hover{border-color:var(--purple)}
+.modalidad-opt input{accent-color:var(--purple);width:15px;height:15px;cursor:pointer;flex-shrink:0}
+.modalidad-opt span{font-size:12.5px;color:var(--text)}
+.modalidad-opt:has(input:checked){border-color:var(--purple);background:#f7f2fc}
+
+.decl-intro{
+  font-size:13px;color:var(--text);line-height:1.65;margin:0 0 12px;
+}
+.decl-list{
+  list-style:none;margin:0 0 14px;padding:0;display:flex;flex-direction:column;gap:8px;
+}
+.decl-list li{
+  display:flex;align-items:flex-start;gap:9px;
+  background:#faf9fb;border:1px solid var(--border);border-radius:10px;padding:10px 12px;
+  font-size:12.5px;line-height:1.5;color:var(--text);
+}
+.decl-list li::before{
+  content:"";flex-shrink:0;width:7px;height:7px;border-radius:50%;
+  background:var(--orange-dark);margin-top:5px;
+}
+.decl-close{
+  font-size:12.5px;color:var(--muted);line-height:1.6;margin:0;
+}
+
+.decl-box{
+  background:#fdf6ee;border:1px solid #f0dcc0;border-radius:12px;
+  padding:16px 18px;font-size:13px;line-height:1.65;color:#3a2a12;
+}
+.decl-box b{color:var(--purple-dark)}
+
+.submit-row{
+  display:flex;align-items:center;justify-content:flex-end;gap:14px;
+  margin-top:24px;padding-top:20px;border-top:1px solid var(--border);
+  flex-wrap:wrap;
+}
+.submit-status{font-size:12.5px;color:var(--muted)}
+.submit-status.ok{color:var(--ok);font-weight:700}
+.submit-status.error{color:var(--error);font-weight:700}
+.btn-generar{
+  appearance:none;border:none;border-radius:12px;padding:13px 22px;
+  font-size:13.5px;font-weight:800;color:#fff;cursor:pointer;
+  background:linear-gradient(135deg,var(--orange-dark),var(--orange));
+  box-shadow:0 10px 22px rgba(194,65,12,.28);
+  transition:transform .15s ease,opacity .15s ease;
+}
+.btn-generar:disabled{opacity:.5;cursor:not-allowed}
+.btn-generar:not(:disabled):hover{transform:translateY(-1px)}
+
+@media (max-width:640px){
+  .grid,.modalidad-group{grid-template-columns:1fr}
+  .modalidad-group{flex-direction:column}
+  .hero,.content{padding-left:18px;padding-right:18px}
+}
+</style>
+</head>
+<body>
+  <div class="shell">
+    <header class="hero">
+      <div class="hero-top">
+        <div class="hero-brand">
+          <img src="/shared-static/img/logo-atc.png" alt="Alguien Te Cuida">
+          <div>
+            <div class="name">ALGUIEN TE CUIDA SPA</div>
+            <div class="rut">RUT 76.521.007-0</div>
+          </div>
+        </div>
+        <div class="badge-karin">LEY<br>KARIN</div>
+      </div>
+      <h1>Toma de Conocimiento — Capacitación Ley N.º 21.643 (Ley Karin)</h1>
+      <p>Dirigida a jefaturas · acredita la participación en la capacitación</p>
+    </header>
+    <div class="accent-bar"></div>
+
+    <main class="content">
+      <form id="formLeyKarinCap" autocomplete="off">
+
+        <section class="section">
+          <h2>1. Identificación de la persona capacitada</h2>
+          <p class="hint">Datos de la jefatura que participó en la capacitación.</p>
+          <div class="grid">
+            <div class="field"><label for="nombre_completo">Nombre completo</label><input type="text" id="nombre_completo" required></div>
+            <div class="field"><label for="rut">RUT</label><input type="text" id="rut" placeholder="12345678-9" maxlength="10" required></div>
+            <div class="field"><label for="cargo">Cargo</label><input type="text" id="cargo" value="Trabajador ATC" readonly style="background:#f3f0f8;color:var(--muted);cursor:not-allowed;"></div>
+            <div class="field"><label for="correo">Correo</label><input type="email" id="correo" placeholder="nombre@correo.cl" required></div>
+            <div class="field"><label for="fecha_capacitacion">Fecha de capacitación o charla</label><input type="date" id="fecha_capacitacion" required></div>
+            <div class="field full">
+              <label>Modalidad</label>
+              <div class="modalidad-group">
+                <label class="modalidad-opt"><input type="radio" name="modalidad" value="Presencial" checked><span>Presencial</span></label>
+                <label class="modalidad-opt"><input type="radio" name="modalidad" value="En línea"><span>En línea</span></label>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>2. Declaración de toma de conocimiento</h2>
+          <p class="decl-intro">
+            Declaro haber participado en la capacitación sobre la Ley N.º 21.643 (Ley Karin) y haber recibido
+            información clara respecto de la prevención, investigación y sanción del acoso laboral, acoso
+            sexual y violencia en el trabajo, así como de las responsabilidades que me corresponden en mi
+            calidad de jefatura.
+          </p>
+          <ul class="decl-list">
+            <li>Promover un ambiente de trabajo respetuoso y prevenir conductas de acoso, violencia, discriminación, incivilidad y sexismo.</li>
+            <li>Recibir y derivar oportunamente cualquier denuncia o relato al canal institucional correspondiente, sin investigar por cuenta propia ni emitir juicios anticipados.</li>
+            <li>Resguardar la confidencialidad, evitar represalias y prevenir la revictimización de las personas involucradas.</li>
+            <li>Colaborar con las medidas de resguardo e instrucciones que determine la empresa durante el procedimiento.</li>
+            <li>Conocer y aplicar el Protocolo de Prevención, el Procedimiento de Investigación y los canales internos vigentes de ALGUIEN TE CUIDA SPA.</li>
+          </ul>
+          <p class="decl-close">
+            Declaro haber tenido la oportunidad de realizar preguntas y comprendo que este documento acredita
+            mi participación y toma de conocimiento, sin reemplazar la lectura y cumplimiento de los
+            documentos internos vigentes.
+          </p>
+
+          <div class="decl-box" id="declaracionPreview" style="margin-top:16px">
+            Yo, <b>________________________</b>, RUT <b>____________</b>, declaro que con fecha
+            <b>____________</b> participé en la capacitación sobre la Ley N.º 21.643 (Ley Karin)
+            individualizada en este documento y que tomé conocimiento íntegro de las materias y
+            responsabilidades señaladas en el punto 2. Formulo esta declaración en señal de conformidad con
+            lo antes expuesto, sin que ello implique renuncia de derechos ni limite mi derecho a denunciar.
+          </div>
+        </section>
+
+        <div class="submit-row">
+          <span class="submit-status" id="submitStatus"></span>
+          <button type="submit" class="btn-generar" id="btnGenerar">Enviar</button>
+        </div>
+      </form>
+    </main>
+  </div>
+
+  <script>
+    function esc(v) {
+      return String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+
+    function fmtFechaDDMMAAAA(iso) {
+      if (!iso) return "";
+      const [y, m, d] = iso.split("-");
+      return (y && m && d) ? `${d}-${m}-${y}` : iso;
+    }
+
+    function formatearRut(value) {
+      const limpio = value.replace(/[^0-9kK]/g, "").toUpperCase();
+      if (limpio.length <= 1) return limpio;
+      return limpio.slice(0, -1) + "-" + limpio.slice(-1);
+    }
+    document.getElementById("rut").addEventListener("input", (e) => {
+      const alFinal = e.target.selectionStart === e.target.value.length;
+      e.target.value = formatearRut(e.target.value);
+      if (alFinal) e.target.setSelectionRange(e.target.value.length, e.target.value.length);
+    });
+
+    function actualizarDeclaracion() {
+      const nombre = document.getElementById("nombre_completo").value.trim();
+      const rut = document.getElementById("rut").value.trim();
+      const fecha = fmtFechaDDMMAAAA(document.getElementById("fecha_capacitacion").value);
+
+      document.getElementById("declaracionPreview").innerHTML =
+        `Yo, <b>${nombre ? esc(nombre) : "________________________"}</b>, RUT ` +
+        `<b>${rut ? esc(rut) : "____________"}</b>, declaro que con fecha ` +
+        `<b>${fecha ? esc(fecha) : "____________"}</b> participé en la capacitación sobre la Ley N.º ` +
+        `21.643 (Ley Karin) individualizada en este documento y que tomé conocimiento íntegro de las ` +
+        `materias y responsabilidades señaladas en el punto 2. Formulo esta declaración en señal de ` +
+        `conformidad con lo antes expuesto, sin que ello implique renuncia de derechos ni limite mi ` +
+        `derecho a denunciar.`;
+    }
+    ["nombre_completo", "rut", "fecha_capacitacion"].forEach((id) => {
+      document.getElementById(id).addEventListener("input", actualizarDeclaracion);
+    });
+    actualizarDeclaracion();
+
+    document.getElementById("formLeyKarinCap").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const status = document.getElementById("submitStatus");
+      const btn = document.getElementById("btnGenerar");
+
+      const nombre = document.getElementById("nombre_completo").value.trim();
+      const rut = document.getElementById("rut").value.trim();
+      const correo = document.getElementById("correo").value.trim();
+      if (!nombre || !rut) {
+        status.textContent = "Completa al menos Nombre completo y RUT.";
+        status.className = "submit-status error";
+        return;
+      }
+
+      const modalidadEl = document.querySelector('input[name="modalidad"]:checked');
+
+      const payload = {
+        nombre_completo: nombre,
+        rut,
+        cargo: document.getElementById("cargo").value.trim(),
+        correo,
+        fecha_capacitacion: document.getElementById("fecha_capacitacion").value,
+        modalidad: modalidadEl ? modalidadEl.value : "",
+      };
+
+      btn.disabled = true;
+      status.className = "submit-status";
+      status.textContent = "Generando documento...";
+      try {
+        const res = await fetch("/public/ley-karin-capacitacion/informe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || `HTTP ${res.status}`);
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `TomaConocimiento_Capacitacion_LeyKarin_${nombre.replace(/[^A-Za-z0-9_-]+/g, "_")}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        status.textContent = correo
+          ? `Documento descargado y enviado a ${correo}.`
+          : "Documento generado y descargado correctamente.";
+        status.className = "submit-status ok";
+      } catch (err) {
+        status.textContent = `No se pudo generar el documento: ${err.message}`;
+        status.className = "submit-status error";
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

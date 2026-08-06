@@ -70,6 +70,16 @@ class Ticket(Base):
         server_default="0",
     )
 
+    # Marca permanente: en algun momento se asigno a todo el equipo (via
+    # "Asignar a todo el equipo"). No se limpia al ser tomado por alguien —
+    # sirve para que el usuario con visibilidad total (Ronald Montilla) lo
+    # siga viendo aunque otro agente ya lo haya tomado (pedido explicito,
+    # jul 2026).
+    team_broadcast_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
     # =========================
     # RELACIONES
     # =========================

@@ -58,6 +58,11 @@ class User(Base):
         index=True,
     )
 
+    # RUT de la empresa (bbdd_clientes.rut) cuando este usuario es una cuenta
+    # de portal cliente (login externo por empresa). NULL para todo el
+    # personal interno de ATC.
+    cliente_rut: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
+
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     password_changed: Mapped[bool] = mapped_column(

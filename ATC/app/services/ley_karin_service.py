@@ -390,3 +390,256 @@ def enviar_comprobante_ley_karin_email(destinatario: str, pdf_bytes: bytes, nomb
             srv.ehlo()
         srv.login(username, password)
         srv.send_message(msg)
+
+
+# ──────────────────────────────────────────────
+# Toma de Conocimiento — Capacitación Ley Karin (jefaturas)
+# Documento acotado a UNA capacitación puntual: código ATC-LK-TC-001,
+# distinto del comprobante general de arriba (que cubre entrega de
+# documentos + canales + declaración de recepción en general).
+# ──────────────────────────────────────────────
+
+TC_CAPACITACION_DECLARACIONES = [
+    "Promover un ambiente de trabajo respetuoso y prevenir conductas de acoso, violencia, discriminación, "
+    "incivilidad y sexismo.",
+    "Recibir y derivar oportunamente cualquier denuncia o relato al canal institucional correspondiente, sin "
+    "investigar por cuenta propia ni emitir juicios anticipados.",
+    "Resguardar la confidencialidad, evitar represalias y prevenir la revictimización de las personas "
+    "involucradas.",
+    "Colaborar con las medidas de resguardo e instrucciones que determine la empresa durante el procedimiento.",
+    "Conocer y aplicar el Protocolo de Prevención, el Procedimiento de Investigación y los canales internos "
+    "vigentes de ALGUIEN TE CUIDA SPA.",
+]
+
+TC_CAPACITACION_CODIGO = "ATC-LK-TC-001"
+TC_CAPACITACION_VERSION = "001"
+TC_CAPACITACION_AREA_RESPONSABLE = "Desarrollo Organizacional / RR.HH."
+
+
+def generar_toma_conocimiento_capacitacion_pdf(data: dict) -> bytes:
+    from reportlab.lib.colors import HexColor, white
+    from reportlab.lib.enums import TA_JUSTIFY
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.units import cm
+    from reportlab.platypus import (
+        BaseDocTemplate, Frame, HRFlowable, PageTemplate, Paragraph, Spacer, Table, TableStyle,
+    )
+
+    C_DARK = HexColor(_C_DARK)
+    C_PURPLE = HexColor(_C_PURPLE)
+    C_ORANGE = HexColor(_C_ORANGE)
+    C_BG = HexColor(_C_BG)
+    C_BORDER = HexColor(_C_BORDER)
+    C_TEXT = HexColor(_C_TEXT)
+    C_SOFT = HexColor(_C_SOFT)
+    C_GREY = HexColor(_C_GREY)
+
+    nombre = str(data.get("nombre_completo") or "").strip()
+    rut = str(data.get("rut") or "").strip()
+    cargo = str(data.get("cargo") or "").strip() or "Trabajador ATC"
+    modalidad = str(data.get("modalidad") or "").strip() or "—"
+    fecha_capacitacion = _fmt_fecha(data.get("fecha_capacitacion") or "")
+
+    ahora = datetime.now()
+    fecha_doc = ahora.strftime("%d/%m/%Y")
+    fecha_emision = ahora.strftime("%d/%m/%Y %H:%M")
+    titulo_hdr = "TOMA DE CONOCIMIENTO — CAPACITACIÓN LEY N.º 21.643 (LEY KARIN)"
+
+    W, H = A4
+    pad = 1.4 * cm
+    HEADER_H = 2.6 * cm
+    ACCENT_H = 5
+    FOOTER_H = 1.0 * cm
+    BODY_TOP = HEADER_H + ACCENT_H + 12
+    BODY_BOT = FOOTER_H + 8
+    fw = W - 2 * pad
+
+    logo_path = _ATC_DIR / "app" / "static" / "img" / "logo-atc.png"
+    if not logo_path.exists():
+        logo_path = _ATC_DIR / "static" / "img" / "logo-atc.png"
+    logo_w, logo_h = 2.6 * cm, 1.3 * cm
+
+    def draw_page(canvas, doc):
+        canvas.saveState()
+        canvas.setFillColor(C_DARK)
+        canvas.rect(0, H - HEADER_H, W, HEADER_H, fill=1, stroke=0)
+        if logo_path.exists():
+            try:
+                canvas.drawImage(
+                    str(logo_path),
+                    pad, H - HEADER_H + (HEADER_H - logo_h) / 2,
+                    width=logo_w, height=logo_h,
+                    preserveAspectRatio=True, mask="auto",
+                )
+            except Exception:
+                pass
+        tx = pad + logo_w + 0.5 * cm
+        canvas.setFillColor(white)
+        canvas.setFont("Helvetica-Bold", 11.5)
+        canvas.drawString(tx, H - HEADER_H / 2 - 4, titulo_hdr)
+        canvas.setFillColor(C_PURPLE)
+        canvas.rect(0, H - HEADER_H - ACCENT_H, W, ACCENT_H, fill=1, stroke=0)
+        canvas.setFillColor(C_DARK)
+        canvas.rect(0, 0, W, FOOTER_H, fill=1, stroke=0)
+        canvas.setFillColor(C_GREY)
+        canvas.setFont("Helvetica", 7)
+        canvas.drawCentredString(
+            W / 2, FOOTER_H / 2 - 3,
+            f"Documento generado automáticamente · Alguien Te Cuida SpA · RUT 76.521.007-0 · {fecha_emision}",
+        )
+        canvas.drawRightString(W - pad, FOOTER_H / 2 - 3, f"Página {doc.page}")
+        canvas.restoreState()
+
+    frame = Frame(pad, BODY_BOT, fw, H - BODY_TOP - BODY_BOT,
+                  leftPadding=0, bottomPadding=0, rightPadding=0, topPadding=0)
+    buf = io.BytesIO()
+    doc = BaseDocTemplate(
+        buf, pagesize=A4, pageTemplates=[PageTemplate(id="main", frames=[frame], onPage=draw_page)],
+        leftMargin=0, rightMargin=0, topMargin=0, bottomMargin=0,
+        title=titulo_hdr, author="Alguien Te Cuida",
+    )
+
+    st_sec = ParagraphStyle("sec", fontName="Helvetica-Bold", fontSize=10.5, textColor=C_PURPLE, leading=13, spaceBefore=12, spaceAfter=5)
+    st_body = ParagraphStyle("body", fontName="Helvetica", fontSize=9.5, textColor=C_SOFT, leading=14.5, alignment=TA_JUSTIFY)
+    st_bullet = ParagraphStyle("bullet", fontName="Helvetica", fontSize=9.5, textColor=C_TEXT, leading=14, alignment=TA_JUSTIFY, leftIndent=10, bulletIndent=0)
+    st_label = ParagraphStyle("label", fontName="Helvetica-Bold", fontSize=8, textColor=C_GREY, leading=10)
+    st_value = ParagraphStyle("value", fontName="Helvetica", fontSize=9.5, textColor=C_TEXT, leading=12)
+    st_decl = ParagraphStyle("decl", fontName="Helvetica", fontSize=9.5, textColor=C_TEXT, leading=16, alignment=TA_JUSTIFY)
+    st_footnote = ParagraphStyle("footnote", fontName="Helvetica-Oblique", fontSize=8, textColor=C_SOFT, leading=11)
+
+    story: list = []
+
+    def campo(etiqueta: str, valor: str):
+        return [Paragraph(etiqueta.upper(), st_label), Paragraph(valor or "—", st_value)]
+
+    # ── Metadatos del documento ──
+    t0 = Table(
+        [[campo("Código", TC_CAPACITACION_CODIGO), campo("Versión", TC_CAPACITACION_VERSION)],
+         [campo("Fecha", fecha_doc), campo("Área responsable", TC_CAPACITACION_AREA_RESPONSABLE)]],
+        colWidths=[fw / 2, fw / 2],
+    )
+    t0.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        ("TOPPADDING", (0, 0), (-1, -1), 0),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+        ("LINEBELOW", (0, -1), (-1, -1), 0.6, C_BORDER),
+        ("BOTTOMPADDING", (0, -1), (-1, -1), 10),
+    ]))
+    story.append(t0)
+    story.append(Spacer(1, 6))
+
+    # ── 1. Identificación de la persona capacitada ──
+    story.append(Paragraph("1. Identificación de la persona capacitada", st_sec))
+    story.append(HRFlowable(width=fw, thickness=0.6, color=C_BORDER, spaceAfter=6))
+    t1 = Table(
+        [
+            [campo("Nombre completo", nombre), campo("RUT", rut)],
+            [campo("Cargo", cargo), campo("Fecha de capacitación o charla", fecha_capacitacion)],
+            [campo("Modalidad", modalidad), ""],
+        ],
+        colWidths=[fw / 2, fw / 2],
+    )
+    t1.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        ("TOPPADDING", (0, 0), (-1, -1), 0),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+    ]))
+    story.append(t1)
+
+    # ── 2. Declaración de toma de conocimiento ──
+    story.append(Paragraph("2. Declaración de toma de conocimiento", st_sec))
+    story.append(HRFlowable(width=fw, thickness=0.6, color=C_BORDER, spaceAfter=6))
+    story.append(Paragraph(
+        "Declaro haber participado en la capacitación sobre la Ley N.º 21.643 (Ley Karin) y haber recibido "
+        "información clara respecto de la prevención, investigación y sanción del acoso laboral, acoso sexual "
+        "y violencia en el trabajo, así como de las responsabilidades que me corresponden en mi calidad de "
+        "jefatura.",
+        st_body,
+    ))
+    story.append(Spacer(1, 6))
+    for texto in TC_CAPACITACION_DECLARACIONES:
+        story.append(Paragraph(f"•&nbsp;&nbsp;{texto}", st_bullet))
+        story.append(Spacer(1, 3))
+    story.append(Spacer(1, 4))
+    story.append(Paragraph(
+        "Declaro haber tenido la oportunidad de realizar preguntas y comprendo que este documento acredita mi "
+        "participación y toma de conocimiento, sin reemplazar la lectura y cumplimiento de los documentos "
+        "internos vigentes.",
+        st_body,
+    ))
+
+    # ── Declaración personalizada (reemplaza a la firma) ──
+    story.append(Spacer(1, 10))
+    texto_decl = (
+        f"Yo, <b>{nombre or '________________________'}</b>, RUT <b>{rut or '____________'}</b>, "
+        f"declaro que con fecha <b>{fecha_capacitacion or '____________'}</b> participé en la capacitación "
+        f"sobre la Ley N.º 21.643 (Ley Karin) individualizada en este documento y que tomé conocimiento "
+        f"íntegro de las materias y responsabilidades señaladas en el punto 2. Formulo esta declaración en "
+        f"señal de conformidad con lo antes expuesto, sin que ello implique renuncia de derechos ni limite "
+        f"mi derecho a denunciar."
+    )
+    story.append(Paragraph(texto_decl, st_decl))
+
+    story.append(Spacer(1, 18))
+    story.append(Paragraph(
+        "Conservar este documento en la carpeta de respaldo de capacitación y cumplimiento Ley Karin.",
+        st_footnote,
+    ))
+
+    doc.build(story)
+    return buf.getvalue()
+
+
+def enviar_toma_conocimiento_capacitacion_email(destinatario: str, pdf_bytes: bytes, nombre_completo: str) -> None:
+    """Manda la Toma de Conocimiento de Capacitación Ley Karin ya generada al
+    correo indicado en el formulario. Corre como BackgroundTask (no bloquea
+    la descarga del PDF); cualquier error de envío queda solo logueado."""
+    destinatario = (destinatario or "").strip()
+    if not destinatario:
+        return
+
+    cfg = _contacto_smtp_config()
+    username = cfg["username"]
+    password = cfg["password"]
+    if not username or not password:
+        raise RuntimeError("CONTACTO_SMTP_USERNAME/CONTACTO_SMTP_PASSWORD no configurados en .env")
+
+    from_addr = cfg["from_addr"] or username
+    host = cfg["host"]
+    port = int(cfg["port"] or 587)
+    use_tls = cfg["use_tls"].lower() not in {"0", "false", "no", "off"}
+
+    nombre = (nombre_completo or "").strip() or "trabajador(a)"
+    html_body = f"""
+      <div style="font-family:Arial,sans-serif;font-size:14px;color:#2d3436;line-height:1.6;">
+        <p>Hola {nombre},</p>
+        <p>Adjuntamos tu Toma de Conocimiento — Capacitación Ley N.º 21.643 (Ley Karin).</p>
+        <p>Alguien Te Cuida</p>
+      </div>"""
+    plain_body = f"Hola {nombre},\nAdjuntamos tu Toma de Conocimiento — Capacitación Ley Karin.\nAlguien Te Cuida"
+
+    msg = EmailMessage()
+    msg["From"] = f"{cfg['from_name']} <{from_addr}>"
+    msg["To"] = destinatario
+    msg["Subject"] = "Toma de Conocimiento — Capacitación Ley Karin — Alguien Te Cuida"
+    msg["Date"] = formatdate(localtime=True)
+    msg["Message-ID"] = make_msgid(domain="alguientecuida.cl")
+    msg.set_content(plain_body)
+    msg.add_alternative(html_body, subtype="html")
+
+    nombre_ascii = "".join(c if c.isalnum() else "_" for c in f"TomaConocimiento_Capacitacion_LeyKarin_{nombre}")[:80]
+    msg.add_attachment(pdf_bytes, maintype="application", subtype="pdf", filename=f"{nombre_ascii}.pdf")
+
+    ctx = ssl.create_default_context()
+    with smtplib.SMTP(host, port, timeout=25) as srv:
+        srv.ehlo()
+        if use_tls:
+            srv.starttls(context=ctx)
+            srv.ehlo()
+        srv.login(username, password)
+        srv.send_message(msg)

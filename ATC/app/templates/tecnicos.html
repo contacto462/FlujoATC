@@ -879,6 +879,46 @@
       font-weight: 700;
     }
 
+    .toast-inicio-trabajo {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--panel-bg);
+      border: 1px solid rgba(52, 211, 153, .4);
+      color: var(--text-main);
+      border-radius: 14px;
+      padding: 14px 18px;
+      font-size: 14px;
+      font-weight: 700;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity .2s ease, transform .2s ease;
+      pointer-events: none;
+      z-index: 2000;
+    }
+    .toast-inicio-trabajo.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .toast-inicio-trabajo .toast-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      background: rgba(52, 211, 153, .18);
+      color: var(--success);
+      display: grid;
+      place-items: center;
+      flex: 0 0 24px;
+    }
+    .toast-inicio-trabajo .toast-icon svg {
+      width: 14px;
+      height: 14px;
+    }
+
     @media screen and (max-width: 900px) {
       body {
         padding: 18px;
@@ -1110,6 +1150,37 @@
     .badge-proceso  { background: rgba(52, 211, 153, .15); color: #34d399; }
     .badge-pendiente { background: rgba(251, 191, 36, .15); color: #fbbf24; }
     .badge-terminado { background: rgba(100, 116, 139, .15); color: #94a3b8; }
+
+    .odt-card-row-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .odt-card-inicio-btn {
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 6px 14px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      white-space: nowrap;
+      border: 1px solid rgba(255, 255, 255, .12);
+      background: #111b1f;
+      color: white;
+      cursor: pointer;
+    }
+    .odt-card-inicio-btn:hover:not(:disabled) {
+      background: #1a272c;
+    }
+    .odt-card-inicio-btn:disabled,
+    .odt-card-inicio-btn.iniciado {
+      cursor: default;
+      border-color: rgba(148, 163, 184, .25);
+      background: rgba(148, 163, 184, .12);
+      color: #94a3b8;
+      opacity: 1;
+    }
 
     .odt-card-cliente {
       font-size: 15px;
@@ -1930,6 +2001,13 @@
 
   <div id="mensajeExito">Registro guardado correctamente.</div>
 
+  <div id="toastInicioTrabajo" class="toast-inicio-trabajo" role="status" aria-live="polite">
+    <span class="toast-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    </span>
+    <span>Inicio de trabajo, ¡Éxito!</span>
+  </div>
+
   <div id="imagenLightbox" onclick="cerrarImagenLightbox(event)">
     <img id="imagenLightboxImg" src="" alt="Imagen ODT">
   </div>
@@ -2009,6 +2087,18 @@
       if (!limpio) return;
       document.cookie = `atc_token=${encodeURIComponent(limpio)}; path=/; samesite=lax`;
     }
+
+    const apiBaseTecnicos = window.api;
+    async function apiTecnicosConSesion(url, options = {}) {
+      let finalUrl = String(url || "");
+      const token = String(tokenActivo || "").trim();
+      if (token && finalUrl.startsWith("/api/") && !/[?&]token=/.test(finalUrl)) {
+        finalUrl += `${finalUrl.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
+      }
+      return apiBaseTecnicos(finalUrl, options);
+    }
+    window.api = apiTecnicosConSesion;
+    api = apiTecnicosConSesion;
 
     const CAUSAS_CIERRE = {
       ATC: [
@@ -2169,11 +2259,21 @@
 
     // Lightbox en la misma pagina (sin target="_blank") para evitar que el
     // bloqueador de popups del navegador impida abrir la imagen.
+    function urlImagenConSesion(url) {
+      const raw = String(url || "").trim();
+      if (!raw) return "";
+      const token = String(tokenActivo || "").trim();
+      if (!token || !raw.startsWith("/api/incidencias/drive-image/") || /[?&]token=/.test(raw)) {
+        return raw;
+      }
+      return `${raw}${raw.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
+    }
+
     function abrirImagenLightbox(url) {
       const overlay = document.getElementById("imagenLightbox");
       const img = document.getElementById("imagenLightboxImg");
       if (!overlay || !img) return;
-      img.src = url;
+      img.src = urlImagenConSesion(url);
       overlay.style.display = "flex";
     }
 
@@ -2242,7 +2342,7 @@
       return Boolean(document.querySelector(".odt-card-detail[style*='block']"));
     }
 
-    function toggleInfoSucursalCard(card, cliente, observacion, estado, odt, direccion = "") {
+    function toggleInfoSucursalCard(card, cliente, observacion, estado, odt, direccion = "", obsPendiente = "") {
       const detail = card.querySelector(".odt-card-detail");
       if (!detail) return;
       if (detail.style.display !== "none" && currentODT === odt) {
@@ -2251,10 +2351,10 @@
         return;
       }
       document.querySelectorAll(".odt-card-detail").forEach((d) => { d.style.display = "none"; });
-      mostrarInfoSucursalCard(card, cliente, observacion, estado, odt, direccion);
+      mostrarInfoSucursalCard(card, cliente, observacion, estado, odt, direccion, obsPendiente);
     }
 
-    async function mostrarInfoSucursalCard(card, cliente, observacion = "", estado = "", odt = "", direccionFallback = "") {
+    async function mostrarInfoSucursalCard(card, cliente, observacion = "", estado = "", odt = "", direccionFallback = "", obsPendiente = "") {
       const detail = card.querySelector(".odt-card-detail");
       if (!detail) return;
       currentODT = odt; clienteActivo = cliente;
@@ -2300,31 +2400,39 @@
             (camarasPendientes > 0 ? ` · Pendientes: ${escapeHTML(String(camarasPendientes))}` : "") +
             `</p>`;
         }
-        html += '<h4 class="hdr-incidencias">Historial de Incidencias</h4>';
-        html += '<div class="historial-incidencias" style="display:none;">';
-        const incVis = 5;
-        const incFilt = (Array.isArray(incidencias) ? incidencias : []).filter((inc) => {
-          const t = normalizarTexto(inc?.problema || "");
-          return !t.includes("mantencion") && !t.includes("mantención");
-        });
-        if (!incFilt.length) {
-          html += '<p class="info-vacio">No hay incidencias relevantes</p>';
+        const obsPendienteTexto = String(obsPendiente || "").trim();
+        if (obsPendienteTexto) {
+          html += '<h4>Avances de la Orden</h4>';
+          html += `<div class="odt-detalle-completo">${escapeHTML(obsPendienteTexto).replace(/\n/g, "<br>")}</div>`;
         } else {
-          html += `<ul class="lista-incidencias" data-total="${incFilt.length}">`;
-          incFilt.forEach((inc, idx) => {
-            const vis = idx >= incFilt.length - incVis ? "block" : "none";
-            html += `<li class="inc-item" style="display:${vis};">` +
-              `<div class="inc-row"><span class="inc-fecha">Fecha: ${escapeHTML(inc?.fecha || "Sin fecha")}</span>` +
-              (inc?.problema ? `<span class="inc-problema">- ${escapeHTML(inc.problema)}</span>` : "") + "</div>" +
-              `<div class="inc-obs">${escapeHTML(inc?.texto || "")}</div></li>`;
+          html += '<h4 class="hdr-incidencias">Historial de Incidencias</h4>';
+          html += '<div class="historial-incidencias" style="display:none;">';
+          const incVis = 5;
+          const incFilt = (Array.isArray(incidencias) ? incidencias : []).filter((inc) => {
+            const t = normalizarTexto(inc?.problema || "");
+            return !t.includes("mantencion") && !t.includes("mantención");
           });
-          html += "</ul>";
-          if (incFilt.length > incVis) html += '<div style="text-align:center;margin-top:10px;"><button class="btn-ver-mas" onclick="verMasIncidencias(this)">Ver mas</button></div>';
+          if (!incFilt.length) {
+            html += '<p class="info-vacio">No hay incidencias relevantes</p>';
+          } else {
+            html += `<ul class="lista-incidencias" data-total="${incFilt.length}">`;
+            incFilt.forEach((inc, idx) => {
+              const vis = idx >= incFilt.length - incVis ? "block" : "none";
+              html += `<li class="inc-item" style="display:${vis};">` +
+                `<div class="inc-row"><span class="inc-fecha">Fecha: ${escapeHTML(inc?.fecha || "Sin fecha")}</span>` +
+                (inc?.problema ? `<span class="inc-problema">- ${escapeHTML(inc.problema)}</span>` : "") + "</div>" +
+                `<div class="inc-obs">${escapeHTML(inc?.texto || "")}</div></li>`;
+            });
+            html += "</ul>";
+            if (incFilt.length > incVis) html += '<div style="text-align:center;margin-top:10px;"><button class="btn-ver-mas" onclick="verMasIncidencias(this)">Ver mas</button></div>';
+          }
+          html += "</div>";
         }
-        html += "</div>";
         if (imagenes.length > 0) {
           html += '<div style="margin-top:15px;"><p><strong>Imagenes Incidencia</strong></p><div class="imagenes-lista">';
-          imagenes.forEach((url, idx) => { html += `<div class="imagen-item"><button type="button" class="imagen-item-btn" onclick="abrirImagenLightbox('${escapeHTML(url)}')">Imagen ${idx + 1}</button></div>`; });
+          imagenes.forEach((url, idx) => {
+            html += `<div class="imagen-item"><button type="button" class="imagen-item-btn" data-img-url="${escapeHTML(url)}">Imagen ${idx + 1}</button></div>`;
+          });
           html += "</div></div>";
         }
         html += '<div class="action-buttons">' +
@@ -2337,6 +2445,9 @@
         detail.querySelector("#btnEnProcesoSucursal")?.addEventListener("click", () => marcarEnProceso(odtAcc));
         detail.querySelector("#btnFinalizarSucursal")?.addEventListener("click", () => abrirModalFinalizar(odtAcc));
         detail.querySelector("#btnRendicionSucursal")?.addEventListener("click", () => abrirFormularioRendicionPorODT(odtAcc));
+        detail.querySelectorAll(".imagen-item-btn[data-img-url]").forEach((btn) => {
+          btn.addEventListener("click", () => abrirImagenLightbox(btn.getAttribute("data-img-url") || ""));
+        });
         detail.querySelector(".hdr-incidencias")?.addEventListener("click", () => {
           const cont = detail.querySelector(".historial-incidencias");
           if (cont) cont.style.display = cont.style.display === "none" ? "block" : "none";
@@ -2982,11 +3093,6 @@
           tokenActivo = tokenCandidato;
           localStorage.setItem("atc_token", tokenActivo);
           sincronizarTokenCookie(tokenActivo);
-          const url = new URL(window.location.href);
-          if (url.searchParams.get("token") !== tokenActivo) {
-            url.searchParams.set("token", tokenActivo);
-            window.history.replaceState({}, "", url.toString());
-          }
           document.getElementById("sesionInfo").textContent = `${usuario}`;
           return true;
         } catch (_) {
@@ -3042,6 +3148,9 @@
           fila?.[13] || "", // Dirección
           fila?.[7] || "", // Técnico
           fila?.[10] || "", // Acompañante
+          fila?.[19] || "", // Fecha inicio trabajo
+          fila?.[20] || "", // Fecha fin trabajo
+          fila?.[14] || "", // Observacion pendiente (avance dejado por tecnico anterior)
         ]);
     }
 
@@ -3185,6 +3294,11 @@
           const tecnico = String(fila?.[8] || "").trim();
           const acompanante = String(fila?.[9] || "").trim();
           const detalleTxt = String(fila?.[4] || "");
+          const fechaInicioTrabajo = String(fila?.[10] || "").trim();
+          const fechaFinTrabajo = String(fila?.[11] || "").trim();
+          const trabajoEnCurso = Boolean(fechaInicioTrabajo && !fechaFinTrabajo);
+          const puedeIniciarTrabajo = estadoFila !== "Terminado";
+          const obsPendiente = String(fila?.[12] || "").trim();
           const asignacion = [
             tecnico ? `Técnico: ${tecnico}` : "",
             acompanante ? `Acompañante: ${acompanante}` : "",
@@ -3200,7 +3314,10 @@
           main.innerHTML = `
             <div class="odt-card-row">
               <span class="odt-card-odt">${escapeHTML(odt)}</span>
-              <span class="odt-badge ${badgeClass}">${escapeHTML(estadoFila)}</span>
+              <span class="odt-card-row-right">
+                ${puedeIniciarTrabajo ? `<button type="button" class="odt-card-inicio-btn${trabajoEnCurso ? " iniciado" : ""}"${trabajoEnCurso ? " disabled" : ""}>${trabajoEnCurso ? "Trabajo iniciado" : "Inicio"}</button>` : ""}
+                <span class="odt-badge ${badgeClass}">${escapeHTML(estadoFila)}</span>
+              </span>
             </div>
             <div class="odt-card-cliente">${escapeHTML(cliente)}</div>
             ${direccion ? `<div class="odt-card-direccion">${escapeHTML(direccion)}</div>` : ""}
@@ -3211,7 +3328,16 @@
             </div>
             ${prio ? `<div class="odt-card-prioridad">Prioridad: ${escapeHTML(prio)}</div>` : ""}
           `;
-          main.onclick = () => toggleInfoSucursalCard(card, cliente, detalleTxt, estadoFila, odt, direccion);
+          main.onclick = () => toggleInfoSucursalCard(card, cliente, detalleTxt, estadoFila, odt, direccion, obsPendiente);
+          const btnInicio = main.querySelector(".odt-card-inicio-btn");
+          if (btnInicio && !trabajoEnCurso) {
+            btnInicio.addEventListener("click", (event) => {
+              event.stopPropagation();
+              btnInicio.disabled = true;
+              btnInicio.textContent = "Iniciando...";
+              iniciarTrabajo(odt, btnInicio);
+            });
+          }
 
           const detail = document.createElement("div");
           detail.className = "odt-card-detail";
@@ -3438,6 +3564,7 @@
             odtCierre,
             diagnostico,
             archivosSeleccionados,
+            { token: tokenActivo || "" },
           );
         } catch (err) {
           if (err?.status !== 404) throw err;
@@ -3449,7 +3576,7 @@
           const fotosBase64 = await leerFotosBase64(archivosSeleccionados);
           cierreResp = await api("/api/incidencias/finalizar-completo", {
             method: "POST",
-            body: JSON.stringify({ odt: odtCierre, ...diagnostico, fotosBase64 }),
+            body: JSON.stringify({ odt: odtCierre, ...diagnostico, fotosBase64, token: tokenActivo || "" }),
           });
         }
 
@@ -3487,6 +3614,46 @@
       // mientras se marca pendiente (para eso existe "Finalizar").
       if (t <= 1) return t;
       return t - 1;
+    }
+
+    let toastInicioTrabajoTimeout = null;
+
+    function mostrarToastInicioTrabajo() {
+      const toast = document.getElementById("toastInicioTrabajo");
+      if (!toast) return;
+      if (toastInicioTrabajoTimeout) clearTimeout(toastInicioTrabajoTimeout);
+      toast.classList.add("show");
+      toastInicioTrabajoTimeout = setTimeout(() => {
+        toast.classList.remove("show");
+        toastInicioTrabajoTimeout = null;
+      }, 3000);
+    }
+
+    async function iniciarTrabajo(odt = currentODT, btn = null) {
+      const odtSeleccionada = String(odt || "").trim();
+      if (!odtSeleccionada) {
+        alert("No hay ODT activa.");
+        return;
+      }
+      try {
+        await api("/api/incidencias/iniciar-trabajo", {
+          method: "POST",
+          body: JSON.stringify({ odt: odtSeleccionada, token: tokenActivo || "" }),
+        });
+        if (btn) {
+          btn.textContent = "Trabajo iniciado";
+          btn.classList.add("iniciado");
+        }
+        mostrarToastInicioTrabajo();
+        await cargarTablaPrincipal();
+      } catch (err) {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = "Inicio";
+          btn.classList.remove("iniciado");
+        }
+        alert(`Error al marcar inicio: ${err.message}`);
+      }
     }
 
     function marcarEnProceso(odt = currentODT) {

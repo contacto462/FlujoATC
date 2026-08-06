@@ -651,6 +651,20 @@
       }
       return payload;
     }
+    async function api(url,options={}){
+      const token=obtenerTokenActual();
+      const target=new URL(url,window.location.origin);
+      if(token&&!target.searchParams.get("token"))target.searchParams.set("token",token);
+      const headers={"Content-Type":"application/json",...(options.headers||{})};
+      const res=await fetch(target.pathname+target.search,{...options,headers,credentials:"include"});
+      const ct=res.headers.get("content-type")||"";
+      const payload=ct.includes("application/json")?await res.json():await res.text();
+      if(!res.ok){
+        const detail=typeof payload==="string"?payload:payload?.detail||JSON.stringify(payload);
+        throw new Error(detail||`HTTP ${res.status}`);
+      }
+      return payload;
+    }
     function setMensaje(msg,ok=true){const el=document.getElementById("mensaje");el.style.color=ok?"#166534":"#b91c1c";el.textContent=msg||"";if(msg){setTimeout(()=>{if(el.textContent===msg)el.textContent=""},5000)}}
     function llenarDatalist(id,valores){const dl=document.getElementById(id);dl.innerHTML="";(valores||[]).forEach(v=>{if(!v)return;const o=document.createElement("option");o.value=String(v);dl.appendChild(o)})}
     function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
@@ -1127,6 +1141,9 @@
         puestoActivo=null;
         actualizarBotonPuestoActivo(null);
         setMensaje(odts.length?`Incidencias registradas en Registro: ${odts.join(", ")}.`:"Incidencias registradas exitosamente.");
+        if(window.parent&&window.parent!==window){
+          window.parent.postMessage({type:"atc:odt-creada",odts},window.location.origin);
+        }
         try{await cargarIncidenciasPendientes()}catch(err){setMensaje(`Incidencias registradas, pero no se pudo refrescar la tabla: ${err.message}`,false)}
       }finally{b.disabled=false;b.textContent="Registrar Todas las Incidencias"}
     }

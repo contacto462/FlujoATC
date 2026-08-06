@@ -9,6 +9,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Registro Supervisor Privados — {{ month_name }} {{ year }}</title>
+<link rel="stylesheet" href="/static/guardias-informe-preview.css">
 <style>
 :root{
   --bg:#f7f8fa;
@@ -53,6 +54,8 @@ body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:#172124;f
   color:#fff;cursor:pointer;transition:background .15s;
 }
 .hero-nav a:hover,.hero-nav button:hover{background:rgba(255,255,255,.15)}
+.hero-nav a.primary{background:#1d4ed8;border-color:#1d4ed8}
+.hero-nav a.primary:hover{background:#1e40af}
 .hero-nav .month-label{font-size:14px;font-weight:700;min-width:150px;text-align:center;color:#fff}
 
 .legend{
@@ -236,6 +239,11 @@ td.data-cell:hover{background:#e8f1fc !important}
     <a href="/guardia/tabla-supervisor?year={{ prev_y }}&month={{ prev_m }}&grupo=privados&origen={{ origen|default('supervisores') }}">&#8249;</a>
     <span class="month-label">{{ month_name }} {{ year }}</span>
     <a href="/guardia/tabla-supervisor?year={{ next_y }}&month={{ next_m }}&grupo=privados&origen={{ origen|default('supervisores') }}">&#8250;</a>
+    <button class="informe-preview-trigger" type="button"
+            data-informe-preview="/guardia/tabla-supervisor/informes/preview?year={{ year }}&month={{ month }}&grupo=privados"
+            data-informe-download="/guardia/tabla-supervisor/informes?year={{ year }}&month={{ month }}&grupo=privados"
+            data-informe-title="Vista previa - Registro supervisor">Vista previa</button>
+    <a class="primary" href="/guardia/tabla-supervisor/informes?year={{ year }}&month={{ month }}&grupo=privados">Descargar informe</a>
   </div>
 </header>
 
@@ -309,8 +317,18 @@ td.data-cell:hover{background:#e8f1fc !important}
       <div><span style="font-weight:700;color:#607176">Supervisor:</span> <span id="dSupervisor"></span></div>
     </div>
     <div id="dNotasWrap" style="display:none">
-      <div style="font-weight:700;font-size:12px;color:#607176;margin-bottom:4px">Observaciones</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div style="font-weight:700;font-size:12px;color:#607176">Observaciones</div>
+        <button type="button" id="btnEditNotas" style="background:none;border:none;cursor:pointer;font-size:12px;font-weight:700;color:#1d4ed8;padding:2px 4px">✎ Editar</button>
+      </div>
       <div id="dNotas" style="background:#f5f8f9;border:1px solid #cfddd2;border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.5;white-space:pre-wrap"></div>
+      <div id="dNotasEditWrap" style="display:none">
+        <textarea id="dNotasEdit" style="width:100%;min-height:70px;background:#f5f8f9;border:1px solid #cfddd2;border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.5;font-family:inherit;resize:vertical;box-sizing:border-box"></textarea>
+        <div style="display:flex;gap:8px;margin-top:6px;justify-content:flex-end">
+          <button type="button" class="btn-cancel" id="btnCancelarNotas" style="padding:4px 12px;font-size:12px">Cancelar</button>
+          <button type="button" class="btn-save" id="btnGuardarNotas" style="padding:4px 12px;font-size:12px">Guardar</button>
+        </div>
+      </div>
     </div>
     <div class="modal-actions" style="margin-top:4px">
       <button class="btn-cancel" onclick="document.getElementById('overlayDetalle').classList.remove('open')">Cerrar</button>
@@ -572,6 +590,11 @@ document.getElementById("btnGuardar").addEventListener("click", async () => {
   if (!_celda) return;
   const nombre = _nombreGuardia || document.getElementById("mNombre").value.trim();
   if (!nombre) { document.getElementById("mNombre").focus(); return; }
+  if (!_rutGuardia && !_nombreGuardia) {
+    mostrarToastSv("Selecciona un guardia válido desde la lista.");
+    document.getElementById("mNombre").focus();
+    return;
+  }
 
   const btn = document.getElementById("btnGuardar");
   btn.disabled = true; btn.textContent = "Guardando…";
@@ -594,6 +617,7 @@ document.getElementById("btnGuardar").addEventListener("click", async () => {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || "Error al guardar");
+    const nombreGuardado = data.nombre || nombre;
 
     const turnoClass = "entry-" + payload.tipo_turno.toLowerCase().replace(/ /g, "-");
     const div = document.createElement("div");
@@ -602,7 +626,7 @@ document.getElementById("btnGuardar").addEventListener("click", async () => {
     div.dataset.turno = payload.tipo_turno;
     div.dataset.supervisor = payload.supervisor;
     div.dataset.notas = payload.notas;
-    div.innerHTML = `<span class="entry-nombre" onclick="verDetalle(this.closest('.entry'))">${escHtml(nombre)}</span>
+    div.innerHTML = `<span class="entry-nombre" onclick="verDetalle(this.closest('.entry'))">${escHtml(nombreGuardado)}</span>
       <button class="del-btn" title="Eliminar" onclick="eliminar(event,${data.id})">✕</button>`;
     _celda.querySelector(".entries").appendChild(div);
     cerrarModal();
@@ -650,12 +674,57 @@ function verDetalle(entry) {
   } else {
     notasWrap.style.display = "none";
   }
+  _mostrarNotasView();
   document.getElementById("overlayDetalle").classList.add("open");
 }
 
 document.getElementById("overlayDetalle").addEventListener("click", e => {
   if (e.target === document.getElementById("overlayDetalle"))
     document.getElementById("overlayDetalle").classList.remove("open");
+});
+
+function _mostrarNotasView() {
+  document.getElementById("dNotas").style.display = "block";
+  document.getElementById("dNotasEditWrap").style.display = "none";
+  document.getElementById("btnEditNotas").style.display = "";
+}
+
+document.getElementById("btnEditNotas").addEventListener("click", () => {
+  document.getElementById("dNotasEdit").value = (_entryDetalle && _entryDetalle.dataset.notas) || "";
+  document.getElementById("dNotas").style.display = "none";
+  document.getElementById("dNotasEditWrap").style.display = "block";
+  document.getElementById("btnEditNotas").style.display = "none";
+  document.getElementById("dNotasEdit").focus();
+});
+
+document.getElementById("btnCancelarNotas").addEventListener("click", _mostrarNotasView);
+
+document.getElementById("btnGuardarNotas").addEventListener("click", async () => {
+  if (!_entryDetalle) return;
+  const nuevaNota = document.getElementById("dNotasEdit").value.trim();
+  const id = _entryDetalle.dataset.id;
+  const btn = document.getElementById("btnGuardarNotas");
+  btn.disabled = true; btn.textContent = "Guardando…";
+  try {
+    const res = await fetch("/api/guardia/supervisor-registro/" + id, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notas: nuevaNota }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Error al guardar");
+    _entryDetalle.dataset.notas = nuevaNota;
+    if (nuevaNota) {
+      document.getElementById("dNotas").textContent = nuevaNota;
+      _mostrarNotasView();
+    } else {
+      document.getElementById("dNotasWrap").style.display = "none";
+    }
+  } catch(err) {
+    mostrarToastSv("Error: " + err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = "Guardar";
+  }
 });
 
 // ── Justificación: motivo + reemplazar guardia y dejar nota automática ──
@@ -900,13 +969,14 @@ async function aceptarGhost(g, td, s) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || "Error al guardar");
+    const nombreGuardado = data.nombre || s.nombre;
     const div = document.createElement("div");
     div.className = "entry entry-" + payload.tipo_turno.toLowerCase().replace(/ /g, "-");
     div.dataset.id = data.id;
     div.dataset.turno = payload.tipo_turno;
     div.dataset.supervisor = payload.supervisor;
     div.dataset.notas = payload.notas;
-    div.innerHTML = `<span class="entry-nombre" onclick="verDetalle(this.closest('.entry'))">${escHtml(s.nombre)}</span>
+    div.innerHTML = `<span class="entry-nombre" onclick="verDetalle(this.closest('.entry'))">${escHtml(nombreGuardado)}</span>
       <button class="del-btn" title="Eliminar" onclick="eliminar(event,${data.id})">✕</button>`;
     g.replaceWith(div);
     refreshGhosts();
@@ -966,6 +1036,7 @@ renderGhosts();
 <div style="height:46px"></div>
 {% endif %}
   <script src="/static/atc-logo-home.js"></script>
+  <script src="/static/guardias-informe-preview.js"></script>
   <script>
   </script>
 <script src="/static/atc-volver.js"></script>

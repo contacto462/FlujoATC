@@ -724,12 +724,33 @@
       font-size: 12px;
     }
 
+    .soporte-imagen-item-thumb {
+      width: 40px;
+      height: 40px;
+      flex-shrink: 0;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      cursor: pointer;
+    }
+
     .soporte-imagen-item-name {
       min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
       color: var(--text);
+    }
+
+    .soporte-imagen-item-link {
+      color: var(--link);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .soporte-imagen-item-link:hover {
+      text-decoration: underline;
     }
 
     .soporte-imagen-item-tag {
@@ -952,6 +973,52 @@
       box-shadow: 0 1px 2px rgba(22, 101, 52, 0.20), 0 4px 10px rgba(127, 196, 151, 0.45);
     }
 
+    /* Derivar ODT: elegir + confirmar, mismo lenguaje visual que
+       Finalizado por Soporte / Repetida (observacion-modal + finalizar-*). */
+    .panel-derivar { width: min(440px, 100%); padding: 18px; }
+    .derivar-opciones { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 2px; }
+    .derivar-opcion {
+      display: block; width: 100%; text-align: left; padding: 11px 14px;
+      border-radius: var(--radius); border: 1px solid var(--border);
+      background: var(--surface); color: var(--text);
+      font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer;
+      transition: border-color .15s ease, background-color .15s ease, transform .15s ease;
+    }
+    .derivar-opcion:hover {
+      border-color: var(--accent-hover); background: var(--surface-hover); transform: translateX(2px);
+    }
+    .derivar-confirm-texto { margin: 4px 0 6px; font-size: 15px; color: var(--text); line-height: 1.55; }
+    .derivar-confirm-texto b { color: var(--accent-strong); }
+    .derivar-back-btn {
+      border: none; background: none; padding: 0; margin-bottom: 12px; cursor: pointer;
+      font-size: 12.5px; font-weight: 700; color: var(--muted); font-family: inherit;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .derivar-back-btn:hover { color: var(--text); }
+
+    /* Toast de confirmación (derivación guardada, etc.) */
+    #toastStack {
+      position: fixed; right: 20px; bottom: 20px; z-index: 10001;
+      display: flex; flex-direction: column; gap: 10px; align-items: flex-end;
+      pointer-events: none;
+    }
+    .toast {
+      display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+      border-radius: var(--radius-lg); border: 1px solid var(--accent-hover);
+      background: var(--surface); color: var(--text); box-shadow: var(--shadow-lg);
+      font-size: 13.5px; font-weight: 600; max-width: 360px;
+      pointer-events: auto; cursor: pointer;
+      animation: toastIn .25s ease;
+    }
+    .toast.is-leaving { animation: toastOut .2s ease forwards; }
+    .toast-icon {
+      flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%;
+      background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 900;
+    }
+    @keyframes toastIn { from { opacity: 0; transform: translateY(10px) scale(.96); } to { opacity: 1; transform: none; } }
+    @keyframes toastOut { to { opacity: 0; transform: translateY(6px) scale(.98); } }
+
     /* Crear ODT — mismo componente que incidencias_servicio_tecnico.html
        (mismas clases/colores hardcodeados a propósito, para que sea idéntico
        visualmente sin depender del tema verde propio de esta página). */
@@ -1005,6 +1072,50 @@
       margin: 8% auto;
       position: relative;
       box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+    }
+
+    .odt-preview-panel {
+      width: min(1240px, calc(100vw - 32px));
+      height: min(860px, calc(100vh - 32px));
+      margin: 16px auto;
+      padding: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .odt-preview-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid #d8dee7;
+      background: #111827;
+      color: #ffffff;
+    }
+
+    .odt-preview-title {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .odt-preview-close {
+      border: 1px solid rgba(255,255,255,.22);
+      background: rgba(255,255,255,.08);
+      color: #fff;
+      border-radius: 7px;
+      padding: 7px 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .odt-preview-frame {
+      flex: 1;
+      width: 100%;
+      border: 0;
+      background: #e8edf4;
     }
 
     .grid-2 {
@@ -1484,6 +1595,16 @@
       </form>
     </div>
   </div>
+
+  <div id="modalOdtPreview" class="modal" aria-hidden="true">
+    <div class="panel odt-preview-panel">
+      <div class="odt-preview-head">
+        <h3 class="odt-preview-title">Crear ODT</h3>
+        <button type="button" class="odt-preview-close" onclick="cerrarOdt()">Cerrar</button>
+      </div>
+      <iframe id="odtPreviewFrame" class="odt-preview-frame" title="Crear ODT"></iframe>
+    </div>
+  </div>
   <datalist id="listaClientes"></datalist>
   <datalist id="listaSucursales"></datalist>
   <datalist id="listaTecnicos"></datalist>
@@ -1534,6 +1655,42 @@
       </div>
     </div>
   </div>
+
+  <div id="derivarModal" class="observacion-modal" aria-hidden="true">
+    <div class="observacion-modal-card panel-derivar">
+      <div class="finalizar-header">
+        <h3 class="finalizar-titulo">Derivar ODT</h3>
+        <span id="derivarOdt" class="finalizar-odt">ODT</span>
+      </div>
+
+      <div id="derivarPasoElegir">
+        <p class="finalizar-ayuda">Selecciona el área o estado al que quieres derivar esta ODT.</p>
+        <div id="derivarOpciones" class="derivar-opciones"></div>
+        <div class="finalizar-actions">
+          <button type="button" class="finalizar-btn finalizar-btn-cancel" onclick="cancelDerivarPrompt()">
+            Cancelar
+          </button>
+        </div>
+      </div>
+
+      <div id="derivarPasoConfirmar" style="display:none;">
+        <button type="button" class="derivar-back-btn" onclick="volverElegirDerivacion()">&larr; Elegir otra opción</button>
+        <p class="derivar-confirm-texto">
+          ¿Estás seguro que deseas derivar la ODT <b id="derivarConfirmOdt">-</b> a <b id="derivarConfirmValor">-</b>?
+        </p>
+        <div class="finalizar-actions">
+          <button type="button" class="finalizar-btn finalizar-btn-cancel" onclick="cancelDerivarPrompt()">
+            Cancelar
+          </button>
+          <button type="button" class="finalizar-btn finalizar-btn-save" onclick="confirmDerivarPrompt()">
+            Sí, derivar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastStack" aria-live="polite"></div>
 
   <div id="soporteImagenModal" class="observacion-modal" aria-hidden="true">
     <div class="observacion-modal-card soporte-imagen-modal-card">
@@ -1596,6 +1753,8 @@
       "Coordinacion",
       "Proveedor de Internet",
     ];
+    const CURRENT_USER_LABEL = {{ (user.name or user.username or "Usuario")|tojson }};
+    const OBS_EDIT_WINDOW_MINUTES = 15;
     let REGISTROS = [];
     let estadoDefaultAplicado = false;
     let derivacionDefaultAplicada = false;
@@ -1604,6 +1763,9 @@
     let finalizadoSoporteResolver = null;
     let repetidaResolver = null;
     let repetidaSeleccionada = "";
+    let derivarResolver = null;
+    let derivarOdtActual = "";
+    let derivarValorElegido = "";
     const SOPORTE_IMAGE_MAX = 3;
     const TECNICOS_NO_ASIGNABLES = ["fernando lubiano", "gianpiero lubiano"];
     let soporteImagenState = {
@@ -1944,20 +2106,6 @@
       return `Imagen ${index + 1}`;
     }
 
-    function fileNameFromUrl(url, fallback) {
-      const clean = (url || "").toString().trim();
-      if (!clean) return fallback || "Imagen";
-      try {
-        const parsed = new URL(clean, window.location.origin);
-        const segment = parsed.pathname.split("/").filter(Boolean).pop() || "";
-        const decoded = decodeURIComponent(segment);
-        return decoded || fallback || "Imagen";
-      } catch (_) {
-        const segment = clean.split("/").filter(Boolean).pop() || "";
-        return segment || fallback || "Imagen";
-      }
-    }
-
     function renderImagenesCell(tdImg, fila) {
       // Mismo mecanismo que incidencias_servicio_tecnico.html: un solo boton
       // que abre el modal, el cual carga/sube contra
@@ -1993,12 +2141,22 @@
       existing.forEach((url, idx) => {
         const row = document.createElement("div");
         row.className = "soporte-imagen-item";
-        const name = document.createElement("div");
-        name.className = "soporte-imagen-item-name";
-        name.textContent = fileNameFromUrl(url, labelImagenByIndex(idx));
+        const thumb = document.createElement("img");
+        thumb.className = "soporte-imagen-item-thumb";
+        thumb.src = url;
+        thumb.alt = labelImagenByIndex(idx);
+        thumb.loading = "lazy";
+        thumb.onclick = () => window.open(url, "_blank", "noopener");
+        const name = document.createElement("a");
+        name.className = "soporte-imagen-item-name soporte-imagen-item-link";
+        name.href = url;
+        name.target = "_blank";
+        name.rel = "noopener";
+        name.textContent = labelImagenByIndex(idx);
         const tag = document.createElement("span");
         tag.className = "soporte-imagen-item-tag";
-        tag.textContent = labelImagenByIndex(idx);
+        tag.textContent = "Guardada";
+        row.appendChild(thumb);
         row.appendChild(name);
         row.appendChild(tag);
         list.appendChild(row);
@@ -2007,6 +2165,14 @@
       staged.forEach((entry, stagedIdx) => {
         const row = document.createElement("div");
         row.className = "soporte-imagen-item";
+        if (entry.file && !entry.previewUrl) {
+          entry.previewUrl = URL.createObjectURL(entry.file);
+        }
+        const thumb = document.createElement("img");
+        thumb.className = "soporte-imagen-item-thumb";
+        thumb.src = entry.previewUrl || "";
+        thumb.alt = labelImagenByIndex(existing.length + stagedIdx);
+        thumb.onclick = () => entry.previewUrl && window.open(entry.previewUrl, "_blank", "noopener");
         const name = document.createElement("div");
         name.className = "soporte-imagen-item-name";
         name.textContent = (entry.file && entry.file.name) ? entry.file.name : `captura_${stagedIdx + 1}.png`;
@@ -2024,12 +2190,14 @@
         removeBtn.className = "soporte-imagen-remove";
         removeBtn.textContent = "Quitar";
         removeBtn.onclick = () => {
+          if (entry.previewUrl) URL.revokeObjectURL(entry.previewUrl);
           soporteImagenState.staged.splice(stagedIdx, 1);
           renderSoporteImagenModalList();
         };
 
         right.appendChild(tag);
         right.appendChild(removeBtn);
+        row.appendChild(thumb);
         row.appendChild(name);
         row.appendChild(right);
         list.appendChild(row);
@@ -2424,6 +2592,103 @@
       });
     }
 
+    // ── Derivar ODT: elegir opción + confirmar (reemplaza el <select> nativo
+    // en la celda, que a veces se cerraba solo antes de poder elegir). ──
+    function _derivarMostrarPaso(paso) {
+      const elegir = document.getElementById("derivarPasoElegir");
+      const confirmar = document.getElementById("derivarPasoConfirmar");
+      if (!elegir || !confirmar) return;
+      elegir.style.display = paso === "elegir" ? "block" : "none";
+      confirmar.style.display = paso === "confirmar" ? "block" : "none";
+    }
+
+    function abrirDerivarPrompt(odt, valorActual) {
+      const modal = document.getElementById("derivarModal");
+      const odtBadge = document.getElementById("derivarOdt");
+      const opciones = document.getElementById("derivarOpciones");
+      if (!modal || !opciones) {
+        return Promise.resolve({ confirmed: false, valor: "" });
+      }
+
+      derivarOdtActual = (odt || "").toString().trim();
+      derivarValorElegido = "";
+      if (odtBadge) odtBadge.textContent = `ODT ${derivarOdtActual || "-"}`;
+
+      const actualNorm = (valorActual || "").toString().trim();
+      opciones.innerHTML = "";
+      DERIVACION_OPTIONS
+        .filter((opt) => !equalsNormalized(opt, actualNorm))
+        .forEach((opt) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "derivar-opcion";
+          btn.textContent = opt;
+          btn.onclick = () => elegirDerivacion(opt);
+          opciones.appendChild(btn);
+        });
+
+      _derivarMostrarPaso("elegir");
+      modal.classList.add("is-open");
+      modal.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+
+      return new Promise((resolve) => {
+        derivarResolver = resolve;
+      });
+    }
+
+    function elegirDerivacion(valor) {
+      derivarValorElegido = valor;
+      const odtEl = document.getElementById("derivarConfirmOdt");
+      const valorEl = document.getElementById("derivarConfirmValor");
+      if (odtEl) odtEl.textContent = derivarOdtActual || "-";
+      if (valorEl) valorEl.textContent = valor;
+      _derivarMostrarPaso("confirmar");
+    }
+
+    function volverElegirDerivacion() {
+      _derivarMostrarPaso("elegir");
+    }
+
+    function closeDerivarPrompt(result) {
+      const modal = document.getElementById("derivarModal");
+      if (modal) {
+        modal.classList.remove("is-open");
+        modal.setAttribute("aria-hidden", "true");
+      }
+      document.body.style.overflow = "";
+      const resolver = derivarResolver;
+      derivarResolver = null;
+      derivarValorElegido = "";
+      if (resolver) resolver(result || { confirmed: false, valor: "" });
+    }
+
+    function cancelDerivarPrompt() {
+      closeDerivarPrompt({ confirmed: false, valor: "" });
+    }
+
+    function confirmDerivarPrompt() {
+      if (!derivarValorElegido) return;
+      closeDerivarPrompt({ confirmed: true, valor: derivarValorElegido });
+    }
+
+    // ── Toast de confirmación (se usa tras guardar una derivación) ──
+    function mostrarToast(mensaje) {
+      const stack = document.getElementById("toastStack");
+      if (!stack) return;
+      const toast = document.createElement("div");
+      toast.className = "toast";
+      toast.innerHTML = `<span class="toast-icon">&#10003;</span><span>${escapeHtml(mensaje)}</span>`;
+      const quitar = () => {
+        if (!toast.isConnected) return;
+        toast.classList.add("is-leaving");
+        setTimeout(() => toast.remove(), 220);
+      };
+      toast.addEventListener("click", quitar);
+      stack.appendChild(toast);
+      setTimeout(quitar, 2800);
+    }
+
     function renderRegistros(items) {
       const tbody = document.getElementById("registrosExistentes");
       tbody.innerHTML = "";
@@ -2536,7 +2801,9 @@
       const modalFinalizar = document.getElementById("finalizadoSoporteModal");
       const modalImagen = document.getElementById("soporteImagenModal");
       const modalRepetida = document.getElementById("repetidaModal");
+      const modalDerivar = document.getElementById("derivarModal");
       const modalOdtEl = document.getElementById("modalOdt");
+      const modalOdtPreview = document.getElementById("modalOdtPreview");
       if (event.target === modalObservacion) {
         closeObservacionFinalModal();
       } else if (event.target === modalFinalizar) {
@@ -2545,7 +2812,11 @@
         closeSoporteImagenModal();
       } else if (event.target === modalRepetida) {
         cancelRepetidaPrompt();
+      } else if (event.target === modalDerivar) {
+        cancelDerivarPrompt();
       } else if (event.target === modalOdtEl) {
+        cerrarOdt();
+      } else if (event.target === modalOdtPreview) {
         cerrarOdt();
       }
     });
@@ -2562,6 +2833,11 @@
           cancelRepetidaPrompt();
           return;
         }
+        const modalDerivar = document.getElementById("derivarModal");
+        if (modalDerivar && modalDerivar.classList.contains("is-open")) {
+          cancelDerivarPrompt();
+          return;
+        }
         const modalImagen = document.getElementById("soporteImagenModal");
         if (modalImagen && modalImagen.classList.contains("is-open")) {
           closeSoporteImagenModal();
@@ -2573,12 +2849,19 @@
           return;
         }
         const modalOdtEl = document.getElementById("modalOdt");
-        if (modalOdtEl && modalOdtEl.style.display === "block") {
+        const modalOdtPreview = document.getElementById("modalOdtPreview");
+        if ((modalOdtPreview && modalOdtPreview.style.display === "block") || (modalOdtEl && modalOdtEl.style.display === "block")) {
           cerrarOdt();
           return;
         }
         closeObservacionFinalModal();
       }
+    });
+
+    window.addEventListener("message", (event) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type !== "atc:odt-creada") return;
+      refreshSoporteSilently();
     });
 
     function editarTexto(td, columnaSheet, odt, cliente) {
@@ -2599,7 +2882,7 @@
       if (td.querySelector("input,textarea,select")) return;
       td.textContent = "";
 
-      const commitValue = (val, extraPayload = {}) => {
+      const commitValue = (val, extraPayload = {}, onSuccess = null) => {
         const fila = parseInt(td.dataset.rowIndex, 10);
         const sourceIndex = parseInt(td.dataset.sourceIndex, 10);
         const sourceCol = parseInt(td.dataset.sourceCol, 10);
@@ -2673,6 +2956,7 @@
               }
             }
             cargarRegistros();
+            if (onSuccess) onSuccess();
           })
           .actualizarCelda(fila, columnaSheet, val, original, extraPayload);
         if (columnaSheet === 6) {
@@ -2683,52 +2967,40 @@
       };
 
       if (columnaSheet === 6) {
-        const select = document.createElement("select");
-        DERIVACION_OPTIONS.forEach((optionValue) => {
-          const option = document.createElement("option");
-          option.value = optionValue;
-          option.textContent = optionValue;
-          select.appendChild(option);
-        });
+        // No se inyecta un <select> nativo en la celda: su popup a veces se
+        // cerraba solo (recarga automática, quirks del navegador) antes de
+        // poder elegir. Ahora se elige y confirma en un modal controlado.
+        td.textContent = original || "-";
+        if (document.getElementById("derivarModal")?.classList.contains("is-open")) return;
+        (async () => {
+          const eleccion = await abrirDerivarPrompt(odt || "", original);
+          if (!eleccion || !eleccion.confirmed) return;
+          const nuevoValor = eleccion.valor;
 
-        const match = DERIVACION_OPTIONS.find((opt) => equalsNormalized(opt, original));
-        select.value = match || "Pendiente";
-        td.appendChild(select);
-        select.focus();
-
-        let committed = false;
-        const commitFromSelect = async () => {
-          if (committed) return;
-          committed = true;
-          const nuevoValor = (select.value || "").trim();
           if (equalsNormalized(nuevoValor, "Finalizado por Soporte")) {
             const decision = await openFinalizadoSoportePrompt(odt || "");
-            if (!decision || !decision.confirmed) {
-              committed = false;
-              td.textContent = original || "-";
-              return;
-            }
-            commitValue(nuevoValor, { observacion_final: decision.observacion });
+            if (!decision || !decision.confirmed) return;
+            commitValue(nuevoValor, { observacion_final: decision.observacion }, () => {
+              mostrarToast(`ODT ${odt || ""} derivada a "${nuevoValor}".`);
+            });
             return;
           }
           if (equalsNormalized(nuevoValor, "Repetida")) {
             const decision = await openRepetidaPrompt(odt || "");
-            if (!decision || !decision.confirmed || !String(decision.odtRef || "").trim()) {
-              committed = false;
-              td.textContent = original || "-";
-              return;
-            }
+            if (!decision || !decision.confirmed || !String(decision.odtRef || "").trim()) return;
             const odtRef = String(decision.odtRef || "").trim();
             commitValue(nuevoValor, {
               observacion_servicio: `ODT con la que se repite ${odtRef}`,
               repetidaOdtRef: odtRef,
+            }, () => {
+              mostrarToast(`ODT ${odt || ""} derivada a "${nuevoValor}".`);
             });
             return;
           }
-          commitValue(nuevoValor);
-        };
-        select.onchange = commitFromSelect;
-        select.onblur = commitFromSelect;
+          commitValue(nuevoValor, {}, () => {
+            mostrarToast(`ODT ${odt || ""} derivada a "${nuevoValor}".`);
+          });
+        })();
         return;
       }
 
@@ -2823,6 +3095,22 @@
       };
     }
 
+    function _parseObsEntryDate(dateStr) {
+      const m = String(dateStr || "").match(/^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})$/);
+      if (!m) return null;
+      const [, dd, mm, yyyy, hh, min] = m;
+      return new Date(Number(yyyy), Number(mm) - 1, Number(dd), Number(hh), Number(min));
+    }
+
+    function _obsEntryIsEditable(entry) {
+      if (!entry || !entry.author || !entry.date) return false;
+      if (entry.author.trim().toLowerCase() !== CURRENT_USER_LABEL.trim().toLowerCase()) return false;
+      const entryDate = _parseObsEntryDate(entry.date);
+      if (!entryDate) return false;
+      const diffMinutes = (Date.now() - entryDate.getTime()) / 60000;
+      return diffMinutes >= 0 && diffMinutes <= OBS_EDIT_WINDOW_MINUTES;
+    }
+
     function _parseObsEntries(raw) {
       const text = (raw || "").replace(/\\n/g, "\n").replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
       if (!text) return [];
@@ -2856,13 +3144,13 @@
       hist.innerHTML = "";
 
       const sections = [
-        { label: "Registro Operaciones", value: reg ? (reg.fila[5] || "") : "", color: "#0e4f2d" },
-        { label: "Gestión Soporte",      value: reg ? (reg.fila[17] || "") : "", color: "#1d4ed8" },
-        { label: "Gestión Servicio Técnico", value: reg ? (reg.fila[18] || "") : "", color: "#7c3aed" },
+        { label: "Registro Operaciones", value: reg ? (reg.fila[5] || "") : "", color: "#0e4f2d", kind: "puestos" },
+        { label: "Gestión Soporte",      value: reg ? (reg.fila[17] || "") : "", color: "#1d4ed8", kind: "soporte" },
+        { label: "Gestión Servicio Técnico", value: reg ? (reg.fila[18] || "") : "", color: "#7c3aed", kind: "servicio" },
       ];
 
       let hasContent = false;
-      sections.forEach(({ label, value, color }) => {
+      sections.forEach(({ label, value, color, kind }) => {
         const entries = _parseObsEntries(value);
         if (!entries.length) return;
         hasContent = true;
@@ -2872,7 +3160,8 @@
         title.style.cssText = `font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:${color};margin-bottom:2px;`;
         title.textContent = label;
         section.appendChild(title);
-        entries.forEach(({ author, date, lines }) => {
+        entries.forEach((entry, idx) => {
+          const { author, date, lines } = entry;
           const card = document.createElement("div");
           card.style.cssText = "background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:8px 12px;";
           if (author) {
@@ -2892,6 +3181,14 @@
           body.style.cssText = "font-size:13px;color:#374151;line-height:1.55;white-space:pre-wrap;";
           body.textContent = lines.filter(Boolean).join("\n");
           card.appendChild(body);
+          if (kind === "soporte" && idx === entries.length - 1 && _obsEntryIsEditable(entry)) {
+            const editBtn = document.createElement("button");
+            editBtn.type = "button";
+            editBtn.textContent = "✏️ Editar (15 min)";
+            editBtn.style.cssText = "margin-top:6px;border:none;background:none;color:#1d4ed8;font-size:11.5px;font-weight:700;cursor:pointer;padding:0;";
+            editBtn.onclick = () => _startEditObsEntry(sourceIndex, lines.filter(Boolean).join("\n"));
+            card.appendChild(editBtn);
+          }
           section.appendChild(card);
         });
         hist.appendChild(section);
@@ -2904,16 +3201,30 @@
 
     let _obsEditorContext = null;
     function openObsEditorModal({ td, odt, original, commitValue, sourceIndex }) {
-      _obsEditorContext = { td, original, commitValue, sourceIndex };
+      _obsEditorContext = { td, original, commitValue, sourceIndex, editMode: false };
       const modal = document.getElementById("obsEditorModal");
       const odtLabel = document.getElementById("obsEditorOdt");
       const input = document.getElementById("obsEditorInput");
+      const saveBtn = document.getElementById("obsEditorSaveBtn");
       if (odtLabel) odtLabel.textContent = odt || "";
       if (input) input.value = "";
+      if (saveBtn) saveBtn.textContent = "Guardar nota";
       _renderObsHistory(sourceIndex);
       modal.setAttribute("aria-hidden", "false");
       modal.style.display = "flex";
       setTimeout(() => { if (input) input.focus(); }, 50);
+    }
+
+    function _startEditObsEntry(sourceIndex, textoActual) {
+      if (!_obsEditorContext || _obsEditorContext.sourceIndex !== sourceIndex) return;
+      _obsEditorContext.editMode = true;
+      const input = document.getElementById("obsEditorInput");
+      const saveBtn = document.getElementById("obsEditorSaveBtn");
+      if (input) {
+        input.value = textoActual;
+        input.focus();
+      }
+      if (saveBtn) saveBtn.textContent = "Guardar edición";
     }
 
     function closeObsEditorModal() {
@@ -2927,9 +3238,13 @@
       if (!_obsEditorContext) return;
       const input = document.getElementById("obsEditorInput");
       const nota = (input ? input.value : "").trim();
-      const { original, commitValue } = _obsEditorContext;
+      const { original, commitValue, editMode } = _obsEditorContext;
       closeObsEditorModal();
       if (!nota) return;
+      if (editMode) {
+        commitValue(nota, { editar_ultima: true });
+        return;
+      }
       const combined = original ? `${original.trimEnd()}\n${nota}` : nota;
       commitValue(combined);
     }
@@ -3152,20 +3467,38 @@
       });
     }
 
+    function obtenerTokenOdtPreview() {
+      const params = new URLSearchParams(window.location.search || "");
+      const tokenUrl = String(params.get("token") || "").trim();
+      const tokenLs = String(localStorage.getItem("atc_token") || localStorage.getItem("ATC_TOKEN") || "").trim();
+      const token = tokenUrl || tokenLs;
+      if (token) {
+        localStorage.setItem("atc_token", token);
+        localStorage.setItem("ATC_TOKEN", token);
+      }
+      return token;
+    }
+
     function abrirOdt() {
-      cargarListasOdt();
-      document.getElementById("formOdt").reset();
-      document.getElementById("odtExtraWrap").style.display = "none";
-      document.getElementById("odtExtraWrap").innerHTML = "";
-      const msg = document.getElementById("odtMsg");
-      msg.style.display = "none";
-      msg.textContent = "";
-      odtPrefijoFijo = "";
-      document.getElementById("modalOdt").style.display = "block";
+      const modal = document.getElementById("modalOdtPreview");
+      const frame = document.getElementById("odtPreviewFrame");
+      const token = obtenerTokenOdtPreview();
+      const qs = token ? `?token=${encodeURIComponent(token)}` : "";
+      if (frame) frame.src = `/public/preview/incidencias-puestos-copia${qs}`;
+      if (modal) {
+        modal.style.display = "block";
+        modal.setAttribute("aria-hidden", "false");
+      }
     }
 
     function cerrarOdt() {
-      document.getElementById("modalOdt").style.display = "none";
+      const modal = document.getElementById("modalOdtPreview");
+      const frame = document.getElementById("odtPreviewFrame");
+      if (modal) {
+        modal.style.display = "none";
+        modal.setAttribute("aria-hidden", "true");
+      }
+      if (frame) frame.src = "about:blank";
       llenarDatalistOdt("listaSucursales", listasGlobalesOdt.sucursales);
     }
 
@@ -3294,7 +3627,7 @@
         if (
           active.matches("input, textarea, select, [contenteditable='true'], [contenteditable='']")
           || active.closest(
-            "#soporteImagenModal.is-open, #finalizadoSoporteModal.is-open, #repetidaModal.is-open, #observacionFinalModal.is-open, #obsEditorModal"
+            "#soporteImagenModal.is-open, #finalizadoSoporteModal.is-open, #repetidaModal.is-open, #derivarModal.is-open, #observacionFinalModal.is-open, #obsEditorModal"
           )
         ) {
           return true;
@@ -3305,6 +3638,7 @@
         document.querySelector("#soporteImagenModal.is-open")
         || document.querySelector("#finalizadoSoporteModal.is-open")
         || document.querySelector("#repetidaModal.is-open")
+        || document.querySelector("#derivarModal.is-open")
         || document.querySelector("#observacionFinalModal.is-open")
         || document.querySelector("#obsEditorModal[aria-hidden='false']")
       ) {

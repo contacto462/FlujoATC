@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import bisect
+import html
 import hmac
 import json as _json
 import re
+import unicodedata
+from collections import Counter, defaultdict
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 from typing import Literal
@@ -12,13 +16,18 @@ from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from jose import JWTError, jwt
 from pydantic import BaseModel, Field
-from sqlalchemy import text
+from sqlalchemy import bindparam, func, text
 from sqlalchemy.orm import Session
 
 from ATC.app.routes.bitacora_access import can_access_bitacora, is_bitacora_admin, _normalize, _split_departments
 from ATC.app.core.config import settings
 from ATC.app.core.db import get_db, get_incidencias_db
-from ATC.app.models.incidencias import SucursalBBDD, SucursalPersonaAutorizada
+from ATC.app.models.incidencias import (
+    SucursalBBDD,
+    SucursalCamaraMonitoreo,
+    SucursalPersonaAutorizada,
+    SucursalContactoEmergencia,
+)
 from ATC.app.models.user import User
 from ATC.app.core.security import hash_password
 from ATC.app.services.user_service import UserService
@@ -60,6 +69,7 @@ class SucursalEditPayload(BaseModel):
     compania_electricidad: str = ""
     numero_cliente_electricidad: str = ""
     proveedor_internet_cliente: str = ""
+    latitud_longitud: str = ""
 
 
 def _decode_cookie_token(token: str) -> str:
@@ -100,6 +110,26 @@ def _bitacora_users(db: Session) -> list[dict[str, str | bool | int]]:
             "is_televigilante": "televigilante" in departments,
         })
     return result
+
+
+def _ensure_sucursal_aceptada_bitacora_column(db: Session) -> None:
+    """Agrega columna aceptada_bitacora a bbdd_sucursales si no existe. Default 1 para
+    no ocultar retroactivamente sucursales que ya estaban visibles en Bitácora."""
+    try:
+        db.execute(text("""
+            IF NOT EXISTS (
+                SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_NAME = 'bbdd_sucursales'
+                  AND COLUMN_NAME = 'aceptada_bitacora'
+            )
+            BEGIN
+                ALTER TABLE bbdd_sucursales
+                ADD aceptada_bitacora BIT NOT NULL DEFAULT 1
+            END
+        """))
+        db.commit()
+    except Exception:
+        db.rollback()
 
 
 def _ensure_bitacora_noticias_table(db: Session) -> None:
@@ -164,8 +194,7 @@ def _list_noticias(db: Session, estado: Literal["activas", "expiradas"]) -> list
 
 def _detail_value(row: dict, key: str) -> str:
     value = row.get(key)
-    text_value = str(value or "").strip()
-    return text_value or "-"
+    return str(value or "").strip()
 
 
 def _first_non_empty(*values: object) -> str:
@@ -173,7 +202,7 @@ def _first_non_empty(*values: object) -> str:
         text_value = str(value or "").strip()
         if text_value:
             return text_value
-    return "-"
+    return ""
 
 
 _TODOS_LOS_DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
@@ -251,6 +280,7 @@ def bitacora_page(
         return RedirectResponse(url="/login", status_code=303)
 
     _require_bitacora_access(current_user)
+    _ensure_sucursal_aceptada_bitacora_column(incidencias_db)
 
     empresas_rows = incidencias_db.execute(
         text(
@@ -258,6 +288,7 @@ def bitacora_page(
             SELECT DISTINCT TRIM(nombre_empresa) AS empresa
             FROM bbdd_sucursales
             WHERE COALESCE(TRIM(nombre_empresa), '') <> ''
+              AND aceptada_bitacora = 1
             ORDER BY TRIM(nombre_empresa) ASC
             """
         )
@@ -292,6 +323,7 @@ def bitacora_sucursales_api(
     current_user: User = Depends(get_current_user_bitacora),
 ):
     _require_bitacora_access(current_user)
+    _ensure_sucursal_aceptada_bitacora_column(incidencias_db)
     empresa_limpia = str(empresa or "").strip()
 
     # Sin `empresa`: listar todas las sucursales de todas las empresas —
@@ -299,10 +331,10 @@ def bitacora_sucursales_api(
     # elegir empresa antes (autocompletan la empresa dueña con el dato
     # nombre_empresa que ya viene en cada fila).
     if empresa_limpia:
-        where_clause = "WHERE LOWER(TRIM(nombre_empresa)) = LOWER(TRIM(:empresa))"
+        where_clause = "WHERE aceptada_bitacora = 1 AND LOWER(TRIM(nombre_empresa)) = LOWER(TRIM(:empresa))"
         params: dict[str, str] = {"empresa": empresa_limpia}
     else:
-        where_clause = ""
+        where_clause = "WHERE aceptada_bitacora = 1"
         params = {}
 
     rows = incidencias_db.execute(
@@ -359,6 +391,7 @@ def bitacora_busqueda_empresa_api(
 ):
     _require_bitacora_access(current_user)
     _ensure_bitacora_noticias_table(incidencias_db)
+    _ensure_sucursal_aceptada_bitacora_column(incidencias_db)
 
     empresa_limpia = str(empresa or "").strip()
     sucursal_limpia = str(sucursal or "").strip()
@@ -377,6 +410,7 @@ def bitacora_busqueda_empresa_api(
                 COALESCE(TRIM(region), '') AS region,
                 COALESCE(TRIM(comuna), '') AS comuna,
                 COALESCE(TRIM(referencia_ubicacion), '') AS referencia_ubicacion,
+                COALESCE(TRIM(latitud_longitud), '') AS latitud_longitud,
                 COALESCE(TRIM(email_facturas), '') AS email_facturas,
                 COALESCE(TRIM(proveedor_internet), '') AS proveedor_internet,
                 COALESCE(TRIM(proveedor_electricidad), '') AS proveedor_electricidad,
@@ -387,6 +421,7 @@ def bitacora_busqueda_empresa_api(
                 created_at
             FROM bbdd_sucursales
             WHERE LOWER(TRIM(nombre_empresa)) = LOWER(TRIM(:empresa))
+              AND aceptada_bitacora = 1
             ORDER BY nombre_sucursal ASC, id ASC
             """
         ),
@@ -419,6 +454,22 @@ def bitacora_busqueda_empresa_api(
     )
     selected_sucursal = _detail_value(selected_row, "nombre_sucursal")
 
+    ficha = _ficha_sucursal(incidencias_db, selected_row, empresa_limpia)
+    return {
+        "empresa": empresa_limpia,
+        "sucursal_id": selected_row.get("id"),
+        "sucursal_actual": selected_sucursal,
+        "sucursales": sucursales,
+        **ficha,
+    }
+
+
+def _ficha_sucursal(incidencias_db: Session, selected_row: dict, empresa_limpia: str) -> dict:
+    """Arma detalle + contactos de emergencia + personas autorizadas + noticias para
+    una sucursal ya resuelta (selected_row). Compartido por /api/bitacora/busqueda-empresa
+    (sucursales aceptadas) y /api/bitacora/sucursales-pendientes/{id}/preview (una
+    sucursal pendiente, buscada directo por id, sin pasar por el filtro de aceptación)."""
+    selected_sucursal = _detail_value(selected_row, "nombre_sucursal")
     venta_row = None
     venta_rows: list = []
     try:
@@ -484,12 +535,15 @@ def bitacora_busqueda_empresa_api(
             text(
                 """
                 SELECT
-                    COALESCE(NULLIF(TRIM(nombre), ''), '-') AS nombre,
-                    COALESCE(NULLIF(TRIM(telefono), ''), '-') AS celular,
-                    '-' AS prioridad
+                    id,
+                    COALESCE(TRIM(nombre), '') AS nombre,
+                    COALESCE(TRIM(telefono), '') AS celular,
+                    COALESCE(TRIM(rut), '') AS rut,
+                    COALESCE(TRIM(email), '') AS email,
+                    orden
                 FROM sucursal_contactos_emergencia
                 WHERE sucursal_id = :sucursal_id
-                ORDER BY id ASC
+                ORDER BY COALESCE(orden, id) ASC
                 """
             ),
             {"sucursal_id": selected_row.get("id")},
@@ -503,12 +557,13 @@ def bitacora_busqueda_empresa_api(
             text(
                 """
                 SELECT
-                    COALESCE(NULLIF(TRIM(nombre), ''), '-') AS nombre,
-                    COALESCE(NULLIF(TRIM(rut), ''), '-') AS rut,
-                    COALESCE(NULLIF(TRIM(telefono), ''), '-') AS celular,
-                    COALESCE(NULLIF(TRIM(email), ''), '-') AS email,
-                    COALESCE(NULLIF(TRIM(clave_verde), ''), '-') AS clave_verde,
-                    COALESCE(NULLIF(TRIM(clave_roja), ''), '-') AS clave_roja
+                    id,
+                    COALESCE(TRIM(nombre), '') AS nombre,
+                    COALESCE(TRIM(rut), '') AS rut,
+                    COALESCE(TRIM(telefono), '') AS celular,
+                    COALESCE(TRIM(email), '') AS email,
+                    COALESCE(TRIM(clave_verde), '') AS clave_verde,
+                    COALESCE(TRIM(clave_roja), '') AS clave_roja
                 FROM sucursal_personas_autorizadas
                 WHERE sucursal_id = :sucursal_id
                 ORDER BY id ASC
@@ -648,6 +703,7 @@ def bitacora_busqueda_empresa_api(
         "empresa": _detail_value(selected_row, "nombre_empresa"),
         "rut": _detail_value(selected_row, "rut"),
         "direccion": _detail_value(selected_row, "direccion_sucursal"),
+        "latitud_longitud": _detail_value(selected_row, "latitud_longitud"),
         "referencia_ubicacion": _first_non_empty(_detail_value(selected_row, "referencia_ubicacion"), info_extra_row.get("referencia_ubicacion") if info_extra_row else None),
         "contacto": _first_non_empty(cliente_row.get("telefono") if cliente_row else None, info_extra_row.get("contacto") if info_extra_row else None),
         "correo": _first_non_empty(_detail_value(selected_row, "email_facturas"), info_extra_row.get("correo") if info_extra_row else None),
@@ -675,18 +731,17 @@ def bitacora_busqueda_empresa_api(
     }
 
     return {
-        "empresa": empresa_limpia,
-        "sucursal_id": selected_row.get("id"),
-        "sucursal_actual": selected_sucursal,
-        "sucursales": sucursales,
         "detalle": detalle,
         "contactos_emergencia": [
             {
+                "id": row.get("id"),
                 "nombre": _first_non_empty(row.get("nombre")),
                 "celular": _first_non_empty(row.get("celular")),
-                "prioridad": _first_non_empty(row.get("prioridad")),
+                "rut": _first_non_empty(row.get("rut")),
+                "email": _first_non_empty(row.get("email")),
+                "prioridad": str(idx + 1),
             }
-            for row in emergency_rows
+            for idx, row in enumerate(emergency_rows)
         ],
         "indicaciones_especiales": [
             {
@@ -700,6 +755,7 @@ def bitacora_busqueda_empresa_api(
         "noticias": [_serialize_noticia(row) for row in noticias_rows],
         "personas_autorizadas": [
             {
+                "id": row.get("id"),
                 "nombre": _first_non_empty(row.get("nombre")),
                 "rut": _first_non_empty(row.get("rut")),
                 "celular": _first_non_empty(row.get("celular")),
@@ -718,6 +774,7 @@ def bitacora_empresas_sucursales_api(
     current_user: User = Depends(get_current_user_bitacora),
 ):
     _require_bitacora_access(current_user)
+    _ensure_sucursal_aceptada_bitacora_column(incidencias_db)
 
     rows = incidencias_db.execute(
         text(
@@ -727,6 +784,7 @@ def bitacora_empresas_sucursales_api(
                 TRIM(nombre_sucursal) AS nombre_sucursal
             FROM bbdd_sucursales
             WHERE COALESCE(TRIM(nombre_empresa), '') <> ''
+              AND aceptada_bitacora = 1
             ORDER BY nombre_empresa ASC, nombre_sucursal ASC
             """
         )
@@ -759,6 +817,7 @@ def bitacora_personas_autorizadas_api(
 ):
     """Devuelve todas las personas autorizadas con datos de sucursal y plan."""
     _require_bitacora_access(current_user)
+    _ensure_sucursal_aceptada_bitacora_column(incidencias_db)
     try:
         rows = incidencias_db.execute(
             text("""
@@ -784,6 +843,7 @@ def bitacora_personas_autorizadas_api(
                 FROM sucursal_personas_autorizadas p
                 JOIN bbdd_sucursales s ON s.id = p.sucursal_id
                 WHERE p.habilitado = 1
+                  AND s.aceptada_bitacora = 1
                 ORDER BY p.rut, s.nombre_empresa, s.nombre_sucursal
             """)
         ).mappings().all()
@@ -1691,6 +1751,32 @@ def informacion_cliente_informe_pdf(
     )
 
 
+def _ensure_sucursal_info_extra_campos_pendientes(db: Session) -> None:
+    """Agrega a sucursal_info_extra las columnas que registran qué campos quedaron
+    marcados como "falta o está mal" en el último Notificar a Comercial — Venta las
+    lee (BBDD Sucursales / Información Clientes) para resaltar esos campos y armar
+    el resumen de "lo que rellenó" al avisar que ya quedó listo."""
+    for columna, tipo in (
+        ("campos_pendientes", "NVARCHAR(MAX)"),
+        ("campos_pendientes_obs", "NVARCHAR(MAX)"),
+        ("campos_pendientes_fecha", "DATETIME"),
+        ("campos_pendientes_por", "NVARCHAR(255)"),
+    ):
+        try:
+            db.execute(text(f"""
+                IF NOT EXISTS (
+                    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_NAME = 'sucursal_info_extra' AND COLUMN_NAME = '{columna}'
+                )
+                BEGIN
+                    ALTER TABLE sucursal_info_extra ADD {columna} {tipo}
+                END
+            """))
+            db.commit()
+        except Exception:
+            db.rollback()
+
+
 def _ensure_sucursal_info_extra(db: Session) -> None:
     db.execute(text("""
         IF OBJECT_ID('sucursal_info_extra', 'U') IS NULL
@@ -1736,7 +1822,8 @@ def bitacora_sucursal_raw(
         text("""
             SELECT id, nombre_sucursal, direccion_sucursal, referencia_ubicacion,
                    email_facturas, horario_apertura, horario_cierre,
-                   proveedor_electricidad, nro_proveedor_electricidad, proveedor_internet
+                   proveedor_electricidad, nro_proveedor_electricidad, proveedor_internet,
+                   latitud_longitud
             FROM bbdd_sucursales WHERE id = :sid
         """),
         {"sid": sucursal_id},
@@ -1762,6 +1849,7 @@ def bitacora_sucursal_raw(
         "sucursal_id": sucursal_id,
         "nombre_sucursal": sv(base, "nombre_sucursal"),
         "direccion_sucursal": sv(base, "direccion_sucursal"),
+        "latitud_longitud": sv(base, "latitud_longitud"),
         "referencia_ubicacion": sv(extra, "referencia_ubicacion") or sv(base, "referencia_ubicacion"),
         "email_facturas": sv(base, "email_facturas"),
         "horario_apertura": sv(base, "horario_apertura"),
@@ -1801,6 +1889,15 @@ def bitacora_sucursal_editar(
     if not base_row:
         raise HTTPException(status_code=404, detail="Sucursal no encontrada.")
 
+    # Mismo formato combinado "lat, lng" que arma venta_service._split_lat_lng
+    # al crear la sucursal; acá solo hace falta separar de vuelta para
+    # mantener las 3 columnas (latitud, longitud, latitud_longitud) en sync.
+    latlng_combinado = payload.latitud_longitud.strip()
+    lat = lng = ""
+    if latlng_combinado and "," in latlng_combinado:
+        izq, der = latlng_combinado.split(",", 1)
+        lat, lng = izq.strip(), der.strip()
+
     incidencias_db.execute(
         text("""
             UPDATE bbdd_sucursales SET
@@ -1810,9 +1907,13 @@ def bitacora_sucursal_editar(
                 email_facturas          = :email_facturas,
                 horario_apertura        = :horario_apertura,
                 horario_cierre          = :horario_cierre,
+                dias_funcionamiento     = :horario_habil,
                 proveedor_electricidad  = :compania_electricidad,
                 nro_proveedor_electricidad = :numero_cliente_electricidad,
-                proveedor_internet      = :proveedor_internet_cliente
+                proveedor_internet      = :proveedor_internet_cliente,
+                latitud                 = :latitud,
+                longitud                = :longitud,
+                latitud_longitud        = :latitud_longitud
             WHERE id = :sid
         """),
         {
@@ -1823,9 +1924,13 @@ def bitacora_sucursal_editar(
             "email_facturas": payload.email_facturas.strip(),
             "horario_apertura": payload.horario_apertura.strip(),
             "horario_cierre": payload.horario_cierre.strip(),
+            "horario_habil": payload.horario_habil.strip(),
             "compania_electricidad": payload.compania_electricidad.strip(),
             "numero_cliente_electricidad": payload.numero_cliente_electricidad.strip(),
             "proveedor_internet_cliente": payload.proveedor_internet_cliente.strip(),
+            "latitud": lat,
+            "longitud": lng,
+            "latitud_longitud": latlng_combinado,
         },
     )
 
@@ -1889,6 +1994,1358 @@ def bitacora_sucursal_editar(
     )
     incidencias_db.commit()
     return {"ok": True}
+
+
+# ──────────────────────────────────────────────
+# Información Puestos — cámaras, sucursales, incidencias, protocolos y
+# movimientos de bitácora, agrupados por puesto de monitoreo (1-29) y por
+# sucursal dentro de cada puesto. Todo el cruce con incidencias/protocolos/
+# bitacora_registros es por nombre de texto (no hay FK), igual criterio que
+# _informacion_cliente_data.
+# ──────────────────────────────────────────────
+
+def _informacion_puestos_data(incidencias_db: Session, desde: str, hasta: str) -> dict:
+    inicio, fin_excl = _parse_rango_fechas(desde, hasta)
+
+    def _filtro_fecha(columna: str) -> tuple[str, dict]:
+        sql, params = "", {}
+        if inicio:
+            sql += f" AND {columna} >= :rango_inicio"
+            params["rango_inicio"] = inicio
+        if fin_excl:
+            sql += f" AND {columna} < :rango_fin"
+            params["rango_fin"] = fin_excl
+        return sql, params
+
+    # ── Mapa sucursal -> puesto, a partir de las cámaras ya asignadas ──
+    cam_rows = (
+        incidencias_db.query(
+            SucursalCamaraMonitoreo.central,
+            SucursalBBDD.nombre_sucursal,
+            SucursalCamaraMonitoreo.nombre_camara_monitoreo,
+        )
+        .join(SucursalBBDD, SucursalCamaraMonitoreo.sucursal_id == SucursalBBDD.id)
+        .filter(SucursalCamaraMonitoreo.central.isnot(None))
+        .all()
+    )
+
+    # puesto[n] = {"sucursales": {clave_norm: nombre_real}, "cam_mon": n}
+    puestos: dict[int, dict] = {
+        p: {"sucursales": {}, "cam_mon": 0} for p in range(1, 30)
+    }
+    # sucursal_clave -> {"puesto": n, "nombre": str, "cam_mon": n}
+    sucursal_info: dict[str, dict] = {}
+    for central, nombre_sucursal, cam_mon in cam_rows:
+        nombre = (nombre_sucursal or "").strip()
+        if not nombre:
+            continue
+        clave = _normalizar_texto_cam(nombre)
+        puesto = puestos[int(central)]
+        puesto["sucursales"].setdefault(clave, nombre)
+        info = sucursal_info.setdefault(
+            clave, {"puesto": int(central), "nombre": nombre, "cam_mon": 0}
+        )
+        if cam_mon and cam_mon.strip():
+            puesto["cam_mon"] += 1
+            info["cam_mon"] += 1
+
+    # contadores por sucursal para incidencias/protocolos/bitacora, se
+    # inicializan en 0 para que toda sucursal con cámaras aparezca aunque no
+    # tenga ningún registro en el período.
+    def _contadores_inc() -> dict:
+        return {"total": 0, "pendientes": 0}
+
+    def _contadores_proto() -> dict:
+        return {"preventivos": 0, "intrusivos": 0}
+
+    incidencias_por_sucursal: dict[str, dict] = defaultdict(_contadores_inc)
+    protocolos_por_sucursal: dict[str, dict] = defaultdict(_contadores_proto)
+    bitacora_por_sucursal: dict[str, int] = defaultdict(int)
+
+    filtro_inc, params_inc = _filtro_fecha("fecha_registro")
+    inc_rows = incidencias_db.execute(
+        text(
+            "SELECT cliente, estado FROM incidencias WHERE 1=1" + filtro_inc
+        ),
+        params_inc,
+    ).mappings().all()
+    for row in inc_rows:
+        clave = _normalizar_texto_cam(row.get("cliente"))
+        if clave not in sucursal_info:
+            continue
+        estado_norm = str(row.get("estado") or "").strip().lower()
+        contador = incidencias_por_sucursal[clave]
+        contador["total"] += 1
+        if estado_norm not in _ESTADOS_INCIDENCIA_CERRADA:
+            contador["pendientes"] += 1
+
+    filtro_proto, params_proto = _filtro_fecha("fecha_registro")
+    proto_rows = incidencias_db.execute(
+        text("SELECT sucursal, tipo_protocolo FROM protocolos_registro WHERE 1=1" + filtro_proto),
+        params_proto,
+    ).mappings().all()
+    for row in proto_rows:
+        clave = _normalizar_texto_cam(row.get("sucursal"))
+        if clave not in sucursal_info:
+            continue
+        tipo_norm = str(row.get("tipo_protocolo") or "").strip().lower()
+        contador = protocolos_por_sucursal[clave]
+        if tipo_norm == "intrusivo":
+            contador["intrusivos"] += 1
+        elif tipo_norm == "preventivo":
+            contador["preventivos"] += 1
+
+    # Agrupado en SQL, no en Python: bitacora_registros ya tiene ~1M+ filas
+    # (histórico migrado desde BDATC) y traerlas una por una satura el pool
+    # de conexiones y afecta a otros usuarios reales del sistema.
+    _ensure_bitacora_registros_table(incidencias_db)
+    filtro_bit, params_bit = _filtro_fecha("created_at")
+    bit_rows = incidencias_db.execute(
+        text(
+            "SELECT nombre_sucursal, COUNT(*) AS cnt FROM bitacora_registros WHERE 1=1"
+            + filtro_bit + " GROUP BY nombre_sucursal"
+        ),
+        params_bit,
+    ).mappings().all()
+    for row in bit_rows:
+        clave = _normalizar_texto_cam(row.get("nombre_sucursal"))
+        if clave in sucursal_info:
+            bitacora_por_sucursal[clave] += int(row.get("cnt") or 0)
+
+    # ── Armado de la salida: resumen por puesto + detalle por sucursal ──
+    salida_puestos = []
+    for n in range(1, 30):
+        p = puestos[n]
+        detalle = []
+        inc_total = inc_pend = proto_prev = proto_intr = bit_total = 0
+        for clave, nombre in sorted(p["sucursales"].items(), key=lambda kv: kv[1].casefold()):
+            info = sucursal_info[clave]
+            inc = incidencias_por_sucursal.get(clave, {"total": 0, "pendientes": 0})
+            proto = protocolos_por_sucursal.get(clave, {"preventivos": 0, "intrusivos": 0})
+            bit = bitacora_por_sucursal.get(clave, 0)
+            inc_total += inc["total"]
+            inc_pend += inc["pendientes"]
+            proto_prev += proto["preventivos"]
+            proto_intr += proto["intrusivos"]
+            bit_total += bit
+            detalle.append({
+                "sucursal": nombre,
+                "camaras_monitoreadas": info["cam_mon"],
+                "incidencias": inc["total"],
+                "incidencias_pendientes": inc["pendientes"],
+                "protocolos_preventivos": proto["preventivos"],
+                "protocolos_intrusivos": proto["intrusivos"],
+                "movimientos_bitacora": bit,
+            })
+        salida_puestos.append({
+            "puesto": n,
+            "camaras_monitoreadas": p["cam_mon"],
+            "sucursales": len(p["sucursales"]),
+            "incidencias": inc_total,
+            "incidencias_pendientes": inc_pend,
+            "protocolos_preventivos": proto_prev,
+            "protocolos_intrusivos": proto_intr,
+            "movimientos_bitacora": bit_total,
+            "detalle_sucursales": detalle,
+        })
+
+    return {
+        "desde": desde.strip() if desde else "",
+        "hasta": hasta.strip() if hasta else "",
+        "puestos": salida_puestos,
+    }
+
+
+_TOP_N_INTRUSIVOS = 6  # debe coincidir con _TOP_N en informe_puestos_service.py
+
+_RE_HORA_TEXTO = re.compile(r"\b([01]?\d|2[0-3]):([0-5]\d)\b")
+
+_FRANJAS_HORARIAS = (
+    ("Madrugada (00-06h)", 0, 6),
+    ("Mañana (06-12h)", 6, 12),
+    ("Tarde (12-18h)", 12, 18),
+    ("Noche (18-24h)", 18, 24),
+)
+
+
+def _hora_aproximada_evento(observaciones_raw: str | None, fecha_registro: datetime | None) -> tuple[int | None, str]:
+    """La hora de fecha_registro es la del REGISTRO posterior del protocolo,
+    no necesariamente la hora real en que ocurrió la intrusión — a menudo el
+    operador escribe el parte a la mañana siguiente resumiendo la noche. En
+    cambio observaciones_raw casi siempre arranca o menciona la hora real
+    ("a las 22:22 hrs", "Se recibe alarma... a las 00:47"), así que se usa
+    esa hora como aproximación cuando está disponible (solo hora del día,
+    sin tocar la fecha — reconstruir la fecha exacta sería adivinar) y solo
+    se cae a la hora de fecha_registro si el texto no trae ninguna hora."""
+    m = _RE_HORA_TEXTO.search(str(observaciones_raw or ""))
+    if m:
+        return int(m.group(1)), "texto"
+    if fecha_registro:
+        return fecha_registro.hour, "registro"
+    return None, "sin_dato"
+
+
+def _franja_horaria(hora: int | None) -> str | None:
+    if hora is None:
+        return None
+    for nombre, ini, fin in _FRANJAS_HORARIAS:
+        if ini <= hora < fin:
+            return nombre
+    return None
+
+
+def _bitacora_ventana_por_puesto(
+    incidencias_db: Session, sucursales_originales: list[str], minutos: int = 30
+) -> list[datetime]:
+    """Trae SOLO los created_at de bitácora de las sucursales de un puesto
+    puntual (acotado por nombre_sucursal, usa el índice ix_nombre_sucursal)
+    para poder contar, con bisect, cuántos movimientos cayeron en una
+    ventana de +/- `minutos` alrededor de cada evento sin repetir una query
+    por evento. Deliberadamente NO se hace esto para los 29 puestos —desde
+    el incidente de rendimiento con el histórico completo (ver notas de
+    _informacion_puestos_data), solo se llama para los puestos del top que
+    de verdad se narran en el PDF."""
+    if not sucursales_originales:
+        return []
+    rows = incidencias_db.execute(
+        text(
+            "SELECT created_at FROM bitacora_registros WHERE nombre_sucursal IN :sucursales"
+        ).bindparams(bindparam("sucursales", expanding=True)),
+        {"sucursales": sucursales_originales},
+    ).all()
+    return sorted(r[0] for r in rows if r[0])
+
+
+def _contar_en_ventana(timestamps_ordenados: list[datetime], centro: datetime, minutos: int = 30) -> int:
+    if not timestamps_ordenados or not centro:
+        return 0
+    ini = centro - timedelta(minutes=minutos)
+    fin = centro + timedelta(minutes=minutos)
+    izq = bisect.bisect_left(timestamps_ordenados, ini)
+    der = bisect.bisect_right(timestamps_ordenados, fin)
+    return der - izq
+
+
+def _movimientos_operador_ventana(incidencias_db: Session, operador: str, centro: datetime, minutos: int = 30) -> int:
+    """Cuántos movimientos de bitácora escribió ESE operador puntual en una
+    ventana de +/- `minutos` alrededor del intrusivo. Un operador cubre un
+    puesto completo (varias sucursales) como asignación normal, así que
+    contar en cuántas sucursales distintas tuvo actividad no dice mucho —
+    eso es simplemente su pega de siempre. Lo que sí es una señal real de
+    qué tan ocupado/distraído estaba justo en ese momento es el volumen de
+    bitácora que él mismo redactó en esa ventana."""
+    operador = (operador or "").strip()
+    if not operador or not centro:
+        return 0
+    ini = centro - timedelta(minutes=minutos)
+    fin = centro + timedelta(minutes=minutos)
+    total = incidencias_db.execute(
+        text(
+            "SELECT COUNT(*) FROM bitacora_registros "
+            "WHERE operador = :op AND created_at BETWEEN :ini AND :fin"
+        ),
+        {"op": operador, "ini": ini, "fin": fin},
+    ).scalar()
+    return int(total or 0)
+
+
+def _indice_carga_combinado(puestos: list[dict]) -> None:
+    """Índice ponderado 0-100 por puesto para priorizar redistribución de
+    sucursales: normaliza protocolos/sucursal, movimientos/sucursal e
+    incidencias simultáneas promedio (cada uno 0-1 contra el máximo del
+    grupo) y los combina con pesos iguales. Es un ranking relativo entre
+    los puestos de ESTE informe, no una escala absoluta."""
+    def _prom_incidencias(p: dict) -> float:
+        detalle = p.get("intrusivos_detalle") or []
+        if not detalle:
+            return 0.0
+        return sum(len(ev["incidencias_activas"]) for ev in detalle) / len(detalle)
+
+    for p in puestos:
+        sucursales = max(p["sucursales"], 1)
+        p["protocolos_por_sucursal"] = round(p["protocolos_preventivos"] + p["protocolos_intrusivos"], 2) / sucursales
+        p["movimientos_por_sucursal"] = round(p["movimientos_bitacora"] / sucursales, 1)
+        p["incidencias_simultaneas_promedio"] = round(_prom_incidencias(p), 2)
+
+    max_proto_suc = max([p["protocolos_por_sucursal"] for p in puestos], default=0) or 1
+    max_mov_suc = max([p["movimientos_por_sucursal"] for p in puestos], default=0) or 1
+    max_inc_sim = max([p["incidencias_simultaneas_promedio"] for p in puestos], default=0) or 1
+
+    for p in puestos:
+        score = (
+            (p["protocolos_por_sucursal"] / max_proto_suc)
+            + (p["movimientos_por_sucursal"] / max_mov_suc)
+            + (p["incidencias_simultaneas_promedio"] / max_inc_sim)
+        ) / 3 * 100
+        p["indice_carga"] = round(score, 1)
+
+
+def _informe_puestos_dataset(incidencias_db: Session, desde: str, hasta: str) -> dict:
+    """Extiende _informacion_puestos_data con, por puesto, el detalle de sus
+    protocolos intrusivos (incidencias activas, operador, desenlace, hora
+    aproximada) y métricas normalizadas por sucursal + un índice de carga
+    combinado — para el informe PDF de análisis de intrusiones."""
+    data = _informacion_puestos_data(incidencias_db, desde, hasta)
+
+    sucursal_a_puesto: dict[str, int] = {}
+    sucursales_por_puesto: dict[int, list[str]] = defaultdict(list)
+    for p in data["puestos"]:
+        for s in p["detalle_sucursales"]:
+            clave = _normalizar_texto_cam(s["sucursal"])
+            sucursal_a_puesto[clave] = p["puesto"]
+            sucursales_por_puesto[p["puesto"]].append(s["sucursal"])
+
+    inicio, fin_excl = _parse_rango_fechas(desde, hasta)
+    filtro, params = "", {}
+    if inicio:
+        filtro += " AND fecha_registro >= :rango_inicio"
+        params["rango_inicio"] = inicio
+    if fin_excl:
+        filtro += " AND fecha_registro < :rango_fin"
+        params["rango_fin"] = fin_excl
+    proto_rows = incidencias_db.execute(
+        text(
+            "SELECT sucursal, fecha_registro, tipo_protocolo, operador, protocolo_exitoso, observaciones_raw "
+            "FROM protocolos_registro WHERE 1=1" + filtro
+        ),
+        params,
+    ).mappings().all()
+
+    eventos_por_puesto: dict[int, list] = defaultdict(list)
+    franja_todos = Counter()
+    franja_intrusivos = Counter()
+    for row in proto_rows:
+        clave = _normalizar_texto_cam(row.get("sucursal"))
+        puesto = sucursal_a_puesto.get(clave)
+        fecha = row.get("fecha_registro")
+        es_intrusivo = str(row.get("tipo_protocolo") or "").strip().lower() == "intrusivo"
+        hora, fuente_hora = _hora_aproximada_evento(row.get("observaciones_raw"), fecha)
+        franja = _franja_horaria(hora)
+        if franja:
+            franja_todos[franja] += 1
+            if es_intrusivo:
+                franja_intrusivos[franja] += 1
+        if puesto and fecha and es_intrusivo:
+            eventos_por_puesto[puesto].append(
+                {
+                    "fecha": fecha,
+                    "operador": str(row.get("operador") or "").strip() or "Sin operador registrado",
+                    "exitoso": str(row.get("protocolo_exitoso") or "").strip().upper(),
+                    "hora_aprox": hora,
+                    "hora_fuente": fuente_hora,
+                    "sucursal": str(row.get("sucursal") or "").strip() or "Sin sucursal registrada",
+                    "sucursal_clave": clave,
+                }
+            )
+    data["franja_horaria"] = {
+        "todos": dict(franja_todos),
+        "intrusivos": dict(franja_intrusivos),
+        "orden": [nombre for nombre, _, _ in _FRANJAS_HORARIAS],
+    }
+
+    # Incidencias SIN filtro de fecha: una incidencia abierta antes del
+    # período (o cerrada después) igual cuenta como "activa" en la fecha
+    # puntual del intrusivo, aunque esa fecha de apertura/cierre caiga
+    # fuera del rango elegido para el informe.
+    #
+    # Dato sucio conocido: ~4.6k incidencias quedaron marcadas "terminado"
+    # sin que se les cargara fecha_cierre. Si solo mirásemos fecha_cierre,
+    # esas quedarían "activas para siempre" e inflarían el promedio. Por
+    # eso una incidencia solo cuenta como activa en fecha_evento si:
+    # - su estado ACTUAL no es de cierre (sigue realmente pendiente), o
+    # - tiene fecha_cierre cargada y esa fecha es posterior al evento.
+    #
+    # Agrupadas por SUCURSAL (no por puesto): un puesto cubre varias
+    # sucursales, y una incidencia en otra sucursal del mismo puesto no
+    # explica por qué no se detectó una intrusión en ESTA sucursal — el
+    # cruce causal tiene que ser sucursal contra sucursal.
+    inc_rows = incidencias_db.execute(
+        text("SELECT cliente, fecha_registro, fecha_cierre, estado, problema FROM incidencias")
+    ).mappings().all()
+    inc_por_sucursal: dict[str, list] = defaultdict(list)
+    for row in inc_rows:
+        clave = _normalizar_texto_cam(row.get("cliente"))
+        if clave and row.get("fecha_registro"):
+            estado_norm = str(row.get("estado") or "").strip().lower()
+            cerrada_actualmente = estado_norm in _ESTADOS_INCIDENCIA_CERRADA
+            problema = str(row.get("problema") or "").strip() or "Sin clasificar"
+            inc_por_sucursal[clave].append(
+                (row.get("fecha_registro"), row.get("fecha_cierre"), cerrada_actualmente, problema)
+            )
+
+    # Puestos "top" por intrusivos: son los únicos que el PDF narra en
+    # detalle, así que son los únicos para los que vale la pena pagar el
+    # costo extra de consultar ventanas de bitácora/operador por evento.
+    top_puestos_ids = {
+        p["puesto"]
+        for p in sorted(data["puestos"], key=lambda x: x["protocolos_intrusivos"], reverse=True)[:_TOP_N_INTRUSIVOS]
+        if p["protocolos_intrusivos"] > 0
+    }
+    ventana_bitacora_cache: dict[int, list[datetime]] = {}
+
+    for p in data["puestos"]:
+        eventos = sorted(eventos_por_puesto.get(p["puesto"], []), key=lambda e: e["fecha"])
+        es_top = p["puesto"] in top_puestos_ids
+        if es_top:
+            ventana_bitacora_cache[p["puesto"]] = _bitacora_ventana_por_puesto(
+                incidencias_db, sucursales_por_puesto.get(p["puesto"], [])
+            )
+        detalle_eventos = []
+        for ev in eventos:
+            fecha_evento = ev["fecha"]
+            incidencias_sucursal = inc_por_sucursal.get(ev["sucursal_clave"], [])
+            activas = [
+                problema
+                for (f_reg, f_cie, cerrada_actualmente, problema) in incidencias_sucursal
+                if f_reg <= fecha_evento
+                and ((f_cie and f_cie > fecha_evento) or (not f_cie and not cerrada_actualmente))
+            ]
+            item = {
+                "fecha": fecha_evento,
+                "incidencias_activas": activas,
+                "operador": ev["operador"],
+                "exitoso": ev["exitoso"],
+                "hora_aprox": ev["hora_aprox"],
+                "hora_fuente": ev["hora_fuente"],
+                "sucursal": ev["sucursal"],
+            }
+            if es_top:
+                ts = ventana_bitacora_cache[p["puesto"]]
+                item["movimientos_ventana_30min"] = _contar_en_ventana(ts, fecha_evento)
+                item["movimientos_operador_30min"] = _movimientos_operador_ventana(
+                    incidencias_db, ev["operador"], fecha_evento
+                )
+            detalle_eventos.append(item)
+        p["intrusivos_fechas"] = [ev["fecha"] for ev in eventos]
+        p["intrusivos_detalle"] = detalle_eventos
+
+        operadores_intrusivos = Counter(ev["operador"] for ev in eventos if ev["operador"] != "Sin operador registrado")
+        p["operadores_repetidos"] = [
+            {"operador": op, "veces": n} for op, n in operadores_intrusivos.most_common() if n >= 2
+        ]
+        p["desenlace_no_exitoso"] = sum(1 for ev in eventos if ev["exitoso"] == "NO")
+
+    _indice_carga_combinado(data["puestos"])
+
+    return data
+
+
+@router.get("/api/bitacora/informacion-puestos")
+def informacion_puestos(
+    desde: str = Query(default=""),
+    hasta: str = Query(default=""),
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    """Cámaras, sucursales, incidencias, protocolos y movimientos de bitácora
+    agrupados por puesto (1-29) y por sucursal dentro de cada puesto, con
+    rango de fechas opcional para incidencias/protocolos/bitácora."""
+    _require_bitacora_access(current_user)
+    if not is_bitacora_admin(current_user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden ver Información Puestos.")
+    return _informacion_puestos_data(incidencias_db, desde, hasta)
+
+
+def _puestos_qs(desde: str, hasta: str) -> str:
+    from urllib.parse import urlencode
+
+    params = {}
+    if desde:
+        params["desde"] = desde
+    if hasta:
+        params["hasta"] = hasta
+    return urlencode(params)
+
+
+def _puestos_periodo_label(data: dict) -> str:
+    if data.get("desde") or data.get("hasta"):
+        return f"Período: {data.get('desde') or 'inicio'} → {data.get('hasta') or 'hoy'}"
+    return "Período: histórico completo"
+
+
+def _puestos_rankings(puestos: list[dict]) -> dict[str, list[dict]]:
+    """Enriquece cada puesto con protocolos_total, y devuelve 4 listas ya
+    ordenadas de mayor a menor según cada criterio pedido."""
+    enriquecidos = []
+    for p in puestos:
+        total_proto = p["protocolos_preventivos"] + p["protocolos_intrusivos"]
+        enriquecidos.append({**p, "protocolos_total": total_proto})
+    return {
+        "protocolos_total": sorted(enriquecidos, key=lambda p: -p["protocolos_total"]),
+        "protocolos_intrusivos": sorted(enriquecidos, key=lambda p: -p["protocolos_intrusivos"]),
+        "protocolos_preventivos": sorted(enriquecidos, key=lambda p: -p["protocolos_preventivos"]),
+        "movimientos_bitacora": sorted(enriquecidos, key=lambda p: -p["movimientos_bitacora"]),
+    }
+
+
+_PUESTOS_EXCEL_HEADERS = [
+    "Puesto", "Sucursales", "Cámaras monitoreadas", "Incidencias", "Incidencias pendientes",
+    "Protocolos preventivos", "Protocolos intrusivos", "Protocolos totales",
+    "Movimientos bitácora",
+]
+
+
+def _fila_puesto_valores(p: dict) -> list:
+    return [
+        f"Puesto {p['puesto']}", p["sucursales"], p["camaras_monitoreadas"],
+        p["incidencias"], p["incidencias_pendientes"],
+        p["protocolos_preventivos"], p["protocolos_intrusivos"], p["protocolos_total"],
+        p["movimientos_bitacora"],
+    ]
+
+
+def _preview_cell_ip(value: object, css: str = "") -> dict:
+    return {"value": value if value not in (None, "") else "—", "css": css}
+
+
+def _preview_puestos_section(titulo: str, rows: list[dict]) -> dict:
+    preview_rows = []
+    for p in rows:
+        preview_rows.append([
+            _preview_cell_ip(f"Puesto {p['puesto']}"),
+            _preview_cell_ip(p["sucursales"], "num"),
+            _preview_cell_ip(p["camaras_monitoreadas"], "num"),
+            _preview_cell_ip(p["incidencias"], "num"),
+            _preview_cell_ip(p["incidencias_pendientes"], "num" + (" bad" if p["incidencias_pendientes"] else "")),
+            _preview_cell_ip(p["protocolos_preventivos"], "num"),
+            _preview_cell_ip(p["protocolos_intrusivos"], "num"),
+            _preview_cell_ip(p["protocolos_total"], "num"),
+            _preview_cell_ip(p["movimientos_bitacora"], "num"),
+        ])
+    return {
+        "title": titulo,
+        "subtitle": f"{len(rows)} puesto(s)",
+        "headers": _PUESTOS_EXCEL_HEADERS,
+        "rows": preview_rows,
+    }
+
+
+def _crear_hoja_ranking_puestos(ws, titulo_hoja: str, periodo: str, rows: list[dict]) -> None:
+    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+
+    azul = "0B1424"
+    azul_medio = "1E3A5F"
+    borde = Side(style="thin", color="CBD5E1")
+    headers = _PUESTOS_EXCEL_HEADERS
+
+    ws.append([f"ATC - {titulo_hoja}"])
+    ws.append([periodo])
+    ws.append([])
+    ws.append(headers)
+
+    for p in rows:
+        ws.append(_fila_puesto_valores(p))
+
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(headers))
+    ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=len(headers))
+    ws["A1"].font = Font(bold=True, color="FFFFFF", size=14)
+    ws["A1"].fill = PatternFill("solid", fgColor=azul)
+    ws["A1"].alignment = Alignment(horizontal="center")
+    ws["A2"].font = Font(bold=True, color="334155")
+    ws["A2"].alignment = Alignment(horizontal="center")
+
+    for cell in ws[4]:
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = PatternFill("solid", fgColor=azul_medio)
+        cell.alignment = Alignment(horizontal="center")
+        cell.border = Border(top=borde, left=borde, right=borde, bottom=borde)
+
+    for fila in ws.iter_rows(min_row=5, max_row=ws.max_row, min_col=1, max_col=len(headers)):
+        for cell in fila:
+            cell.border = Border(top=borde, left=borde, right=borde, bottom=borde)
+            cell.alignment = Alignment(horizontal="center" if cell.column > 1 else "left", vertical="center")
+
+    widths = [12, 12, 18, 12, 16, 18, 16, 16, 16]
+    for idx, width in enumerate(widths, start=1):
+        ws.column_dimensions[chr(64 + idx)].width = width
+    ws.freeze_panes = "A5"
+
+
+@router.get("/api/bitacora/informacion-puestos/excel/preview", response_class=HTMLResponse)
+def informacion_puestos_excel_preview(
+    request: Request,
+    desde: str = Query(default=""),
+    hasta: str = Query(default=""),
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    _require_bitacora_access(current_user)
+    if not is_bitacora_admin(current_user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden ver Información Puestos.")
+    data = _informacion_puestos_data(incidencias_db, desde, hasta)
+    rankings = _puestos_rankings(data["puestos"])
+    sections = [
+        _preview_puestos_section("Protocolos (Total)", rankings["protocolos_total"]),
+        _preview_puestos_section("Protocolos Intrusivos", rankings["protocolos_intrusivos"]),
+        _preview_puestos_section("Protocolos Preventivos", rankings["protocolos_preventivos"]),
+        _preview_puestos_section("Movimientos Bitácora", rankings["movimientos_bitacora"]),
+    ]
+    return templates.TemplateResponse(
+        request,
+        "guardias_informe_preview.html",
+        {
+            "request": request,
+            "titulo": "Vista previa — Información Puestos (Excel)",
+            "periodo": _puestos_periodo_label(data),
+            "sections": sections,
+            "descarga_url": f"/api/bitacora/informacion-puestos/excel?{_puestos_qs(desde, hasta)}",
+        },
+    )
+
+
+@router.get("/api/bitacora/informacion-puestos/excel")
+def informacion_puestos_excel(
+    desde: str = Query(default=""),
+    hasta: str = Query(default=""),
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    """Excel con 4 hojas, cada una ordenada de mayor a menor según un
+    criterio distinto: protocolos totales, intrusivos, preventivos, y
+    movimientos de bitácora."""
+    _require_bitacora_access(current_user)
+    if not is_bitacora_admin(current_user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden ver Información Puestos.")
+    data = _informacion_puestos_data(incidencias_db, desde, hasta)
+    rankings = _puestos_rankings(data["puestos"])
+    periodo = _puestos_periodo_label(data)
+
+    from io import BytesIO
+
+    from openpyxl import Workbook
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Protocolos Total"
+    _crear_hoja_ranking_puestos(ws, "Protocolos (Total)", periodo, rankings["protocolos_total"])
+    _crear_hoja_ranking_puestos(wb.create_sheet("Protocolos Intrusivos"), "Protocolos Intrusivos", periodo, rankings["protocolos_intrusivos"])
+    _crear_hoja_ranking_puestos(wb.create_sheet("Protocolos Preventivos"), "Protocolos Preventivos", periodo, rankings["protocolos_preventivos"])
+    _crear_hoja_ranking_puestos(wb.create_sheet("Movimientos Bitácora"), "Movimientos Bitácora", periodo, rankings["movimientos_bitacora"])
+
+    buffer = BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    filename = f"informacion_puestos_{datetime.now().strftime('%Y%m%d')}.xlsx"
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+def _informacion_puestos_pdf_bytes(incidencias_db: Session, desde: str, hasta: str) -> bytes:
+    from ATC.app.services.informe_puestos_service import generar_informe_puestos_pdf
+
+    data = _informe_puestos_dataset(incidencias_db, desde, hasta)
+    return generar_informe_puestos_pdf(data)
+
+
+@router.get("/api/bitacora/informacion-puestos/pdf/preview")
+def informacion_puestos_pdf_preview(
+    desde: str = Query(default=""),
+    hasta: str = Query(default=""),
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    """Vista previa: el PDF real, mostrado inline en el visor del navegador
+    (no una tabla HTML) — el propio visor trae su botón de descarga."""
+    _require_bitacora_access(current_user)
+    if not is_bitacora_admin(current_user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden ver Información Puestos.")
+    from io import BytesIO
+
+    pdf_bytes = _informacion_puestos_pdf_bytes(incidencias_db, desde, hasta)
+    return StreamingResponse(
+        BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'inline; filename="Informe_Puestos_vista_previa.pdf"'},
+    )
+
+
+@router.get("/api/bitacora/informacion-puestos/pdf")
+def informacion_puestos_pdf(
+    desde: str = Query(default=""),
+    hasta: str = Query(default=""),
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    """PDF de análisis: top puestos por cada métrica y cruce entre
+    protocolos intrusivos y movimientos de bitácora, para chequear si la
+    cantidad de movimientos de bitácora acompaña a los intrusivos."""
+    _require_bitacora_access(current_user)
+    if not is_bitacora_admin(current_user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden ver Información Puestos.")
+    from io import BytesIO
+
+    pdf_bytes = _informacion_puestos_pdf_bytes(incidencias_db, desde, hasta)
+    filename = f"Informe_Puestos_{datetime.now().strftime('%Y%m%d')}.pdf"
+    return StreamingResponse(
+        BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+_RECINTO_EXCEL_HEADERS = [
+    "Sucursal", "Cámaras monitoreadas", "Incidencias", "Incidencias pendientes",
+    "Protocolos preventivos", "Protocolos intrusivos", "Movimientos bitácora", "Actividad total",
+]
+
+
+def _actividad_total(s: dict) -> int:
+    return s["incidencias"] + s["protocolos_preventivos"] + s["protocolos_intrusivos"] + s["movimientos_bitacora"]
+
+
+def _detalle_sucursales_top(p: dict) -> list[dict]:
+    return sorted(p["detalle_sucursales"], key=lambda s: -_actividad_total(s))
+
+
+def _fila_recinto_valores(s: dict) -> list:
+    return [
+        s["sucursal"], s["camaras_monitoreadas"], s["incidencias"], s["incidencias_pendientes"],
+        s["protocolos_preventivos"], s["protocolos_intrusivos"], s["movimientos_bitacora"],
+        _actividad_total(s),
+    ]
+
+
+def _preview_recinto_section(p: dict) -> dict:
+    top = _detalle_sucursales_top(p)
+    preview_rows = []
+    for s in top:
+        preview_rows.append([
+            _preview_cell_ip(s["sucursal"]),
+            _preview_cell_ip(s["camaras_monitoreadas"], "num"),
+            _preview_cell_ip(s["incidencias"], "num"),
+            _preview_cell_ip(s["incidencias_pendientes"], "num" + (" bad" if s["incidencias_pendientes"] else "")),
+            _preview_cell_ip(s["protocolos_preventivos"], "num"),
+            _preview_cell_ip(s["protocolos_intrusivos"], "num"),
+            _preview_cell_ip(s["movimientos_bitacora"], "num"),
+            _preview_cell_ip(_actividad_total(s), "num"),
+        ])
+    return {
+        "title": f"Puesto {p['puesto']}",
+        "subtitle": f"{p['sucursales']} sucursal(es), ordenado por actividad total",
+        "headers": _RECINTO_EXCEL_HEADERS,
+        "rows": preview_rows,
+    }
+
+
+def _crear_hoja_recinto(ws, puesto_num: int, periodo: str, top: list[dict]) -> None:
+    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+
+    azul = "0B1424"
+    azul_medio = "1E3A5F"
+    borde = Side(style="thin", color="CBD5E1")
+    headers = _RECINTO_EXCEL_HEADERS
+
+    ws.append([f"ATC - Puesto {puesto_num}"])
+    ws.append([periodo])
+    ws.append([])
+    ws.append(headers)
+
+    for s in top:
+        ws.append(_fila_recinto_valores(s))
+
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(headers))
+    ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=len(headers))
+    ws["A1"].font = Font(bold=True, color="FFFFFF", size=14)
+    ws["A1"].fill = PatternFill("solid", fgColor=azul)
+    ws["A1"].alignment = Alignment(horizontal="center")
+    ws["A2"].font = Font(bold=True, color="334155")
+    ws["A2"].alignment = Alignment(horizontal="center")
+
+    for cell in ws[4]:
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = PatternFill("solid", fgColor=azul_medio)
+        cell.alignment = Alignment(horizontal="center")
+        cell.border = Border(top=borde, left=borde, right=borde, bottom=borde)
+
+    for fila in ws.iter_rows(min_row=5, max_row=ws.max_row, min_col=1, max_col=len(headers)):
+        for cell in fila:
+            cell.border = Border(top=borde, left=borde, right=borde, bottom=borde)
+            cell.alignment = Alignment(horizontal="center" if cell.column > 1 else "left", vertical="center")
+
+    widths = [34, 18, 12, 16, 18, 16, 16, 14]
+    for idx, width in enumerate(widths, start=1):
+        ws.column_dimensions[chr(64 + idx)].width = width
+    ws.freeze_panes = "A5"
+
+
+@router.get("/api/bitacora/informacion-puestos/recintos/preview", response_class=HTMLResponse)
+def informacion_puestos_recintos_preview(
+    request: Request,
+    desde: str = Query(default=""),
+    hasta: str = Query(default=""),
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    _require_bitacora_access(current_user)
+    if not is_bitacora_admin(current_user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden ver Información Puestos.")
+    data = _informacion_puestos_data(incidencias_db, desde, hasta)
+    sections = [_preview_recinto_section(p) for p in data["puestos"]]
+    return templates.TemplateResponse(
+        request,
+        "guardias_informe_preview.html",
+        {
+            "request": request,
+            "titulo": "Vista previa — Detalle por Recinto",
+            "periodo": _puestos_periodo_label(data),
+            "sections": sections,
+            "descarga_url": f"/api/bitacora/informacion-puestos/recintos?{_puestos_qs(desde, hasta)}",
+        },
+    )
+
+
+@router.get("/api/bitacora/informacion-puestos/recintos")
+def informacion_puestos_recintos(
+    desde: str = Query(default=""),
+    hasta: str = Query(default=""),
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    """Excel con 29 hojas (una por puesto/recinto), cada una con el top
+    desglosado por sucursal de movimientos de bitácora, protocolos e
+    incidencias, ordenado de mayor a menor actividad total."""
+    _require_bitacora_access(current_user)
+    if not is_bitacora_admin(current_user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden ver Información Puestos.")
+    data = _informacion_puestos_data(incidencias_db, desde, hasta)
+    periodo = _puestos_periodo_label(data)
+
+    from io import BytesIO
+
+    from openpyxl import Workbook
+
+    wb = Workbook()
+    primero = True
+    for p in data["puestos"]:
+        ws = wb.active if primero else wb.create_sheet()
+        ws.title = f"Puesto {p['puesto']}"
+        primero = False
+        _crear_hoja_recinto(ws, p["puesto"], periodo, _detalle_sucursales_top(p))
+
+    buffer = BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    filename = f"informacion_puestos_detalle_recinto_{datetime.now().strftime('%Y%m%d')}.xlsx"
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+# ──────────────────────────────────────────────
+# Sucursales pendientes de aceptación
+# ──────────────────────────────────────────────
+
+def _mejor_posible_duplicado(db: Session, sucursal_id: int, rut: str, nombre_sucursal: str) -> dict | None:
+    """Entre las sucursales YA aceptadas del mismo RUT, busca la más parecida por
+    nombre (tildes/mayúsculas ignoradas) para ayudar al revisor a detectar duplicados
+    que el chequeo de create_sucursal() no pesca por ser variaciones de tilde/prefijo."""
+    import difflib
+
+    def norm(v: str) -> str:
+        v = unicodedata.normalize("NFD", (v or "").strip().lower()).encode("ascii", "ignore").decode("ascii")
+        return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9]+", " ", v)).strip()
+
+    candidatos = db.execute(
+        text("""
+            SELECT id, nombre_sucursal, direccion_sucursal
+            FROM bbdd_sucursales
+            WHERE LOWER(TRIM(rut)) = LOWER(TRIM(:rut))
+              AND aceptada_bitacora = 1
+              AND id <> :sid
+        """),
+        {"rut": rut, "sid": sucursal_id},
+    ).mappings().all()
+
+    objetivo = norm(nombre_sucursal)
+    mejor = None
+    for c in candidatos:
+        ratio = difflib.SequenceMatcher(None, objetivo, norm(c.get("nombre_sucursal"))).ratio()
+        if ratio >= 0.75 and (mejor is None or ratio > mejor["similitud"]):
+            mejor = {
+                "id": c.get("id"),
+                "nombre_sucursal": c.get("nombre_sucursal"),
+                "direccion_sucursal": c.get("direccion_sucursal"),
+                "similitud": ratio,
+            }
+    if mejor:
+        mejor["similitud"] = round(mejor["similitud"], 2)
+    return mejor
+
+
+@router.get("/api/bitacora/sucursales-pendientes")
+def bitacora_sucursales_pendientes_api(
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    _require_bitacora_access(current_user)
+    _ensure_sucursal_aceptada_bitacora_column(incidencias_db)
+
+    rows = incidencias_db.execute(
+        text("""
+            SELECT
+                id,
+                COALESCE(TRIM(rut), '') AS rut,
+                COALESCE(TRIM(nombre_empresa), '') AS nombre_empresa,
+                COALESCE(TRIM(nombre_sucursal), '') AS nombre_sucursal,
+                COALESCE(TRIM(direccion_sucursal), '') AS direccion_sucursal,
+                COALESCE(TRIM(comuna), '') AS comuna,
+                COALESCE(TRIM(region), '') AS region,
+                COALESCE(TRIM(created_by), '') AS created_by,
+                created_at
+            FROM bbdd_sucursales
+            WHERE aceptada_bitacora = 0
+            ORDER BY created_at DESC, id DESC
+        """)
+    ).mappings().all()
+
+    pendientes = []
+    for row in rows:
+        duplicado = _mejor_posible_duplicado(incidencias_db, row.get("id"), row.get("rut"), row.get("nombre_sucursal"))
+        pendientes.append({
+            "id": row.get("id"),
+            "rut": row.get("rut"),
+            "nombre_empresa": row.get("nombre_empresa"),
+            "nombre_sucursal": row.get("nombre_sucursal"),
+            "direccion_sucursal": row.get("direccion_sucursal"),
+            "comuna": row.get("comuna"),
+            "region": row.get("region"),
+            "created_by": row.get("created_by"),
+            "created_at": row.get("created_at").isoformat(sep=" ", timespec="seconds") if isinstance(row.get("created_at"), datetime) else str(row.get("created_at") or ""),
+            "posible_duplicado": duplicado,
+        })
+    return {"total": len(pendientes), "sucursales": pendientes}
+
+
+@router.post("/api/bitacora/sucursales-pendientes/{sucursal_id}/aceptar")
+def bitacora_sucursal_aceptar(
+    sucursal_id: int,
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    _require_bitacora_access(current_user)
+    _ensure_sucursal_aceptada_bitacora_column(incidencias_db)
+
+    result = incidencias_db.execute(
+        text("UPDATE bbdd_sucursales SET aceptada_bitacora = 1 WHERE id = :sid"),
+        {"sid": sucursal_id},
+    )
+    if result.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Sucursal no encontrada.")
+    incidencias_db.commit()
+    return {"ok": True}
+
+
+class RechazarDuplicadoPayload(BaseModel):
+    sucursal_aceptada_id: int
+
+
+@router.post("/api/bitacora/sucursales-pendientes/{sucursal_id}/rechazar-duplicado")
+def bitacora_sucursal_rechazar_duplicado(
+    sucursal_id: int,
+    payload: RechazarDuplicadoPayload,
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    """Único caso en el que sí se descarta una sucursal pendiente: es un duplicado
+    de una ya aceptada. Antes de borrarla, re-apunta sus ODS en venta_comercial
+    (rut + direccion/nombre) a la identidad de la sucursal aceptada, para que las
+    cámaras y demás datos que _ficha_sucursal calcula sumando esas ODS no se
+    pierdan — quedan contabilizados en la sucursal que sí queda activa."""
+    _require_bitacora_access(current_user)
+    _ensure_sucursal_aceptada_bitacora_column(incidencias_db)
+
+    pendiente = incidencias_db.execute(
+        text("""
+            SELECT id, COALESCE(TRIM(rut), '') AS rut,
+                   COALESCE(TRIM(direccion_sucursal), '') AS direccion_sucursal,
+                   COALESCE(TRIM(nombre_sucursal), '') AS nombre_sucursal
+            FROM bbdd_sucursales
+            WHERE id = :sid AND aceptada_bitacora = 0
+        """),
+        {"sid": sucursal_id},
+    ).mappings().first()
+    if not pendiente:
+        raise HTTPException(status_code=404, detail="Sucursal pendiente no encontrada.")
+
+    aceptada = incidencias_db.execute(
+        text("""
+            SELECT id, COALESCE(TRIM(direccion_sucursal), '') AS direccion_sucursal,
+                   COALESCE(TRIM(nombre_sucursal), '') AS nombre_sucursal
+            FROM bbdd_sucursales
+            WHERE id = :sid AND aceptada_bitacora = 1
+        """),
+        {"sid": payload.sucursal_aceptada_id},
+    ).mappings().first()
+    if not aceptada:
+        raise HTTPException(status_code=404, detail="La sucursal aceptada indicada no existe.")
+
+    ods_reasignadas = incidencias_db.execute(
+        text("""
+            UPDATE venta_comercial
+            SET direccion_sucursal = :direccion_nueva,
+                nombre_sucursal = :nombre_nuevo
+            WHERE LOWER(TRIM(rut_cliente)) = LOWER(TRIM(:rut))
+              AND (
+                LOWER(TRIM(direccion_sucursal)) = LOWER(TRIM(:direccion_vieja))
+                OR LOWER(TRIM(nombre_sucursal)) = LOWER(TRIM(:nombre_viejo))
+              )
+        """),
+        {
+            "direccion_nueva": aceptada["direccion_sucursal"],
+            "nombre_nuevo": aceptada["nombre_sucursal"],
+            "rut": pendiente["rut"],
+            "direccion_vieja": pendiente["direccion_sucursal"],
+            "nombre_viejo": pendiente["nombre_sucursal"],
+        },
+    ).rowcount
+
+    for tabla in (
+        "sucursal_guardias",
+        "pruebas_sonido",
+        "sucursal_personas_autorizadas",
+        "sucursal_contactos_emergencia",
+        "sucursal_info_extra",
+    ):
+        incidencias_db.execute(text(f"DELETE FROM {tabla} WHERE sucursal_id = :sid"), {"sid": sucursal_id})
+
+    incidencias_db.execute(text("DELETE FROM bbdd_sucursales WHERE id = :sid"), {"sid": sucursal_id})
+    incidencias_db.commit()
+    return {
+        "ok": True,
+        "fusionado_con": aceptada["nombre_sucursal"],
+        "ods_reasignadas": ods_reasignadas,
+    }
+
+
+_BITACORA_EMAIL_LOGO_URL = "https://i.imgur.com/VgLG9Ei.png"
+
+_BITACORA_CAMPO_LABELS = {
+    "direccion_sucursal": "Dirección",
+    "latitud_longitud": "Latitud, Longitud",
+    "referencia_ubicacion": "Referencia ubicación",
+    "horario_apertura": "Horario de apertura",
+    "horario_cierre": "Horario de cierre",
+    "horario_habil": "Días hábiles",
+    "telefono_porton": "Teléfono portón",
+    "telefono_recepcion": "Teléfono recepción",
+    "compania_electricidad": "Compañía electricidad",
+    "numero_cliente_electricidad": "N° cliente electricidad",
+    "proveedor_internet_cliente": "Proveedor internet cliente",
+    "internet_atc": "Internet ATC",
+    "contactos_emergencia": "Contacto de emergencia",
+    "personas_autorizadas": "Personas autorizadas",
+}
+
+
+def _bitacora_esc(value: object) -> str:
+    return html.escape(str(value or "").strip())
+
+
+def _bitacora_email_html(*, title: str, sections: list[str]) -> str:
+    section_html = "".join(
+        f"<div style=\"margin-bottom:14px;\">{section}</div>"
+        for section in sections
+        if section
+    )
+    return f"""
+<div style="background:#f5f6fa;padding:40px 0;font-family:'Segoe UI',Arial,sans-serif;color:#2d3436;">
+  <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;
+              padding:30px;box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+    <div style="text-align:center;margin-bottom:18px;">
+      <img src="{_BITACORA_EMAIL_LOGO_URL}" alt="Alguien Te Cuida" style="height:55px;">
+    </div>
+    <h2 style="text-align:center;color:#2d3436;font-size:18px;margin:0 0 22px 0;">{_bitacora_esc(title)}</h2>
+    <div style="font-size:14px;line-height:1.7;">{section_html}</div>
+    <p style="margin-top:26px;font-size:14px;line-height:1.6;">
+      Saludos cordiales,<br>Alguien Te Cuida
+    </p>
+    <hr style="border:0;border-top:1px solid #ddd;margin:26px 0;">
+    <p style="font-size:12px;color:#999;text-align:center;line-height:1.5;">
+      Este correo ha sido generado automáticamente como parte del proceso interno.
+    </p>
+  </div>
+</div>"""
+
+
+def _bitacora_paragraph_html(text: str) -> str:
+    text_value = str(text or "").strip()
+    if not text_value:
+        return ""
+    return (
+        '<p style="margin:0 0 16px 0;color:#334155;font-family:Arial,sans-serif;'
+        'font-size:14px;line-height:1.72;">'
+        f"{_bitacora_esc(text_value).replace(chr(10), '<br>')}"
+        "</p>"
+    )
+
+
+def _bitacora_missing_list_html(items: list[str]) -> str:
+    if not items:
+        return ""
+    bullets = "".join(
+        '<li style="margin:0 0 7px 0;padding-left:2px;">'
+        f"{_bitacora_esc(item)}"
+        "</li>"
+        for item in items
+        if str(item or "").strip()
+    )
+    return (
+        '<ul style="margin:4px 0 18px 22px;padding:0;color:#111827;'
+        'font-family:Arial,sans-serif;font-size:14px;line-height:1.65;'
+        'list-style-type:disc;">'
+        f"{bullets}"
+        "</ul>"
+    )
+
+
+def _bitacora_notificar_items(mensaje: str, campos: list[str]) -> list[str]:
+    items: list[str] = []
+    collecting = False
+    for raw_line in str(mensaje or "").splitlines():
+        line = raw_line.strip()
+        if not line:
+            if collecting and items:
+                break
+            continue
+        line_norm = unicodedata.normalize("NFKD", line).encode("ascii", "ignore").decode("ascii").lower()
+        if "falta o esta mal" in line_norm:
+            collecting = True
+            continue
+        if collecting:
+            item = re.sub(r"^[-•*]\s*", "", line).strip()
+            if item:
+                items.append(item)
+    if items:
+        return items
+    return [
+        _BITACORA_CAMPO_LABELS.get(campo, campo)
+        for campo in campos
+        if str(campo or "").strip()
+    ]
+
+
+def _enviar_correo_bitacora(to_email: str, subject: str, body_text: str, html_body: str | None = None) -> None:
+    """Envio multipart reusando la cuenta contacto@alguientecuida.cl
+    ya provisionada (mismo patron que incidencias_service.py/protocolos_service.py
+    en esta misma sesion)."""
+    import smtplib
+    from email.message import EmailMessage
+    from ATC.app.routes.inicio_turno import _contacto_smtp_config
+
+    cfg = _contacto_smtp_config()
+    if not cfg.get("enabled"):
+        raise ValueError(f"SMTP de contacto no disponible: {cfg.get('reason') or 'no configurado'}")
+
+    msg = EmailMessage()
+    msg["Subject"] = subject
+    from_name = str(cfg.get("from_name") or "Alguien Te Cuida")
+    from_email = str(cfg.get("from_email") or cfg.get("username") or "")
+    msg["From"] = f"{from_name} <{from_email}>" if from_name else from_email
+    msg["To"] = to_email
+    msg.set_content(body_text, subtype="plain", charset="utf-8")
+    if html_body:
+        msg.add_alternative(html_body, subtype="html", charset="utf-8")
+
+    host = str(cfg["host"])
+    port = int(cfg["port"])
+    username = str(cfg["username"])
+    password = str(cfg["password"])
+    timeout = int(cfg["timeout"])
+
+    if cfg.get("use_ssl"):
+        with smtplib.SMTP_SSL(host, port, timeout=timeout) as smtp:
+            smtp.login(username, password)
+            smtp.send_message(msg)
+    else:
+        with smtplib.SMTP(host, port, timeout=timeout) as smtp:
+            smtp.ehlo()
+            if cfg.get("use_tls"):
+                smtp.starttls()
+                smtp.ehlo()
+            smtp.login(username, password)
+            smtp.send_message(msg)
+
+
+class NotificarComercialPayload(BaseModel):
+    mensaje: str
+    campos: list[str] = []
+    detalle: str = ""
+
+
+@router.post("/api/bitacora/sucursales-pendientes/{sucursal_id}/notificar-comercial")
+def bitacora_sucursal_notificar_comercial(
+    sucursal_id: int,
+    payload: NotificarComercialPayload,
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    """Avisa por correo a quien registro la sucursal (created_by, resuelto contra
+    users.name) que falta o esta mal algo, sin tocar el estado de la sucursal —
+    sigue pendiente y editable hasta que quede bien. Reemplaza al viejo Rechazar,
+    que eliminaba la fila. payload.campos (claves de campo, no las etiquetas) queda
+    guardado en sucursal_info_extra para que Venta (BBDD Sucursales / Información
+    Clientes) sepa qué resaltar dinámicamente y arme el resumen de "lo que rellenó"
+    cuando avisen que ya quedó listo."""
+    _require_bitacora_access(current_user)
+    _ensure_sucursal_aceptada_bitacora_column(incidencias_db)
+    _ensure_sucursal_info_extra(incidencias_db)
+    _ensure_sucursal_info_extra_campos_pendientes(incidencias_db)
+
+    mensaje = payload.mensaje.strip()
+    if not mensaje:
+        raise HTTPException(status_code=400, detail="Debes indicar qué falta o está mal.")
+
+    row = incidencias_db.execute(
+        text("""
+            SELECT nombre_sucursal, nombre_empresa, created_by
+            FROM bbdd_sucursales WHERE id = :sid AND aceptada_bitacora = 0
+        """),
+        {"sid": sucursal_id},
+    ).mappings().first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Sucursal pendiente no encontrada.")
+
+    creador_nombre = str(row.get("created_by") or "").strip()
+    creador = None
+    if creador_nombre:
+        creador = incidencias_db.query(User).filter(
+            func.lower(func.trim(User.name)) == creador_nombre.lower()
+        ).first()
+    if not creador or not str(creador.email or "").strip():
+        raise HTTPException(
+            status_code=400,
+            detail=f"No se encontró el correo de quien registró esta sucursal ({creador_nombre or 'desconocido'}).",
+        )
+
+    destino = str(creador.email).strip()
+    sucursal_txt = str(row.get("nombre_sucursal") or "-")
+    empresa_txt = str(row.get("nombre_empresa") or "-")
+    revisor_txt = str(current_user.name or current_user.username or "Bitácora").strip()
+    creador_txt = str(creador.name or creador_nombre or "Comercial").strip()
+    campos_limpios = [c.strip() for c in payload.campos if c.strip()]
+    faltantes = _bitacora_notificar_items(mensaje, campos_limpios)
+    detalle_extra = payload.detalle.strip()
+    detalle_incluido_en_lista = False
+    if not faltantes and detalle_extra:
+        faltantes = [detalle_extra]
+        detalle_incluido_en_lista = True
+    asunto = f"Falta completar: {sucursal_txt} — {empresa_txt}"
+    faltantes_plain = "\n".join(f"• {item}" for item in faltantes) or "• Información indicada por Bitácora"
+    detalle_plain = f"\n\nDetalle adicional:\n{detalle_extra}" if detalle_extra and not detalle_incluido_en_lista else ""
+    cuerpo = (
+        f"Estimado/a {creador_txt},\n\n"
+        f"Al revisar la sucursal {sucursal_txt} en Bitácora, {revisor_txt} indica que falta o está mal:\n\n"
+        f"{faltantes_plain}"
+        f"{detalle_plain}\n\n"
+        "Es importante regularizar esta información antes de que la instalación sea ejecutada y puesta en marcha, "
+        "ya que la falta de estos datos puede afectar directamente la correcta prestación del servicio.\n\n"
+        f"Alguien Te Cuida"
+    )
+    html_cuerpo = _bitacora_email_html(
+        title="Falta completar información de sucursal",
+        sections=[
+            _bitacora_paragraph_html(f"Estimado/a {creador_txt},"),
+            (
+                '<p style="margin:0 0 16px 0;color:#334155;font-family:Arial,sans-serif;'
+                'font-size:14px;line-height:1.72;">'
+                f"Al revisar la sucursal <strong>{_bitacora_esc(sucursal_txt)}</strong> en Bitácora, "
+                f"{_bitacora_esc(revisor_txt)} indica que falta o está mal:"
+                "</p>"
+            ),
+            _bitacora_missing_list_html(faltantes),
+            _bitacora_paragraph_html("" if detalle_incluido_en_lista else detalle_extra),
+            _bitacora_paragraph_html(
+                "Es importante regularizar esta información antes de que la instalación sea ejecutada y puesta en marcha, "
+                "ya que la falta de estos datos puede afectar directamente la correcta prestación del servicio."
+            ),
+        ],
+    )
+    try:
+        _enviar_correo_bitacora(destino, asunto, cuerpo, html_cuerpo)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"No se pudo enviar el correo: {exc}") from exc
+
+    incidencias_db.execute(
+        text("""
+            MERGE sucursal_info_extra AS t
+            USING (VALUES (:sid)) AS s(sucursal_id) ON t.sucursal_id = s.sucursal_id
+            WHEN MATCHED THEN UPDATE SET
+                campos_pendientes = :campos,
+                campos_pendientes_obs = :obs,
+                campos_pendientes_fecha = GETDATE(),
+                campos_pendientes_por = :por
+            WHEN NOT MATCHED THEN INSERT (sucursal_id, campos_pendientes, campos_pendientes_obs, campos_pendientes_fecha, campos_pendientes_por)
+            VALUES (:sid, :campos, :obs, GETDATE(), :por);
+        """),
+        {
+            "sid": sucursal_id,
+            "campos": ",".join(campos_limpios),
+            # Solo el detalle libre — el listado de campos ya queda estructurado en
+            # "campos"; guardar acá también el "Falta o está mal: ..." generado
+            # automáticamente duplicaba lo mismo dos veces en el banner de Venta.
+            "obs": payload.detalle.strip(),
+            "por": current_user.name or current_user.username,
+        },
+    )
+    incidencias_db.commit()
+
+    return {"ok": True, "enviado_a": destino}
+
+
+@router.get("/api/bitacora/sucursales-pendientes/{sucursal_id}/preview")
+def bitacora_sucursal_pendiente_preview(
+    sucursal_id: int,
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    """Arma la misma ficha que se ve en 'Buscar por Empresa' (identificación,
+    horarios, contactos de emergencia, personas autorizadas, cámaras si ya hay una
+    ODS ligada) pero para UNA sucursal puntual buscada por id — funciona esté
+    aceptada o pendiente, para poder previsualizar cómo quedaría antes de aceptar."""
+    _require_bitacora_access(current_user)
+
+    selected_row = incidencias_db.execute(
+        text(
+            """
+            SELECT
+                id,
+                COALESCE(TRIM(rut), '') AS rut,
+                COALESCE(TRIM(nombre_empresa), '') AS nombre_empresa,
+                COALESCE(TRIM(nombre_sucursal), '') AS nombre_sucursal,
+                COALESCE(TRIM(direccion_sucursal), '') AS direccion_sucursal,
+                COALESCE(TRIM(region), '') AS region,
+                COALESCE(TRIM(comuna), '') AS comuna,
+                COALESCE(TRIM(referencia_ubicacion), '') AS referencia_ubicacion,
+                COALESCE(TRIM(latitud_longitud), '') AS latitud_longitud,
+                COALESCE(TRIM(email_facturas), '') AS email_facturas,
+                COALESCE(TRIM(proveedor_internet), '') AS proveedor_internet,
+                COALESCE(TRIM(proveedor_electricidad), '') AS proveedor_electricidad,
+                COALESCE(TRIM(nro_proveedor_electricidad), '') AS nro_proveedor_electricidad,
+                COALESCE(TRIM(horario_apertura), '') AS horario_apertura,
+                COALESCE(TRIM(horario_cierre), '') AS horario_cierre,
+                COALESCE(TRIM(dias_funcionamiento), '') AS dias_funcionamiento,
+                created_at
+            FROM bbdd_sucursales
+            WHERE id = :sid
+            """
+        ),
+        {"sid": sucursal_id},
+    ).mappings().first()
+    if not selected_row:
+        raise HTTPException(status_code=404, detail="Sucursal no encontrada.")
+
+    ficha = _ficha_sucursal(incidencias_db, selected_row, selected_row.get("nombre_empresa"))
+    return {
+        "empresa": selected_row.get("nombre_empresa"),
+        "sucursal_id": selected_row.get("id"),
+        "sucursal_actual": selected_row.get("nombre_sucursal"),
+        **ficha,
+    }
 
 
 # ──────────────────────────────────────────────
@@ -2040,6 +3497,113 @@ def api_delete_persona_autorizada(
     return {"ok": True}
 
 
+# ──────────────────────────────────────────────
+# Contactos de emergencia por sucursal
+# ──────────────────────────────────────────────
+
+class ContactoEmergenciaCreate(BaseModel):
+    sucursal_id: int
+    nombre: str = ""
+    rut: str = ""
+    telefono: str = ""
+    email: str = ""
+
+
+class ContactoEmergenciaUpdate(BaseModel):
+    nombre: str = ""
+    rut: str = ""
+    telefono: str = ""
+    email: str = ""
+
+
+@router.get("/api/bitacora/sucursal/{sucursal_id}/contactos-emergencia")
+def api_list_contactos_emergencia(
+    sucursal_id: int,
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    _require_bitacora_access(current_user)
+    rows = (
+        incidencias_db.query(SucursalContactoEmergencia)
+        .filter(SucursalContactoEmergencia.sucursal_id == sucursal_id)
+        .order_by(SucursalContactoEmergencia.orden, SucursalContactoEmergencia.id)
+        .all()
+    )
+    return [
+        {
+            "id": r.id,
+            "nombre": r.nombre or "",
+            "rut": r.rut or "",
+            "telefono": r.telefono or "",
+            "email": r.email or "",
+        }
+        for r in rows
+    ]
+
+
+@router.post("/api/bitacora/contactos-emergencia")
+def api_create_contacto_emergencia(
+    payload: ContactoEmergenciaCreate,
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    _require_bitacora_access(current_user)
+    sucursal = incidencias_db.get(SucursalBBDD, payload.sucursal_id)
+    if not sucursal:
+        raise HTTPException(status_code=404, detail="Sucursal no encontrada.")
+    siguiente_orden = (
+        incidencias_db.query(SucursalContactoEmergencia)
+        .filter(SucursalContactoEmergencia.sucursal_id == payload.sucursal_id)
+        .count()
+    ) + 1
+    nuevo = SucursalContactoEmergencia(
+        sucursal_id=payload.sucursal_id,
+        nombre=payload.nombre.strip() or None,
+        rut=payload.rut.strip() or None,
+        telefono=payload.telefono.strip() or None,
+        email=payload.email.strip() or None,
+        orden=siguiente_orden,
+    )
+    incidencias_db.add(nuevo)
+    incidencias_db.commit()
+    incidencias_db.refresh(nuevo)
+    return {"ok": True, "id": nuevo.id}
+
+
+@router.put("/api/bitacora/contactos-emergencia/{contacto_id}")
+def api_update_contacto_emergencia(
+    contacto_id: int,
+    payload: ContactoEmergenciaUpdate,
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    _require_bitacora_access(current_user)
+    row = incidencias_db.get(SucursalContactoEmergencia, contacto_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Contacto no encontrado.")
+    row.nombre = payload.nombre.strip() or None
+    row.rut = payload.rut.strip() or None
+    row.telefono = payload.telefono.strip() or None
+    row.email = payload.email.strip() or None
+    incidencias_db.commit()
+    return {"ok": True}
+
+
+@router.delete("/api/bitacora/contactos-emergencia/{contacto_id}")
+def api_delete_contacto_emergencia(
+    contacto_id: int,
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    _require_bitacora_access(current_user)
+    row = incidencias_db.get(SucursalContactoEmergencia, contacto_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Contacto no encontrado.")
+    incidencias_db.delete(row)
+    incidencias_db.commit()
+    return {"ok": True}
+
+
 class _CreateUserBody(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     username: str = Field(..., min_length=1, max_length=50)
@@ -2084,7 +3648,7 @@ class _EditUserBody(BaseModel):
     username: str = Field(..., min_length=1, max_length=50)
     password: str | None = Field(default=None)
     email: str | None = Field(default=None, max_length=255)
-    role: str = Field(..., pattern=r"^(admin|agent|superadmin)$")
+    role: str = Field(..., pattern=r"^(admin|agent)$")
     is_active: bool
 
 
@@ -2099,8 +3663,10 @@ def api_edit_bitacora_user(
     if not is_bitacora_admin(current_user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden editar usuarios.")
     user = db.get(User, user_id)
-    if not user:
+    if not user or not can_access_bitacora(user):
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+    if str(getattr(user, "role", "") or "").strip().lower() == "superadmin" and not getattr(current_user, "is_super_admin", False):
+        raise HTTPException(status_code=403, detail="No tenés permiso para editar este usuario.")
     # Check username uniqueness if changed
     if body.username != user.username:
         conflict = db.query(User).filter(User.username == body.username, User.id != user_id).first()
@@ -2115,3 +3681,186 @@ def api_edit_bitacora_user(
         user.hashed_password = hash_password(body.password)
     db.commit()
     return {"ok": True, "id": user.id}
+
+
+# ──────────────────────────────────────────────
+# Administrar puestos — mapa real de puestos/pantallas/cámaras
+# (desde sucursal_camaras_monitoreo, cargado ago 2026 desde la planilla
+# "Cruce de Información Cámaras"). Puestos 1-12: 4 pantallas (2x2).
+# Puestos 13-29: 6 pantallas (3x2, agrega columna Centro).
+# ──────────────────────────────────────────────
+
+_PANTALLAS_4 = ["Izquierda Arriba", "Derecha Arriba", "Izquierda Abajo", "Derecha Abajo"]
+_PANTALLAS_6 = [
+    "Izquierda Arriba", "Centro Arriba", "Derecha Arriba",
+    "Izquierda Abajo", "Centro Abajo", "Derecha Abajo",
+]
+_SIN_PANTALLA = "Sin pantalla asignada"
+
+# Variantes/typos vistos en la planilla original -> etiqueta canónica.
+_UBICACION_PANTALLA_ALIASES = {
+    "IZQUIERDA ARRIBA": "Izquierda Arriba",
+    "IZQ ARRIBA": "Izquierda Arriba",
+    "IZQUIERDA ABAJO": "Izquierda Abajo",
+    "IZQ ABAJO": "Izquierda Abajo",
+    "DERECHA ARRIBA": "Derecha Arriba",
+    "DERCEHA ARRIBA": "Derecha Arriba",
+    "DERECHA ABAJO": "Derecha Abajo",
+    "CENTRO ARRIBA": "Centro Arriba",
+    "CENTRO ABAJO": "Centro Abajo",
+}
+
+
+def _pantallas_de_puesto(central: int) -> list[str]:
+    return _PANTALLAS_4 if central <= 12 else _PANTALLAS_6
+
+
+def _normalizar_ubicacion_pantalla(raw: object) -> str | None:
+    s = " ".join(str(raw or "").strip().upper().split())
+    return _UBICACION_PANTALLA_ALIASES.get(s)
+
+
+@router.get("/api/bitacora/puestos")
+def api_bitacora_puestos(
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    """Arma el contenido real de 'Administrar puestos' (29 puestos, 4 o 6
+    pantallas cada uno) a partir de sucursal_camaras_monitoreo, cruzando
+    `central` (puesto) y `ubicacion_pantalla` (pantalla). Solo las cámaras
+    monitoreadas (nombre_camara_monitoreo) van en la grilla de pantallas —
+    las complementarias sin monitoreo (camara_sin_monitoreo) no se asocian
+    a una pantalla física; se devuelven aparte, agrupadas por sucursal, para
+    el puesto especial "Cámaras sin monitoreo" del front."""
+    _require_bitacora_access(current_user)
+    if not is_bitacora_admin(current_user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden ver Administrar puestos.")
+
+    rows = (
+        incidencias_db.query(
+            SucursalCamaraMonitoreo.central,
+            SucursalCamaraMonitoreo.ubicacion_pantalla,
+            SucursalCamaraMonitoreo.nombre_camara_monitoreo,
+            SucursalCamaraMonitoreo.camara_sin_monitoreo,
+            SucursalBBDD.nombre_sucursal,
+        )
+        .outerjoin(SucursalBBDD, SucursalCamaraMonitoreo.sucursal_id == SucursalBBDD.id)
+        .filter(SucursalCamaraMonitoreo.central.isnot(None))
+        .order_by(SucursalCamaraMonitoreo.central, SucursalCamaraMonitoreo.id)
+        .all()
+    )
+
+    # grouped[central][etiqueta_pantalla] = [ {empresa, camara}, ... ] — solo monitoreadas
+    grouped: dict[int, dict[str, list[dict]]] = {}
+    camaras_sin_monitoreo: list[dict] = []
+    for central, ubicacion_pantalla, cam_monitoreada, cam_sin_monitoreo, nombre_sucursal in rows:
+        empresa = (nombre_sucursal or "").strip() or "(sucursal sin nombre)"
+        if cam_monitoreada and cam_monitoreada.strip():
+            etiqueta = _normalizar_ubicacion_pantalla(ubicacion_pantalla)
+            if etiqueta not in _pantallas_de_puesto(central):
+                etiqueta = _SIN_PANTALLA
+            bucket = grouped.setdefault(int(central), {}).setdefault(etiqueta, [])
+            bucket.append({"empresa": empresa, "camara": cam_monitoreada.strip()})
+        if cam_sin_monitoreo and cam_sin_monitoreo.strip():
+            camaras_sin_monitoreo.append({"empresa": empresa, "camara": cam_sin_monitoreo.strip()})
+
+    puestos = {}
+    for central in range(1, 30):
+        pantallas_puesto = _pantallas_de_puesto(central)
+        capacidad = 25 if central <= 12 else 20
+        por_pantalla = grouped.get(central, {})
+        pantallas = [
+            {"nombre": nombre, "capacidad": capacidad, "items": por_pantalla.get(nombre, [])}
+            for nombre in pantallas_puesto
+        ]
+        sin_pantalla = por_pantalla.get(_SIN_PANTALLA, [])
+        if sin_pantalla:
+            pantallas.append({"nombre": _SIN_PANTALLA, "capacidad": len(sin_pantalla), "items": sin_pantalla})
+        puestos[str(central)] = pantallas
+
+    camaras_sin_monitoreo.sort(key=lambda c: (c["empresa"].lower(), c["camara"].lower()))
+
+    return {"puestos": puestos, "camaras_sin_monitoreo": camaras_sin_monitoreo}
+
+
+# ──────────────────────────────────────────────
+# Administrar puestos — estado de una cámara por incidencias reales
+# ──────────────────────────────────────────────
+
+_ESTADOS_INCIDENCIA_ABIERTA_EXCLUIDOS = ("terminado", "repetida", "rechazad")
+
+
+def _normalizar_texto_cam(valor: object) -> str:
+    s = unicodedata.normalize("NFD", str(valor or ""))
+    s = "".join(c for c in s if unicodedata.category(c) != "Mn")
+    return " ".join(s.strip().lower().split())
+
+
+@router.get("/api/bitacora/estado-camara")
+def estado_camara(
+    empresa: str = Query(default=""),
+    camara: str = Query(default=""),
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    """Cruce best-effort entre una cámara del mapa de 'Administrar puestos' y
+    las incidencias reales de la tabla `incidencias` (registradas, entre
+    otras vías, desde incidencias_puestos_copia.html con su selector de
+    cámaras/Equipo/Todo). No hay FK entre ambos — el cruce es por texto:
+    se busca la sucursal (columna `cliente`) y se revisa si la descripción
+    de una incidencia abierta menciona "Todo" o el nombre de esta cámara."""
+    _require_bitacora_access(current_user)
+
+    empresa_norm = _normalizar_texto_cam(empresa)
+    camara_norm = _normalizar_texto_cam(camara)
+    if not empresa_norm:
+        raise HTTPException(status_code=400, detail="Falta indicar la empresa/sucursal.")
+
+    camara_completa_norm = (
+        camara_norm if camara_norm.startswith(empresa_norm) else f"{empresa_norm} {camara_norm}".strip()
+    )
+
+    rows = incidencias_db.execute(
+        text(
+            "SELECT odt, fecha_registro, problema, detalle_problema, observacion, estado, cliente "
+            "FROM incidencias "
+            "WHERE LOWER(TRIM(cliente)) LIKE :patron "
+            "ORDER BY fecha_registro DESC"
+        ),
+        {"patron": f"%{empresa_norm}%"},
+    ).mappings().all()
+
+    coincidencias_encontradas = []
+    for row in rows:
+        estado_norm = _normalizar_texto_cam(row.get("estado"))
+        if any(e in estado_norm for e in _ESTADOS_INCIDENCIA_ABIERTA_EXCLUIDOS):
+            continue
+        texto_incidencia = _normalizar_texto_cam(
+            " ".join(filter(None, [row.get("detalle_problema"), row.get("observacion")]))
+        )
+        if not texto_incidencia:
+            continue
+        coincide_todo = re.search(r"\btodo\b", texto_incidencia) is not None
+        coincide_camara = bool(camara_completa_norm) and camara_completa_norm in texto_incidencia
+        coincide_camara_corta = bool(camara_norm) and len(camara_norm) >= 2 and camara_norm in texto_incidencia
+        if coincide_todo or coincide_camara or coincide_camara_corta:
+            coincidencias_encontradas.append(
+                {
+                    "estado": "problema",
+                    "odt": row.get("odt"),
+                    "tipo": row.get("problema"),
+                    "fecha_registro": _fmt_fecha(row.get("fecha_registro")),
+                    "detalle": (row.get("detalle_problema") or row.get("observacion") or "").strip(),
+                    "coincidencia": "todo" if coincide_todo else "camara",
+                }
+            )
+
+    if not coincidencias_encontradas:
+        return {"estado": "en_linea"}
+
+    # Se devuelven todas las incidencias abiertas de la camara; la Desconexion
+    # siempre va primero (es el problema mas critico).
+    coincidencias_encontradas.sort(
+        key=lambda c: 0 if "desconex" in _normalizar_texto_cam(c.get("tipo")) else 1
+    )
+    return {"estado": "problema", "incidencias": coincidencias_encontradas}

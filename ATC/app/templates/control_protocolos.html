@@ -301,6 +301,10 @@
     textarea{min-height:88px;resize:vertical}
     .small{font-size:.81rem;color:var(--muted)}
     .msg{min-height:20px;margin-top:10px;font-weight:700}
+    .msg:empty{display:none}
+    .msg.ok,.msg.err{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;border:1px solid transparent;min-height:0}
+    .msg.ok{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
+    .msg.err{background:var(--err-bg);color:var(--err);border-color:var(--err)}
     .ok{color:var(--ok)}
     .err{color:var(--err)}
 
@@ -807,7 +811,7 @@
 
     async function cargarUsuarioActual() {
       const el = document.getElementById("usuarioActual");
-      if (!el || !token) return;
+      if (!el) return;
       try {
         const data = await api(`/api/usuario-actual?token=${encodeURIComponent(token)}`);
         el.textContent = data?.usuario || "Desconocido";
@@ -1427,10 +1431,12 @@
           document.getElementById("observaciones").value = data.observacion_formal;
         }
 
-        setMsg("msgRegistro", "Registro guardado correctamente.");
+        const idTxt = data && data.id ? ` #${data.id}` : "";
+        const fechaTxt = data && data.fecha ? ` — ${data.fecha}` : "";
+        setMsg("msgRegistro", `✓ Registro${idTxt} guardado: ${payload.cliente} · ${payload.sucursal}${fechaTxt}`);
         resetFormularioRegistro();
       } catch (err) {
-        setMsg("msgRegistro", err.message || "No se pudo guardar.", false);
+        setMsg("msgRegistro", `✕ ${err.message || "No se pudo guardar."}`, false);
       }
     }
 

@@ -1,0 +1,118 @@
+.informe-preview-trigger {
+  white-space: nowrap;
+}
+
+.informe-preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(7, 15, 28, .66);
+  backdrop-filter: blur(8px);
+}
+
+.informe-preview-overlay.open {
+  display: flex;
+}
+
+.informe-preview-modal {
+  width: min(1500px, calc(100vw - 36px));
+  height: min(920px, calc(100vh - 36px));
+  display: grid;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, .34);
+}
+
+.informe-preview-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 58px;
+  padding: 10px 14px 10px 18px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f8fafc;
+}
+
+.informe-preview-title {
+  min-width: 0;
+  flex: 1;
+  font-size: 14px;
+  font-weight: 800;
+  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.informe-preview-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.informe-preview-download,
+.informe-preview-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.informe-preview-download {
+  padding: 0 13px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #0f172a;
+}
+
+.informe-preview-close {
+  width: 38px;
+  border: 1px solid #e5e7eb;
+  background: #111827;
+  color: #fff;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.informe-preview-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #f1f5f9;
+}
+
+body.informe-preview-lock {
+  overflow: hidden !important;
+}
+
+@media (max-width: 720px) {
+  .informe-preview-overlay {
+    padding: 8px;
+  }
+
+  .informe-preview-modal {
+    width: calc(100vw - 16px);
+    height: calc(100vh - 16px);
+    border-radius: 12px;
+  }
+
+  .informe-preview-head {
+    padding: 9px 10px;
+  }
+
+  .informe-preview-download {
+    padding: 0 10px;
+  }
+}

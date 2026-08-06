@@ -2,6 +2,7 @@
 
 import json
 import logging
+import os
 import re
 import smtplib
 import threading
@@ -423,19 +424,39 @@ PROMPT_FORMALIZAR_OBSERVACION = (
     "- Corregir TODO error ortográfico sin excepción, incluyendo errores fonéticos "
     "(ej: 'cirena' → 'sirena', 'sugeto' → 'sujeto', 'Ce activa' → 'Se activa', "
     "'efectibo' → 'efectivo', 'biene' → 'viene', 'habia' → 'había').\n"
-    "- Agregar todas las tildes que falten en palabras comunes del español.\n"
+    "- Agregar todas las tildes que falten en palabras comunes del español, en especial las "
+    "terminadas en '-ción'/'-sión' y las esdrújulas, que son las que más se escapan: "
+    "'vehiculo' → 'vehículo', 'instalacion' → 'instalación', 'perimetro' → 'perímetro', "
+    "'camion' → 'camión', 'numero' → 'número', 'informacion' → 'información', "
+    "'despues' → 'después', 'revision' → 'revisión', 'activacion' → 'activación', "
+    "'confirmacion' → 'confirmación', 'tambien' → 'también', 'ademas' → 'además', "
+    "'atras' → 'atrás', 'traves' → 'través'. Aplica esta corrección de forma consistente "
+    "en TODAS las apariciones dentro del mismo texto, no solo la primera vez que aparece la palabra.\n"
     "- Redactar en tono formal y técnico, sin simplificar ni omitir ningún dato.\n"
     "- Corregir mayúsculas al inicio de cada oración.\n\n"
-    "DEBES conservar exactamente sin cambiar:\n"
+    "NO agregues tilde a estas palabras aunque parezcan candidatas — desde 2010 la RAE las "
+    "considera correctas sin tilde y ponérsela sería un error, no una corrección: "
+    "'solo' (adverbio), 'este/esta/estos/estas' (demostrativos), 'aun' (cuando equivale a "
+    "'incluso'), 'guion', 'truhan'.\n\n"
+    "DEBES conservar exactamente sin cambiar (son tecnicismos y jerga operativa de seguridad, "
+    "no errores):\n"
     "- Las siglas operativas: OP, GGSS, NVR, DVR, ODT.\n"
+    "- La abreviatura 'GG.SS' (con punto, sin espacio) — NUNCA le agregues un espacio después "
+    "del punto ni la conviertas en 'GG. SS' o en dos oraciones separadas; es una sola abreviatura.\n"
+    "- Códigos de radio/central como 'Alpha III', 'Alpha 3' y variantes similares (Alpha + "
+    "número o número romano) — no los cambies de formato ni los traduzcas a solo uno de los dos.\n"
     "- La abreviatura: cam, hrs.\n"
     "- Nombres propios de personas (ej: 'Diego Mendez' debe quedar 'Diego Méndez' solo con tilde si aplica, "
     "pero sin cambiar el nombre).\n"
-    "- Códigos, números, fechas, horas y nombres de cámaras (ej: 2_3, 2_2).\n\n"
+    "- Códigos, números, fechas, horas, IDs y nombres/números de cámaras, sirenas o micrófonos "
+    "en cualquier formato en que vengan (ej: 2_3, 2_2, N°6, sirena N°6, micrófono N°9, ID: 1257247) "
+    "— no les agregues ni les quites espacios, puntos ni el símbolo °, y no los reformatees.\n\n"
     "NUNCA hagas:\n"
     "- Inventar información que no esté en el texto original.\n"
     "- Resumir, simplificar ni omitir detalles técnicos.\n"
-    "- Agregar explicaciones, comillas ni comentarios propios.\n\n"
+    "- Agregar explicaciones, comillas ni comentarios propios.\n"
+    "- Insertar un punto y espacio dentro de una sigla o código solo porque contiene un punto "
+    "(ej: 'GG.SS' no es dos oraciones).\n\n"
     "Devuelve únicamente el texto corregido y formalizado, sin ningún texto adicional."
 )
 
@@ -595,7 +616,17 @@ class ProtocolosService:
 
     def _preservar_tokens_operativos(self, text: str) -> tuple[str, dict[str, str]]:
         placeholders: dict[str, str] = {}
-        reglas = [r"\bOP\b", r"\bcam\b", r"\bhrs\.?(?=\s|,|$)", r"\bGGSS\b"]
+        # GG.SS (con punto) se protege ANTES de las reglas de puntuación de mas
+        # abajo, porque si no el regex que agrega espacio despues de "." la
+        # corrompe en "GG. SS" (visto en datos reales: 3 de 4 casos historicos).
+        reglas = [
+            r"\bOP\b",
+            r"\bcam\b",
+            r"\bhrs\.?(?=\s|,|$)",
+            r"\bGGSS\b",
+            r"\bGG\.SS\b",
+            r"\bAlpha\s+(?:III|II|I|\d+)\b",
+        ]
         idx = 0
         txt = text
 
@@ -627,6 +658,7 @@ class ProtocolosService:
         reemplazos = [
             ("revicion", "revisión"),
             ("revison", "revisión"),
+            ("revision", "revisión"),
             ("corecto", "correcto"),
             ("conjelada", "congelada"),
             ("imgen", "imagen"),
@@ -646,6 +678,23 @@ class ProtocolosService:
             ("efectibo", "efectivo"),
             ("habia", "había"),
             ("actibo", "activo"),
+            # Agregados a partir de los 385 registros históricos: son las
+            # tildes que mas seguido quedaban sin corregir (ej. "vehiculo" sin
+            # tilde aparecia 41 veces sin corregir en el corpus real).
+            ("vehiculo", "vehículo"),
+            ("vehiculos", "vehículos"),
+            ("instalacion", "instalación"),
+            ("perimetro", "perímetro"),
+            ("camion", "camión"),
+            ("numero", "número"),
+            ("informacion", "información"),
+            ("despues", "después"),
+            ("activacion", "activación"),
+            ("confirmacion", "confirmación"),
+            ("tambien", "también"),
+            ("ademas", "además"),
+            ("atras", "atrás"),
+            ("traves", "través"),
         ]
         for origen, destino in reemplazos:
             txt = re.sub(rf"\b{origen}\b", destino, txt, flags=re.IGNORECASE)
@@ -656,9 +705,13 @@ class ProtocolosService:
         txt = re.sub(r"\s{2,}", " ", txt).strip()
 
         txt = self._capitalizar_oraciones(txt)
+        # Restaurar los tokens ANTES de chequear el punto final: "hrs." al final
+        # de la observación se preserva completo como token (regex \bhrs\.?),
+        # así que el placeholder no termina en ".!?" aunque el texto real sí —
+        # chequear antes de restaurar agregaba un punto de más ("...Hrs..").
+        txt = self._restaurar_tokens_operativos(txt, placeholders)
         if txt and txt[-1] not in ".!?":
             txt += "."
-        txt = self._restaurar_tokens_operativos(txt, placeholders)
         txt = re.sub(r"\bhrs\.\s+MÃ¡s\b", "hrs. mÃ¡s", txt, flags=re.IGNORECASE)
         return txt
 
@@ -1713,6 +1766,7 @@ class ProtocolosService:
         attachment: tuple[bytes, str, str] | None = None,
         logo_path: Path | None = None,
         usar_contacto: bool = False,
+        usar_informe: bool = False,
     ) -> None:
         from email.mime.multipart import MIMEMultipart
         from email.mime.text import MIMEText
@@ -1722,7 +1776,21 @@ class ProtocolosService:
 
         bcc: list[str] = []
 
-        if usar_contacto:
+        if usar_informe:
+            # Cuenta jefe.cctv@alguientecuida.cl, propia del informe semanal
+            # de protocolos (SMTP_INFORME_* en .env).
+            host = str(settings.smtp_informe_host or "smtp.gmail.com").strip()
+            port = int(settings.smtp_informe_port or 587)
+            username = str(settings.smtp_informe_username or "").strip()
+            password = str(settings.smtp_informe_password or "")
+            from_email = str(settings.smtp_informe_from_email or username).strip()
+            from_name = str(settings.smtp_informe_from_name or "Alguien Te Cuida").strip()
+            use_tls = self._smtp_bool(settings.smtp_informe_use_tls, True)
+            use_ssl = self._smtp_bool(settings.smtp_informe_use_ssl, False)
+            timeout = int(settings.smtp_informe_timeout_sec or 20)
+            if not username or not password:
+                raise ValueError("SMTP_INFORME_USERNAME/SMTP_INFORME_PASSWORD no estan configurados en .env.")
+        elif usar_contacto:
             from ATC.app.routes.inicio_turno import _contacto_smtp_config
 
             cfg = _contacto_smtp_config()
@@ -2022,7 +2090,10 @@ class ProtocolosService:
 </table>
 </body>
 </html>"""
-        self._enviar_mail_protocolo(destinos, asunto, cuerpo, html, attachment=pdf_attachment, logo_path=_logo_path, usar_contacto=True)
+        self._enviar_mail_protocolo(
+            destinos, asunto, cuerpo, html, attachment=pdf_attachment, logo_path=_logo_path,
+            usar_informe=True,
+        )
         informe.estado = "ENVIADO"
         meta = {}
         try:

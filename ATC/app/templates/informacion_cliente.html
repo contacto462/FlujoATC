@@ -402,6 +402,61 @@
       outline: none;
     }
 
+    /* ── Campos marcados por Bitácora como "falta o está mal" ── */
+    .bitacora-banner {
+      display: flex; flex-direction: column; gap: 6px;
+      background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px;
+      padding: 12px 16px; margin-bottom: 18px; font-size: 12.5px; color: #92400e;
+    }
+    .bitacora-banner strong { font-weight: 700; }
+    .bitacora-banner .fuera-pagina { color: #b45309; }
+    .info-field.campo-marcado .lbl { color: #b45309; font-weight: 700; }
+    .editable-extra.campo-marcado {
+      border: 1.5px solid #f59e0b !important;
+      background: #fffbeb;
+    }
+    .card-header.campo-marcado h2 { color: #fde68a; }
+    .card-header.campo-marcado { box-shadow: inset 0 0 0 2px #f59e0b; }
+
+    /* ── Popup "Avisar que está listo" ── */
+    .avisar-modal-overlay {
+      position: fixed; inset: 0; z-index: 40;
+      display: none; align-items: center; justify-content: center;
+      padding: 20px; background: rgba(11,20,32,.55);
+    }
+    .avisar-modal-overlay.is-open { display: flex; }
+    .avisar-modal {
+      width: min(480px, 100%);
+      background: #fff; border-radius: 14px;
+      padding: 24px 26px; box-shadow: 0 24px 60px rgba(11,20,32,.25);
+    }
+    .avisar-modal h3 { font-size: 17px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+    .avisar-modal-sub { font-size: 12.5px; color: var(--muted); margin-bottom: 14px; }
+    .avisar-resumen {
+      display: flex; flex-direction: column; gap: 4px;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+      padding: 10px 14px; margin-bottom: 14px; max-height: 180px; overflow-y: auto;
+    }
+    .avisar-resumen-row { font-size: 12.5px; color: var(--text); }
+    .avisar-resumen-label { font-weight: 700; color: var(--muted); }
+    .avisar-resumen-check {
+      display: flex; align-items: flex-start; gap: 8px;
+      padding: 4px 0; cursor: pointer;
+    }
+    .avisar-resumen-check input[type="checkbox"] { margin-top: 2px; accent-color: var(--orange); cursor: pointer; }
+    .avisar-modal textarea {
+      width: 100%; padding: 9px 11px; font-size: 13px; font-family: inherit;
+      border: 1px solid var(--border); border-radius: var(--radius); resize: vertical;
+      min-height: 70px; box-sizing: border-box;
+    }
+    .avisar-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+    .avisar-modal-actions button {
+      padding: 9px 18px; border-radius: 9px; font-size: 13px; font-weight: 700;
+      font-family: inherit; cursor: pointer; border: none;
+    }
+    .avisar-modal-actions button:first-child { background: var(--bg); color: var(--muted); }
+    .avisar-modal-actions .btn-primary { background: var(--orange); color: #fff; }
+
     /* PLACEHOLDER STATE */
     .placeholder-msg {
       text-align: center;
@@ -568,8 +623,13 @@
   <div class="card" id="cardSucursal" style="display:none">
     <div class="card-header">
       <h2>Datos de la Sucursal</h2>
+      <button type="button" id="btnAvisarListoSucursal" onclick="avisarSucursalLista()" title="Avisar a Bitácora que ya corregiste lo que faltaba" style="display:none;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;background:#fef3c7;border:1px solid #fde68a;color:#92400e;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>
+        Avisar que está listo
+      </button>
     </div>
     <div class="card-body">
+      <div id="bitacoraBanner"></div>
       <div class="info-grid">
         <div class="info-field">
           <span class="lbl">Comuna de Sucursal:</span>
@@ -759,6 +819,21 @@
 
 </div>
 
+<div class="avisar-modal-overlay" id="avisarModalOverlay">
+  <div class="avisar-modal">
+    <h3>Avisar que está listo</h3>
+    <p class="avisar-modal-sub">Se le avisa al equipo de Bitácora que ya corregiste esta sucursal.</p>
+    <p class="avisar-modal-sub" id="avisarFirma" style="margin-top:-10px;"></p>
+    <div id="avisarResumenCampos" class="avisar-resumen"></div>
+    <label class="lbl" style="display:block;margin-bottom:6px;">Observación (opcional)</label>
+    <textarea id="avisarObsInput" placeholder="Cualquier detalle adicional…"></textarea>
+    <div class="avisar-modal-actions">
+      <button type="button" onclick="cerrarModalAvisar()">Cancelar</button>
+      <button type="button" class="btn-primary" id="avisarConfirmarBtn" onclick="confirmarAvisarListo()">Enviar aviso</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const qsToken = new URLSearchParams(window.location.search).get("token") || "";
 const withToken = (url) => {
@@ -911,6 +986,185 @@ async function cargarDatosDeEmergencia() {
   llenarTabla("contactosEmergenciaTable", data.contactosEmergencia || []);
   llenarTabla("personasAutorizadasTable", data.personasAutorizadas || []);
   llenarTabla("guardiasTable", data.guardias || []);
+
+  cargarRevisionBitacora(sucursalId);
+}
+
+// Solo las claves que tienen un campo editable en esta página (los "extra" +
+// contactos/personas); el resto (dirección, horarios base, proveedores, etc.) se
+// edita en BBDD Sucursales — se avisan en el banner, no acá.
+const INFO_CAMPO_A_SPAN = {
+  plan_cuadrante: "extraPlanCuadrante",
+  carabineros: "extraCarabineros",
+  bomberos: "extraBomberos",
+  seguridad_ciudadana: "extraSeguridadCiudadana",
+  codigo_p2p: "extraCodigoP2P",
+  codigo_dss: "extraCodigoDSS",
+  telefono_porton: "extraTelefonoPorton",
+  telefono_recepcion: "extraTelefonoRecepcion",
+  internet_atc: "extraInternetATC",
+};
+const CAMPO_LABEL = {
+  direccion_sucursal: "Dirección",
+  latitud_longitud: "Latitud, Longitud",
+  referencia_ubicacion: "Referencia ubicación",
+  email_facturas: "Correo",
+  horario_apertura: "Horario de apertura",
+  horario_cierre: "Horario de cierre",
+  horario_habil: "Días hábiles",
+  compania_electricidad: "Compañía electricidad",
+  numero_cliente_electricidad: "N° cliente electricidad",
+  proveedor_internet_cliente: "Proveedor internet cliente",
+  plan_cuadrante: "Plan cuadrante",
+  carabineros: "Carabineros",
+  bomberos: "Bomberos",
+  seguridad_ciudadana: "Seguridad ciudadana",
+  camaras_contratadas: "Cámaras a instalar",
+  camaras_televigiladas: "Cámaras televigiladas",
+  codigo_p2p: "Código P2P",
+  codigo_dss: "Código DSS",
+  telefono_porton: "Teléfono portón",
+  telefono_recepcion: "Teléfono recepción",
+  internet_atc: "Internet ATC",
+  contactos_emergencia: "Contacto de emergencia",
+  personas_autorizadas: "Personas autorizadas",
+};
+
+function escapeHtml(s) {
+  return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+let revisionBitacoraActual = null;
+
+async function cargarRevisionBitacora(sucursalId) {
+  const btnAvisar = document.getElementById("btnAvisarListoSucursal");
+  const banner = document.getElementById("bitacoraBanner");
+  document.querySelectorAll(".editable-extra.campo-marcado").forEach(el => el.classList.remove("campo-marcado"));
+  document.getElementById("cardEmergencia")?.querySelector(".card-header")?.classList.remove("campo-marcado");
+  document.getElementById("cardAutorizados")?.querySelector(".card-header")?.classList.remove("campo-marcado");
+  try {
+    const res = await fetch(withToken(`/api/venta/sucursales/${sucursalId}/revision-bitacora`));
+    if (!res.ok) return;
+    const data = await res.json();
+    if (parseInt(document.getElementById("sucursales").value || "0", 10) !== sucursalId) return;
+    revisionBitacoraActual = data;
+
+    if (btnAvisar) btnAvisar.style.display = data.pendiente ? "flex" : "none";
+
+    const campos = data.campos || [];
+    const enEstaPagina = [];
+    const enOtraPagina = [];
+    campos.forEach(campo => {
+      if (campo === "contactos_emergencia") {
+        enEstaPagina.push(campo);
+        document.getElementById("cardEmergencia")?.querySelector(".card-header")?.classList.add("campo-marcado");
+        return;
+      }
+      if (campo === "personas_autorizadas") {
+        enEstaPagina.push(campo);
+        document.getElementById("cardAutorizados")?.querySelector(".card-header")?.classList.add("campo-marcado");
+        return;
+      }
+      const spanId = INFO_CAMPO_A_SPAN[campo];
+      if (spanId) {
+        enEstaPagina.push(campo);
+        document.getElementById(spanId)?.classList.add("campo-marcado");
+      } else {
+        enOtraPagina.push(campo);
+      }
+    });
+
+    revisionBitacoraActual = { ...data, enEstaPagina, enOtraPagina };
+
+    if (data.pendiente && campos.length) {
+      const partes = [];
+      if (enEstaPagina.length) {
+        partes.push(`<div><strong>Podés corregir acá:</strong> ${enEstaPagina.map(c => escapeHtml(CAMPO_LABEL[c] || c)).join(", ")}</div>`);
+      }
+      if (enOtraPagina.length) {
+        partes.push(`<div class="fuera-pagina"><strong>Se corrige en BBDD Sucursales:</strong> ${enOtraPagina.map(c => escapeHtml(CAMPO_LABEL[c] || c)).join(", ")}</div>`);
+      }
+      if (data.observacion) {
+        partes.push(`<div>Detalle de Bitácora: "${escapeHtml(data.observacion)}"</div>`);
+      }
+      banner.innerHTML = `<div class="bitacora-banner">${partes.join("")}</div>`;
+    } else {
+      banner.innerHTML = "";
+    }
+  } catch (e) {
+    // silencioso: no bloquea la vista si esto falla
+  }
+}
+
+function primerNombreUsuarioActual() {
+  const texto = (document.getElementById("usuarioActual")?.textContent || "").trim();
+  if (!texto || texto === "Sesión: Cargando..." || texto === "Sesión activa") return "";
+  return texto.replace(/^Sesión:\s*/, "").split(/\s+/).filter(Boolean)[0] || "";
+}
+
+function avisarSucursalLista() {
+  const sucursalId = parseInt(document.getElementById("sucursales").value || "0", 10);
+  if (!sucursalId) return;
+  // Solo lo corregible en esta página — lo de BBDD Sucursales no se ofrece acá.
+  const campos = (revisionBitacoraActual || {}).enEstaPagina || [];
+  const resumenDiv = document.getElementById("avisarResumenCampos");
+  if (campos.length) {
+    resumenDiv.innerHTML = campos.map(campo => {
+      const label = CAMPO_LABEL[campo] || campo;
+      let valor = "-";
+      if (campo === "contactos_emergencia" || campo === "personas_autorizadas") {
+        const tableId = campo === "contactos_emergencia" ? "contactosEmergenciaTable" : "personasAutorizadasTable";
+        const filas = document.querySelectorAll(`#${tableId} tbody tr:not(.add-row)`).length;
+        valor = `${filas} registrado(s)`;
+      } else if (INFO_CAMPO_A_SPAN[campo]) {
+        valor = (document.getElementById(INFO_CAMPO_A_SPAN[campo])?.textContent || "").trim() || "-";
+      }
+      return `<label class="avisar-resumen-row avisar-resumen-check">
+        <input type="checkbox" data-avisar-campo="${escapeHtml(campo)}" checked />
+        <span><span class="avisar-resumen-label">${escapeHtml(label)}:</span> ${escapeHtml(valor)}</span>
+      </label>`;
+    }).join("");
+  } else {
+    resumenDiv.innerHTML = '<div class="avisar-resumen-row">Bitácora no marcó campos de esta página.</div>';
+  }
+  const nombre = primerNombreUsuarioActual();
+  const firmaDiv = document.getElementById("avisarFirma");
+  if (firmaDiv) firmaDiv.textContent = nombre ? `Vas a avisar como ${nombre}.` : "";
+  document.getElementById("avisarObsInput").value = "";
+  document.getElementById("avisarModalOverlay").classList.add("is-open");
+}
+
+function cerrarModalAvisar() {
+  document.getElementById("avisarModalOverlay").classList.remove("is-open");
+}
+
+async function confirmarAvisarListo() {
+  const sucursalId = parseInt(document.getElementById("sucursales").value || "0", 10);
+  if (!sucursalId) return;
+  const mensaje = document.getElementById("avisarObsInput").value.trim();
+  const campos = Array.from(
+    document.querySelectorAll("#avisarResumenCampos input[data-avisar-campo]:checked")
+  ).map(i => i.dataset.avisarCampo);
+  const btn = document.getElementById("avisarConfirmarBtn");
+  btn.disabled = true;
+  btn.textContent = "Enviando…";
+  try {
+    const res = await fetch(withToken(`/api/venta/sucursales/${sucursalId}/avisar-listo`), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mensaje, campos }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || "No se pudo enviar el aviso.");
+    cerrarModalAvisar();
+    alert(`Aviso enviado a Bitácora (${(data.enviado_a || []).length} destinatario(s)).`);
+    cargarRevisionBitacora(sucursalId);
+  } catch (error) {
+    alert(error.message || "No se pudo enviar el aviso.");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Enviar aviso";
+  }
 }
 
 function llenarTabla(tableId, data) {

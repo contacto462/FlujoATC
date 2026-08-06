@@ -754,7 +754,7 @@
     async function cargarUsuarioActual() {
       const el = document.getElementById("usuarioActual");
       const token = new URLSearchParams(window.location.search).get("token") || localStorage.getItem("atc_token") || "";
-      if (!el || !token) return;
+      if (!el) return;
       try {
         const res = await fetch(`/api/usuario-actual?token=${encodeURIComponent(token)}`, { credentials: "include" });
         const data = await res.json().catch(() => ({}));

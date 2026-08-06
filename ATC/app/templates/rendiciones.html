@@ -475,10 +475,6 @@
 
     async function validarSesion() {
       tokenSesion = obtenerTokenActivo();
-      if (!tokenSesion) {
-        window.location.href = "/?form=login&next=rendiciones";
-        return false;
-      }
 
       let data;
       try {

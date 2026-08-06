@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
+<link rel="shortcut icon" href="/favicon.ico">
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Portal Cliente · Selecciona una empresa</title>
+  <style>
+    :root {
+      --bg-1: #0a1c20;
+      --bg-2: #10272d;
+      --bg-3: #17363d;
+      --panel-border: rgba(255, 255, 255, 0.10);
+      --text-main: #f4f8f9;
+      --text-soft: #c0cfd4;
+      --field-border: rgba(194, 210, 218, 0.22);
+      --button-start: #ff6e23;
+      --button-end: #ff8b33;
+      --shadow-main: rgba(0, 0, 0, 0.32);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", sans-serif;
+      color: var(--text-main);
+      background:
+        radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.05), transparent 24%),
+        radial-gradient(circle at 78% 12%, rgba(255, 125, 53, 0.08), transparent 18%),
+        linear-gradient(145deg, var(--bg-1) 0%, var(--bg-2) 42%, var(--bg-3) 100%);
+    }
+
+    .wrap {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 32px 18px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 480px;
+      padding: 28px 28px 26px;
+      border-radius: 28px;
+      background: rgba(9, 22, 26, 0.96);
+      border: 1px solid var(--panel-border);
+      box-shadow: 0 30px 70px var(--shadow-main), inset 0 1px 0 rgba(255,255,255,0.04);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    h2 { margin: 0 0 4px; font-size: 1.7rem; font-weight: 800; letter-spacing: -0.03em; }
+    .subtitle { margin: 0 0 22px; color: var(--text-soft); font-size: 0.92rem; }
+
+    .empresa-list { display: grid; gap: 10px; }
+
+    .empresa-btn {
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--field-border);
+      background: #091217;
+      color: var(--text-main);
+      padding: 16px 18px;
+      border-radius: 18px;
+      font-size: 1rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+    }
+    .empresa-btn:hover {
+      transform: translateY(-1px);
+      border-color: var(--button-start);
+      box-shadow: 0 14px 28px rgba(255, 110, 35, 0.16);
+    }
+    .empresa-btn:disabled { opacity: .6; cursor: wait; transform: none; }
+
+    .msg { min-height: 22px; margin-top: 16px; font-size: 0.95rem; font-weight: 700; }
+    .err { color: #ff8787; }
+
+    @media (max-width: 640px) {
+      .card { padding: 22px 18px 20px; border-radius: 24px; }
+      h2 { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h2>Selecciona una empresa</h2>
+      <p class="subtitle">
+        {% if display_name %}Hola {{ display_name }}, {% endif %}tu RUT está autorizado en más de una empresa. Elige cuál quieres ver.
+      </p>
+
+      <div class="empresa-list" id="empresaList">
+        {% for empresa in empresas %}
+        <button type="button" class="empresa-btn" data-cliente-rut="{{ empresa.cliente_rut }}">
+          {{ empresa.nombre_empresa }}
+        </button>
+        {% endfor %}
+      </div>
+
+      <div id="msg" class="msg"></div>
+    </div>
+  </div>
+
+  <script>
+    function setMsg(texto) {
+      const el = document.getElementById("msg");
+      el.textContent = texto || "";
+      el.className = "msg err";
+    }
+
+    async function elegir(clienteRut, btn) {
+      const botones = document.querySelectorAll(".empresa-btn");
+      botones.forEach((b) => { b.disabled = true; });
+      setMsg("");
+      try {
+        const res = await fetch("/api/portal-cliente/seleccionar-empresa", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cliente_rut: clienteRut }),
+        });
+        const payload = await res.json();
+        if (!res.ok || !payload?.ok) {
+          throw new Error(payload?.detail || "No se pudo seleccionar la empresa.");
+        }
+        window.location.href = payload.redirect || "/portal-cliente";
+      } catch (err) {
+        setMsg(err.message || "No se pudo seleccionar la empresa.");
+        botones.forEach((b) => { b.disabled = false; });
+      }
+    }
+
+    document.querySelectorAll(".empresa-btn").forEach((btn) => {
+      btn.addEventListener("click", () => elegir(btn.dataset.clienteRut, btn));
+    });
+  </script>
+</body>
+</html>

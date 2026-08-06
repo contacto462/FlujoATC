@@ -98,7 +98,10 @@ def close_ticket_for_inactivity(
 
 def run_pending_auto_close(db: Session) -> dict[str, int]:
     # Esta regla cierra tickets en pending cuando el ultimo mensaje
-    # visible del hilo lo enviÃ³ un agente y ya pasaron X dÃ­as.
+    # visible del hilo lo enviÃ³ un agente y ya pasaron X dÃ­as. Excluye
+    # tickets internos: la premisa es "el cliente dejo de responder", lo
+    # que no aplica a tickets internos sin un requester externo (causaba
+    # cierres automaticos indebidos, ej. ticket 332).
     now = datetime.now(timezone.utc)
     cutoff_at = now - timedelta(days=max(int(settings.AUTOMATION_PENDING_CLOSE_DAYS or 3), 1))
 
@@ -126,6 +129,7 @@ def run_pending_auto_close(db: Session) -> dict[str, int]:
             Ticket.status == "pending",
             Ticket.is_deleted == False,
             Ticket.is_spam == False,
+            Ticket.source != "internal",
             Message.sender_type == "agent",
             Message.is_internal_note == False,
             Message.created_at <= cutoff_at,

@@ -62,28 +62,45 @@
   }
   .ghost-button:hover { transform: translateY(-1px); border-color: rgba(90,140,255,.34); }
   .topbar-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .filtro-fechas { display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; box-shadow: var(--shadow); }
+  .filtro-fechas {
+    display: flex; align-items: center; gap: 10px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 999px; padding: 6px 14px; box-shadow: var(--shadow);
+  }
   .filtro-fechas label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); }
   .filtro-fechas input[type="date"] {
-    background: var(--surface-strong); border: 1px solid var(--border); border-radius: 8px;
-    color: var(--text); font-size: 0.78rem; padding: 5px 7px; color-scheme: dark;
+    background: transparent; border: none; border-bottom: 1px solid var(--border); border-radius: 0;
+    color: var(--text); font-size: 0.78rem; padding: 4px 2px; color-scheme: dark; transition: border-color .15s;
   }
+  .filtro-fechas input[type="date"]:focus { outline: none; border-bottom-color: var(--primary); }
   .filtro-fechas .clear-button {
-    border: 1px solid var(--border); border-radius: 999px; padding: 7px 12px; font-size: 0.78rem; font-weight: 700;
+    border: none; border-radius: 0; padding: 4px 2px; font-size: 0.78rem; font-weight: 700;
     cursor: pointer; background: transparent; color: var(--text-soft);
+    text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--border);
+    transition: color .15s, text-decoration-color .15s;
   }
+  .filtro-fechas .clear-button:hover { color: var(--primary); text-decoration-color: var(--primary); }
 
   .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; flex: 0 0 auto; }
   .kpi {
     background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
-    padding: 10px 14px; box-shadow: var(--shadow);
+    padding: 10px 14px; box-shadow: var(--shadow); transition: border-left-color .2s;
   }
   .kpi-label { font-size: 0.64rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); margin-bottom: 4px; line-height: 1.2; }
-  .kpi-value { font-size: 1.5rem; font-weight: 800; letter-spacing: -.02em; color: var(--text); }
+  .kpi-value { font-size: 1.5rem; font-weight: 800; letter-spacing: -.02em; color: var(--text); transition: color .2s; }
   .kpi-value small { font-size: 0.8rem; font-weight: 700; color: var(--text-dim); }
+  /* Estado (ok/warn/bad) de los 3 KPI con umbral real: mismo semáforo que
+     dias-badge/chip-estado, solo como acento de borde + color del número
+     (nada de íconos ni badges nuevos). ODTs activas no lleva estado porque
+     no tiene un umbral de negocio definido. */
+  .kpi.ok { border-left: 3px solid var(--green); }
+  .kpi.warn { border-left: 3px solid var(--amber); }
+  .kpi.bad { border-left: 3px solid var(--red); }
+  .kpi.ok .kpi-value { color: var(--green); }
+  .kpi.warn .kpi-value { color: var(--amber); }
+  .kpi.bad .kpi-value { color: var(--red); }
 
   .charts-row { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 10px; flex: 1 1 40%; min-height: 0; }
-  .bottom-row { flex: 1 1 42%; min-height: 0; display: grid; }
+  .bottom-row { flex: 1 1 42%; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .card {
     background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
     box-shadow: var(--shadow); padding: 12px 16px; display: flex; flex-direction: column; min-height: 0;
@@ -98,9 +115,9 @@
   .mas-info-btn {
     flex: 0 0 auto; border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px;
     font-size: 0.66rem; font-weight: 700; cursor: pointer; background: var(--surface-strong);
-    color: var(--primary); transition: border-color .15s, transform .15s;
+    color: var(--text-soft); transition: border-color .15s, color .15s, transform .15s;
   }
-  .mas-info-btn:hover { border-color: var(--primary); transform: translateY(-1px); }
+  .mas-info-btn:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
 
   /* Popup "+ Info" / clic en un punto de ODTs por mes */
   .detalle-overlay {
@@ -120,11 +137,6 @@
   }
   .detalle-header h2 { margin: 0 0 3px; font-size: 1.15rem; font-weight: 800; }
   .detalle-header p { margin: 0; color: var(--text-soft); font-size: 0.82rem; }
-  .detalle-close {
-    flex: 0 0 auto; border: 1px solid var(--border); border-radius: 10px; width: 32px; height: 32px;
-    background: var(--surface); color: var(--text); font-size: 1.1rem; cursor: pointer; line-height: 1;
-  }
-  .detalle-close:hover { border-color: var(--red); color: var(--red); }
   .detalle-toolbar { flex: 0 0 auto; padding: 14px 26px 0; }
   .detalle-toolbar input {
     width: 100%; max-width: 360px; padding: 9px 14px; border-radius: 10px; border: 1px solid var(--border);
@@ -228,18 +240,15 @@
   .visita-badge.ok { color: var(--text-soft); }
   .alerta-repeticion {
     display: inline-flex; align-items: center; gap: 4px; font-size: 0.68rem; font-weight: 800;
-    color: var(--red); background: rgba(239,95,109,.12); border: 1px solid rgba(239,95,109,.3);
-    border-radius: 999px; padding: 2px 8px; white-space: nowrap;
+    color: var(--amber); white-space: nowrap;
   }
   .estado-normal { font-size: 0.7rem; color: var(--text-dim); font-weight: 700; }
-  tbody tr.fila-alerta td { background: rgba(239,95,109,.05); }
   .visita-detalle-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
   .visita-detalle-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
   .visita-detalle-head h4 { margin: 0; font-size: 0.9rem; font-weight: 800; color: var(--text); }
   .multi-camara-badge {
-    font-size: 0.62rem; font-weight: 800; letter-spacing: .03em; color: var(--primary);
-    background: rgba(90,140,255,.14); border: 1px solid rgba(90,140,255,.3);
-    border-radius: 999px; padding: 2px 7px; white-space: nowrap;
+    font-size: 0.62rem; font-weight: 800; letter-spacing: .03em; color: var(--amber);
+    white-space: nowrap;
   }
   .visita-detalle-camara-block { padding: 10px 0; border-top: 1px solid var(--border); }
   .visita-detalle-camara-block:first-of-type { border-top: none; padding-top: 0; }
@@ -264,7 +273,6 @@
 
   .instalacion-row { padding: 10px 4px; border-bottom: 1px solid var(--border); }
   .instalacion-row:last-child { border-bottom: none; }
-  .instalacion-row.alerta { background: rgba(239,95,109,.05); }
   .instalacion-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .instalacion-id { font-size: 0.8rem; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .instalacion-sub { font-size: 0.7rem; color: var(--text-dim); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -345,6 +353,7 @@
     .page { height: auto; }
     .kpi-grid { grid-template-columns: repeat(2, 1fr); }
     .charts-row { grid-template-columns: 1fr; }
+    .bottom-row { grid-template-columns: 1fr; }
     .chart-host { height: 220px; }
   }
 </style>
@@ -384,15 +393,15 @@
       <div class="kpi-label">ODTs activas (pendientes + en proceso)</div>
       <div class="kpi-value" id="kActivas">—</div>
     </article>
-    <article class="kpi">
+    <article class="kpi" id="kpiSla">
       <div class="kpi-label">Cumplimiento SLA</div>
       <div class="kpi-value" id="kSla">—</div>
     </article>
-    <article class="kpi">
+    <article class="kpi" id="kpiTiempo">
       <div class="kpi-label">Tiempo promedio de cierre</div>
       <div class="kpi-value" id="kTiempo">—</div>
     </article>
-    <article class="kpi">
+    <article class="kpi" id="kpiTasa">
       <div class="kpi-label">Tasa de resolución</div>
       <div class="kpi-value" id="kTasa">—</div>
     </article>
@@ -435,11 +444,19 @@
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>Sucursal</th><th>Cámara</th><th class="right">Visitas</th><th class="right">Última visita</th><th class="right">Estado</th></tr>
+            <tr><th>Sucursal</th><th>Cámara</th><th class="right">Visitas</th><th class="right">Última visita</th></tr>
           </thead>
           <tbody id="tbodyCalidadVisita"></tbody>
         </table>
       </div>
+    </article>
+    <article class="card">
+      <div class="card-head-row">
+        <h3 id="tituloTiempoOdts">Tiempo de ODTs</h3>
+        <button type="button" class="mas-info-btn" id="btnInfoTiempoOdts">+ Info</button>
+      </div>
+      <p class="sub" id="subTiempoOdts">Top 10 con más horas trabajadas</p>
+      <div class="cliente-simple-list" id="tiempoOdtsList"><div class="empty-row">Cargando…</div></div>
     </article>
   </div>
 
@@ -452,7 +469,6 @@
         <h2>Calidad de Visita Técnica entre Incidencias <span class="demo-badge">DEMO</span></h2>
         <p>Detalle de cada visita registrada por sucursal y cámara — datos de ejemplo</p>
       </div>
-      <button type="button" class="detalle-close" onclick="cerrarCalidadVisitaModal()">&times;</button>
     </div>
     <div class="detalle-body-table" id="calidadVisitaDetalle"></div>
   </div>
@@ -465,7 +481,6 @@
         <h2>Calidad de Instalación <span class="demo-badge">DEMO</span></h2>
         <p>Cámaras caídas tras instalación, agrupadas por motivo — datos de ejemplo</p>
       </div>
-      <button type="button" class="detalle-close" onclick="cerrarCalidadInstalacionModal()">&times;</button>
     </div>
     <div class="detalle-body-table" id="calidadInstalacionDetalle"></div>
   </div>
@@ -478,7 +493,6 @@
         <h2 id="odtsModalTitulo">ODTs</h2>
         <p id="odtsModalSub"></p>
       </div>
-      <button type="button" class="detalle-close" onclick="cerrarOdtsModal()">&times;</button>
     </div>
     <div class="detalle-toolbar">
       <input type="text" id="odtsModalBuscar" placeholder="Buscar por ODT, cliente, problema o técnico..." oninput="filtrarOdtsModal()">
@@ -503,7 +517,6 @@
         <h2>Clientes con más ODTs</h2>
         <p>Tipo de incidencia y estado por cliente</p>
       </div>
-      <button type="button" class="detalle-close" onclick="cerrarClientesOdtModal()">&times;</button>
     </div>
     <div class="periodo-tabs">
       <button type="button" class="periodo-tab active" id="tabHistorico" onclick="cambiarTabPeriodo('historico')">Histórico</button>
@@ -525,7 +538,6 @@
         <h2 id="sucursalDetalleTitulo">Sucursal</h2>
         <p id="sucursalDetalleSub"></p>
       </div>
-      <button type="button" class="detalle-close" onclick="cerrarDetalleSucursal()">&times;</button>
     </div>
     <div class="detalle-body-table" id="sucursalDetalleList"></div>
   </div>
@@ -587,6 +599,7 @@
   let DATA = null;
   let charts = {};
   let todasAbiertas = [];
+  let tiempoOdtsTodas = [];
   let camarasDataGlobal = [];
   let odsCamarasListaActual = [];
   let odtsModalLista = [];
@@ -666,6 +679,17 @@
     const fr = fparse(r.fecha_registro);
     return fr ? (Date.now() - fr.getTime()) / 864e5 : null;
   }
+  // Horas de ejecución real (cronómetro "Inicio" de tecnicos.html), no días
+  // desde el registro/cierre. Sin fecha_inicio_trabajo no hay métrica (nunca
+  // se presionó "Inicio"); sin fecha_fin_trabajo el trabajo sigue en curso y
+  // se cuenta hasta ahora.
+  function horasTrabajadas(r) {
+    const fi = fparse(r.fecha_inicio_trabajo);
+    if (!fi) return null;
+    const ff = fparse(r.fecha_fin_trabajo);
+    const finMs = ff ? ff.getTime() : Date.now();
+    return Math.max(0, (finMs - fi.getTime()) / 36e5);
+  }
   function slaStatus(r, dias) {
     if (isFinal(r)) {
       const d = cierreDias(r);
@@ -714,6 +738,24 @@
             <span class="cliente-bar-valor">${e.total}</span>
           </div>
           <div class="cliente-bar-track"><div class="cliente-bar-fill" style="width:${Math.max((e.total / max) * 100, 4)}%"></div></div>
+        </div>
+      </div>`).join("");
+  }
+
+  function renderTiempoOdtsTop(lista) {
+    const cont = document.getElementById("tiempoOdtsList");
+    const items = lista.slice(0, 10);
+    if (!items.length) { cont.innerHTML = '<div class="empty-row">Sin datos.</div>'; return; }
+    const max = items[0].dias || 1;
+    cont.innerHTML = items.map((e, i) => `
+      <div class="cliente-bar-row">
+        <span class="cliente-bar-rank">${i + 1}</span>
+        <div class="cliente-bar-main">
+          <div class="cliente-bar-top">
+            <span class="cliente-bar-nombre" title="${escHtml(e.odt)} · ${escHtml(e.cliente)}">${escHtml(e.odt)} · ${escHtml(e.cliente)}</span>
+            <span class="cliente-bar-valor">${e.dias}h</span>
+          </div>
+          <div class="cliente-bar-track"><div class="cliente-bar-fill" style="width:${Math.max((e.dias / max) * 100, 4)}%"></div></div>
         </div>
       </div>`).join("");
   }
@@ -1203,7 +1245,7 @@
     const tbody = document.getElementById("tbodyCalidadVisita");
     const grupos = _agruparCalidadVisita();
     if (!grupos.length) {
-      tbody.innerHTML = '<tr><td colspan="5" class="empty-row">Sin cámaras con 3 o más visitas en este período.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="4" class="empty-row">Sin cámaras con 3 o más visitas en este período.</td></tr>';
       return;
     }
     let html = "";
@@ -1212,7 +1254,7 @@
         const total = c.visitas.length;
         const alerta = total >= 3;
         const ultimaFmt = new Date(c.visitas[total - 1].fecha + "T00:00:00").toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "2-digit" });
-        html += `<tr class="${alerta ? "fila-alerta" : ""}">`;
+        html += `<tr>`;
         if (i === 0) {
           const multi = g.camaras.length > 1 ? ` <span class="multi-camara-badge">${g.camaras.length} cámaras</span>` : "";
           html += `<td class="strong" rowspan="${g.camaras.length}">${escHtml(g.sucursal)}${multi}</td>`;
@@ -1221,7 +1263,6 @@
           <td>${escHtml(c.camara)}</td>
           <td class="right"><span class="visita-badge ${alerta ? "alerta" : "ok"}">${total}</span></td>
           <td class="right">${ultimaFmt}</td>
-          <td class="right">${alerta ? `<span class="alerta-repeticion">⚠ ${total} visitas misma cámara</span>` : '<span class="estado-normal">Normal</span>'}</td>
         </tr>`;
       });
     });
@@ -1269,6 +1310,10 @@
   }
   document.getElementById("btnInfoCalidadVisita").addEventListener("click", abrirCalidadVisitaModal);
 
+  document.getElementById("btnInfoTiempoOdts").addEventListener("click", () => {
+    abrirOdtsModal("Tiempo de ODTs — Todas (mayor a menor)", tiempoOdtsTodas, "Horas");
+  });
+
   function filtrados() {
     const desde = document.getElementById("filtroDesde").value;
     const hasta = document.getElementById("filtroHasta").value;
@@ -1297,9 +1342,25 @@
     const tiempoProm = tiempos.length ? tiempos.reduce((s, x) => s + x, 0) / tiempos.length : null;
 
     document.getElementById("kActivas").textContent = pend.length + proc.length;
-    document.getElementById("kSla").innerHTML = slaEval.length ? Math.round(slaOk / slaEval.length * 100) + "<small>%</small>" : "—";
+
+    // Estado de cada KPI contra su umbral real (mismo semáforo ok/warn/bad
+    // que el resto del dashboard). Sin dato suficiente, sin color.
+    const setKpiEstado = (kpiId, estado) => {
+      const el = document.getElementById(kpiId);
+      el.classList.remove("ok", "warn", "bad");
+      if (estado) el.classList.add(estado);
+    };
+
+    const slaPct = slaEval.length ? Math.round(slaOk / slaEval.length * 100) : null;
+    document.getElementById("kSla").innerHTML = slaPct !== null ? slaPct + "<small>%</small>" : "—";
+    setKpiEstado("kpiSla", slaPct === null ? null : slaPct >= 85 ? "ok" : slaPct >= 60 ? "warn" : "bad");
+
     document.getElementById("kTiempo").innerHTML = tiempoProm !== null ? (Math.round(tiempoProm * 10) / 10) + "<small> días</small>" : "—";
-    document.getElementById("kTasa").innerHTML = regs.length ? Math.round(fin.length / regs.length * 100) + "<small>%</small>" : "—";
+    setKpiEstado("kpiTiempo", tiempoProm === null ? null : tiempoProm <= slaDias ? "ok" : tiempoProm <= slaDias * 1.5 ? "warn" : "bad");
+
+    const tasaPct = regs.length ? Math.round(fin.length / regs.length * 100) : null;
+    document.getElementById("kTasa").innerHTML = tasaPct !== null ? tasaPct + "<small>%</small>" : "—";
+    setKpiEstado("kpiTasa", tasaPct === null ? null : tasaPct >= 85 ? "ok" : tasaPct >= 60 ? "warn" : "bad");
 
     // ODTs por mes/dia: finalizadas vs pendientes-o-en-proceso, tipo "ola".
     // Sin filtro: ultimo año por mes. Con Desde/Hasta: sigue ese rango exacto
@@ -1390,7 +1451,7 @@
       beforeDatasetDraw(chart, args) {
         chart.ctx.save();
         chart.ctx.shadowColor = args.meta.dataset.options.borderColor;
-        chart.ctx.shadowBlur = 9;
+        chart.ctx.shadowBlur = 4;
       },
       afterDatasetDraw(chart) { chart.ctx.restore(); },
     };
@@ -1515,6 +1576,26 @@
     todasAbiertas = abiertasTodas.map(({ r, dias }) => ({
       odt: r.odt, cliente: r.cliente, problema: r.problema, tecnico: r.tecnicos, dias: Math.floor(dias),
     }));
+
+    // Tiempo de ODTs: horas de ejecución real vía cronómetro "Inicio" ->
+    // Finalizado/Pendiente (fecha_inicio_trabajo/fecha_fin_trabajo), NO días
+    // desde el registro/cierre. ODTs donde nunca se presionó "Inicio" quedan
+    // fuera del ranking (no hay tiempo de ejecución que medir).
+    document.getElementById("tituloTiempoOdts").textContent = hayFiltroFecha ? `Tiempo de ODTs ${rangoFechaLabel}` : "Tiempo de ODTs";
+    const tiempoTodas = regs
+      .map(r => ({ r, horas: horasTrabajadas(r) }))
+      .filter(x => x.horas !== null)
+      .sort((a, b) => b.horas - a.horas);
+    // `dias` se reutiliza a propósito como campo genérico de valor (lo
+    // consumen renderTiempoOdtsTop/abrirOdtsModal/_renderOdtsModalTbody,
+    // compartidos con "ODTs abiertas"); aquí contiene HORAS, no días.
+    tiempoOdtsTodas = tiempoTodas.map(({ r, horas }) => ({
+      // tecnico_cierre = quien dejó Pendiente o Finalizó (puede diferir del
+      // técnico derivado originalmente); fallback a r.tecnicos solo para
+      // ODTs cerradas antes de que existiera este campo.
+      odt: r.odt, cliente: r.cliente, problema: r.problema, tecnico: r.tecnico_cierre || r.tecnicos, dias: Math.round(horas * 10) / 10,
+    }));
+    renderTiempoOdtsTop(tiempoOdtsTodas);
   }
 
   async function init() {

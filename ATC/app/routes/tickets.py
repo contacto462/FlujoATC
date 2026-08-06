@@ -15,11 +15,30 @@ from ATC.app.models.ticket_history import TicketAssignmentHistory
 router = APIRouter(prefix="/tickets", tags=["tickets"])
 
 
+def _require_login(request: Request, db: Session = Depends(get_db)):
+    """Exige la cookie de sesion (access_token) que ya usan las paginas
+    HTML de web.py. Antes ningun endpoint de este router verificaba sesion
+    (hallazgo de auditoria de seguridad, ago 2026)."""
+    from ATC.app.routes.web import COOKIE_NAME as _COOKIE_NAME, _decode_cookie_token as _decode_cookie_token_web
+    from ATC.app.services.user_service import UserService as _UserService
+
+    cookie = request.cookies.get(_COOKIE_NAME, "")
+    if cookie:
+        try:
+            login = _decode_cookie_token_web(cookie)
+            user = _UserService.find_by_login(db, login)
+            if user and user.is_active:
+                return user
+        except Exception:
+            pass
+    raise HTTPException(status_code=401, detail="No autenticado.")
+
+
 # ==============================
 # API - CREAR TICKET
 # ==============================
 @router.post("/", response_model=TicketOut)
-def create_ticket(data: TicketCreate, db: Session = Depends(get_db)):
+def create_ticket(data: TicketCreate, db: Session = Depends(get_db), current_user=Depends(_require_login)):
 
     source = (data.source or "").strip().lower()
     priority = (data.priority or "").strip().lower()
@@ -45,7 +64,7 @@ def create_ticket(data: TicketCreate, db: Session = Depends(get_db)):
 # API - LISTAR TICKETS
 # ==============================
 @router.get("/", response_model=list[TicketOut])
-def list_tickets(db: Session = Depends(get_db)):
+def list_tickets(db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return db.query(Ticket).all()
 
 
@@ -57,7 +76,8 @@ def list_tickets(db: Session = Depends(get_db)):
 def ticket_detail(
     ticket_id: int,
     request: Request,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(_require_login),
 ):
 
     ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
@@ -92,6 +112,7 @@ def update_requester_notes(
     notes: str = Form(...),
     ticket_id: int = Form(...),
     db: Session = Depends(get_db),
+    current_user=Depends(_require_login),
 ):
 
     requester = db.query(Requester).filter(Requester.id == requester_id).first()
@@ -113,6 +134,7 @@ def assign_ticket(
     ticket_id: int,
     user_id: int = Form(...),
     db: Session = Depends(get_db),
+    current_user=Depends(_require_login),
 ):
 
     ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()

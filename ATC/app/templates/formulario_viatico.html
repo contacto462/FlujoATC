@@ -437,10 +437,6 @@
 
     async function validarSesionActiva() {
       const token = obtenerTokenActivo();
-      if (!token) {
-        window.location.href = "/?form=login&next=auto";
-        return false;
-      }
       try {
         const data = await api(`/api/usuario-actual?token=${encodeURIComponent(token)}`);
         const usuario = String(data?.usuario || "").trim();

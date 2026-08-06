@@ -85,7 +85,10 @@ VENTA_TRACE_RECIPIENTS: dict[str, list[str]] = {
         "dromero@alguientecuida.cl",
     ]),
     "puesto_soporte": _recipient_list("VENTA_PUESTO_SOPORTE_EMAILS", [
-        "soporte@soporteatc.cl",
+        "czamora@alguientecuida.cl",
+        "contacto@alguientecuida.cl",
+        "administracion@alguientecuida.cl",
+        "dromero@alguientecuida.cl",
     ]),
     "inicio_servicio": _recipient_list("VENTA_INICIO_SERVICIO_EMAILS", [
         "administracion@alguientecuida.cl",
@@ -511,3 +514,70 @@ def notify_oc_requerida(db: Session, codigo: str) -> dict[str, Any]:
     ]
     body = _email_html(title=title, sections=sections)
     return _send("oc_requerida", f"Nueva Orden Requiere Orden de Compra – Código {ods.get('codigo') or codigo}", body)
+
+
+def _sucursal_row_para_bitacora(db: Session, sucursal_id: int) -> dict[str, Any]:
+    row = db.execute(text("""
+        SELECT id, nombre_empresa, nombre_sucursal, rut, direccion_sucursal
+        FROM bbdd_sucursales
+        WHERE id = :sid
+    """), {"sid": sucursal_id}).mappings().first()
+    return dict(row or {})
+
+
+def _bitacora_team_emails(db: Session) -> list[str]:
+    # Pedido explícito (ago 2026): "Avisar que está listo" se manda solo a
+    # fernando.lubiano.m@gmail.com, no a todo el equipo de Bitácora — ya no se usa
+    # la query por departamento "Bitacora".
+    return ["fernando.lubiano.m@gmail.com"]
+
+
+def notify_sucursal_lista_para_bitacora(
+    db: Session,
+    sucursal_id: int,
+    usuario: str,
+    mensaje: str,
+    resumen_campos: list[tuple[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Comercial avisa desde BBDD Sucursales / Información Clientes que ya corrigió
+    lo que Bitácora había marcado como pendiente en una sucursal — mirror del
+    "Notificar a Comercial" que ya existe del lado de Bitácora. resumen_campos trae
+    el valor actual de cada campo que Bitácora había marcado como falta/mal, para
+    que quede claro en el correo qué se completó."""
+    sucursal = _sucursal_row_para_bitacora(db, sucursal_id)
+    if not sucursal:
+        return {"email_sent": False, "email_to": [], "email_error": "Sucursal no encontrada."}
+
+    recipients = _bitacora_team_emails(db)
+    if not recipients:
+        return {"email_sent": False, "email_to": [], "email_error": "No se encontró ningún correo del equipo de Bitácora."}
+
+    empresa = _clean(sucursal.get("nombre_empresa"))
+    nombre_sucursal = _clean(sucursal.get("nombre_sucursal"))
+    title = f"Sucursal lista para revisar — {empresa} · {nombre_sucursal}".strip(" —·")
+    sections = [
+        _paragraphs(
+            f"{_clean(usuario) or 'Comercial'} avisa que ya corrigió los datos de esta sucursal "
+            "pendiente de aceptación en Bitácora.",
+            _clean(mensaje),
+        ),
+        _table([
+            ("Empresa", empresa),
+            ("Sucursal", nombre_sucursal),
+            ("RUT", sucursal.get("rut")),
+            ("Dirección", sucursal.get("direccion_sucursal")),
+            ("Corregido por", usuario),
+        ]),
+    ]
+    if resumen_campos:
+        sections.append(_paragraphs("Quedó así lo que estaba marcado como falta o mal:"))
+        sections.append(_table(list(resumen_campos)))
+    body = _email_html(title="Sucursal corregida, lista para revisión", sections=sections)
+    to = recipients[0]
+    cc = recipients[1:]
+    try:
+        _send_contact_message(to=to, cc=cc, subject=title, html_body=body)
+        return {"email_sent": True, "email_to": recipients, "email_error": ""}
+    except Exception as exc:
+        _log.warning("No se pudo enviar aviso de sucursal lista para bitacora (id=%s): %s", sucursal_id, exc)
+        return {"email_sent": False, "email_to": [], "email_error": str(exc)}

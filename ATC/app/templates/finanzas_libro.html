@@ -195,7 +195,8 @@ function activarHoja(key){
   frame.src = url.toString();
   try{
     const stateUrl = new URL(location.href);
-    stateUrl.searchParams.set("token", TOKEN || "");
+    if(TOKEN) stateUrl.searchParams.set("token", TOKEN);
+    else stateUrl.searchParams.delete("token");
     stateUrl.searchParams.set("sheet", key);
     if(ORIGEN) stateUrl.searchParams.set("from", ORIGEN);
     else stateUrl.searchParams.delete("from");

@@ -16,6 +16,7 @@ CHECK_SECONDS = 5
 HEALTH_SECONDS = 10
 MAX_HEALTH_FAILS = 2
 HEALTH_TIMEOUT = 5.0
+STARTUP_GRACE_SECONDS = 45.0
 
 
 def _log(message: str) -> None:
@@ -127,6 +128,7 @@ def main() -> None:
     proc = _start_server()
     health_fails = 0
     last_health = 0.0
+    started_at = time.monotonic()
 
     while True:
         exit_code = proc.poll()
@@ -136,9 +138,14 @@ def main() -> None:
             proc = _start_server()
             health_fails = 0
             last_health = 0.0
+            started_at = time.monotonic()
             continue
 
         now = time.monotonic()
+        if now - started_at < STARTUP_GRACE_SECONDS:
+            time.sleep(CHECK_SECONDS)
+            continue
+
         if now - last_health >= HEALTH_SECONDS:
             last_health = now
             if _health_ok():
@@ -152,6 +159,7 @@ def main() -> None:
                     proc = _start_server()
                     health_fails = 0
                     last_health = 0.0
+                    started_at = time.monotonic()
 
         time.sleep(CHECK_SECONDS)
 
