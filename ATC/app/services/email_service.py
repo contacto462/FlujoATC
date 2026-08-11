@@ -76,9 +76,18 @@ _EMAIL_HTML_ALLOWED_TAGS = {
 }
 _EMAIL_HTML_VOID_TAGS = {"br", "hr", "img"}
 _EMAIL_HTML_DROP_CONTENT_TAGS = {
-    "script", "style", "iframe", "object", "embed", "form", "input",
-    "button", "link", "meta", "base", "noscript", "svg",
+    "script", "style", "iframe", "object", "embed", "form",
+    "button", "noscript", "svg",
 }
+# Elementos vacios (sin tag de cierre en HTML real, p.ej. el <meta charset=...>
+# que trae practicamente todo correo generado por Outlook) — si se tratan
+# igual que _EMAIL_HTML_DROP_CONTENT_TAGS (empujar a la pila de "descartar
+# hasta el cierre"), esa pila nunca se vacia porque el cierre nunca llega, y
+# TODO el resto del documento (incluido el texto real) queda silenciado. Se
+# ignoran sin abrir ningun contexto de "descarte" (bug real, ago 2026 —
+# provocaba el placeholder "correo sin contenido legible" en cualquier email
+# de Outlook/Exchange con <meta> en el <head>).
+_EMAIL_HTML_VOID_DROP_TAGS = {"meta", "link", "base", "input"}
 _EMAIL_HTML_ALLOWED_ATTRS = {
     "a": {"href", "title"},
     "img": {"src", "alt", "width", "height"},
@@ -102,6 +111,8 @@ class _EmailHtmlSanitizer(_HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         tag = tag.lower()
+        if tag in _EMAIL_HTML_VOID_DROP_TAGS:
+            return
         if tag in _EMAIL_HTML_DROP_CONTENT_TAGS:
             self._skip_stack.append(tag)
             return
@@ -163,6 +174,54 @@ def _sanitize_email_html(raw_html: str | None) -> str:
 
 def _escape_plain_text_to_html(text: str) -> str:
     return _html_mod.escape(text or "", quote=False).replace("\n", "<br>")
+
+
+def _html_has_visible_content(html: str | None) -> bool:
+    """True si el HTML deja algo visible para el agente (texto o imagen).
+
+    Se usa para detectar el caso "el mensaje se guardo pero
+    Message.content quedo vacio" (ticket 561, correo automatico de
+    Google, ago 2026): el <img> por si solo cuenta como contenido aunque
+    no haya texto, para no descartar de mas correos que son solo una
+    imagen."""
+    if not html:
+        return False
+    if "<img" in html.lower():
+        return True
+    text = re.sub(r"<[^>]+>", "", html)
+    text = _html_mod.unescape(text.replace("&nbsp;", " "))
+    return bool(text.strip())
+
+
+def _decode_email_part_payload(part) -> str:
+    payload = part.get_payload(decode=True)
+    if payload is None:
+        raw_payload = part.get_payload()
+        if isinstance(raw_payload, str):
+            return raw_payload
+        return ""
+
+    charset_values = [
+        part.get_content_charset(),
+        str(part.get_charset() or "").strip() or None,
+        "utf-8",
+        "cp1252",
+        "iso-8859-1",
+    ]
+    seen: set[str] = set()
+    for charset in charset_values:
+        if not charset:
+            continue
+        normalized = str(charset).strip().strip('"').lower()
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        try:
+            return payload.decode(normalized, errors="replace")
+        except Exception:
+            continue
+
+    return payload.decode(errors="replace")
 
 
 def _parse_header_recipients(headers: list[str], *, exclude: set[str] | None = None) -> list[str]:
@@ -336,16 +395,20 @@ def _extract_html_and_save_images(msg) -> str | None:
     nombre de archivo; las imágenes que igual queden sin referencia se anexan
     al final del mensaje para no perder información."""
     html_body = None
+    html_attachment_fallback = None
     imagenes: list[dict] = []
 
     for part in msg.walk():
         content_type = part.get_content_type()
         content_disposition = str(part.get("Content-Disposition") or "")
 
-        if content_type == "text/html" and "attachment" not in content_disposition.lower():
-            payload = part.get_payload(decode=True)
-            if payload:
-                html_body = payload.decode(errors="ignore")
+        if content_type in {"text/html", "application/xhtml+xml"}:
+            decoded_html = _decode_email_part_payload(part).strip()
+            if decoded_html:
+                if "attachment" not in content_disposition.lower():
+                    html_body = decoded_html
+                elif html_attachment_fallback is None:
+                    html_attachment_fallback = decoded_html
 
         if not content_type.startswith("image/"):
             continue
@@ -370,6 +433,9 @@ def _extract_html_and_save_images(msg) -> str | None:
             "location": location,
             "original": nombre_original,
         })
+
+    if html_body is None and html_attachment_fallback is not None:
+        html_body = html_attachment_fallback
 
     if not imagenes:
         return html_body
@@ -436,22 +502,26 @@ def _extract_html_and_save_images(msg) -> str | None:
 
 def _extract_body_text(msg) -> str:
     body = ""
+    fallback_body = ""
 
     if msg.is_multipart():
         for part in msg.walk():
             content_type = part.get_content_type()
             content_disposition = str(part.get("Content-Disposition") or "")
             if content_type == "text/plain" and "attachment" not in content_disposition.lower():
-                payload = part.get_payload(decode=True)
-                if payload:
-                    body = payload.decode(errors="ignore")
-                break
+                body = _decode_email_part_payload(part).strip()
+                if body:
+                    break
+            elif (
+                content_type.startswith("text/")
+                and content_type != "text/html"
+                and not fallback_body
+            ):
+                fallback_body = _decode_email_part_payload(part).strip()
     else:
-        payload = msg.get_payload(decode=True)
-        if payload:
-            body = payload.decode(errors="ignore")
+        body = _decode_email_part_payload(msg).strip()
 
-    return body
+    return body or fallback_body
 
 
 def _extract_raw_email(msg_data) -> bytes | None:
@@ -720,6 +790,18 @@ def _resolve_ticket(
     return ticket, False
 
 
+# Reintentos por UID ante fallas transitorias (I/O de imagenes, lock de
+# DB, etc.) antes de darlo por perdido. Antes, cualquier excepcion durante
+# el procesamiento de un UID igual avanzaba sync_state.last_uid, asi que
+# el correo (a veces una respuesta de cliente) se perdia para siempre sin
+# reintento — nunca volvia a aparecer en detalle_ticket.html. Vive a nivel
+# de modulo porque email_loop() en main.py llama a esta funcion una vez
+# por ciclo de poll con una sesion de DB nueva cada vez; solo el proceso
+# en memoria (no la DB) necesita recordar cuantos intentos van.
+_uid_failure_counts: dict[str, int] = {}
+MAX_UID_RETRIES = 3
+
+
 def fetch_emails_and_create_tickets(
     db: Session,
     limit: int = 100,
@@ -800,7 +882,16 @@ def fetch_emails_and_create_tickets(
         support_mailboxes = _support_mailboxes()
         inbound_mailbox = _normalize_email_address(user)
 
+        # Mientras haya un UID mas viejo pendiente de reintento, el cursor
+        # (sync_state.last_uid) no debe avanzar mas alla de el aunque UIDs
+        # mas nuevos del mismo batch se procesen bien — si no, el proximo
+        # poll ya no volveria a pedir ese UID y el correo se perderia igual,
+        # solo que un batch mas tarde.
+        stalled_uid: int | None = None
+
         for uid in uid_values:
+            can_advance_cursor = stalled_uid is None
+            fail_key = f"{mailbox_key}:{uid}"
             try:
                 # BODY.PEEK[] (no RFC822) para no marcar el correo como leido
                 # en el buzon real al descargarlo (pedido explicito, jul 2026).
@@ -819,8 +910,10 @@ def fetch_emails_and_create_tickets(
                 if message_id:
                     exists = db.query(Message).filter(Message.external_id == message_id).first()
                     if exists:
-                        sync_state.last_uid = uid
-                        db.commit()
+                        _uid_failure_counts.pop(fail_key, None)
+                        if can_advance_cursor:
+                            sync_state.last_uid = uid
+                            db.commit()
                         continue
 
                 from_name, from_email = parseaddr(msg.get("From"))
@@ -830,8 +923,10 @@ def fetch_emails_and_create_tickets(
                     raise ValueError("Email sin remitente valido")
 
                 if from_email in support_mailboxes:
-                    sync_state.last_uid = uid
-                    db.commit()
+                    _uid_failure_counts.pop(fail_key, None)
+                    if can_advance_cursor:
+                        sync_state.last_uid = uid
+                        db.commit()
                     continue
 
                 subject = _decode_subject(msg)
@@ -840,6 +935,21 @@ def fetch_emails_and_create_tickets(
                     body = _sanitize_email_html(html_body)
                 else:
                     body = _escape_plain_text_to_html(_extract_body_text(msg).strip())
+
+                if not _html_has_visible_content(body):
+                    plain_fallback = _extract_body_text(msg).strip()
+                    if plain_fallback:
+                        body = _escape_plain_text_to_html(plain_fallback)
+
+                if not _html_has_visible_content(body):
+                    # Ni la parte HTML ni el texto plano dejaron nada visible
+                    # (payload vacio, MIME atipico de un correo automatico,
+                    # etc.) — guardar "" acá deja el mensaje invisible en
+                    # detalle_ticket.html sin ningun aviso (paso con un
+                    # correo de alerta de Google, ago 2026). Mejor un
+                    # placeholder visible que un hueco en blanco.
+                    print(f"Email UID {uid} (msgid {message_id}) sin contenido visible tras extraer/sanitizar; se guarda placeholder")
+                    body = "<p><em>Este correo no incluyo contenido de texto legible.</em></p>"
 
                 requester = _resolve_requester(db, from_name, from_email)
                 ticket, ticket_exists = _resolve_ticket(
@@ -885,9 +995,11 @@ def fetch_emails_and_create_tickets(
                     )
                 )
 
-                sync_state.last_uid = uid
-                if uid_validity:
-                    sync_state.uid_validity = uid_validity
+                _uid_failure_counts.pop(fail_key, None)
+                if can_advance_cursor:
+                    sync_state.last_uid = uid
+                    if uid_validity:
+                        sync_state.uid_validity = uid_validity
 
                 db.commit()
                 processed += 1
@@ -895,13 +1007,33 @@ def fetch_emails_and_create_tickets(
 
             except Exception as exc:
                 db.rollback()
-                print(f"Error importando email UID {uid}: {exc}")
+                attempts = _uid_failure_counts.get(fail_key, 0) + 1
+                _uid_failure_counts[fail_key] = attempts
+
+                if attempts < MAX_UID_RETRIES:
+                    # Falla posiblemente transitoria: no tocamos el cursor,
+                    # asi el proximo poll (email_loop, cada EMAIL_POLL_SECONDS)
+                    # vuelve a pedir este mismo UID en vez de saltarselo.
+                    print(
+                        f"Error importando email UID {uid} "
+                        f"(intento {attempts}/{MAX_UID_RETRIES}, se reintentara en el proximo poll): {exc}"
+                    )
+                    if stalled_uid is None:
+                        stalled_uid = uid
+                    continue
+
+                # Se agotaron los reintentos: recien ahi lo damos por
+                # perdido (a diferencia del comportamiento anterior, que
+                # lo perdia silenciosamente en el primer intento fallido).
+                print(f"Email UID {uid} descartado tras {attempts} intentos fallidos: {exc}")
+                _uid_failure_counts.pop(fail_key, None)
                 try:
-                    sync_state = _get_or_create_sync_state(db, mailbox_key)
-                    sync_state.last_uid = uid
-                    if uid_validity:
-                        sync_state.uid_validity = uid_validity
-                    db.commit()
+                    if can_advance_cursor:
+                        sync_state = _get_or_create_sync_state(db, mailbox_key)
+                        sync_state.last_uid = uid
+                        if uid_validity:
+                            sync_state.uid_validity = uid_validity
+                        db.commit()
                 except Exception:
                     db.rollback()
                 continue

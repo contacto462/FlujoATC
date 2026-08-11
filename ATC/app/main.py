@@ -10,6 +10,7 @@ import ATC.app.models
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.requests import Request as StarletteRequest
 from sqlalchemy import inspect, text
 
 from ATC.app.core.config import settings
@@ -26,6 +27,34 @@ from ATC.app.core.text import decode_mime_words
 mimetypes.add_type("application/javascript", ".js")
 mimetypes.add_type("application/javascript", ".mjs")
 mimetypes.add_type("text/css", ".css")
+
+
+# Starlette 0.49 limita por defecto cada campo multipart a 1 MB. En la
+# ticketera, las capturas pegadas viajan dentro del campo HTML "content" antes
+# de convertirse a CID, asi que una imagen normal puede romper el parser antes
+# de llegar al endpoint.
+_ORIGINAL_STARLETTE_GET_FORM = StarletteRequest._get_form
+_MULTIPART_MAX_PART_SIZE = 100 * 1024 * 1024
+
+
+async def _get_form_with_large_text_parts(
+    self,
+    *,
+    max_files=1000,
+    max_fields=1000,
+    max_part_size=1024 * 1024,
+):
+    if max_part_size == 1024 * 1024:
+        max_part_size = _MULTIPART_MAX_PART_SIZE
+    return await _ORIGINAL_STARLETTE_GET_FORM(
+        self,
+        max_files=max_files,
+        max_fields=max_fields,
+        max_part_size=max_part_size,
+    )
+
+
+StarletteRequest._get_form = _get_form_with_large_text_parts
 
 
 # =========================

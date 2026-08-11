@@ -60,6 +60,7 @@ from ATC.app.core.db import get_db, get_incidencias_db
 
 from ATC.app.core.config import settings
 from ATC.app.core.db_compat import add_column, sql_null_text
+from ATC.app.core.timeutil import chile_now
 
 from ATC.app.core.security import create_access_token, hash_password, verify_password
 from ATC.app.core.session_policy import expiracion_sesion, max_age_cookie_segundos
@@ -119,8 +120,19 @@ def _jinja_localdt(dt: datetime | None, fmt: str = "%d-%m-%Y %H:%M") -> str:
     if dt is None:
         return ""
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(_TZ_LOCAL).strftime(fmt)
+        return dt.strftime(fmt)
+    # OJO: esto NO es un datetime realmente en UTC. Viene de columnas
+    # DateTime(timezone=True) con server_default=func.now() (ej.
+    # Ticket.created_at/updated_at, o Message.created_at de filas viejas
+    # anteriores a chile_now() en ticket_service/web/automation_service/
+    # incidencias) — SQL Server GETDATE() devuelve el reloj LOCAL del
+    # Windows Server (confirmado = hora de Chile), pero pyodbc lo entrega
+    # con tzinfo=UTC pegado encima porque la columna es timezone-aware.
+    # Convertir con .astimezone() a Chile le restaba el offset OTRA VEZ
+    # sobre un valor que ya estaba en hora de Chile, mostrando la hora
+    # 3-4h antes de la real (ticketera.html, ago 2026). El dato ya viene
+    # correcto; solo hay que sacarle el tzinfo falso, no convertirlo.
+    return dt.replace(tzinfo=None).strftime(fmt)
 
 _jinja_env.filters["localdt"] = _jinja_localdt
 templates = Jinja2Templates(env=_jinja_env)
@@ -319,28 +331,6 @@ def _merge_recipient_list(*groups: list[str]) -> list[str]:
     return recipients
 
 
-def _safe_parse_recipient_list(raw_value: str | None) -> list[str]:
-    try:
-        return _parse_recipient_list(raw_value, field_name="correo guardado")
-    except ValueError:
-        return []
-
-
-def _extract_saved_email_copy_recipients(ticket: Ticket) -> list[str]:
-    copied: list[str] = []
-    for message in getattr(ticket, "messages", []) or []:
-        if getattr(message, "channel", "") != "email":
-            continue
-        content = str(getattr(message, "content", "") or "")
-        for match in re.finditer(r"<!--\s*ATC_EMAIL_RECIPIENTS\s+(\{.*?\})\s*-->", content, re.S):
-            try:
-                payload = json.loads(match.group(1))
-            except Exception:
-                continue
-            copied.extend([str(item) for item in payload.get("cc", []) or []])
-    return copied
-
-
 def _resolve_ticket_email_recipients(
     ticket: Ticket,
     *,
@@ -348,43 +338,33 @@ def _resolve_ticket_email_recipients(
     cc: str | None = "",
     bcc: str | None = "",
 ) -> tuple[list[str], list[str], list[str]]:
-    to_override = (to or "").strip()
-    if to_override:
-        # El agente cambio el destinatario a mano para este envio puntual —
-        # no toca el email guardado del solicitante (pedido explicito, jul 2026).
-        to_recipients = _parse_recipient_list(to_override, field_name="destinatario")
-    else:
-        requester_email = (ticket.requester.email if ticket.requester and ticket.requester.email else "").strip()
-        if not requester_email:
-            raise ValueError("El ticket no tiene correo del solicitante para responder.")
-        to_recipients = _parse_recipient_list(requester_email, field_name="correo del cliente")
-
+    # "Para"/"CC"/"CCO" ahora son chips visibles en detalle_ticket.html,
+    # precargados por el server (Para = quien escribio, CC = quienes venian
+    # en copia en el correo entrante — igual que "Responder a todos" de
+    # Gmail) y editables libremente por el agente antes de enviar. Ya no
+    # hace falta ninguna inyeccion automatica aca atras: lo que se ve en el
+    # formulario es exactamente lo que se manda, sin sorpresas (pedido
+    # explicito, ago 2026 — reemplaza el mecanismo anterior de "completar
+    # CC con el hilo" que quedaba invisible para el agente).
+    to_value = (to or "").strip()
+    if not to_value:
+        raise ValueError("Agrega al menos un destinatario en \"Para\" antes de enviar.")
+    to_recipients = _parse_recipient_list(to_value, field_name="destinatario")
     if not to_recipients:
         raise ValueError("El correo del destinatario no es valido para responder.")
 
-    thread_requester_emails: list[str] = []
-    for message in getattr(ticket, "messages", []) or []:
-        if getattr(message, "sender_type", "") != "requester":
-            continue
-        if getattr(message, "channel", "") != "email":
-            continue
-        thread_requester_emails.extend(_safe_parse_recipient_list(getattr(message, "sender_email", "") or ""))
-
-    saved_copy_recipients = _extract_saved_email_copy_recipients(ticket)
-    manual_cc_recipients = _parse_recipient_list(cc, field_name="cc")
-    bcc_recipients = _parse_recipient_list(bcc, field_name="bcc")
-
     to_recipients = _merge_recipient_list(to_recipients)
     excluded = {email.lower() for email in to_recipients}
+
     cc_recipients = []
-    for email_value in _merge_recipient_list(thread_requester_emails, saved_copy_recipients, manual_cc_recipients):
+    for email_value in _merge_recipient_list(_parse_recipient_list(cc, field_name="cc")):
         if email_value.lower() in excluded:
             continue
         excluded.add(email_value.lower())
         cc_recipients.append(email_value)
 
     clean_bcc_recipients = []
-    for email_value in _merge_recipient_list(bcc_recipients):
+    for email_value in _merge_recipient_list(_parse_recipient_list(bcc, field_name="bcc")):
         if email_value.lower() in excluded:
             continue
         excluded.add(email_value.lower())
@@ -973,6 +953,127 @@ def _send_sla_satisfaction_email(ticket: Ticket) -> None:
             }
         ],
 
+    )
+
+
+def _internal_ticket_creator_user(db: Session, ticket: Ticket) -> User | None:
+    if (ticket.source or "").strip().lower() != "internal":
+        return None
+
+    first_message = (
+        db.query(Message)
+        .filter(
+            Message.ticket_id == ticket.id,
+            Message.channel == "internal",
+            Message.is_internal_note == False,
+            Message.sender_id.isnot(None),
+        )
+        .order_by(Message.created_at.asc(), Message.id.asc())
+        .first()
+    )
+    if first_message and first_message.sender_id:
+        user = db.get(User, first_message.sender_id)
+        if user:
+            return user
+
+    requester = ticket.requester
+    requester_email = parseaddr(getattr(requester, "email", "") or "")[1].strip().lower()
+    if requester_email:
+        user = (
+            db.query(User)
+            .filter(func.lower(func.trim(User.email)) == requester_email)
+            .first()
+        )
+        if user:
+            return user
+
+    requester_name = re.sub(r"\s+", " ", getattr(requester, "name", "") or "").strip()
+    if requester_name:
+        return (
+            db.query(User)
+            .filter(func.lower(func.trim(User.name)) == requester_name.casefold())
+            .first()
+        )
+
+    return None
+
+
+def _send_internal_ticket_resolved_email(db: Session, ticket: Ticket, resolved_by: User | None = None) -> None:
+    creator = _internal_ticket_creator_user(db, ticket)
+    if not creator or _is_visible_support_user(creator):
+        return
+
+    visible_message_count = (
+        db.query(Message)
+        .filter(
+            Message.ticket_id == ticket.id,
+            Message.is_internal_note == False,
+        )
+        .count()
+    )
+    if visible_message_count < 2:
+        return
+
+    recipient_email = parseaddr(getattr(creator, "email", "") or "")[1].strip()
+    if not recipient_email or not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", recipient_email):
+        return
+
+    support_mailboxes = _ticket_support_mailboxes()
+    if recipient_email.lower() in support_mailboxes:
+        return
+
+    resolver_name = html.escape((getattr(resolved_by, "name", "") or "Soporte ATC").strip() or "Soporte ATC")
+    creator_name = html.escape((getattr(creator, "name", "") or "Usuario").strip() or "Usuario")
+    subject_text = html.escape(ticket.subject or "Sin asunto")
+    ticket_url = f"{(settings.PUBLIC_BASE_URL or 'https://soporteatc.cl').strip().rstrip('/')}/ticketera/tickets/{ticket.id}"
+    safe_url = html.escape(ticket_url)
+
+    last_reply = (
+        db.query(Message)
+        .filter(
+            Message.ticket_id == ticket.id,
+            Message.sender_type == "agent",
+            Message.is_internal_note == False,
+        )
+        .order_by(Message.created_at.desc(), Message.id.desc())
+        .first()
+    )
+    reply_html = ""
+    if last_reply and (last_reply.content or "").strip():
+        reply_html = (
+            "<div style=\"margin-top:14px;padding:14px 16px;border:1px solid #e2e8f0;"
+            "border-radius:12px;background:#f8fafc;color:#0f172a;\">"
+            "<div style=\"font-size:12px;font-weight:700;color:#475569;margin-bottom:8px;\">Respuesta</div>"
+            f"{last_reply.content}"
+            "</div>"
+        )
+
+    body = f"""
+    <div style="margin:0;padding:24px;background:#f8fafc;font-family:Arial,sans-serif;color:#0f172a;">
+      <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:18px;overflow:hidden;">
+        <div style="padding:22px 26px;background:#0f172a;color:#ffffff;">
+          <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.78;">Ticket interno resuelto</div>
+          <h1 style="margin:8px 0 0;font-size:22px;line-height:1.25;color:#ffffff;">Ticket #{ticket.id}</h1>
+        </div>
+        <div style="padding:24px 26px;">
+          <p style="margin:0 0 14px;font-size:15px;line-height:1.6;">Hola {creator_name},</p>
+          <p style="margin:0 0 14px;font-size:15px;line-height:1.6;">Tu ticket interno fue marcado como resuelto por <strong>{resolver_name}</strong>.</p>
+          <p style="margin:0 0 6px;font-size:14px;color:#475569;">Asunto:</p>
+          <p style="margin:0 0 16px;font-size:16px;font-weight:700;">{subject_text}</p>
+          {reply_html}
+          <p style="margin:18px 0 0;font-size:13px;line-height:1.6;color:#64748b;">Puedes revisar el detalle en: <a href="{safe_url}" style="color:#2563eb;">{safe_url}</a></p>
+        </div>
+      </div>
+    </div>
+    """
+
+    from ATC.app.integrations.email_smtp import send_email_reply
+
+    send_email_reply(
+        to=recipient_email,
+        subject=f"Ticket interno resuelto - #{ticket.id}",
+        body=body,
+        ticket_id=ticket.id,
     )
 
 
@@ -2626,7 +2727,7 @@ def ticketera(
     # Los conteos deben reflejar lo que este usuario puede ver realmente en
     # la lista (mismo filtro de visibilidad por buzon restringido que la
     # query de tickets), no el total global de la BBDD (bug reportado: el
-    # modal mostraba "Open (1)" para un ticket que el usuario no podia ver
+    # modal mostraba "Abierto (1)" para un ticket que el usuario no podia ver
     # porque pertenecia al buzon restringido y no le estaba asignado).
     counts = {
         "all": _apply_ticket_visibility_for_user(db.query(Ticket), current_user).filter(
@@ -2751,7 +2852,7 @@ def etapa_board(
         joinedload(Ticket.requester),
         joinedload(Ticket.assigned_to),
     )
-    # Los tickets marcados "no_ticket" no cuentan como Open/Pendiente/Cerrado
+    # Los tickets marcados "no_ticket" no cuentan como Abierto/Pendiente/Cerrado
     # real (mismo criterio que ticketera, que los excluye de esos conteos) —
     # solo se muestran aqui si ademas cayeron en Spam o Papelera.
     query = query.filter(
@@ -2766,7 +2867,7 @@ def etapa_board(
 
     stage_order = ["open", "pending", "resolved", "spam", "papelera"]
     stage_labels = {
-        "open": "Open",
+        "open": "Abierto",
         "pending": "Pendiente",
         "resolved": "Cerrado",
         "spam": "Spam",
@@ -4620,24 +4721,31 @@ def update_ticket_stage(
     if ticket_source == "email" and requires_reception and not _has_reception_sent(db, ticket.id):
         raise HTTPException(
             status_code=400,
-            detail="Primero debes enviar 'Recepcion de solicitud' antes de mover a Pending o Resolved.",
+            detail="Primero debes enviar 'Recepcion de solicitud' antes de mover a Pendiente o Resuelto.",
         )
 
     if safe_stage == "spam":
         ticket.is_spam = True
         ticket.is_deleted = False
-        apply_ticket_status_change(ticket, "closed")
+        change = apply_ticket_status_change(ticket, "closed")
     elif safe_stage == "papelera":
         ticket.is_deleted = True
         ticket.is_spam = False
-        apply_ticket_status_change(ticket, "closed")
+        change = apply_ticket_status_change(ticket, "closed")
     else:
         ticket.is_deleted = False
         ticket.is_spam = False
         _enforce_status_transition_rules(ticket, safe_stage)
-        apply_ticket_status_change(ticket, safe_stage)
+        change = apply_ticket_status_change(ticket, safe_stage)
 
     db.commit()
+
+    if safe_stage == "resolved" and bool(change["became_resolved"]):
+        try:
+            _send_internal_ticket_resolved_email(db, ticket, current_user)
+        except Exception as exc:
+            print("Error enviando aviso de cierre interno:", exc)
+            print(traceback.format_exc())
 
     return JSONResponse(
         {
@@ -5101,7 +5209,7 @@ def _normalize_requester_name(requester: Requester | None) -> None:
 PENDING_TICKET_STATUSES = ("pending", "pending_service", "pending_client")
 RESOLVED_TICKET_STATUSES = ("resolved", "resolved_service", "resolved_client")
 TICKET_STATUS_LABELS = {
-    "open": "Open",
+    "open": "Abierto",
     "pending": "Pendiente",
     "pending_service": "Pendiente Servicio",
     "pending_client": "Pendiente Cliente",
@@ -5144,7 +5252,7 @@ def _ticket_status_label(status: str | None, is_no_ticket: bool = False) -> str:
     if is_no_ticket:
         return TICKET_STATUS_LABELS["closed"]
     code = _normalize_ticket_status_code(status)
-    return TICKET_STATUS_LABELS.get(code, (status or "Open").strip() or "Open")
+    return TICKET_STATUS_LABELS.get(code, (status or "Abierto").strip() or "Abierto")
 
 
 def _ticket_status_css(status: str | None, is_no_ticket: bool = False) -> str:
@@ -5184,14 +5292,14 @@ def _ticket_is_locked(ticket: Ticket | None) -> bool:
 
 
 def _enforce_status_transition_rules(ticket: Ticket, new_status: str) -> None:
-    # Regla de negocio: no permitimos Open -> Resolved directo.
-    # Debe pasar por Pending para asegurar contacto previo con cliente.
+    # Regla de negocio: no permitimos Abierto -> Resuelto directo.
+    # Debe pasar por Pendiente para asegurar contacto previo con cliente.
     old_status = _normalize_ticket_status_code(ticket.status)
     target_status = _normalize_ticket_status_code(new_status)
     if old_status == "open" and (target_status in RESOLVED_TICKET_STATUSES or target_status == "closed"):
         raise HTTPException(
             status_code=400,
-            detail="No se puede mover de Open a Resuelto directamente. Primero debe pasar por Pendiente.",
+            detail="No se puede mover de Abierto a Resuelto directamente. Primero debe pasar por Pendiente.",
         )
 
 
@@ -5310,9 +5418,56 @@ def ticket_detail(
         db.delete(manual_unread_row)
         db.commit()
 
+    # Direcciones conocidas del hilo (remitentes reales + quienes venian en
+    # copia en esos correos entrantes) para sugerirlas como destinatario al
+    # responder — el agente puede elegir cualquiera de estas o escribir una
+    # completamente distinta (pedido explicito, ago 2026). Se guarda el tipo
+    # ("remitente" vs "copia") para que el front las distinga visualmente
+    # (bubble estilo Gmail para las que fueron copia); si una direccion
+    # aparece como copia en un correo y como remitente directo en otro, gana
+    # "remitente" (es la relacion mas fuerte con el ticket).
+    known_email_recipients_seen: dict[str, str] = {}
+    known_email_recipients: list[dict] = []
+
+    def _register_known_recipient(raw_email: str | None, tipo: str) -> None:
+        email_value = (raw_email or "").strip()
+        if not email_value:
+            return
+        key = email_value.lower()
+        existing_tipo = known_email_recipients_seen.get(key)
+        if existing_tipo is None:
+            known_email_recipients_seen[key] = tipo
+            known_email_recipients.append({"email": email_value, "tipo": tipo})
+        elif existing_tipo == "copia" and tipo == "remitente":
+            known_email_recipients_seen[key] = "remitente"
+            for item in known_email_recipients:
+                if item["email"].lower() == key:
+                    item["tipo"] = "remitente"
+                    break
+
     for m in messages:
         if not m.content:
             continue
+
+        # Los correos entrantes con copia (CC) real llevan un marker
+        # invisible al principio del content (ATC_EMAIL_RECIPIENTS, lo
+        # agrega email_service.py al importar el correo) — se extrae aca
+        # para mostrarlo en el encabezado del mensaje. Antes quedaba
+        # atrapado en un comentario HTML invisible: el agente nunca veia
+        # quien mas habia recibido el correo entrante (pedido explicito,
+        # ago 2026).
+        m.inbound_cc = []
+        if m.sender_type == "requester" and (m.channel or "").strip().lower() == "email":
+            _register_known_recipient(m.sender_email, "remitente")
+            cc_match = re.search(r"<!--\s*ATC_EMAIL_RECIPIENTS\s+(\{.*?\})\s*-->", m.content, re.S)
+            if cc_match:
+                try:
+                    cc_payload = json.loads(cc_match.group(1))
+                    m.inbound_cc = [str(x).strip() for x in (cc_payload.get("cc") or []) if str(x).strip()]
+                except Exception:
+                    m.inbound_cc = []
+            for cc_email in m.inbound_cc:
+                _register_known_recipient(cc_email, "copia")
 
         content = m.content.strip()
         if (m.channel or "").strip().lower() == "email":
@@ -5337,6 +5492,15 @@ def ticket_detail(
         content = content.replace("\n", "<br>")
 
         m.content = Markup(content)
+
+    # La respuesta por defecto debe replicar exactamente como llego el
+    # correo: Para = quien lo mando, CC = quienes iban copiados — igual que
+    # "Responder a todos" de Gmail, visible de entrada en el campo CC (no
+    # una lista aparte para elegir a mano uno por uno) (pedido explicito,
+    # ago 2026).
+    default_cc_value = ", ".join(
+        item["email"] for item in known_email_recipients if item["tipo"] == "copia"
+    )
 
     requester_note_client_name = ticket.requester.display_name if ticket.requester else ""
     requester_notes = _collect_client_internal_notes(
@@ -5409,12 +5573,17 @@ def ticket_detail(
             status_counts[status_code] += 1
 
     requester_display_name = ticket.requester.display_name if ticket.requester else ""
+    requester_email_display = ticket.requester.email if ticket.requester else ""
+    if not (requester_email_display or "").strip() and (ticket.source or "").strip().lower() == "internal":
+        internal_creator = _internal_ticket_creator_user(db, ticket)
+        if internal_creator and not _is_visible_support_user(internal_creator):
+            requester_email_display = parseaddr(getattr(internal_creator, "email", "") or "")[1].strip()
     requester_info = {
         "id": ticket.requester.id if ticket.requester else None,
         "name": ticket.requester.name if ticket.requester else "",
         "internal_name": ticket.requester.internal_name if ticket.requester else "",
         "display_name": requester_display_name,
-        "email": ticket.requester.email if ticket.requester else "",
+        "email": requester_email_display,
         "total_tickets": len(requester_tickets),
         "first_ticket_at": requester_tickets[-1].created_at if requester_tickets else None,
         "last_ticket_at": requester_tickets[0].created_at if requester_tickets else None,
@@ -5592,6 +5761,8 @@ def ticket_detail(
             "odt_derivacion_tipo": odt_derivacion_tipo,
             "correos_enviados": correos_enviados,
             "correos_count": correos_count,
+            "known_email_recipients": known_email_recipients,
+            "default_cc_value": default_cc_value,
             "user_signature": signature_html_for_user(current_user),
         },
     )
@@ -5927,6 +6098,16 @@ def update_status(
         except Exception as exc:
 
             print("Error enviando encuesta SLA:", exc)
+
+            print(traceback.format_exc())
+
+        try:
+
+            _send_internal_ticket_resolved_email(db, ticket, current_user)
+
+        except Exception as exc:
+
+            print("Error enviando aviso de cierre interno:", exc)
 
             print(traceback.format_exc())
 
@@ -6359,6 +6540,16 @@ def update_quick_actions(
 
             print(traceback.format_exc())
 
+        try:
+
+            _send_internal_ticket_resolved_email(db, ticket, current_user)
+
+        except Exception as exc:
+
+            print("Error enviando aviso de cierre interno:", exc)
+
+            print(traceback.format_exc())
+
     return RedirectResponse(
 
         url=f"/ticketera/tickets/{ticket_id}",
@@ -6583,6 +6774,7 @@ def send_ticket_to_service(
             channel="internal",
             content=f"Derivado a {derivacion_clean}. ODT: {odt_value}.",
             is_internal_note=True,
+            created_at=chile_now(),
         )
         db.add(audit_note)
         requester_email = parseaddr(ticket.requester.email if ticket.requester else "")[1].strip()
@@ -6641,6 +6833,7 @@ def send_ticket_to_service(
                         channel="email",
                         content=detalle_derivacion,
                         is_internal_note=False,
+                        created_at=chile_now(),
                     )
                 )
                 correo_info = " Correo enviado al solicitante."
@@ -6656,6 +6849,7 @@ def send_ticket_to_service(
                             f"Detalle: {html.escape(error_text[:220])}"
                         ),
                         is_internal_note=True,
+                        created_at=chile_now(),
                     )
                 )
                 correo_info = " No se pudo enviar el correo automatico."
@@ -6789,6 +6983,7 @@ def derivacion_administrativa(
         # ticket_detail() excluye is_internal_note=True del chat, asi que
         # nunca se veia.
         is_internal_note=False,
+        created_at=chile_now(),
     )
     db.add(audit_note)
     db.commit()
@@ -7093,6 +7288,7 @@ async def ticketera_compose_send_as_ticket(
         channel="email",
         content=body,
         is_internal_note=False,
+        created_at=chile_now(),
     )
     db.add(msg)
     db.commit()
@@ -7294,6 +7490,7 @@ def reply_ticket(
         content=content_for_db,
         is_internal_note=False,
         external_id=out_message_id_db,
+        created_at=chile_now(),
     )
     db.add(msg)
 
@@ -7516,6 +7713,7 @@ async def reply_direct(
                 channel="email",
                 content=content_for_db,
                 is_internal_note=False,
+                created_at=chile_now(),
             ))
             assign_ticket_logic(db, ticket, current_user.id, current_user)
             db.commit()
@@ -8099,11 +8297,17 @@ def create_ticket(
 
     # Buscamos si ya existe uno con el mismo nombre.
 
-    requester = db.query(Requester).filter(
+    current_user_email = parseaddr(getattr(current_user, "email", "") or "")[1].strip().lower()
+    requester = None
+    if current_user_email:
+        requester = db.query(Requester).filter(
+            func.lower(func.trim(Requester.email)) == current_user_email
+        ).first()
 
-        Requester.name == current_user.name
-
-    ).first()
+    if not requester:
+        requester = db.query(Requester).filter(
+            Requester.name == current_user.name
+        ).first()
 
     # ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã‚Â¾ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ Si no existe, lo creamos
 
@@ -8112,9 +8316,8 @@ def create_ticket(
     if not requester:
 
         requester = Requester(
-
-        name=current_user.name  # Nombre del usuario interno
-
+            name=current_user.name,  # Nombre del usuario interno
+            email=current_user_email or None,
         )
 
         db.add(requester)          # Lo agregamos a la sesiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n
@@ -8122,6 +8325,9 @@ def create_ticket(
         db.commit()                # Guardamos en base de datos
 
         db.refresh(requester)      # Refrescamos para obtener el ID generado
+    elif current_user_email and not (requester.email or "").strip():
+        requester.email = current_user_email
+        db.commit()
 
     # =====================================
 
@@ -8201,7 +8407,9 @@ def create_ticket(
 
         content=content,
 
-        is_internal_note=False       # opcional pero recomendable
+        is_internal_note=False,       # opcional pero recomendable
+
+        created_at=chile_now(),
 
     )
 
@@ -8232,9 +8440,26 @@ _SOPORTE_BOOL_FIELDS = {
 _SERVICIO_BOOL_FIELDS = {"instalacion_finalizada", "finalizado"}
 _ST_BOOL_FIELDS = _SOPORTE_BOOL_FIELDS | _SERVICIO_BOOL_FIELDS
 
-_SOPORTE_TEXT_FIELDS = {"requiere_puesto_nuevo", "numero_central_asignado"}
+_SOPORTE_TEXT_FIELDS = {"requiere_puesto_nuevo", "numero_central_asignado", "pantalla_asignada"}
 _SERVICIO_TEXT_FIELDS = {"materiales_bodega"}
 _ST_TEXT_FIELDS = _SOPORTE_TEXT_FIELDS | _SERVICIO_TEXT_FIELDS
+_ST_PANTALLAS_4 = ("Izquierda Arriba", "Derecha Arriba", "Izquierda Abajo", "Derecha Abajo")
+_ST_PANTALLAS_6 = (
+    "Izquierda Arriba", "Centro Arriba", "Derecha Arriba",
+    "Izquierda Abajo", "Centro Abajo", "Derecha Abajo",
+)
+_ST_PANTALLA_ALIASES = {
+    "IZQUIERDA ARRIBA": "Izquierda Arriba",
+    "IZQ ARRIBA": "Izquierda Arriba",
+    "DERECHA ARRIBA": "Derecha Arriba",
+    "DER ARRIBA": "Derecha Arriba",
+    "IZQUIERDA ABAJO": "Izquierda Abajo",
+    "IZQ ABAJO": "Izquierda Abajo",
+    "DERECHA ABAJO": "Derecha Abajo",
+    "DER ABAJO": "Derecha Abajo",
+    "CENTRO ARRIBA": "Centro Arriba",
+    "CENTRO ABAJO": "Centro Abajo",
+}
 
 _SOPORTE_BOOL_DATE: dict[str, str] = {
     "configuracion_camaras": "fecha_configuracion_camaras",
@@ -8253,6 +8478,7 @@ _SERVICIO_BOOL_DATE: dict[str, str] = {
 _ST_BOOL_DATE: dict[str, str] = {**_SOPORTE_BOOL_DATE, **_SERVICIO_BOOL_DATE}
 _st_campos_ok = False
 _soporte_campos_ok = False
+_sucursal_camaras_sync_campos_ok = False
 
 
 def _ensure_st_campos(db: Session) -> None:
@@ -8317,6 +8543,7 @@ def _ensure_soporte_campos(db: Session) -> None:
                 fecha_vb_final_servicio DATETIME2,
                 requiere_puesto_nuevo VARCHAR(20),
                 numero_central_asignado VARCHAR(40),
+                pantalla_asignada VARCHAR(120),
                 camaras_registradas NVARCHAR(MAX),
                 imagenes_ejecutivo_envios NVARCHAR(MAX),
                 updated_at DATETIME2 DEFAULT GETDATE()
@@ -8333,6 +8560,9 @@ def _ensure_soporte_campos(db: Session) -> None:
             "IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE name='fecha_terminado' AND object_id=OBJECT_ID('venta_soporte_tecnico')) ALTER TABLE venta_soporte_tecnico ADD fecha_terminado DATETIME2"
         ))
         db.execute(text(
+            "IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE name='pantalla_asignada' AND object_id=OBJECT_ID('venta_soporte_tecnico')) ALTER TABLE venta_soporte_tecnico ADD pantalla_asignada VARCHAR(120)"
+        ))
+        db.execute(text(
             "IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name='ix_venta_soporte_tecnico_odt' AND object_id=OBJECT_ID('venta_soporte_tecnico')) CREATE INDEX ix_venta_soporte_tecnico_odt ON venta_soporte_tecnico (odt)"
         ))
         db.commit()
@@ -8344,6 +8574,237 @@ def _ensure_soporte_campos(db: Session) -> None:
     _soporte_campos_ok = True
 
     _st_campos_ok = True
+
+
+def _ensure_sucursal_camaras_sync_campos(db: Session) -> None:
+    global _sucursal_camaras_sync_campos_ok
+    if _sucursal_camaras_sync_campos_ok:
+        return
+    try:
+        db.execute(text(
+            "IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE name='odt_origen' AND object_id=OBJECT_ID('sucursal_camaras_monitoreo')) ALTER TABLE sucursal_camaras_monitoreo ADD odt_origen VARCHAR(30)"
+        ))
+        db.execute(text(
+            "IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name='ix_sucursal_camaras_monitoreo_odt_origen' AND object_id=OBJECT_ID('sucursal_camaras_monitoreo')) CREATE INDEX ix_sucursal_camaras_monitoreo_odt_origen ON sucursal_camaras_monitoreo (odt_origen)"
+        ))
+        db.commit()
+    except Exception:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+    _sucursal_camaras_sync_campos_ok = True
+
+
+def _st_parse_puesto(value: object) -> int | None:
+    match = re.search(r"\d+", str(value or ""))
+    if not match:
+        return None
+    puesto = int(match.group(0))
+    return puesto if 1 <= puesto <= 29 else None
+
+
+def _st_pantallas_de_puesto(puesto: int) -> tuple[str, ...]:
+    return _ST_PANTALLAS_4 if puesto <= 12 else _ST_PANTALLAS_6
+
+
+def _st_normalizar_pantalla(value: object, puesto: int | None = None) -> str | None:
+    raw = " ".join(str(value or "").strip().upper().split())
+    pantalla = _ST_PANTALLA_ALIASES.get(raw)
+    if not pantalla:
+        return None
+    if puesto and pantalla not in _st_pantallas_de_puesto(puesto):
+        return None
+    return pantalla
+
+
+def _st_find_sucursal_para_ods(db: Session, ods_row) -> tuple[int | None, str]:
+    rut = str(ods_row.get("rut_cliente") or "").strip()
+    nombre = str(ods_row.get("nombre_sucursal") or "").strip()
+    direccion = str(ods_row.get("direccion_sucursal") or "").strip()
+    razon = str(ods_row.get("razon_social") or "").strip()
+    candidates = [
+        (
+            """
+            SELECT TOP 1 id, nombre_sucursal
+            FROM bbdd_sucursales
+            WHERE LOWER(TRIM(rut)) = LOWER(TRIM(:rut))
+              AND LOWER(TRIM(nombre_sucursal)) = LOWER(TRIM(:nombre))
+            ORDER BY id ASC
+            """,
+            {"rut": rut, "nombre": nombre},
+            bool(rut and nombre),
+        ),
+        (
+            """
+            SELECT TOP 1 id, nombre_sucursal
+            FROM bbdd_sucursales
+            WHERE LOWER(TRIM(rut)) = LOWER(TRIM(:rut))
+              AND LOWER(TRIM(direccion_sucursal)) = LOWER(TRIM(:direccion))
+            ORDER BY id ASC
+            """,
+            {"rut": rut, "direccion": direccion},
+            bool(rut and direccion),
+        ),
+        (
+            """
+            SELECT TOP 1 id, nombre_sucursal
+            FROM bbdd_sucursales
+            WHERE LOWER(TRIM(nombre_sucursal)) = LOWER(TRIM(:nombre))
+              AND LOWER(TRIM(direccion_sucursal)) = LOWER(TRIM(:direccion))
+            ORDER BY id ASC
+            """,
+            {"nombre": nombre, "direccion": direccion},
+            bool(nombre and direccion),
+        ),
+        (
+            """
+            SELECT TOP 1 id, nombre_sucursal
+            FROM bbdd_sucursales
+            WHERE LOWER(TRIM(nombre_sucursal)) = LOWER(TRIM(:nombre))
+            ORDER BY id ASC
+            """,
+            {"nombre": nombre},
+            bool(nombre),
+        ),
+    ]
+    for query, params, enabled in candidates:
+        if not enabled:
+            continue
+        row = db.execute(text(query), params).mappings().first()
+        if row:
+            return int(row.get("id")), str(row.get("nombre_sucursal") or nombre or razon).strip()
+    return None, nombre or razon
+
+
+def _st_camaras_existentes_sucursal(db: Session, ods_row, exclude_odt: str = "") -> dict[str, object]:
+    _ensure_sucursal_camaras_sync_campos(db)
+    sucursal_id, nombre_sucursal = _st_find_sucursal_para_ods(db, ods_row)
+    if not sucursal_id:
+        return {"sucursal_id": None, "sucursal": nombre_sucursal, "camaras": []}
+
+    rows = db.execute(text("""
+        SELECT
+            id,
+            COALESCE(nombre_camara_monitoreo, camara_sin_monitoreo, nombre_servidor, '') AS camara,
+            central,
+            ubicacion_pantalla,
+            COALESCE(odt_origen, '') AS odt_origen
+        FROM sucursal_camaras_monitoreo
+        WHERE sucursal_id = :sucursal_id
+          AND COALESCE(TRIM(COALESCE(nombre_camara_monitoreo, camara_sin_monitoreo, nombre_servidor, '')), '') <> ''
+          AND (
+            :exclude_odt = ''
+            OR LOWER(TRIM(COALESCE(odt_origen, ''))) <> LOWER(TRIM(:exclude_odt))
+          )
+        ORDER BY central, ubicacion_pantalla, id
+    """), {"sucursal_id": sucursal_id, "exclude_odt": exclude_odt}).mappings().all()
+    vistos: set[str] = set()
+    camaras: list[dict[str, object]] = []
+    for row in rows:
+        nombre = str(row.get("camara") or "").strip()
+        if not nombre:
+            continue
+        key = f"{row.get('id')}|{nombre.casefold()}"
+        if key in vistos:
+            continue
+        vistos.add(key)
+        central = row.get("central")
+        camaras.append({
+            "id": int(row.get("id")),
+            "camara": nombre,
+            "central": int(central) if central is not None else None,
+            "pantalla": str(row.get("ubicacion_pantalla") or "").strip(),
+            "odtOrigen": str(row.get("odt_origen") or "").strip(),
+        })
+    return {"sucursal_id": sucursal_id, "sucursal": nombre_sucursal, "camaras": camaras}
+
+
+def _st_sync_camaras_sucursal(db: Session, codigo: str, reemplazos: list[int] | None = None) -> dict[str, object]:
+    _ensure_sucursal_camaras_sync_campos(db)
+    row = db.execute(text("""
+        SELECT TOP 1
+            v.codigo,
+            v.rut_cliente,
+            v.nombre_sucursal,
+            v.razon_social,
+            v.direccion_sucursal,
+            sp.numero_central_asignado,
+            sp.pantalla_asignada,
+            sp.camaras_registradas
+        FROM venta_comercial v
+        LEFT JOIN venta_soporte_tecnico sp
+            ON LOWER(TRIM(sp.odt)) = LOWER(TRIM(v.codigo))
+        WHERE LOWER(TRIM(v.codigo)) = LOWER(TRIM(:c))
+        ORDER BY v.id DESC
+    """), {"c": codigo}).mappings().first()
+    if not row:
+        return {"synced": False, "reason": "ODS no encontrada"}
+
+    db.execute(
+        text("DELETE FROM sucursal_camaras_monitoreo WHERE LOWER(TRIM(COALESCE(odt_origen, ''))) = LOWER(TRIM(:c))"),
+        {"c": codigo},
+    )
+
+    puesto = _st_parse_puesto(row.get("numero_central_asignado"))
+    pantalla = _st_normalizar_pantalla(row.get("pantalla_asignada"), puesto)
+    camaras = [str(v or "").strip() for v in _st_parse_json_list(row.get("camaras_registradas"))]
+    camaras = [camara for camara in camaras if camara]
+    if not puesto or not pantalla or not camaras:
+        return {"synced": False, "reason": "Faltan puesto, pantalla o cámaras"}
+
+    sucursal_id, nombre_sucursal = _st_find_sucursal_para_ods(db, row)
+    if not sucursal_id:
+        return {"synced": False, "reason": "Sucursal no encontrada en bbdd_sucursales"}
+
+    reemplazos_ids = sorted({int(v) for v in (reemplazos or []) if str(v).strip().isdigit()})
+    for reemplazo_id in reemplazos_ids:
+        db.execute(text("""
+            DELETE FROM sucursal_camaras_monitoreo
+            WHERE id = :id
+              AND sucursal_id = :sucursal_id
+        """), {"id": reemplazo_id, "sucursal_id": sucursal_id})
+
+    total = len(camaras)
+    for camara in camaras:
+        db.execute(text("""
+            INSERT INTO sucursal_camaras_monitoreo (
+                sucursal_id,
+                nombre_bitacora,
+                nombre_servidor,
+                central,
+                servidor,
+                cantidad_camaras,
+                nombre_camara_monitoreo,
+                cantidad_equipos,
+                camara_sin_monitoreo,
+                ubicacion_pantalla,
+                odt_origen
+            )
+            VALUES (
+                :sucursal_id,
+                :nombre_bitacora,
+                :nombre_servidor,
+                :central,
+                NULL,
+                :cantidad_camaras,
+                :nombre_camara_monitoreo,
+                1,
+                NULL,
+                :ubicacion_pantalla,
+                :odt_origen
+            )
+        """), {
+            "sucursal_id": sucursal_id,
+            "nombre_bitacora": nombre_sucursal,
+            "nombre_servidor": camara,
+            "central": puesto,
+            "cantidad_camaras": total,
+            "nombre_camara_monitoreo": camara,
+            "ubicacion_pantalla": pantalla,
+            "odt_origen": codigo,
+        })
+    return {"synced": True, "camaras": total, "sucursal_id": sucursal_id}
 
 
 def _st_bool_val(v: object) -> str:
@@ -8375,6 +8836,15 @@ def _st_es_solo_televigilancia(tipo_servicio: object) -> bool:
     ]
     partes = [part for part in partes if part]
     return len(partes) == 1 and partes[0] == "televigilancia"
+
+
+def _st_ods_contiene_televigilancia(db: Session, codigo: str) -> bool:
+    tipo_servicio = db.execute(text("""
+        SELECT TOP 1 tipo_servicio
+        FROM venta_comercial
+        WHERE LOWER(TRIM(codigo)) = LOWER(TRIM(:c))
+    """), {"c": codigo}).scalar_one_or_none()
+    return "televigilancia" in _st_normalize_service_part(tipo_servicio)
 
 
 def _st_parse_json_list(value: object) -> list:
@@ -8455,6 +8925,7 @@ def st_ods_filas(
             COALESCE(sp.plan_grabacion, 0),
             COALESCE(sp.requiere_puesto_nuevo, ''),
             COALESCE(sp.numero_central_asignado, ''),
+            COALESCE(sp.pantalla_asignada, ''),
             COALESCE(sp.configuracion_cliente, 0),
             COALESCE(sp.vb_final_servicio, 0),
             COALESCE(sp.terminado, 0)
@@ -8509,9 +8980,10 @@ def st_ods_filas(
             _st_bool_val(r[15]),
             r[16] or "",
             r[17] or "",
-            _st_bool_val(r[18]),
+            r[18] or "",
             _st_bool_val(r[19]),
             _st_bool_val(r[20]),
+            _st_bool_val(r[21]),
             r[8] or "",
         ])
     return result
@@ -8562,6 +9034,7 @@ def st_ods_detalle(
         materiales_bodega = json.loads(materiales_bodega_raw) if materiales_bodega_raw else None
     except Exception:
         materiales_bodega = None
+    camaras_existentes = _st_camaras_existentes_sucursal(db, row, exclude_odt=codigo)
     return {
         "camarasInstalar": str(row.get("numero_camaras_instalar") or ""),
         "camarasVigilar": str(row.get("numero_camaras_vigilar") or ""),
@@ -8577,6 +9050,9 @@ def st_ods_detalle(
         "contactoNombre": str(contacto.get("nombre") or "") if contacto else "",
         "contactoTelefono": str(contacto.get("telefono") or "") if contacto else "",
         "materialesBodega": materiales_bodega,
+        "camarasExistentesSucursal": camaras_existentes.get("camaras") or [],
+        "sucursalExistenteId": camaras_existentes.get("sucursal_id"),
+        "sucursalExistenteNombre": str(camaras_existentes.get("sucursal") or ""),
     }
 
 
@@ -8728,11 +9204,29 @@ def st_ods_actualizar_valor(
     _ = current_user
     _ensure_st_campos(db)
     _ensure_soporte_campos(db)
+    _ensure_sucursal_camaras_sync_campos(db)
     codigo = str(payload.get("codigo") or "").strip()
     campo = str(payload.get("campo") or "").strip()
     valor = str(payload.get("valor") or "").strip()
     if not codigo or campo not in _ST_TEXT_FIELDS:
         raise HTTPException(status_code=400, detail="Parametros invalidos")
+    if campo in {"numero_central_asignado", "pantalla_asignada"} and valor and not _st_ods_contiene_televigilancia(db, codigo):
+        raise HTTPException(status_code=400, detail="N° de central y pantalla solo aplican si el tipo de servicio contiene Televigilancia.")
+    if campo == "numero_central_asignado" and valor and not _st_parse_puesto(valor):
+        raise HTTPException(status_code=400, detail="El N° de central debe estar entre 1 y 29.")
+    if campo == "pantalla_asignada" and valor:
+        central_actual = db.execute(text("""
+            SELECT TOP 1 numero_central_asignado
+            FROM venta_soporte_tecnico
+            WHERE LOWER(TRIM(odt)) = LOWER(TRIM(:c))
+        """), {"c": codigo}).scalar_one_or_none()
+        puesto = _st_parse_puesto(central_actual)
+        pantalla = _st_normalizar_pantalla(valor, puesto)
+        if not puesto:
+            raise HTTPException(status_code=400, detail="Debes registrar primero el N° de central asignado.")
+        if not pantalla:
+            raise HTTPException(status_code=400, detail="Pantalla inválida para el puesto seleccionado.")
+        valor = pantalla
     tabla = "venta_soporte_tecnico" if campo in _SOPORTE_TEXT_FIELDS else "venta_servicio_tecnico"
     previous_value = ""
     row_actual = db.execute(text(
@@ -8748,9 +9242,25 @@ def st_ods_actualizar_valor(
         db.execute(text(
             f"INSERT INTO {tabla} (odt, {campo}) VALUES (:odt, :v)"
         ), {"odt": codigo, "v": valor or None})
+    if campo == "numero_central_asignado":
+        puesto = _st_parse_puesto(valor)
+        pantalla_actual = db.execute(text("""
+            SELECT TOP 1 pantalla_asignada
+            FROM venta_soporte_tecnico
+            WHERE LOWER(TRIM(odt)) = LOWER(TRIM(:c))
+        """), {"c": codigo}).scalar_one_or_none()
+        if not puesto or (pantalla_actual and not _st_normalizar_pantalla(pantalla_actual, puesto)):
+            db.execute(text("""
+                UPDATE venta_soporte_tecnico
+                SET pantalla_asignada = NULL
+                WHERE LOWER(TRIM(odt)) = LOWER(TRIM(:c))
+            """), {"c": codigo})
+    sync_result: dict[str, object] = {"synced": False}
+    if campo in {"numero_central_asignado", "pantalla_asignada"}:
+        sync_result = _st_sync_camaras_sucursal(db, codigo)
     db.commit()
     email_result: dict[str, object] = {"email_sent": False, "email_to": [], "email_error": ""}
-    if campo in _SOPORTE_TEXT_FIELDS and valor != previous_value:
+    if campo in {"requiere_puesto_nuevo", "numero_central_asignado"} and valor != previous_value:
         soporte_vals = db.execute(text("""
             SELECT COALESCE(requiere_puesto_nuevo, '') AS requiere_puesto_nuevo,
                    COALESCE(numero_central_asignado, '') AS numero_central_asignado
@@ -8769,7 +9279,7 @@ def st_ods_actualizar_valor(
         if debe_notificar:
             from ATC.app.services.venta_trace_email_service import notify_puesto_soporte
             email_result = notify_puesto_soporte(db, codigo, requiere_puesto, numero_puesto)
-    return {"ok": True, **email_result}
+    return {"ok": True, "sync": sync_result, **email_result}
 
 
 @router.post("/api/soporte-tecnico/ods/guardar-camaras")
@@ -8779,14 +9289,23 @@ def st_ods_guardar_camaras(
 ):
     service = IncidenciasService(db)
     _ensure_soporte_campos(db)
+    _ensure_sucursal_camaras_sync_campos(db)
     codigo = str(payload.get("odt") or payload.get("codigo") or "").strip()
     ids = payload.get("ids") or []
+    reemplazos_raw = payload.get("reemplazos") or []
     token = str(payload.get("token") or "").strip()
     if not codigo:
         raise HTTPException(status_code=400, detail="Codigo ODT requerido")
     if token and not service.usuario_logueado_por_token(token):
         raise HTTPException(status_code=401, detail="No autenticado")
     incoming = [str(v or "").strip() for v in ids]
+    reemplazos = []
+    for value in (reemplazos_raw if isinstance(reemplazos_raw, list) else []):
+        try:
+            reemplazo_id = int(value or 0)
+        except Exception:
+            reemplazo_id = 0
+        reemplazos.append(reemplazo_id if reemplazo_id > 0 else None)
     if not any(incoming):
         raise HTTPException(status_code=400, detail="Debes registrar al menos una cámara")
 
@@ -8804,6 +9323,11 @@ def st_ods_guardar_camaras(
         raise HTTPException(status_code=400, detail=f"Debes registrar {total_vigilar_int} cámara(s).")
     if any(not v for v in incoming):
         raise HTTPException(status_code=400, detail="Debes completar todas las cámaras.")
+    if reemplazos and len(reemplazos) != len(incoming):
+        raise HTTPException(status_code=400, detail="Los reemplazos no coinciden con la cantidad de cámaras.")
+    reemplazos_validos = [int(v) for v in reemplazos if v]
+    if len(reemplazos_validos) != len(set(reemplazos_validos)):
+        raise HTTPException(status_code=400, detail="Una cámara existente no puede ser reemplazada dos veces en la misma ODS.")
 
     eid = db.execute(text(
         "SELECT TOP 1 id, camaras_registradas FROM venta_soporte_tecnico WHERE LOWER(TRIM(odt)) = LOWER(TRIM(:c))"
@@ -8829,8 +9353,14 @@ def st_ods_guardar_camaras(
         db.execute(text(
             "INSERT INTO venta_soporte_tecnico (odt, camaras_registradas) VALUES (:odt, :v)"
         ), {"odt": codigo, "v": ids_json})
+    sync_result = _st_sync_camaras_sucursal(db, codigo, reemplazos_validos)
     db.commit()
-    return {"ok": True, "mensaje": f"{len([v for v in merged if v])} camaras guardadas", "ids": merged}
+    return {
+        "ok": True,
+        "mensaje": f"{len([v for v in merged if v])} camaras guardadas",
+        "ids": merged,
+        "sync": sync_result,
+    }
 
 
 @router.post("/api/soporte-tecnico/ods/guardar-materiales-bodega")

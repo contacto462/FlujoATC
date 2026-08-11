@@ -1,10 +1,10 @@
 ﻿<!DOCTYPE html>
 <html lang="es">
 <head>
-<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
-<link rel="shortcut icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png?v=2">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png?v=2">
+<link rel="shortcut icon" href="/favicon.ico?v=2">
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -82,6 +82,33 @@ html, body{
   min-height:100%;
   overflow-x:hidden;
 }
+
+html{
+  scrollbar-color: rgba(15,23,42,.28) transparent;
+}
+html.dark-mode{
+  scrollbar-color: rgba(148,163,184,.45) rgba(15,23,42,.5);
+}
+html::-webkit-scrollbar{ width:12px; height:12px; }
+html::-webkit-scrollbar-track{ background:transparent; }
+html::-webkit-scrollbar-thumb{
+  background: rgba(15,23,42,.22);
+  border-radius:10px;
+  border:3px solid transparent;
+  background-clip:content-box;
+}
+html::-webkit-scrollbar-thumb:hover{ background: rgba(15,23,42,.34); background-clip:content-box; }
+html.dark-mode::-webkit-scrollbar-track{ background: rgba(15,23,42,.35); }
+html.dark-mode::-webkit-scrollbar-thumb{ background: rgba(148,163,184,.4); background-clip:content-box; }
+html.dark-mode::-webkit-scrollbar-thumb:hover{ background: rgba(148,163,184,.58); background-clip:content-box; }
+
+/* El sidebar es siempre oscuro (su propio fondo no cambia con el tema de
+   la pagina), asi que su scrollbar tambien va siempre claro-sobre-oscuro. */
+.sidebar{ scrollbar-color: rgba(255,255,255,.25) transparent; }
+.sidebar::-webkit-scrollbar{ width:8px; }
+.sidebar::-webkit-scrollbar-track{ background:transparent; }
+.sidebar::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.2); border-radius:10px; }
+.sidebar::-webkit-scrollbar-thumb:hover{ background: rgba(255,255,255,.32); }
 
 body{
   margin:0;
@@ -220,19 +247,29 @@ body.sidebar-collapsed .sidebar-rail-toggle{
 }
 
 .sidebar-section{
-  margin-top: 14px;
+  margin-top: 16px;
   padding: 0 8px;
-  font-size:10px;
-  letter-spacing:.14em;
+  font-size:12.5px;
+  font-weight:800;
+  letter-spacing:.08em;
   text-transform:uppercase;
-  color: var(--sidebar-muted);
+  color: rgba(255,255,255,.7);
 }
 
 .nav{
   display:flex;
   flex-direction:column;
   gap:4px;
-  margin-top: 6px;
+  margin-top: 8px;
+}
+
+/* Grupos sin titulo propio (ej. Borradores, que repetiria su unico link) —
+   se separan del grupo anterior con una linea sutil en vez de un
+   sidebar-section redundante. */
+.nav-standalone{
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,.08);
 }
 
 .sidebar a{
@@ -245,6 +282,7 @@ body.sidebar-collapsed .sidebar-rail-toggle{
   text-decoration:none;
   color: var(--sidebar-text);
   font-size:12px;
+  font-weight:600;
   transition: background .18s ease, transform .18s ease, color .18s ease;
   border: 1px solid transparent;
 }
@@ -2300,6 +2338,31 @@ body.dark-mode .modal .btn-secondary:hover{
   accent-color:#2563eb;
 }
 
+.select-all-row{
+  display:flex;
+  align-items:center;
+  margin: 0 0 10px;
+}
+.select-all-check{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  cursor:pointer;
+  font-size:13px;
+  font-weight:600;
+  color:var(--muted);
+  user-select:none;
+}
+.select-all-check input{
+  width:16px;
+  height:16px;
+  cursor:pointer;
+  accent-color:#2563eb;
+}
+.select-all-check:hover{ color:var(--text); }
+body.dark-mode .select-all-check{ color:#94a3b8; }
+body.dark-mode .select-all-check:hover{ color:#e2e8f0; }
+
 .bulk-actions-bar{
   display:flex;
   align-items:center;
@@ -3161,10 +3224,31 @@ body.dark-mode .kpi.kpi-resolved{
   <a href="/etapa">
     Etapa
   </a>
+</nav>
+
+<nav class="nav nav-standalone">
   <a href="#" id="borradoresNavLink" onclick="openBorradoresModal(); return false;">
     <span>Borradores</span>
     <span class="pill" id="borradoresCountBadge" hidden>0</span>
   </a>
+</nav>
+
+<div class="sidebar-section">Estado</div>
+<nav class="nav">
+  <a href="/ticketera?scope=all" class="{{ 'active' if scope_filters == ['all'] else '' }}"><span>Todos</span><span class="pill">{{ counts['all'] }}</span></a>
+  <a href="/ticketera?scope=open" class="{{ 'active' if scope_filters == ['open'] else '' }}"><span>Abierto</span><span class="pill">{{ counts['open'] }}</span></a>
+  <a href="/ticketera?scope=pending" class="{{ 'active' if scope_filters == ['pending'] else '' }}"><span>Pendiente</span><span class="pill">{{ counts['pending'] }}</span></a>
+  <a href="/ticketera?scope=resolved" class="{{ 'active' if scope_filters == ['resolved'] else '' }}"><span>Resuelto</span><span class="pill">{{ counts['resolved'] }}</span></a>
+  <a href="/ticketera?scope=spam" class="{{ 'active' if scope_filters == ['spam'] else '' }}"><span>Spam</span><span class="pill">{{ counts['spam'] }}</span></a>
+  <a href="/ticketera?scope=trash" class="{{ 'active' if scope_filters == ['trash'] else '' }}"><span>Papelera</span><span class="pill">{{ counts['trash'] }}</span></a>
+</nav>
+
+<div class="sidebar-section">Usuarios</div>
+<nav class="nav">
+  <a href="/ticketera?user_filter=unassigned" class="{{ 'active' if user_filters == ['unassigned'] else '' }}"><span>Sin asignar</span></a>
+  {% for u in users %}
+  <a href="/ticketera?user_filter={{ u.id }}" class="{{ 'active' if user_filters == [u.id|string] else '' }}"><span>{{ u.name }}</span></a>
+  {% endfor %}
 </nav>
 
     <div class="sidebar-footer">
@@ -3271,6 +3355,14 @@ body.dark-mode .kpi.kpi-resolved{
       </div>
 
 </div>
+      {% if tickets %}
+      <div class="select-all-row">
+        <label class="select-all-check" title="Selecciona todos los tickets de esta pagina">
+          <input type="checkbox" id="selectAllTicketsCheckbox" onchange="toggleSelectAllTickets(this)">
+          <span>Seleccionar todo</span>
+        </label>
+      </div>
+      {% endif %}
       <div id="bulkActionsBar" class="bulk-actions-bar" hidden>
         <span id="bulkSelectedCount">0 seleccionados</span>
         <button type="button" class="bulk-mark-read-btn" data-mode="read" onclick="bulkMarkSelectedToggle()">Marcar como leídos</button>
@@ -3546,7 +3638,7 @@ body.dark-mode .kpi.kpi-resolved{
           <h4 class="filter-section-title">Bandeja</h4>
           <div class="filter-chip-group" data-multifilter="scope">
             <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="scope" value="all" {{ 'checked' if 'all' in scope_filters else '' }}><span>Todos ({{ counts['all'] }})</span></label>
-            <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="scope" value="open" {{ 'checked' if 'open' in scope_filters else '' }}><span>Open ({{ counts['open'] }})</span></label>
+            <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="scope" value="open" {{ 'checked' if 'open' in scope_filters else '' }}><span>Abierto ({{ counts['open'] }})</span></label>
             <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="scope" value="pending" {{ 'checked' if 'pending' in scope_filters else '' }}><span>Pendiente ({{ counts['pending'] }})</span></label>
             <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="scope" value="resolved" {{ 'checked' if 'resolved' in scope_filters else '' }}><span>Resuelto ({{ counts['resolved'] }})</span></label>
             <label class="filter-chip-option"><input class="filter-chip-input" type="checkbox" name="scope" value="spam" {{ 'checked' if 'spam' in scope_filters else '' }}><span>Spam ({{ counts['spam'] }})</span></label>
@@ -3789,6 +3881,11 @@ body.dark-mode .kpi.kpi-resolved{
   function applyTheme(mode, persist = true) {
     const dark = mode === "dark";
     body.classList.toggle("dark-mode", dark);
+    // El scrollbar de la ventana lo pinta el navegador segun el overflow
+    // del <html>, no del <body> — sin esta clase en <html> tambien, el
+    // scroll seguia gris/claro aunque el resto de la pagina ya estuviera
+    // en modo oscuro.
+    document.documentElement.classList.toggle("dark-mode", dark);
     themeBtn.checked = dark;
     if (persist) {
       localStorage.setItem(themeKey, dark ? "dark" : "light");
@@ -3969,11 +4066,21 @@ function bulkSelectionMode() {
   return hasUnread ? "read" : "unread";
 }
 
+function syncSelectAllCheckbox() {
+  const selectAll = document.getElementById("selectAllTicketsCheckbox");
+  if (!selectAll) return;
+  const all = document.querySelectorAll(".ticket-bulk-checkbox");
+  const selected = selectedTicketCheckboxes();
+  selectAll.checked = all.length > 0 && selected.length === all.length;
+  selectAll.indeterminate = selected.length > 0 && selected.length < all.length;
+}
+
 function onTicketCheckboxChange() {
   const bar = document.getElementById("bulkActionsBar");
   const countEl = document.getElementById("bulkSelectedCount");
   const btn = document.querySelector(".bulk-mark-read-btn");
   const selected = selectedTicketCheckboxes();
+  syncSelectAllCheckbox();
   if (!bar || !countEl) return;
   if (selected.length > 0) {
     bar.hidden = false;
@@ -3986,6 +4093,14 @@ function onTicketCheckboxChange() {
   } else {
     bar.hidden = true;
   }
+}
+
+function toggleSelectAllTickets(checkbox) {
+  // Los tickets del DOM son siempre los de la pagina actual (paginacion
+  // por servidor), asi que "seleccionar todo" nunca alcanza tickets de
+  // otras paginas.
+  document.querySelectorAll(".ticket-bulk-checkbox").forEach((cb) => { cb.checked = checkbox.checked; });
+  onTicketCheckboxChange();
 }
 
 function clearTicketSelection() {
@@ -4074,6 +4189,7 @@ function _formatDraftDate(ts) {
   if (!ts) return "";
   try {
     return new Date(ts).toLocaleString("es-CL", {
+      timeZone: "America/Santiago",
       day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
     });
   } catch (_err) {
@@ -5474,9 +5590,6 @@ body.dark-mode .cw-status.err{color:#f87171;}
 <script src="/static/atc-volver.js"></script>
 </body>
 </html>
-
-
-
 
 
 

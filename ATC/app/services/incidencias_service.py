@@ -22,7 +22,7 @@ from email.message import EmailMessage
 from html import escape as html_escape
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, quote_plus, urlsplit
+from urllib.parse import parse_qs, quote_plus, urlencode, urlsplit
 from zoneinfo import ZoneInfo
 import xml.etree.ElementTree as ET
 
@@ -229,6 +229,97 @@ class AreaInfo:
     name: str
     department: str
 _GEOCODE_CACHE: dict[str, tuple[str, str]] = {}
+
+_GOOGLE_GEOCODE_URL = "https://maps.googleapis.com/maps/api/geocode/json"
+
+
+def _limpiar_nombre_region_google(nombre: str) -> str:
+    n = (nombre or "").strip()
+    for prefijo in ("Región del ", "Región de ", "Región "):
+        if n.startswith(prefijo):
+            return n[len(prefijo):].strip()
+    return n
+
+
+def _parsear_componentes_google(address_components: list[dict]) -> tuple[str, str]:
+    region = ""
+    comuna = ""
+    locality = ""
+    for comp in address_components or []:
+        types = comp.get("types", [])
+        if "administrative_area_level_1" in types:
+            region = _limpiar_nombre_region_google(comp.get("long_name", ""))
+        elif "administrative_area_level_3" in types:
+            comuna = comp.get("long_name", "")
+        elif "locality" in types and not locality:
+            locality = comp.get("long_name", "")
+    if not comuna:
+        comuna = locality
+    return region, comuna
+
+
+def _llamar_google_geocoding(params: dict) -> dict:
+    if not settings.google_maps_api_key:
+        raise ValueError("GOOGLE_MAPS_API_KEY no está configurada.")
+    query = {**params, "key": settings.google_maps_api_key, "language": "es", "region": "cl"}
+    url = f"{_GOOGLE_GEOCODE_URL}?{urlencode(query)}"
+    req = urllib.request.Request(url, headers={"Accept": "application/json"})
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
+
+def geocodificar_region_comuna_google(*, direccion: str = "", lat: str = "", lng: str = "") -> tuple[str, str, str]:
+    """Devuelve (region, comuna, error) usando la API de Geocoding de Google.
+    Prioriza coordenadas si se entregan; si no, usa la direccion."""
+    try:
+        if lat and lng:
+            data = _llamar_google_geocoding({"latlng": f"{lat},{lng}"})
+        elif direccion:
+            data = _llamar_google_geocoding({"address": direccion, "components": "country:CL"})
+        else:
+            return "", "", "sin_direccion_ni_coordenadas"
+    except Exception as exc:
+        return "", "", f"error_llamada: {exc}"
+
+    if data.get("status") != "OK" or not data.get("results"):
+        return "", "", f"geocode_status={data.get('status')}"
+
+    region, comuna = _parsear_componentes_google(data["results"][0].get("address_components", []))
+    if not region and not comuna:
+        return "", "", "sin_componentes_admin"
+    return region, comuna, ""
+
+
+def _normalizar_comparable_geo(valor: str) -> str:
+    n = unicodedata.normalize("NFD", (valor or "").lower())
+    return "".join(c for c in n if unicodedata.category(c) != "Mn").strip()
+
+
+def validar_region_comuna_google(region: str, comuna: str) -> tuple[bool, str, str]:
+    """Verifica que `comuna` efectivamente pertenezca a `region` segun Google
+    Maps (independiente de coordenadas guardadas, que pueden estar mal
+    cargadas). Devuelve (valido, region_sugerida_por_google, mensaje_error)."""
+    region_txt = (region or "").strip()
+    comuna_txt = (comuna or "").strip()
+    if not comuna_txt:
+        return False, "", "Debes indicar una comuna."
+    if not region_txt:
+        return False, "", "Debes indicar una región."
+
+    region_real, _comuna_real, error = geocodificar_region_comuna_google(direccion=f"{comuna_txt}, Chile")
+    if error:
+        return False, "", f"No se pudo verificar '{comuna_txt}' en Google Maps ({error})."
+    if not region_real:
+        return False, "", f"Google Maps no devolvió una región para '{comuna_txt}'."
+
+    if _normalizar_comparable_geo(region_real) != _normalizar_comparable_geo(region_txt):
+        return False, region_real, (
+            f"La comuna '{comuna_txt}' no pertenece a la región '{region_txt}' — "
+            f"según Google Maps pertenece a la región '{region_real}'."
+        )
+    return True, region_real, ""
+
+
 _COORD_FALLBACK_CL: list[tuple[tuple[str, ...], tuple[str, str]]] = [
     (("valparaiso", "valparaiso"), ("-33.0472", "-71.6127")),
     (("vina del mar", "vinaa del mar", "vina"), ("-33.0245", "-71.5518")),
@@ -4104,45 +4195,49 @@ class IncidenciasService:
                 return v.strftime("%Y-%m-%d %H:%M:%S")
             return ""
 
-        def _build_direccion_cache() -> dict[str, str]:
-            cache: dict[str, str] = {}
+        def _build_direccion_cache() -> dict[str, tuple[str, str, str, str, int]]:
+            # valor: (direccion, region, comuna, tabla, id) — tabla/id identifican
+            # el registro real (SucursalBBDD o ClienteBBDD) para poder editar
+            # region/comuna despues desde la UI (ver actualizar_region_comuna_sucursal).
+            cache: dict[str, tuple[str, str, str, str, int]] = {}
 
-            def add(nombre: Any, direccion: Any) -> None:
+            def add(nombre: Any, direccion: Any, region: Any, comuna: Any, tabla: str, entidad_id: Any) -> None:
                 nombre_txt = str(nombre or "").strip()
                 direccion_txt = str(direccion or "").strip()
                 if not nombre_txt or not direccion_txt:
                     return
+                valor = (direccion_txt, str(region or "").strip(), str(comuna or "").strip(), tabla, int(entidad_id))
                 for key in {
                     self._normalizar_texto(nombre_txt),
                     self._normalizar_nombre_sucursal_match(nombre_txt),
                 }:
                     if key and key not in cache:
-                        cache[key] = direccion_txt
+                        cache[key] = valor
 
             try:
-                for nombre_sucursal, direccion_sucursal in self.db.execute(
-                    select(SucursalBBDD.nombre_sucursal, SucursalBBDD.direccion_sucursal)
+                for suc_id, nombre_sucursal, direccion_sucursal, region, comuna in self.db.execute(
+                    select(SucursalBBDD.id, SucursalBBDD.nombre_sucursal, SucursalBBDD.direccion_sucursal, SucursalBBDD.region, SucursalBBDD.comuna)
                     .where(SucursalBBDD.direccion_sucursal.is_not(None))
                 ).all():
-                    add(nombre_sucursal, direccion_sucursal)
+                    add(nombre_sucursal, direccion_sucursal, region, comuna, "sucursal", suc_id)
             except Exception:
                 self.db.rollback()
 
             try:
-                for cliente, direccion in self.db.execute(
-                    select(ClienteBBDD.cliente, ClienteBBDD.direccion)
+                for cli_id, cliente, direccion, region, comuna in self.db.execute(
+                    select(ClienteBBDD.id, ClienteBBDD.cliente, ClienteBBDD.direccion, ClienteBBDD.region, ClienteBBDD.comuna)
                     .where(ClienteBBDD.direccion.is_not(None))
                 ).all():
-                    add(cliente, direccion)
+                    add(cliente, direccion, region, comuna, "cliente", cli_id)
             except Exception:
                 self.db.rollback()
 
             return cache
 
-        def _direccion_cliente_cached(cliente: str, cache: dict[str, str]) -> str:
+        def _direccion_cliente_cached(cliente: str, cache: dict[str, tuple[str, str, str, str, int]]) -> tuple[str, str, str, str, int]:
             cliente_txt = str(cliente or "").strip()
             if not cliente_txt:
-                return ""
+                return ("", "", "", "", 0)
             key_exacta = self._normalizar_texto(cliente_txt)
             if key_exacta in cache:
                 return cache[key_exacta]
@@ -4150,14 +4245,14 @@ class IncidenciasService:
             if objetivo in cache:
                 return cache[objetivo]
 
-            mejor_direccion = ""
+            mejor = ("", "", "", "", 0)
             mejor_score = 0
-            for nombre_norm, direccion in cache.items():
+            for nombre_norm, valor in cache.items():
                 score = self._score_nombre_sucursal_match(objetivo, nombre_norm)
                 if score > mejor_score:
                     mejor_score = score
-                    mejor_direccion = direccion
-            return mejor_direccion if mejor_score >= 60 else ""
+                    mejor = valor
+            return mejor if mejor_score >= 60 else ("", "", "", "", 0)
 
         def _es_terminal_tecnico(row: Registro) -> bool:
             derivacion = self._normalizar_texto(getattr(row, "derivacion", "") or "")
@@ -4228,7 +4323,8 @@ class IncidenciasService:
             if tecnico_norm and not self._fila_aplica_a_tecnico(r, tecnico_norm):
                 continue
             sucursal = str(r.cliente or "").strip()
-            direccion = str(r.direccion or "").strip() or _direccion_cliente_cached(sucursal, direccion_cache)
+            direccion_bd, region, comuna, geo_tabla, geo_id = _direccion_cliente_cached(sucursal, direccion_cache)
+            direccion = str(r.direccion or "").strip() or direccion_bd
             # Para incidencias_servicio_tecnico.html la observacion visible debe salir de "observacion"
             # y no de "detalle_problema".
             detalle = str(r.observacion or "").strip()
@@ -4258,6 +4354,10 @@ class IncidenciasService:
                 envios_info.get(str(r.odt or "").strip(), {"total": 0, "claves": [], "contactos": [], "ultimo_envio": ""}),
                 _fmt_fecha_raw(getattr(r, "fecha_inicio_trabajo", None)),
                 _fmt_fecha_raw(getattr(r, "fecha_fin_trabajo", None)),
+                region,
+                comuna,
+                geo_tabla,
+                geo_id or "",
             ])
             odt_key = self._normalizar_texto(r.odt)
             if odt_key:
@@ -4267,7 +4367,7 @@ class IncidenciasService:
             try:
                 rows_venta = (
                     self.db.execute(
-                        select(VentaODS, ServicioTecnicoVentaODT, AdministracionODT)
+                        select(VentaODS, ServicioTecnicoVentaODT, AdministracionODT, SoporteTecnicoVentaODT)
                         .outerjoin(
                             ServicioTecnicoVentaODT,
                             func.lower(func.trim(ServicioTecnicoVentaODT.odt)) == func.lower(func.trim(VentaODS.codigo)),
@@ -4275,6 +4375,10 @@ class IncidenciasService:
                         .outerjoin(
                             AdministracionODT,
                             func.lower(func.trim(AdministracionODT.odt)) == func.lower(func.trim(VentaODS.codigo)),
+                        )
+                        .outerjoin(
+                            SoporteTecnicoVentaODT,
+                            func.lower(func.trim(SoporteTecnicoVentaODT.odt)) == func.lower(func.trim(VentaODS.codigo)),
                         )
                         .where(VentaODS.estado != "Anulada")
                         .order_by(VentaODS.created_at.asc(), VentaODS.id.asc())
@@ -4284,7 +4388,7 @@ class IncidenciasService:
             except Exception:
                 rows_venta = []
 
-            for ods, st, adm in rows_venta:
+            for ods, st, adm, soporte in rows_venta:
                 tecnico_venta = str(getattr(st, "tecnico_a_cargo", "") or getattr(adm, "tecnico", "") or "").strip()
                 acompanante_venta = str(getattr(st, "acompanante", "") or getattr(adm, "acompanante", "") or "").strip()
                 if not tecnico_venta and not acompanante_venta:
@@ -4299,14 +4403,23 @@ class IncidenciasService:
                     continue
 
                 estado_venta = str(ods.estado or "").strip() or "Pendiente"
-                venta_finalizada = bool(
-                    st
-                    and (
-                        getattr(st, "finalizado", False)
-                        or getattr(st, "instalacion_finalizada", False)
-                        or getattr(st, "fecha_cierre", None)
+                tipo_servicio_norm = self._normalizar_texto(ods.tipo_servicio or "")
+                if "televigilancia" in tipo_servicio_norm:
+                    venta_finalizada = bool(
+                        soporte
+                        and (
+                            getattr(soporte, "terminado", False)
+                            or getattr(soporte, "fecha_terminado", None)
+                        )
                     )
-                )
+                else:
+                    venta_finalizada = bool(
+                        st
+                        and (
+                            getattr(st, "finalizado", False)
+                            or getattr(st, "fecha_cierre", None)
+                        )
+                    )
                 estado_visible = "Terminado" if venta_finalizada else "En Proceso"
                 fecha_ref = (
                     getattr(st, "fecha_recepcion_solicitud_instalacion", None)
@@ -7535,6 +7648,7 @@ class IncidenciasService:
         client_name: str,
         content: bytes,
         token: str = "",
+        usuario_fallback: str = "",
     ) -> dict[str, Any]:
         client_id_limpio = (client_id or "").strip()
         if not client_id_limpio:
@@ -7544,7 +7658,7 @@ class IncidenciasService:
 
         usuario = self.get_usuario_actual((token or "").strip())
         if not usuario or usuario == "Desconocido":
-            usuario = "Usuario no identificado"
+            usuario = (usuario_fallback or "").strip() or "Usuario no identificado"
 
         carpeta_cliente = self._CIERRE_APERTURA_UPLOADS_DIR / re.sub(r"[^A-Za-z0-9_-]+", "_", client_id_limpio)
         carpeta_cliente.mkdir(parents=True, exist_ok=True)
@@ -7571,6 +7685,7 @@ class IncidenciasService:
             "ok": True,
             "id": fila.id,
             "url": f"/uploads/{ruta_relativa}",
+            "created_by": fila.created_by,
             "created_at": fila.created_at.isoformat(),
         }
 
@@ -9629,6 +9744,91 @@ class IncidenciasService:
                     smtp.send_message(msg)
         except Exception as exc:
             raise ValueError(f"No se pudo enviar correo automatico a {to_email}: {exc}") from exc
+
+    def _enviar_correo_cambio_region_comuna(
+        self,
+        *,
+        nombre: str,
+        region_anterior: str,
+        comuna_anterior: str,
+        region_nueva: str,
+        comuna_nueva: str,
+        observacion: str,
+        usuario: str,
+    ) -> None:
+        asunto = f"ATC | Cambio de Región/Comuna — {nombre}"
+        anterior = f"{region_anterior or '(vacío)'} / {comuna_anterior or '(vacío)'}"
+        nueva = f"{region_nueva or '(vacío)'} / {comuna_nueva or '(vacío)'}"
+        cuerpo = (
+            f'Se actualizó la Región/Comuna de "{nombre}".\n\n'
+            f"Anterior: {anterior}\n"
+            f"Nuevo: {nueva}\n\n"
+            f"Motivo: {observacion}\n\n"
+            f"Realizado por: {usuario or 'Desconocido'}\n"
+            f"Fecha: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+        )
+        cfg_contacto = self._contacto_smtp_runtime_config()
+        self._enviar_correo_automatico(
+            "contacto@alguientecuida.cl",
+            asunto,
+            cuerpo,
+            cfg_override=cfg_contacto,
+        )
+
+    def actualizar_region_comuna_sucursal(
+        self,
+        *,
+        tabla: str,
+        entidad_id: int,
+        region: str,
+        comuna: str,
+        observacion: str,
+        usuario: str,
+    ) -> dict[str, Any]:
+        tabla_norm = (tabla or "").strip().lower()
+        region_txt = (region or "").strip()
+        comuna_txt = (comuna or "").strip()
+        observacion_txt = (observacion or "").strip()
+
+        if tabla_norm not in {"sucursal", "cliente"} or not entidad_id:
+            raise ValueError("No se pudo identificar el registro a actualizar.")
+        if not observacion_txt:
+            raise ValueError("Debes indicar una observación explicando el cambio.")
+
+        valido, region_google, mensaje = validar_region_comuna_google(region_txt, comuna_txt)
+        if not valido:
+            raise ValueError(mensaje)
+        region_txt = region_google or region_txt
+
+        modelo = SucursalBBDD if tabla_norm == "sucursal" else ClienteBBDD
+        entidad = self.db.get(modelo, int(entidad_id))
+        if not entidad:
+            raise ValueError("No se encontró el registro a actualizar.")
+
+        nombre = str(getattr(entidad, "nombre_sucursal", "") or getattr(entidad, "cliente", "") or "").strip()
+        region_anterior = str(entidad.region or "").strip()
+        comuna_anterior = str(entidad.comuna or "").strip()
+
+        entidad.region = region_txt
+        entidad.comuna = comuna_txt
+        self.db.commit()
+
+        try:
+            self._enviar_correo_cambio_region_comuna(
+                nombre=nombre,
+                region_anterior=region_anterior,
+                comuna_anterior=comuna_anterior,
+                region_nueva=region_txt,
+                comuna_nueva=comuna_txt,
+                observacion=observacion_txt,
+                usuario=usuario,
+            )
+            email_enviado = True
+        except Exception:
+            LOGGER.exception("No se pudo enviar el correo de aviso de cambio de región/comuna para %s", nombre)
+            email_enviado = False
+
+        return {"ok": True, "region": region_txt, "comuna": comuna_txt, "email_enviado": email_enviado}
 
     def registrar_envio_informacion_contacto(
         self, data: EnviarInformacionContactoRequest

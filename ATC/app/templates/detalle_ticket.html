@@ -1,10 +1,10 @@
 ﻿<!DOCTYPE html>
 <html lang="es">
 <head>
-<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
-<link rel="shortcut icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png?v=2">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png?v=2">
+<link rel="shortcut icon" href="/favicon.ico?v=2">
 
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -1236,6 +1236,13 @@ select::-ms-expand{
   font-size:10.5px;
   overflow-wrap:anywhere;
 }
+.who-cc{
+  font-weight:400;
+  color:var(--muted);
+  font-size:10px;
+  font-style:italic;
+  overflow-wrap:anywhere;
+}
 .dot{
   width:7px;height:7px;border-radius:999px;
   background:#94a3b8;
@@ -1443,6 +1450,70 @@ select::-ms-expand{
 .cc-chip-typing::placeholder{
   color:#94a3b8;
 }
+.contact-ac-dropdown{
+  display:none;
+  position:absolute;
+  left:0;
+  right:0;
+  top:calc(100% + 4px);
+  z-index:60;
+  max-height:260px;
+  overflow-y:auto;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:10px;
+  box-shadow:0 12px 24px rgba(15,23,42,.16);
+}
+.contact-ac-dropdown.open{ display:block; }
+.contact-ac-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  width:100%;
+  border:0;
+  background:transparent;
+  padding:8px 12px;
+  text-align:left;
+  cursor:pointer;
+}
+.contact-ac-item:hover,
+.contact-ac-item.active{
+  background:#eff6ff;
+}
+.contact-ac-avatar{
+  flex:none;
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  background:var(--primary, #2563eb);
+  color:#fff;
+  font-size:12px;
+  font-weight:700;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.contact-ac-info{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+  overflow:hidden;
+}
+.contact-ac-name{
+  font-size:12.5px;
+  font-weight:600;
+  color:var(--text);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.contact-ac-email{
+  font-size:11px;
+  color:#64748b;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
 .send.reception-action{
   height:36px;
   padding:0 14px;
@@ -1619,6 +1690,9 @@ select::-ms-expand{
 #replyForm.is-collapsed .composer-row{
   display:none;
 }
+.gmail-recipients-wrap{
+  position:relative;
+}
 .gmail-head{
   display:flex;
   justify-content:space-between;
@@ -1632,6 +1706,12 @@ select::-ms-expand{
   gap:8px;
   flex:1;
   min-width:0;
+}
+#replyToSuggest{
+  position:absolute;
+  left:12px;
+  right:12px;
+  top:100%;
 }
 .gmail-to-row span{
   font-size:12px;
@@ -1711,6 +1791,20 @@ select::-ms-expand{
   border-color:#93c5fd;
   background:#fff;
   box-shadow:0 0 0 3px rgba(59,130,246,.12);
+}
+.gmail-chip-box{
+  width:100%;
+  min-height:30px;
+  border-radius:8px;
+  background:#f8fafc;
+}
+.gmail-chip-box:focus-within{
+  border-color:#93c5fd;
+  background:#fff;
+  box-shadow:0 0 0 3px rgba(59,130,246,.12);
+}
+.gmail-chip-box .cc-chip-typing{
+  font-size:12.5px;
 }
 .gmail-editor{
   min-height:170px;
@@ -2563,6 +2657,21 @@ body.is-inline-image-resizing{
 .requester-alias-suggest button:hover{
   background:#eff6ff;
 }
+.reply-to-option{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.reply-to-chip{
+  pointer-events:none;
+}
+.reply-to-tag{
+  font-size:10px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.03em;
+  color:var(--muted);
+}
 .requester-statuses{
   display:flex;
   align-items:center;
@@ -3156,6 +3265,7 @@ body.is-inline-image-resizing{
                           {% else %}
                             <div class="who-name">{{ ticket.requester.display_name if ticket.requester else "Cliente" }}</div>
                           {% endif %}
+                          {% if m.inbound_cc %}<div class="who-cc">CC: {{ m.inbound_cc | join(", ") }}</div>{% endif %}
                         {% else %}
                           <div class="who-name">{{ m.sender.name if m.sender else "Agente" }}</div>
                         {% endif %}
@@ -3261,44 +3371,51 @@ body.is-inline-image-resizing{
 
               <div class="gmail-compose">
                 {% if (ticket.source or "").strip().lower() == "email" %}
-                  <div class="gmail-head">
-                    <label class="gmail-to-row">
-                      <span>Para</span>
-                      <input
-                        type="text"
-                        name="to"
-                        id="replyToInput"
-                        value="{{ ticket.requester.email if ticket.requester and ticket.requester.email else '' }}"
-                        placeholder="destinatario@correo.cl"
-                        {% if ticket_locked %}disabled{% endif %}
-                      >
-                    </label>
-                    <div class="gmail-meta-links">
-                      <button id="toggleCcBtn" class="gmail-meta-link" type="button" {% if ticket_locked %}disabled{% endif %}>CC</button>
-                      <button id="toggleBccBtn" class="gmail-meta-link" type="button" {% if ticket_locked %}disabled{% endif %}>CCO</button>
+                  <div class="gmail-recipients-wrap">
+                    <div class="gmail-head">
+                      <label class="gmail-to-row">
+                        <span>Para</span>
+                        <div id="replyToChips" class="cc-chip-box gmail-chip-box" {% if ticket_locked %}data-disabled="1"{% endif %}>
+                          <input
+                            type="text"
+                            id="replyToTyping"
+                            class="cc-chip-typing"
+                            placeholder="destinatario@correo.cl"
+                            autocomplete="off"
+                            {% if ticket_locked %}disabled{% endif %}
+                          >
+                        </div>
+                        <input type="hidden" name="to" id="replyToValue" value="{{ ticket.requester.email if ticket.requester and ticket.requester.email else '' }}">
+                      </label>
+                      <div class="gmail-meta-links">
+                        <button id="toggleCcBtn" class="gmail-meta-link" type="button" {% if ticket_locked %}disabled{% endif %}>CC</button>
+                        <button id="toggleBccBtn" class="gmail-meta-link" type="button" {% if ticket_locked %}disabled{% endif %}>CCO</button>
+                      </div>
                     </div>
-                  </div>
-                  <div id="recipientsPanel" class="gmail-meta-fields hidden">
-                    <label id="ccFieldWrap" class="gmail-meta-field hidden">
-                      <span>CC</span>
-                      <input
-                        type="text"
-                        name="cc"
-                        value=""
-                        placeholder="copias visibles"
-                        {% if ticket_locked %}disabled{% endif %}
-                      >
-                    </label>
-                    <label id="bccFieldWrap" class="gmail-meta-field hidden">
-                      <span>CCO</span>
-                      <input
-                        type="text"
-                        name="bcc"
-                        value=""
-                        placeholder="copias ocultas"
-                        {% if ticket_locked %}disabled{% endif %}
-                      >
-                    </label>
+                    <div id="recipientsPanel" class="gmail-meta-fields{% if not default_cc_value %} hidden{% endif %}">
+                      <label id="ccFieldWrap" class="gmail-meta-field{% if not default_cc_value %} hidden{% endif %}">
+                        <span>CC</span>
+                        <div id="replyCcChips" class="cc-chip-box gmail-chip-box" {% if ticket_locked %}data-disabled="1"{% endif %}>
+                          <input type="text" id="replyCcTyping" class="cc-chip-typing" placeholder="copias visibles" {% if ticket_locked %}disabled{% endif %}>
+                        </div>
+                        <input type="hidden" name="cc" id="replyCcValue" value="{{ default_cc_value }}">
+                      </label>
+                      <label id="bccFieldWrap" class="gmail-meta-field hidden">
+                        <span>CCO</span>
+                        <div id="replyBccChips" class="cc-chip-box gmail-chip-box" {% if ticket_locked %}data-disabled="1"{% endif %}>
+                          <input type="text" id="replyBccTyping" class="cc-chip-typing" placeholder="copias ocultas" {% if ticket_locked %}disabled{% endif %}>
+                        </div>
+                        <input type="hidden" name="bcc" id="replyBccValue" value="">
+                      </label>
+                    </div>
+                    <!-- Fuera de .gmail-to-row a proposito: si se ancla ahi,
+                         "top:100%" cae justo encima del panel de CC/CCO
+                         cuando esta abierto y lo tapa. Anclado a este wrapper
+                         (que incluye Para + CC/CCO), top:100% siempre queda
+                         debajo de todo lo que este visible (pedido explicito,
+                         ago 2026: "que salga abajo"). -->
+                    <div id="replyToSuggest" class="requester-alias-suggest" role="listbox" aria-label="Sugerencias de destinatario"></div>
+                    <script id="replyToRecipientsData" type="application/json">{{ known_email_recipients|tojson }}</script>
                   </div>
                 {% endif %}
 
@@ -3478,7 +3595,7 @@ body.is-inline-image-resizing{
         <div class="panel-b">
           <div class="req-kv req-kv-email">
             <div class="k">Correo electrónico</div>
-            <div class="v">{{ ticket.requester.email if ticket.requester.email else "-" }}</div>
+            <div class="v">{{ requester_info.email if requester_info.email else "-" }}</div>
           </div>
 
           <div class="notes-wrap">
@@ -3709,7 +3826,7 @@ body.is-inline-image-resizing{
         <div class="k">Estados</div>
         <div class="v">
           <div class="requester-statuses">
-            <span class="requester-status-pill open">Open: {{ requester_info.status_counts.open }}</span>
+            <span class="requester-status-pill open">Abierto: {{ requester_info.status_counts.open }}</span>
             <span class="requester-status-pill pending">Pendiente: {{ requester_info.status_counts.pending }}</span>
             <span class="requester-status-pill pending">Pendiente Servicio: {{ requester_info.status_counts.pending_service }}</span>
             <span class="requester-status-pill pending">Pendiente Cliente: {{ requester_info.status_counts.pending_client }}</span>
@@ -4031,6 +4148,360 @@ body.is-inline-image-resizing{
       if ((input.value || "").trim()) {
         input.dispatchEvent(new Event("input"));
       }
+    });
+
+    document.addEventListener("click", (ev) => {
+      if (ev.target === input || suggest.contains(ev.target)) return;
+      closeSuggest();
+    });
+  })();
+</script>
+
+<script>
+  // Para/CC/CCO de "Mesa tecnica" como chips estilo Gmail: cada correo
+  // queda en su propia burbuja removible en vez de una lista separada por
+  // comas; escribir y presionar Enter/coma/Tab (o pegar una lista, o hacer
+  // blur) la convierte en burbuja. Mismo patron que ya usaba el campo CC de
+  // "Recepcion de solicitud", generalizado aca para reusarlo en los 3
+  // campos (pedido explicito, ago 2026).
+  function createReplyChipBox(boxEl, typingEl, hiddenEl) {
+    if (!boxEl || !typingEl || !hiddenEl) return null;
+    if (boxEl.dataset.disabled === "1") return null;
+
+    const emails = [];
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    function sync() {
+      hiddenEl.value = emails.join(", ");
+    }
+
+    function renderChip(addr) {
+      const valido = EMAIL_RE.test(addr);
+      const chip = document.createElement("span");
+      chip.className = "cc-chip" + (valido ? "" : " invalid");
+      chip.title = valido ? addr : `"${addr}" no parece un correo valido`;
+
+      const label = document.createElement("span");
+      label.textContent = addr;
+      chip.appendChild(label);
+
+      const removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.className = "cc-chip-remove";
+      removeBtn.setAttribute("aria-label", `Quitar ${addr}`);
+      removeBtn.textContent = "×";
+      removeBtn.addEventListener("click", () => {
+        const idx = emails.indexOf(addr);
+        if (idx !== -1) emails.splice(idx, 1);
+        chip.remove();
+        sync();
+      });
+      chip.appendChild(removeBtn);
+      boxEl.insertBefore(chip, typingEl);
+    }
+
+    function addAddress(raw) {
+      const addr = String(raw || "").trim().replace(/[,;]+$/, "");
+      if (!addr) return;
+      if (emails.includes(addr)) return;
+      emails.push(addr);
+      renderChip(addr);
+      sync();
+    }
+
+    function addFromText(text) {
+      String(text || "")
+        .split(/[,;\n]+/)
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .forEach(addAddress);
+    }
+
+    // Backspace con el campo vacio NO borra la ultima burbuja a proposito
+    // — es muy facil pasarse tecleando y borrar mas de un correo sin
+    // querer. La unica forma de sacar un correo es con el boton "×" de su
+    // burbuja (pedido explicito, ago 2026).
+    typingEl.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === "," || event.key === ";" || event.key === "Tab") {
+        if (!typingEl.value.trim()) return;
+        event.preventDefault();
+        addFromText(typingEl.value);
+        typingEl.value = "";
+      }
+    });
+
+    typingEl.addEventListener("blur", () => {
+      if (typingEl.value.trim()) {
+        addFromText(typingEl.value);
+        typingEl.value = "";
+      }
+    });
+
+    typingEl.addEventListener("paste", (event) => {
+      const pasted = (event.clipboardData || window.clipboardData).getData("text");
+      if (pasted && /[,;\n]/.test(pasted)) {
+        event.preventDefault();
+        addFromText(pasted);
+        typingEl.value = "";
+      }
+    });
+
+    boxEl.addEventListener("click", (event) => {
+      if (event.target === boxEl) typingEl.focus();
+    });
+
+    // El valor inicial (destinatario por defecto, o el CC precargado segun
+    // como llego el correo) viaja en el input hidden desde el server —
+    // convertirlo a chips apenas se arma el box.
+    const seed = hiddenEl.value || "";
+    hiddenEl.value = "";
+    if (seed) addFromText(seed);
+
+    return { addAddress, addFromText, getEmails: () => emails.slice() };
+  }
+
+  const replyToChipApi = createReplyChipBox(
+    document.getElementById("replyToChips"),
+    document.getElementById("replyToTyping"),
+    document.getElementById("replyToValue")
+  );
+  const replyCcChipApi = createReplyChipBox(
+    document.getElementById("replyCcChips"),
+    document.getElementById("replyCcTyping"),
+    document.getElementById("replyCcValue")
+  );
+  const replyBccChipApi = createReplyChipBox(
+    document.getElementById("replyBccChips"),
+    document.getElementById("replyBccTyping"),
+    document.getElementById("replyBccValue")
+  );
+
+  // Autocompletado contra TODOS los correos conocidos del sistema (no solo
+  // los de este ticket) — mismo endpoint que ya usa "Redactar correo" en
+  // ticketera.html (busca por nombre/correo en la tabla de solicitantes),
+  // asi no hay que volver a tipear un correo que ya se uso antes en otro
+  // ticket (pedido explicito, ago 2026).
+  function wireContactAutocomplete(typingEl, onSelect) {
+    if (!typingEl) return;
+    const wrap = typingEl.closest(".cc-chip-box");
+    if (!wrap) return;
+    wrap.style.position = "relative";
+
+    const dd = document.createElement("div");
+    dd.className = "contact-ac-dropdown";
+    wrap.appendChild(dd);
+
+    let debTimer = null;
+    let lastQ = null;
+    let activeIdx = -1;
+    let currentItems = [];
+
+    function closeDd() {
+      dd.classList.remove("open");
+      dd.innerHTML = "";
+      activeIdx = -1;
+      currentItems = [];
+    }
+
+    function highlight() {
+      Array.from(dd.children).forEach((el, idx) => el.classList.toggle("active", idx === activeIdx));
+    }
+
+    function selectItem(i) {
+      const item = currentItems[i];
+      if (!item || !item.email) return;
+      onSelect(item.email);
+      typingEl.value = "";
+      closeDd();
+      typingEl.focus();
+    }
+
+    function renderItems(items) {
+      currentItems = items;
+      activeIdx = -1;
+      dd.innerHTML = "";
+      if (!items.length) {
+        closeDd();
+        return;
+      }
+      items.forEach((item, i) => {
+        const el = document.createElement("button");
+        el.type = "button";
+        el.className = "contact-ac-item";
+        const av = document.createElement("span");
+        av.className = "contact-ac-avatar";
+        av.textContent = (item.name || item.email || "?")[0].toUpperCase();
+        const info = document.createElement("span");
+        info.className = "contact-ac-info";
+        const nm = document.createElement("span");
+        nm.className = "contact-ac-name";
+        nm.textContent = item.name || item.email;
+        const em = document.createElement("span");
+        em.className = "contact-ac-email";
+        em.textContent = item.email;
+        info.append(nm, em);
+        el.append(av, info);
+        el.addEventListener("mousedown", (ev) => {
+          ev.preventDefault();
+          selectItem(i);
+        });
+        el.addEventListener("mouseenter", () => {
+          activeIdx = i;
+          highlight();
+        });
+        dd.appendChild(el);
+      });
+      dd.classList.add("open");
+    }
+
+    async function fetchContacts(q) {
+      if (q === lastQ) return;
+      lastQ = q;
+      if (q.length < 2) {
+        closeDd();
+        return;
+      }
+      try {
+        const r = await fetch(`/ticketera/compose/contacts?q=${encodeURIComponent(q)}`, { credentials: "same-origin" });
+        const data = await r.json();
+        if (lastQ === q) renderItems(data);
+      } catch (_) {
+        closeDd();
+      }
+    }
+
+    typingEl.addEventListener("input", () => {
+      clearTimeout(debTimer);
+      debTimer = setTimeout(() => fetchContacts(typingEl.value.trim()), 200);
+    });
+
+    typingEl.addEventListener("keydown", (ev) => {
+      if (!dd.classList.contains("open")) return;
+      if (ev.key === "ArrowDown") {
+        ev.preventDefault();
+        activeIdx = Math.min(activeIdx + 1, currentItems.length - 1);
+        highlight();
+      } else if (ev.key === "ArrowUp") {
+        ev.preventDefault();
+        activeIdx = Math.max(activeIdx - 1, 0);
+        highlight();
+      } else if (ev.key === "Enter" && activeIdx >= 0) {
+        ev.preventDefault();
+        selectItem(activeIdx);
+      } else if (ev.key === "Escape") {
+        closeDd();
+      }
+    });
+
+    document.addEventListener("mousedown", (ev) => {
+      if (!dd.contains(ev.target) && ev.target !== typingEl) closeDd();
+    });
+  }
+
+  if (replyToChipApi) wireContactAutocomplete(document.getElementById("replyToTyping"), replyToChipApi.addAddress);
+  if (replyCcChipApi) wireContactAutocomplete(document.getElementById("replyCcTyping"), replyCcChipApi.addAddress);
+  if (replyBccChipApi) wireContactAutocomplete(document.getElementById("replyBccTyping"), replyBccChipApi.addAddress);
+
+  // "Para" no puede quedar vacio al enviar — antes lo bloqueaba el atributo
+  // required nativo, pero ahora el input real (name="to") es hidden (los
+  // navegadores ignoran required en inputs hidden), asi que se valida a mano.
+  (function () {
+    const form = document.getElementById("replyForm");
+    const toValue = document.getElementById("replyToValue");
+    if (!form || !toValue) return;
+    form.addEventListener("submit", (event) => {
+      if (String(toValue.name || "") !== "to") return;
+      if (toValue.disabled) return;
+      if (!toValue.value.trim()) {
+        event.preventDefault();
+        if (typeof mostrarAvisoTicket === "function") {
+          mostrarAvisoTicket("Agrega al menos un destinatario en \"Para\" antes de enviar.", "Falta el destinatario");
+        } else {
+          alert("Agrega al menos un destinatario en \"Para\" antes de enviar.");
+        }
+      }
+    });
+  })();
+</script>
+
+<script>
+  (function () {
+    const input = document.getElementById("replyToTyping");
+    const suggest = document.getElementById("replyToSuggest");
+    const dataEl = document.getElementById("replyToRecipientsData");
+    if (!input || !suggest || !dataEl) return;
+
+    let source = [];
+    try {
+      source = JSON.parse(dataEl.textContent || "[]");
+      if (!Array.isArray(source)) source = [];
+    } catch (_) {
+      source = [];
+    }
+    if (!source.length) return;
+
+    function closeSuggest() {
+      suggest.classList.remove("open");
+      suggest.innerHTML = "";
+    }
+
+    // Cada item trae {email, tipo}: "remitente" (mando directamente algun
+    // correo del hilo) se ve como fila de texto normal; "copia" (solo
+    // aparecio en el CC de algun correo entrante) se ve como bubble, mismo
+    // estilo que los chips de CC del resto de la pagina — para distinguir
+    // de un vistazo quien fue el que realmente escribio vs quien solo iba
+    // copiado (pedido explicito, ago 2026).
+    function openSuggest(items) {
+      suggest.innerHTML = "";
+      for (const item of items.slice(0, 12)) {
+        const email = item && item.email ? item.email : "";
+        if (!email) continue;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.setAttribute("role", "option");
+        btn.className = "reply-to-option";
+        if (item.tipo === "copia") {
+          const chip = document.createElement("span");
+          chip.className = "cc-chip reply-to-chip";
+          chip.textContent = email;
+          btn.appendChild(chip);
+          const tag = document.createElement("span");
+          tag.className = "reply-to-tag";
+          tag.textContent = "copia";
+          btn.appendChild(tag);
+        } else {
+          btn.textContent = email;
+        }
+        btn.addEventListener("mousedown", (ev) => {
+          ev.preventDefault();
+          if (replyToChipApi) {
+            replyToChipApi.addAddress(email);
+            input.value = "";
+          } else {
+            input.value = email;
+          }
+          closeSuggest();
+        });
+        suggest.appendChild(btn);
+      }
+      suggest.classList.toggle("open", suggest.children.length > 0);
+    }
+
+    // Al enfocar o hacer click, mostrar SIEMPRE la lista completa aunque el
+    // campo ya tenga un valor precargado (el solicitante por defecto) — si
+    // se filtrara por ese texto actual como hace el input de abajo, las
+    // otras direcciones (CC del hilo) casi nunca calzan como substring de
+    // "contacto@..." y jamas se llegaban a ver (pedido explicito, ago 2026).
+    input.addEventListener("focus", () => openSuggest(source));
+    input.addEventListener("click", () => openSuggest(source));
+
+    input.addEventListener("input", () => {
+      const query = (input.value || "").trim().toLowerCase();
+      if (!query) {
+        openSuggest(source);
+        return;
+      }
+      openSuggest(source.filter((x) => String((x && x.email) || "").toLowerCase().includes(query)));
     });
 
     document.addEventListener("click", (ev) => {
@@ -5954,97 +6425,18 @@ body.is-inline-image-resizing{
 </script>
 
 <script>
-  // Campo CC de "Recepcion de solicitud": entrada de correos como chips,
-  // igual que Gmail (escribe y presiona Enter, coma, Tab o pega una lista).
+  // Campo CC de "Recepcion de solicitud": mismo componente de chips que
+  // "Mesa tecnica" (createReplyChipBox, definido mas arriba), con el mismo
+  // autocompletado contra correos ya usados en el sistema (pedido
+  // explicito, ago 2026 — antes tenia su propia copia casi identica de
+  // esta logica, sin autocompletado).
   (function () {
-    const box = document.getElementById("receptionCcChips");
-    const typing = document.getElementById("receptionCcTyping");
-    const hidden = document.getElementById("receptionCcValue");
-    if (!box || !typing || !hidden) return;
-    if (box.dataset.disabled === "1") return;
-
-    const emails = [];
-    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    function sync() {
-      hidden.value = emails.join(", ");
-    }
-
-    function renderChip(addr) {
-      const valido = EMAIL_RE.test(addr);
-      const chip = document.createElement("span");
-      chip.className = "cc-chip" + (valido ? "" : " invalid");
-      chip.title = valido ? addr : `"${addr}" no parece un correo valido`;
-
-      const label = document.createElement("span");
-      label.textContent = addr;
-      chip.appendChild(label);
-
-      const removeBtn = document.createElement("button");
-      removeBtn.type = "button";
-      removeBtn.className = "cc-chip-remove";
-      removeBtn.setAttribute("aria-label", `Quitar ${addr}`);
-      removeBtn.textContent = "×";
-      removeBtn.addEventListener("click", () => {
-        const idx = emails.indexOf(addr);
-        if (idx !== -1) emails.splice(idx, 1);
-        chip.remove();
-        sync();
-      });
-      chip.appendChild(removeBtn);
-      box.insertBefore(chip, typing);
-    }
-
-    function addAddress(raw) {
-      const addr = raw.trim().replace(/[,;]+$/, "");
-      if (!addr) return;
-      if (emails.includes(addr)) return;
-      emails.push(addr);
-      renderChip(addr);
-      sync();
-    }
-
-    function addFromText(text) {
-      String(text || "")
-        .split(/[,;\n]+/)
-        .map((part) => part.trim())
-        .filter(Boolean)
-        .forEach(addAddress);
-    }
-
-    typing.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" || event.key === "," || event.key === ";" || event.key === "Tab") {
-        if (!typing.value.trim()) return;
-        event.preventDefault();
-        addFromText(typing.value);
-        typing.value = "";
-      } else if (event.key === "Backspace" && !typing.value && emails.length) {
-        emails.pop();
-        const chips = box.querySelectorAll(".cc-chip");
-        if (chips.length) chips[chips.length - 1].remove();
-        sync();
-      }
-    });
-
-    typing.addEventListener("blur", () => {
-      if (typing.value.trim()) {
-        addFromText(typing.value);
-        typing.value = "";
-      }
-    });
-
-    typing.addEventListener("paste", (event) => {
-      const pasted = (event.clipboardData || window.clipboardData).getData("text");
-      if (pasted && /[,;\n]/.test(pasted)) {
-        event.preventDefault();
-        addFromText(pasted);
-        typing.value = "";
-      }
-    });
-
-    box.addEventListener("click", (event) => {
-      if (event.target === box) typing.focus();
-    });
+    const api = createReplyChipBox(
+      document.getElementById("receptionCcChips"),
+      document.getElementById("receptionCcTyping"),
+      document.getElementById("receptionCcValue")
+    );
+    if (api) wireContactAutocomplete(document.getElementById("receptionCcTyping"), api.addAddress);
   })();
 </script>
 
