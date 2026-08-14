@@ -147,6 +147,98 @@ def get_cliente_nombre_by_rut(db: Session, rut: str) -> str:
     return str(row[0]).strip() if row and row[0] else ""
 
 
+def get_clientes_informacion_list(db: Session, q: str = "") -> dict[str, Any]:
+    rows = db.execute(text("""
+        SELECT
+            c.id AS cliente_id,
+            c.rut AS rut,
+            c.cliente AS cliente,
+            c.giro AS giro,
+            s.id AS sucursal_id,
+            s.nombre_empresa AS nombre_empresa,
+            s.nombre_sucursal AS nombre_sucursal,
+            s.direccion_sucursal AS direccion_sucursal,
+            s.aceptada_bitacora AS aceptada_bitacora,
+            e.campos_pendientes AS campos_pendientes,
+            e.campos_pendientes_fecha AS campos_pendientes_fecha
+        FROM bbdd_clientes c
+        LEFT JOIN bbdd_sucursales s
+          ON LOWER(TRIM(COALESCE(s.rut, ''))) = LOWER(TRIM(COALESCE(c.rut, '')))
+        LEFT JOIN sucursal_info_extra e ON e.sucursal_id = s.id
+        ORDER BY c.cliente ASC, s.nombre_sucursal ASC, s.direccion_sucursal ASC
+    """)).mappings().all()
+
+    filtro = _normalize_text(q)
+    filtro_rut = re.sub(r"[^0-9kK]", "", str(q or "")).lower()
+    clientes: dict[str, dict[str, Any]] = {}
+
+    for row in rows:
+        rut = str(row.get("rut") or "").strip()
+        key = rut.lower() or f"id:{row.get('cliente_id')}"
+        cliente = clientes.setdefault(key, {
+            "id": row.get("cliente_id"),
+            "rut": rut,
+            "rutLimpio": re.sub(r"[^0-9kK]", "", rut).lower(),
+            "nombre": str(row.get("cliente") or "").strip(),
+            "giro": str(row.get("giro") or "").strip(),
+            "sucursales": [],
+            "totalSucursales": 0,
+            "pendientesBitacora": 0,
+            "ultimaPendienteBitacora": "",
+            "_search": [],
+        })
+
+        partes_busqueda = [
+            cliente["rut"],
+            cliente["rutLimpio"],
+            cliente["nombre"],
+            cliente["giro"],
+        ]
+
+        sucursal_id = row.get("sucursal_id")
+        if sucursal_id is not None:
+            campos_raw = str(row.get("campos_pendientes") or "").strip()
+            pendiente = (not bool(row.get("aceptada_bitacora"))) and bool(campos_raw)
+            fecha = row.get("campos_pendientes_fecha")
+            fecha_txt = fecha.isoformat(sep=" ", timespec="minutes") if isinstance(fecha, datetime) else ""
+            sucursal = {
+                "id": sucursal_id,
+                "nombre": str(row.get("nombre_sucursal") or "").strip(),
+                "nombreEmpresa": str(row.get("nombre_empresa") or "").strip(),
+                "direccion": str(row.get("direccion_sucursal") or "").strip(),
+                "pendienteBitacora": pendiente,
+                "camposPendientes": [c.strip() for c in campos_raw.split(",") if c.strip()],
+                "observadoEn": fecha_txt,
+            }
+            cliente["sucursales"].append(sucursal)
+            cliente["totalSucursales"] += 1
+            partes_busqueda.extend([sucursal["nombre"], sucursal["nombreEmpresa"], sucursal["direccion"]])
+            if pendiente:
+                cliente["pendientesBitacora"] += 1
+                if fecha_txt and fecha_txt > cliente["ultimaPendienteBitacora"]:
+                    cliente["ultimaPendienteBitacora"] = fecha_txt
+
+        cliente["_search"].extend(partes_busqueda)
+
+    items: list[dict[str, Any]] = []
+    for cliente in clientes.values():
+        search_text = _normalize_text(" ".join(str(x or "") for x in cliente["_search"]))
+        rut_text = str(cliente.get("rutLimpio") or "")
+        if filtro and filtro not in search_text and (not filtro_rut or filtro_rut not in rut_text):
+            continue
+        cliente.pop("_search", None)
+        items.append(cliente)
+
+    items.sort(
+        key=lambda item: (
+            -int(item.get("pendientesBitacora") or 0),
+            str(item.get("nombre") or "").lower(),
+            str(item.get("rut") or "").lower(),
+        )
+    )
+    return _repair_payload_encoding({"clientes": items, "total": len(items)})
+
+
 def get_proveedores_internet() -> list[str]:
     return PROVEEDORES_INTERNET[:]
 
@@ -1425,6 +1517,17 @@ def _fmt_date(value) -> str:
     return str(value)
 
 
+def _fmt_date_only(value) -> str:
+    """Como _fmt_date pero sin hora — para badges/pills chicos (ej. TERM.
+    SOPORTE en tabla_operaciones_venta.html) donde "dd/mm/aaaa hh:mm"
+    desborda el ancho de la pastilla (pedido explicito, ago 2026)."""
+    if not value:
+        return ""
+    if isinstance(value, datetime):
+        return value.strftime("%d/%m/%Y")
+    return str(value)
+
+
 def _is_true(value) -> bool:
     return bool(value)
 
@@ -1995,8 +2098,28 @@ def update_ods(db: Session, payload, usuario_email: str) -> VentaODS:
     record.materiales = _clean_text(payload.materiales)
     record.consideraciones = _clean_text(payload.consideraciones)
     record.observacion = _clean_text(payload.observacion)
+
+    tipos_anteriores = [item.strip() for item in str(record.tipo_servicio or "").split("|") if item.strip()]
+    areas_antes = _calcular_areas_aplicables(tipos_anteriores)
+    areas_despues = _calcular_areas_aplicables(tipos)
     record.tipo_servicio = " | ".join(tipos) if tipos else ""
     record.creado_por = _clean_text(usuario_email) or record.creado_por
+
+    # Si al editar el tipo de servicio un area que antes no aplicaba (y por eso
+    # arranco auto-marcada "Terminado" al crear la ODT, ver _calcular_areas_aplicables
+    # en la creacion) ahora si aplica, hay que sacarle el auto-completado — si no,
+    # queda mostrando "Finalizado" sin que nadie haya hecho el trabajo real.
+    if areas_despues["servtec"] and not areas_antes["servtec"]:
+        st_row = _get_or_create_servicio_tecnico_venta_row(db, record.codigo)
+        st_row.recepcion_solicitud_instalacion = False
+        st_row.instalacion_finalizada = False
+        st_row.finalizado = False
+    if areas_despues["operaciones"] and not areas_antes["operaciones"]:
+        op_row = _get_or_create_operaciones_row(db, record.codigo)
+        op_row.fecha_coordinacion = False
+        op_row.reunion_coordinacion = False
+        op_row.coord_apertura_puesto = False
+        op_row.coord_equipo = False
 
     archivos_nuevos: list[tuple[str, str, VentaODSArchivoRequest]] = []
     if payload.cotizacion:
@@ -2162,6 +2285,20 @@ def update_sucursal_row(db: Session, row_id: int, values: list[str]) -> None:
     db.commit()
 
 
+def delete_sucursal_row(db: Session, row_id: int) -> None:
+    """Borrado real (no soft-delete): las FK de bbdd_sucursales ya estan
+    configuradas en la BBDD con ON DELETE CASCADE (contactos de
+    emergencia, personas autorizadas, guardias, info extra, pruebas de
+    sonido) y ON DELETE SET NULL (sucursal_camaras_monitoreo) — verificado
+    contra sys.foreign_keys antes de implementar esto, no queda nada
+    huerfano ni falla por constraint (pedido explicito, ago 2026)."""
+    record = db.query(SucursalBBDD).filter(SucursalBBDD.id == row_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Sucursal no encontrada.")
+    db.delete(record)
+    db.commit()
+
+
 # Mismas claves/etiquetas que PEND_NOTIFICAR_CAMPOS en bitacora.html — el checklist
 # de "Notificar a Comercial" manda estas claves, y acá se usan para resaltar los
 # campos correspondientes en Venta y armar el resumen de "lo que rellenó".
@@ -2169,6 +2306,7 @@ CAMPOS_BITACORA_LABELS: dict[str, str] = {
     "direccion_sucursal": "Dirección",
     "latitud_longitud": "Latitud, Longitud",
     "referencia_ubicacion": "Referencia ubicación",
+    "contacto": "Contacto",
     "email_facturas": "Correo",
     "horario_apertura": "Horario de apertura",
     "horario_cierre": "Horario de cierre",
@@ -2217,6 +2355,51 @@ def get_sucursal_revision_bitacora(db: Session, sucursal_id: int) -> dict[str, A
     }
 
 
+def get_sucursales_pendientes_bitacora_comercial(
+    db: Session,
+    comercial_nombre: str = "",
+    *,
+    todos: bool = False,
+) -> dict[str, Any]:
+    """Sucursales que Bitácora marcó como "falta o está mal" y siguen sin aceptar,
+    filtradas a las que registró este comercial (bbdd_sucursales.created_by) — para
+    el banner de avisos en Tabla Sucursal. Mismo criterio de "sigue pendiente" que
+    get_sucursal_revision_bitacora (aceptada_bitacora = 0), más exigir que Bitácora
+    haya dejado algo cargado en campos_pendientes (si no, no hay nada que avisar)."""
+    nombre = (comercial_nombre or "").strip()
+    if not nombre and not todos:
+        return {"pendientes": []}
+    filtro_comercial = "" if todos else "AND LOWER(TRIM(s.created_by)) = LOWER(TRIM(:nombre))"
+    rows = db.execute(text("""
+        SELECT s.id, s.nombre_sucursal, s.nombre_empresa,
+               s.created_by,
+               e.campos_pendientes, e.campos_pendientes_obs, e.campos_pendientes_fecha
+        FROM bbdd_sucursales s
+        JOIN sucursal_info_extra e ON e.sucursal_id = s.id
+        WHERE s.aceptada_bitacora = 0
+          """ + filtro_comercial + """
+          AND COALESCE(TRIM(e.campos_pendientes), '') <> ''
+        ORDER BY e.campos_pendientes_fecha DESC
+    """), {"nombre": nombre}).mappings().all()
+    pendientes = []
+    for row in rows:
+        campos_raw = str(row.get("campos_pendientes") or "").strip()
+        campos = [c.strip() for c in campos_raw.split(",") if c.strip()]
+        if not campos:
+            continue
+        fecha = row.get("campos_pendientes_fecha")
+        pendientes.append({
+            "sucursal_id": row.get("id"),
+            "nombre_sucursal": row.get("nombre_sucursal") or "",
+            "nombre_empresa": row.get("nombre_empresa") or "",
+            "created_by": row.get("created_by") or "",
+            "campos": campos,
+            "observacion": str(row.get("campos_pendientes_obs") or "").strip(),
+            "observado_en": fecha.isoformat(sep=" ", timespec="minutes") if isinstance(fecha, datetime) else "",
+        })
+    return {"pendientes": pendientes}
+
+
 def _valores_actuales_para_resumen(db: Session, sucursal_id: int, campos: list[str]) -> list[tuple[str, str]]:
     """Valor actual de cada campo marcado, para mostrar en el correo de "avisar
     que está listo" qué quedó cargado — sin replicar el detalle de fallback fino
@@ -2226,12 +2409,12 @@ def _valores_actuales_para_resumen(db: Session, sucursal_id: int, campos: list[s
     row = db.execute(text("""
         SELECT
             b.direccion_sucursal, b.latitud_longitud, b.email_facturas,
-            b.horario_apertura, b.horario_cierre,
+            b.horario_apertura, b.horario_cierre, b.nombre_empresa, b.rut,
             COALESCE(NULLIF(TRIM(b.referencia_ubicacion), ''), e.referencia_ubicacion) AS referencia_ubicacion,
             COALESCE(NULLIF(TRIM(b.dias_funcionamiento), ''), e.horario_habil) AS horario_habil,
             e.plan_cuadrante, e.carabineros, e.bomberos, e.seguridad_ciudadana,
             e.camaras_contratadas, e.camaras_televigiladas, e.codigo_p2p, e.codigo_dss,
-            e.telefono_porton, e.telefono_recepcion, e.internet_atc,
+            e.telefono_porton, e.telefono_recepcion, e.internet_atc, e.contacto,
             b.proveedor_electricidad, b.nro_proveedor_electricidad, b.proveedor_internet
         FROM bbdd_sucursales b
         LEFT JOIN sucursal_info_extra e ON e.sucursal_id = b.id
@@ -2251,6 +2434,14 @@ def _valores_actuales_para_resumen(db: Session, sucursal_id: int, campos: list[s
     personas = db.execute(text(
         "SELECT COUNT(*) FROM sucursal_personas_autorizadas WHERE sucursal_id = :sid"
     ), {"sid": sucursal_id}).scalar() or 0
+    # Mismo criterio de prioridad que la ficha de Bitácora (teléfono del cliente
+    # antes que el override de sucursal_info_extra.contacto) — ver "contacto" en
+    # bitacora.py _informacion_cliente_data.
+    cliente_telefono = db.execute(text("""
+        SELECT TOP 1 telefono FROM bbdd_clientes
+        WHERE LOWER(TRIM(cliente)) = LOWER(TRIM(:empresa)) OR LOWER(TRIM(rut)) = LOWER(TRIM(:rut))
+        ORDER BY id DESC
+    """), {"empresa": str(row.get("nombre_empresa") or ""), "rut": str(row.get("rut") or "")}).scalar()
 
     resumen: list[tuple[str, str]] = []
     for campo in campos:
@@ -2260,6 +2451,10 @@ def _valores_actuales_para_resumen(db: Session, sucursal_id: int, campos: list[s
             continue
         if campo == "personas_autorizadas":
             resumen.append((label, f"{personas} persona(s) registrada(s)"))
+            continue
+        if campo == "contacto":
+            valor = str(cliente_telefono or row.get("contacto") or "").strip() or "-"
+            resumen.append((label, valor))
             continue
         columna = alias.get(campo, campo)
         valor = str(row.get(columna) or "").strip() or "-"
@@ -2440,6 +2635,26 @@ def update_cliente_row(db: Session, row_id: int, values: list[str]) -> None:
     db.commit()
 
 
+def update_cliente_telefono(db: Session, rut: str, telefono: str) -> None:
+    """Edita solo el teléfono del cliente (bbdd_clientes.telefono) — es el mismo
+    valor que la ficha de Bitácora muestra como "Contacto" de la sucursal cuando
+    el cliente tiene teléfono cargado (ver _first_non_empty en bitacora.py), así
+    que hay que poder corregirlo desde Información Clientes, no solo desde la
+    tabla de clientes completa."""
+    rut_normalizado = normalize_rut(rut)
+    if not rut_normalizado:
+        raise HTTPException(status_code=400, detail="Falta el RUT del cliente.")
+    record = (
+        db.query(ClienteBBDD)
+        .filter(func.lower(func.trim(ClienteBBDD.rut)) == rut_normalizado.lower())
+        .first()
+    )
+    if not record:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado.")
+    record.telefono = (telefono or "").strip() or None
+    db.commit()
+
+
 # â”€â”€â”€ Operaciones â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 OPERACIONES_BOOL_FIELDS: dict[str, str] = {
@@ -2498,6 +2713,13 @@ def get_operaciones_ods_rows(db: Session) -> dict:
         terminado_soporte = _is_true(getattr(st, "finalizado", False))
         requiere_puesto = getattr(sop, "requiere_puesto_nuevo", "") if sop else ""
         numero_central = getattr(sop, "numero_central_asignado", "") if sop else ""
+        # Guardia no pasa por Servicio Tecnico/Soporte (solo aplica a
+        # Operaciones, ver _calcular_areas_aplicables arriba) — exigirle
+        # TERM. SOPORTE, Req. Puesto y N. Central nunca se cumple para este
+        # tipo y la fila queda bloqueada para siempre. Se marca aparte para
+        # que el frontend no exija esos 3 campos cuando es Guardia (pedido
+        # explicito, ago 2026).
+        es_guardia = "guardia" in {_normalize_text(t) for t in tipos_lista_op}
         out.append({
             "codigo": ods.codigo or "",
             "fecha": _fmt_date(ods.created_at),
@@ -2509,8 +2731,10 @@ def get_operaciones_ods_rows(db: Session) -> dict:
             "tipoServicio": ods.tipo_servicio or "",
             "tipoPlan": ods.tipo_plan or "",
             "terminadoSoporte": terminado_soporte,
+            "terminadoSoporteFecha": _fmt_date_only(getattr(st, "fecha_cierre", None)) if terminado_soporte else "",
             "requierePuestoNuevo": requiere_puesto or "",
             "numeroCentralAsignado": numero_central or "",
+            "esGuardia": es_guardia,
             "fechaInicioServicio": getattr(op, "fecha_inicio_servicio", "") if op else "",
             "estados": {
                 "fecha_coordinacion": _is_true(getattr(op, "fecha_coordinacion", False)),

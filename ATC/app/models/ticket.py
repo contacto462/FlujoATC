@@ -120,6 +120,21 @@ class Ticket(Base):
         nullable=True
     )
 
+    # A diferencia de resolved_at (que se limpia al reabrir el ticket para
+    # reflejar el estado ACTUAL), estas dos nunca se borran: guardan cuándo
+    # fue la última resolución y la última reapertura, para que el
+    # historial pueda mostrar que el ticket sí se resolvió aunque después
+    # el cliente lo haya reabierto.
+    last_resolved_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True
+    )
+
+    last_reopened_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True
+    )
+
     reopen_count: Mapped[int] = mapped_column(
         Integer,
         default=0,
@@ -151,5 +166,5 @@ class Ticket(Base):
     # =========================
     def __repr__(self) -> str:
         return f"<Ticket id={self.id} status={self.status}>"
-    
+
 

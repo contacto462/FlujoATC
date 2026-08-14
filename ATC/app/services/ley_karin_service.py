@@ -16,6 +16,7 @@ from pathlib import Path
 
 _ATC_DIR = Path(__file__).resolve().parents[2]  # .../ATC
 _ATC_ENV_PATH = _ATC_DIR / ".env"
+LEY_KARIN_DESTINATARIO_EMAIL = "do@alguientecuida.cl"
 
 _C_DARK = "#0b1424"
 _C_PURPLE = "#4b1d78"
@@ -341,13 +342,10 @@ def _contacto_smtp_config() -> dict[str, str]:
 
 
 def enviar_comprobante_ley_karin_email(destinatario: str, pdf_bytes: bytes, nombre_completo: str) -> None:
-    """Manda el comprobante ya generado al correo indicado en el formulario.
+    """Manda el comprobante ya generado al correo interno de respaldo.
     Pensada para correr como BackgroundTask (no bloquea la descarga del PDF);
     cualquier error de envío queda solo logueado por Starlette, no interrumpe
     nada para quien llenó el formulario."""
-    destinatario = (destinatario or "").strip()
-    if not destinatario:
-        return
 
     cfg = _contacto_smtp_config()
     username = cfg["username"]
@@ -372,7 +370,7 @@ def enviar_comprobante_ley_karin_email(destinatario: str, pdf_bytes: bytes, nomb
 
     msg = EmailMessage()
     msg["From"] = f"{cfg['from_name']} <{from_addr}>"
-    msg["To"] = destinatario
+    msg["To"] = LEY_KARIN_DESTINATARIO_EMAIL
     msg["Subject"] = "Comprobante Ley Karin — Alguien Te Cuida"
     msg["Date"] = formatdate(localtime=True)
     msg["Message-ID"] = make_msgid(domain="alguientecuida.cl")
@@ -597,11 +595,8 @@ def generar_toma_conocimiento_capacitacion_pdf(data: dict) -> bytes:
 
 def enviar_toma_conocimiento_capacitacion_email(destinatario: str, pdf_bytes: bytes, nombre_completo: str) -> None:
     """Manda la Toma de Conocimiento de Capacitación Ley Karin ya generada al
-    correo indicado en el formulario. Corre como BackgroundTask (no bloquea
-    la descarga del PDF); cualquier error de envío queda solo logueado."""
-    destinatario = (destinatario or "").strip()
-    if not destinatario:
-        return
+    correo interno de respaldo. Corre como BackgroundTask (no bloquea la
+    descarga del PDF); cualquier error de envío queda solo logueado."""
 
     cfg = _contacto_smtp_config()
     username = cfg["username"]
@@ -625,7 +620,7 @@ def enviar_toma_conocimiento_capacitacion_email(destinatario: str, pdf_bytes: by
 
     msg = EmailMessage()
     msg["From"] = f"{cfg['from_name']} <{from_addr}>"
-    msg["To"] = destinatario
+    msg["To"] = LEY_KARIN_DESTINATARIO_EMAIL
     msg["Subject"] = "Toma de Conocimiento — Capacitación Ley Karin — Alguien Te Cuida"
     msg["Date"] = formatdate(localtime=True)
     msg["Message-ID"] = make_msgid(domain="alguientecuida.cl")

@@ -7,6 +7,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ATC.app.core.config import settings
+from ATC.app.core.timeutil import chile_now
 from ATC.app.models.automation_log import AutomationLog
 from ATC.app.models.message import Message
 from ATC.app.models.requester import Requester
@@ -58,6 +59,7 @@ def add_system_internal_note(
         channel="internal",
         content=content,
         is_internal_note=True,
+        created_at=chile_now(),
     )
     db.add(note)
     db.flush()
@@ -295,6 +297,7 @@ def send_initial_email_auto_reply(
             # Lo guardamos para trazabilidad tecnica, pero no debe salir
             # en el chat visible del ticket.
             is_internal_note=True,
+            created_at=chile_now(),
         )
     )
 

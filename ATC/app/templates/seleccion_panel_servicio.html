@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="es">
 <head>
-<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
-<link rel="shortcut icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png?v=2">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png?v=2">
+<link rel="shortcut icon" href="/favicon.ico?v=2">
 
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -191,6 +191,7 @@ h1{
 }
 
 .content{
+  position:relative;
   padding:18px 24px 24px;
 }
 
@@ -221,10 +222,12 @@ h1{
 }
 
 .option{
+  position:relative;
   display:flex;
   flex-direction:column;
-  min-height:150px;
-  padding:18px;
+  justify-content:center;
+  min-height:76px;
+  padding:16px 18px;
   border-radius:18px;
   border:1px solid rgba(255,255,255,.10);
   background:var(--surface-2);
@@ -248,19 +251,25 @@ h1{
   z-index:2;
 }
 
+.option-top{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
 .icon{
   position:relative;
   width:44px;
   height:44px;
+  flex-shrink:0;
   border-radius:13px;
   display:grid;
   place-items:center;
   color:#fff;
   font-size:14px;
   font-weight:800;
-  margin-bottom:12px;
-  background:linear-gradient(180deg, rgba(var(--option-accent),.34), rgba(var(--option-accent),.18));
-  border:1px solid rgba(var(--option-accent),.46);
+  background:linear-gradient(180deg, rgba(200,133,89,.34), rgba(200,133,89,.18));
+  border:1px solid rgba(200,133,89,.46);
 }
 
 .notif-badge{
@@ -282,17 +291,31 @@ h1{
   box-shadow:0 1px 3px rgba(0,0,0,.4);
 }
 
+.review-badge{
+  position:absolute;
+  top:12px;
+  right:12px;
+  min-width:24px;
+  height:22px;
+  padding:0 7px;
+  border-radius:999px;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background:#ef4444;
+  color:#fff;
+  border:2px solid rgba(255,255,255,.72);
+  box-shadow:0 7px 16px rgba(0,0,0,.28);
+  font-size:11px;
+  font-weight:900;
+  line-height:1;
+  z-index:3;
+}
+
 .option strong{
   display:block;
   font-size:15px;
-  margin:0 0 5px;
-}
-
-.option p{
   margin:0;
-  color:var(--muted);
-  line-height:1.45;
-  font-size:12px;
 }
 
 @media (max-width:1100px){
@@ -368,64 +391,111 @@ h1{
       {% include "_cambio_clave_inicial.html" %}
 
       <div class="grid">
-        <a class="option" href="/?form=servicioTecnico&token={{ token|default('') }}" style="--option-accent:255,110,35;">
-          <div class="icon">I{% if pendiente_incidencias_st %}<span class="notif-badge" title="{{ pendiente_incidencias_st }} incidencia(s) pendiente(s)">{{ pendiente_incidencias_st if pendiente_incidencias_st <= 99 else "99+" }}</span>{% endif %}</div>
-          <strong>Incidencias</strong>
-          <p>Gestión de órdenes de trabajo e incidencias del servicio técnico.</p>
+        <a class="option" href="/?form=servicioTecnico&token={{ token|default('') }}">
+          <div class="option-top">
+            <div class="icon">I{% if pendiente_incidencias_st %}<span class="notif-badge" title="{{ pendiente_incidencias_st }} incidencia(s) pendiente(s)">{{ pendiente_incidencias_st if pendiente_incidencias_st <= 99 else "99+" }}</span>{% endif %}</div>
+            <strong>Incidencias</strong>
+          </div>
         </a>
 
-        <a class="option" href="/?form=TablaServicioTecnico&token={{ token|default('') }}" style="--option-accent:47,91,114;">
-          <div class="icon">V{% if pendiente_ventas_st %}<span class="notif-badge" title="{{ pendiente_ventas_st }} ODS pendiente(s)">{{ pendiente_ventas_st if pendiente_ventas_st <= 99 else "99+" }}</span>{% endif %}</div>
-          <strong>Ventas</strong>
-          <p>Tabla de ventas y seguimiento comercial del área de servicio técnico.</p>
+        <a class="option" id="cardVentasRevision" href="/?form=TablaServicioTecnico&token={{ token|default('') }}">
+          <span class="review-badge" id="badgeRevisionVenta">0</span>
+          <div class="option-top">
+            <div class="icon">V{% if pendiente_ventas_st %}<span class="notif-badge" title="{{ pendiente_ventas_st }} ODS pendiente(s)">{{ pendiente_ventas_st if pendiente_ventas_st <= 99 else "99+" }}</span>{% endif %}</div>
+            <strong>Ventas</strong>
+          </div>
         </a>
 
-        <a class="option" href="/resumen-equipos-tecnicos?token={{ token|default('') }}" style="--option-accent:31,156,131;">
-          <div class="icon">AT</div>
-          <strong>Asignación Técnicos</strong>
-          <p>Resumen de equipos y asignación de técnicos a órdenes de trabajo.</p>
+        <a class="option" href="/resumen-equipos-tecnicos?token={{ token|default('') }}">
+          <div class="option-top">
+            <div class="icon">AT</div>
+            <strong>Asignación Técnicos</strong>
+          </div>
         </a>
 
-        <a class="option" href="/?form=rendiciones&token={{ token|default('') }}" style="--option-accent:54,200,143;">
-          <div class="icon">AR{% if pendiente_rendiciones_st %}<span class="notif-badge" title="{{ pendiente_rendiciones_st }} rendición(es) pendiente(s)">{{ pendiente_rendiciones_st if pendiente_rendiciones_st <= 99 else "99+" }}</span>{% endif %}</div>
-          <strong>Aprobar Rendiciones</strong>
-          <p>Revisión y aprobación de rendiciones de gastos del equipo técnico.</p>
+        <a class="option" href="/?form=rendiciones&token={{ token|default('') }}">
+          <div class="option-top">
+            <div class="icon">AR{% if pendiente_rendiciones_st %}<span class="notif-badge" title="{{ pendiente_rendiciones_st }} rendición(es) pendiente(s)">{{ pendiente_rendiciones_st if pendiente_rendiciones_st <= 99 else "99+" }}</span>{% endif %}</div>
+            <strong>Aprobar Rendiciones</strong>
+          </div>
         </a>
 
-        <a class="option" href="/venta/finanzas/rendiciones/hoja?token={{ token|default('') }}&from=servicio" style="--option-accent:140,194,126;">
-          <div class="icon">PR</div>
-          <strong>Panel Rendiciones</strong>
-          <p>Vista financiera de rendiciones: historial, montos y estado de cada solicitud.</p>
+        <a class="option" href="/venta/finanzas/rendiciones/hoja?token={{ token|default('') }}&from=servicio">
+          <div class="option-top">
+            <div class="icon">PR</div>
+            <strong>Panel Rendiciones</strong>
+          </div>
         </a>
 
-        <a class="option" href="/servicio-tecnico/mantenciones-vina-del-mar?token={{ token|default('') }}" style="--option-accent:244,166,114;">
-          <div class="icon">M</div>
-          <strong>Mantenciones</strong>
-          <p>Cierre de mantención por punto de cámara — Viña del Mar.</p>
+        <a class="option" href="/servicio-tecnico/mantenciones-vina-del-mar?token={{ token|default('') }}">
+          <div class="option-top">
+            <div class="icon">M</div>
+            <strong>Mantenciones</strong>
+          </div>
         </a>
 
-        <a class="option" href="/servicio/indicadores?token={{ token|default('') }}&origen=servicio_tecnico" style="--option-accent:160,93,196;">
-          <div class="icon">D</div>
-          <strong>Dashboard</strong>
-          <p>Indicadores y métricas de desempeño del servicio técnico en tiempo real.</p>
+        <a class="option" href="/servicio/indicadores?token={{ token|default('') }}&origen=servicio_tecnico">
+          <div class="option-top">
+            <div class="icon">D</div>
+            <strong>Dashboard</strong>
+          </div>
         </a>
 
-        <a class="option" href="/compras/solicitud?token={{ token|default('')|urlencode }}&origen=servicio_tecnico" style="--option-accent:31,79,216;">
-          <div class="icon">C</div>
-          <strong>Solicitar Compra</strong>
-          <p>Ingresa una nueva solicitud de compra con ítems, destino y presupuestos adjuntos.</p>
+        <a class="option" href="/compras/solicitud?token={{ token|default('')|urlencode }}&origen=servicio_tecnico">
+          <div class="option-top">
+            <div class="icon">C</div>
+            <strong>Solicitar Compra</strong>
+          </div>
         </a>
 
-        <a class="option" href="/tecnico-externo" style="--option-accent:180,90,20;">
-          <div class="icon">TE</div>
-          <strong>Registro Técnico Externo</strong>
-          <p>Acceso público para técnicos externos: consulta y seguimiento de sus órdenes de trabajo.</p>
+        <a class="option" href="/tecnico-externo">
+          <div class="option-top">
+            <div class="icon">TE</div>
+            <strong>Registro Técnico Externo</strong>
+          </div>
         </a>
       </div>
     </section>
   </main>
 
   <script>
+    const tokenSesionServicio = new URLSearchParams(window.location.search).get("token") || "";
+
+    function withTokenServicio(url) {
+      const sep = url.includes("?") ? "&" : "?";
+      return tokenSesionServicio ? `${url}${sep}token=${encodeURIComponent(tokenSesionServicio)}` : url;
+    }
+
+    function setRevisionBadge(value) {
+      const el = document.getElementById("badgeRevisionVenta");
+      if (!el) return;
+      if (value > 0) {
+        el.textContent = value > 99 ? "99+" : String(value);
+        el.style.display = "flex";
+      } else {
+        el.textContent = "0";
+        el.style.display = "none";
+      }
+    }
+
+    async function cargarPendientesRevisionBitacora() {
+      try {
+        const res = await fetch(withTokenServicio("/api/venta/sucursales/mis-pendientes-bitacora?todos=1"));
+        if (!res.ok) return;
+        const data = await res.json().catch(() => ({}));
+        const pendientes = Array.isArray(data?.pendientes) ? data.pendientes : [];
+        let totalCampos = 0;
+        pendientes.forEach(item => {
+          const campos = Array.isArray(item.campos) ? item.campos : [];
+          totalCampos += campos.length;
+        });
+
+        setRevisionBadge(totalCampos);
+      } catch (_err) {
+        setRevisionBadge(0);
+      }
+    }
+
     (function () {
       const el = document.getElementById("welcomeMessage");
       if (!el) return;
@@ -440,6 +510,8 @@ h1{
         ? `${greeting} ${firstName}, qué gusto tenerte de vuelta!`
         : `${greeting}!`;
     })();
+
+    cargarPendientesRevisionBitacora();
   </script>
   <script src="/static/auth-guard.js"></script>
   <script>window.ATC_ES_PANEL_SELECTOR = true;</script>

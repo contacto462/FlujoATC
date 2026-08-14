@@ -7,6 +7,7 @@ import html
 import logging
 import math
 import os
+import random
 import re
 import secrets
 import smtplib
@@ -1618,13 +1619,25 @@ def _crear_hoja_supervisor_calendario(
     ws.freeze_panes = "B5"
 
 
-def _crear_hoja_informe_turnos(ws, titulo: str, periodo: str, rows: list[dict]) -> None:
+def _crear_hoja_informe_turnos(
+    ws,
+    titulo: str,
+    periodo: str,
+    rows: list[dict],
+    *,
+    faltas_por_guardia: dict[str, int] | None = None,
+) -> None:
     from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 
     azul = "0B1424"
     azul_medio = "1E3A5F"
     borde = Side(style="thin", color="CBD5E1")
-    headers = ["Nombre", "RUT", "Tipo de Contrato", "Dia", "Noche", "Turno Normal", "Extra", "Contrato Diario", "Total Turnos"]
+    if faltas_por_guardia is not None:
+        headers = ["Nombre", "RUT", "Tipo de Contrato", "Turno Normal", "Extra", "Contrato Diario", "Faltas"]
+        widths = [34, 16, 14, 16, 10, 18, 12]
+    else:
+        headers = ["Nombre", "RUT", "Tipo de Contrato", "Dia", "Noche", "Turno Normal", "Extra", "Contrato Diario", "Total Turnos"]
+        widths = [34, 16, 14, 10, 10, 16, 10, 18, 14]
 
     ws.append(["ATC - " + titulo])
     ws.append([periodo])
@@ -1637,8 +1650,13 @@ def _crear_hoja_informe_turnos(ws, titulo: str, periodo: str, rows: list[dict]) 
         noche = int(turnos["Noche"])
         extra = int(turnos["Extra"])
         contrato = int(turnos["Contrato Diario"])
-        total = dia + noche + extra + contrato
-        ws.append([row["nombre"], row["rut"], row.get("tipo_guardia", ""), dia, noche, dia + noche, extra, contrato, total])
+        if faltas_por_guardia is not None:
+            identidad = row["rut"] or _normalizar_texto(row["nombre"])
+            faltas = int(faltas_por_guardia.get(identidad, 0))
+            ws.append([row["nombre"], row["rut"], row.get("tipo_guardia", ""), dia + noche, extra, contrato, faltas])
+        else:
+            total = dia + noche + extra + contrato
+            ws.append([row["nombre"], row["rut"], row.get("tipo_guardia", ""), dia, noche, dia + noche, extra, contrato, total])
 
     ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(headers))
     ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=len(headers))
@@ -1660,7 +1678,6 @@ def _crear_hoja_informe_turnos(ws, titulo: str, periodo: str, rows: list[dict]) 
             if cell.column >= 3:
                 cell.alignment = Alignment(horizontal="center")
 
-    widths = [34, 16, 14, 10, 10, 16, 10, 18, 14]
     for idx, width in enumerate(widths, start=1):
         ws.column_dimensions[chr(64 + idx)].width = width
     ws.freeze_panes = "A5"
@@ -2161,6 +2178,7 @@ def _qr_generado_dict(request: Request, item: RecintoQrGenerado) -> dict[str, ob
         "recinto_label": item.recinto_label,
         "token": item.token,
         "numero": item.numero,
+        "verificador": item.verificador,
         "target": target,
         "created_at": item.created_at.strftime("%d-%m-%Y %H:%M") if item.created_at else "",
     }
@@ -2178,10 +2196,27 @@ def listar_qr_generados(
     items = (
         db.query(RecintoQrGenerado)
         .filter(RecintoQrGenerado.recinto_id == recinto_id)
-        .order_by(RecintoQrGenerado.numero.desc())
+        .order_by(RecintoQrGenerado.created_at.desc(), RecintoQrGenerado.id.desc())
         .all()
     )
     return {"items": [_qr_generado_dict(request, item) for item in items]}
+
+
+def _generar_codigo_verificador(db: Session) -> int:
+    """Código de 6 dígitos para la franja vertical junto al QR: los 6
+    dígitos son todos distintos entre sí y el número completo es único en
+    toda la tabla — sirve para el ingreso manual cuando el QR no lee (un
+    solo campo, sin tener que elegir antes el recinto, porque es único en
+    todo el sistema). Es independiente del N° de ronda (secuencial por
+    recinto, 1/2/3/4…) que se sigue mostrando bajo el QR."""
+    existentes = {n for (n,) in db.query(RecintoQrGenerado.verificador).all() if n is not None}
+    for _ in range(500):
+        primero = random.randint(1, 9)
+        resto = random.sample([d for d in range(10) if d != primero], 5)
+        codigo = int("".join(str(d) for d in [primero, *resto]))
+        if codigo not in existentes:
+            return codigo
+    raise HTTPException(status_code=500, detail="No se pudo generar un código de verificación único.")
 
 
 @router.post("/api/inicio-turno/qr-generados")
@@ -2202,6 +2237,7 @@ def crear_qr_generado(
         recinto_label=payload.recinto_label.strip(),
         token=token,
         numero=(ultimo_numero or 0) + 1,
+        verificador=_generar_codigo_verificador(db),
     )
     db.add(item)
     db.commit()
@@ -2223,6 +2259,38 @@ def borrar_qr_generado(
 
 
 # ── Rondas: escaneo de checkpoints por el guardia ──────────────────────────────
+
+@router.get("/inicio-turno/ronda-manual", response_class=HTMLResponse)
+def inicio_turno_ronda_manual_page(
+    request: Request,
+):
+    """Entrada alternativa a /inicio-turno/ronda para cuando el QR físico no
+    se puede leer: el guardia ingresa el código verificador de 6 dígitos
+    (franja vertical junto al QR) y queda redirigido a la misma pantalla de
+    registro de siempre. El código es único en todo el sistema, así que no
+    hace falta elegir antes el recinto."""
+    return templates.TemplateResponse(
+        request,
+        "inicio_turno_ronda_manual.html",
+        {"request": request},
+    )
+
+
+@router.get("/api/inicio-turno/rondas/resolver")
+def resolver_ronda_manual(
+    verificador: int = Query(default=0),
+    db: Session = Depends(get_db),
+):
+    if verificador < 1:
+        raise HTTPException(status_code=422, detail="Ingresa el código verificador.")
+    item = db.query(RecintoQrGenerado).filter(RecintoQrGenerado.verificador == verificador).first()
+    if not item:
+        raise HTTPException(
+            status_code=404,
+            detail="No existe ningún checkpoint con ese código. Verifica con tu supervisor.",
+        )
+    return {"qr": item.token, "recinto_label": item.recinto_label, "numero": item.numero}
+
 
 @router.get("/inicio-turno/ronda", response_class=HTMLResponse)
 def inicio_turno_ronda_page(
@@ -2560,7 +2628,12 @@ def _preview_cell(value: object, css: str = "") -> dict:
     return {"value": value if value not in (None, "") else "—", "css": css}
 
 
-def _preview_turnos_section(titulo: str, rows: list[dict]) -> dict:
+def _preview_turnos_section(
+    titulo: str,
+    rows: list[dict],
+    *,
+    faltas_por_guardia: dict[str, int] | None = None,
+) -> dict:
     preview_rows = []
     for row in rows:
         turnos = row["turnos"]
@@ -2568,21 +2641,39 @@ def _preview_turnos_section(titulo: str, rows: list[dict]) -> dict:
         noche = int(turnos["Noche"])
         extra = int(turnos["Extra"])
         contrato = int(turnos["Contrato Diario"])
-        preview_rows.append([
-            _preview_cell(row["nombre"]),
-            _preview_cell(row["rut"]),
-            _preview_cell(row.get("tipo_guardia", "")),
-            _preview_cell(dia, "num"),
-            _preview_cell(noche, "num"),
-            _preview_cell(dia + noche, "num"),
-            _preview_cell(extra, "num"),
-            _preview_cell(contrato, "num"),
-            _preview_cell(dia + noche + extra + contrato, "num"),
-        ])
+        if faltas_por_guardia is not None:
+            identidad = row["rut"] or _normalizar_texto(row["nombre"])
+            faltas = int(faltas_por_guardia.get(identidad, 0))
+            preview_rows.append([
+                _preview_cell(row["nombre"]),
+                _preview_cell(row["rut"]),
+                _preview_cell(row.get("tipo_guardia", "")),
+                _preview_cell(dia + noche, "num"),
+                _preview_cell(extra, "num"),
+                _preview_cell(contrato, "num"),
+                _preview_cell(faltas, "num"),
+            ])
+        else:
+            preview_rows.append([
+                _preview_cell(row["nombre"]),
+                _preview_cell(row["rut"]),
+                _preview_cell(row.get("tipo_guardia", "")),
+                _preview_cell(dia, "num"),
+                _preview_cell(noche, "num"),
+                _preview_cell(dia + noche, "num"),
+                _preview_cell(extra, "num"),
+                _preview_cell(contrato, "num"),
+                _preview_cell(dia + noche + extra + contrato, "num"),
+            ])
+    headers = (
+        ["Nombre", "RUT", "Tipo de Contrato", "Turno Normal", "Extra", "Contrato Diario", "Faltas"]
+        if faltas_por_guardia is not None
+        else ["Nombre", "RUT", "Tipo de Contrato", "Dia", "Noche", "Turno Normal", "Extra", "Contrato Diario", "Total Turnos"]
+    )
     return {
         "title": titulo,
         "subtitle": f"{len(preview_rows)} guardia(s)",
-        "headers": ["Nombre", "RUT", "Tipo de Contrato", "Dia", "Noche", "Turno Normal", "Extra", "Contrato Diario", "Total Turnos"],
+        "headers": headers,
         "rows": preview_rows,
     }
 
@@ -2842,6 +2933,14 @@ def _datos_informe_guardias(db: Session, year: int, month: int, grupo: str) -> d
             "turno": r.tipo_turno,
             "notas": r.notas or "",
         })
+    matrix_qr: dict[str, dict[int, list]] = defaultdict(lambda: defaultdict(list))
+    for r in registros_qr:
+        matrix_qr[r.recinto][r.registrado_at.day].append({
+            "id": r.id,
+            "nombre": r.nombre_guardia,
+            "turno": r.tipo_turno,
+            "hora": r.registrado_at.strftime("%H:%M"),
+        })
     days_in_month = calendar.monthrange(year, month)[1]
     days_info = [
         {"day": d, "dow": _DAY_NAMES[date(year, month, d).weekday()]}
@@ -2858,6 +2957,7 @@ def _datos_informe_guardias(db: Session, year: int, month: int, grupo: str) -> d
         "rows_contrato_diario": rows_contrato_diario,
         "rows_domingos": rows_domingos,
         "matrix_sv": matrix_sv,
+        "matrix_qr": matrix_qr,
         "recintos": recintos,
         "days_info": days_info,
     }
@@ -3445,6 +3545,23 @@ def guardia_tabla_page(
             "hora":   r.registrado_at.strftime("%H:%M"),
         })
 
+    # dia -> {nombres_norm} con QR en CUALQUIER recinto (sin importar el
+    # turno) — para que un guardia que el supervisor anoto en un recinto
+    # pero marco QR en OTRO no salga como "Falta o Inasistencia" en el
+    # primero: eso ya es un "conflicto de destino" (mas abajo), no una
+    # ausencia — el guardia si se presento a trabajar. Se ignora el turno
+    # a proposito: si ademas el turno registrado difiere, sigue siendo
+    # conflicto de destino, no falta (pedido explicito, ago 2026).
+    qr_por_dia: dict[int, set] = defaultdict(set)
+    # dia -> nombre_norm -> {recintos, ...} con QR ese dia — para poder nombrar
+    # el recinto real en el mensaje de "conflicto de destino" de cada celda.
+    qr_por_dia_recintos: dict[int, dict[str, set]] = defaultdict(lambda: defaultdict(set))
+    for r in registros_qr:
+        d = r.registrado_at.day
+        nn_r = _norm(r.nombre_guardia)
+        qr_por_dia[d].add(nn_r)
+        qr_por_dia_recintos[d][nn_r].add(r.recinto)
+
     matrix_sv: dict[str, dict[int, list]] = defaultdict(lambda: defaultdict(list))
     for r in registros_sv:
         matrix_sv[r.recinto][r.fecha.day].append({
@@ -3515,15 +3632,25 @@ def guardia_tabla_page(
             for e in sv_entries:
                 nn = _norm(e["nombre"])
                 if nn not in qr_por_nombre:
+                    # Antes esto marcaba "Falta" con solo no encontrar QR en
+                    # ESTE recinto, aunque el guardia si haya marcado QR ese
+                    # mismo dia y turno en otro recinto — eso ya se marca
+                    # aparte como "conflicto de destino"; el guardia SI se
+                    # presento a trabajar, no esta ausente.
+                    tiene_qr_en_otro_recinto = nn in qr_por_dia.get(d, set())
+                    if tiene_qr_en_otro_recinto:
+                        sv_annotated.append({**e, "falta": False, "es_permiso": False, "turno_mismatch": False, "turno_qr": None, "conflicto_destino": True})
+                        continue
                     rut_e = rut_lookup.get(nn, "")
                     rangos = permisos_sin_goce.get(_normalizar_rut(rut_e), []) if rut_e else []
                     es_permiso = control_activo and any(desde <= fecha_celda <= hasta for desde, hasta in rangos)
-                    sv_annotated.append({**e, "falta": control_activo, "es_permiso": es_permiso, "turno_mismatch": False, "turno_qr": None})
+                    sv_annotated.append({**e, "falta": control_activo, "es_permiso": es_permiso, "turno_mismatch": False, "turno_qr": None, "conflicto_destino": False})
                 else:
                     turnos_qr = [qe["turno"] for qe in qr_por_nombre[nn]]
                     turno_ok = any(_norm(e["turno"]) == _norm(t) for t in turnos_qr)
                     sv_annotated.append({**e, "falta": False, "es_permiso": False, "turno_mismatch": control_activo and not turno_ok,
-                                         "turno_qr": " / ".join(turnos_qr) if control_activo and not turno_ok else None})
+                                         "turno_qr": " / ".join(turnos_qr) if control_activo and not turno_ok else None,
+                                         "conflicto_destino": False})
 
             qr_annotated = [{**e, "sin_supervisor": control_activo and _norm(e["nombre"]) not in sv_nombres} for e in qr_entries]
 
@@ -3534,6 +3661,10 @@ def guardia_tabla_page(
                     razones.append(f"Falta — {e['nombre']} ({e['turno']}): sin registro de guardia{sufijo}")
                 elif e["turno_mismatch"]:
                     razones.append(f"Turno diferente — {e['nombre']}: Supervisor={e['turno']}, Registro Guardia={e['turno_qr']}")
+                elif e["conflicto_destino"]:
+                    otros = sorted(qr_por_dia_recintos.get(d, {}).get(_norm(e["nombre"]), set()) - {recinto})
+                    destino = otros[0] if otros else "otro recinto"
+                    razones.append(f"Conflicto de destino — {e['nombre']} ({e['turno']}): registrado también en {destino} ese día")
             for e in qr_annotated:
                 if e["sin_supervisor"]:
                     razones.append(f"Solo en Registro Guardia — {e['nombre']} ({e['turno']}, {e['hora']}): no está en registro del supervisor")
@@ -3541,6 +3672,7 @@ def guardia_tabla_page(
             n_faltas        = sum(1 for e in sv_annotated if e["falta"])
             n_turno_mismatch = sum(1 for e in sv_annotated if e["turno_mismatch"])
             n_solo_qr       = sum(1 for e in qr_annotated if e["sin_supervisor"])
+            n_conflicto     = sum(1 for e in sv_annotated if e["conflicto_destino"])
 
             if not control_activo:
                 status = "ok" if qr_entries and sv_entries else "empty"
@@ -3548,12 +3680,12 @@ def guardia_tabla_page(
                 status = "empty"
             elif qr_entries and not sv_entries:
                 status = "solo_qr"
-            elif not qr_entries and sv_entries:
-                status = "falta"
             elif n_faltas:
                 status = "falta"
             elif n_turno_mismatch or n_solo_qr:
                 status = "mismatch"
+            elif n_conflicto:
+                status = "conflicto"
             else:
                 status = "ok"
 
@@ -3602,14 +3734,17 @@ def guardia_tabla_page(
     alertas_inasistencia.sort(key=lambda x: x["fecha"])
     alertas_discrepancia.sort(key=lambda x: x["fecha"])
 
-    # ── Conflictos de recinto: mismo guardia, mismo turno, distinto recinto ──────
-    # qr_global[dia][(nombre_norm, turno_norm)] = {recinto, ...}
+    # ── Conflictos de recinto: mismo guardia, distinto recinto ────────────────────
+    # qr_global_any[dia][nombre_norm] = {recinto, ...} — sin filtrar por turno,
+    # para que un cruce de recinto CON turno distinto tambien cuente como
+    # "conflicto de destino" (y no desaparezca de toda alerta) en vez de exigir
+    # que ademas coincida el turno (pedido explicito, ago 2026).
     from collections import defaultdict as _dd
-    qr_global: dict[int, dict] = _dd(lambda: _dd(set))
+    qr_global_any: dict[int, dict] = _dd(lambda: _dd(set))
     for rec in recintos:
         for d in range(1, days_in_month + 1):
             for e in matrix_qr.get(rec, {}).get(d, []):
-                qr_global[d][(_norm(e["nombre"]), _norm(e["turno"]))].add(rec)
+                qr_global_any[d][_norm(e["nombre"])].add(rec)
 
     sv_global: dict[int, dict] = _dd(lambda: _dd(dict))
     for rec in recintos:
@@ -3622,7 +3757,7 @@ def guardia_tabla_page(
     seen_conf: set = set()
     for d in range(1, days_in_month + 1):
         for (nn, nt), sv_rec_dict in sv_global[d].items():
-            qr_recs = qr_global[d].get((nn, nt), set())
+            qr_recs = qr_global_any[d].get(nn, set())
             for sv_rec in sv_rec_dict:
                 for qr_rec in qr_recs:
                     if sv_rec != qr_rec:
@@ -3727,9 +3862,13 @@ def preview_informes_guardias(
     year = year or today.year
     month = month or today.month
     data = _datos_informe_guardias(db, year, month, grupo)
+    faltas_por_guardia = {
+        (row["rut"] or _normalizar_texto(row["nombre"])): int(row["faltas"])
+        for row in data["rows_faltas"]
+    }
 
     sections = [
-        _preview_turnos_section("Registro Guardias", data["rows_qr"]),
+        _preview_turnos_section("Registro Guardias", data["rows_qr"], faltas_por_guardia=faltas_por_guardia),
         _preview_turnos_section("Supervisores", data["rows_sv"]),
         _preview_cruce_section(data["rows_cruce"]),
         _preview_faltas_section(data["rows_faltas"]),
@@ -3739,7 +3878,7 @@ def preview_informes_guardias(
             month,
             data["recintos"],
             data["days_info"],
-            data["matrix_sv"],
+            data["matrix_qr"],
             solo_nombres=True,
         ),
         _preview_turnos_extra_section("Turno Extra", data["rows_extra"], tipo_turno="Extra"),
@@ -3846,17 +3985,30 @@ def descargar_informes_guardias(
             "turno": r.tipo_turno,
             "notas": r.notas or "",
         })
+    matrix_qr: dict[str, dict[int, list]] = defaultdict(lambda: defaultdict(list))
+    for r in registros_qr:
+        matrix_qr[r.recinto][r.registrado_at.day].append({
+            "id": r.id,
+            "nombre": r.nombre_guardia,
+            "turno": r.tipo_turno,
+            "hora": r.registrado_at.strftime("%H:%M"),
+        })
     days_in_month = calendar.monthrange(year, month)[1]
     days_info = [
         {"day": d, "dow": _DAY_NAMES[date(year, month, d).weekday()]}
         for d in range(1, days_in_month + 1)
     ]
 
+    faltas_por_guardia = {
+        (row["rut"] or _normalizar_texto(row["nombre"])): int(row["faltas"])
+        for row in rows_faltas
+    }
+
     periodo = f"{_MONTH_NAMES[month - 1]} {year} | Grupo: {grupo.title()}"
     wb = Workbook()
     ws = wb.active
     ws.title = "Registro Guardias"
-    _crear_hoja_informe_turnos(ws, "Registro Guardias", periodo, rows_qr)
+    _crear_hoja_informe_turnos(ws, "Registro Guardias", periodo, rows_qr, faltas_por_guardia=faltas_por_guardia)
     _crear_hoja_informe_turnos(wb.create_sheet("Supervisores"), "Supervisores", periodo, rows_sv)
     _crear_hoja_cruce(wb.create_sheet("Cruce"), periodo, rows_cruce)
     _crear_hoja_faltas(wb.create_sheet("Faltas"), periodo, rows_faltas)
@@ -3867,7 +4019,7 @@ def descargar_informes_guardias(
         month,
         recintos,
         days_info,
-        matrix_sv,
+        matrix_qr,
         titulo="Guardia por Recinto",
         solo_nombres=True,
     )

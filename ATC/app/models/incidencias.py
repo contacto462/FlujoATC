@@ -221,6 +221,8 @@ class SucursalCamaraMonitoreo(Base):
     cantidad_equipos: Mapped[Optional[int]] = mapped_column(nullable=True)
     camara_sin_monitoreo: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     ubicacion_pantalla: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    slot_index: Mapped[Optional[int]] = mapped_column(nullable=True)
+    odt_origen: Mapped[Optional[str]] = mapped_column(String(30), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     sucursal: Mapped[Optional["SucursalBBDD"]] = relationship(back_populates="camaras_monitoreo")
@@ -369,6 +371,11 @@ class ServicioTecnicoVentaODT(Base):
     finalizado: Mapped[bool] = mapped_column(default=False)
     fecha_cierre: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
+    # Cantidad total realmente instalada cuando supera lo contratado
+    # (VentaODS.numero_camaras_instalar) — nulo si se instaló justo lo
+    # contratado. Dispara el aviso por correo al comercial a cargo.
+    camaras_instaladas_reales: Mapped[Optional[int]] = mapped_column(nullable=True)
+
     layout_final: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
@@ -408,6 +415,7 @@ class SoporteTecnicoVentaODT(Base):
 
     requiere_puesto_nuevo: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     numero_central_asignado: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    pantalla_asignada: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
     camaras_registradas: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())

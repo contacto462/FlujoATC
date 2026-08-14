@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="es">
 <head>
-<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
-<link rel="shortcut icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png?v=2">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png?v=2">
+<link rel="shortcut icon" href="/favicon.ico?v=2">
 
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -78,13 +78,46 @@ body{
 .stat.solved .stat-n{color:#047857}
 .stat.pend .stat-n{color:var(--muted-strong,#475467)}
 
-/* ── sections grid ── */
-.sections{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;align-items:start;padding:0 30px}
-@media(max-width:1100px){.sections{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:600px){.sections{grid-template-columns:1fr;padding:0 14px}}
+/* ── semanas: una a la vez, para avanzar en orden sin saltarse ninguna ── */
+.week-tabs{display:flex;gap:8px;padding:0 30px;margin-bottom:16px;overflow-x:auto}
+.week-tab{
+  flex:1;min-width:150px;display:flex;flex-direction:column;gap:6px;
+  padding:12px 16px;border-radius:10px;border:1px solid var(--border);
+  background:var(--surface);cursor:pointer;transition:.15s;text-align:left;
+}
+.week-tab:hover{border-color:var(--blue-3)}
+.week-tab.is-active{border-color:var(--blue-2);background:#eef5fb;box-shadow:0 4px 14px rgba(18,56,95,.10)}
+.week-tab.is-complete{border-color:var(--green-bd)}
+.week-tab.is-complete.is-active{background:var(--green-bg)}
+.week-tab-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.week-tab-label{font-size:12.5px;font-weight:800;color:var(--text)}
+.week-tab-check{color:var(--green);font-size:13px;font-weight:800;display:none}
+.week-tab.is-complete .week-tab-check{display:inline}
+.week-tab-count{font-size:11px;color:var(--muted);font-weight:600}
+.week-tab-bar{height:5px;border-radius:99px;background:#e7edf5;overflow:hidden}
+.week-tab-bar-fill{height:100%;background:var(--green);border-radius:99px;transition:width .25s ease}
+.week-tab.is-locked{cursor:not-allowed;opacity:.55;background:var(--surface)}
+.week-tab.is-locked:hover{border-color:var(--border)}
+.week-tab-lock{font-size:12px;display:none}
+.week-tab.is-locked .week-tab-lock{display:inline}
+
+/* ── sections: una sola columna ancha, la semana activa ── */
+.sections{padding:0 30px}
+@media(max-width:600px){.sections{padding:0 14px}
+  .week-tabs{padding:0 14px}
+}
 
 .section-col{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow-sm)}
 .section-hdr{padding:12px 16px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;background:var(--surface-soft)}
+/* Columnas tipo "mampostería" armadas por JS (ver distribuirEnColumnas):
+   las comunas se reparten balanceando cuántas sucursales lleva cada
+   columna, así una comuna chica no deja un hueco vacío al lado de una
+   grande y las columnas usan TODO el ancho disponible (a diferencia de
+   CSS columns, que puede dejar una columna entera vacía si el contenido
+   no alcanza a llenarla). */
+.week-body{display:flex;align-items:flex-start;gap:0;width:100%}
+.week-col{flex:1 1 0;min-width:0}
+.week-col .empresa-group{border-right:1px solid #eef3f8}
 
 /* ── empresa group ── */
 .empresa-group{border-bottom:1px solid #eef3f8}
@@ -96,7 +129,7 @@ body{
 .suc-row:last-child{border-bottom:none}
 .suc-row:hover{background:#f8fafc}
 .suc-info{flex:1;min-width:0}
-.suc-nombre{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.suc-nombre{font-size:13px;font-weight:600;color:var(--text);white-space:normal;overflow-wrap:break-word;word-break:break-word;line-height:1.3}
 .suc-dir{font-size:11px;color:var(--muted);white-space:normal;overflow:visible;text-overflow:clip;line-height:1.35;margin-top:2px}
 .suc-badges{display:flex;gap:6px;flex-shrink:0}
 
@@ -122,19 +155,87 @@ body{
 /* ── modal ── */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);z-index:100;display:none;place-items:center;padding:24px}
 .modal-bg.open{display:grid}
-.modal{background:#fff;border-radius:10px;width:min(500px,100%);box-shadow:0 20px 60px rgba(0,0,0,.28);overflow:hidden}
-.modal-header{background:#1e293b;border-top:3px solid #f97316;padding:18px 22px 16px}
+.modal{background:#fff;border-radius:10px;width:min(500px,100%);max-height:calc(100vh - 48px);box-shadow:0 20px 60px rgba(0,0,0,.28);overflow:auto}
+.modal-header{background:#1e293b;border-top:3px solid var(--accent);padding:18px 22px 16px}
 .modal-header h3{font-size:16px;font-weight:700;color:#f1f5f9;margin:0 0 2px}
 .modal-header .modal-sub{font-size:12px;color:#94a3b8;margin:0}
 .modal-body{padding:22px}
-.modal textarea{width:100%;min-height:90px;padding:11px 13px;border-radius:7px;border:1px solid #d1d5db;background:#fff;color:#1e293b;font-size:14px;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box;transition:border-color .12s,box-shadow .12s}
-.modal textarea:focus{border-color:#6b7280;box-shadow:0 0 0 3px rgba(107,114,128,.12)}
+.audio-equipos-box{margin-bottom:16px;padding:13px;border:1px solid #d8e0ea;border-radius:9px;background:#f8fafc}
+.audio-equipos-title{font-size:13px;font-weight:700;color:#1e293b;margin-bottom:4px}
+.audio-equipos-help{font-size:12px;color:#667085;margin-bottom:11px}
+.audio-equipos-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px}
+.equipo-audio-btn{border:1px solid #cbd5e1;background:#fff;color:#334155;border-radius:8px;padding:9px 10px;font-size:13px;font-weight:700;cursor:pointer;transition:.12s}
+.equipo-audio-btn:hover{border-color:var(--accent);color:#9f4f1f;background:#fff7ed}
+.equipo-audio-btn.selected{border-color:var(--accent);background:var(--accent);color:#fff;box-shadow:0 8px 18px rgba(222,123,54,.22)}
+.modal-error{display:none;margin:0 0 12px;padding:9px 11px;border-radius:8px;background:#fff1f1;border:1px solid #f2b2b2;color:#b91c1c;font-size:12px;font-weight:700}
+.modal-error.show{display:block}
 .modal-actions{display:flex;gap:10px;margin-top:16px;justify-content:flex-end}
 .modal-btn{padding:9px 20px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
 .modal-btn.cancel{background:#f1f5f9;color:#475569;border:1px solid #e2e8f0}
 .modal-btn.cancel:hover{background:#e2e8f0}
-.modal-btn.confirm{background:#f97316;color:#fff;border:1px solid #ea6c0a}
-.modal-btn.confirm:hover{background:#ea6c0a}
+.modal-btn.confirm{background:var(--accent);color:#fff;border:1px solid #c96c2c}
+.modal-btn.confirm:hover{background:#c96c2c}
+.modal-btn.confirm.success{background:var(--accent);border-color:#c96c2c}
+.modal-btn.confirm.success:hover{background:#c96c2c}
+.modal-btn:disabled{opacity:.62;cursor:wait}
+
+/* ── modal confirmacion exitosa ── */
+.success-confirm-bg{background:rgba(11,20,36,.68);backdrop-filter:blur(6px)}
+.success-confirm-modal{
+  width:min(560px,100%);
+  border-radius:14px;
+  overflow:hidden;
+  border:none;
+  background:#fff;
+  box-shadow:0 28px 80px rgba(11,20,36,.35);
+  transform-origin:center;
+  animation:successModalIn .32s cubic-bezier(.16,1,.3,1);
+}
+.success-confirm-head{
+  position:relative;
+  padding:22px 24px 20px;
+  background:
+    radial-gradient(circle at 86% 18%,rgba(222,123,54,.28),transparent 24%),
+    linear-gradient(135deg,#0b1424 0%,#12385f 100%);
+  color:#fff;
+  overflow:hidden;
+}
+.success-confirm-head::after{
+  content:"";
+  position:absolute;
+  inset:auto -20% 0 -20%;
+  height:2px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);
+  animation:ticketScan .9s .14s ease-out both;
+}
+.success-kicker{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#f0a86a}
+.success-confirm-head h3{font-size:22px;line-height:1.2;margin:7px 0 6px;font-weight:850;letter-spacing:-.02em}
+.success-confirm-head p{font-size:13px;color:rgba(255,255,255,.78);margin:0}
+.success-check{
+  width:86px;
+  height:86px;
+  margin:22px auto 2px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  color:#15803d;
+  background:radial-gradient(circle,#ecfdf5 0 52%,transparent 53%),#fff;
+  border:2px solid rgba(22,128,60,.26);
+  box-shadow:0 10px 24px rgba(22,128,60,.16);
+  animation:stampIn .48s .08s cubic-bezier(.16,1,.3,1) both;
+}
+.success-check svg{width:42px;height:42px;stroke-dasharray:36;stroke-dashoffset:36;animation:drawCheck .55s .26s ease-out forwards}
+.success-question{padding:17px 24px 0;font-size:14px;color:#1f2937;font-weight:700}
+.success-question small{display:block;margin-top:4px;font-size:12px;font-weight:600;color:#667085}
+.success-confirm-modal .modal-actions{padding:20px 24px 24px;margin-top:0}
+@keyframes successModalIn{from{opacity:0;transform:translateY(12px) scale(.98);filter:blur(4px)}to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}}
+@keyframes ticketScan{0%{transform:translateX(-42%);opacity:.18}70%{opacity:.75}100%{transform:translateX(42%);opacity:.22}}
+@keyframes stampIn{from{transform:scale(.76) rotate(-8deg);opacity:0}to{transform:scale(1) rotate(-2deg);opacity:1}}
+@keyframes drawCheck{to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion:reduce){
+  .success-confirm-modal,.success-confirm-head::after,.success-check,.success-check svg{animation:none}
+  .success-check svg{stroke-dashoffset:0}
+}
 
 /* ── toast ── */
 .toast{position:fixed;bottom:28px;right:24px;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;color:#fff;z-index:200;opacity:0;transform:translateY(10px);transition:.3s;pointer-events:none;box-shadow:0 8px 20px rgba(0,0,0,.2)}
@@ -170,6 +271,8 @@ body{
   </div>
 </div>
 
+<div class="week-tabs" id="weekTabs"></div>
+
 <div class="sections" id="sections">
   <div class="loading">Cargando sucursales…</div>
 </div>
@@ -182,11 +285,40 @@ body{
       <p class="modal-sub" id="modalSucNombre">Sucursal</p>
     </div>
     <div class="modal-body">
-    <textarea id="obsTexto" placeholder="Describe el problema observado…"></textarea>
-    <div class="modal-actions">
-      <button class="modal-btn cancel" onclick="cerrarModal()">Cancelar</button>
-      <button class="modal-btn confirm" onclick="confirmarFalla()">Crear incidencia</button>
+      <div class="audio-equipos-box">
+        <div class="audio-equipos-title" id="audioEquiposTitulo">Equipos de audio</div>
+        <div class="audio-equipos-help">Selecciona el equipo que no funciona.</div>
+        <div class="audio-equipos-grid" id="audioEquiposGrid"></div>
+      </div>
+      <div class="modal-error" id="modalFallaError"></div>
+      <div class="modal-actions">
+        <button class="modal-btn cancel" onclick="cerrarModal()">Cancelar</button>
+        <button class="modal-btn confirm" onclick="confirmarFalla()">Crear incidencia</button>
+      </div>
     </div>
+  </div>
+</div>
+
+<!-- Modal confirmacion exitosa -->
+<div class="modal-bg success-confirm-bg" id="modalExitosa">
+  <div class="success-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="exitosaTitulo">
+    <div class="success-confirm-head">
+      <div class="success-kicker">Confirmación de prueba</div>
+      <h3 id="exitosaTitulo">¿La prueba fue realmente exitosa?</h3>
+      <p>Confirma solo si el sistema de audio respondió correctamente en la sucursal.</p>
+    </div>
+    <div class="success-check" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 12.5 9.2 16.5 19 7.5"/>
+      </svg>
+    </div>
+    <div class="success-question">
+      Esta acción marcará la prueba como Exitosa.
+      <small>Si tienes duda, vuelve a revisar antes de enviar el registro.</small>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" type="button" onclick="cerrarModalExitosa()">Revisar de nuevo</button>
+      <button class="modal-btn confirm success" type="button" id="btnConfirmarExitosa" onclick="confirmarExitosa()">Confirmar exitosa</button>
     </div>
   </div>
 </div>
@@ -204,6 +336,10 @@ document.getElementById("pilMes").textContent = MESES[MES_N] + " " + ANIO;
 
 let sucursalesData = [];
 let pendingFallaSucId = null;
+let pendingFallaEquipo = "";
+let pendingExitosaSucId = null;
+let registrandoExitosa = false;
+let semanaActiva = null; // se fija una sola vez (la 1a semana con pendientes); despues manda el click del usuario
 
 /* ── Utilidades ─────────────────────────────────────── */
 function toast(msg, tipo="ok") {
@@ -216,7 +352,21 @@ function toast(msg, tipo="ok") {
 function cerrarModal() {
   document.getElementById("modalFalla").classList.remove("open");
   pendingFallaSucId = null;
-  document.getElementById("obsTexto").value = "";
+  pendingFallaEquipo = "";
+  const error = document.getElementById("modalFallaError");
+  error.textContent = "";
+  error.classList.remove("show");
+}
+
+function cerrarModalExitosa() {
+  document.getElementById("modalExitosa").classList.remove("open");
+  pendingExitosaSucId = null;
+  registrandoExitosa = false;
+  const btn = document.getElementById("btnConfirmarExitosa");
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = "Confirmar exitosa";
+  }
 }
 
 function normOrden(value) {
@@ -247,6 +397,10 @@ async function cargarSucursales() {
 }
 
 /* ── Render ─────────────────────────────────────────── */
+function sucursalYaProbada(s) {
+  return s.resultado === "exitoso" || s.resultado === "falla";
+}
+
 function renderizar() {
   // Stats
   const total = sucursalesData.length;
@@ -289,24 +443,113 @@ function renderizar() {
     semanas[si].get(com).push(s);
   }
 
+  // Avance por semana: cuantas ya se probaron (exitoso o falla) del total.
+  const resumenSemanas = semanas.map((comunasMap, idx) => {
+    const items = Array.from(comunasMap.values()).flat();
+    const hechas = items.filter(sucursalYaProbada).length;
+    return { idx, total: items.length, hechas, completa: items.length > 0 && hechas === items.length };
+  });
+
+  // Semana 1 y 2 al dia: terminadas, o sin sucursales asignadas (nada que
+  // bloquee). Semana 3 y 4 quedan bloqueadas hasta que eso se cumpla, para
+  // forzar el orden en vez de saltar semanas.
+  const semanaOk = (r) => r.total === 0 || r.completa;
+  const semanas1y2Ok = semanaOk(resumenSemanas[0]) && semanaOk(resumenSemanas[1]);
+  resumenSemanas.forEach(r => { r.bloqueada = r.idx >= 2 && !semanas1y2Ok; });
+
+  // La primera vez, arrancar en la primera semana con pendientes — asi se
+  // avanza semana por semana en orden y no queda ninguna a medio hacer sin
+  // que se note. Si ya se eligio una semana a mano (click en una pestaña),
+  // esa eleccion se respeta en los re-renders siguientes.
+  if (semanaActiva === null) {
+    const primeraIncompleta = resumenSemanas.find(r => r.total > 0 && !r.completa && !r.bloqueada);
+    if (primeraIncompleta) {
+      semanaActiva = primeraIncompleta.idx;
+    } else {
+      const conDatos = resumenSemanas.filter(r => r.total > 0 && !r.bloqueada);
+      semanaActiva = conDatos.length ? conDatos[conDatos.length - 1].idx : 0;
+    }
+  } else if (resumenSemanas[semanaActiva]?.bloqueada) {
+    // Si semana 1/2 dejaron de estar completas despues de elegir 3/4 a mano
+    // (ej. se deshizo una prueba), no se puede quedar mostrando una semana
+    // bloqueada.
+    semanaActiva = resumenSemanas.find(r => !r.bloqueada)?.idx ?? 0;
+  }
+
+  // Pestañas de semana
+  const tabsCont = document.getElementById("weekTabs");
+  tabsCont.innerHTML = resumenSemanas.map(r => {
+    const pct = r.total ? Math.round((r.hechas / r.total) * 100) : 0;
+    const titulo = r.bloqueada ? ` title="Termina la semana 1 y 2 para desbloquear esta semana"` : "";
+    return `
+      <button type="button" class="week-tab${r.idx === semanaActiva ? " is-active" : ""}${r.completa ? " is-complete" : ""}${r.bloqueada ? " is-locked" : ""}" data-week="${r.idx}"${r.bloqueada ? " disabled" : ""}${titulo}>
+        <div class="week-tab-top">
+          <span class="week-tab-label">Semana ${r.idx + 1}</span>
+          <span class="week-tab-check">✓</span>
+          <span class="week-tab-lock">🔒</span>
+        </div>
+        <span class="week-tab-count">${r.hechas}/${r.total} probadas</span>
+        <div class="week-tab-bar"><div class="week-tab-bar-fill" style="width:${pct}%"></div></div>
+      </button>`;
+  }).join("");
+  tabsCont.querySelectorAll(".week-tab").forEach(btn => {
+    if (btn.disabled) return;
+    btn.addEventListener("click", () => {
+      semanaActiva = Number(btn.dataset.week);
+      renderizar();
+    });
+  });
+
+  // Solo se pinta la semana activa — asi se avanza de a una, sin la
+  // tentacion de saltar entre columnas y dejar sucursales sin revisar.
   const cont = document.getElementById("sections");
   cont.innerHTML = "";
+  const comunasMap = semanas[semanaActiva];
+  const resumenActiva = resumenSemanas[semanaActiva];
+  const col = document.createElement("div");
+  col.className = "section-col";
+  col.innerHTML = `<div class="section-hdr">Semana ${semanaActiva + 1} · ${resumenActiva.total} sucursales</div>`;
+  const body = document.createElement("div");
+  body.className = "week-body";
 
-  semanas.forEach((comunasMap, ci) => {
-    const totalSem = Array.from(comunasMap.values()).reduce((a,b) => a + b.length, 0);
-    const col = document.createElement("div");
-    col.className = "section-col";
-    col.innerHTML = `<div class="section-hdr">Semana ${ci+1} · ${totalSem} sucursales</div>`;
+  // Reparte las FILAS (no las comunas) en partes lo mas parejas posible en
+  // cantidad — una comuna puede quedar partida entre dos columnas si hace
+  // falta para que ninguna columna quede mucho mas larga que las demas.
+  // Dentro de cada columna se sigue agrupando por comuna (se repite el
+  // encabezado si una comuna sigue en la columna siguiente).
+  const filas = [...comunasMap.entries()].flatMap(([com, subs]) => subs.map((s) => ({ com, s })));
+  const totalFilas = filas.length;
+  const anchoDisponible = cont.clientWidth || 1200;
+  const numCols = Math.max(1, Math.min(Math.floor(anchoDisponible / 300) || 1, totalFilas || 1));
+  const base = Math.floor(totalFilas / numCols);
+  const extra = totalFilas % numCols;
+  const columnas = [];
+  let pos = 0;
+  for (let i = 0; i < numCols; i++) {
+    const tamano = base + (i < extra ? 1 : 0);
+    columnas.push(filas.slice(pos, pos + tamano));
+    pos += tamano;
+  }
 
-    for (const [com, subs] of comunasMap.entries()) {
-      const grp = document.createElement("div");
-      grp.className = "empresa-group";
-      grp.innerHTML = `<div class="empresa-label">${com}</div>`;
-      for (const s of subs) grp.appendChild(renderSucursal(s));
-      col.appendChild(grp);
+  for (const columnaFilas of columnas) {
+    const colDiv = document.createElement("div");
+    colDiv.className = "week-col";
+    let comunaActual = null;
+    let grp = null;
+    for (const { com, s } of columnaFilas) {
+      if (com !== comunaActual) {
+        grp = document.createElement("div");
+        grp.className = "empresa-group";
+        grp.innerHTML = `<div class="empresa-label">${com}</div>`;
+        colDiv.appendChild(grp);
+        comunaActual = com;
+      }
+      grp.appendChild(renderSucursal(s));
     }
-    cont.appendChild(col);
-  });
+    body.appendChild(colDiv);
+  }
+  col.appendChild(body);
+  cont.appendChild(col);
 }
 
 function renderSucursal(s) {
@@ -341,7 +584,7 @@ function renderSucursal(s) {
       <button class="act-btn ok-btn" title="Exitosa" onclick="marcarExitosa(${s.id})">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
       </button>
-      <button class="act-btn fail-btn" title="No funciona" onclick="abrirModalFalla(${s.id},'${escHtml(s.nombre_sucursal)}')">
+      <button class="act-btn fail-btn" title="No funciona" onclick="abrirModalFalla(${s.id})">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>`;
   }
@@ -361,7 +604,30 @@ function escHtml(t) {
 }
 
 /* ── Acciones ───────────────────────────────────────── */
-async function marcarExitosa(sucId) {
+function abrirModalExitosa(sucId) {
+  pendingExitosaSucId = sucId;
+  registrandoExitosa = false;
+  const btn = document.getElementById("btnConfirmarExitosa");
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = "Confirmar exitosa";
+  }
+  document.getElementById("modalExitosa").classList.add("open");
+}
+
+function marcarExitosa(sucId) {
+  abrirModalExitosa(sucId);
+}
+
+async function confirmarExitosa() {
+  if (!pendingExitosaSucId || registrandoExitosa) return;
+  const sucId = pendingExitosaSucId;
+  const btn = document.getElementById("btnConfirmarExitosa");
+  registrandoExitosa = true;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Registrando...";
+  }
   try {
     const res = await fetch("/api/pruebas-sonido", {
       method:"POST",
@@ -371,31 +637,80 @@ async function marcarExitosa(sucId) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || "Error");
     actualizarLocal(sucId, {resultado:"exitoso", prueba_id: data.prueba_id, odt_finalizada:false});
+    cerrarModalExitosa();
     renderizar();
     toast("✓ Prueba exitosa registrada" + (data.email_enviado ? " · Email enviado al cliente" : ""));
   } catch(e) {
+    registrandoExitosa = false;
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Confirmar exitosa";
+    }
     toast("Error: " + e.message, "fail");
   }
 }
 
-function abrirModalFalla(sucId, nombre) {
+function cantidadEquiposAudio(sucursal) {
+  const n = Number(sucursal && sucursal.cantidad_equipos);
+  return Number.isFinite(n) && n > 0 ? Math.max(1, Math.floor(n)) : 1;
+}
+
+function seleccionarEquipoAudio(equipo) {
+  pendingFallaEquipo = equipo;
+  document.querySelectorAll(".equipo-audio-btn").forEach(btn => {
+    btn.classList.toggle("selected", btn.dataset.equipo === equipo);
+  });
+  const error = document.getElementById("modalFallaError");
+  error.textContent = "";
+  error.classList.remove("show");
+}
+
+function renderEquiposAudio(sucursal) {
+  const total = cantidadEquiposAudio(sucursal);
+  document.getElementById("audioEquiposTitulo").textContent =
+    `La sucursal tiene ${total} equipo${total === 1 ? "" : "s"} de audio`;
+  const grid = document.getElementById("audioEquiposGrid");
+  grid.innerHTML = "";
+  for (let i = 1; i <= total; i += 1) {
+    const equipo = `NVR ${i}`;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "equipo-audio-btn";
+    btn.dataset.equipo = equipo;
+    btn.textContent = equipo;
+    btn.onclick = () => seleccionarEquipoAudio(equipo);
+    grid.appendChild(btn);
+  }
+}
+
+function abrirModalFalla(sucId) {
+  const sucursal = sucursalesData.find(s => Number(s.id) === Number(sucId)) || {};
   pendingFallaSucId = sucId;
-  document.getElementById("modalSucNombre").textContent = nombre;
-  document.getElementById("obsTexto").value = "";
+  pendingFallaEquipo = "";
+  document.getElementById("modalSucNombre").textContent = sucursal.nombre_sucursal || "Sucursal";
+  const error = document.getElementById("modalFallaError");
+  error.textContent = "";
+  error.classList.remove("show");
+  renderEquiposAudio(sucursal);
   document.getElementById("modalFalla").classList.add("open");
 }
 
 async function confirmarFalla() {
   if (!pendingFallaSucId) return;
   const sucId = pendingFallaSucId;
-  const obs = document.getElementById("obsTexto").value.trim();
-  if (!obs) { document.getElementById("obsTexto").style.borderColor = "rgba(220,38,38,.7)"; return; }
+  const error = document.getElementById("modalFallaError");
+  if (!pendingFallaEquipo) {
+    error.textContent = "Selecciona el equipo que no funciona.";
+    error.classList.add("show");
+    return;
+  }
+  const equipoAudio = pendingFallaEquipo;
   cerrarModal();
   try {
     const res = await fetch("/api/pruebas-sonido", {
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({sucursal_id: sucId, resultado:"falla", observacion:obs, operador: obtenerOperador()})
+      body: JSON.stringify({sucursal_id: sucId, resultado:"falla", equipo_audio: equipoAudio, operador: obtenerOperador()})
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || "Error");
@@ -430,7 +745,12 @@ function obtenerOperador() {
 }
 
 // Cerrar modal con Escape
-document.addEventListener("keydown", e => { if (e.key === "Escape") cerrarModal(); });
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    cerrarModal();
+    cerrarModalExitosa();
+  }
+});
 
 cargarSucursales();
 </script>

@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="es">
 <head>
-<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
-<link rel="shortcut icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png?v=2">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png?v=2">
+<link rel="shortcut icon" href="/favicon.ico?v=2">
 
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -19,16 +19,16 @@
       --text:#0f172a;--text-soft:#475569;--text-muted:#64748b;--text-faint:#94a3b8;--accent:#1d4ed8;--accent-soft:#eff6ff;
       --accent-strong:#1e40af;--success:#15803d;--success-soft:#f0fdf4;--success-border:#bbf7d0;--warning:#b45309;
       --warning-soft:#fffbeb;--warning-border:#fde68a;--danger:#b91c1c;--danger-soft:#fef2f2;--danger-border:#fecaca;
-      --navy:#0b1424;--navy-2:#111c2f;--radius:8px;--shadow-sm:0 1px 2px rgba(15,23,42,.04);--shadow:0 1px 3px rgba(15,23,42,.06),0 1px 2px rgba(15,23,42,.04);
+      --navy:#0b1424;--navy-2:#111c2f;--orange:#ff6b2b;--radius:8px;--shadow-sm:0 1px 2px rgba(15,23,42,.04);--shadow:0 1px 3px rgba(15,23,42,.06),0 1px 2px rgba(15,23,42,.04);
     }
     *{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%;}
-    body{font-family:"Inter","Segoe UI",system-ui,-apple-system,BlinkMacSystemFont,sans-serif;color:var(--text);background:var(--bg);font-size:13.5px;line-height:1.5;overflow:hidden;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
+    body{font-family:"Aptos","Segoe UI",system-ui,-apple-system,BlinkMacSystemFont,sans-serif;color:var(--text);background:#eef2f7;font-size:13.5px;line-height:1.5;overflow:hidden;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
     .shell{width:100%;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
     .page-header{flex-shrink:0;min-height:84px;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:16px 28px;background:linear-gradient(180deg,#0b1424 0%,#111c2f 100%);border-bottom:1px solid rgba(255,255,255,.06);flex-wrap:wrap;}
     .brand{display:flex;align-items:center;gap:14px;min-width:260px;}
     .brand img{width:46px;height:46px;object-fit:contain;opacity:.95;}
-    h1{color:rgba(255,255,255,.96);font-size:18px;font-weight:600;line-height:1.25;letter-spacing:-.01em;}
+    h1{font-family:"Aptos Display","Aptos","Segoe UI",system-ui,sans-serif;color:rgba(255,255,255,.96);font-size:20px;font-weight:700;line-height:1.2;letter-spacing:0;}
     .subtitle{margin-top:3px;color:rgba(255,255,255,.55);font-size:12.5px;}
     .actions{display:flex;gap:8px;flex-wrap:wrap;}
     .btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:8px 14px;border-radius:var(--radius);border:1px solid var(--border);color:var(--text);background:var(--surface);text-decoration:none;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;box-shadow:var(--shadow-sm);transition:background .15s,border-color .15s,color .15s,box-shadow .15s;white-space:nowrap;}
@@ -39,36 +39,42 @@
     .page-header .btn{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);color:rgba(255,255,255,.92);box-shadow:none;}
     .page-header .btn:hover:not(:disabled){background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);}
     .summary{display:none !important;}
-    .panel{flex-shrink:0;width:100%;max-width:100%;margin:0;align-self:center;display:flex;align-items:center;justify-content:flex-start;gap:16px;padding:10px 16px;background:#f8fafc;border-top:1px solid #d7dee8;border-bottom:1px solid #d7dee8;flex-wrap:wrap;}
+    .panel{flex-shrink:0;width:100%;max-width:100%;margin:0;align-self:center;display:flex;align-items:center;justify-content:flex-start;gap:12px;padding:10px 18px;background:#f5f7fb;border-top:1px solid #d7dee8;border-bottom:1px solid #cfd8e6;flex-wrap:wrap;}
+    .panel-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+    .filter-summary{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:5px 10px;border:1px solid transparent;border-radius:999px;color:#64748b;font-size:12px;font-weight:600;}
+    .filter-summary.has-filters{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8;}
+    .btn-filter-reset{border-color:#cbd5e1;background:#fff;color:#334155;}
+    .btn-filter-reset:not(:disabled){border-color:#f4b183;background:#fff7ed;color:#9a3412;}
+    .btn-filter-reset:not(:disabled):hover{background:#ffedd5;border-color:#fb923c;color:#7c2d12;}
     .filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
     .filters label{color:var(--text-muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
     .sheet-note{margin-left:auto;padding:6px 10px;border:1px solid #d7dee8;background:#fff;color:#64748b;border-radius:6px;font-size:12px;line-height:1.35;}
-    .table-wrap{flex:1;min-height:0;width:100%;max-width:100%;margin:0;align-self:center;overflow:auto;background:var(--surface);border:none;border-radius:0;box-shadow:none;}
+    .table-wrap{flex:1;min-height:0;width:100%;max-width:100%;margin:0;align-self:center;overflow:auto;background:var(--surface);border:none;border-radius:0;box-shadow:inset 0 1px 0 #eef2f7;}
     .table-wrap::-webkit-scrollbar{height:10px;width:10px;}
     .table-wrap::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:999px;}
     .table-wrap::-webkit-scrollbar-track{background:#f1f5f9;}
-    table{width:max-content;min-width:100%;border-collapse:collapse;font-size:12.5px;}
-    th,td{padding:8px 10px;border:1px solid #d7dee8;text-align:left;vertical-align:middle;white-space:nowrap;}
+    table{width:max-content;min-width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px;}
+    th,td{padding:8px 10px;border-right:1px solid #d7dee8;border-bottom:1px solid #d7dee8;text-align:left;vertical-align:middle;white-space:nowrap;}
     td.wrap{white-space:normal;overflow-wrap:anywhere;}
     td{color:var(--text-soft);font-weight:400;}
     td.text-strong{color:var(--text);font-weight:500;}
     td.right{text-align:right;}
-    th{position:sticky;top:0;z-index:2;background:#e5e7eb;color:#334155;font-size:11px;font-weight:700;text-transform:none;letter-spacing:.02em;padding:8px 10px;white-space:nowrap;}
+    th{position:sticky;top:0;z-index:2;background:#e8edf4;color:#314057;font-size:11px;font-weight:800;text-transform:none;letter-spacing:.02em;padding:8px 10px;white-space:nowrap;box-shadow:inset 0 -1px 0 #cbd5e1;}
     tbody tr{transition:background .12s ease;}
     tbody tr:hover td{background:#f8fafc;}
     tbody tr.row-viatico-especial td{background:#fff7ed;}
     tbody tr.row-viatico-especial:hover td{background:#ffedd5;}
-    th.sticky-col,td.sticky-col{position:sticky;left:0;background:var(--surface);z-index:1;border-right:1px solid var(--border);}
-    th.sticky-col{background:var(--surface-alt);z-index:4;}
+    th.sticky-col,td.sticky-col{position:sticky;left:0;background:var(--surface);z-index:1;border-right:1px solid var(--border-strong);}
+    th.sticky-col{background:#e8edf4;z-index:4;}
     tbody tr:hover td.sticky-col{background:var(--surface-alt);}
-    th.sticky-col-right,td.sticky-col-right{position:sticky;background:var(--surface);z-index:1;border-left:1px solid var(--border);}
-    th.sticky-col-right{background:var(--surface-alt);z-index:4;}
+    th.sticky-col-right,td.sticky-col-right{position:sticky;background:var(--surface);z-index:1;border-left:1px solid var(--border-strong);}
+    th.sticky-col-right{background:#e8edf4;z-index:4;}
     tbody tr:hover td.sticky-col-right{background:var(--surface-alt);}
     /* Apiladas de derecha a izquierda para que Estado, Pagado y Viatico Especial
        queden siempre visibles sin depender del scroll horizontal. */
     .col-viatico{right:0;width:150px;min-width:150px;}
-    .col-pagado{right:150px;width:60px;min-width:60px;}
-    .col-estado{right:210px;width:110px;min-width:110px;box-shadow:-4px 0 6px -4px rgba(15,23,42,.15);}
+    .col-pagado{right:150px;width:78px;min-width:78px;text-align:center;}
+    .col-estado{right:228px;width:154px;min-width:154px;box-shadow:-4px 0 6px -4px rgba(15,23,42,.15);}
     tbody tr.row-viatico-especial td.sticky-col,
     tbody tr.row-viatico-especial td.sticky-col-right{background:#fff7ed;}
     tbody tr.row-viatico-especial:hover td.sticky-col,
@@ -89,21 +95,22 @@
     .link:hover{text-decoration:underline;color:var(--accent-strong);}
     .empty-cell{color:var(--text-muted);text-align:center;padding:40px 12px;}
     .th-inner{display:flex;align-items:center;justify-content:space-between;gap:8px;}
-    .filter-chip{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border:1px solid #cbd5e1;border-radius:4px;background:#f8fafc;color:#64748b;cursor:pointer;flex-shrink:0;transition:background .12s,border-color .12s,color .12s;font-size:11px;line-height:1;}
-    .filter-chip:hover{background:#eef2ff;border-color:#93c5fd;color:#1d4ed8;}
-    .filter-chip.active{background:#dbeafe;border-color:#60a5fa;color:#1d4ed8;}
-    .filter-menu{position:fixed;z-index:500;min-width:280px;max-width:320px;background:#fff;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 18px 40px rgba(15,23,42,.18);display:none;overflow:hidden;}
+    .filter-chip{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border:1px solid #c2cfde;border-radius:6px;background:#f8fafc;color:#64748b;cursor:pointer;flex-shrink:0;transition:background .12s,border-color .12s,color .12s,transform .12s;font-size:10px;line-height:1;}
+    .filter-chip:hover{background:#eff6ff;border-color:#93c5fd;color:#1d4ed8;}
+    .filter-chip.active{background:#1d4ed8;border-color:#1e40af;color:#fff;}
+    .filter-menu{position:fixed;z-index:500;min-width:300px;max-width:340px;background:#fff;border:1px solid #cbd5e1;border-radius:12px;box-shadow:0 18px 44px rgba(15,23,42,.20);display:none;overflow:hidden;}
     .filter-menu.open{display:block;}
-    .filter-head{padding:10px 12px;border-bottom:1px solid #e2e8f0;background:#f8fafc;}
-    .filter-title{font-size:12px;font-weight:700;color:#0f172a;}
-    .filter-search{width:100%;margin-top:8px;padding:7px 9px;border:1px solid #cbd5e1;border-radius:6px;font:inherit;font-size:12px;}
+    .filter-head{padding:12px 12px 10px;border-bottom:1px solid #e2e8f0;background:#f8fafc;}
+    .filter-title{font-size:12.5px;font-weight:800;color:#0f172a;}
+    .filter-search{width:100%;margin-top:9px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;font:inherit;font-size:12px;background:#fff;}
     .filter-search:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(29,78,216,.12);}
-    .filter-actions{display:flex;gap:8px;padding:8px 12px;border-bottom:1px solid #e2e8f0;background:#fff;}
-    .filter-link{appearance:none;border:none;background:none;padding:0;color:#2563eb;cursor:pointer;font:inherit;font-size:12px;font-weight:600;}
-    .filter-values{max-height:280px;overflow:auto;padding:8px 0;background:#fff;}
-    .filter-option{display:flex;align-items:center;gap:8px;padding:6px 12px;font-size:12px;color:#334155;}
+    .filter-actions{display:flex;gap:8px;padding:9px 12px;border-bottom:1px solid #e2e8f0;background:#fff;flex-wrap:wrap;}
+    .filter-link{appearance:none;border:1px solid transparent;background:none;padding:3px 6px;border-radius:6px;color:#2563eb;cursor:pointer;font:inherit;font-size:12px;font-weight:700;}
+    .filter-link:hover{background:#eff6ff;border-color:#bfdbfe;}
+    .filter-values{max-height:300px;overflow:auto;padding:7px 0;background:#fff;}
+    .filter-option{display:flex;align-items:center;gap:9px;padding:7px 12px;font-size:12px;color:#334155;}
     .filter-option:hover{background:#f8fafc;}
-    .filter-option input{margin:0;}
+    .filter-option input{margin:0;accent-color:var(--accent);}
     .filter-empty{padding:14px 12px;color:#64748b;font-size:12px;text-align:center;}
     .filter-foot{display:flex;justify-content:flex-end;gap:8px;padding:10px 12px;border-top:1px solid #e2e8f0;background:#f8fafc;}
     #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;box-shadow:0 8px 24px rgba(15,23,42,.18);display:none;z-index:300;}
@@ -136,6 +143,17 @@
     .modal-confirm-foot .btn{flex:1;justify-content:center;min-height:40px;font-size:13.5px;font-weight:600;}
     .btn-confirm-ok{background:var(--success);color:#fff;border-color:var(--success);}
     .btn-confirm-ok:hover:not(:disabled){background:#166534;border-color:#166534;}
+    @media (max-width:1100px){
+      .panel-left{width:100%;}
+      .btn-filter-reset{margin-left:auto;}
+      .sheet-note{margin-left:0;width:100%;}
+    }
+    @media (max-width:720px){
+      .page-header{padding:14px 16px;min-height:auto;}
+      .panel{padding:10px 12px;}
+      .sheet-note{font-size:11.5px;}
+      .filter-menu{min-width:calc(100vw - 24px);max-width:calc(100vw - 24px);}
+    }
   </style>
     <script src="/static/utils.js"></script>
 </head>
@@ -157,6 +175,10 @@
     </header>
 
     <section class="panel">
+      <div class="panel-left">
+        <span class="filter-summary" id="filterSummary" aria-live="polite">Sin filtros activos</span>
+      </div>
+      <button class="btn btn-small btn-filter-reset" type="button" id="clearAllFilters" disabled>Limpiar filtros</button>
       <div class="sheet-note">Hoja "Rendición": registro maestro por técnico, documento y monto.</div>
     </section>
 
@@ -220,6 +242,7 @@
     </div>
     <div class="filter-actions">
       <button class="filter-link" type="button" id="filterSelectAll">Seleccionar todo</button>
+      <button class="filter-link" type="button" id="filterDeselectAll">Deseleccionar todo</button>
       <button class="filter-link" type="button" id="filterClear">Limpiar filtro</button>
     </div>
     <div id="filterValues" class="filter-values"></div>
@@ -264,6 +287,7 @@
     let filtrosCabecera = {};
     let filterState = { campo:"", label:"", values:[], selected:new Set(), anchor:null };
     let viaticoActual = null;
+    const EMPTY_FILTER_TOKEN = "__ATC_FILTER_EMPTY_SELECTION__";
     const FILTER_LABELS = {
       id:"ID", fechaRegistro:"Fecha registro", codigoDiario:"Codigo diario", tecnico:"Tecnico", rut:"RUT", mail:"Mail",
       odt:"ODT", cliente:"Cliente", comuna:"Comuna", tipoGasto:"Tipo gasto", tipoDocumento:"Tipo doc",
@@ -334,6 +358,24 @@
         .toUpperCase();
     }
 
+    function normalizarRutFiltro(valor){
+      return String(valor || "")
+        .normalize("NFKC")
+        .replace(/[\u00a0\u2007\u202f\u200b\u200c\u200d\ufeff]/g, "")
+        .replace(/[^0-9kK]/g, "")
+        .toUpperCase();
+    }
+
+    function normalizarBusquedaFiltro(valor, campo){
+      const texto = String(valor || "")
+        .normalize("NFKC")
+        .replace(/[\u00a0\u2007\u202f\u200b\u200c\u200d\ufeff]/g, " ")
+        .trim()
+        .toLowerCase();
+      if (campo === "rut") return normalizarRutFiltro(texto).toLowerCase();
+      return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+
     function aplicarViaticosEspeciales(listaEspeciales){
       const mapa = new Map();
       (Array.isArray(listaEspeciales) ? listaEspeciales : []).forEach((item) => {
@@ -382,11 +424,21 @@
       return String(row?.[campo] || "").trim() || "(Vacío)";
     }
 
+    function coincideFiltroCampo(row, campo, values){
+      if (!Array.isArray(values) || !values.length) return true;
+      if (values.includes(EMPTY_FILTER_TOKEN)) return false;
+      const valor = valorFiltroCampo(row, campo);
+      if (campo === "rut") {
+        const rutFila = normalizarRutFiltro(valor);
+        return values.some((v) => normalizarRutFiltro(v) === rutFila);
+      }
+      return values.includes(valor);
+    }
+
     function filasFiltradas(){
       return rendiciones.filter((row) => {
         return Object.entries(filtrosCabecera).every(([campo, values]) => {
-          if (!Array.isArray(values) || !values.length) return true;
-          return values.includes(valorFiltroCampo(row, campo));
+          return coincideFiltroCampo(row, campo, values);
         });
       });
     }
@@ -396,11 +448,21 @@
     }
 
     function actualizarEstadoBotonesFiltro(){
+      const filtrosActivos = Object.entries(filtrosCabecera).filter(([, values]) => Array.isArray(values) && values.length > 0);
       document.querySelectorAll("[data-filter-btn]").forEach((btn) => {
         const campo = btn.dataset.filterBtn;
         const activo = Array.isArray(filtrosCabecera[campo]) && filtrosCabecera[campo].length > 0;
         btn.classList.toggle("active", activo);
       });
+      const resumen = document.getElementById("filterSummary");
+      const limpiar = document.getElementById("clearAllFilters");
+      if (resumen) {
+        resumen.classList.toggle("has-filters", filtrosActivos.length > 0);
+        resumen.textContent = filtrosActivos.length
+          ? `${filtrosActivos.length} filtro${filtrosActivos.length === 1 ? "" : "s"} activo${filtrosActivos.length === 1 ? "" : "s"}`
+          : "Sin filtros activos";
+      }
+      if (limpiar) limpiar.disabled = filtrosActivos.length === 0;
     }
 
     function cerrarMenuFiltro(){
@@ -409,9 +471,9 @@
     }
 
     function renderValoresFiltro(){
-      const search = document.getElementById("filterSearch").value.trim().toLowerCase();
+      const search = normalizarBusquedaFiltro(document.getElementById("filterSearch").value, filterState.campo);
       const cont = document.getElementById("filterValues");
-      const visibles = filterState.values.filter((v) => String(v).toLowerCase().includes(search));
+      const visibles = filterState.values.filter((v) => normalizarBusquedaFiltro(v, filterState.campo).includes(search));
       if (!visibles.length){
         cont.innerHTML = `<div class="filter-empty">Sin valores</div>`;
         return;
@@ -435,7 +497,8 @@
       filterState.campo = campo;
       filterState.label = FILTER_LABELS[campo] || campo;
       filterState.values = valoresUnicosCampo(campo);
-      filterState.selected = new Set(Array.isArray(filtrosCabecera[campo]) && filtrosCabecera[campo].length ? filtrosCabecera[campo] : filterState.values);
+      const guardado = Array.isArray(filtrosCabecera[campo]) && filtrosCabecera[campo].length ? filtrosCabecera[campo] : null;
+      filterState.selected = new Set(guardado ? guardado.filter((v) => v !== EMPTY_FILTER_TOKEN) : filterState.values);
       filterState.anchor = anchor;
       document.getElementById("filterTitle").textContent = `Filtrar por ${filterState.label}`;
       document.getElementById("filterSearch").value = "";
@@ -452,6 +515,28 @@
       });
     }
 
+    function aplicarFiltroActual(){
+      if (!filterState.campo) return;
+      const seleccion = Array.from(filterState.selected);
+      if (seleccion.length === 0) {
+        filtrosCabecera[filterState.campo] = [EMPTY_FILTER_TOKEN];
+      } else if (seleccion.length === filterState.values.length) {
+        delete filtrosCabecera[filterState.campo];
+      } else {
+        filtrosCabecera[filterState.campo] = seleccion;
+      }
+      actualizarEstadoBotonesFiltro();
+      renderTabla();
+      cerrarMenuFiltro();
+    }
+
+    function limpiarTodosLosFiltros(){
+      filtrosCabecera = {};
+      actualizarEstadoBotonesFiltro();
+      renderTabla();
+      cerrarMenuFiltro();
+    }
+
     function renderTabla(){
       const tbody = document.getElementById("tablaBody");
       const rows = filasFiltradas();
@@ -465,7 +550,7 @@
         const estadoKey = normalizarEstado(row?.estadoRevision);
         const tieneViaticoEspecial = Boolean(row?.viaticoEspecial);
         const boleta = extraerEnlaces(row?.urlBoleta, "Boleta") || dash;
-        const informe = extraerEnlaces(row?.urlInforme, "Rendicion") || dash;
+        const informe = extraerEnlaces(row?.urlInforme, "Rendición") || dash;
         const accionPagar = estadoKey === "aceptado"
           ? `<button type="button" class="btn btn-pagar" data-pagar="${escapeHtml(String(idRendicion))}" title="Marcar como pagado"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="10" fill="currentColor" opacity="0.15"/><circle cx="11" cy="11" r="10" stroke="currentColor" stroke-width="1.5"/><path d="M6.5 11.2L9.5 14.2L15.5 8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`
           : dash;
@@ -651,7 +736,7 @@
         renderTabla();
       } catch (err) {
         rendiciones = [];
-        document.getElementById("tablaBody").innerHTML = `<tr><td class="empty-cell" colspan="19">Error cargando rendiciones: ${escapeHtml(err.message)}</td></tr>`;
+        document.getElementById("tablaBody").innerHTML = `<tr><td class="empty-cell" colspan="21">Error cargando rendiciones: ${escapeHtml(err.message)}</td></tr>`;
         mostrarToast(`Error: ${err.message}`, false);
       }
     }
@@ -673,19 +758,19 @@
       filterState.selected = new Set(filterState.values);
       renderValoresFiltro();
     });
+    document.getElementById("filterDeselectAll").addEventListener("click", () => {
+      filterState.selected = new Set();
+      renderValoresFiltro();
+    });
     document.getElementById("filterClear").addEventListener("click", () => {
-      filtrosCabecera[filterState.campo] = [];
+      delete filtrosCabecera[filterState.campo];
       actualizarEstadoBotonesFiltro();
       renderTabla();
       cerrarMenuFiltro();
     });
     document.getElementById("filterCancel").addEventListener("click", cerrarMenuFiltro);
-    document.getElementById("filterApply").addEventListener("click", () => {
-      filtrosCabecera[filterState.campo] = Array.from(filterState.selected);
-      actualizarEstadoBotonesFiltro();
-      renderTabla();
-      cerrarMenuFiltro();
-    });
+    document.getElementById("filterApply").addEventListener("click", aplicarFiltroActual);
+    document.getElementById("clearAllFilters").addEventListener("click", limpiarTodosLosFiltros);
     document.addEventListener("click", (ev) => {
       const menu = document.getElementById("filterMenu");
       if (!menu.classList.contains("open")) return;

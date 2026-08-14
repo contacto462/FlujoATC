@@ -139,6 +139,14 @@ class RegenerarInformeCierreRequest(BaseModel):
     observacion: str
 
 
+class ActualizarRegionComunaRequest(BaseModel):
+    tabla: str
+    entidad_id: int
+    region: str
+    comuna: str
+    observacion: str
+
+
 class TareaManualRequest(BaseModel):
     token: str
     cliente: str

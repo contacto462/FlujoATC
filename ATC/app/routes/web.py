@@ -21,6 +21,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Body, Depends, Request, Form, HTTPException, Query, File, UploadFile
 from pydantic import BaseModel
+from starlette.concurrency import run_in_threadpool
 
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 
@@ -45,6 +46,7 @@ from sqlalchemy import (
     Text as SAText,
     Index,
     func,
+    case,
     inspect as sa_inspect,
 )
 
@@ -60,6 +62,7 @@ from ATC.app.core.db import get_db, get_incidencias_db
 
 from ATC.app.core.config import settings
 from ATC.app.core.db_compat import add_column, sql_null_text
+from ATC.app.core.image_optimizer import optimize_image_bytes
 from ATC.app.core.timeutil import chile_now
 
 from ATC.app.core.security import create_access_token, hash_password, verify_password
@@ -84,6 +87,7 @@ from ATC.app.routes.bitacora_access import can_access_bitacora
 from ATC.app.models.ticket import Ticket
 
 from ATC.app.models.message import Message
+from ATC.app.models.message_mention import MessageMention
 
 from ATC.app.models.ticket_alert_read_state import TicketAlertReadState
 from ATC.app.models.ticket_message_read_state import TicketMessageReadState
@@ -487,27 +491,54 @@ def _save_email_attachments(
             unique_prefix = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
             unique_name = f"{unique_prefix}_{uuid4().hex[:10]}_{safe_name}"
             destination = ticket_folder / unique_name
+            content_type = (upload.content_type or "").strip().lower()
+            if "/" not in content_type:
+                guessed_type, _ = mimetypes.guess_type(safe_name)
+                content_type = guessed_type or "application/octet-stream"
 
             file_size = 0
             try:
-                with destination.open("wb") as out_file:
+                if content_type.startswith("image/"):
+                    raw = bytearray()
                     while True:
                         chunk = upload.file.read(1024 * 1024)
                         if not chunk:
                             break
-                        file_size += len(chunk)
-                        total_size += len(chunk)
+                        raw.extend(chunk)
 
-                        if file_size > MAX_EMAIL_ATTACHMENT_BYTES:
+                        if len(raw) > MAX_EMAIL_ATTACHMENT_BYTES:
                             raise ValueError(
                                 f"El archivo '{safe_name}' supera el maximo permitido de 25 MB."
                             )
-                        if total_size > MAX_EMAIL_TOTAL_ATTACHMENT_BYTES:
-                            raise ValueError(
-                                "La suma de adjuntos supera 25 MB. Reduce la cantidad o el peso."
-                            )
 
-                        out_file.write(chunk)
+                    optimized = optimize_image_bytes(bytes(raw), content_type=content_type)
+                    file_size = len(optimized)
+                    total_size += file_size
+                    if total_size > MAX_EMAIL_TOTAL_ATTACHMENT_BYTES:
+                        raise ValueError(
+                            "La suma de adjuntos supera 25 MB. Reduce la cantidad o el peso."
+                        )
+                    with destination.open("wb") as out_file:
+                        out_file.write(optimized)
+                else:
+                    with destination.open("wb") as out_file:
+                        while True:
+                            chunk = upload.file.read(1024 * 1024)
+                            if not chunk:
+                                break
+                            file_size += len(chunk)
+                            total_size += len(chunk)
+
+                            if file_size > MAX_EMAIL_ATTACHMENT_BYTES:
+                                raise ValueError(
+                                    f"El archivo '{safe_name}' supera el maximo permitido de 25 MB."
+                                )
+                            if total_size > MAX_EMAIL_TOTAL_ATTACHMENT_BYTES:
+                                raise ValueError(
+                                    "La suma de adjuntos supera 25 MB. Reduce la cantidad o el peso."
+                                )
+
+                            out_file.write(chunk)
             except Exception:
                 destination.unlink(missing_ok=True)
                 raise
@@ -517,10 +548,6 @@ def _save_email_attachments(
                 continue
 
             saved_paths.append(destination)
-            content_type = (upload.content_type or "").strip().lower()
-            if "/" not in content_type:
-                guessed_type, _ = mimetypes.guess_type(safe_name)
-                content_type = guessed_type or "application/octet-stream"
 
             saved_files.append(
                 {
@@ -620,6 +647,7 @@ def _extract_inline_data_images(
                         ) from exc
 
                     if image_bytes:
+                        image_bytes = optimize_image_bytes(image_bytes, content_type=content_type)
                         inline_count += 1
                         if inline_count > MAX_EMAIL_INLINE_IMAGES:
                             raise ValueError(
@@ -1451,7 +1479,7 @@ def resumen_equipos_tecnicos_mover(
             row.tecnicos = None
             row.acompanante = None
             row.fecha_derivacion_tecnico = None
-            row.derivacion = "Pendiente"
+            row.derivacion = "Servicio Técnico"
             row.estado = "Pendiente"
             db.commit()
             return {
@@ -1550,6 +1578,71 @@ def resumen_equipos_tecnicos_mover(
         "sincronizado_registro": sincronizado_registro,
         "sincronizado_venta": sincronizado_venta,
     }
+
+
+@router.get("/api/resumen-equipos-tecnicos/patentes-visuales")
+def resumen_equipos_tecnicos_patentes_visuales_get(
+    token: str = Query(default=""),
+    db: Session = Depends(get_incidencias_db),
+):
+    service = IncidenciasService(db)
+    if not service.usuario_autorizado_para_resumen_equipos(str(token or "").strip()):
+        raise HTTPException(status_code=401, detail="No autenticado.")
+    _ensure_resumen_patentes_visuales_table(db)
+    db.commit()
+    rows = db.execute(
+        text(
+            """
+            SELECT patente, team_key
+            FROM dbo.resumen_equipos_patentes_visuales
+            WHERE NULLIF(LTRIM(RTRIM(COALESCE(team_key, ''))), '') IS NOT NULL
+            """
+        )
+    ).mappings().all()
+    return {
+        "ok": True,
+        "patentes": {
+            _clean_resumen_patente_key(row["patente"]): _clean_resumen_team_key(row["team_key"])
+            for row in rows
+            if _clean_resumen_patente_key(row["patente"]) and _clean_resumen_team_key(row["team_key"])
+        },
+    }
+
+
+@router.post("/api/resumen-equipos-tecnicos/patentes-visuales")
+def resumen_equipos_tecnicos_patentes_visuales_post(
+    payload: dict = Body(...),
+    db: Session = Depends(get_incidencias_db),
+):
+    token = str(payload.get("token") or "").strip()
+    service = IncidenciasService(db)
+    if not service.usuario_autorizado_para_resumen_equipos(token):
+        raise HTTPException(status_code=401, detail="No autenticado.")
+
+    raw_map = payload.get("patentes") or {}
+    if not isinstance(raw_map, dict):
+        raise HTTPException(status_code=400, detail="Mapa de patentes invalido.")
+    patentes = {
+        _clean_resumen_patente_key(patente): _clean_resumen_team_key(team_key)
+        for patente, team_key in raw_map.items()
+    }
+    patentes = {patente: team_key for patente, team_key in patentes.items() if patente and team_key}
+
+    _ensure_resumen_patentes_visuales_table(db)
+    db.execute(text("DELETE FROM dbo.resumen_equipos_patentes_visuales"))
+    updated_by = "resumen_equipos_tecnicos"
+    for patente, team_key in patentes.items():
+        db.execute(
+            text(
+                """
+                INSERT INTO dbo.resumen_equipos_patentes_visuales (patente, team_key, updated_at, updated_by)
+                VALUES (:patente, :team_key, SYSUTCDATETIME(), :updated_by)
+                """
+            ),
+            {"patente": patente, "team_key": team_key, "updated_by": updated_by},
+        )
+    db.commit()
+    return {"ok": True, "patentes": patentes}
 
 
 def _redirect_for_authenticated_user(db: Session, user: User) -> RedirectResponse:
@@ -1805,6 +1898,8 @@ def _nav_back_destination(
         return _area_panel_url("finanzas", token), True
     if path.startswith("/venta/operaciones/"):
         return _area_panel_url("operaciones", token), True
+    if path == "/venta/informacion-cliente" and params.get("next") == "panelSelectorAdministracion":
+        return _area_panel_url("administracion", token), True
     if path.startswith("/venta/") and path != "/venta/panel-selector":
         return _area_panel_url("venta", token), True
 
@@ -1919,6 +2014,7 @@ def require_admin_web(current_user: User = Depends(get_current_user_web)) -> Use
 def redirect_to_login() -> RedirectResponse:
 
     return RedirectResponse(url="/login", status_code=303)
+
 
 # ======================================================
 
@@ -2507,10 +2603,12 @@ def _ticketera_build_filtered_query(
             user_clauses.append(Ticket.assigned_to_id.in_(selected_user_ids))
         if "unassigned" in user_filters:
             user_clauses.append(Ticket.assigned_to_id.is_(None))
-        # Ronald Montilla sigue viendo los tickets que pasaron por
-        # "Asignar a todo el equipo", aunque ya se los haya tomado otro
-        # agente y el filtro no lo incluya a el (pedido explicito, jul 2026).
-        if user_clauses and _is_ronald_montilla_user(current_user):
+        # Un ticket derivado a "Equipo" (Asignar a todo el equipo) lo debe
+        # seguir viendo TODO el mundo aunque filtre por un agente puntual,
+        # incluso despues de que alguien ya lo haya tomado — antes esto
+        # solo aplicaba para Ronald Montilla (pedido explicito, jul 2026),
+        # se generalizo a todos los usuarios (ago 2026).
+        if user_clauses:
             user_clauses.append(Ticket.team_broadcast_at.isnot(None))
         if user_clauses:
             query = query.filter(or_(*user_clauses))
@@ -2595,6 +2693,25 @@ def ticketera(
         latest_activity_subq, latest_activity_subq.c.ticket_id == Ticket.id
     )
 
+    # Tickets con una mención sin leer (comentario interno con @) se anclan
+    # arriba de todo, por encima incluso del orden por última actividad —
+    # se desanclan solos al abrir el ticket, que es cuando MessageMention.seen_at
+    # se marca (ver más abajo). Pedido explícito, ago 2026.
+    mention_pin_exists = (
+        db.query(MessageMention.ticket_id)
+        .join(Message, Message.id == MessageMention.message_id)
+        .filter(
+            MessageMention.ticket_id == Ticket.id,
+            MessageMention.seen_at.is_(None),
+            or_(
+                MessageMention.mentioned_user_id == current_user.id,
+                MessageMention.mentioned_user_id.is_(None),
+            ),
+            or_(Message.sender_id.is_(None), Message.sender_id != current_user.id),
+        )
+        .exists()
+    )
+
     page_size = 30
     safe_page = max(1, page)
     total_filtered = query.count()
@@ -2605,6 +2722,7 @@ def ticketera(
 
     tickets = (
         query.order_by(
+            case((mention_pin_exists, 0), else_=1).asc(),
             func.coalesce(latest_activity_subq.c.last_activity, Ticket.created_at).desc(),
             Ticket.id.desc(),
         )
@@ -2617,8 +2735,27 @@ def ticketera(
     ticket_unseen_message_id: dict[int, int] = {}
     ticket_unseen_message_count: dict[int, int] = {}
     ticket_manually_unread: dict[int, bool] = {}
+    ticket_has_mention: dict[int, bool] = {}
     ticket_ids = [t.id for t in tickets]
     if ticket_ids:
+        mention_rows = (
+            db.query(MessageMention.ticket_id)
+            .join(Message, Message.id == MessageMention.message_id)
+            .filter(
+                MessageMention.ticket_id.in_(ticket_ids),
+                MessageMention.seen_at.is_(None),
+                or_(
+                    MessageMention.mentioned_user_id == current_user.id,
+                    MessageMention.mentioned_user_id.is_(None),
+                ),
+                or_(Message.sender_id.is_(None), Message.sender_id != current_user.id),
+            )
+            .distinct()
+            .all()
+        )
+        for row in mention_rows:
+            ticket_has_mention[int(row.ticket_id)] = True
+
         manual_rows = (
             db.query(TicketManualUnread.ticket_id)
             .filter(
@@ -2804,6 +2941,7 @@ def ticketera(
             "user_signature": signature_html_for_user(current_user),
             "tickets": tickets,
             "ticket_has_new_message": ticket_has_new_message,
+            "ticket_has_mention": ticket_has_mention,
             "ticket_unseen_message_id": ticket_unseen_message_id,
             "ticket_unseen_message_count": ticket_unseen_message_count,
             "ticket_manually_unread": ticket_manually_unread,
@@ -2996,6 +3134,10 @@ def _support_person_name(value: object) -> str:
 _SUPPORT_NON_TECHNICIAN_NAMES = {
     "fernando lubiano",
     "gianpiero lubiano",
+    "nicolas alfonso bravo rain",
+    "nicolas bravo",
+    "jesus sebastian gonzalez aguilera",
+    "jesus gonzalez",
 }
 
 
@@ -3008,6 +3150,32 @@ def _support_person_key(value: object) -> str:
 def _support_is_assignable_technician(value: object) -> bool:
     key = _support_person_key(value)
     return bool(key) and not any(non_tech in key for non_tech in _SUPPORT_NON_TECHNICIAN_NAMES)
+
+
+def _ensure_resumen_patentes_visuales_table(db: Session) -> None:
+    db.execute(
+        text(
+            """
+            IF OBJECT_ID('dbo.resumen_equipos_patentes_visuales', 'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.resumen_equipos_patentes_visuales (
+                    patente NVARCHAR(40) NOT NULL PRIMARY KEY,
+                    team_key NVARCHAR(700) NOT NULL,
+                    updated_at DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+                    updated_by NVARCHAR(255) NULL
+                )
+            END
+            """
+        )
+    )
+
+
+def _clean_resumen_patente_key(value: object) -> str:
+    return re.sub(r"\s+", " ", str(value or "").strip().upper())[:40]
+
+
+def _clean_resumen_team_key(value: object) -> str:
+    return re.sub(r"\s+", " ", str(value or "").strip())[:700]
 
 
 def _support_pick_person(row: dict[str, object], *keys: str) -> str:
@@ -5366,24 +5534,30 @@ def ticket_detail(
     if not next_ticket:
         next_ticket = filtered_query.order_by(Ticket.id.asc()).first()
 
-    # Mensajes
-    messages = (
+    # Mensajes — en tickets internos SÍ se muestran todos los
+    # is_internal_note (son los "Comentario interno" que deja el equipo en
+    # el hilo; no hay cliente externo al que pudieran filtrarse). En el
+    # resto de los tickets se ocultan las notas de auditoría del sistema
+    # (channel="internal", p.ej. "Derivado a X. ODT: Y.", que no son para
+    # el hilo visible) pero SÍ se muestran los comentarios internos
+    # manuales (channel="internal_comment", boton "Comentario interno").
+    messages_query = (
         db.query(Message)
         .options(joinedload(Message.sender))
-        .filter(
-            Message.ticket_id == ticket_id,
-            Message.is_internal_note == False,
-        )
-        .order_by(Message.created_at.asc())
-        .all()
+        .filter(Message.ticket_id == ticket_id)
     )
+    if (ticket.source or "").strip().lower() != "internal":
+        messages_query = messages_query.filter(
+            or_(Message.is_internal_note == False, Message.channel == "internal_comment")
+        )
+    messages = messages_query.order_by(Message.created_at.asc()).all()
 
     # Se exige un minimo de 2 mensajes (no solo 1 "de agente") antes de poder
     # marcar Resuelto: en tickets internos el primer mensaje ya se crea con
     # sender_type="agent" (lo escribe quien crea el ticket), asi que exigir
     # solo "algun mensaje de agente" no detectaba que nunca hubo una
     # respuesta real en Mesa Tecnica.
-    has_agent_reply = len(messages) >= 2
+    has_agent_reply = len([m for m in messages if not m.is_internal_note]) >= 2
 
     latest_message_id = messages[-1].id if messages else 0
     ticket_read_state = (
@@ -5411,6 +5585,24 @@ def ticket_detail(
         db.commit()
     elif latest_message_id > (ticket_read_state.last_seen_message_id or 0):
         ticket_read_state.last_seen_message_id = latest_message_id
+        db.commit()
+
+    unseen_mentions = (
+        db.query(MessageMention)
+        .filter(
+            MessageMention.ticket_id == ticket_id,
+            MessageMention.seen_at.is_(None),
+            or_(
+                MessageMention.mentioned_user_id == current_user.id,
+                MessageMention.mentioned_user_id.is_(None),
+            ),
+        )
+        .all()
+    )
+    if unseen_mentions:
+        now_seen = chile_now()
+        for mention in unseen_mentions:
+            mention.seen_at = now_seen
         db.commit()
 
     manual_unread_row = db.get(TicketManualUnread, (current_user.id, ticket_id))
@@ -6825,17 +7017,10 @@ def send_ticket_to_service(
                         }
                     ],
                 )
-                db.add(
-                    Message(
-                        ticket_id=ticket.id,
-                        sender_type="agent",
-                        sender_id=current_user.id,
-                        channel="email",
-                        content=detalle_derivacion,
-                        is_internal_note=False,
-                        created_at=chile_now(),
-                    )
-                )
+                # Este correo debe salir al cliente, pero no formar parte del
+                # hilo visible del Helpdesk. El HTML usa cid: para el logo del
+                # correo, y al guardarlo como Message se mostraba como imagen no
+                # disponible en el detalle del ticket.
                 correo_info = " Correo enviado al solicitante."
             except Exception as exc:
                 error_text = re.sub(r"\s+", " ", str(exc or "error desconocido")).strip()
@@ -7090,6 +7275,7 @@ def _extract_inline_images_for_compose(body: str) -> tuple[str, list[dict]]:
             return m.group(0)
         if not img_bytes:
             return m.group(0)
+        img_bytes = optimize_image_bytes(img_bytes, content_type=mime)
         count += 1
         ext = mime.split("/")[-1].replace("jpeg", "jpg")[:8]
         fname = f"compose_inline_{count}.{ext}"
@@ -7111,6 +7297,19 @@ def _save_compose_emails_to_db(db: Session, *address_fields: str, flush_only: bo
         for raw in (field or "").split(","):
             email = raw.strip().lower()
             if not email or not _VALID_EMAIL_RE.match(email):
+                continue
+            # Un correo de un agente/usuario interno (p.ej. copiado en CC)
+            # no es un cliente — crearle un Requester lo deja "enlazado"
+            # como cliente para siempre, ya que Requester.email es global y
+            # sin alcance por ticket (paso con felipe.mora@soporteatc.cl,
+            # ago 2026).
+            is_agent_email = (
+                db.query(User.id)
+                .filter(func.lower(User.email) == email, User.is_active == True)  # noqa: E712
+                .first()
+                is not None
+            )
+            if is_agent_email:
                 continue
             exists = db.query(Requester).filter(Requester.email == email).first()
             if not exists:
@@ -7146,7 +7345,6 @@ async def ticketera_compose_send(
     if not body:
         return JSONResponse({"ok": False, "error": "El cuerpo del mensaje está vacío."}, status_code=400)
 
-    # Convertir base64 inline images a CID attachments (Gmail bloquea data: URIs)
     body, inline_images_bytes = _extract_inline_images_for_compose(body)
 
     saved: list[dict] = []
@@ -7160,13 +7358,20 @@ async def ticketera_compose_send(
             content = await upload.read()
             if not content:
                 continue
+            content_type = (upload.content_type or "").strip().lower()
+            if "/" not in content_type:
+                guessed_type, _ = mimetypes.guess_type(fname)
+                content_type = guessed_type or "application/octet-stream"
+            if content_type.startswith("image/"):
+                content = optimize_image_bytes(content, content_type=content_type)
             safe_name = re.sub(r"[^\w.\-]", "_", fname)[:120]
             dest = uploads_dir / f"{uuid4().hex[:8]}_{safe_name}"
             dest.write_bytes(content)
             saved.append({"path": str(dest), "filename": fname,
-                          "content_type": upload.content_type or "application/octet-stream"})
+                          "content_type": content_type})
 
-        send_email_reply(
+        await run_in_threadpool(
+            send_email_reply,
             to=to,
             cc=cc or None,
             bcc=bcc or None,
@@ -7214,44 +7419,6 @@ async def ticketera_compose_send_as_ticket(
     if priority not in {"low", "medium", "high", "urgent"}:
         return JSONResponse({"ok": False, "error": "Seleccioná una prioridad."}, status_code=400)
 
-    body, inline_images_bytes = _extract_inline_images_for_compose(body)
-
-    saved: list[dict] = []
-    try:
-        uploads_dir = Path("uploads") / "compose_tmp"
-        uploads_dir.mkdir(parents=True, exist_ok=True)
-        for upload in (attachments or []):
-            fname = (upload.filename or "").strip()
-            if not fname:
-                continue
-            content_bytes = await upload.read()
-            if not content_bytes:
-                continue
-            safe_name = re.sub(r"[^\w.\-]", "_", fname)[:120]
-            dest = uploads_dir / f"{uuid4().hex[:8]}_{safe_name}"
-            dest.write_bytes(content_bytes)
-            saved.append({"path": str(dest), "filename": fname,
-                          "content_type": upload.content_type or "application/octet-stream"})
-
-        # Enviar el correo
-        send_email_reply(
-            to=to, cc=cc or None, bcc=bcc or None,
-            subject=subject, body=body,
-            inline_images_bytes=inline_images_bytes or None,
-            attachments=saved or None,
-        )
-    except Exception as exc:
-        for item in saved:
-            Path(item["path"]).unlink(missing_ok=True)
-        err = re.sub(r"\s+", " ", str(exc).replace("\n", " ")).strip()[:220]
-        return JSONResponse({"ok": False, "error": f"Error al enviar correo: {err}"}, status_code=500)
-
-    for item in saved:
-        Path(item["path"]).unlink(missing_ok=True)
-
-    # Guardar todos los emails en Requester (To / CC / CCO) sin commit aún
-    _save_compose_emails_to_db(db, to, cc, bcc, flush_only=True)
-
     # Obtener o crear el requester principal (primer email de To)
     to_email = to.split(",")[0].strip().lower()
     requester = db.query(Requester).filter(Requester.email == to_email).first()
@@ -7280,13 +7447,72 @@ async def ticketera_compose_send_as_ticket(
     db.add(ticket)
     db.flush()
 
+    # Crear primero el ticket permite guardar las imagenes inline en una
+    # ruta permanente /uploads/ticket_replies/T<ID>/ para la vista web.
+    # El correo se envia con cid:, pero la BBDD debe conservar /uploads/.
+    (
+        body_for_send,
+        body_for_db,
+        inline_images_for_email,
+        saved_inline_image_paths,
+    ) = _extract_inline_data_images(
+        ticket_id=ticket.id,
+        html_content=body,
+    )
+
+    saved: list[dict] = []
+    try:
+        uploads_dir = Path("uploads") / "compose_tmp"
+        uploads_dir.mkdir(parents=True, exist_ok=True)
+        for upload in (attachments or []):
+            fname = (upload.filename or "").strip()
+            if not fname:
+                continue
+            content_bytes = await upload.read()
+            if not content_bytes:
+                continue
+            content_type = (upload.content_type or "").strip().lower()
+            if "/" not in content_type:
+                guessed_type, _ = mimetypes.guess_type(fname)
+                content_type = guessed_type or "application/octet-stream"
+            if content_type.startswith("image/"):
+                content_bytes = optimize_image_bytes(content_bytes, content_type=content_type)
+            safe_name = re.sub(r"[^\w.\-]", "_", fname)[:120]
+            dest = uploads_dir / f"{uuid4().hex[:8]}_{safe_name}"
+            dest.write_bytes(content_bytes)
+            saved.append({"path": str(dest), "filename": fname,
+                          "content_type": content_type})
+
+        # Enviar el correo
+        await run_in_threadpool(
+            send_email_reply,
+            to=to,
+            cc=cc or None,
+            bcc=bcc or None,
+            subject=subject,
+            body=body_for_send,
+            inline_images=inline_images_for_email or None,
+            attachments=saved or None,
+        )
+    except Exception as exc:
+        db.rollback()
+        for item in saved:
+            Path(item["path"]).unlink(missing_ok=True)
+        for path in saved_inline_image_paths:
+            path.unlink(missing_ok=True)
+        err = re.sub(r"\s+", " ", str(exc).replace("\n", " ")).strip()[:220]
+        return JSONResponse({"ok": False, "error": f"Error al enviar correo: {err}"}, status_code=500)
+
+    for item in saved:
+        Path(item["path"]).unlink(missing_ok=True)
+
     from ATC.app.models.message import Message
     msg = Message(
         ticket_id=ticket.id,
         sender_type="agent",
         sender_id=current_user.id,
         channel="email",
-        content=body,
+        content=body_for_db,
         is_internal_note=False,
         created_at=chile_now(),
     )
@@ -7553,6 +7779,81 @@ def reply_ticket(
 
 
 # ======================================================
+# COMENTARIO INTERNO (solo tickets source="internal")
+# ======================================================
+
+@router.post("/ticketera/tickets/{ticket_id}/comentario-interno")
+def comentario_interno_ticket(
+    ticket_id: int,
+    content: str = Form(""),
+    mention_user_ids: str = Form(""),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    """Comentario visible solo para el equipo interno, sobre cualquier
+    ticket (internos y también los que vienen por email/whatsapp) — no se
+    confunde con "Reenviar" (que reenvía el correo original a otros
+    destinatarios): esto no envía nada al solicitante, solo queda en el
+    hilo para el equipo. A diferencia de reply_ticket(): no respeta
+    _ticket_is_locked a propósito — el objetivo es poder seguir
+    discutiendo un ticket ya resuelto/cerrado (jefe de área + usuarios)
+    sin reabrirlo, sin enviar nada por email/whatsapp y sin reasignar el
+    ticket.
+
+    mention_user_ids: ids separados por coma elegidos desde el
+    autocompletado "@" del textarea (no se parsea el texto libre — el JS ya
+    manda los ids exactos que el usuario seleccionó), o el literal "todos"
+    para @todos."""
+    ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
+    if not ticket:
+        return HTMLResponse("Ticket no encontrado", status_code=404)
+
+    content_text = (content or "").strip()
+    if not content_text:
+        query = urlencode({"send_error": "Escribe un comentario."})
+        return RedirectResponse(url=f"/ticketera/tickets/{ticket_id}?{query}", status_code=303)
+
+    content_html = html.escape(content_text).replace("\n", "<br>")
+
+    msg = Message(
+        ticket_id=ticket_id,
+        sender_type="agent",
+        sender_id=current_user.id,
+        # channel="internal_comment" (no "internal") para distinguirlo de
+        # las notas de auditoria automaticas ("Derivado a X. ODT: Y.", etc.)
+        # que tambien son is_internal_note=True pero channel="internal" —
+        # ver el filtro de mensajes en ticket_detail() mas abajo.
+        channel="internal_comment",
+        content=content_html,
+        is_internal_note=True,
+        created_at=chile_now(),
+    )
+    db.add(msg)
+    db.flush()
+
+    mention_tokens = {t.strip() for t in (mention_user_ids or "").split(",") if t.strip()}
+    if mention_tokens:
+        if "todos" in mention_tokens:
+            db.add(MessageMention(message_id=msg.id, ticket_id=ticket_id, mentioned_user_id=None))
+        else:
+            valid_ids = {u.id for u in _visible_support_users(_active_users_in_area(db, "soporte"))}
+            for token in mention_tokens:
+                try:
+                    uid = int(token)
+                except ValueError:
+                    continue
+                if uid in valid_ids:
+                    db.add(MessageMention(message_id=msg.id, ticket_id=ticket_id, mentioned_user_id=uid))
+
+    db.commit()
+
+    return RedirectResponse(
+        url=f"/ticketera/tickets/{ticket_id}",
+        status_code=303,
+    )
+
+
+# ======================================================
 
 # ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸Ãƒâ€¦Ã‚Â¡Ãƒâ€šÃ‚Â« MARCAR COMO SPAM (cualquiera)
 
@@ -7694,7 +7995,8 @@ async def reply_direct(
                 bcc_recipients=bcc_recipients,
             )
 
-            send_email_reply(
+            await run_in_threadpool(
+                send_email_reply,
                 to=to_recipients,
                 cc=cc_recipients,
                 bcc=bcc_recipients,
@@ -8331,21 +8633,20 @@ def create_ticket(
 
     # =====================================
 
-    # Si no se asigna, se auto-asigna
+    # Si no se asigna, se difunde a todo el equipo
 
     # =====================================
 
     # Si el usuario no selecciona un responsable en el modal,
 
-    # el ticket se asigna automÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ticamente al creador.
+    # el ticket queda sin asignar y visible para todo el equipo
+
+    # (mismo mecanismo que "Asignar a todo el equipo").
 
     allowed_priorities = {"low", "medium", "high", "urgent"}
     priority = (priority or "").strip().lower()
     if priority not in allowed_priorities:
         raise HTTPException(status_code=400, detail="Debes seleccionar una prioridad")
-
-    if not assigned_to_id:
-        assigned_to_id = current_user.id if _is_visible_support_user(current_user) else None
 
     support_user_ids = {u.id for u in _visible_support_users(_active_users_in_area(db, "soporte"))}
     if assigned_to_id is not None and int(assigned_to_id) not in support_user_ids:
@@ -8375,7 +8676,9 @@ def create_ticket(
 
         status="open",
 
-        source="internal"
+        source="internal",
+
+        team_broadcast_at=datetime.now(timezone.utc) if assigned_to_id is None else None,
 
     )
 
@@ -8489,6 +8792,8 @@ def _ensure_st_campos(db: Session) -> None:
         ("materiales_bodega", "TEXT"),
         ("fecha_inicio_trabajo", "DATETIME2"),
         ("fecha_fin_trabajo", "DATETIME2"),
+        ("camaras_instaladas_reales", "INT"),
+        ("layout_final", "TEXT"),
     ]
     try:
         for col, ctype in extras:

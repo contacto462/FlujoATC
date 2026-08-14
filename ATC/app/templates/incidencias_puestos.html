@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
-<link rel="shortcut icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png?v=2">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png?v=2">
+<link rel="shortcut icon" href="/favicon.ico?v=2">
 
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -234,7 +234,26 @@
     .tabla-mini th{font-size:10.5px;padding:8px 7px}
     .tabla-mini td{font-size:12px;padding:8px 6px}
     .tabla-scroll{overflow:auto;border-radius:var(--radius-lg);border:1px solid rgba(148,163,184,.55);background:#edf2f7;box-shadow:0 12px 26px rgba(15,23,42,.08)}
-    .tabla-incidencias-nueva{margin-top:10px;overflow:visible}
+    /* ── Lista de incidencias a registrar (tarjetas, orden: sucursal → tipo → problema → cámaras → contacto → descripción) ── */
+    .inc-lista{display:flex;flex-direction:column;gap:14px;margin-top:10px}
+    .inc-card{
+      background:#fff;border:1px solid rgba(148,163,184,.45);border-radius:var(--radius-lg);
+      padding:18px 18px 20px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:14px;
+    }
+    .inc-card-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .inc-card-top .btn-danger{margin:0;flex-shrink:0}
+    .inc-card-badge{
+      font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;
+      color:var(--accent-strong);background:var(--accent-soft);padding:4px 10px;border-radius:999px;
+    }
+    .inc-field{display:flex;flex-direction:column;gap:6px}
+    .inc-label{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+    .inc-field textarea{resize:vertical;min-height:44px}
+    .inc-field-desc textarea{background:#f8fafc;color:var(--text-soft)}
+    @media (max-width:900px){
+      .inc-card{padding:16px 14px 18px}
+      .inc-label{font-size:12.5px}
+    }
 
     table{width:100%;border-collapse:separate;border-spacing:0;background:#f8fafc;font-size:12.5px}
     th{
@@ -387,6 +406,42 @@
     .buscar-select-option{display:block;width:100%;min-height:39px;border:0;background:#fff;color:#333;padding:8px 9px;font:inherit;text-align:left;cursor:pointer}
     .buscar-select-option:hover,.buscar-select-option.is-active{background:var(--header-bg);color:#fff}
     .buscar-select-empty{padding:9px;color:#777;font:inherit}
+
+    /* ── Selector de cámaras / equipos afectados ── */
+    .cam-picker{margin-top:10px;border:1px solid rgba(148,163,184,.45);border-radius:var(--radius-lg);background:#f8fafc;padding:16px;box-shadow:var(--shadow-sm);text-align:left}
+    .cam-picker-titulo{font-size:14px;font-weight:800;color:var(--text);margin-bottom:12px}
+    .cam-picker-vacio{color:var(--muted);font-size:13.5px}
+    .cam-todo-row{margin-bottom:14px}
+    .cam-grupo-label{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:14px 0 8px}
+    .cam-grupo-label:first-of-type{margin-top:0}
+    .cam-grid-equipos{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:9px}
+    .cam-grid-camaras{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:9px;max-height:280px;overflow-y:auto;padding:3px}
+    .cam-check{
+      display:flex;align-items:center;gap:10px;min-height:46px;padding:9px 14px;
+      border-radius:var(--radius);border:1px solid var(--border-strong);background:#fff;
+      font-size:14px;font-weight:600;color:var(--text);cursor:pointer;
+      transition:background .15s ease,border-color .15s ease,box-shadow .15s ease;
+      -webkit-tap-highlight-color:transparent;user-select:none;
+    }
+    .cam-check:hover{background:var(--surface-hover)}
+    .cam-check input[type="checkbox"]{width:22px;height:22px;min-width:22px;accent-color:var(--accent);cursor:pointer;flex-shrink:0}
+    .cam-check span{line-height:1.3;word-break:break-word}
+    .cam-check.cam-check-todo{
+      min-height:52px;background:linear-gradient(180deg,#fff7ed 0%,#ffedd5 100%);
+      border-color:var(--accent);font-weight:800;font-size:15px;color:var(--accent-strong);
+    }
+    .cam-check.is-checked{background:var(--accent-soft);border-color:var(--accent);box-shadow:0 0 0 2px rgba(222,123,54,.18)}
+    .cam-check.cam-check-todo.is-checked{background:linear-gradient(180deg,var(--accent) 0%,var(--accent-hover) 100%);color:#fff}
+    .cam-check.is-disabled{opacity:.4;pointer-events:none}
+    @media (max-width:900px){
+      .cam-grid-equipos,.cam-grid-camaras{grid-template-columns:repeat(auto-fill,minmax(45%,1fr))}
+      .cam-check{min-height:50px;font-size:15px;padding:10px 14px}
+      .cam-check input[type="checkbox"]{width:24px;height:24px;min-width:24px}
+      .cam-picker{padding:14px 12px}
+    }
+    @media (max-width:600px){
+      .cam-grid-equipos,.cam-grid-camaras{grid-template-columns:1fr}
+    }
 
     ::-webkit-scrollbar{width:10px;height:10px}
     ::-webkit-scrollbar-track{background:transparent}
@@ -584,10 +639,24 @@
     const TOTAL_PUESTOS=30;
     const TIPOS_INCIDENCIA=["Desconexión","Problema de Parlante","Problema de Alarma","Hora y/o Fecha Cambiada","Problema de Visual"];
     const ESPECIFICACIONES_VISUAL=["Falla de Video","Obstruccion","Intermitencia","IVS","Camara sucia","Camara Movida","Bateria Baja"];
-    let mapaTipos={},listaClientesGlobal=[],contactosPorSucursal={},todasIncidenciasPendientes=[],todasIncidenciasTerminadas=[],terminadasCargadas=false,conflictosPendientes=[],incidenciasAprobadasSinConflicto=[],seleccionConflictos=[],uidInc=0,puestoActivo=null;
+    let mapaTipos={},listaClientesGlobal=[],contactosPorSucursal={},todasIncidenciasPendientes=[],todasIncidenciasTerminadas=[],terminadasCargadas=false,conflictosPendientes=[],incidenciasAprobadasSinConflicto=[],seleccionConflictos=[],uidInc=0,puestoActivo=null,camarasPorSucursal={},sucursalesPorPuesto={};
 
     async function apiForm(url,formData){
       const res=await fetch(url,{method:"POST",body:formData});
+      const ct=res.headers.get("content-type")||"";
+      const payload=ct.includes("application/json")?await res.json():await res.text();
+      if(!res.ok){
+        const detail=typeof payload==="string"?payload:payload?.detail||JSON.stringify(payload);
+        throw new Error(detail||`HTTP ${res.status}`);
+      }
+      return payload;
+    }
+    async function api(url,options={}){
+      const token=obtenerTokenActual();
+      const target=new URL(url,window.location.origin);
+      if(token&&!target.searchParams.get("token"))target.searchParams.set("token",token);
+      const headers={"Content-Type":"application/json",...(options.headers||{})};
+      const res=await fetch(target.pathname+target.search,{...options,headers,credentials:"include"});
       const ct=res.headers.get("content-type")||"";
       const payload=ct.includes("application/json")?await res.json():await res.text();
       if(!res.ok){
@@ -630,7 +699,7 @@
       puestoActivo=String(puesto);
       actualizarBotonPuestoActivo(puestoActivo);
       const div=document.createElement("div");div.className="formulario-puesto";div.id=id;div.dataset.puesto=String(puesto);
-      div.innerHTML=`<h3 class="titulo-formulario-puesto">Incidencias - ${nombre}</h3><div class="tabla-scroll tabla-incidencias-nueva"><table><thead><tr><th>Sucursal</th><th>Tipo de Incidencia</th><th>Descripción</th><th>Quitar</th></tr></thead><tbody class="tbody-${puesto}"></tbody></table></div><button class="btn" onclick="agregarIncidencia(${puesto})">Agregar Otra Incidencia</button>`;
+      div.innerHTML=`<h3 class="titulo-formulario-puesto">Incidencias - ${nombre}</h3><div class="tbody-${puesto} inc-lista"></div><button class="btn" onclick="agregarIncidencia(${puesto})">Agregar Otra Incidencia</button>`;
       document.getElementById("formulariosContenedor").appendChild(div);agregarIncidencia(puesto);inyectarListaPuesto(div,puesto,nombre);renderListaPuestoSeleccionado();setTimeout(()=>div.scrollIntoView({behavior:"smooth",block:"start"}),120)
     }
 
@@ -668,10 +737,10 @@
       rows.forEach(r=>{const tr=document.createElement("tr");tr.innerHTML=`<td>${String(r?.[0]||"")}</td><td>${String(r?.[1]||"")}</td><td>${String(r?.[3]||"")}</td><td>${String(r?.[4]||"")}</td><td>${String(r?.[8]||"")}</td>`;tbody.appendChild(tr)})
     }
 
-    function crearSelectCliente(){const s=document.createElement("select");s.name="cliente";s.className="select-sucursal-hidden";s.innerHTML='<option value="">Seleccionar sucursal...</option>';(listaClientesGlobal||[]).forEach(c=>{const o=document.createElement("option");o.value=c;o.textContent=c;s.appendChild(o)});return s}
+    function crearSelectCliente(lista){const s=document.createElement("select");s.name="cliente";s.className="select-sucursal-hidden";s.innerHTML='<option value="">Seleccionar sucursal...</option>';(lista||listaClientesGlobal||[]).forEach(c=>{const o=document.createElement("option");o.value=c;o.textContent=c;s.appendChild(o)});return s}
     function poblarSelectSucursales(select,placeholder="Seleccionar sucursal..."){if(!select)return;select.innerHTML="";const base=document.createElement("option");base.value="";base.textContent=placeholder;select.appendChild(base);(listaClientesGlobal||[]).forEach(c=>{const o=document.createElement("option");o.value=c;o.textContent=c;select.appendChild(o)})}
     function crearSelectTipo(){const s=document.createElement("select");s.name="tipoIncidencia";s.innerHTML='<option value="">Seleccionar tipo...</option>';TIPOS_INCIDENCIA.forEach(t=>{const o=document.createElement("option");o.value=t;o.textContent=t;s.appendChild(o)});return s}
-    function claveTipoIncidencia(tipo){const t=String(tipo||"").toLowerCase();if(t.includes("desconex"))return"desconexion";if(t.includes("visual"))return"visual";if(t.includes("hora"))return"hora";return"otro"}
+    function claveTipoIncidencia(tipo){const t=String(tipo||"").toLowerCase();if(t.includes("desconex"))return"desconexion";if(t.includes("visual"))return"visual";if(t.includes("hora"))return"hora";if(t.includes("alarma"))return"alarma";return"otro"}
     function normalizarTexto(v){return String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ").trim().toLowerCase()}
     function claveDuplicado(sucursal,tipo){return `${normalizarTexto(sucursal)}|${normalizarTexto(tipo)}`}
     function cerrarBuscadoresSucursal(excepto=null){document.querySelectorAll(".buscar-select.is-open").forEach(w=>{if(w!==excepto){w.classList.remove("is-open");const m=w.querySelector(".buscar-select-menu");if(m)m.hidden=true}})}
@@ -742,76 +811,213 @@
       const o=document.createElement("option");o.value="__otros__";o.textContent="Otros...";selectContacto.appendChild(o)
     }
 
+    function renderCamarasYEquipo(container,sucursalValue,onChange){
+      container.innerHTML="";
+      const suc=String(sucursalValue||"").trim();
+      const picker=document.createElement("div");picker.className="cam-picker";
+      const titulo=document.createElement("div");titulo.className="cam-picker-titulo";titulo.textContent="Cámaras / equipos afectados";
+      picker.appendChild(titulo);
+
+      if(!suc){
+        const msg=document.createElement("div");msg.className="cam-picker-vacio";msg.textContent="Selecciona una sucursal para ver sus cámaras.";
+        picker.appendChild(msg);
+        container.appendChild(picker);
+        return;
+      }
+
+      const info=camarasPorSucursal[normalizarTexto(suc)]||null;
+      const camaras=info?.camaras||[];
+      const cantidadEquipos=Math.max(1,Number(info?.cantidad_equipos)||1);
+      container.dataset.cantidadEquipos=String(cantidadEquipos);
+
+      function crearCheck(label,name,value,extraClass){
+        const lab=document.createElement("label");lab.className="cam-check"+(extraClass?` ${extraClass}`:"");
+        const cb=document.createElement("input");cb.type="checkbox";cb.name=name;cb.value=value;
+        lab.appendChild(cb);
+        const span=document.createElement("span");span.textContent=label;lab.appendChild(span);
+        cb.addEventListener("change",()=>{
+          lab.classList.toggle("is-checked",cb.checked);
+          if(onChange)onChange();
+        });
+        return {lab,cb};
+      }
+
+      const todoRow=document.createElement("div");todoRow.className="cam-todo-row";
+      const {lab:todoLab,cb:todoCb}=crearCheck("Todo (toda la sucursal)","camaraTodo","Todo","cam-check-todo");
+      todoRow.appendChild(todoLab);
+      picker.appendChild(todoRow);
+
+      const equipoLabel=document.createElement("div");equipoLabel.className="cam-grupo-label";equipoLabel.textContent="Equipos (NVR)";
+      picker.appendChild(equipoLabel);
+      const gridEquipos=document.createElement("div");gridEquipos.className="cam-grid-equipos";
+      const equipoChecks=[];
+      for(let i=1;i<=cantidadEquipos;i++){
+        const labelEquipo=cantidadEquipos===1?`Equipo ${i} (toda la sucursal)`:`Equipo ${i}`;
+        const {lab,cb}=crearCheck(labelEquipo,"equipoAfectado",String(i));
+        equipoChecks.push({lab,cb});
+        gridEquipos.appendChild(lab);
+      }
+      picker.appendChild(gridEquipos);
+
+      const camLabel=document.createElement("div");camLabel.className="cam-grupo-label";camLabel.textContent="Cámaras";
+      picker.appendChild(camLabel);
+      const gridCamaras=document.createElement("div");gridCamaras.className="cam-grid-camaras";
+      const camChecks=[];
+      if(!camaras.length){
+        const msg=document.createElement("div");msg.className="cam-picker-vacio";msg.style.gridColumn="1/-1";msg.textContent="Sin cámaras registradas para esta sucursal.";
+        gridCamaras.appendChild(msg);
+      }else{
+        camaras.forEach(cam=>{
+          const {lab,cb}=crearCheck(cam,"camaraAfectada",cam);
+          camChecks.push({lab,cb});
+          gridCamaras.appendChild(lab);
+        });
+      }
+      picker.appendChild(gridCamaras);
+
+      function revisarSeleccionCompleta(){
+        if(todoCb.checked)return;
+        const equipoUnicoSeleccionado=cantidadEquipos===1&&equipoChecks.length===1&&equipoChecks[0].cb.checked;
+        const todosLosEquipos=cantidadEquipos>1&&equipoChecks.length>0&&equipoChecks.every(({cb})=>cb.checked);
+        const todasLasCamaras=camaras.length>0&&camChecks.length>0&&camChecks.every(({cb})=>cb.checked);
+        if(equipoUnicoSeleccionado||todosLosEquipos||todasLasCamaras){
+          todoCb.checked=true;
+          todoCb.dispatchEvent(new Event("change"));
+        }
+      }
+      equipoChecks.forEach(({cb})=>cb.addEventListener("change",revisarSeleccionCompleta));
+      camChecks.forEach(({cb})=>cb.addEventListener("change",revisarSeleccionCompleta));
+
+      todoCb.addEventListener("change",()=>{
+        const activo=todoCb.checked;
+        [...equipoChecks,...camChecks].forEach(({lab,cb})=>{
+          cb.disabled=activo;
+          lab.classList.toggle("is-disabled",activo);
+          if(activo){cb.checked=false;lab.classList.remove("is-checked")}
+        });
+      });
+
+      container.appendChild(picker);
+    }
+
     function agregarIncidencia(puesto){
       const tbody=document.querySelector(`.tbody-${puesto}`);if(!tbody)return;const gid=`g${Date.now()}_${uidInc++}`;
-      const tr=document.createElement("tr");tr.dataset.group=gid;tr.className="fila-main";
-      const tdCliente=document.createElement("td"),selectCliente=crearSelectCliente();tdCliente.appendChild(selectCliente);tr.appendChild(tdCliente);inicializarBuscadorSucursal(selectCliente);
-      const tdTipo=document.createElement("td"),selectTipo=crearSelectTipo();tdTipo.appendChild(selectTipo);tr.appendChild(tdTipo);
-      const tdDesc=document.createElement("td"),ta=document.createElement("textarea");ta.name="descripcion";ta.rows=2;ta.placeholder="Descripción...";ta.readOnly=true;tdDesc.appendChild(ta);tr.appendChild(tdDesc);
-      const tdQ=document.createElement("td"),bq=document.createElement("button");bq.type="button";bq.className="btn-danger";bq.setAttribute("aria-label","Quitar incidencia");bq.innerHTML='<svg class="icon-default" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 297 297" xml:space="preserve"><path d="M221.227 32.615H191V9.884C191 4.426 186.575 0 181.116 0h-65.231c-5.458 0-9.884 4.425-9.884 9.884v22.732H75.773c-19.301 0-35.004 15.703-35.004 35.004v23.803c0 5.458 4.425 9.884 9.884 9.884h6.967l11.124 186.399A9.883 9.883 0 0 0 78.61 297h139.78a9.884 9.884 0 0 0 9.866-9.295l11.124-186.399h6.967c5.458 0 9.884-4.425 9.884-9.884V67.619c0-19.301-15.703-35.004-35.004-35.004m-95.459-12.848h45.464v12.849h-45.464zM89.693 277.233h-1.772L77.452 101.8h12.241zm31.451 0H109.46V101.306h11.684zm34.946 0h-15.179V101.8h15.179zm31.45 0h-11.684V101.306h11.684zm21.539 0h-1.772V101.8h12.241zm27.384-195.694H60.537v-13.92c0-8.401 6.835-15.236 15.236-15.236h145.453c8.402 0 15.237 6.835 15.237 15.236z"/></svg><svg class="icon-hover" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 297 297" xml:space="preserve"><path d="M248.596 80.468c-3.988-8.124-10.903-14.209-19.467-17.133l-27.689-9.453 7.109-20.824c1.707-5-.962-10.437-5.962-12.144L142.833.512a9.57 9.57 0 0 0-12.146 5.963l-7.109 20.823-27.69-9.454c-17.676-6.036-36.974 3.438-43.012 21.118l-7.444 21.804a9.57 9.57 0 0 0 5.962 12.146l46.897 16.011H57.694a9.566 9.566 0 0 0-9.55 10.136L59.42 288.003A9.57 9.57 0 0 0 68.97 297h135.3a9.567 9.567 0 0 0 9.55-8.997l9.336-156.45 7.502 2.561a9.6 9.6 0 0 0 3.092.516 9.57 9.57 0 0 0 9.053-6.478l7.444-21.805c2.924-8.564 2.338-17.756-1.651-25.879M79.697 277.866h-1.715l-10.134-169.81h11.849zM145.704 21.71l41.647 14.219-4.018 11.77-41.647-14.219zM110.14 277.866H98.831v-169.81h11.309zm33.826 0h-14.692v-169.81h14.692zm30.442.001h-11.309V111.049l11.309 3.861zm20.849-.001h-1.715V121.442l10.83 3.698zm36.883-177.701-4.353 12.751L66.631 57.895l4.354-12.75c2.628-7.695 11.03-11.818 18.722-9.193l133.241 45.491a14.65 14.65 0 0 1 8.474 7.457 14.65 14.65 0 0 1 .718 11.265"/></svg>';bq.onclick=()=>tbody.querySelectorAll(`tr[data-group="${gid}"]`).forEach(r=>r.remove());tdQ.appendChild(bq);tr.appendChild(tdQ);
-      const trExtra=document.createElement("tr");trExtra.dataset.group=gid;trExtra.style.display="none";const tdExtra=document.createElement("td");tdExtra.colSpan=4;trExtra.appendChild(tdExtra);
-      const trCon=document.createElement("tr");trCon.dataset.group=gid;trCon.className="fila-contacto";trCon.style.display="none";const tdCon=document.createElement("td");tdCon.colSpan=4;
+
+      const card=document.createElement("div");card.className="inc-card";card.dataset.group=gid;
+
+      const cardTop=document.createElement("div");cardTop.className="inc-card-top";
+      const badge=document.createElement("span");badge.className="inc-card-badge";badge.textContent="Incidencia";cardTop.appendChild(badge);
+      const bq=document.createElement("button");bq.type="button";bq.className="btn-danger";bq.setAttribute("aria-label","Quitar incidencia");bq.innerHTML='<svg class="icon-default" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 297 297" xml:space="preserve"><path d="M221.227 32.615H191V9.884C191 4.426 186.575 0 181.116 0h-65.231c-5.458 0-9.884 4.425-9.884 9.884v22.732H75.773c-19.301 0-35.004 15.703-35.004 35.004v23.803c0 5.458 4.425 9.884 9.884 9.884h6.967l11.124 186.399A9.883 9.883 0 0 0 78.61 297h139.78a9.884 9.884 0 0 0 9.866-9.295l11.124-186.399h6.967c5.458 0 9.884-4.425 9.884-9.884V67.619c0-19.301-15.703-35.004-35.004-35.004m-95.459-12.848h45.464v12.849h-45.464zM89.693 277.233h-1.772L77.452 101.8h12.241zm31.451 0H109.46V101.306h11.684zm34.946 0h-15.179V101.8h15.179zm31.45 0h-11.684V101.306h11.684zm21.539 0h-1.772V101.8h12.241zm27.384-195.694H60.537v-13.92c0-8.401 6.835-15.236 15.236-15.236h145.453c8.402 0 15.237 6.835 15.237 15.236z"/></svg><svg class="icon-hover" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 297 297" xml:space="preserve"><path d="M248.596 80.468c-3.988-8.124-10.903-14.209-19.467-17.133l-27.689-9.453 7.109-20.824c1.707-5-.962-10.437-5.962-12.144L142.833.512a9.57 9.57 0 0 0-12.146 5.963l-7.109 20.823-27.69-9.454c-17.676-6.036-36.974 3.438-43.012 21.118l-7.444 21.804a9.57 9.57 0 0 0 5.962 12.146l46.897 16.011H57.694a9.566 9.566 0 0 0-9.55 10.136L59.42 288.003A9.57 9.57 0 0 0 68.97 297h135.3a9.567 9.567 0 0 0 9.55-8.997l9.336-156.45 7.502 2.561a9.6 9.6 0 0 0 3.092.516 9.57 9.57 0 0 0 9.053-6.478l7.444-21.805c2.924-8.564 2.338-17.756-1.651-25.879M79.697 277.866h-1.715l-10.134-169.81h11.849zM145.704 21.71l41.647 14.219-4.018 11.77-41.647-14.219zM110.14 277.866H98.831v-169.81h11.309zm33.826 0h-14.692v-169.81h14.692zm30.442.001h-11.309V111.049l11.309 3.861zm20.849-.001h-1.715V121.442l10.83 3.698zm36.883-177.701-4.353 12.751L66.631 57.895l4.354-12.75c2.628-7.695 11.03-11.818 18.722-9.193l133.241 45.491a14.65 14.65 0 0 1 8.474 7.457 14.65 14.65 0 0 1 .718 11.265"/></svg>';bq.onclick=()=>card.remove();cardTop.appendChild(bq);
+      card.appendChild(cardTop);
+
+      const campoCliente=document.createElement("div");campoCliente.className="inc-field";
+      campoCliente.innerHTML='<label class="inc-label">Sucursal</label>';
+      const listaSucursalesPuesto=sucursalesPorPuesto[String(puesto)]||null;
+      const selectCliente=crearSelectCliente(listaSucursalesPuesto);campoCliente.appendChild(selectCliente);
+      card.appendChild(campoCliente);inicializarBuscadorSucursal(selectCliente);
+
+      const campoTipo=document.createElement("div");campoTipo.className="inc-field";
+      campoTipo.innerHTML='<label class="inc-label">Tipo de incidencia</label>';
+      const selectTipo=crearSelectTipo();campoTipo.appendChild(selectTipo);
+      card.appendChild(campoTipo);
+
+      const tdExtra=document.createElement("div");tdExtra.className="fila-extra";tdExtra.style.display="none";
+      card.appendChild(tdExtra);
+
+      const tdCon=document.createElement("div");tdCon.className="fila-contacto inc-field";tdCon.style.display="none";
       const selectCon=document.createElement("select");selectCon.name="contacto";selectCon.innerHTML='<option value="">Seleccionar contacto de emergencia...</option>';tdCon.appendChild(selectCon);
-      const inp=document.createElement("input");inp.type="text";inp.placeholder="Escribir contacto manualmente (nombre y teléfono)...";inp.style.display="none";inp.style.marginTop="8px";tdCon.appendChild(inp);trCon.appendChild(tdCon);
-      tbody.appendChild(tr);tbody.appendChild(trExtra);tbody.appendChild(trCon);
+      const inp=document.createElement("input");inp.type="text";inp.placeholder="Escribir contacto manualmente (nombre y teléfono)...";inp.style.display="none";inp.style.marginTop="8px";tdCon.appendChild(inp);
+      card.appendChild(tdCon);
+
+      const campoDesc=document.createElement("div");campoDesc.className="inc-field inc-field-desc";
+      campoDesc.innerHTML='<label class="inc-label">Descripción</label>';
+      const ta=document.createElement("textarea");ta.name="descripcion";ta.rows=2;ta.placeholder="Descripción...";ta.readOnly=true;campoDesc.appendChild(ta);
+      card.appendChild(campoDesc);
+
+      tbody.appendChild(card);
 
       let prefijoFijo="";
-      ta.addEventListener("keydown",(e)=>{
-        if(!prefijoFijo)return;
-        const ini=Number(ta.selectionStart||0),fin=Number(ta.selectionEnd||0);
-        if((e.key==="Backspace"&&ini<=prefijoFijo.length&&fin<=prefijoFijo.length)||(e.key==="Delete"&&ini<prefijoFijo.length)){e.preventDefault()}
-      });
-      ta.addEventListener("input",()=>{
-        if(!prefijoFijo)return;
-        if(!ta.value.startsWith(prefijoFijo)){
-          const resto=ta.value.replace(prefijoFijo,"");
-          ta.value=`${prefijoFijo}${resto}`;
+      ta.readOnly=true;
+
+      function refrescarDescripcionAuto(){
+        const camWrap=tdExtra.querySelector(".cam-wrap");
+        let partes=[];
+        if(camWrap){
+          const todoCb=camWrap.querySelector('input[name="camaraTodo"]');
+          const cantidadEquipos=Number(camWrap.dataset.cantidadEquipos||"0");
+          const equipoUnicoCb=camWrap.querySelector('input[name="equipoAfectado"][value="1"]:checked');
+          if((todoCb&&todoCb.checked)||(cantidadEquipos===1&&equipoUnicoCb)){
+            partes=["Todo"];
+          }else{
+            camWrap.querySelectorAll('input[name="equipoAfectado"]:checked').forEach(cb=>partes.push(`NVR ${cb.value}`));
+            camWrap.querySelectorAll('input[name="camaraAfectada"]:checked').forEach(cb=>partes.push(cb.value));
+          }
         }
-        const pos=Number(ta.selectionStart||0);
-        if(pos<prefijoFijo.length)ta.setSelectionRange(ta.value.length,ta.value.length);
-      });
-
-      function aplicarPrefijo(prefijo,permiteEscribir){
-        prefijoFijo=String(prefijo||"");
-        ta.value=prefijoFijo;
-        ta.readOnly=!permiteEscribir;
-        if(permiteEscribir){ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length)}
+        const txt=partes.join(", ");
+        ta.value=prefijoFijo?(txt?`${prefijoFijo}${txt}`:prefijoFijo):txt;
       }
-      function limpiarDescripcionBloqueada(){prefijoFijo="";ta.value="";ta.readOnly=true}
+      function aplicarPrefijo(prefijo){
+        prefijoFijo=String(prefijo||"");
+        refrescarDescripcionAuto();
+      }
+      function limpiarDescripcionBloqueada(){prefijoFijo="";refrescarDescripcionAuto()}
 
-      function visContacto(){const cl=String(selectCliente.value||"").trim(),ti=String(selectTipo.value||"").trim();trCon.style.display=(!cl||!ti||claveTipoIncidencia(ti)==="hora")?"none":""}
-      selectCliente.addEventListener("change",function(){const suc=String(this.value||"").trim();if(suc)cargarContactosSucursal(selectCon,suc);visContacto()});
+      function visContacto(){const cl=String(selectCliente.value||"").trim(),ti=String(selectTipo.value||"").trim();tdCon.style.display=(!cl||!ti||claveTipoIncidencia(ti)==="hora")?"none":""}
+      selectCliente.addEventListener("change",function(){
+        const suc=String(this.value||"").trim();
+        if(suc)cargarContactosSucursal(selectCon,suc);
+        visContacto();
+        const camWrap=tdExtra.querySelector(".cam-wrap");
+        if(camWrap){renderCamarasYEquipo(camWrap,suc,refrescarDescripcionAuto);refrescarDescripcionAuto()}
+      });
       selectCon.addEventListener("change",()=>inp.style.display=selectCon.value==="__otros__"?"block":"none");
 
       selectTipo.addEventListener("change",()=>{
-        tdExtra.innerHTML="";trExtra.style.display="none";limpiarDescripcionBloqueada();
+        tdExtra.innerHTML="";tdExtra.style.display="none";limpiarDescripcionBloqueada();
         const clave=claveTipoIncidencia(selectTipo.value);
 
         if(clave==="desconexion"){
-          trExtra.style.display="";
-          tdExtra.innerHTML='<div style="margin-bottom:6px"><b>Problema de:</b></div>';
+          const subWrap=document.createElement("div");
+          subWrap.innerHTML='<div style="margin-bottom:6px"><b>Problema de:</b></div>';
           const selDesc=document.createElement("select");selDesc.name="especificacionDesconexion";
           selDesc.innerHTML='<option value="">Seleccionar...</option><option value="Internet">Internet</option><option value="Electricidad">Electricidad</option><option value="Se Desconoce">Se Desconoce</option>';
-          tdExtra.appendChild(selDesc);
+          subWrap.appendChild(selDesc);
+          tdExtra.appendChild(subWrap);
           selDesc.addEventListener("change",()=>{
             const v=String(selDesc.value||"").trim();
-            if(!v){limpiarDescripcionBloqueada();return}
+            if(!v){prefijoFijo="";refrescarDescripcionAuto();return}
             const prefijo=v==="Se Desconoce"?"Desconocida de: ":`Debido a ${v.toLowerCase()} de: `;
-            aplicarPrefijo(prefijo,true);
+            aplicarPrefijo(prefijo);
           });
         }else if(clave==="visual"){
-          trExtra.style.display="";
-          tdExtra.innerHTML='<div style="margin-bottom:6px"><b>Especificamente:</b></div>';
+          const subWrap=document.createElement("div");
+          subWrap.innerHTML='<div style="margin-bottom:6px"><b>Especificamente:</b></div>';
           const selVisual=document.createElement("select");selVisual.name="especificacionVisual";selVisual.innerHTML='<option value="">Seleccionar...</option>';
           ESPECIFICACIONES_VISUAL.forEach(op=>{const o=document.createElement("option");o.value=op;o.textContent=op;selVisual.appendChild(o)});
-          tdExtra.appendChild(selVisual);
+          subWrap.appendChild(selVisual);
+          tdExtra.appendChild(subWrap);
           selVisual.addEventListener("change",()=>{
             const v=String(selVisual.value||"").trim();
-            if(!v){limpiarDescripcionBloqueada();return}
-            aplicarPrefijo(`${v}: `,true);
+            if(!v){prefijoFijo="";refrescarDescripcionAuto();return}
+            aplicarPrefijo(`${v}: `);
           });
         }else{
-          prefijoFijo="";ta.readOnly=false;
+          prefijoFijo="";
+        }
+
+        if(clave==="alarma"){
+          ta.readOnly=false;
+          ta.value="";
+        }else if(selectTipo.value){
+          ta.readOnly=true;
+          tdExtra.style.display="";
+          const camWrap=document.createElement("div");camWrap.className="cam-wrap";camWrap.style.marginTop="10px";
+          tdExtra.appendChild(camWrap);
+          renderCamarasYEquipo(camWrap,selectCliente.value,refrescarDescripcionAuto);
+          refrescarDescripcionAuto();
+        }else{
+          ta.readOnly=true;
+          ta.value="";
         }
         visContacto();
       });
@@ -821,13 +1027,12 @@
       const token=obtenerTokenActual();
       document.querySelectorAll('[id^="formulario-puesto-"]').forEach(form=>{
         const puesto=form.dataset.puesto||"";
-        form.querySelectorAll("tr.fila-main").forEach(f=>{
-          const gid=f.dataset.group;
+        form.querySelectorAll(".inc-card").forEach(f=>{
           const cliente=String(f.querySelector('select[name="cliente"]')?.value||"").trim();
           const tipo=String(f.querySelector('select[name="tipoIncidencia"]')?.value||"").trim();
           let desc=String(f.querySelector('textarea[name="descripcion"]')?.value||"").trim();
 
-          const filaCon=form.querySelector(`tr.fila-contacto[data-group="${gid}"]`);
+          const filaCon=f.querySelector(".fila-contacto");
           const sel=filaCon?.querySelector('select[name="contacto"]');
           const im=filaCon?.querySelector("input[type='text']");
           let contacto="";
@@ -842,6 +1047,7 @@
           const claveTipo=claveTipoIncidencia(tipo);
           if(claveTipo==="desconexion"&&!desc)throw new Error(`Debes indicar el tipo de desconexión para "${cliente}".`);
           if(claveTipo==="visual"&&!desc)throw new Error(`Debes seleccionar la especificación de Problema de Visual para "${cliente}".`);
+          if(claveTipo!=="alarma"&&!desc)throw new Error(`Debes marcar al menos una cámara, equipo o "Todo" para "${cliente}".`);
           if(!desc)throw new Error(`Debes completar la descripción para "${cliente}".`);
 
           if(claveTipo!=="hora"&&!contacto)throw new Error(`Debes seleccionar contacto de emergencia para "${cliente}".`);
@@ -941,6 +1147,9 @@
         puestoActivo=null;
         actualizarBotonPuestoActivo(null);
         setMensaje(odts.length?`Incidencias registradas en Registro: ${odts.join(", ")}.`:"Incidencias registradas exitosamente.");
+        if(window.parent&&window.parent!==window){
+          window.parent.postMessage({type:"atc:odt-creada",odts},window.location.origin);
+        }
         try{await cargarIncidenciasPendientes()}catch(err){setMensaje(`Incidencias registradas, pero no se pudo refrescar la tabla: ${err.message}`,false)}
       }finally{b.disabled=false;b.textContent="Registrar Todas las Incidencias"}
     }
@@ -1093,7 +1302,7 @@
 
     async function bootstrap(){
       crearBotonesPuestos();
-      try{const [listasInc,contactos]=await Promise.all([api("/api/listas/incidencias"),api("/api/contactos/sucursal")]);listaClientesGlobal=(Array.isArray(listasInc?.sucursales)&&listasInc.sucursales.length?listasInc.sucursales:listasInc?.clientes)||[];contactosPorSucursal=contactos||{};llenarDatalist("listaClientes",listaClientesGlobal);poblarSelectSucursales(document.getElementById("inputBusquedaIncidencias"));inicializarBuscadorSucursal(document.getElementById("inputBusquedaIncidencias"),"Seleccionar sucursal...")}catch(err){setMensaje(`Error al cargar listas: ${err.message}`,false)}
+      try{const [listasInc,contactos,camaras,porPuesto]=await Promise.all([api("/api/listas/incidencias"),api("/api/contactos/sucursal"),api("/api/incidencias/camaras-por-sucursal"),api("/api/incidencias/sucursales-por-puesto")]);listaClientesGlobal=(Array.isArray(listasInc?.sucursales)&&listasInc.sucursales.length?listasInc.sucursales:listasInc?.clientes)||[];contactosPorSucursal=contactos||{};camarasPorSucursal=camaras||{};sucursalesPorPuesto=porPuesto||{};llenarDatalist("listaClientes",listaClientesGlobal);poblarSelectSucursales(document.getElementById("inputBusquedaIncidencias"));inicializarBuscadorSucursal(document.getElementById("inputBusquedaIncidencias"),"Seleccionar sucursal...")}catch(err){setMensaje(`Error al cargar listas: ${err.message}`,false)}
       try{await cargarIncidenciasPendientes()}catch(err){setMensaje(`Error al cargar incidencias pendientes: ${err.message}`,false)}
     }
     window.addEventListener("load",bootstrap);

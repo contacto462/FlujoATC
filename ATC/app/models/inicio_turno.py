@@ -64,6 +64,7 @@ class RecintoQrGenerado(Base):
     recinto_label: Mapped[str] = mapped_column(String(255), nullable=False)
     token: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
     numero: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    verificador: Mapped[Optional[int]] = mapped_column(Integer, unique=True, index=True, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), index=True)
 
 

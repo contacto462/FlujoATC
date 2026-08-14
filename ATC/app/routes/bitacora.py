@@ -16,10 +16,16 @@ from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from jose import JWTError, jwt
 from pydantic import BaseModel, Field
-from sqlalchemy import bindparam, func, text
+from sqlalchemy import bindparam, case, func, text
 from sqlalchemy.orm import Session
 
-from ATC.app.routes.bitacora_access import can_access_bitacora, is_bitacora_admin, _normalize, _split_departments
+from ATC.app.routes.bitacora_access import (
+    can_access_bitacora,
+    can_manage_bitacora_puestos,
+    is_bitacora_admin,
+    _normalize,
+    _split_departments,
+)
 from ATC.app.core.config import settings
 from ATC.app.core.db import get_db, get_incidencias_db
 from ATC.app.models.incidencias import (
@@ -50,6 +56,7 @@ class SucursalEditPayload(BaseModel):
     nombre_sucursal: str = ""
     direccion_sucursal: str = ""
     referencia_ubicacion: str = ""
+    contacto: str = ""
     email_facturas: str = ""
     horario_apertura: str = ""
     horario_cierre: str = ""
@@ -294,10 +301,44 @@ def bitacora_page(
         )
     ).mappings().all()
     empresas = [str(row.get("empresa") or "").strip() for row in empresas_rows if str(row.get("empresa") or "").strip()]
+
+    # Solo para el selector de "Buscar por Empresa": empresas que tengan al
+    # menos una sucursal habilitada. A diferencia de `empresas` (usado por
+    # los paneles de administración, que sí deben poder llegar a sucursales
+    # deshabilitadas para gestionarlas), acá una empresa sin ninguna
+    # sucursal activa no debe aparecer como resultado de búsqueda.
+    empresas_activas_rows = incidencias_db.execute(
+        text(
+            """
+            SELECT DISTINCT TRIM(nombre_empresa) AS empresa
+            FROM bbdd_sucursales s
+            WHERE COALESCE(TRIM(nombre_empresa), '') <> ''
+              AND aceptada_bitacora = 1
+              AND EXISTS (
+                  SELECT 1 FROM bbdd_sucursales s2
+                  WHERE TRIM(s2.nombre_empresa) = TRIM(s.nombre_empresa)
+                    AND (s2.habilitada = 1 OR s2.habilitada IS NULL)
+              )
+            ORDER BY TRIM(nombre_empresa) ASC
+            """
+        )
+    ).mappings().all()
+    empresas_activas = [str(row.get("empresa") or "").strip() for row in empresas_activas_rows if str(row.get("empresa") or "").strip()]
+
     # La tabla de usuarios (nombre/correo/rol/estado) solo debe llegar al HTML si el
     # usuario es admin — antes se enviaba siempre y el panel "Registro de Usuario"
     # no estaba gateado en el template, exponiendo el listado completo a cualquiera.
     bitacora_users = _bitacora_users(db) if is_bitacora_admin(current_user) else []
+
+    # Cuentas de solo Televigilancia (sin depto Bitacora ni rol admin) no tienen
+    # panel al que "volver" — en vez de Volver, solo pueden Cerrar sesión.
+    role_actual = str(getattr(current_user, "role", None) or "").strip().lower()
+    departamentos_actuales = [_normalize(d) for d in _split_departments(getattr(current_user, "department", None))]
+    solo_televigilante = (
+        "televigilante" in departamentos_actuales
+        and "bitacora" not in departamentos_actuales
+        and role_actual not in ("admin", "superadmin")
+    )
 
     resp = templates.TemplateResponse(
         request,
@@ -306,9 +347,12 @@ def bitacora_page(
             "request": request,
             "user": current_user,
             "is_bitacora_admin": is_bitacora_admin(current_user),
+            "can_manage_puestos": can_manage_bitacora_puestos(current_user),
             "is_operador": not bool(getattr(current_user, "is_admin", False)) and not is_bitacora_admin(current_user),
             "empresas": empresas,
+            "empresas_activas": empresas_activas,
             "bitacora_users": bitacora_users,
+            "solo_televigilante": solo_televigilante,
         },
     )
     resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
@@ -422,6 +466,7 @@ def bitacora_busqueda_empresa_api(
             FROM bbdd_sucursales
             WHERE LOWER(TRIM(nombre_empresa)) = LOWER(TRIM(:empresa))
               AND aceptada_bitacora = 1
+              AND (habilitada = 1 OR habilitada IS NULL)
             ORDER BY nombre_sucursal ASC, id ASC
             """
         ),
@@ -785,6 +830,7 @@ def bitacora_empresas_sucursales_api(
             FROM bbdd_sucursales
             WHERE COALESCE(TRIM(nombre_empresa), '') <> ''
               AND aceptada_bitacora = 1
+              AND (habilitada = 1 OR habilitada IS NULL)
             ORDER BY nombre_empresa ASC, nombre_sucursal ASC
             """
         )
@@ -830,6 +876,8 @@ def bitacora_personas_autorizadas_api(
                     p.rut,
                     p.telefono,
                     p.email,
+                    p.clave_verde,
+                    p.clave_roja,
                     (
                         SELECT v.tipo_plan
                         FROM venta_comercial v
@@ -844,6 +892,7 @@ def bitacora_personas_autorizadas_api(
                 JOIN bbdd_sucursales s ON s.id = p.sucursal_id
                 WHERE p.habilitado = 1
                   AND s.aceptada_bitacora = 1
+                  AND (s.habilitada = 1 OR s.habilitada IS NULL)
                 ORDER BY p.rut, s.nombre_empresa, s.nombre_sucursal
             """)
         ).mappings().all()
@@ -861,6 +910,8 @@ def bitacora_personas_autorizadas_api(
                 "rut": r.get("rut") or "",
                 "celular": r.get("telefono") or "",
                 "email": r.get("email") or "",
+                "claveVerde": r.get("clave_verde") or "",
+                "claveRoja": r.get("clave_roja") or "",
             }
             for r in rows
         ]
@@ -934,6 +985,13 @@ class ObservacionCreate(BaseModel):
     enviar_cliente: bool = False
     tipo_clave: str = "Registro Observacion"
     detalle_custom: str = ""
+
+
+class ObservacionEditPayload(BaseModel):
+    nombre_empresa: str = Field(min_length=1)
+    nombre_sucursal: str = Field(min_length=1)
+    detalle: str = ""
+    observacion: str = ""
 
 
 class ClaveResolverRequest(BaseModel):
@@ -1213,6 +1271,86 @@ def listar_observaciones(
     ).mappings().all()
 
     return {"total": len(rows), "registros": [_serialize_registro(r) for r in rows]}
+
+
+def _puede_editar_registro(current_user: User, operador_registro: str) -> bool:
+    """Un operador puede editar solo sus propias observaciones (comparando el
+    nombre/username guardado en `operador` contra el usuario actual, porque
+    bitacora_registros no tiene FK a users); un admin de bitácora puede
+    editar cualquiera."""
+    if is_bitacora_admin(current_user):
+        return True
+    nombre_actual = str(current_user.name or current_user.username or "").strip()
+    return _normalize(operador_registro) == _normalize(nombre_actual)
+
+
+@router.put("/api/bitacora/observaciones/{registro_id}")
+def editar_observacion(
+    registro_id: int,
+    payload: ObservacionEditPayload,
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    _require_bitacora_access(current_user)
+    row = incidencias_db.execute(
+        text("SELECT id, operador FROM bitacora_registros WHERE id = :id"),
+        {"id": registro_id},
+    ).mappings().first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Registro no encontrado.")
+    if not _puede_editar_registro(current_user, str(row.get("operador") or "")):
+        raise HTTPException(status_code=403, detail="No tienes permiso para editar esta observación.")
+
+    empresa = payload.nombre_empresa.strip()
+    sucursal = payload.nombre_sucursal.strip()
+    if not empresa or not sucursal:
+        raise HTTPException(status_code=400, detail="Debes completar empresa y sucursal.")
+
+    updated = incidencias_db.execute(
+        text(
+            """
+            UPDATE bitacora_registros SET
+                nombre_empresa  = :empresa,
+                nombre_sucursal = :sucursal,
+                detalle         = :detalle,
+                observacion     = :observacion
+            OUTPUT
+                INSERTED.id, INSERTED.nombre_empresa, INSERTED.nombre_sucursal,
+                INSERTED.operador, INSERTED.detalle, INSERTED.observacion,
+                INSERTED.tipo_clave, INSERTED.created_at
+            WHERE id = :id
+            """
+        ),
+        {
+            "id": registro_id,
+            "empresa": empresa,
+            "sucursal": sucursal,
+            "detalle": payload.detalle.strip(),
+            "observacion": payload.observacion.strip(),
+        },
+    ).mappings().first()
+    incidencias_db.commit()
+    return {"ok": True, "registro": _serialize_registro(updated)}
+
+
+@router.delete("/api/bitacora/observaciones/{registro_id}")
+def eliminar_observacion(
+    registro_id: int,
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    _require_bitacora_access(current_user)
+    if not is_bitacora_admin(current_user):
+        raise HTTPException(status_code=403, detail="Solo un administrador puede eliminar observaciones.")
+    row = incidencias_db.execute(
+        text("SELECT id FROM bitacora_registros WHERE id = :id"),
+        {"id": registro_id},
+    ).mappings().first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Registro no encontrado.")
+    incidencias_db.execute(text("DELETE FROM bitacora_registros WHERE id = :id"), {"id": registro_id})
+    incidencias_db.commit()
+    return {"ok": True}
 
 
 def _parse_rango_fechas(desde: str, hasta: str) -> tuple[datetime | None, datetime | None]:
@@ -1701,7 +1839,7 @@ def informacion_cliente_informe(
     # ── Hoja Bitácora ──
     ws = wb.create_sheet("Bitácora")
     headers_bit = ["Fecha", "Tipo de movimiento", "Operador", "Detalle", "Observación"]
-    _titulo_hoja(ws, "Detalle de Bitácora", len(headers_bit))
+    _titulo_hoja(ws, "Observación de Bitácora", len(headers_bit))
     _encabezados(ws, headers_bit)
     fila_datos = ws.max_row + 1
     for r in bit["_detalle"]:
@@ -1941,6 +2079,7 @@ def bitacora_sucursal_editar(
             USING (VALUES (:sid)) AS s(sucursal_id) ON t.sucursal_id = s.sucursal_id
             WHEN MATCHED THEN UPDATE SET
                 referencia_ubicacion    = :referencia_ubicacion,
+                contacto                = :contacto,
                 horario_habil           = :horario_habil,
                 horario_no_habil        = :horario_no_habil,
                 plan_cuadrante          = :plan_cuadrante,
@@ -1958,13 +2097,13 @@ def bitacora_sucursal_editar(
                 numero_cliente_electricidad = :numero_cliente_electricidad,
                 proveedor_internet_cliente  = :proveedor_internet_cliente
             WHEN NOT MATCHED THEN INSERT (
-                sucursal_id, referencia_ubicacion, horario_habil, horario_no_habil,
+                sucursal_id, referencia_ubicacion, contacto, horario_habil, horario_no_habil,
                 plan_cuadrante, carabineros, bomberos, seguridad_ciudadana,
                 camaras_contratadas, camaras_televigiladas, codigo_p2p, codigo_dss,
                 telefono_porton, telefono_recepcion, internet_atc,
                 compania_electricidad, numero_cliente_electricidad, proveedor_internet_cliente
             ) VALUES (
-                :sid, :referencia_ubicacion, :horario_habil, :horario_no_habil,
+                :sid, :referencia_ubicacion, :contacto, :horario_habil, :horario_no_habil,
                 :plan_cuadrante, :carabineros, :bomberos, :seguridad_ciudadana,
                 :camaras_contratadas, :camaras_televigiladas, :codigo_p2p, :codigo_dss,
                 :telefono_porton, :telefono_recepcion, :internet_atc,
@@ -1974,6 +2113,7 @@ def bitacora_sucursal_editar(
         {
             "sid": sid,
             "referencia_ubicacion": payload.referencia_ubicacion.strip(),
+            "contacto": payload.contacto.strip(),
             "horario_habil": payload.horario_habil.strip(),
             "horario_no_habil": payload.horario_no_habil.strip(),
             "plan_cuadrante": payload.plan_cuadrante.strip(),
@@ -1991,6 +2131,27 @@ def bitacora_sucursal_editar(
             "numero_cliente_electricidad": payload.numero_cliente_electricidad.strip(),
             "proveedor_internet_cliente": payload.proveedor_internet_cliente.strip(),
         },
+    )
+    incidencias_db.commit()
+    return {"ok": True}
+
+
+@router.patch("/api/bitacora/sucursal/{sucursal_id}/deshabilitar")
+def bitacora_sucursal_deshabilitar(
+    sucursal_id: int,
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    _require_bitacora_access(current_user)
+    row = incidencias_db.execute(
+        text("SELECT id FROM bbdd_sucursales WHERE id = :sid"),
+        {"sid": sucursal_id},
+    ).mappings().first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Sucursal no encontrada.")
+    incidencias_db.execute(
+        text("UPDATE bbdd_sucursales SET habilitada = 0 WHERE id = :sid"),
+        {"sid": sucursal_id},
     )
     incidencias_db.commit()
     return {"ok": True}
@@ -2158,6 +2319,14 @@ def _informacion_puestos_data(incidencias_db: Session, desde: str, hasta: str) -
 
 _TOP_N_INTRUSIVOS = 6  # debe coincidir con _TOP_N en informe_puestos_service.py
 
+
+def _pantallas_puesto(puesto: int) -> int:
+    """Cantidad de pantallas físicas del puesto: 1-12 tienen 4, 13-29 tienen
+    6 (valor fijo validado — la columna "Ubicación de Pantalla" del archivo
+    de cámaras tiene variantes de texto inconsistentes, ej. "IZQ ARRIBA" vs
+    "IZQUIERDA ARRIBA", así que no se deriva contando valores únicos ahí)."""
+    return 4 if puesto <= 12 else 6
+
 _RE_HORA_TEXTO = re.compile(r"\b([01]?\d|2[0-3]):([0-5]\d)\b")
 
 _FRANJAS_HORARIAS = (
@@ -2216,68 +2385,106 @@ def _bitacora_ventana_por_puesto(
     return sorted(r[0] for r in rows if r[0])
 
 
-def _contar_en_ventana(timestamps_ordenados: list[datetime], centro: datetime, minutos: int = 30) -> int:
+def _contar_en_ventana(timestamps_ordenados: list[datetime], centro: datetime, minutos: int = 15) -> int:
+    """Cuenta timestamps en los `minutos` ANTERIORES al evento (no hacia
+    adelante): lo que interesa es la carga previa que pudo distraer al
+    operador antes de la intrusión, no lo que pasó después."""
     if not timestamps_ordenados or not centro:
         return 0
     ini = centro - timedelta(minutes=minutos)
-    fin = centro + timedelta(minutes=minutos)
     izq = bisect.bisect_left(timestamps_ordenados, ini)
-    der = bisect.bisect_right(timestamps_ordenados, fin)
+    der = bisect.bisect_right(timestamps_ordenados, centro)
     return der - izq
 
 
-def _movimientos_operador_ventana(incidencias_db: Session, operador: str, centro: datetime, minutos: int = 30) -> int:
-    """Cuántos movimientos de bitácora escribió ESE operador puntual en una
-    ventana de +/- `minutos` alrededor del intrusivo. Un operador cubre un
-    puesto completo (varias sucursales) como asignación normal, así que
+def _movimientos_operador_ventana(incidencias_db: Session, operador: str, centro: datetime, minutos: int = 15) -> int:
+    """Cuántos movimientos de bitácora escribió ESE operador puntual en los
+    `minutos` ANTERIORES al intrusivo (no hacia adelante). Un operador cubre
+    un puesto completo (varias sucursales) como asignación normal, así que
     contar en cuántas sucursales distintas tuvo actividad no dice mucho —
     eso es simplemente su pega de siempre. Lo que sí es una señal real de
-    qué tan ocupado/distraído estaba justo en ese momento es el volumen de
-    bitácora que él mismo redactó en esa ventana."""
+    qué tan ocupado/distraído estaba justo antes del evento es el volumen de
+    bitácora que él mismo redactó en esa ventana previa."""
     operador = (operador or "").strip()
     if not operador or not centro:
         return 0
     ini = centro - timedelta(minutes=minutos)
-    fin = centro + timedelta(minutes=minutos)
     total = incidencias_db.execute(
         text(
             "SELECT COUNT(*) FROM bitacora_registros "
             "WHERE operador = :op AND created_at BETWEEN :ini AND :fin"
         ),
-        {"op": operador, "ini": ini, "fin": fin},
+        {"op": operador, "ini": ini, "fin": centro},
     ).scalar()
     return int(total or 0)
 
 
-def _indice_carga_combinado(puestos: list[dict]) -> None:
-    """Índice ponderado 0-100 por puesto para priorizar redistribución de
-    sucursales: normaliza protocolos/sucursal, movimientos/sucursal e
-    incidencias simultáneas promedio (cada uno 0-1 contra el máximo del
-    grupo) y los combina con pesos iguales. Es un ranking relativo entre
-    los puestos de ESTE informe, no una escala absoluta."""
+def _calcular_senales_carga_alta(puestos: list[dict]) -> None:
+    """Por puesto, calcula 4 métricas normalizadas por cámara monitoreada
+    (protocolos/cámara, movimientos de bitácora/cámara, incidencias activas
+    simultáneas promedio, cámaras/pantalla) y marca cuáles de esas 4 están
+    por encima del promedio del grupo — en vez de un índice ponderado 0-100
+    (una fórmula que hay que confiar a ciegas), se cuenta cuántas señales de
+    carga alta tiene cada puesto, algo que se puede verificar a simple vista
+    comparando cada valor contra su propio promedio en la misma tabla. Es
+    una comparación relativa entre los puestos de ESTE informe, no una
+    escala absoluta.
+
+    Se normaliza por CÁMARAS monitoreadas, no por sucursales: la cantidad
+    de sucursales por puesto varía mucho (4 a 35), pero las cámaras están
+    parejas entre puestos (~80-120) — dividir por sucursales infla la
+    métrica de los puestos con pocas sucursales grandes sin que eso refleje
+    más carga real de monitoreo.
+
+    Cámaras/pantalla: cuántas cámaras le tocan repartidas entre las
+    pantallas físicas del puesto (4 pantallas en puestos 1-12, 6 en
+    puestos 13-29) — a más cámaras por pantalla, más carga visual real para
+    el operador aunque el total de cámaras del puesto sea similar."""
     def _prom_incidencias(p: dict) -> float:
         detalle = p.get("intrusivos_detalle") or []
         if not detalle:
             return 0.0
         return sum(len(ev["incidencias_activas"]) for ev in detalle) / len(detalle)
 
-    for p in puestos:
-        sucursales = max(p["sucursales"], 1)
-        p["protocolos_por_sucursal"] = round(p["protocolos_preventivos"] + p["protocolos_intrusivos"], 2) / sucursales
-        p["movimientos_por_sucursal"] = round(p["movimientos_bitacora"] / sucursales, 1)
+    # Puestos sin sucursales/cámaras asignadas (ej. Puesto 8) quedan fuera
+    # del cálculo: no tiene sentido asignarles una carga de monitoreo si no
+    # monitorean nada. Igual se les deja el resto de sus datos (sucursales,
+    # movimientos) intactos para que sigan apareciendo en la tabla de
+    # "Puestos sin intrusiones".
+    puestos_validos = [p for p in puestos if p["camaras_monitoreadas"] > 0]
+
+    for p in puestos_validos:
+        camaras = p["camaras_monitoreadas"]
+        p["protocolos_por_camara"] = round(p["protocolos_preventivos"] + p["protocolos_intrusivos"], 2) / camaras
+        p["movimientos_por_camara"] = round(p["movimientos_bitacora"] / camaras, 1)
         p["incidencias_simultaneas_promedio"] = round(_prom_incidencias(p), 2)
+        pantallas = _pantallas_puesto(p["puesto"])
+        p["camaras_por_pantalla"] = round(camaras / pantallas, 2)
 
-    max_proto_suc = max([p["protocolos_por_sucursal"] for p in puestos], default=0) or 1
-    max_mov_suc = max([p["movimientos_por_sucursal"] for p in puestos], default=0) or 1
-    max_inc_sim = max([p["incidencias_simultaneas_promedio"] for p in puestos], default=0) or 1
+    def _promedio(campo: str) -> float:
+        valores = [p[campo] for p in puestos_validos]
+        return sum(valores) / len(valores) if valores else 0.0
+
+    prom_proto = _promedio("protocolos_por_camara")
+    prom_mov = _promedio("movimientos_por_camara")
+    prom_inc = _promedio("incidencias_simultaneas_promedio")
+    prom_cam_pant = _promedio("camaras_por_pantalla")
+
+    for p in puestos_validos:
+        p["protocolos_camara_alto"] = p["protocolos_por_camara"] > prom_proto
+        p["movimientos_camara_alto"] = p["movimientos_por_camara"] > prom_mov
+        p["incidencias_simultaneas_alto"] = p["incidencias_simultaneas_promedio"] > prom_inc
+        p["camaras_pantalla_alto"] = p["camaras_por_pantalla"] > prom_cam_pant
+        p["senales_carga_alta"] = sum([
+            p["protocolos_camara_alto"],
+            p["movimientos_camara_alto"],
+            p["incidencias_simultaneas_alto"],
+            p["camaras_pantalla_alto"],
+        ])
 
     for p in puestos:
-        score = (
-            (p["protocolos_por_sucursal"] / max_proto_suc)
-            + (p["movimientos_por_sucursal"] / max_mov_suc)
-            + (p["incidencias_simultaneas_promedio"] / max_inc_sim)
-        ) / 3 * 100
-        p["indice_carga"] = round(score, 1)
+        if p["camaras_monitoreadas"] <= 0:
+            p["senales_carga_alta"] = None
 
 
 def _informe_puestos_dataset(incidencias_db: Session, desde: str, hasta: str) -> dict:
@@ -2411,8 +2618,8 @@ def _informe_puestos_dataset(incidencias_db: Session, desde: str, hasta: str) ->
             }
             if es_top:
                 ts = ventana_bitacora_cache[p["puesto"]]
-                item["movimientos_ventana_30min"] = _contar_en_ventana(ts, fecha_evento)
-                item["movimientos_operador_30min"] = _movimientos_operador_ventana(
+                item["movimientos_ventana_15min"] = _contar_en_ventana(ts, fecha_evento)
+                item["movimientos_operador_15min"] = _movimientos_operador_ventana(
                     incidencias_db, ev["operador"], fecha_evento
                 )
             detalle_eventos.append(item)
@@ -2425,7 +2632,7 @@ def _informe_puestos_dataset(incidencias_db: Session, desde: str, hasta: str) ->
         ]
         p["desenlace_no_exitoso"] = sum(1 for ev in eventos if ev["exitoso"] == "NO")
 
-    _indice_carga_combinado(data["puestos"])
+    _calcular_senales_carga_alta(data["puestos"])
 
     return data
 
@@ -3028,6 +3235,7 @@ _BITACORA_CAMPO_LABELS = {
     "direccion_sucursal": "Dirección",
     "latitud_longitud": "Latitud, Longitud",
     "referencia_ubicacion": "Referencia ubicación",
+    "contacto": "Contacto",
     "horario_apertura": "Horario de apertura",
     "horario_cierre": "Horario de cierre",
     "horario_habil": "Días hábiles",
@@ -3507,6 +3715,7 @@ class ContactoEmergenciaCreate(BaseModel):
     rut: str = ""
     telefono: str = ""
     email: str = ""
+    orden: int | None = None
 
 
 class ContactoEmergenciaUpdate(BaseModel):
@@ -3514,6 +3723,7 @@ class ContactoEmergenciaUpdate(BaseModel):
     rut: str = ""
     telefono: str = ""
     email: str = ""
+    orden: int | None = None
 
 
 @router.get("/api/bitacora/sucursal/{sucursal_id}/contactos-emergencia")
@@ -3536,6 +3746,7 @@ def api_list_contactos_emergencia(
             "rut": r.rut or "",
             "telefono": r.telefono or "",
             "email": r.email or "",
+            "orden": r.orden,
         }
         for r in rows
     ]
@@ -3551,18 +3762,21 @@ def api_create_contacto_emergencia(
     sucursal = incidencias_db.get(SucursalBBDD, payload.sucursal_id)
     if not sucursal:
         raise HTTPException(status_code=404, detail="Sucursal no encontrada.")
-    siguiente_orden = (
-        incidencias_db.query(SucursalContactoEmergencia)
-        .filter(SucursalContactoEmergencia.sucursal_id == payload.sucursal_id)
-        .count()
-    ) + 1
+    if payload.orden is not None:
+        orden_final = payload.orden
+    else:
+        orden_final = (
+            incidencias_db.query(SucursalContactoEmergencia)
+            .filter(SucursalContactoEmergencia.sucursal_id == payload.sucursal_id)
+            .count()
+        ) + 1
     nuevo = SucursalContactoEmergencia(
         sucursal_id=payload.sucursal_id,
         nombre=payload.nombre.strip() or None,
         rut=payload.rut.strip() or None,
         telefono=payload.telefono.strip() or None,
         email=payload.email.strip() or None,
-        orden=siguiente_orden,
+        orden=orden_final,
     )
     incidencias_db.add(nuevo)
     incidencias_db.commit()
@@ -3585,6 +3799,8 @@ def api_update_contacto_emergencia(
     row.rut = payload.rut.strip() or None
     row.telefono = payload.telefono.strip() or None
     row.email = payload.email.strip() or None
+    if payload.orden is not None:
+        row.orden = payload.orden
     incidencias_db.commit()
     return {"ok": True}
 
@@ -3607,12 +3823,11 @@ def api_delete_contacto_emergencia(
 class _CreateUserBody(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     username: str = Field(..., min_length=1, max_length=50)
-    password: str = Field(..., min_length=1)
     email: str | None = Field(default=None, max_length=255)
     role: str = Field(..., pattern=r"^(admin|agent)$")
 
 
-# role -> departamento asignado automaticamente al crear desde este modal
+# role -> departamento requerido para tener acceso a Bitacora desde este modal
 # (Administrador queda con acceso a Bitacora; Operador con Televigilante).
 _ROLE_DEPARTMENT = {"admin": "Bitacora", "agent": "Televigilante"}
 
@@ -3626,21 +3841,54 @@ def api_crear_bitacora_user(
     _require_bitacora_access(current_user)
     if not is_bitacora_admin(current_user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden registrar usuarios.")
-    if db.query(User).filter(User.username == body.username).first():
-        raise HTTPException(status_code=409, detail="El nombre de usuario ya está en uso.")
+
+    # La contraseña ya no se pide en el popup: siempre son los primeros 5
+    # dígitos del RUT, para agilizar el registro masivo (pedido explícito,
+    # ago 2026).
+    digitos_rut = "".join(ch for ch in body.username if ch.isdigit())
+    password_generada = digitos_rut[:5]
+
+    departamento_requerido = _ROLE_DEPARTMENT[body.role]
+    existing = db.query(User).filter(User.username == body.username).first()
+    if existing:
+        # La lista de "Gestión de Usuarios" de Bitácora solo muestra usuarios
+        # con acceso a Bitácora (can_access_bitacora) — un RUT ya registrado
+        # en otra área (Guardia, RRHH, etc.) no aparece ahí. En vez de
+        # bloquear con un 409 confuso, si a esa cuenta le falta el
+        # departamento de Bitácora/Televigilante se lo agregamos ahí mismo.
+        departamentos_actuales = _split_departments(getattr(existing, "department", None))
+        departamentos_norm = [_normalize(d) for d in departamentos_actuales]
+        if _normalize(departamento_requerido) in departamentos_norm:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"Ese RUT ya está registrado a nombre de {existing.name} "
+                    f"y ya tiene acceso a {departamento_requerido}."
+                ),
+            )
+        departamentos_actuales.append(departamento_requerido)
+        existing.department = "; ".join(departamentos_actuales)
+        db.commit()
+        return {
+            "ok": True,
+            "id": existing.id,
+            "merged": True,
+            "detail": f"{existing.name} ya existía — se le agregó acceso a {departamento_requerido}.",
+        }
+
     user = User(
         name=body.name,
         username=body.username,
-        hashed_password=hash_password(body.password),
+        hashed_password=hash_password(password_generada),
         email=body.email or None,
         role=body.role,
-        department=_ROLE_DEPARTMENT[body.role],
+        department=departamento_requerido,
         is_active=True,
     )
     db.add(user)
     db.commit()
     db.refresh(user)
-    return {"ok": True, "id": user.id}
+    return {"ok": True, "id": user.id, "detail": "Usuario registrado correctamente."}
 
 
 class _EditUserBody(BaseModel):
@@ -3733,36 +3981,94 @@ def api_bitacora_puestos(
     a una pantalla física; se devuelven aparte, agrupadas por sucursal, para
     el puesto especial "Cámaras sin monitoreo" del front."""
     _require_bitacora_access(current_user)
-    if not is_bitacora_admin(current_user):
-        raise HTTPException(status_code=403, detail="Solo administradores pueden ver Administrar puestos.")
 
     rows = (
         incidencias_db.query(
+            SucursalCamaraMonitoreo.id,
             SucursalCamaraMonitoreo.central,
             SucursalCamaraMonitoreo.ubicacion_pantalla,
             SucursalCamaraMonitoreo.nombre_camara_monitoreo,
             SucursalCamaraMonitoreo.camara_sin_monitoreo,
+            SucursalCamaraMonitoreo.cantidad_equipos,
+            SucursalCamaraMonitoreo.sucursal_id,
+            SucursalCamaraMonitoreo.slot_index,
             SucursalBBDD.nombre_sucursal,
         )
         .outerjoin(SucursalBBDD, SucursalCamaraMonitoreo.sucursal_id == SucursalBBDD.id)
         .filter(SucursalCamaraMonitoreo.central.isnot(None))
-        .order_by(SucursalCamaraMonitoreo.central, SucursalCamaraMonitoreo.id)
+        .order_by(
+            SucursalCamaraMonitoreo.central,
+            case((SucursalCamaraMonitoreo.slot_index.is_(None), 1), else_=0),
+            SucursalCamaraMonitoreo.slot_index,
+            SucursalCamaraMonitoreo.id,
+        )
         .all()
     )
 
-    # grouped[central][etiqueta_pantalla] = [ {empresa, camara}, ... ] — solo monitoreadas
+    incidencias_abiertas = _cargar_incidencias_abiertas_camaras(incidencias_db)
+
+    # grouped[central][etiqueta_pantalla] = [ {id, empresa, camara, slotIndex}, ... ] — solo monitoreadas
     grouped: dict[int, dict[str, list[dict]]] = {}
     camaras_sin_monitoreo: list[dict] = []
-    for central, ubicacion_pantalla, cam_monitoreada, cam_sin_monitoreo, nombre_sucursal in rows:
+    for fila_id, central, ubicacion_pantalla, cam_monitoreada, cam_sin_monitoreo, cantidad_equipos, sucursal_id, slot_index, nombre_sucursal in rows:
         empresa = (nombre_sucursal or "").strip() or "(sucursal sin nombre)"
+        try:
+            cantidad_equipos_int = max(1, int(cantidad_equipos or 1))
+        except (TypeError, ValueError):
+            cantidad_equipos_int = 1
         if cam_monitoreada and cam_monitoreada.strip():
             etiqueta = _normalizar_ubicacion_pantalla(ubicacion_pantalla)
             if etiqueta not in _pantallas_de_puesto(central):
                 etiqueta = _SIN_PANTALLA
             bucket = grouped.setdefault(int(central), {}).setdefault(etiqueta, [])
-            bucket.append({"empresa": empresa, "camara": cam_monitoreada.strip()})
+            incidencias_camara = _coincidencias_incidencias_camara(
+                incidencias_abiertas,
+                empresa,
+                cam_monitoreada,
+                cantidad_equipos=cantidad_equipos_int,
+            )
+            item = {
+                "id": fila_id,
+                "empresa": empresa,
+                "camara": cam_monitoreada.strip(),
+                "cantidad_equipos": cantidad_equipos_int,
+                "estado": "problema" if incidencias_camara else "en_linea",
+                "sucursalId": sucursal_id,
+                "slotIndex": slot_index,
+            }
+            if incidencias_camara:
+                item["incidencias_count"] = len(incidencias_camara)
+                item["incidencias"] = incidencias_camara[:4]
+            bucket.append(item)
         if cam_sin_monitoreo and cam_sin_monitoreo.strip():
-            camaras_sin_monitoreo.append({"empresa": empresa, "camara": cam_sin_monitoreo.strip()})
+            camaras_sin_monitoreo.append({
+                "empresa": empresa,
+                "camara": cam_sin_monitoreo.strip(),
+                "cantidad_equipos": cantidad_equipos_int,
+            })
+
+    def _resolver_slots(items: list[dict], capacidad: int) -> list[dict]:
+        # slot_index puede venir nulo/duplicado/fuera de rango en filas viejas
+        # o recien importadas — se respeta el valor guardado cuando es valido
+        # y se rellenan huecos con los que no tienen uno, en el mismo orden
+        # en que llegaron (ya vienen ordenados por slot_index/id).
+        ocupados: dict[int, dict] = {}
+        sin_slot: list[dict] = []
+        for it in items:
+            si = it.get("slotIndex")
+            if isinstance(si, int) and 0 <= si < capacidad and si not in ocupados:
+                ocupados[si] = it
+            else:
+                sin_slot.append(it)
+        libres = [i for i in range(capacidad) if i not in ocupados]
+        for it, slot in zip(sin_slot, libres):
+            it["slotIndex"] = slot
+            ocupados[slot] = it
+        # si sobran items sin cupo (mas filas que casillas), se agregan al
+        # final igual — el front las muestra fuera de la grilla en vez de
+        # perderlas silenciosamente.
+        sobrantes = sin_slot[len(libres):]
+        return sorted(ocupados.values(), key=lambda x: x["slotIndex"]) + sobrantes
 
     puestos = {}
     for central in range(1, 30):
@@ -3770,7 +4076,7 @@ def api_bitacora_puestos(
         capacidad = 25 if central <= 12 else 20
         por_pantalla = grouped.get(central, {})
         pantallas = [
-            {"nombre": nombre, "capacidad": capacidad, "items": por_pantalla.get(nombre, [])}
+            {"nombre": nombre, "capacidad": capacidad, "items": _resolver_slots(por_pantalla.get(nombre, []), capacidad)}
             for nombre in pantallas_puesto
         ]
         sin_pantalla = por_pantalla.get(_SIN_PANTALLA, [])
@@ -3780,7 +4086,111 @@ def api_bitacora_puestos(
 
     camaras_sin_monitoreo.sort(key=lambda c: (c["empresa"].lower(), c["camara"].lower()))
 
-    return {"puestos": puestos, "camaras_sin_monitoreo": camaras_sin_monitoreo}
+    return {
+        "puestos": puestos,
+        "camaras_sin_monitoreo": camaras_sin_monitoreo,
+        "can_manage": can_manage_bitacora_puestos(current_user),
+    }
+
+
+class ColocacionItem(BaseModel):
+    camara_id: int
+    slot_index: int
+
+
+class ColocarCamarasPayload(BaseModel):
+    puesto_destino: int
+    pantalla_destino: str
+    colocaciones: list[ColocacionItem]
+
+
+@router.post("/api/bitacora/puestos/colocar")
+def colocar_camaras_puesto(
+    payload: ColocarCamarasPayload,
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    """Guarda la posición exacta (casillero 0..capacidad-1) de una o varias
+    cámaras dentro de una pantalla — reemplaza el viejo 'reposicionar' (que
+    solo elegía la pantalla destino, sin casillero). El front arma el estado
+    final deseado para ESA pantalla completa (arrastrando entre la pila de
+    seleccionadas y la grilla) y lo manda de una vez; acá solo se valida y
+    se escribe. Todo o nada: si algo no valida, no se mueve ninguna."""
+    _require_bitacora_access(current_user)
+    if not can_manage_bitacora_puestos(current_user):
+        raise HTTPException(status_code=403, detail="Solo usuarios de Soporte pueden reposicionar cámaras.")
+
+    if payload.puesto_destino < 1 or payload.puesto_destino > 29:
+        raise HTTPException(status_code=400, detail="Puesto destino inválido.")
+
+    pantallas_validas = _pantallas_de_puesto(payload.puesto_destino)
+    if payload.pantalla_destino not in pantallas_validas:
+        raise HTTPException(status_code=400, detail="Pantalla destino inválida para ese puesto.")
+
+    colocaciones = payload.colocaciones
+    if not colocaciones:
+        raise HTTPException(status_code=400, detail="No se indicó ninguna cámara para colocar.")
+    if len(colocaciones) > 200:
+        raise HTTPException(status_code=400, detail="Demasiadas cámaras en un solo lote.")
+
+    capacidad = 25 if payload.puesto_destino <= 12 else 20
+    slots_usados: dict[int, int] = {}
+    for c in colocaciones:
+        if c.slot_index < 0 or c.slot_index >= capacidad:
+            raise HTTPException(status_code=400, detail=f"Casillero {c.slot_index} inválido para esa pantalla.")
+        if c.slot_index in slots_usados:
+            raise HTTPException(status_code=400, detail="Dos cámaras no pueden quedar en el mismo casillero.")
+        slots_usados[c.slot_index] = c.camara_id
+
+    camara_ids = [c.camara_id for c in colocaciones]
+    if len(set(camara_ids)) != len(camara_ids):
+        raise HTTPException(status_code=400, detail="Una cámara no puede colocarse dos veces en el mismo lote.")
+
+    filas = (
+        incidencias_db.query(SucursalCamaraMonitoreo)
+        .filter(SucursalCamaraMonitoreo.id.in_(camara_ids))
+        .all()
+    )
+    filas_por_id = {f.id: f for f in filas}
+    faltantes = [cid for cid in camara_ids if cid not in filas_por_id]
+    if faltantes:
+        raise HTTPException(status_code=404, detail=f"No se encontraron {len(faltantes)} de las cámaras seleccionadas.")
+    no_monitoreadas = [f.id for f in filas if not f.nombre_camara_monitoreo or not f.nombre_camara_monitoreo.strip()]
+    if no_monitoreadas:
+        raise HTTPException(status_code=400, detail="Alguna de las filas seleccionadas no es una cámara monitoreada en pantalla.")
+
+    # Cámaras que hoy están en ESTA misma pantalla pero no vienen en el lote
+    # quedan desplazadas por el arrastre (drag-and-drop lo resuelve todo del
+    # lado del cliente antes de guardar) — se limpian de casilleros que ya
+    # no les corresponden para no dejar dos filas "creyendo" tener el mismo
+    # casillero. Se compara con _normalizar_ubicacion_pantalla (no como
+    # texto exacto) porque ubicacion_pantalla en la BBDD trae variantes
+    # ("IZQ ARRIBA" vs "Izquierda Arriba") que igual mapean a la misma
+    # pantalla canónica.
+    ocupantes_mismo_puesto = (
+        incidencias_db.query(SucursalCamaraMonitoreo)
+        .filter(
+            SucursalCamaraMonitoreo.central == payload.puesto_destino,
+            SucursalCamaraMonitoreo.id.notin_(camara_ids),
+        )
+        .all()
+    )
+    for ocupante in ocupantes_mismo_puesto:
+        if _normalizar_ubicacion_pantalla(ocupante.ubicacion_pantalla) != payload.pantalla_destino:
+            continue
+        if ocupante.slot_index in slots_usados:
+            ocupante.slot_index = None
+
+    movidas = 0
+    for c in colocaciones:
+        fila = filas_por_id[c.camara_id]
+        fila.central = payload.puesto_destino
+        fila.ubicacion_pantalla = payload.pantalla_destino
+        fila.slot_index = c.slot_index
+        movidas += 1
+    incidencias_db.commit()
+
+    return {"ok": True, "puesto": payload.puesto_destino, "pantalla": payload.pantalla_destino, "movidas": movidas}
 
 
 # ──────────────────────────────────────────────
@@ -3796,71 +4206,179 @@ def _normalizar_texto_cam(valor: object) -> str:
     return " ".join(s.strip().lower().split())
 
 
+_PREFIJOS_DETALLE_CAMARA = (
+    "desconocida de:",
+    "debido a internet de:",
+    "debido a electricidad de:",
+    "camara movida:",
+    "camara caida:",
+    "intermitencia:",
+    "sin senal:",
+)
+
+
+def _incidencia_camara_abierta(row: dict) -> bool:
+    estado_norm = _normalizar_texto_cam(row.get("estado"))
+    return not any(e in estado_norm for e in _ESTADOS_INCIDENCIA_ABIERTA_EXCLUIDOS)
+
+
+def _detalle_incidencia_camara(row: dict) -> str:
+    detalle = str(row.get("detalle_problema") or row.get("observacion") or "").strip()
+    detalle = re.sub(r"^\[[^\]]+\]\s*", "", detalle)
+    detalle = re.split(r"\bContacto\s*:", detalle, maxsplit=1, flags=re.IGNORECASE)[0]
+    return detalle.strip()
+
+
+def _tokens_detalle_camara(row: dict) -> list[str]:
+    detalle = _normalizar_texto_cam(_detalle_incidencia_camara(row))
+    if not detalle:
+        return []
+    for prefijo in _PREFIJOS_DETALLE_CAMARA:
+        if detalle.startswith(prefijo):
+            detalle = detalle[len(prefijo):].strip()
+            break
+    return [token.strip() for token in detalle.split(",") if token.strip()]
+
+
+def _texto_contiene_camara(texto_norm: str, camara_norm: str) -> bool:
+    if not texto_norm or not camara_norm:
+        return False
+    if texto_norm == camara_norm:
+        return True
+    return re.search(rf"(^|[^\w]){re.escape(camara_norm)}($|[^\w])", texto_norm) is not None
+
+
+def _resumen_incidencia_camara(row: dict, coincidencia: str) -> dict:
+    return {
+        "estado": "problema",
+        "odt": row.get("odt"),
+        "tipo": row.get("problema"),
+        "fecha_registro": _fmt_fecha(row.get("fecha_registro")),
+        "detalle": _detalle_incidencia_camara(row),
+        "coincidencia": coincidencia,
+    }
+
+
+def _token_equipo_unico_cubre_todo(token: str, cantidad_equipos: int | None) -> bool:
+    try:
+        equipos = int(cantidad_equipos or 0)
+    except (TypeError, ValueError):
+        equipos = 0
+    if equipos != 1:
+        return False
+    return re.fullmatch(r"(nvr|equipo)\s*0*1", _normalizar_texto_cam(token or "")) is not None
+
+
+def _cargar_incidencias_abiertas_camaras(incidencias_db: Session) -> dict[str, list[dict]]:
+    rows = incidencias_db.execute(
+        text(
+            """
+            SELECT odt, fecha_registro, problema, detalle_problema, observacion, estado, cliente
+            FROM incidencias
+            WHERE (detalle_problema IS NOT NULL OR observacion IS NOT NULL)
+              AND (
+                    estado IS NULL
+                 OR (
+                        LOWER(CAST(estado AS NVARCHAR(MAX))) NOT LIKE '%terminado%'
+                    AND LOWER(CAST(estado AS NVARCHAR(MAX))) NOT LIKE '%repetida%'
+                    AND LOWER(CAST(estado AS NVARCHAR(MAX))) NOT LIKE '%rechazad%'
+                 )
+              )
+            ORDER BY fecha_registro DESC
+            """
+        )
+    ).mappings().all()
+    por_sucursal: dict[str, list[dict]] = defaultdict(list)
+    for row in rows:
+        if not _incidencia_camara_abierta(row):
+            continue
+        if not _tokens_detalle_camara(row):
+            continue
+        clave = _normalizar_texto_cam(row.get("cliente"))
+        if clave:
+            por_sucursal[clave].append(dict(row))
+    return por_sucursal
+
+
+def _filas_incidencia_sucursal(incidencias_abiertas: dict[str, list[dict]], empresa_norm: str) -> list[dict]:
+    if not empresa_norm:
+        return []
+    exactas = incidencias_abiertas.get(empresa_norm)
+    if exactas is not None:
+        return exactas
+    filas: list[dict] = []
+    for sucursal_norm, sucursal_rows in incidencias_abiertas.items():
+        if empresa_norm in sucursal_norm or sucursal_norm in empresa_norm:
+            filas.extend(sucursal_rows)
+    return filas
+
+
+def _coincidencias_incidencias_camara(
+    incidencias_abiertas: dict[str, list[dict]],
+    empresa: object,
+    camara: object,
+    cantidad_equipos: int | None = None,
+) -> list[dict]:
+    empresa_norm = _normalizar_texto_cam(empresa)
+    camara_norm = _normalizar_texto_cam(camara)
+    if not empresa_norm:
+        return []
+    camara_completa_norm = (
+        camara_norm if camara_norm.startswith(empresa_norm) else f"{empresa_norm} {camara_norm}".strip()
+    )
+
+    coincidencias: list[dict] = []
+    for row in _filas_incidencia_sucursal(incidencias_abiertas, empresa_norm):
+        for token in _tokens_detalle_camara(row):
+            if token == "todo" or re.search(r"\btodo\b", token):
+                coincidencias.append(_resumen_incidencia_camara(row, "todo"))
+                break
+            if _token_equipo_unico_cubre_todo(token, cantidad_equipos):
+                coincidencias.append(_resumen_incidencia_camara(row, "equipo_unico"))
+                break
+            if token.startswith("nvr ") or token.startswith("equipo "):
+                continue
+            coincide = (
+                _texto_contiene_camara(token, camara_norm)
+                or _texto_contiene_camara(token, camara_completa_norm)
+                or _texto_contiene_camara(camara_norm, token)
+            )
+            if coincide:
+                coincidencias.append(_resumen_incidencia_camara(row, "camara"))
+                break
+    coincidencias.sort(
+        key=lambda c: 0 if "desconex" in _normalizar_texto_cam(c.get("tipo")) else 1
+    )
+    return coincidencias
+
+
 @router.get("/api/bitacora/estado-camara")
 def estado_camara(
     empresa: str = Query(default=""),
     camara: str = Query(default=""),
+    cantidad_equipos: int | None = Query(default=None),
     incidencias_db: Session = Depends(get_incidencias_db),
     current_user: User = Depends(get_current_user_bitacora),
 ):
     """Cruce best-effort entre una cámara del mapa de 'Administrar puestos' y
     las incidencias reales de la tabla `incidencias` (registradas, entre
-    otras vías, desde incidencias_puestos_copia.html con su selector de
+    otras vías, desde incidencias_puestos.html con su selector de
     cámaras/Equipo/Todo). No hay FK entre ambos — el cruce es por texto:
     se busca la sucursal (columna `cliente`) y se revisa si la descripción
     de una incidencia abierta menciona "Todo" o el nombre de esta cámara."""
     _require_bitacora_access(current_user)
 
     empresa_norm = _normalizar_texto_cam(empresa)
-    camara_norm = _normalizar_texto_cam(camara)
     if not empresa_norm:
         raise HTTPException(status_code=400, detail="Falta indicar la empresa/sucursal.")
 
-    camara_completa_norm = (
-        camara_norm if camara_norm.startswith(empresa_norm) else f"{empresa_norm} {camara_norm}".strip()
+    coincidencias_encontradas = _coincidencias_incidencias_camara(
+        _cargar_incidencias_abiertas_camaras(incidencias_db),
+        empresa,
+        camara,
+        cantidad_equipos=cantidad_equipos,
     )
-
-    rows = incidencias_db.execute(
-        text(
-            "SELECT odt, fecha_registro, problema, detalle_problema, observacion, estado, cliente "
-            "FROM incidencias "
-            "WHERE LOWER(TRIM(cliente)) LIKE :patron "
-            "ORDER BY fecha_registro DESC"
-        ),
-        {"patron": f"%{empresa_norm}%"},
-    ).mappings().all()
-
-    coincidencias_encontradas = []
-    for row in rows:
-        estado_norm = _normalizar_texto_cam(row.get("estado"))
-        if any(e in estado_norm for e in _ESTADOS_INCIDENCIA_ABIERTA_EXCLUIDOS):
-            continue
-        texto_incidencia = _normalizar_texto_cam(
-            " ".join(filter(None, [row.get("detalle_problema"), row.get("observacion")]))
-        )
-        if not texto_incidencia:
-            continue
-        coincide_todo = re.search(r"\btodo\b", texto_incidencia) is not None
-        coincide_camara = bool(camara_completa_norm) and camara_completa_norm in texto_incidencia
-        coincide_camara_corta = bool(camara_norm) and len(camara_norm) >= 2 and camara_norm in texto_incidencia
-        if coincide_todo or coincide_camara or coincide_camara_corta:
-            coincidencias_encontradas.append(
-                {
-                    "estado": "problema",
-                    "odt": row.get("odt"),
-                    "tipo": row.get("problema"),
-                    "fecha_registro": _fmt_fecha(row.get("fecha_registro")),
-                    "detalle": (row.get("detalle_problema") or row.get("observacion") or "").strip(),
-                    "coincidencia": "todo" if coincide_todo else "camara",
-                }
-            )
 
     if not coincidencias_encontradas:
         return {"estado": "en_linea"}
-
-    # Se devuelven todas las incidencias abiertas de la camara; la Desconexion
-    # siempre va primero (es el problema mas critico).
-    coincidencias_encontradas.sort(
-        key=lambda c: 0 if "desconex" in _normalizar_texto_cam(c.get("tipo")) else 1
-    )
     return {"estado": "problema", "incidencias": coincidencias_encontradas}

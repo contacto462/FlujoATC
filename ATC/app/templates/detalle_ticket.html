@@ -1197,6 +1197,61 @@ select::-ms-expand{
   background:#fffbf5;
   border-color:rgba(245,158,11,.2);
 }
+.msg.internal-note .bubble{
+  background:#faf5ff;
+  border-color:rgba(147,51,234,.25);
+}
+
+#internalCommentModal .requester-modal-card,
+#internalCommentModal .service-modal-body{
+  overflow:visible;
+}
+.mention-dropdown{
+  position:absolute;
+  z-index:9999;
+  min-width:240px;
+  max-width:340px;
+  max-height:240px;
+  overflow-y:auto;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:10px;
+  box-shadow:0 18px 40px rgba(15,23,42,.28), 0 0 0 1px rgba(147,51,234,.08);
+  padding:4px;
+}
+.mention-option{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  width:100%;
+  text-align:left;
+  padding:7px 9px;
+  border:none;
+  border-radius:7px;
+  background:none;
+  color:#1f2937;
+  font-size:13px;
+  font-family:inherit;
+  cursor:pointer;
+}
+.mention-option:hover,
+.mention-option.is-active{
+  background:#f3e8ff;
+}
+.mention-option .mention-avatar{
+  width:22px;height:22px;border-radius:999px;
+  background:#9333ea;color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;flex-shrink:0;
+}
+.mention-option.mention-todos .mention-avatar{
+  background:#4b5563;
+}
+.mention-chip{
+  display:inline-block;
+  color:#7c3aed;
+  font-weight:700;
+}
 .msg-unseen-focus .bubble{
   box-shadow:0 0 0 2px rgba(239,68,68,.35), 0 8px 18px rgba(15,23,42,.08);
 }
@@ -1250,6 +1305,7 @@ select::-ms-expand{
 }
 .msg.requester .dot{ background:#3b82f6; }
 .msg.agent .dot{ background:#22c55e; }
+.msg.internal-note .dot{ background:#9333ea; }
 .msg-body{
   padding:10px 13px 13px;
   font-size:13.5px;
@@ -3070,7 +3126,7 @@ body.is-inline-image-resizing{
             <span class="kv-k">Agente asignado</span>
             <form class="assign-form" method="POST" action="/ticketera/tickets/{{ ticket.id }}/assign">
               <select name="user_id" onchange="if(!this.disabled){this.form.submit()}" {% if ticket_locked %}disabled{% endif %}>
-                <option value="" disabled {% if not ticket.assigned_to_id %}selected{% endif %}>Sin asignar</option>
+                <option value="" disabled {% if not ticket.assigned_to_id %}selected{% endif %}>{{ 'Equipo' if ticket.team_broadcast_at else 'Sin asignar' }}</option>
                 {% for u in assignable_users %}
                   <option value="{{ u.id }}" {% if ticket.assigned_to_id == u.id %}selected{% endif %}>
                     {{ u.name }}
@@ -3249,14 +3305,14 @@ body.is-inline-image-resizing{
           <div id="ticketMessages" class="messages">
             {% if messages %}
               {% for m in messages %}
-                <div id="msg-{{ m.id }}" class="msg {{ m.sender_type }}{% if (focus_message_id and m.id == focus_message_id) or (unseen_reply_message_ids and m.id in unseen_reply_message_ids) %} msg-unseen-focus{% endif %}">
+                <div id="msg-{{ m.id }}" class="msg {{ m.sender_type }}{% if m.is_internal_note %} internal-note{% endif %}{% if (focus_message_id and m.id == focus_message_id) or (unseen_reply_message_ids and m.id in unseen_reply_message_ids) %} msg-unseen-focus{% endif %}">
                   <div class="bubble">
                     <div class="msg-head">
                       <div class="who">
                         <span class="dot"></span>
                         <div class="who-text">
                         {% if m.is_internal_note %}
-                          <div class="who-name">Nota interna · {{ m.sender.name if m.sender else "Agente" }}</div>
+                          <div class="who-name">Comentario interno · {{ m.sender.name if m.sender else "Agente" }}</div>
                         {% elif m.sender_type == "requester" %}
                           {% if m.sender_name %}
                             <div class="who-name">{{ m.sender_name }}</div>{% if m.sender_email %}<div class="who-email">{{ m.sender_email }}</div>{% endif %}
@@ -3652,6 +3708,15 @@ body.is-inline-image-resizing{
       Derivar Ticket
     </button>
     <button
+      id="openInternalCommentModalBtn"
+      type="button"
+      class="action-btn action-neutral cta-moderation"
+      title="Deja un comentario interno en el hilo, visible solo para el equipo — no se envía nada al solicitante"
+    >
+      Comentario interno
+    </button>
+    {% if ticket.source != 'internal' %}
+    <button
       id="openAdminDerivModalBtn"
       type="button"
       class="action-btn action-neutral cta-moderation"
@@ -3660,6 +3725,7 @@ body.is-inline-image-resizing{
     >
       Reenviar
     </button>
+    {% endif %}
     {% endif %}
 
     <!-- NO ES UN TICKET -->
@@ -3722,12 +3788,25 @@ body.is-inline-image-resizing{
         <select name="status" {% if ticket_locked %}disabled{% endif %}>
           <option value="open" {% if ticket_status_css(ticket.status)=='open' %}selected{% endif %}>Abierto</option>
           <option value="pending" {% if ticket_status_css(ticket.status)=='pending' %}selected{% endif %}>Pendiente</option>
-          <option value="pending_service" {% if ticket_status_css(ticket.status)=='pending_service' %}selected{% endif %}>Pendiente Servicio</option>
-          <option value="pending_client" {% if ticket_status_css(ticket.status)=='pending_client' %}selected{% endif %}>Pendiente Cliente</option>
+          {% if ticket_status_css(ticket.status)=='pending_service' %}
+          <option value="pending_service" selected disabled>Pendiente Servicio</option>
+          {% endif %}
+          {% if ticket_status_css(ticket.status)=='pending_client' %}
+          <option value="pending_client" selected disabled>Pendiente Cliente</option>
+          {% endif %}
           <option value="resolved" {% if ticket_status_css(ticket.status)=='resolved' %}selected{% endif %}>Resuelto</option>
-          <option value="resolved_service" {% if ticket_status_css(ticket.status)=='resolved_service' %}selected{% endif %}>Resuelto Servicio</option>
-          <option value="resolved_client" {% if ticket_status_css(ticket.status)=='resolved_client' %}selected{% endif %}>Resuelto Cliente</option>
+          {% if ticket_status_css(ticket.status)=='resolved_service' %}
+          <option value="resolved_service" selected disabled>Resuelto Servicio</option>
+          {% endif %}
+          {% if ticket_status_css(ticket.status)=='resolved_client' %}
+          <option value="resolved_client" selected disabled>Resuelto Cliente</option>
+          {% endif %}
         </select>
+        <!-- "Pendiente/Resuelto Servicio/Cliente" ya no se pueden elegir a
+             mano: solo los pone la derivación (send-to-service, web.py). Si
+             el ticket ya está en uno de esos estados se muestra igual (sin
+             poder re-elegirlo) para no mentir sobre el estado real ni
+             perderlo al guardar sin tocar este campo. -->
       </div>
 
       <div class="field" style="margin:0;">
@@ -4017,6 +4096,42 @@ body.is-inline-image-resizing{
           <button id="cancelAdminDerivModalBtn" type="button" class="service-cancel">Cancelar</button>
           <button type="submit" class="action-btn action-neutral cta-moderation" style="width:auto; min-width:220px;">
             Enviar derivación
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div id="internalCommentModal" class="requester-modal" aria-hidden="true">
+  <div class="requester-modal-card service-modal-card">
+    <div class="requester-modal-head">
+      <h3>Comentario interno</h3>
+      <button id="closeInternalCommentModalBtn" class="tool" type="button" aria-label="Cerrar comentario interno">&times;</button>
+    </div>
+    <div class="service-modal-body">
+      <form method="POST" action="/ticketera/tickets/{{ ticket.id }}/comentario-interno" id="internalCommentForm">
+        <div class="service-grid">
+          <div class="field service-full" style="position:relative;">
+            <label>Comentario <span style="font-weight:400;color:var(--muted, #6b7280)">— escribe @ para mencionar a alguien, o @todos</span></label>
+            <textarea
+              id="internalCommentTextarea"
+              class="textarea"
+              name="content"
+              style="min-height:140px;"
+              placeholder="Escribe tu comentario para el equipo... usa @ para mencionar"
+              required
+              autocomplete="off"
+            ></textarea>
+            <div id="mentionDropdown" class="mention-dropdown" hidden></div>
+          </div>
+        </div>
+        <input type="hidden" id="mentionUserIdsInput" name="mention_user_ids" value="">
+        <p class="admin-deriv-hint">Queda registrado en el hilo de este ticket, visible solo para el equipo interno. No se envía nada al solicitante ni se modifica el estado del ticket.</p>
+        <div class="service-modal-actions">
+          <button id="cancelInternalCommentModalBtn" type="button" class="service-cancel">Cancelar</button>
+          <button type="submit" class="action-btn action-neutral cta-moderation" style="width:auto; min-width:220px;">
+            Publicar comentario
           </button>
         </div>
       </form>
@@ -5138,7 +5253,36 @@ body.is-inline-image-resizing{
         return `${value.toFixed(1)} ${units[unitIndex]}`;
       }
 
+      // El editor tiene white-space:pre-wrap (.gmail-editor), asi que un
+      // salto de linea "crudo" dentro de un nodo de texto (tipico al pegar
+      // una lista/texto ya ordenado desde Excel/Notas) se ve bien mientras
+      // se redacta. Pero el mensaje ya enviado se renderiza en otro
+      // contexto (hilo del ticket, y el email real que recibe el cliente)
+      // sin ese white-space:pre-wrap, asi que un salto "\n" sin <br> se
+      // colapsa y todo el texto queda pegado en una sola linea. Se
+      // convierte a <br> explicito ANTES de leer innerHTML para que la
+      // estructura sobreviva en cualquier contexto de render.
+      function normalizeNewlinesToBr(root) {
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        const textNodes = [];
+        let node;
+        while ((node = walker.nextNode())) {
+          if (node.nodeValue && node.nodeValue.indexOf("\n") !== -1) textNodes.push(node);
+        }
+        textNodes.forEach((textNode) => {
+          const parts = textNode.nodeValue.split("\n");
+          if (parts.length <= 1) return;
+          const frag = document.createDocumentFragment();
+          parts.forEach((part, idx) => {
+            if (part) frag.appendChild(document.createTextNode(part));
+            if (idx < parts.length - 1) frag.appendChild(document.createElement("br"));
+          });
+          textNode.parentNode.replaceChild(frag, textNode);
+        });
+      }
+
       function normalizeEditorHtml() {
+        normalizeNewlinesToBr(replyEditor);
         const rawHtml = String(replyEditor.innerHTML || "").trim();
         const plainText = String(replyEditor.innerText || "").replace(/\u00A0/g, " ").trim();
         const cleanedHtml = rawHtml
@@ -5827,9 +5971,65 @@ body.is-inline-image-resizing{
         });
       });
 
-      replyForm.addEventListener("submit", () => {
+      // Cancelar envio unos segundos, como el "Deshacer" de Gmail: al
+      // enviar no se manda de inmediato, se muestra una barra con cuenta
+      // regresiva y recien al terminar (o si no se cancela) se hace el
+      // submit real. form.submit() (a diferencia de requestSubmit() o un
+      // click) no dispara el evento "submit", asi que no hace falta ningun
+      // flag para evitar que este listener se re-dispare a si mismo.
+      const UNDO_SEND_SECONDS = 10;
+
+      function buildUndoSendBar() {
+        const bar = document.createElement("div");
+        bar.id = "undoSendBar";
+        bar.style.cssText = "position:fixed;left:24px;bottom:24px;z-index:9999;background:#1f2937;color:#fff;padding:11px 12px 11px 16px;border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,.28);display:flex;align-items:center;gap:14px;font-size:13px;font-family:inherit;";
+        bar.innerHTML = `
+          <span>Enviando respuesta…</span>
+          <button type="button" id="undoSendBtn" style="background:#fff;color:#1f2937;border:0;border-radius:7px;padding:7px 13px;font-weight:700;font-size:12.5px;cursor:pointer;font-family:inherit;white-space:nowrap;">Cancelar (<span id="undoSendCount">${UNDO_SEND_SECONDS}</span>s)</button>
+        `;
+        document.body.appendChild(bar);
+        return bar;
+      }
+
+      function startUndoSendCountdown() {
+        const sendBtn = replyForm.querySelector(".cta-reply");
+        if (sendBtn) sendBtn.disabled = true;
+        const wasEditable = replyEditor.getAttribute("contenteditable") !== "false";
+        replyEditor.setAttribute("contenteditable", "false");
+
+        const bar = buildUndoSendBar();
+        const countEl = bar.querySelector("#undoSendCount");
+        const cancelBtn = bar.querySelector("#undoSendBtn");
+        let remaining = UNDO_SEND_SECONDS;
+
+        const cleanup = () => {
+          clearInterval(intervalId);
+          clearTimeout(timeoutId);
+          bar.remove();
+        };
+
+        const intervalId = setInterval(() => {
+          remaining -= 1;
+          if (remaining > 0) countEl.textContent = String(remaining);
+        }, 1000);
+
+        const timeoutId = setTimeout(() => {
+          cleanup();
+          replyForm.submit();
+        }, UNDO_SEND_SECONDS * 1000);
+
+        cancelBtn.addEventListener("click", () => {
+          cleanup();
+          if (sendBtn) sendBtn.disabled = false;
+          if (wasEditable) replyEditor.setAttribute("contenteditable", "true");
+        });
+      }
+
+      replyForm.addEventListener("submit", (event) => {
+        event.preventDefault();
         replyContent.value = normalizeEditorHtml();
         localStorage.removeItem("atc_ticket_draft_{{ ticket.id }}");
+        startUndoSendCountdown();
       });
 
       decorateInlineImages(replyEditor);
@@ -6248,6 +6448,180 @@ body.is-inline-image-resizing{
     modal.addEventListener("click", (event) => {
       if (event.target === modal) closeModal();
     });
+  })();
+</script>
+
+<script>
+  (function () {
+    const modal = document.getElementById("internalCommentModal");
+    const openBtn = document.getElementById("openInternalCommentModalBtn");
+    const closeBtn = document.getElementById("closeInternalCommentModalBtn");
+    const cancelBtn = document.getElementById("cancelInternalCommentModalBtn");
+    if (!modal || !openBtn) return;
+
+    function openModal() {
+      modal.classList.add("open");
+      modal.setAttribute("aria-hidden", "false");
+    }
+    function closeModal() {
+      modal.classList.remove("open");
+      modal.setAttribute("aria-hidden", "true");
+    }
+
+    openBtn.addEventListener("click", () => {
+      openModal();
+      resetInternalCommentMentions();
+    });
+    if (closeBtn) closeBtn.addEventListener("click", closeModal);
+    if (cancelBtn) cancelBtn.addEventListener("click", closeModal);
+    modal.addEventListener("click", (event) => {
+      if (event.target === modal) closeModal();
+    });
+  })();
+</script>
+
+<script>
+  (function () {
+    const MENTION_USERS = [
+      { id: "todos", name: "todos" }
+      {% for u in assignable_users %}, { id: {{ u.id }}, name: {{ u.name|tojson }} }{% endfor %}
+    ];
+
+    const textarea = document.getElementById("internalCommentTextarea");
+    const dropdown = document.getElementById("mentionDropdown");
+    const hiddenInput = document.getElementById("mentionUserIdsInput");
+    const form = document.getElementById("internalCommentForm");
+    if (!textarea || !dropdown || !hiddenInput || !form) return;
+
+    let selectedMentionIds = new Set();
+    let activeMatch = null;
+    let activeIndex = -1;
+    let currentOptions = [];
+
+    window.resetInternalCommentMentions = function resetInternalCommentMentions() {
+      selectedMentionIds = new Set();
+      hiddenInput.value = "";
+      hideDropdown();
+    };
+
+    function hideDropdown() {
+      dropdown.hidden = true;
+      dropdown.innerHTML = "";
+      activeMatch = null;
+      activeIndex = -1;
+      currentOptions = [];
+    }
+
+    function syncHiddenInput() {
+      hiddenInput.value = Array.from(selectedMentionIds).join(",");
+    }
+
+    function findActiveMention() {
+      const caret = textarea.selectionStart;
+      const textBeforeCaret = textarea.value.slice(0, caret);
+      const at = textBeforeCaret.lastIndexOf("@");
+      if (at === -1) return null;
+      if (at > 0 && !/\s/.test(textBeforeCaret[at - 1])) return null;
+      const partial = textBeforeCaret.slice(at + 1);
+      if (/\s/.test(partial)) return null;
+      return { start: at, end: caret, partial: partial.toLowerCase() };
+    }
+
+    function renderOptions(match) {
+      const filtered = MENTION_USERS.filter((u) =>
+        u.name.toLowerCase().includes(match.partial)
+      ).slice(0, 8);
+      currentOptions = filtered;
+      activeIndex = filtered.length ? 0 : -1;
+
+      if (!filtered.length) {
+        dropdown.innerHTML = '<div class="mention-option" style="cursor:default;color:var(--muted,#9ca3af)">Sin coincidencias</div>';
+        dropdown.hidden = false;
+        return;
+      }
+
+      dropdown.innerHTML = "";
+      filtered.forEach((u, idx) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "mention-option" + (u.id === "todos" ? " mention-todos" : "") + (idx === activeIndex ? " is-active" : "");
+        const initial = (u.name || "?").trim().charAt(0).toUpperCase() || "?";
+        btn.innerHTML =
+          '<span class="mention-avatar">' + (u.id === "todos" ? "@" : initial) + "</span><span>" + u.name + "</span>";
+        btn.addEventListener("mousedown", (event) => {
+          event.preventDefault();
+          selectMention(u);
+        });
+        dropdown.appendChild(btn);
+      });
+      dropdown.hidden = false;
+    }
+
+    function highlightActive() {
+      const options = dropdown.querySelectorAll(".mention-option");
+      options.forEach((opt, idx) => opt.classList.toggle("is-active", idx === activeIndex));
+    }
+
+    function selectMention(user) {
+      if (!activeMatch) return;
+      const before = textarea.value.slice(0, activeMatch.start);
+      const after = textarea.value.slice(activeMatch.end);
+      const insertion = "@" + user.name + " ";
+      textarea.value = before + insertion + after;
+      const caretPos = (before + insertion).length;
+      textarea.focus();
+      textarea.setSelectionRange(caretPos, caretPos);
+
+      selectedMentionIds.add(String(user.id));
+      syncHiddenInput();
+      hideDropdown();
+    }
+
+    textarea.addEventListener("input", () => {
+      if (!textarea.value.trim()) {
+        selectedMentionIds = new Set();
+        syncHiddenInput();
+      }
+      const match = findActiveMention();
+      if (!match) {
+        hideDropdown();
+        return;
+      }
+      activeMatch = match;
+      renderOptions(match);
+    });
+
+    textarea.addEventListener("keydown", (event) => {
+      if (dropdown.hidden || !currentOptions.length) return;
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        activeIndex = (activeIndex + 1) % currentOptions.length;
+        highlightActive();
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        activeIndex = (activeIndex - 1 + currentOptions.length) % currentOptions.length;
+        highlightActive();
+      } else if (event.key === "Enter" || event.key === "Tab") {
+        if (activeIndex >= 0) {
+          event.preventDefault();
+          selectMention(currentOptions[activeIndex]);
+        }
+      } else if (event.key === "Escape") {
+        hideDropdown();
+      }
+    });
+
+    textarea.addEventListener("blur", () => {
+      window.setTimeout(hideDropdown, 150);
+    });
+
+    document.addEventListener("click", (event) => {
+      if (event.target !== textarea && !dropdown.contains(event.target)) {
+        hideDropdown();
+      }
+    });
+
+    form.addEventListener("submit", syncHiddenInput);
   })();
 </script>
 

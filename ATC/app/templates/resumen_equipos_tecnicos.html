@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="es">
 <head>
-<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
-<link rel="shortcut icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png?v=2">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png?v=2">
+<link rel="shortcut icon" href="/favicon.ico?v=2">
 
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -200,7 +200,8 @@
       letter-spacing: .04em;
       white-space: nowrap;
       font-family: inherit;
-      cursor: pointer;
+      cursor: grab;
+      user-select: none;
     }
 
     .member-plate:hover,
@@ -211,10 +212,24 @@
       box-shadow: 0 0 0 3px rgba(36, 91, 137, .16);
     }
 
-    .member-plate.is-visual-edited {
+    .member-plate:active {
+      cursor: grabbing;
+    }
+
+    .member-plate.is-dragging {
+      opacity: .55;
+    }
+
+    .member-plate.is-visual-moved {
       background: #e8f6dd;
       border-color: #96c878;
       color: #245810;
+    }
+
+    .team-col.is-plate-target .team-plates {
+      border-radius: 999px;
+      box-shadow: inset 0 0 0 2px rgba(61, 115, 168, .35);
+      background: rgba(61, 115, 168, .08);
     }
 
     .team-sub {
@@ -437,10 +452,11 @@
                       <button
                         type="button"
                         class="member-plate"
+                        draggable="true"
                         data-original-patente="{{ miembro.patente }}"
                         data-plate-index="{{ loop.index0 }}"
-                        title="Editar patente visual"
-                        aria-label="Editar patente visual {{ miembro.patente }}"
+                        title="Arrastrar patente visualmente"
+                        aria-label="Mover patente visual {{ miembro.patente }}"
                       >{{ miembro.patente }}</button>
                     {% endif %}
                   {% endfor %}
@@ -531,7 +547,9 @@
       const resumenData = {{ resumen|tojson }};
       const tokenPlantilla = {{ token|default('')|tojson }};
       let draggedCard = null;
+      let draggedPlate = null;
       let savingMove = false;
+      let savingPlateMove = false;
       const middleNames = new Set([
         "alberto",
         "alejandro",
@@ -621,47 +639,115 @@
         return card.closest(".team-col") === col;
       }
 
-      function plateKey(plate) {
-        const col = plate.closest(".team-col");
-        const base = [
-          String(col?.dataset?.tecnico || ""),
-          String(col?.dataset?.acompanante || ""),
-          String(col?.dataset?.patente || ""),
-          String(plate.dataset.originalPatente || ""),
-          String(plate.dataset.plateIndex || ""),
-        ].join("|");
-        return `resumenEquiposTecnicos:patenteVisual:${base}`;
-      }
-
       function normalizePlate(value) {
         return String(value || "").replace(/\s+/g, " ").trim().toUpperCase();
       }
 
-      function aplicarPatentesVisuales() {
+      function teamKey(col) {
+        return [
+          String(col?.dataset?.tecnico || ""),
+          String(col?.dataset?.acompanante || ""),
+          String(col?.dataset?.patente || ""),
+          String(col?.dataset?.prioritaria || ""),
+        ].join("|");
+      }
+
+      async function readVisualPlateMap() {
+        const token = obtenerTokenActivo();
+        if (!token) return {};
+        const qs = new URLSearchParams({ token });
+        const resp = await fetch(`/api/resumen-equipos-tecnicos/patentes-visuales?${qs.toString()}`);
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok || data?.ok === false) {
+          throw new Error(data?.detail || "No se pudieron cargar las patentes visuales.");
+        }
+        return data?.patentes && typeof data.patentes === "object" ? data.patentes : {};
+      }
+
+      async function writeVisualPlateMap(map) {
+        const cleaned = Object.fromEntries(
+          Object.entries(map || {}).filter(([, value]) => String(value || "").trim())
+        );
+        const token = obtenerTokenActivo();
+        if (!token) {
+          throw new Error("No hay sesión activa. Vuelve a entrar desde el panel de Servicio Técnico.");
+        }
+        const resp = await fetch("/api/resumen-equipos-tecnicos/patentes-visuales", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token, patentes: cleaned }),
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok || data?.ok === false) {
+          throw new Error(data?.detail || "No se pudieron guardar las patentes visuales.");
+        }
+        return data?.patentes || cleaned;
+      }
+
+      function updatePlateMovedStyles() {
         document.querySelectorAll(".member-plate[data-original-patente]").forEach((plate) => {
-          const stored = normalizePlate(localStorage.getItem(plateKey(plate)) || "");
-          const original = normalizePlate(plate.dataset.originalPatente || "");
-          plate.textContent = stored || original;
-          plate.classList.toggle("is-visual-edited", Boolean(stored && stored !== original));
+          const col = plate.closest(".team-col");
+          plate.classList.toggle("is-visual-moved", Boolean(col && plate.dataset.homeTeamKey !== teamKey(col)));
         });
       }
 
-      function editarPatenteVisual(plate) {
-        const original = normalizePlate(plate.dataset.originalPatente || "");
-        const actual = normalizePlate(plate.textContent || original);
-        const next = window.prompt("Patente visual", actual);
-        if (next === null) return;
-        const cleaned = normalizePlate(next);
-        const key = plateKey(plate);
-        if (!cleaned || cleaned === original) {
-          localStorage.removeItem(key);
-          plate.textContent = original;
-          plate.classList.remove("is-visual-edited");
-          return;
+      async function persistVisualPlateAssignments() {
+        const map = {};
+        document.querySelectorAll(".member-plate[data-plate-id]").forEach((plate) => {
+          const col = plate.closest(".team-col");
+          if (!col) return;
+          const currentTeam = teamKey(col);
+          if (plate.dataset.homeTeamKey && currentTeam !== plate.dataset.homeTeamKey) {
+            map[plate.dataset.plateId] = currentTeam;
+          }
+        });
+        await writeVisualPlateMap(map);
+        updatePlateMovedStyles();
+      }
+
+      async function movePlateToTeam(plate, targetCol, { persist = true } = {}) {
+        if (savingPlateMove && persist) return;
+        if (!plate || !targetCol) return;
+        const sourceCol = plate.closest(".team-col");
+        if (sourceCol === targetCol) return;
+        const sourceSlot = sourceCol?.querySelector(".team-plates");
+        const targetSlot = targetCol.querySelector(".team-plates");
+        if (!targetSlot) return;
+        const targetPlate = Array.from(targetSlot.querySelectorAll(".member-plate")).find((item) => item !== plate);
+        if (targetPlate && sourceSlot) {
+          sourceSlot.appendChild(targetPlate);
         }
-        localStorage.setItem(key, cleaned);
-        plate.textContent = cleaned;
-        plate.classList.add("is-visual-edited");
+        targetSlot.appendChild(plate);
+        if (!persist) return;
+        savingPlateMove = true;
+        targetCol.classList.add("is-saving");
+        try {
+          await persistVisualPlateAssignments();
+        } catch (err) {
+          alert(err.message || "No se pudieron guardar las patentes visuales.");
+          window.location.reload();
+        } finally {
+          savingPlateMove = false;
+          targetCol.classList.remove("is-saving");
+        }
+      }
+
+      async function aplicarPatentesVisuales() {
+        const colsByKey = new Map();
+        document.querySelectorAll(".team-col").forEach((col) => colsByKey.set(teamKey(col), col));
+        const map = await readVisualPlateMap();
+        document.querySelectorAll(".member-plate[data-original-patente]").forEach((plate) => {
+          const col = plate.closest(".team-col");
+          const original = normalizePlate(plate.dataset.originalPatente || plate.textContent || "");
+          plate.dataset.plateId = original;
+          plate.dataset.homeTeamKey = teamKey(col);
+          plate.textContent = original;
+          const targetCol = colsByKey.get(map[plate.dataset.plateId]);
+          if (targetCol && targetCol !== col) {
+            movePlateToTeam(plate, targetCol, { persist: false });
+          }
+        });
+        updatePlateMovedStyles();
       }
 
       async function moverPorDrop(card, col) {
@@ -689,18 +775,28 @@
         el.textContent = shortName(fullName);
       });
 
-      aplicarPatentesVisuales();
+      aplicarPatentesVisuales().catch((err) => {
+        console.warn(err?.message || "No se pudieron cargar las patentes visuales.");
+      });
 
       document.querySelectorAll(".member-plate[data-original-patente]").forEach((plate) => {
-        plate.addEventListener("click", (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          editarPatenteVisual(plate);
+        plate.addEventListener("dragstart", (event) => {
+          draggedPlate = plate;
+          draggedCard = null;
+          plate.classList.add("is-dragging");
+          event.dataTransfer.effectAllowed = "move";
+          event.dataTransfer.setData("text/plain", JSON.stringify({ tipo: "patente", patente: plate.dataset.plateId }));
+        });
+        plate.addEventListener("dragend", () => {
+          plate.classList.remove("is-dragging");
+          document.querySelectorAll(".team-col.is-plate-target").forEach((col) => col.classList.remove("is-plate-target"));
+          draggedPlate = null;
         });
       });
 
       document.querySelectorAll(".odt-row[draggable='true']").forEach((card) => {
         card.addEventListener("dragstart", (event) => {
+          if (draggedPlate) return;
           draggedCard = card;
           card.classList.add("is-dragging");
           event.dataTransfer.effectAllowed = "move";
@@ -715,20 +811,37 @@
 
       document.querySelectorAll(".team-col").forEach((col) => {
         col.addEventListener("dragenter", (event) => {
+          if (draggedPlate) {
+            event.preventDefault();
+            col.classList.add("is-plate-target");
+            return;
+          }
           if (!draggedCard || sameTeam(draggedCard, col) || !canDropOnTeam(col)) return;
           event.preventDefault();
           col.classList.add("is-drop-target");
         });
         col.addEventListener("dragover", (event) => {
+          if (draggedPlate) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "move";
+            return;
+          }
           if (!draggedCard || sameTeam(draggedCard, col) || !canDropOnTeam(col)) return;
           event.preventDefault();
           event.dataTransfer.dropEffect = "move";
         });
         col.addEventListener("dragleave", (event) => {
           if (col.contains(event.relatedTarget)) return;
+          col.classList.remove("is-plate-target");
           col.classList.remove("is-drop-target");
         });
         col.addEventListener("drop", (event) => {
+          if (draggedPlate) {
+            event.preventDefault();
+            col.classList.remove("is-plate-target");
+            movePlateToTeam(draggedPlate, col);
+            return;
+          }
           if (!draggedCard || sameTeam(draggedCard, col) || !canDropOnTeam(col)) return;
           event.preventDefault();
           col.classList.remove("is-drop-target");

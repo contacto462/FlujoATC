@@ -1,10 +1,10 @@
 ﻿<!DOCTYPE html>
 <html>
 <head>
-<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
-<link rel="shortcut icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png?v=2">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png?v=2">
+<link rel="shortcut icon" href="/favicon.ico?v=2">
 
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -552,6 +552,14 @@
       text-align: center;
     }
 
+    .fila-vacia .estado-vacio {
+      text-align: center;
+      padding: 34px 16px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-soft, #4b5563);
+    }
+
     .btn-ver-observacion {
       min-width: 74px;
       padding: 8px 14px;
@@ -1074,54 +1082,209 @@
       box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
     }
 
-    .odt-preview-panel {
-      width: min(1240px, calc(100vw - 32px));
-      height: min(860px, calc(100vh - 32px));
-      margin: 16px auto;
-      padding: 0;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
+    .odt-registro-panel {
+      width: min(1080px, calc(100vw - 32px));
+      max-width: 96%;
+      margin: 5vh auto;
+      padding: 26px;
+      background: #ffffff;
+      color: #111827;
+      border-radius: 10px;
+      border: 1px solid #d8dee7;
+      box-shadow: 0 22px 58px rgba(15, 23, 42, 0.26);
     }
 
-    .odt-preview-head {
+    .odt-registro-head {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      padding: 12px 16px;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
       border-bottom: 1px solid #d8dee7;
-      background: #111827;
-      color: #ffffff;
     }
 
-    .odt-preview-title {
+    .odt-registro-eyebrow {
+      margin: 0 0 6px;
+      color: #c95f1b;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+
+    .odt-registro-title {
       margin: 0;
-      font-size: 15px;
+      font-size: 21px;
       font-weight: 800;
     }
 
-    .odt-preview-close {
-      border: 1px solid rgba(255,255,255,.22);
-      background: rgba(255,255,255,.08);
-      color: #fff;
+    .odt-registro-close {
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #1f2937;
       border-radius: 7px;
       padding: 7px 12px;
       font-weight: 700;
       cursor: pointer;
     }
 
-    .odt-preview-frame {
-      flex: 1;
+    .odt-registro-form {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .odt-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .odt-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #46566a;
+    }
+
+    .odt-input {
       width: 100%;
-      border: 0;
-      background: #e8edf4;
+      box-sizing: border-box;
+      padding: 9px 11px;
+      border-radius: 7px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #111827;
+      font-size: 13px;
+      font-family: inherit;
+    }
+
+    .odt-input:focus {
+      outline: none;
+      border-color: #7fc497;
+      box-shadow: 0 0 0 3px rgba(127, 196, 151, .20);
+    }
+
+    .odt-textarea {
+      min-height: 92px;
+      resize: vertical;
+    }
+
+    .odt-extra {
+      display: none;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #d8dee7;
+      background: #f8fafc;
+    }
+
+    .odt-message {
+      display: none;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #fecaca;
+      background: #fef2f2;
+      color: #b91c1c;
+      font-size: 12.5px;
+      font-weight: 700;
+    }
+
+    .btn-odt-secondary {
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #1f2937;
+      border-radius: var(--radius);
+      padding: 8px 16px;
+      font-weight: 700;
+      cursor: pointer;
     }
 
     .grid-2 {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 10px;
+    }
+
+    /* ── Registro por puesto (mismo sistema que incidencias_puestos.html) ── */
+    #gridPuestosOdt { display: flex; flex-wrap: wrap; gap: 9px; justify-content: center; margin: 0 0 20px; padding: 4px 0; }
+    .boton-puesto {
+      min-width: 50px; height: 40px; padding: 0 13px;
+      font-size: 13px; font-weight: 700; font-family: inherit; color: #d1dbe8;
+      border: 1px solid rgba(255,255,255,.10); border-radius: 8px;
+      background: linear-gradient(180deg,#526070 0%,#3f4f5e 100%);
+      cursor: pointer; display: flex; align-items: center; justify-content: center; white-space: nowrap;
+      box-shadow: 0 1px 3px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.08);
+      transition: transform .12s ease, box-shadow .14s ease, border-color .14s ease, background .14s ease, color .14s ease;
+    }
+    .boton-puesto:hover { background: linear-gradient(180deg,#63768a 0%,#4e6070 100%); border-color: var(--accent); color: #fff; transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,.30), 0 0 0 1px var(--accent); }
+    .boton-puesto.activo { background: linear-gradient(180deg,var(--accent) 0%,var(--accent-hover) 100%); border-color: var(--accent-strong); color: #fff; box-shadow: 0 0 0 2px rgba(127,196,151,.35), 0 3px 10px rgba(127,196,151,.30); transform: translateY(-1px); }
+    .formulario-puesto { background: #fff; border: 1px solid rgba(148,163,184,.40); border-radius: var(--radius-lg); padding: 18px; margin: 0 0 16px; box-shadow: var(--shadow-md); }
+    .titulo-formulario-puesto { margin: 0 0 10px; font-size: 15px; font-weight: 800; color: var(--text); }
+    .inc-lista { display: flex; flex-direction: column; gap: 14px; margin-top: 10px; }
+    .inc-card { background: #fff; border: 1px solid rgba(148,163,184,.45); border-radius: var(--radius-lg); padding: 16px 16px 18px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 14px; }
+    .inc-card-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .inc-card-badge { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--accent-strong); background: var(--accent-soft); padding: 4px 10px; border-radius: 999px; }
+    .inc-field { display: flex; flex-direction: column; gap: 6px; }
+    .inc-label { font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+    .inc-field textarea { resize: vertical; min-height: 44px; }
+    .inc-field-desc textarea { background: #f8fafc; color: var(--text-soft); }
+    .select-sucursal-hidden { position: absolute!important; width: 1px!important; height: 1px!important; opacity: 0!important; pointer-events: none!important; }
+    .buscar-select { position: relative; z-index: 10; width: 100%; font-size: 13px; font-weight: 500; text-align: left; }
+    .buscar-select.is-open { z-index: 90; }
+    .buscar-select-trigger { position: relative; width: 100%; min-height: 38px; border: 1px solid var(--field-border); border-radius: var(--radius-sm); background: linear-gradient(180deg,#ffffff 0%,#f8fafc 100%); color: var(--text); padding: 9px 34px 9px 11px; font: inherit; text-align: left; cursor: pointer; line-height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .buscar-select-trigger::after { content: ""; position: absolute; top: 50%; right: 12px; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid #8a8a8a; transform: translateY(-35%); pointer-events: none; }
+    .buscar-select.is-open .buscar-select-trigger { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+    .buscar-select-menu { position: absolute; top: calc(100% - 1px); left: 0; right: 0; z-index: 100; background: #fff; border: 1px solid var(--field-border); border-top: 0; border-radius: 0 0 4px 4px; box-shadow: 0 16px 28px rgba(15,23,42,.14); overflow: hidden; }
+    .buscar-select-menu[hidden] { display: none!important; }
+    .buscar-select-filter-wrap { padding: 6px; background: #fff; }
+    .buscar-select-filter { width: 100%; height: 34px; border: 1px solid var(--accent); border-radius: 3px; padding: 4px 8px; font: inherit; outline: none; box-shadow: 0 0 0 3px rgba(127,196,151,.10); }
+    .buscar-select-options { max-height: 240px; overflow-y: auto; overflow-x: hidden; background: #fff; }
+    .buscar-select-option { display: block; width: 100%; min-height: 39px; border: 0; background: #fff; color: #333; padding: 8px 9px; font: inherit; text-align: left; cursor: pointer; }
+    .buscar-select-option:hover, .buscar-select-option.is-active { background: var(--header-bg); color: #fff; }
+    .buscar-select-empty { padding: 9px; color: #777; font: inherit; }
+    .cam-picker { margin-top: 10px; border: 1px solid rgba(148,163,184,.45); border-radius: var(--radius-lg); background: #f8fafc; padding: 16px; box-shadow: var(--shadow-sm); text-align: left; }
+    .cam-picker-titulo { font-size: 14px; font-weight: 800; color: var(--text); margin-bottom: 12px; }
+    .cam-picker-vacio { color: var(--muted); font-size: 13.5px; }
+    .cam-todo-row { margin-bottom: 14px; }
+    .cam-grupo-label { font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 14px 0 8px; }
+    .cam-grupo-label:first-of-type { margin-top: 0; }
+    .cam-grid-equipos { display: grid; grid-template-columns: repeat(auto-fill,minmax(130px,1fr)); gap: 9px; }
+    .cam-grid-camaras { display: grid; grid-template-columns: repeat(auto-fill,minmax(180px,1fr)); gap: 9px; max-height: 260px; overflow-y: auto; padding: 3px; }
+    .cam-check { display: flex; align-items: center; gap: 10px; min-height: 46px; padding: 9px 14px; border-radius: var(--radius); border: 1px solid var(--border-strong); background: #fff; font-size: 14px; font-weight: 600; color: var(--text); cursor: pointer; transition: background .15s ease, border-color .15s ease, box-shadow .15s ease; -webkit-tap-highlight-color: transparent; user-select: none; }
+    .cam-check:hover { background: var(--surface-hover); }
+    .cam-check input[type="checkbox"] { width: 22px; height: 22px; min-width: 22px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+    .cam-check span { line-height: 1.3; word-break: break-word; }
+    .cam-check.cam-check-todo { min-height: 52px; background: linear-gradient(180deg,#f0faf3 0%,#dcf5e6 100%); border-color: var(--accent); font-weight: 800; font-size: 15px; color: var(--accent-strong); }
+    .cam-check.is-checked { background: var(--accent-soft); border-color: var(--accent); box-shadow: 0 0 0 2px rgba(127,196,151,.18); }
+    .cam-check.cam-check-todo.is-checked { background: linear-gradient(180deg,var(--accent) 0%,var(--accent-hover) 100%); color: #fff; }
+    .cam-check.is-disabled { opacity: .4; pointer-events: none; }
+    .acciones-principales { display: flex; justify-content: center; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+    #modalConflictosOdt .modal-content-conf { background: #fff; color: var(--text); margin: 5vh auto; width: min(680px, calc(100vw - 32px)); max-height: 86vh; overflow: hidden; display: flex; flex-direction: column; border-radius: 16px; border: 1px solid #d9e0ea; box-shadow: 0 24px 60px rgba(10,18,35,.22); }
+    .conf-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 20px 22px 12px; border-bottom: 1px solid #e5eaf0; }
+    .conf-title { margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -.02em; color: var(--text); }
+    .conf-subtitle { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
+    .conf-close { width: 32px; height: 32px; border: 0; border-radius: 999px; background: #f1f5f9; color: #64748b; font-size: 20px; line-height: 1; cursor: pointer; flex-shrink: 0; }
+    .conf-close:hover { background: #e2e8f0; color: var(--text); }
+    #contenedorConflictosOdt { overflow: auto; }
+    .conf-card { padding: 20px 22px; border-bottom: 1px solid #e5eaf0; background: #fff; }
+    .conf-card:last-child { border-bottom: 0; }
+    .conf-card.conf-accepted { background: #fffaf5; }
+    .conf-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+    .conf-section h4 { margin: 0 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: #64748b; }
+    .conf-section.is-new h4 { color: var(--accent-strong); }
+    .conf-line { margin: 0 0 6px; font-size: 13.5px; color: #475569; line-height: 1.4; }
+    .conf-line b { color: #101828; }
+    .conf-desc { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: #f8fafc; border: 1px solid #e5eaf0; white-space: pre-wrap; word-break: break-word; color: #101828; font-size: 13px; line-height: 1.45; }
+    .conf-actions { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+    .conf-choice { min-width: 118px; margin-top: 0; border-radius: 10px; padding: 10px 14px; font-weight: 800; box-shadow: none; border: 0; cursor: pointer; font-size: 13.5px; font-family: inherit; }
+    .btn-conf-ok { color: #fff; background: #1f2937; }
+    .btn-conf-ok:hover { background: #111827; }
+    .btn-conf-no { color: #fff; background: #dc2626; }
+    .btn-conf-no:hover { background: #b91c1c; }
+    @media (max-width: 640px) {
+      .conf-row { grid-template-columns: 1fr; }
+      .cam-grid-equipos, .cam-grid-camaras { grid-template-columns: 1fr; }
     }
 
     .acciones-form {
@@ -1554,57 +1717,37 @@
     </div>
   </div>
 
-  <div id="modalOdt" class="modal">
-    <div class="panel">
-      <h3 style="margin-top:0;">Crear ODT</h3>
-      <form id="formOdt" onsubmit="return false;">
-        <div class="grid-2">
-          <div>
-            <label style="font-size:12px;font-weight:600;color:#4b5563;display:block;margin-bottom:4px;">Cliente</label>
-            <input type="text" id="odtCliente" list="listaClientes" required style="width:100%;box-sizing:border-box;" />
-          </div>
-          <div>
-            <label style="font-size:12px;font-weight:600;color:#4b5563;display:block;margin-bottom:4px;">Sucursal</label>
-            <input type="text" id="odtSucursal" list="listaSucursales" style="width:100%;box-sizing:border-box;" />
-          </div>
+  <div id="modalOdt" class="modal" aria-hidden="true">
+    <div class="panel odt-registro-panel">
+      <div class="odt-registro-head">
+        <div>
+          <p class="odt-registro-eyebrow">Registro</p>
+          <h3 class="odt-registro-title">Crear ODT</h3>
         </div>
-        <div style="margin-top:12px;">
-          <label style="font-size:12px;font-weight:600;color:#4b5563;display:block;margin-bottom:4px;">Tipo de Incidencia</label>
-          <select id="odtTipo" required style="width:100%;padding:8px 10px;border-radius:7px;border:1px solid #d1d5db;font-size:13px;font-family:inherit;"></select>
-        </div>
-        <div id="odtExtraWrap" style="margin-top:10px;display:none;"></div>
-        <div style="margin-top:12px;">
-          <label style="font-size:12px;font-weight:600;color:#4b5563;display:block;margin-bottom:4px;">Descripción</label>
-          <textarea id="odtDescripcion" rows="3" required style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:7px;border:1px solid #d1d5db;font-size:13px;font-family:inherit;resize:vertical;"></textarea>
-        </div>
-        <div class="grid-2" style="margin-top:12px;">
-          <div>
-            <label style="font-size:12px;font-weight:600;color:#4b5563;display:block;margin-bottom:4px;">Técnico</label>
-            <input type="text" id="odtTecnico" list="listaTecnicos" style="width:100%;box-sizing:border-box;" />
-          </div>
-          <div>
-            <label style="font-size:12px;font-weight:600;color:#4b5563;display:block;margin-bottom:4px;">Acompañante</label>
-            <input type="text" id="odtAcompanante" list="listaTecnicos" style="width:100%;box-sizing:border-box;" />
-          </div>
-        </div>
-        <div id="odtMsg" style="display:none;margin-top:10px;font-size:12.5px;color:#c0392b;"></div>
-        <div class="acciones-form">
-          <button type="button" onclick="cerrarOdt()">Cancelar</button>
-          <button type="submit" class="btn-odt">Guardar</button>
-        </div>
-      </form>
+        <button type="button" class="odt-registro-close" onclick="cerrarOdt()">Cerrar</button>
+      </div>
+      <div id="odtMsg" class="odt-message"></div>
+      <div id="gridPuestosOdt"></div>
+      <div id="formulariosContenedorOdt"></div>
+      <div class="acciones-principales">
+        <button type="button" id="btnRegistrarTodoOdt" class="btn-odt" onclick="regRegistrarTodas()">Registrar Todas las Incidencias</button>
+      </div>
     </div>
   </div>
 
-  <div id="modalOdtPreview" class="modal" aria-hidden="true">
-    <div class="panel odt-preview-panel">
-      <div class="odt-preview-head">
-        <h3 class="odt-preview-title">Crear ODT</h3>
-        <button type="button" class="odt-preview-close" onclick="cerrarOdt()">Cerrar</button>
+  <div id="modalConflictosOdt" class="modal">
+    <div class="modal-content-conf">
+      <div class="conf-head">
+        <div>
+          <h3 class="conf-title">¿Registrar esta ODT?</h3>
+          <p class="conf-subtitle">Hay una ODT parecida. Compara y decide.</p>
+        </div>
+        <button class="conf-close" type="button" onclick="regCerrarConflictos()" aria-label="Cerrar">×</button>
       </div>
-      <iframe id="odtPreviewFrame" class="odt-preview-frame" title="Crear ODT"></iframe>
+      <div id="contenedorConflictosOdt"></div>
     </div>
   </div>
+
   <datalist id="listaClientes"></datalist>
   <datalist id="listaSucursales"></datalist>
   <datalist id="listaTecnicos"></datalist>
@@ -2693,6 +2836,22 @@
       const tbody = document.getElementById("registrosExistentes");
       tbody.innerHTML = "";
 
+      if (!items.length) {
+        const derivacionActiva = (document.getElementById("filtroDerivacion")?.value || "").trim();
+        const esFiltroPendiente = normalizeText(derivacionActiva) === "pendiente";
+        const tr = document.createElement("tr");
+        tr.className = "fila-vacia";
+        const td = document.createElement("td");
+        td.colSpan = 11;
+        td.className = "estado-vacio";
+        td.textContent = esFiltroPendiente
+          ? "¡Excelente! Todo al día por ahora."
+          : "No hay incidencias que coincidan con los filtros.";
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+      }
+
       items.forEach((item) => {
         const fila = item.fila;
         const tr = document.createElement("tr");
@@ -2803,7 +2962,7 @@
       const modalRepetida = document.getElementById("repetidaModal");
       const modalDerivar = document.getElementById("derivarModal");
       const modalOdtEl = document.getElementById("modalOdt");
-      const modalOdtPreview = document.getElementById("modalOdtPreview");
+      const modalConflictosEl = document.getElementById("modalConflictosOdt");
       if (event.target === modalObservacion) {
         closeObservacionFinalModal();
       } else if (event.target === modalFinalizar) {
@@ -2816,8 +2975,8 @@
         cancelDerivarPrompt();
       } else if (event.target === modalOdtEl) {
         cerrarOdt();
-      } else if (event.target === modalOdtPreview) {
-        cerrarOdt();
+      } else if (event.target === modalConflictosEl) {
+        regCerrarConflictos();
       }
     });
 
@@ -2848,20 +3007,18 @@
           cancelFinalizadoSoportePrompt();
           return;
         }
+        const modalConflictosEl = document.getElementById("modalConflictosOdt");
+        if (modalConflictosEl && modalConflictosEl.style.display === "block") {
+          regCerrarConflictos();
+          return;
+        }
         const modalOdtEl = document.getElementById("modalOdt");
-        const modalOdtPreview = document.getElementById("modalOdtPreview");
-        if ((modalOdtPreview && modalOdtPreview.style.display === "block") || (modalOdtEl && modalOdtEl.style.display === "block")) {
+        if (modalOdtEl && modalOdtEl.style.display === "block") {
           cerrarOdt();
           return;
         }
         closeObservacionFinalModal();
       }
-    });
-
-    window.addEventListener("message", (event) => {
-      if (event.origin !== window.location.origin) return;
-      if (event.data?.type !== "atc:odt-creada") return;
-      refreshSoporteSilently();
     });
 
     function editarTexto(td, columnaSheet, odt, cliente) {
@@ -3363,18 +3520,13 @@
       };
     }
 
-    // ── Crear ODT — mismo componente/lógica que incidencias_servicio_tecnico.html ──
+    // ── Crear ODT — mismo sistema de registro por puesto que incidencias_puestos.html ──
     let listasGlobalesOdt = { clientes: [], sucursales: [], tecnicos: [] };
     let sucursalesPorClienteOdt = {};
-    let odtDireccionPorSucursal = {};
     let odtDireccionGlobalPorSucursal = {};
     let odtListasCargadas = false;
-
-    function direccionPorSucursalOdt(sucursal) {
-      const nombre = String(sucursal || "").trim();
-      if (!nombre) return "";
-      return odtDireccionPorSucursal[nombre] || odtDireccionGlobalPorSucursal[nombre] || "";
-    }
+    let sucursalesPorPuestoOdt = {};
+    let contactosPorSucursalOdt = {};
 
     const TIPOS_INCIDENCIA_ODT = ["Desconexión", "Problema de Parlante", "Problema de Alarma", "Hora y/o Fecha Cambiada", "Problema de Visual"];
     const ESPECIFICACIONES_VISUAL_ODT = ["Falla de Video", "Obstruccion", "Intermitencia", "IVS", "Camara sucia", "Camara Movida", "Bateria Baja"];
@@ -3384,37 +3536,20 @@
       if (t.includes("desconex")) return "desconexion";
       if (t.includes("visual")) return "visual";
       if (t.includes("hora")) return "hora";
+      if (t.includes("alarma")) return "alarma";
       return "otro";
-    }
-
-    let odtPrefijoFijo = "";
-
-    function odtLimpiarPrefijo() {
-      odtPrefijoFijo = "";
-      const ta = document.getElementById("odtDescripcion");
-      if (ta) { ta.readOnly = false; ta.value = ""; }
-    }
-
-    function odtAplicarPrefijo(prefijo, bloquear) {
-      odtPrefijoFijo = prefijo;
-      const ta = document.getElementById("odtDescripcion");
-      if (!ta) return;
-      ta.value = prefijo;
-      ta.readOnly = bloquear;
-      if (!bloquear) {
-        ta.readOnly = false;
-        ta.setSelectionRange(prefijo.length, prefijo.length);
-        ta.focus();
-      }
     }
 
     async function cargarListasOdt() {
       if (odtListasCargadas) return;
       try {
-        const [listasBbdd, listasInc, sucPorCli] = await Promise.all([
+        const [listasBbdd, listasInc, sucPorCli, sucPorPuesto, contactosMap, camarasMap] = await Promise.all([
           api("/api/listas/bbdd"),
           api("/api/listas/incidencias"),
           api("/api/sucursales/por-cliente"),
+          api("/api/incidencias/sucursales-por-puesto"),
+          api("/api/contactos/sucursal"),
+          api("/api/incidencias/camaras-por-sucursal"),
         ]);
         listasGlobalesOdt = {
           clientes: listasInc?.clientes || [],
@@ -3422,6 +3557,9 @@
           tecnicos: listasBbdd?.tecnicos || [],
         };
         sucursalesPorClienteOdt = (sucPorCli && typeof sucPorCli === "object") ? sucPorCli : {};
+        sucursalesPorPuestoOdt = (sucPorPuesto && typeof sucPorPuesto === "object") ? sucPorPuesto : {};
+        contactosPorSucursalOdt = (contactosMap && typeof contactosMap === "object") ? contactosMap : {};
+        regCamarasPorSucursal = (camarasMap && typeof camarasMap === "object") ? camarasMap : {};
         odtDireccionGlobalPorSucursal = {};
         Object.values(sucursalesPorClienteOdt).forEach((sucursales) => {
           (Array.isArray(sucursales) ? sucursales : []).forEach((s) => {
@@ -3435,7 +3573,6 @@
         llenarDatalistOdt("listaClientes", listasGlobalesOdt.clientes);
         llenarDatalistOdt("listaSucursales", listasGlobalesOdt.sucursales);
         llenarDatalistOdt("listaTecnicos", listasGlobalesOdt.tecnicos);
-        llenarSelectOdt("odtTipo", TIPOS_INCIDENCIA_ODT, "--Selecciona--");
         odtListasCargadas = true;
       } catch (_) {
         // Sin listas de autocompletado no bloquea poder crear la ODT a mano.
@@ -3454,37 +3591,604 @@
       });
     }
 
-    function llenarSelectOdt(id, valores, placeholder) {
-      const select = document.getElementById(id);
-      if (!select) return;
-      select.innerHTML = `<option value="">${placeholder || "Seleccionar..."}</option>`;
-      (valores || []).forEach((v) => {
-        if (!v) return;
-        const o = document.createElement("option");
-        o.value = String(v);
-        o.textContent = String(v);
-        select.appendChild(o);
+    /* ── Registro por puesto (mismo sistema que incidencias_puestos.html) ── */
+    const TOTAL_PUESTOS_ODT = 30;
+    let regPuestoActivo = null;
+    let regUidInc = 0;
+    let regCamarasPorSucursal = {};
+    let regIncidenciasExistentes = [];
+    let regConflictosPendientes = [];
+    let regIncidenciasAprobadasSinConflicto = [];
+    let regSeleccionConflictos = [];
+
+    function regALineas(v) { return escapeHtml(v).replace(/\n/g, "<br>"); }
+
+    function regActualizarBotonPuestoActivo(puesto) {
+      document.querySelectorAll("#gridPuestosOdt .boton-puesto").forEach((b) => {
+        b.classList.toggle("activo", String(b.dataset.puesto || "") === String(puesto || ""));
       });
     }
 
-    function obtenerTokenOdtPreview() {
-      const params = new URLSearchParams(window.location.search || "");
-      const tokenUrl = String(params.get("token") || "").trim();
-      const tokenLs = String(localStorage.getItem("atc_token") || localStorage.getItem("ATC_TOKEN") || "").trim();
-      const token = tokenUrl || tokenLs;
-      if (token) {
-        localStorage.setItem("atc_token", token);
-        localStorage.setItem("ATC_TOKEN", token);
+    function regCrearBotonesPuestos() {
+      const grid = document.getElementById("gridPuestosOdt");
+      if (!grid) return;
+      grid.innerHTML = "";
+      for (let i = 1; i <= TOTAL_PUESTOS_ODT; i++) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "boton-puesto";
+        b.dataset.puesto = String(i);
+        b.textContent = i === 30 ? "Solo clientes con alarma" : String(i);
+        b.onclick = () => regMostrarFormularioPuesto(i);
+        grid.appendChild(b);
       }
-      return token;
     }
 
-    function abrirOdt() {
-      const modal = document.getElementById("modalOdtPreview");
-      const frame = document.getElementById("odtPreviewFrame");
-      const token = obtenerTokenOdtPreview();
-      const qs = token ? `?token=${encodeURIComponent(token)}` : "";
-      if (frame) frame.src = `/public/preview/incidencias-puestos-copia${qs}`;
+    function regMostrarFormularioPuesto(puesto) {
+      const id = `formulario-puesto-odt-${puesto}`;
+      const ex = document.getElementById(id);
+      if (ex) { ex.remove(); regPuestoActivo = null; regActualizarBotonPuestoActivo(null); return; }
+      document.querySelectorAll('[id^="formulario-puesto-odt-"]').forEach((n) => n.remove());
+      const nombre = puesto === 30 ? "Solo clientes con alarma" : `Puesto ${puesto}`;
+      regPuestoActivo = String(puesto);
+      regActualizarBotonPuestoActivo(regPuestoActivo);
+      const div = document.createElement("div");
+      div.className = "formulario-puesto";
+      div.id = id;
+      div.dataset.puesto = String(puesto);
+      div.innerHTML = `<h3 class="titulo-formulario-puesto">Incidencias - ${nombre}</h3><div class="tbody-odt-${puesto} inc-lista"></div><button type="button" class="btn-odt-secondary" onclick="regAgregarIncidencia(${puesto})">Agregar Otra Incidencia</button>`;
+      document.getElementById("formulariosContenedorOdt").appendChild(div);
+      regAgregarIncidencia(puesto);
+      setTimeout(() => div.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
+    }
+
+    function regCrearSelectCliente(lista) {
+      const s = document.createElement("select");
+      s.name = "cliente";
+      s.className = "select-sucursal-hidden";
+      s.innerHTML = '<option value="">Seleccionar sucursal...</option>';
+      (lista || listasGlobalesOdt.sucursales || []).forEach((c) => {
+        const o = document.createElement("option");
+        o.value = c; o.textContent = c;
+        s.appendChild(o);
+      });
+      return s;
+    }
+
+    function regCrearSelectTipo() {
+      const s = document.createElement("select");
+      s.name = "tipoIncidencia";
+      s.innerHTML = '<option value="">Seleccionar tipo...</option>';
+      TIPOS_INCIDENCIA_ODT.forEach((t) => {
+        const o = document.createElement("option");
+        o.value = t; o.textContent = t;
+        s.appendChild(o);
+      });
+      return s;
+    }
+
+    function regClaveDuplicado(sucursal, tipo) {
+      return `${normalizarTexto(sucursal)}|${normalizarTexto(tipo)}`;
+    }
+
+    function regCerrarBuscadoresSucursal(excepto = null) {
+      document.querySelectorAll(".buscar-select.is-open").forEach((w) => {
+        if (w !== excepto) {
+          w.classList.remove("is-open");
+          const m = w.querySelector(".buscar-select-menu");
+          if (m) m.hidden = true;
+        }
+      });
+    }
+
+    function regInicializarBuscadorSucursal(select, placeholder = "Seleccionar sucursal...") {
+      if (!select || select.dataset.buscadorInicializado === "1") return;
+      select.dataset.buscadorInicializado = "1";
+      const wrap = document.createElement("div");
+      wrap.className = "buscar-select";
+      const trigger = document.createElement("button");
+      trigger.type = "button"; trigger.className = "buscar-select-trigger"; trigger.textContent = select.value || placeholder;
+      const menu = document.createElement("div");
+      menu.className = "buscar-select-menu"; menu.hidden = true;
+      const filterWrap = document.createElement("div");
+      filterWrap.className = "buscar-select-filter-wrap";
+      const filter = document.createElement("input");
+      filter.className = "buscar-select-filter"; filter.type = "text"; filter.autocomplete = "off";
+      const optionsBox = document.createElement("div");
+      optionsBox.className = "buscar-select-options";
+      filterWrap.appendChild(filter); menu.appendChild(filterWrap); menu.appendChild(optionsBox);
+      wrap.appendChild(trigger); wrap.appendChild(menu);
+      select.insertAdjacentElement("afterend", wrap);
+
+      function opciones() { return Array.from(select.options).map((o) => ({ value: String(o.value || ""), label: String(o.textContent || o.value || "") })); }
+      function pintar(filtro = "") {
+        const q = normalizarTexto(filtro);
+        optionsBox.innerHTML = "";
+        const visibles = opciones().filter((o) => !q || normalizarTexto(o.label).includes(q) || normalizarTexto(o.value).includes(q));
+        if (!visibles.length) {
+          const empty = document.createElement("div");
+          empty.className = "buscar-select-empty"; empty.textContent = "Sin resultados";
+          optionsBox.appendChild(empty);
+          return;
+        }
+        visibles.forEach((o) => {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.className = `buscar-select-option${String(select.value || "") === o.value ? " is-active" : ""}`;
+          b.dataset.value = o.value; b.textContent = o.label;
+          b.addEventListener("click", () => {
+            select.value = o.value;
+            trigger.textContent = o.value ? o.label : placeholder;
+            select.dispatchEvent(new Event("change", { bubbles: true }));
+            cerrar();
+          });
+          optionsBox.appendChild(b);
+        });
+      }
+      function abrir() { regCerrarBuscadoresSucursal(wrap); wrap.classList.add("is-open"); menu.hidden = false; pintar(filter.value); setTimeout(() => filter.focus(), 0); }
+      function cerrar() { wrap.classList.remove("is-open"); menu.hidden = true; filter.value = ""; }
+      trigger.addEventListener("click", (e) => { e.stopPropagation(); menu.hidden ? abrir() : cerrar(); });
+      filter.addEventListener("input", () => pintar(filter.value));
+      document.addEventListener("click", (e) => { if (!wrap.contains(e.target)) cerrar(); });
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrar(); });
+      pintar();
+    }
+
+    function regBuscarContactosSucursal(sucursal) {
+      const objetivo = normalizarTexto(sucursal);
+      if (!objetivo) return [];
+      const directo = contactosPorSucursalOdt[sucursal];
+      if (Array.isArray(directo) && directo.length) return directo;
+      const keyMatch = Object.keys(contactosPorSucursalOdt || {}).find((k) => normalizarTexto(k) === objetivo);
+      if (keyMatch && Array.isArray(contactosPorSucursalOdt[keyMatch])) return contactosPorSucursalOdt[keyMatch];
+      return [];
+    }
+
+    function regCargarContactosSucursal(selectContacto, sucursal) {
+      selectContacto.innerHTML = '<option value="">Seleccionar contacto de emergencia...</option>';
+      regBuscarContactosSucursal(sucursal).forEach((c) => {
+        const nombre = (c.nombre || "").trim(), tel = (c.telefono || "").trim(), prio = (c.prioridad || "").trim();
+        const txt = `${nombre || "Sin nombre"} - ${tel || "Sin teléfono"} - Prioridad ${prio || "-"}`;
+        const o = document.createElement("option");
+        o.value = txt; o.textContent = txt;
+        selectContacto.appendChild(o);
+      });
+      const o = document.createElement("option");
+      o.value = "__otros__"; o.textContent = "Otros...";
+      selectContacto.appendChild(o);
+    }
+
+    function regRenderCamarasYEquipo(container, sucursalValue, onChange) {
+      container.innerHTML = "";
+      const suc = String(sucursalValue || "").trim();
+      const picker = document.createElement("div");
+      picker.className = "cam-picker";
+      const titulo = document.createElement("div");
+      titulo.className = "cam-picker-titulo"; titulo.textContent = "Cámaras / equipos afectados";
+      picker.appendChild(titulo);
+
+      if (!suc) {
+        const msg = document.createElement("div");
+        msg.className = "cam-picker-vacio"; msg.textContent = "Selecciona una sucursal para ver sus cámaras.";
+        picker.appendChild(msg);
+        container.appendChild(picker);
+        return;
+      }
+
+      const info = regCamarasPorSucursal[normalizarTexto(suc)] || null;
+      const camaras = info?.camaras || [];
+      const cantidadEquipos = Math.max(1, Number(info?.cantidad_equipos) || 1);
+
+      function crearCheck(label, name, value, extraClass) {
+        const lab = document.createElement("label");
+        lab.className = "cam-check" + (extraClass ? ` ${extraClass}` : "");
+        const cb = document.createElement("input");
+        cb.type = "checkbox"; cb.name = name; cb.value = value;
+        lab.appendChild(cb);
+        const span = document.createElement("span");
+        span.textContent = label; lab.appendChild(span);
+        cb.addEventListener("change", () => {
+          lab.classList.toggle("is-checked", cb.checked);
+          if (onChange) onChange();
+        });
+        return { lab, cb };
+      }
+
+      const todoRow = document.createElement("div");
+      todoRow.className = "cam-todo-row";
+      const { lab: todoLab, cb: todoCb } = crearCheck("Todo (toda la sucursal)", "camaraTodo", "Todo", "cam-check-todo");
+      todoRow.appendChild(todoLab);
+      picker.appendChild(todoRow);
+
+      const equipoLabel = document.createElement("div");
+      equipoLabel.className = "cam-grupo-label"; equipoLabel.textContent = "Equipos (NVR)";
+      picker.appendChild(equipoLabel);
+      const gridEquipos = document.createElement("div");
+      gridEquipos.className = "cam-grid-equipos";
+      const equipoChecks = [];
+      for (let i = 1; i <= cantidadEquipos; i++) {
+        const { lab, cb } = crearCheck(`Equipo ${i}`, "equipoAfectado", String(i));
+        equipoChecks.push({ lab, cb });
+        gridEquipos.appendChild(lab);
+      }
+      picker.appendChild(gridEquipos);
+
+      const camLabel = document.createElement("div");
+      camLabel.className = "cam-grupo-label"; camLabel.textContent = "Cámaras";
+      picker.appendChild(camLabel);
+      const gridCamaras = document.createElement("div");
+      gridCamaras.className = "cam-grid-camaras";
+      const camChecks = [];
+      if (!camaras.length) {
+        const msg = document.createElement("div");
+        msg.className = "cam-picker-vacio"; msg.style.gridColumn = "1/-1"; msg.textContent = "Sin cámaras registradas para esta sucursal.";
+        gridCamaras.appendChild(msg);
+      } else {
+        camaras.forEach((cam) => {
+          const { lab, cb } = crearCheck(cam, "camaraAfectada", cam);
+          camChecks.push({ lab, cb });
+          gridCamaras.appendChild(lab);
+        });
+      }
+      picker.appendChild(gridCamaras);
+
+      function revisarSeleccionCompleta() {
+        if (todoCb.checked) return;
+        const todosLosEquipos = cantidadEquipos > 1 && equipoChecks.length > 0 && equipoChecks.every(({ cb }) => cb.checked);
+        const todasLasCamaras = camaras.length > 0 && camChecks.length > 0 && camChecks.every(({ cb }) => cb.checked);
+        if (todosLosEquipos || todasLasCamaras) {
+          todoCb.checked = true;
+          todoCb.dispatchEvent(new Event("change"));
+        }
+      }
+      equipoChecks.forEach(({ cb }) => cb.addEventListener("change", revisarSeleccionCompleta));
+      camChecks.forEach(({ cb }) => cb.addEventListener("change", revisarSeleccionCompleta));
+
+      todoCb.addEventListener("change", () => {
+        const activo = todoCb.checked;
+        [...equipoChecks, ...camChecks].forEach(({ lab, cb }) => {
+          cb.disabled = activo;
+          lab.classList.toggle("is-disabled", activo);
+          if (activo) { cb.checked = false; lab.classList.remove("is-checked"); }
+        });
+      });
+
+      container.appendChild(picker);
+    }
+
+    function regAgregarIncidencia(puesto) {
+      const tbody = document.querySelector(`.tbody-odt-${puesto}`);
+      if (!tbody) return;
+      const gid = `g${Date.now()}_${regUidInc++}`;
+
+      const card = document.createElement("div");
+      card.className = "inc-card"; card.dataset.group = gid;
+
+      const cardTop = document.createElement("div");
+      cardTop.className = "inc-card-top";
+      const badge = document.createElement("span");
+      badge.className = "inc-card-badge"; badge.textContent = "Incidencia";
+      cardTop.appendChild(badge);
+      const bq = document.createElement("button");
+      bq.type = "button"; bq.className = "btn-odt-secondary"; bq.textContent = "Quitar";
+      bq.onclick = () => card.remove();
+      cardTop.appendChild(bq);
+      card.appendChild(cardTop);
+
+      const campoCliente = document.createElement("div");
+      campoCliente.className = "inc-field";
+      campoCliente.innerHTML = '<label class="inc-label">Sucursal</label>';
+      const listaSucursalesPuesto = sucursalesPorPuestoOdt[String(puesto)] || null;
+      const selectCliente = regCrearSelectCliente(listaSucursalesPuesto);
+      campoCliente.appendChild(selectCliente);
+      card.appendChild(campoCliente);
+      regInicializarBuscadorSucursal(selectCliente);
+
+      const campoTipo = document.createElement("div");
+      campoTipo.className = "inc-field";
+      campoTipo.innerHTML = '<label class="inc-label">Tipo de incidencia</label>';
+      const selectTipo = regCrearSelectTipo();
+      campoTipo.appendChild(selectTipo);
+      card.appendChild(campoTipo);
+
+      const tdExtra = document.createElement("div");
+      tdExtra.className = "fila-extra"; tdExtra.style.display = "none";
+      card.appendChild(tdExtra);
+
+      const tdCon = document.createElement("div");
+      tdCon.className = "fila-contacto inc-field"; tdCon.style.display = "none";
+      const selectCon = document.createElement("select");
+      selectCon.name = "contacto"; selectCon.innerHTML = '<option value="">Seleccionar contacto de emergencia...</option>';
+      tdCon.appendChild(selectCon);
+      const inp = document.createElement("input");
+      inp.type = "text"; inp.placeholder = "Escribir contacto manualmente (nombre y teléfono)..."; inp.style.display = "none"; inp.style.marginTop = "8px";
+      tdCon.appendChild(inp);
+      card.appendChild(tdCon);
+
+      const campoDesc = document.createElement("div");
+      campoDesc.className = "inc-field inc-field-desc";
+      campoDesc.innerHTML = '<label class="inc-label">Descripción</label>';
+      const ta = document.createElement("textarea");
+      ta.name = "descripcion"; ta.rows = 2; ta.placeholder = "Descripción..."; ta.readOnly = true;
+      campoDesc.appendChild(ta);
+      card.appendChild(campoDesc);
+
+      tbody.appendChild(card);
+
+      let prefijoFijo = "";
+
+      function refrescarDescripcionAuto() {
+        const camWrap = tdExtra.querySelector(".cam-wrap");
+        let partes = [];
+        if (camWrap) {
+          const todoCb = camWrap.querySelector('input[name="camaraTodo"]');
+          if (todoCb && todoCb.checked) {
+            partes = ["Todo"];
+          } else {
+            camWrap.querySelectorAll('input[name="equipoAfectado"]:checked').forEach((cb) => partes.push(`NVR ${cb.value}`));
+            camWrap.querySelectorAll('input[name="camaraAfectada"]:checked').forEach((cb) => partes.push(cb.value));
+          }
+        }
+        const txt = partes.join(", ");
+        ta.value = prefijoFijo ? (txt ? `${prefijoFijo}${txt}` : prefijoFijo) : txt;
+      }
+      function aplicarPrefijo(prefijo) { prefijoFijo = String(prefijo || ""); refrescarDescripcionAuto(); }
+      function limpiarDescripcionBloqueada() { prefijoFijo = ""; refrescarDescripcionAuto(); }
+
+      function visContacto() {
+        const cl = String(selectCliente.value || "").trim(), ti = String(selectTipo.value || "").trim();
+        tdCon.style.display = (!cl || !ti || odtClaveTipo(ti) === "hora") ? "none" : "";
+      }
+      selectCliente.addEventListener("change", function () {
+        const suc = String(this.value || "").trim();
+        if (suc) regCargarContactosSucursal(selectCon, suc);
+        visContacto();
+        const camWrap = tdExtra.querySelector(".cam-wrap");
+        if (camWrap) { regRenderCamarasYEquipo(camWrap, suc, refrescarDescripcionAuto); refrescarDescripcionAuto(); }
+      });
+      selectCon.addEventListener("change", () => inp.style.display = selectCon.value === "__otros__" ? "block" : "none");
+
+      selectTipo.addEventListener("change", () => {
+        tdExtra.innerHTML = ""; tdExtra.style.display = "none"; limpiarDescripcionBloqueada();
+        const clave = odtClaveTipo(selectTipo.value);
+
+        if (clave === "desconexion") {
+          const subWrap = document.createElement("div");
+          subWrap.innerHTML = '<div style="margin-bottom:6px"><b>Problema de:</b></div>';
+          const selDesc = document.createElement("select");
+          selDesc.name = "especificacionDesconexion";
+          selDesc.innerHTML = '<option value="">Seleccionar...</option><option value="Internet">Internet</option><option value="Electricidad">Electricidad</option><option value="Se Desconoce">Se Desconoce</option>';
+          subWrap.appendChild(selDesc);
+          tdExtra.appendChild(subWrap);
+          selDesc.addEventListener("change", () => {
+            const v = String(selDesc.value || "").trim();
+            if (!v) { prefijoFijo = ""; refrescarDescripcionAuto(); return; }
+            const prefijo = v === "Se Desconoce" ? "Desconocida de: " : `Debido a ${v.toLowerCase()} de: `;
+            aplicarPrefijo(prefijo);
+          });
+        } else if (clave === "visual") {
+          const subWrap = document.createElement("div");
+          subWrap.innerHTML = '<div style="margin-bottom:6px"><b>Especificamente:</b></div>';
+          const selVisual = document.createElement("select");
+          selVisual.name = "especificacionVisual"; selVisual.innerHTML = '<option value="">Seleccionar...</option>';
+          ESPECIFICACIONES_VISUAL_ODT.forEach((op) => {
+            const o = document.createElement("option");
+            o.value = op; o.textContent = op;
+            selVisual.appendChild(o);
+          });
+          subWrap.appendChild(selVisual);
+          tdExtra.appendChild(subWrap);
+          selVisual.addEventListener("change", () => {
+            const v = String(selVisual.value || "").trim();
+            if (!v) { prefijoFijo = ""; refrescarDescripcionAuto(); return; }
+            aplicarPrefijo(`${v}: `);
+          });
+        } else {
+          prefijoFijo = "";
+        }
+
+        if (clave === "alarma") {
+          ta.readOnly = false;
+          ta.value = "";
+        } else if (selectTipo.value) {
+          ta.readOnly = true;
+          tdExtra.style.display = "";
+          const camWrap = document.createElement("div");
+          camWrap.className = "cam-wrap"; camWrap.style.marginTop = "10px";
+          tdExtra.appendChild(camWrap);
+          regRenderCamarasYEquipo(camWrap, selectCliente.value, refrescarDescripcionAuto);
+          refrescarDescripcionAuto();
+        } else {
+          ta.readOnly = true;
+          ta.value = "";
+        }
+        visContacto();
+      });
+    }
+
+    function regObtenerIncidenciasDesdeForm() {
+      const inc = [];
+      document.querySelectorAll('[id^="formulario-puesto-odt-"]').forEach((form) => {
+        const puesto = form.dataset.puesto || "";
+        form.querySelectorAll(".inc-card").forEach((f) => {
+          const cliente = String(f.querySelector('select[name="cliente"]')?.value || "").trim();
+          const tipo = String(f.querySelector('select[name="tipoIncidencia"]')?.value || "").trim();
+          let desc = String(f.querySelector('textarea[name="descripcion"]')?.value || "").trim();
+
+          const filaCon = f.querySelector(".fila-contacto");
+          const sel = filaCon?.querySelector('select[name="contacto"]');
+          const im = filaCon?.querySelector("input[type='text']");
+          let contacto = "";
+          if (sel) {
+            if (sel.value === "__otros__") contacto = String(im?.value || "").trim();
+            else if (sel.value) contacto = String(sel.value).trim();
+          }
+
+          if (!cliente && !tipo && !desc) return;
+          if (!cliente || !tipo) throw new Error("Debes seleccionar sucursal y tipo de incidencia.");
+
+          const claveTipo = odtClaveTipo(tipo);
+          if (claveTipo === "desconexion" && !desc) throw new Error(`Debes indicar el tipo de desconexión para "${cliente}".`);
+          if (claveTipo === "visual" && !desc) throw new Error(`Debes seleccionar la especificación de Problema de Visual para "${cliente}".`);
+          if (claveTipo !== "alarma" && !desc) throw new Error(`Debes marcar al menos una cámara, equipo o "Todo" para "${cliente}".`);
+          if (!desc) throw new Error(`Debes completar la descripción para "${cliente}".`);
+
+          if (claveTipo !== "hora" && !contacto) throw new Error(`Debes seleccionar contacto de emergencia para "${cliente}".`);
+          if (contacto) desc += `\nContacto: ${contacto}`;
+
+          const direccion = odtDireccionGlobalPorSucursal[cliente] || "";
+          inc.push({
+            puesto: puesto === "30" ? "30" : puesto,
+            cliente,
+            tipoIncidencia: tipo,
+            descripcion: desc,
+            estado: "Pendiente",
+            direccion,
+            token: "",
+          });
+        });
+      });
+      return inc;
+    }
+
+    function regDetectarConflictos(incidencias) {
+      const existentesPorClave = new Map();
+      (regIncidenciasExistentes || []).forEach((r) => {
+        const estado = normalizarTexto(r?.[8] || "");
+        if (estado !== "pendiente" && estado !== "en proceso") return;
+        const sucursal = String(r?.[3] || "").trim();
+        const tipo = String(r?.[4] || "").trim();
+        if (!sucursal || !tipo) return;
+        const k = regClaveDuplicado(sucursal, tipo);
+        if (!existentesPorClave.has(k)) existentesPorClave.set(k, []);
+        existentesPorClave.get(k).push({
+          odt: String(r?.[0] || "-"),
+          sucursal, tipo,
+          estado: String(r?.[8] || ""),
+          descripcion: String(r?.[6] || ""),
+        });
+      });
+
+      const yaIngresadasEnLote = new Map();
+      const conflictos = [];
+      const aprobadas = [];
+
+      incidencias.forEach((nueva, idx) => {
+        const k = regClaveDuplicado(nueva?.cliente, nueva?.tipoIncidencia);
+        const similares = [...(existentesPorClave.get(k) || [])];
+        if (yaIngresadasEnLote.has(k)) {
+          yaIngresadasEnLote.get(k).forEach((ant, j) => {
+            similares.push({
+              odt: `Lote actual #${j + 1}`,
+              sucursal: ant.cliente, tipo: ant.tipoIncidencia,
+              estado: "Pendiente de registro",
+              descripcion: String(ant.descripcion || ""),
+            });
+          });
+        }
+
+        if (similares.length) conflictos.push({ idx, nueva, similares });
+        else aprobadas.push(nueva);
+
+        if (!yaIngresadasEnLote.has(k)) yaIngresadasEnLote.set(k, []);
+        yaIngresadasEnLote.get(k).push(nueva);
+      });
+
+      return { conflictos, aprobadas };
+    }
+
+    function regCerrarConflictos() {
+      const modal = document.getElementById("modalConflictosOdt");
+      if (modal) modal.style.display = "none";
+      regConflictosPendientes = []; regIncidenciasAprobadasSinConflicto = []; regSeleccionConflictos = [];
+    }
+
+    function regSeleccionConflicto(i, val, btn) {
+      regSeleccionConflictos[i] = val;
+      const c = btn.closest(".conf-card");
+      if (!c) return;
+      c.classList.remove("conf-accepted", "conf-rejected");
+      c.classList.add(val ? "conf-accepted" : "conf-rejected");
+      c.querySelectorAll(".conf-choice").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      if (!regSeleccionConflictos.some((v) => v === null)) {
+        setTimeout(() => regFinalizarSeleccion(), 120);
+      }
+    }
+
+    function regMostrarConflictos(conflictos, aprobadas) {
+      regConflictosPendientes = conflictos; regIncidenciasAprobadasSinConflicto = aprobadas;
+      regSeleccionConflictos = Array(conflictos.length).fill(null);
+      const cont = document.getElementById("contenedorConflictosOdt");
+      cont.innerHTML = "";
+      conflictos.forEach((it, idx) => {
+        const card = document.createElement("div");
+        card.className = "conf-card";
+        const antigua = it.similares[0] || {};
+        card.innerHTML = `<div class="conf-row"><section class="conf-section is-new"><h4>ODT nueva</h4><p class="conf-line"><b>Sucursal:</b> ${escapeHtml(it.nueva.cliente)}</p><p class="conf-line"><b>Tipo:</b> ${escapeHtml(it.nueva.tipoIncidencia)}</p><div class="conf-desc">${regALineas(it.nueva.descripcion)}</div></section><section class="conf-section is-old"><h4>ODT antigua</h4><p class="conf-line"><b>ODT:</b> ${escapeHtml(antigua.odt || "-")}</p><p class="conf-line"><b>Estado:</b> ${escapeHtml(antigua.estado || "-")}</p><p class="conf-line"><b>Tipo:</b> ${escapeHtml(antigua.tipo || "-")}</p><div class="conf-desc">${regALineas(antigua.descripcion || "Sin descripción registrada.")}</div></section></div><div class="conf-actions"><button class="conf-choice btn-conf-no" type="button" onclick="regSeleccionConflicto(${idx},false,this)">No registrar</button><button class="conf-choice btn-conf-ok" type="button" onclick="regSeleccionConflicto(${idx},true,this)">Sí registrar</button></div>`;
+        cont.appendChild(card);
+      });
+      document.getElementById("modalConflictosOdt").style.display = "block";
+    }
+
+    async function regFinalizarSeleccion() {
+      if (regSeleccionConflictos.some((v) => v === null)) { alert("Debes elegir Sí o No en cada ODT antes de continuar."); return; }
+      const sel = regConflictosPendientes.map((c, i) => (regSeleccionConflictos[i] ? c.nueva : null)).filter(Boolean);
+      const aRegistrar = [...regIncidenciasAprobadasSinConflicto, ...sel];
+      if (!aRegistrar.length) { regCerrarConflictos(); alert("No se registraron incidencias: todas fueron rechazadas por el operador."); return; }
+      regCerrarConflictos();
+      await regEnviarAlServidor(aRegistrar);
+    }
+
+    async function regCargarIncidenciasExistentes() {
+      try {
+        const data = await api("/api/incidencias/puesto");
+        regIncidenciasExistentes = Array.isArray(data) ? data : [];
+      } catch (_) {
+        regIncidenciasExistentes = [];
+      }
+    }
+
+    async function regEnviarAlServidor(incidencias) {
+      const b = document.getElementById("btnRegistrarTodoOdt");
+      if (b) { b.disabled = true; b.textContent = "Registrando..."; }
+      try {
+        const data = await api("/api/incidencias/multiples", { method: "POST", body: JSON.stringify(incidencias) });
+        const odts = Array.isArray(data?.odts) ? data.odts.filter(Boolean) : [];
+        document.getElementById("formulariosContenedorOdt").innerHTML = "";
+        regPuestoActivo = null;
+        regActualizarBotonPuestoActivo(null);
+        cerrarOdt();
+        cargarRegistros();
+        mostrarToast(odts.length ? `Incidencias registradas: ${odts.join(", ")}.` : "Incidencias registradas exitosamente.");
+      } finally {
+        if (b) { b.disabled = false; b.textContent = "Registrar Todas las Incidencias"; }
+      }
+    }
+
+    async function regRegistrarTodas() {
+      const msg = document.getElementById("odtMsg");
+      if (msg) { msg.textContent = ""; msg.style.display = "none"; }
+      try {
+        const incidencias = regObtenerIncidenciasDesdeForm();
+        if (!incidencias.length) { alert("Debes completar al menos una incidencia."); return; }
+        const { conflictos, aprobadas } = regDetectarConflictos(incidencias);
+        if (conflictos.length) { regMostrarConflictos(conflictos, aprobadas); return; }
+        await regEnviarAlServidor(incidencias);
+      } catch (err) {
+        if (msg) { msg.textContent = `Error al registrar: ${err.message}`; msg.style.display = "block"; }
+      }
+    }
+
+    async function abrirOdt() {
+      await cargarListasOdt();
+      const modal = document.getElementById("modalOdt");
+      const msg = document.getElementById("odtMsg");
+      if (msg) { msg.textContent = ""; msg.style.display = "none"; }
+      document.getElementById("formulariosContenedorOdt").innerHTML = "";
+      regPuestoActivo = null;
+      regCrearBotonesPuestos();
+      regCargarIncidenciasExistentes();
       if (modal) {
         modal.style.display = "block";
         modal.setAttribute("aria-hidden", "false");
@@ -3492,117 +4196,17 @@
     }
 
     function cerrarOdt() {
-      const modal = document.getElementById("modalOdtPreview");
-      const frame = document.getElementById("odtPreviewFrame");
+      const modal = document.getElementById("modalOdt");
       if (modal) {
         modal.style.display = "none";
         modal.setAttribute("aria-hidden", "true");
       }
-      if (frame) frame.src = "about:blank";
-      llenarDatalistOdt("listaSucursales", listasGlobalesOdt.sucursales);
-    }
-
-    document.getElementById("odtCliente")?.addEventListener("input", function () {
-      const cliente = this.value.trim();
-      const suc = sucursalesPorClienteOdt[cliente];
-      if (suc && suc.length) {
-        odtDireccionPorSucursal = Object.fromEntries(suc.map((s) => [s.nombre, s.direccion]));
-        llenarDatalistOdt("listaSucursales", suc.map((s) => s.nombre));
-      } else {
-        odtDireccionPorSucursal = {};
-        llenarDatalistOdt("listaSucursales", listasGlobalesOdt.sucursales);
-      }
-      document.getElementById("odtSucursal").value = "";
-    });
-
-    document.getElementById("odtTipo")?.addEventListener("change", function () {
-      const wrap = document.getElementById("odtExtraWrap");
-      wrap.innerHTML = "";
-      wrap.style.display = "none";
-      odtLimpiarPrefijo();
-      const clave = odtClaveTipo(this.value);
-
-      if (clave === "desconexion") {
-        wrap.style.display = "block";
-        wrap.innerHTML = '<div style="margin-bottom:6px;font-size:12px;font-weight:600;color:#4b5563;">Problema de:</div>';
-        const sel = document.createElement("select");
-        sel.style.cssText = "width:100%;padding:8px 10px;border-radius:7px;border:1px solid #d1d5db;font-size:13px;font-family:inherit;";
-        sel.innerHTML = '<option value="">Seleccionar...</option><option value="Internet">Internet</option><option value="Electricidad">Electricidad</option><option value="Se Desconoce">Se Desconoce</option>';
-        sel.addEventListener("change", () => {
-          const v = sel.value;
-          if (!v) { odtLimpiarPrefijo(); return; }
-          const prefijo = v === "Se Desconoce" ? "Desconocida de: " : `Debido a ${v.toLowerCase()} de: `;
-          odtAplicarPrefijo(prefijo, false);
-        });
-        wrap.appendChild(sel);
-      } else if (clave === "visual") {
-        wrap.style.display = "block";
-        wrap.innerHTML = '<div style="margin-bottom:6px;font-size:12px;font-weight:600;color:#4b5563;">Específicamente:</div>';
-        const sel = document.createElement("select");
-        sel.style.cssText = "width:100%;padding:8px 10px;border-radius:7px;border:1px solid #d1d5db;font-size:13px;font-family:inherit;";
-        sel.innerHTML = '<option value="">Seleccionar...</option>';
-        ESPECIFICACIONES_VISUAL_ODT.forEach((op) => {
-          const o = document.createElement("option");
-          o.value = op; o.textContent = op;
-          sel.appendChild(o);
-        });
-        sel.addEventListener("change", () => {
-          const v = sel.value;
-          if (!v) { odtLimpiarPrefijo(); return; }
-          odtAplicarPrefijo(`${v}: `, false);
-        });
-        wrap.appendChild(sel);
-      }
-    });
-
-    document.getElementById("formOdt")?.addEventListener("submit", async (e) => {
-      e.preventDefault();
+      document.getElementById("formulariosContenedorOdt").innerHTML = "";
+      regPuestoActivo = null;
+      regActualizarBotonPuestoActivo(null);
       const msg = document.getElementById("odtMsg");
-      msg.style.display = "none";
-      try {
-        const cliente = document.getElementById("odtCliente").value.trim();
-        const sucursal = document.getElementById("odtSucursal").value.trim();
-        const tipo = document.getElementById("odtTipo").value.trim();
-        const tecnico = document.getElementById("odtTecnico").value.trim();
-        const acompanante = document.getElementById("odtAcompanante").value.trim();
-        let descripcion = document.getElementById("odtDescripcion").value.trim();
-
-        if (!cliente || !tipo) throw new Error("Completa cliente y tipo de incidencia.");
-
-        const claveTipo = odtClaveTipo(tipo);
-        if (claveTipo === "desconexion" && !descripcion) throw new Error("Debes indicar el tipo de desconexión.");
-        if (claveTipo === "visual" && !descripcion) throw new Error("Debes seleccionar la especificación de Problema de Visual.");
-        if (!descripcion) throw new Error("Completa la descripción.");
-
-        if (tecnico) descripcion += ` | Técnico sugerido: ${tecnico}`;
-        if (acompanante) descripcion += ` | Acompañante: ${acompanante}`;
-
-        const direccion = direccionPorSucursalOdt(sucursal);
-        const payload = {
-          puesto: "",
-          cliente: sucursal || cliente,
-          tipoIncidencia: tipo,
-          descripcion,
-          estado: (tecnico || acompanante) ? "En Proceso" : "Pendiente",
-          direccion,
-          tecnico,
-          acompanante,
-          token: "",
-        };
-
-        const data = await api("/api/incidencias/nueva", {
-          method: "POST",
-          body: JSON.stringify(payload),
-        });
-        const odtCreada = data?.odt ? ` (${data.odt})` : "";
-        cerrarOdt();
-        cargarRegistros();
-        alert(`ODT creada correctamente${odtCreada}.`);
-      } catch (err) {
-        msg.textContent = `Error al crear ODT: ${err.message}`;
-        msg.style.display = "block";
-      }
-    });
+      if (msg) { msg.textContent = ""; msg.style.display = "none"; }
+    }
 
     cargarListasOdt();
 

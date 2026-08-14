@@ -44,3 +44,10 @@ def is_bitacora_admin(user: User | None) -> bool:
         return True
     dept = _normalize(str(getattr(user, "department", None) or ""))
     return dept == "administrador"
+
+
+def can_manage_bitacora_puestos(user: User | None) -> bool:
+    if not user:
+        return False
+    departments = [_normalize(d) for d in _split_departments(getattr(user, "department", None))]
+    return any("soporte" in department for department in departments)

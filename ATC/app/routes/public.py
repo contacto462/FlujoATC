@@ -50,6 +50,13 @@ class LavadosRegistroCreate(BaseModel):
     imgDespues2: str = ""
 
 
+class ComiteParitarioPostulacion(BaseModel):
+    nombre: str
+    rut: str
+    cargo: str
+    correo: str
+
+
 @router.post("/tickets")
 def create_public_ticket(data: PublicTicketCreate, db: Session = Depends(get_db)):
     ticket = create_ticket_from_public(
@@ -104,6 +111,26 @@ def lavados_guardar_registro(payload: LavadosRegistroCreate, background_tasks: B
         "id": registro["id"],
         "mensaje": registro["mensaje"],
     }
+
+
+@router.get("/comite-paritario", response_class=HTMLResponse)
+def comite_paritario_form(request: Request):
+    return templates.TemplateResponse(request, "public_comite_paritario.html", {})
+
+
+@router.post("/comite-paritario/postular")
+def comite_paritario_postular(payload: ComiteParitarioPostulacion, background_tasks: BackgroundTasks):
+    from ATC.app.services.comite_paritario_service import enviar_postulacion_comite_paritario_email
+
+    data = payload.model_dump()
+    data = {key: str(value or "").strip() for key, value in data.items()}
+    if not data["nombre"] or not data["rut"] or not data["cargo"] or not data["correo"]:
+        raise HTTPException(status_code=422, detail="Nombre, RUT, cargo y correo son obligatorios.")
+    if "@" not in data["correo"] or "." not in data["correo"].split("@")[-1]:
+        raise HTTPException(status_code=422, detail="Ingresa un correo valido.")
+
+    background_tasks.add_task(enviar_postulacion_comite_paritario_email, data)
+    return {"ok": True, "mensaje": "Postulacion enviada correctamente."}
 
 
 @router.get("/tickets/{ticket_id}/sla-feedback", response_class=HTMLResponse)
@@ -286,11 +313,6 @@ def ley_karin_form(request: Request):
     return templates.TemplateResponse(request, "public_ley_karin.html", {})
 
 
-@router.get("/preview/incidencias-puestos-copia", response_class=HTMLResponse)
-def preview_incidencias_puestos_copia(request: Request):
-    return templates.TemplateResponse(request, "incidencias_puestos_copia.html", {})
-
-
 @router.post("/ley-karin/informe")
 def ley_karin_informe(payload: LeyKarinComprobante, background_tasks: BackgroundTasks):
     from io import BytesIO
@@ -307,11 +329,9 @@ def ley_karin_informe(payload: LeyKarinComprobante, background_tasks: Background
 
     pdf_bytes = generar_comprobante_ley_karin_pdf(payload.model_dump())
 
-    correo = payload.correo.strip()
-    if correo:
-        background_tasks.add_task(
-            enviar_comprobante_ley_karin_email, correo, pdf_bytes, payload.nombre_completo
-        )
+    background_tasks.add_task(
+        enviar_comprobante_ley_karin_email, payload.correo.strip(), pdf_bytes, payload.nombre_completo
+    )
 
     import re as _re
     nombre_ascii = _re.sub(r"[^A-Za-z0-9_-]+", "_", f"Comprobante_LeyKarin_{payload.nombre_completo}")[:80]
@@ -360,11 +380,9 @@ def ley_karin_capacitacion_informe(payload: LeyKarinCapacitacionComprobante, bac
 
     pdf_bytes = generar_toma_conocimiento_capacitacion_pdf(payload.model_dump())
 
-    correo = payload.correo.strip()
-    if correo:
-        background_tasks.add_task(
-            enviar_toma_conocimiento_capacitacion_email, correo, pdf_bytes, payload.nombre_completo
-        )
+    background_tasks.add_task(
+        enviar_toma_conocimiento_capacitacion_email, payload.correo.strip(), pdf_bytes, payload.nombre_completo
+    )
 
     import re as _re
     nombre_ascii = _re.sub(r"[^A-Za-z0-9_-]+", "_", f"TomaConocimiento_Capacitacion_LeyKarin_{payload.nombre_completo}")[:80]

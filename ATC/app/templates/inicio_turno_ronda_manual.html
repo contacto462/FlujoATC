@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png?v=2">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png?v=2">
+<link rel="shortcut icon" href="/favicon.ico?v=2">
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Registro de ronda — Ingreso manual</title>
+  <style>
+    :root {
+      --page: #eef3f4;
+      --panel: #ffffff;
+      --ink: #142226;
+      --muted: #607176;
+      --line: #d7e1e4;
+      --field: #f8fbfb;
+      --primary: #be6830;
+      --primary-dark: #93471f;
+      --green: #1f7a4d;
+      --red: #a83232;
+      --top: #0d2a30;
+      --top-2: #173b42;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    * { box-sizing: border-box; }
+    html { min-height: 100%; background: var(--page); -webkit-text-size-adjust: 100%; }
+    body {
+      min-height: 100svh; margin: 0; overflow-x: hidden;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink); background: var(--page);
+    }
+    button, input { font: inherit; -webkit-tap-highlight-color: transparent; }
+
+    .shell {
+      width: 100%; min-height: 100svh; background: var(--panel);
+      display: flex; flex-direction: column;
+    }
+
+    .head {
+      position: sticky; top: 0; z-index: 10;
+      padding: calc(18px + var(--safe-top)) 20px 20px;
+      background: linear-gradient(135deg, var(--top), var(--top-2));
+      color: white;
+      box-shadow: 0 8px 24px rgba(7,23,25,.18);
+      text-align: center;
+    }
+    .head img { height: 46px; margin-bottom: 10px; }
+    .head h1 { margin: 0; font-size: 17px; font-weight: 800; }
+    .head p { margin: 4px 0 0; font-size: 12.5px; color: rgba(255,255,255,.65); }
+
+    .content { flex: 1; padding: 24px 20px calc(24px + var(--safe-bottom)); }
+
+    .checkpoint-card {
+      background: var(--field);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 22px;
+      text-align: center;
+      margin-bottom: 22px;
+    }
+    .checkpoint-nombre { font-size: 18px; font-weight: 800; color: var(--ink); }
+    .checkpoint-hint { margin-top: 4px; font-size: 12.5px; color: var(--muted); }
+
+    .field { margin-bottom: 16px; }
+    .field label {
+      display: block; font-size: 12.5px; font-weight: 700; color: var(--muted);
+      margin-bottom: 6px;
+    }
+    input[type="number"] {
+      width: 100%; height: 56px; padding: 0 14px;
+      border: 1px solid var(--line); border-radius: 12px;
+      background: #fff; color: var(--ink); font-size: 22px; font-weight: 800;
+      letter-spacing: 4px; text-align: center;
+      outline: none; transition: border-color .15s;
+      -webkit-appearance: none; appearance: none;
+    }
+    input[type="number"]:focus { border-color: var(--primary); }
+    input[type="number"]::placeholder { letter-spacing: 4px; font-weight: 700; color: #b7c3c6; }
+
+    .btn-registrar {
+      width: 100%; height: 52px; border: none; border-radius: 14px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: #fff; font-size: 15.5px; font-weight: 800;
+      cursor: pointer; box-shadow: 0 6px 18px rgba(147,71,31,.28);
+      transition: opacity .15s, transform .12s;
+    }
+    .btn-registrar:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-registrar:active { transform: translateY(1px); }
+
+    .feedback {
+      margin-top: 16px; padding: 14px; border-radius: 12px;
+      font-size: 14px; font-weight: 700; text-align: center; display: none;
+    }
+    .feedback.ok { display: block; background: #eaf4ec; color: var(--green); border: 1px solid #b7ddc4; }
+    .feedback.err { display: block; background: #fbecec; color: var(--red); border: 1px solid #e5b4b4; }
+  </style>
+</head>
+<body>
+<div class="shell">
+  <header class="head">
+    <img src="/shared-static/img/logo-atc.png" alt="ATC" onerror="this.style.display='none'">
+    <h1>Registro de ronda</h1>
+    <p>Ingreso manual de checkpoint</p>
+  </header>
+
+  <div class="content">
+    <div class="checkpoint-card">
+      <div class="checkpoint-nombre">¿El QR no se pudo leer?</div>
+      <div class="checkpoint-hint">Ingresa el código verificador de 6 dígitos impreso en la franja lateral del checkpoint.</div>
+    </div>
+
+    <div class="field">
+      <label for="verificador">Código verificador</label>
+      <input type="number" id="verificador" placeholder="000000" inputmode="numeric" maxlength="6">
+    </div>
+
+    <button class="btn-registrar" id="btnContinuar" onclick="continuar()">Continuar</button>
+    <div class="feedback" id="feedback"></div>
+  </div>
+</div>
+
+<script>
+  async function continuar() {
+    const verificador = document.getElementById("verificador").value.trim();
+    const btn = document.getElementById("btnContinuar");
+    const fb = document.getElementById("feedback");
+
+    if (!verificador || Number(verificador) < 1) {
+      fb.textContent = "Ingresa el código verificador.";
+      fb.className = "feedback err";
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Buscando…";
+    fb.className = "feedback";
+
+    try {
+      const url = `/api/inicio-turno/rondas/resolver?verificador=${encodeURIComponent(verificador)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (!res.ok) {
+        fb.textContent = data.detail || "No se encontró ese checkpoint.";
+        fb.className = "feedback err";
+        btn.disabled = false;
+        btn.textContent = "Continuar";
+        return;
+      }
+      window.location.href = `/inicio-turno/ronda?qr=${encodeURIComponent(data.qr)}`;
+    } catch (e) {
+      fb.textContent = "Error de red. Intenta de nuevo.";
+      fb.className = "feedback err";
+      btn.disabled = false;
+      btn.textContent = "Continuar";
+    }
+  }
+
+  document.getElementById("verificador")?.addEventListener("keydown", e => { if (e.key === "Enter") continuar(); });
+</script>
+</body>
+</html>

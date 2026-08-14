@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
-<link rel="shortcut icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png?v=2">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png?v=2">
+<link rel="shortcut icon" href="/favicon.ico?v=2">
 
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -229,7 +229,8 @@
   }
   .camaras-pronto-texto { margin: 4px 0 2px; font-size: 0.8rem; color: var(--text-soft); line-height: 1.5; }
 
-  /* Card "Calidad de Visita Técnica entre Incidencias" (demo / PRONTO) */
+  /* Badge "DEMO" — usado por cards que aun no tienen datos reales (ej.
+     "Calidad de Instalación"). "Calidad de Visita Técnica" ya no lo usa. */
   .demo-badge {
     font-size: 0.6rem; font-weight: 800; letter-spacing: .05em; color: var(--purple);
     background: rgba(139,114,255,.14); border: 1px solid rgba(139,114,255,.3);
@@ -437,10 +438,10 @@
   <div class="bottom-row">
     <article class="card">
       <div class="card-head-row">
-        <h3 id="tituloCalidadVisita">Calidad de Visita Técnica entre Incidencias <span class="pronto-badge">PRONTO</span> <span class="demo-badge">DEMO</span></h3>
+        <h3 id="tituloCalidadVisita">Calidad de Visita Técnica entre Incidencias</h3>
         <button type="button" class="mas-info-btn" id="btnInfoCalidadVisita">+ Info</button>
       </div>
-      <p class="sub" id="subCalidadVisita">Visitas repetidas a la misma cámara por sucursal · sucursales reales, datos de ejemplo</p>
+      <p class="sub" id="subCalidadVisita">Visitas repetidas a la misma cámara por sucursal · desde 04-08-2026</p>
       <div class="table-wrap">
         <table>
           <thead>
@@ -466,8 +467,8 @@
   <div class="detalle-modal">
     <div class="detalle-header">
       <div>
-        <h2>Calidad de Visita Técnica entre Incidencias <span class="demo-badge">DEMO</span></h2>
-        <p>Detalle de cada visita registrada por sucursal y cámara — datos de ejemplo</p>
+        <h2>Calidad de Visita Técnica entre Incidencias</h2>
+        <p>Detalle de cada visita registrada por sucursal y cámara</p>
       </div>
     </div>
     <div class="detalle-body-table" id="calidadVisitaDetalle"></div>
@@ -478,8 +479,8 @@
   <div class="detalle-modal">
     <div class="detalle-header">
       <div>
-        <h2>Calidad de Instalación <span class="demo-badge">DEMO</span></h2>
-        <p>Cámaras caídas tras instalación, agrupadas por motivo — datos de ejemplo</p>
+        <h2>Calidad de Instalación</h2>
+        <p>Cámaras caídas tras instalación, agrupadas por motivo</p>
       </div>
     </div>
     <div class="detalle-body-table" id="calidadInstalacionDetalle"></div>
@@ -579,10 +580,10 @@
       </article>
       <article class="card camaras-card-pronto">
         <div class="card-head-row">
-          <h3>Calidad de Instalación <span class="demo-badge">DEMO</span></h3>
+          <h3>Calidad de Instalación</h3>
           <button type="button" class="mas-info-btn" id="btnInfoCalidadInstalacion">+ Info</button>
         </div>
-        <p class="sub" style="margin:0 0 6px;" id="calidadInstalacionResumen">Cámaras recién instaladas que se cayeron · datos de ejemplo</p>
+        <p class="sub" style="margin:0 0 6px;" id="calidadInstalacionResumen">Cámaras recién instaladas que se cayeron · desde 11-08-2026</p>
         <div class="camaras-lista-scroll" id="calidadInstalacionLista"></div>
       </article>
     </div>
@@ -1018,20 +1019,18 @@
     document.getElementById("camKpiInstaladas").textContent = totalInstaladas;
   }
 
-  // ── DEMO: "Calidad de Instalación" ──
-  // Cámaras nuevas instaladas por Soporte, identificadas por ID unico por
-  // ODS+sucursal. Si esa MISMA camara (mismo ID) vuelve a reportarse caida
-  // despues de instalada, se dispara la alerta (no proviene del API real).
-  const CALIDAD_INSTALACION_DEMO = [
-    { ods: "V246", sucursal: "Desarrollo rural Concon", camaraId: "CAM-V246-01", fechaInstalacion: "2026-07-05", tecnico: "Jesus Sebastian Gonzalez Aguilera", caida: false },
-    { ods: "V246", sucursal: "Desarrollo rural Concon", camaraId: "CAM-V246-02", fechaInstalacion: "2026-07-05", tecnico: "Jesus Sebastian Gonzalez Aguilera", caida: true, fechaCaida: "2026-07-16", motivoCaida: "Desconexión" },
-    { ods: "V233", sucursal: "Wellford San Bernardo", camaraId: "CAM-V233-01", fechaInstalacion: "2026-06-18", tecnico: "Bryan Benjamin Ibaceta Fabrega", caida: false },
-    { ods: "V257", sucursal: "MC Deporte, Estadio Atlético", camaraId: "CAM-V257-04", fechaInstalacion: "2026-06-22", tecnico: "Marco Antonio Lopez Aguirre", caida: true, fechaCaida: "2026-07-01", motivoCaida: "Falla de Video" },
-    { ods: "V193", sucursal: "Nexe Curauma", camaraId: "CAM-V193-02", fechaInstalacion: "2026-07-10", tecnico: "Rafael Lia Perez", caida: false },
-    { ods: "V251", sucursal: "MC Parque La Isla", camaraId: "CAM-V251-05", fechaInstalacion: "2026-05-28", tecnico: "Daniel Armando Sarmiento García", caida: false },
-    { ods: "V267", sucursal: "Parque Vista al Mar", camaraId: "CAM-V267-01", fechaInstalacion: "2026-06-30", tecnico: "Luis Alberto Bustamante Aguilera", caida: true, fechaCaida: "2026-07-19", motivoCaida: "Desconexión" },
-    { ods: "V234", sucursal: "GR PLANTA", camaraId: "CAM-V234-03", fechaInstalacion: "2026-07-12", tecnico: "Rafael Lia Perez", caida: false },
-  ];
+  // ── "Calidad de Instalación" ──
+  // Datos reales: /api/servicio/kpis-data arma esto en el backend
+  // (_calidad_instalacion_camaras en routes/incidencias.py). Cámaras nuevas
+  // instaladas por Soporte, identificadas por su nombre exacto
+  // (SoporteTecnicoVentaODT.camaras_registradas). Si esa MISMA cámara
+  // vuelve a reportarse como caída (Desconexión/Falla de Video) despues de
+  // instalada, se dispara la alerta. Solo cuenta instalaciones desde el
+  // 11-08-2026 en adelante — antes de esa fecha casi nadie llenaba
+  // camaras_registradas con el nombre real (pedido explícito, ago 2026).
+  function _calidadInstalacionData() {
+    return Array.isArray(DATA && DATA.calidad_instalacion_camaras) ? DATA.calidad_instalacion_camaras : [];
+  }
 
   function _diasEntre(desde, hasta) {
     return Math.round((new Date(hasta) - new Date(desde)) / 864e5);
@@ -1043,11 +1042,12 @@
   // Vista compacta en la tarjeta: solo lo accionable (las caídas). El resto
   // del detalle (incluidas las cámaras OK y el agrupado por motivo) vive en
   // el popup "+ Info" para no ocupar espacio en el dashboard.
-  function renderCalidadInstalacionDemo() {
+  function renderCalidadInstalacion() {
     const cont = document.getElementById("calidadInstalacionLista");
-    const caidas = CALIDAD_INSTALACION_DEMO.filter(c => c.caida);
+    const data = _calidadInstalacionData();
+    const caidas = data.filter(c => c.caida);
     document.getElementById("calidadInstalacionResumen").textContent =
-      `${caidas.length} de ${CALIDAD_INSTALACION_DEMO.length} cámaras nuevas caídas · datos de ejemplo`;
+      `${caidas.length} de ${data.length} cámaras nuevas caídas`;
     if (!caidas.length) {
       cont.innerHTML = '<div class="empty-row">Sin caídas entre las cámaras recién instaladas.</div>';
       return;
@@ -1066,13 +1066,14 @@
 
   function renderCalidadInstalacionDetalle() {
     const cont = document.getElementById("calidadInstalacionDetalle");
-    const caidas = CALIDAD_INSTALACION_DEMO.filter(c => c.caida);
-    const ok = CALIDAD_INSTALACION_DEMO.filter(c => !c.caida);
+    const data = _calidadInstalacionData();
+    const caidas = data.filter(c => c.caida);
+    const ok = data.filter(c => !c.caida);
     const motivos = ["Desconexión", "Falla de Video"];
 
     let html = `<p style="margin:0 0 14px;font-size:0.82rem;color:var(--text-soft);">
-      ${caidas.length} de ${CALIDAD_INSTALACION_DEMO.length} cámaras instaladas recientemente se cayeron,
-      agrupadas por motivo. Datos de ejemplo.
+      ${caidas.length} de ${data.length} cámaras instaladas recientemente se cayeron,
+      agrupadas por motivo.
     </p>`;
 
     motivos.forEach(motivo => {
@@ -1133,7 +1134,7 @@
     document.getElementById("camarasOdsBuscar").value = "";
     _pintarKpisCamaras();
     filtrarOdsCamaras();
-    renderCalidadInstalacionDemo();
+    renderCalidadInstalacion();
   }
   function cerrarCamarasModal() {
     document.body.classList.remove("camaras-open");
@@ -1142,87 +1143,26 @@
   document.getElementById("btnInfoCamaras").addEventListener("click", abrirCamarasModal);
   document.getElementById("btnVolverCamaras").addEventListener("click", cerrarCamarasModal);
 
-  // ── DEMO: "Calidad de Visita Técnica entre Incidencias" ──
-  // Sucursales reales, visitas y motivos de ejemplo (no proviene del API).
+  // ── "Calidad de Visita Técnica entre Incidencias" ──
+  // Datos reales: /api/servicio/kpis-data arma esto en el backend
+  // (_calidad_visita_camaras en routes/incidencias.py) parseando el nombre
+  // de cámara desde detalle_problema y calzándolo contra el listado real de
+  // sucursal_camaras_monitoreo. Solo incluye incidencias desde el 04-08-2026
+  // en adelante — antes de esa fecha el picker de cámaras casi no se usaba
+  // y el texto libre no calza de forma confiable (pedido explícito, ago 2026).
   // Un recinto puede tener 1 o mas camaras con historial propio; la alerta de
   // repeticion (3+ visitas) se evalua POR CAMARA, no por sucursal completa
-  // (ej: Inseco tiene camara 1 con 5 visitas y camara 2 con 3, ambas alertan).
-  const CALIDAD_VISITA_DEMO = [
-    { sucursal: "Casa Nervi", camaras: [
-      { camara: "Cámara 3 - Acceso principal", visitas: [
-        { fecha: "2026-05-02", tecnico: "Jesus Sebastian Gonzalez Aguilera", motivo: "Desconexión", odt: "I11402" },
-        { fecha: "2026-06-14", tecnico: "Marco Antonio Lopez Aguirre", motivo: "Problema de Visual", odt: "I11890" },
-        { fecha: "2026-07-10", tecnico: "Jesus Sebastian Gonzalez Aguilera", motivo: "Desconexión", odt: "I12210" },
-      ]},
-    ]},
-    { sucursal: "DYS", camaras: [
-      { camara: "Cámara 1 - Bodega", visitas: [
-        { fecha: "2026-06-20", tecnico: "Bryan Benjamin Ibaceta Fabrega", motivo: "Problema de Alarma", odt: "I11955" },
-      ]},
-    ]},
-    { sucursal: "Colegio Guillermo Gronemeyer", camaras: [
-      { camara: "Cámara 5 - Patio central", visitas: [
-        { fecha: "2026-04-18", tecnico: "Daniel Armando Sarmiento García", motivo: "Falla de Video", odt: "I11120" },
-        { fecha: "2026-05-25", tecnico: "Daniel Armando Sarmiento García", motivo: "Falla de Video", odt: "I11560" },
-        { fecha: "2026-06-30", tecnico: "Rafael Lia Perez", motivo: "Falla de Video", odt: "I12040" },
-        { fecha: "2026-07-15", tecnico: "Jesus Sebastian Gonzalez Aguilera", motivo: "Cámara Sucia", odt: "I12260" },
-      ]},
-    ]},
-    { sucursal: "ASF La Ligua", camaras: [
-      { camara: "Cámara 2 - Estacionamiento", visitas: [
-        { fecha: "2026-06-05", tecnico: "Luis Alberto Bustamante Aguilera", motivo: "Desconexión", odt: "I11780" },
-        { fecha: "2026-07-02", tecnico: "Luis Alberto Bustamante Aguilera", motivo: "Desconexión", odt: "I12105" },
-      ]},
-    ]},
-    { sucursal: "Race Tech", camaras: [
-      { camara: "Cámara 4 - Recepción", visitas: [
-        { fecha: "2026-07-08", tecnico: "Marco Antonio Lopez Aguirre", motivo: "Problema de Alarma", odt: "I12180" },
-      ]},
-    ]},
-    { sucursal: "Inseco", camaras: [
-      { camara: "Cámara 1 - Portería", visitas: [
-        { fecha: "2026-03-22", tecnico: "Bryan Benjamin Ibaceta Fabrega", motivo: "Desconexión", odt: "I10820" },
-        { fecha: "2026-05-11", tecnico: "Rafael Lia Perez", motivo: "Desconexión", odt: "I11340" },
-        { fecha: "2026-06-27", tecnico: "Bryan Benjamin Ibaceta Fabrega", motivo: "Desconexión", odt: "I12010" },
-        { fecha: "2026-07-18", tecnico: "Bryan Benjamin Ibaceta Fabrega", motivo: "Desconexión", odt: "I12280" },
-        { fecha: "2026-07-19", tecnico: "Jesus Sebastian Gonzalez Aguilera", motivo: "Desconexión", odt: "I12285" },
-      ]},
-      { camara: "Cámara 2 - Bodega", visitas: [
-        { fecha: "2026-04-10", tecnico: "Rafael Lia Perez", motivo: "Falla de Video", odt: "I11080" },
-        { fecha: "2026-06-02", tecnico: "Bryan Benjamin Ibaceta Fabrega", motivo: "Falla de Video", odt: "I11760" },
-        { fecha: "2026-07-14", tecnico: "Rafael Lia Perez", motivo: "Falla de Video", odt: "I12240" },
-      ]},
-    ]},
-    { sucursal: "Casa Felipe Aris", camaras: [
-      { camara: "Cámara 6 - Jardín", visitas: [
-        { fecha: "2026-06-01", tecnico: "Daniel Armando Sarmiento García", motivo: "Problema de Visual", odt: "I11700" },
-      ]},
-    ]},
-    { sucursal: "Ing Montemar", camaras: [
-      { camara: "Cámara 2 - Sala de máquinas", visitas: [
-        { fecha: "2026-05-15", tecnico: "Rafael Lia Perez", motivo: "Falla de Video", odt: "I11420" },
-        { fecha: "2026-06-22", tecnico: "Rafael Lia Perez", motivo: "Falla de Video", odt: "I11970" },
-      ]},
-    ]},
-    { sucursal: "Astara Casa Matriz", camaras: [
-      { camara: "Cámara 7 - Perímetro norte", visitas: [
-        { fecha: "2026-04-30", tecnico: "Luis Alberto Bustamante Aguilera", motivo: "Desconexión", odt: "I11250" },
-        { fecha: "2026-06-09", tecnico: "Marco Antonio Lopez Aguirre", motivo: "Cámara Sucia", odt: "I11830" },
-        { fecha: "2026-07-05", tecnico: "Luis Alberto Bustamante Aguilera", motivo: "Desconexión", odt: "I12130" },
-      ]},
-    ]},
-    { sucursal: "Oficina CMQ", camaras: [
-      { camara: "Cámara 3 - Hall", visitas: [
-        { fecha: "2026-07-01", tecnico: "Daniel Armando Sarmiento García", motivo: "Problema de Alarma", odt: "I12060" },
-      ]},
-    ]},
-  ];
-
+  // (ej: un recinto puede tener camara 1 con 5 visitas y camara 2 con 3,
+  // ambas alertan).
   function _agruparCalidadVisita() {
+    // DATA recien queda poblado despues del fetch en init() — leerlo aqui
+    // adentro (no en una const de nivel superior) para no evaluarlo antes
+    // de tiempo, cuando todavia es null y esto rompe el script entero.
+    const calidadVisitaData = (DATA && Array.isArray(DATA.calidad_visita_camaras)) ? DATA.calidad_visita_camaras : [];
     const filtroDesdeVal = document.getElementById("filtroDesde").value;
     const filtroHastaVal = document.getElementById("filtroHasta").value;
     const hayFiltro = Boolean(filtroDesdeVal && filtroHastaVal);
-    return CALIDAD_VISITA_DEMO
+    return calidadVisitaData
       .map(s => ({
         sucursal: s.sucursal,
         camaras: s.camaras
@@ -1241,7 +1181,7 @@
       .sort((a, b) => b.camaras[0].visitas.length - a.camaras[0].visitas.length);
   }
 
-  function renderCalidadVisitaDemo() {
+  function renderCalidadVisita() {
     const tbody = document.getElementById("tbodyCalidadVisita");
     const grupos = _agruparCalidadVisita();
     if (!grupos.length) {
@@ -1415,8 +1355,35 @@
       if (modoDiario) return d.getFullYear() === b.y && d.getMonth() === b.m && d.getDate() === b.d;
       return d.getFullYear() === b.y && d.getMonth() === b.m;
     };
-    const finalizadasSerie = buckets.map(b => regs.filter(r => isFinal(r) && enBucket(r.fecha_cierre || r.fecha_registro, b)).length);
-    const pendientesSerie = buckets.map(b => regs.filter(r => !isFinal(r) && enBucket(r.fecha_registro, b)).length);
+    // Foto real de cada periodo: para saber si una ODT estaba pendiente o
+    // terminada EN ese mes/dia hacen falta las dos fechas, no solo una.
+    // "Terminada en b" = se cerro durante b (fecha_cierre cae en b).
+    // "Pendiente en b" = ya existia para el final de b (fecha_registro <=
+    // fin de b) y todavia no estaba cerrada en ese momento (sin fecha_cierre,
+    // o fecha_cierre posterior al fin de b) — asi una ODT de julio que recien
+    // se cierra en agosto cuenta como pendiente en julio (que es como estaba
+    // en ese momento) y como terminada en agosto (cuando realmente se cerro),
+    // en vez de "desaparecer" de julio o migrar entera a agosto.
+    const finExclusivoBucket = (b) => modoDiario
+      ? new Date(b.y, b.m, b.d + 1)
+      : new Date(b.y, b.m + 1, 1);
+    const estabaPendienteEn = (r, finExclusivo) => {
+      const dCreacion = fparse(r.fecha_registro);
+      if (!dCreacion || dCreacion >= finExclusivo) return false;
+      if (isFinal(r)) {
+        // Terminada pero sin fecha_cierre (dato legado incompleto: bastante
+        // comun en ODTs viejas) — no hay forma de saber en que mes dejo de
+        // estar pendiente, asi que no se cuenta como pendiente en NINGUN mes
+        // (mejor omitirla que dejarla "pendiente para siempre" e inflar
+        // todos los meses con el mismo backlog fantasma).
+        const dCierre = fparse(r.fecha_cierre);
+        if (!dCierre) return false;
+        return dCierre >= finExclusivo;
+      }
+      return true;
+    };
+    const finalizadasSerie = buckets.map(b => regs.filter(r => isFinal(r) && enBucket(r.fecha_cierre, b)).length);
+    const pendientesSerie = buckets.map(b => regs.filter(r => estabaPendienteEn(r, finExclusivoBucket(b))).length);
 
     function hexARgba(hex, alpha) {
       const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), bl = parseInt(hex.slice(5, 7), 16);
@@ -1479,14 +1446,14 @@
           let lista, titulo, colLabel;
           if (esPendienteSerie) {
             lista = regs
-              .filter(r => !isFinal(r) && enBucket(r.fecha_registro, bucket))
+              .filter(r => estabaPendienteEn(r, finExclusivoBucket(bucket)))
               .map(r => ({ odt: r.odt, cliente: r.cliente, problema: r.problema, tecnico: r.tecnicos, dias: Math.floor(diasAbierta(r) ?? 0) }))
               .sort((a, b) => b.dias - a.dias);
             titulo = `ODTs pendientes / en proceso — ${bucket.label}`;
             colLabel = "Días abierta";
           } else {
             lista = regs
-              .filter(r => isFinal(r) && enBucket(r.fecha_cierre || r.fecha_registro, bucket))
+              .filter(r => isFinal(r) && enBucket(r.fecha_cierre, bucket))
               .map(r => ({ odt: r.odt, cliente: r.cliente, problema: r.problema, tecnico: r.tecnicos, dias: Math.floor(cierreDias(r) ?? 0) }))
               .sort((a, b) => b.dias - a.dias);
             titulo = `ODTs finalizadas — ${bucket.label}`;
@@ -1558,11 +1525,12 @@
       plugins: [pluginTextoCentralCamaras],
     });
 
-    // Calidad de Visita Técnica entre Incidencias (demo): sigue el mismo
+    // Calidad de Visita Técnica entre Incidencias: sigue el mismo
     // rango Desde/Hasta que el resto de las tarjetas cuando hay filtro.
-    document.getElementById("tituloCalidadVisita").innerHTML = (hayFiltroFecha ? `Calidad de Visita Técnica entre Incidencias ${rangoFechaLabel} ` : "Calidad de Visita Técnica entre Incidencias ")
-      + '<span class="pronto-badge">PRONTO</span> <span class="demo-badge">DEMO</span>';
-    renderCalidadVisitaDemo();
+    document.getElementById("tituloCalidadVisita").textContent = hayFiltroFecha
+      ? `Calidad de Visita Técnica entre Incidencias ${rangoFechaLabel}`
+      : "Calidad de Visita Técnica entre Incidencias";
+    renderCalidadVisita();
 
     // Lista completa de ODTs abiertas para el popup "+ Info" de ODTs por mes
     // (el card "ODTs abiertas más antiguas" fue reemplazado por el placeholder

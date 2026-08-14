@@ -41,11 +41,16 @@ def apply_ticket_status_change(ticket: Ticket, new_status: str) -> dict[str, obj
     if new_status in resolved_statuses and ticket.resolved_at is None:
         # Guardamos la fecha solo cuando el ticket pasa a resuelto.
         ticket.resolved_at = now
+        ticket.last_resolved_at = now
 
     if reopened_from_resolved:
-        # Si el ticket vuelve a abrirse, limpiamos la resoluciÃ³n previa.
+        # Si el ticket vuelve a abrirse, limpiamos la resoluciÃ³n previa
+        # (resolved_at refleja el estado ACTUAL), pero last_resolved_at
+        # se conserva para que el historial no pierda el hecho de que se
+        # resolviÃ³ antes de reabrirse.
         ticket.reopen_count = (ticket.reopen_count or 0) + 1
         ticket.resolved_at = None
+        ticket.last_reopened_at = now
 
     return {
         "old_status": old_status,

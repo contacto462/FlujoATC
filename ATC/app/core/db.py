@@ -9,6 +9,8 @@ from ATC.app.core.config import settings
 
 def build_engine(database_url: str, **kwargs):
     kwargs.setdefault("pool_pre_ping", True)
+    kwargs.setdefault("pool_size", 15)
+    kwargs.setdefault("max_overflow", 25)
     try:
         parsed = make_url(database_url)
     except Exception:

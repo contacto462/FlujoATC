@@ -86,6 +86,7 @@ from ATC.app.models.ticket_history import TicketAssignmentHistory  # noqa: F401
 from ATC.app.models.ticket_internal_note_read_state import (  # noqa: F401
     TicketInternalNoteReadState,
 )
+from ATC.app.models.message_mention import MessageMention  # noqa: F401
 from ATC.app.models.ticket_manual_unread import TicketManualUnread  # noqa: F401
 from ATC.app.models.ticket_message_read_state import (  # noqa: F401
     TicketMessageReadState,

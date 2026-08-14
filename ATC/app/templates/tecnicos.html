@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
-<link rel="shortcut icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png?v=2">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png?v=2">
+<link rel="shortcut icon" href="/favicon.ico?v=2">
 
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -460,6 +460,183 @@
       flex-direction: column;
     }
 
+    .aviso-inicio-odt {
+      display: flex;
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      background:
+        radial-gradient(circle at 50% 38%, rgba(245, 158, 11, 0.16), transparent 34%),
+        rgba(1, 8, 14, 0.82);
+      backdrop-filter: blur(7px);
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      opacity: 1;
+      transition: opacity 220ms ease;
+    }
+
+    .aviso-inicio-odt.is-leaving {
+      opacity: 0;
+    }
+
+    .aviso-inicio-odt-card {
+      width: 100%;
+      max-width: 410px;
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+      background:
+        linear-gradient(145deg, rgba(22, 34, 43, 0.98), rgba(10, 17, 24, 0.98)),
+        #0f1720;
+      color: #fff7ed;
+      border-radius: 18px;
+      padding: 26px 28px 24px;
+      text-align: left;
+      box-shadow:
+        0 24px 72px rgba(0, 0, 0, 0.58),
+        0 0 0 1px rgba(251, 146, 60, 0.22) inset;
+      border: 1px solid rgba(251, 146, 60, 0.34);
+      animation: avisoInicioPop 560ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .aviso-inicio-odt-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background:
+        linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+      transform: translateX(-115%) skewX(-18deg);
+      animation: avisoInicioSweep 1250ms cubic-bezier(0.16, 1, 0.3, 1) 180ms both;
+    }
+
+    .aviso-inicio-odt-card::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #fb923c, #facc15, #22c55e);
+      opacity: 0.9;
+    }
+
+    .aviso-inicio-odt-content {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .aviso-inicio-odt-icon {
+      width: 50px;
+      height: 50px;
+      position: relative;
+      border-radius: 16px;
+      background: rgba(251, 146, 60, 0.12);
+      box-shadow:
+        0 0 0 1px rgba(251, 146, 60, 0.28) inset,
+        0 14px 28px rgba(0, 0, 0, 0.28);
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+    }
+
+    .aviso-inicio-odt-icon::before,
+    .aviso-inicio-odt-icon::after {
+      content: "";
+      position: absolute;
+      border-radius: 999px;
+    }
+
+    .aviso-inicio-odt-icon::before {
+      width: 26px;
+      height: 26px;
+      border: 2px solid rgba(253, 186, 116, 0.96);
+      animation: avisoInicioRing 1150ms ease-out 120ms both;
+    }
+
+    .aviso-inicio-odt-icon::after {
+      width: 8px;
+      height: 8px;
+      background: #facc15;
+      box-shadow: 0 1px 8px rgba(0, 0, 0, 0.32);
+    }
+
+    .aviso-inicio-odt-eyebrow {
+      margin: 0 0 5px;
+      color: #fed7aa;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .aviso-inicio-odt-card p {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 800;
+      line-height: 1.25;
+      color: #fffaf0;
+    }
+
+    @keyframes avisoInicioPop {
+      from {
+        transform: translateY(12px) scale(0.96);
+        opacity: 0;
+        filter: blur(8px);
+      }
+      to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+        filter: blur(0);
+      }
+    }
+
+    @keyframes avisoInicioSweep {
+      from { transform: translateX(-115%) skewX(-18deg); }
+      to { transform: translateX(115%) skewX(-18deg); }
+    }
+
+    @keyframes avisoInicioRing {
+      0% {
+        transform: scale(0.5);
+        opacity: 0;
+      }
+      18% {
+        opacity: 1;
+      }
+      100% {
+        transform: scale(1.42);
+        opacity: 0;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .aviso-inicio-odt-card {
+        max-width: 92vw;
+        padding: 22px 20px 20px;
+      }
+      .aviso-inicio-odt-content {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        text-align: center;
+        gap: 12px;
+      }
+      .aviso-inicio-odt-card p {
+        font-size: 18px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .aviso-inicio-odt-card,
+      .aviso-inicio-odt-card::before,
+      .aviso-inicio-odt-icon::before {
+        animation: none;
+      }
+    }
+
     .modal-card {
       width: 100%;
       max-width: 700px;
@@ -786,6 +963,20 @@
       font-weight: 700;
       color: var(--text-main);
       text-decoration: none;
+    }
+
+    .inc-odt {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #fed7aa;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1;
     }
 
     .inc-problema {
@@ -1821,6 +2012,26 @@
     <script src="/static/utils.js"></script>
 </head>
 <body>
+  <div id="avisoInicioODT" class="aviso-inicio-odt">
+    <div class="aviso-inicio-odt-card">
+      <div class="aviso-inicio-odt-content">
+        <span class="aviso-inicio-odt-icon" aria-hidden="true"></span>
+        <div>
+          <div class="aviso-inicio-odt-eyebrow">Acción requerida</div>
+          <p>Inicia la ODT al momento de llegar</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    setTimeout(() => {
+      const aviso = document.getElementById("avisoInicioODT");
+      if (!aviso) return;
+      aviso.classList.add("is-leaving");
+      setTimeout(() => { aviso.style.display = "none"; }, 240);
+    }, 5000);
+  </script>
+
   <div class="encabezado-principal">
     <div class="marca-principal">
     <img src="/shared-static/img/logo-atc.png" alt="Logo ATC" class="logo-principal">
@@ -1919,6 +2130,15 @@
           <p id="instalacionCierreHelp" class="cierre-help">
             Para televigilancia, al marcar esta opción se registran como instaladas todas las cámaras contratadas.
           </p>
+          <label class="cierre-check" style="margin-bottom:10px;">
+            <input type="checkbox" id="instalacionExcedidaCierre" />
+            <span>Se instaló más de lo presupuestado</span>
+          </label>
+          <div id="cantidadInstaladaTotalWrap" style="display:none;margin:4px 0 10px;">
+            <label for="cantidadInstaladaTotalCierre" style="display:block;font-size:12px;font-weight:700;margin-bottom:4px;">Cantidad TOTAL instalada</label>
+            <input type="number" id="cantidadInstaladaTotalCierre" min="1" step="1" style="width:140px;padding:6px 8px;" />
+            <p id="cantidadInstaladaTotalHint" class="cierre-help"></p>
+          </div>
         </fieldset>
       </div>
 
@@ -2062,6 +2282,7 @@
     let cierreActualEsMantencion = false;
     let cierreActualEsInstalacion = false;
     let cierreActualEsTelevigilancia = false;
+    let cierreCamarasContratadas = 0;
     let cierreStepActual = 1;
     let cierreStepMap = [1, 2, 3, 4, 5, 6];
     let materialesSeleccionados = [];
@@ -2378,7 +2599,7 @@
         }
         let html = '<div class="infoSucursal fade-in">';
         const detalleHtml = detalleCompletoHTML(observacion);
-        if (detalleHtml) html += '<h4>Detalle Completo ODT</h4>' + `<div class="odt-detalle-completo">${detalleHtml}</div>`;
+        if (detalleHtml) html += `<h4>Detalle Completo ODT ${escapeHTML(odt)}</h4>` + `<div class="odt-detalle-completo">${detalleHtml}</div>`;
         html += '<h4>Detalles de la Sucursal</h4>';
         html += `<p><strong>Direccion:</strong> ${escapeHTML(sucursalData?.direccion || "No disponible")}</p>`;
         const contacto = [sucursalData?.contacto || "", sucursalData?.telefono || ""].filter(Boolean).join(" - ");
@@ -2408,9 +2629,13 @@
           html += '<h4 class="hdr-incidencias">Historial de Incidencias</h4>';
           html += '<div class="historial-incidencias" style="display:none;">';
           const incVis = 5;
+          const odtActualNorm = normalizarTexto(odt || "");
           const incFilt = (Array.isArray(incidencias) ? incidencias : []).filter((inc) => {
             const t = normalizarTexto(inc?.problema || "");
-            return !t.includes("mantencion") && !t.includes("mantención");
+            if (t.includes("mantencion") || t.includes("mantención")) return false;
+            const incOdtNorm = normalizarTexto(inc?.odt || "");
+            if (incOdtNorm && odtActualNorm && incOdtNorm === odtActualNorm) return false;
+            return true;
           });
           if (!incFilt.length) {
             html += '<p class="info-vacio">No hay incidencias relevantes</p>';
@@ -2418,8 +2643,10 @@
             html += `<ul class="lista-incidencias" data-total="${incFilt.length}">`;
             incFilt.forEach((inc, idx) => {
               const vis = idx >= incFilt.length - incVis ? "block" : "none";
+              const incOdt = String(inc?.odt || "").trim();
+              const odtHtml = incOdt ? `<span class="inc-odt">ODT ${escapeHTML(incOdt)}</span>` : "";
               html += `<li class="inc-item" style="display:${vis};">` +
-                `<div class="inc-row"><span class="inc-fecha">Fecha: ${escapeHTML(inc?.fecha || "Sin fecha")}</span>` +
+                `<div class="inc-row">${odtHtml}<span class="inc-fecha">Fecha: ${escapeHTML(inc?.fecha || "Sin fecha")}</span>` +
                 (inc?.problema ? `<span class="inc-problema">- ${escapeHTML(inc.problema)}</span>` : "") + "</div>" +
                 `<div class="inc-obs">${escapeHTML(inc?.texto || "")}</div></li>`;
             });
@@ -2707,6 +2934,21 @@
       document.getElementById("materialesSinUso")?.addEventListener("change", (event) => {
         setMaterialesSinUsoActivo(event.target.checked);
       });
+      document.getElementById("instalacionExcedidaCierre")?.addEventListener("change", (event) => {
+        const wrap = document.getElementById("cantidadInstaladaTotalWrap");
+        const marcado = event.target.checked;
+        if (wrap) wrap.style.display = marcado ? "block" : "none";
+        if (marcado) {
+          // Instalar mas de lo contratado implica haber instalado todo lo
+          // contratado tambien — se marca sola para no pedir el mismo dato dos veces.
+          const completa = document.getElementById("instalacionCompletaCierre");
+          if (completa) completa.checked = true;
+          actualizarHintCantidadInstaladaTotal();
+        } else {
+          const input = document.getElementById("cantidadInstaladaTotalCierre");
+          if (input) input.value = "";
+        }
+      });
       document.getElementById("materialesBusqueda")?.addEventListener("input", (event) => {
         if (document.getElementById("materialesSinUso")?.checked) return;
         buscarMaterialesCierre(event.target.value);
@@ -2724,6 +2966,12 @@
       document.getElementById("cierreError").textContent = "";
       const instalacionCompleta = document.getElementById("instalacionCompletaCierre");
       if (instalacionCompleta) instalacionCompleta.checked = false;
+      const instalacionExcedida = document.getElementById("instalacionExcedidaCierre");
+      if (instalacionExcedida) instalacionExcedida.checked = false;
+      const cantidadInstaladaWrap = document.getElementById("cantidadInstaladaTotalWrap");
+      if (cantidadInstaladaWrap) cantidadInstaladaWrap.style.display = "none";
+      const cantidadInstaladaInput = document.getElementById("cantidadInstaladaTotalCierre");
+      if (cantidadInstaladaInput) cantidadInstaladaInput.value = "";
       document.querySelectorAll("#pruebasCierre input[type='checkbox']").forEach((input) => {
         input.checked = false;
       });
@@ -2791,14 +3039,27 @@
       const err = document.getElementById("cierreError");
       const actualStep = cierreStepMap[cierreStepActual - 1];
       switch (actualStep) {
-        case 7:
+        case 7: {
+          const excedida = document.getElementById("instalacionExcedidaCierre")?.checked;
           if (!document.getElementById("instalacionCompletaCierre")?.checked) {
             err.textContent = cierreActualEsTelevigilancia
               ? "Marca que se instalaron todas las cámaras contratadas para cerrar la instalación."
               : "Marca que se instaló todo lo contratado para cerrar la instalación.";
             return false;
           }
+          if (excedida) {
+            const cantidad = Number(document.getElementById("cantidadInstaladaTotalCierre")?.value || 0);
+            if (!cantidad || cantidad <= 0) {
+              err.textContent = "Ingresa la cantidad TOTAL instalada.";
+              return false;
+            }
+            if (cierreCamarasContratadas > 0 && cantidad <= cierreCamarasContratadas) {
+              err.textContent = `La cantidad total instalada debe ser mayor a lo contratado (${cierreCamarasContratadas}).`;
+              return false;
+            }
+          }
           break;
+        }
         case 1:
           if (!document.getElementById("responsableCierre").value) { err.textContent = "Selecciona el responsable del problema."; return false; }
           if (!obtenerValoresMultiselect("causaCierre").length)    { err.textContent = "Selecciona al menos una causa raiz."; return false; }
@@ -2843,6 +3104,10 @@
       const observacion = document.getElementById("observacion").value.trim();
       const pruebasCierre = Array.from(document.querySelectorAll("#pruebasCierre input:checked")).map((input) => input.value);
       const instalacionCompleta = Boolean(document.getElementById("instalacionCompletaCierre")?.checked);
+      const instalacionExcedida = Boolean(document.getElementById("instalacionExcedidaCierre")?.checked);
+      const cantidadInstaladaTotal = instalacionExcedida
+        ? Number(document.getElementById("cantidadInstaladaTotalCierre")?.value || 0) || null
+        : null;
       const materialesSinUso = document.getElementById("materialesSinUso").checked;
       const materiales = materialesSeleccionados.map((item) => ({
         codigo: String(item.codigo || "").trim(),
@@ -2856,6 +3121,14 @@
           throw new Error(cierreActualEsTelevigilancia
             ? "Marca que se instalaron todas las cámaras contratadas."
             : "Marca que se instaló todo lo contratado.");
+        }
+        if (instalacionExcedida) {
+          if (!cantidadInstaladaTotal || cantidadInstaladaTotal <= 0) {
+            throw new Error("Ingresa la cantidad TOTAL instalada.");
+          }
+          if (cierreCamarasContratadas > 0 && cantidadInstaladaTotal <= cierreCamarasContratadas) {
+            throw new Error(`La cantidad total instalada debe ser mayor a lo contratado (${cierreCamarasContratadas}).`);
+          }
         }
         if (!pruebasCierre.length) throw new Error("Selecciona al menos una prueba realizada.");
       } else if (!cierreActualEsMantencion) {
@@ -2874,6 +3147,7 @@
       return {
         observacion,
         instalacionCompleta,
+        cantidadInstaladaTotal,
         tipoCierre: cierreActualEsInstalacion ? "instalacion" : (cierreActualEsMantencion ? "mantencion" : "incidencia"),
         responsableCierre,
         causaCierre,
@@ -3022,11 +3296,24 @@
         .trim();
     }
 
+    function limpiarDetalleObservacionConArea(valor, area) {
+      return String(valor || "")
+        .replace(/\r\n/g, "\n")
+        .replace(/\r/g, "\n")
+        .split("\n")
+        .map((x) => x.trim())
+        .filter(Boolean)
+        .map((linea) => linea.replace(/^\[(.+?)\s-\s([^\]]+)\]/, `[${area} - $2]`))
+        .join(" | ")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+    }
+
     function detalleCompletoDesdeFila(fila) {
       const partes = [
-        limpiarDetalleObservacion(fila?.[6] || ""),   // Registro operaciones
-        limpiarDetalleObservacion(fila?.[15] || ""),  // Gestión soporte
-        limpiarDetalleObservacion(fila?.[16] || ""),  // Gestión servicio técnico
+        limpiarDetalleObservacionConArea(fila?.[6] || "", "Operaciones"),   // Registro operaciones
+        limpiarDetalleObservacionConArea(fila?.[15] || "", "Soporte"),  // Gestión soporte
+        limpiarDetalleObservacionConArea(fila?.[16] || "", "Servicio Técnico"),  // Gestión servicio técnico
       ];
 
       const vistos = new Set();
@@ -3054,7 +3341,13 @@
       if (!limpio) return "";
       const partes = limpio.split(" | ").map((p) => p.trim()).filter(Boolean);
       if (!partes.length) return "";
-      return partes.map((p) => escapeHTML(p)).join("<br>");
+      return partes.map((p) => {
+        const m = p.match(/^\[([^\]]+)\]\s*(.*)$/);
+        if (m) {
+          return `<b>[${escapeHTML(m[1])}]</b>${m[2] ? " " + escapeHTML(m[2]) : ""}`;
+        }
+        return escapeHTML(p);
+      }).join("<br>");
     }
 
 
@@ -3415,6 +3708,30 @@
             : "Al marcar esta opción se confirma que la instalación contratada quedó completa.";
         }
         modal.style.display = "flex";
+      }
+
+      cierreCamarasContratadas = 0;
+      if (cierreActualEsInstalacion) {
+        api(`/api/sucursal/detalle?odt=${encodeURIComponent(odtSeleccionada)}`)
+          .then((detalle) => {
+            if (String(modal?.dataset?.odt || "").trim() !== odtSeleccionada) return;
+            cierreCamarasContratadas = Math.max(0, Number(detalle?.camaras_total || 0) || 0);
+            actualizarHintCantidadInstaladaTotal();
+          })
+          .catch(() => {});
+      }
+    }
+
+    function actualizarHintCantidadInstaladaTotal() {
+      const hint = document.getElementById("cantidadInstaladaTotalHint");
+      const input = document.getElementById("cantidadInstaladaTotalCierre");
+      if (!hint || !input) return;
+      if (cierreCamarasContratadas > 0) {
+        hint.textContent = `Contratado: ${cierreCamarasContratadas}. Ingresa la cantidad TOTAL final instalada.`;
+        input.min = String(cierreCamarasContratadas + 1);
+      } else {
+        hint.textContent = "Ingresa la cantidad TOTAL final instalada.";
+        input.min = "1";
       }
     }
 
@@ -3835,7 +4152,7 @@
                     `&cliente=${encodeURIComponent(cliente)}` +
                     qToken;
 
-        window.open(url, "_blank");
+        window.location.href = url;
       } catch (err) {
         alert(`No se pudo abrir rendicion: ${err.message}`);
       }

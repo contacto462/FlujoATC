@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
-<link rel="shortcut icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png?v=2">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png?v=2">
+<link rel="shortcut icon" href="/favicon.ico?v=2">
 
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -250,6 +250,19 @@
     .btn-avisar:disabled { opacity: .5; cursor: not-allowed; transform: none; }
     .detail-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
+    .btn-eliminar-sucursal {
+      display: flex; align-items: center; gap: 7px;
+      padding: 10px 20px; border-radius: 10px;
+      background: #fee2e2; border: 1px solid #fecaca;
+      color: #b91c1c; font-size: 13px; font-weight: 700;
+      font-family: inherit; cursor: pointer;
+      transition: background .18s, transform .12s, opacity .18s;
+      white-space: nowrap;
+      margin-left: auto;
+    }
+    .btn-eliminar-sucursal:hover { background: #fecaca; transform: translateY(-1px); }
+    .btn-eliminar-sucursal:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
     /* ── Campos marcados por Bitácora como "falta o está mal" ── */
     .bitacora-banner {
       display: flex;
@@ -265,6 +278,37 @@
     }
     .bitacora-banner strong { font-weight: 700; }
     .bitacora-banner .fuera-pagina { color: #b45309; }
+
+    /* ── Banner agregado: mis sucursales con avisos de Bitácora ── */
+    .mis-pend-banner {
+      margin: 16px 24px 0;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 12px;
+      padding: 14px 18px;
+    }
+    .mis-pend-head {
+      font-size: 13.5px;
+      color: #92400e;
+      margin-bottom: 10px;
+    }
+    .mis-pend-list { display: flex; flex-direction: column; gap: 8px; }
+    .mis-pend-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: #fffefb;
+      border: 1px solid #fde68a;
+      border-radius: 9px;
+      padding: 10px 14px;
+      flex-wrap: wrap;
+    }
+    .mis-pend-item-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .mis-pend-item-title { font-size: 13.5px; font-weight: 700; color: #1f2937; }
+    .mis-pend-item-empresa { font-size: 12px; color: #6b7280; }
+    .mis-pend-item-campos { font-size: 12px; color: #92400e; }
+    .mis-pend-item .btn-avisar { padding: 7px 14px; flex-shrink: 0; }
     .form-field.campo-marcado label { color: #b45309; font-weight: 700; }
     .form-field.campo-marcado input,
     .form-field.campo-marcado select,
@@ -436,6 +480,8 @@
     </div>
   </header>
 
+  <div id="misPendientesBanner"></div>
+
   <div class="workspace" id="workspace">
     <div class="loading-state" id="loadingState">
       <div class="spinner"></div>
@@ -472,12 +518,8 @@
     async function cargarUsuarioActual() {
       const el = document.getElementById("usuarioActual");
       if (!el) return;
-      if (!qsToken) {
-        el.textContent = "Sesión activa";
-        return;
-      }
       try {
-        const response = await fetch(`/api/usuario-actual?token=${encodeURIComponent(qsToken)}`);
+        const response = await fetch(`/api/venta/usuario-actual?token=${encodeURIComponent(qsToken)}`);
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data?.detail || "No se pudo cargar el usuario actual.");
         const nombre = String(data?.usuario || data?.nombre || data?.username || "").trim();
@@ -671,9 +713,9 @@
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>
               Avisar que está listo
             </button>
-            <button class="btn-save" id="btnSave" onclick="guardarSucursal(${index})">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-              Guardar cambios
+            <button class="btn-eliminar-sucursal" id="btnEliminarSucursal" onclick="eliminarSucursal(${index})" title="Eliminar esta sucursal">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+              Eliminar sucursal
             </button>
           </div>
         </div>
@@ -687,6 +729,60 @@
       loadSucuProveedores(`field-${index}-8`, '/api/venta/proveedores/internet', 'proveedores', String(row[8]||''));
       loadSucuProveedores(`field-${index}-9`, '/api/venta/proveedores/electricidad', 'proveedores', String(row[9]||''));
       cargarRevisionBitacora(index);
+      bindAutoSaveSucursal(index);
+    }
+
+    /* ── ELIMINAR SUCURSAL: borrado real (no deshabilitar) — arrastra
+       contactos de emergencia, personas autorizadas, guardias e info
+       extra asociados (pedido explicito, ago 2026). ── */
+    async function eliminarSucursal(index) {
+      const row = allRows[index];
+      if (!row) return;
+      const nombre = String(row[3] || "esta sucursal");
+      const empresa = String(row[2] || "");
+      const confirmado = confirm(
+        `¿Eliminar "${nombre}"${empresa ? ` (${empresa})` : ""}?\n\n` +
+        "Se borran también sus contactos de emergencia, personas autorizadas y guardias asociados. Esta acción no se puede deshacer."
+      );
+      if (!confirmado) return;
+
+      const id = row[0];
+      const btn = document.getElementById("btnEliminarSucursal");
+      if (btn) { btn.disabled = true; btn.textContent = "Eliminando…"; }
+      try {
+        const res = await fetch(withToken(`/api/venta/sucursales/${encodeURIComponent(id)}`), { method: "DELETE" });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: "Error al eliminar." }));
+          throw new Error(typeof err.detail === "string" ? err.detail : "Error al eliminar.");
+        }
+        allRows.splice(index, 1);
+        activeRowIndex = null;
+        document.getElementById("detailContent").style.display = "none";
+        document.getElementById("detailEmpty").style.display = "";
+        filtrarLista();
+        showToast("Sucursal eliminada.", "ok");
+      } catch (e) {
+        showToast(e.message || "Error al eliminar.", "err");
+        if (btn) { btn.disabled = false; btn.innerHTML = 'Eliminar sucursal'; }
+      }
+    }
+
+    /* ── AUTO-GUARDADO: cada campo se guarda solo al perder el foco / cambiar,
+       ya no hay botón "Guardar cambios" — mismo criterio que Información
+       Cliente (doble clic + guardado automático). ── */
+    function bindAutoSaveSucursal(index) {
+      allHeaders.forEach((header, j) => {
+        if (j === 0 || SUCU_READONLY.has(j)) return;
+        if (SUCU_FIELD_TYPES[j] === 'dias') {
+          const wrap = document.getElementById(`field-${index}-${j}`);
+          wrap?.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+            cb.addEventListener('change', () => guardarSucursal(index));
+          });
+          return;
+        }
+        const el = document.getElementById(`field-${index}-${j}`);
+        el?.addEventListener('change', () => guardarSucursal(index));
+      });
     }
 
     /* ── REVISIÓN BITÁCORA: qué marcó como falta/mal, resaltar y mostrar botón ── */
@@ -720,6 +816,7 @@
       compania_electricidad: "Compañía electricidad",
       numero_cliente_electricidad: "N° cliente electricidad",
       proveedor_internet_cliente: "Proveedor internet cliente",
+      contacto: "Contacto",
       contactos_emergencia: "Contacto de emergencia",
       plan_cuadrante: "Plan cuadrante",
       carabineros: "Carabineros",
@@ -750,10 +847,9 @@
         if (activeRowIndex !== index) return;
         sucursalRevisionCache[rowId] = data;
 
-        if (btnAvisar) btnAvisar.style.display = data.pendiente ? "flex" : "none";
-
         document.querySelectorAll(".form-field.campo-marcado").forEach(el => el.classList.remove("campo-marcado"));
         const campos = data.campos || [];
+        if (btnAvisar) btnAvisar.style.display = (data.pendiente && campos.length) ? "flex" : "none";
         const enEstaPagina = [];
         const enOtraPagina = [];
         campos.forEach(campo => {
@@ -771,14 +867,8 @@
 
         if (data.pendiente && campos.length) {
           const partes = [];
-          if (enEstaPagina.length) {
-            partes.push(`<div><strong>Podés corregir acá (resaltado en naranja):</strong> ${enEstaPagina.map(c => escHtml(SUCU_CAMPO_LABEL[c] || c)).join(", ")}</div>`);
-          }
-          if (enOtraPagina.length) {
-            partes.push(`<div class="fuera-pagina"><strong>Se corrige en Información Clientes:</strong> ${enOtraPagina.map(c => escHtml(SUCU_CAMPO_LABEL[c] || c)).join(", ")}</div>`);
-          }
           if (data.observacion) {
-            partes.push(`<div>Detalle de Bitácora: "${escHtml(data.observacion)}"</div>`);
+            partes.push(`<div>Observación de Bitácora: "${escHtml(data.observacion)}"</div>`);
           }
           banner.innerHTML = `<div class="bitacora-banner">${partes.join("")}</div>`;
         } else {
@@ -876,10 +966,6 @@
         }
       });
 
-      const btn = document.getElementById("btnSave");
-      btn.disabled = true;
-      btn.textContent = "Guardando…";
-
       try {
         const res = await fetch(withToken("/api/venta/sucursales/tabla/guardar-fila"), {
           method: "POST",
@@ -914,12 +1000,6 @@
         }
       } catch (e) {
         showToast(e.message || "Error al guardar", "err");
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = `
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-          Guardar cambios
-        `;
       }
     }
 
@@ -995,9 +1075,72 @@
       }
     }
 
+    /* ── Banner agregado: mis sucursales con avisos de Bitácora ── */
+    const CAMPO_LABELS_BANNER = {
+      direccion_sucursal: "Dirección",
+      latitud_longitud: "Latitud, Longitud",
+      referencia_ubicacion: "Referencia ubicación",
+      contacto: "Contacto",
+      horario_apertura: "Horario de apertura",
+      horario_cierre: "Horario de cierre",
+      horario_habil: "Días hábiles",
+      telefono_porton: "Teléfono portón",
+      telefono_recepcion: "Teléfono recepción",
+      compania_electricidad: "Compañía electricidad",
+      numero_cliente_electricidad: "N° cliente electricidad",
+      proveedor_internet_cliente: "Proveedor internet cliente",
+      internet_atc: "Internet ATC",
+      contactos_emergencia: "Contacto de emergencia",
+      personas_autorizadas: "Personas autorizadas",
+    };
+
+    async function cargarMisPendientesBitacora() {
+      const cont = document.getElementById("misPendientesBanner");
+      if (!cont) return;
+      try {
+        const res = await fetch(withToken("/api/venta/sucursales/mis-pendientes-bitacora"));
+        if (!res.ok) return;
+        const data = await res.json();
+        const pendientes = data.pendientes || [];
+        if (!pendientes.length) { cont.innerHTML = ""; return; }
+        cont.innerHTML = `
+          <div class="mis-pend-banner">
+            <div class="mis-pend-head">
+              <strong>Bitácora marcó ${pendientes.length} sucursal${pendientes.length !== 1 ? "es" : ""} tuya${pendientes.length !== 1 ? "s" : ""} con información pendiente</strong>
+            </div>
+            <div class="mis-pend-list">
+              ${pendientes.map((p) => `
+                <div class="mis-pend-item">
+                  <div class="mis-pend-item-info">
+                    <span class="mis-pend-item-title">${escHtml(p.nombre_sucursal || "-")}</span>
+                    <span class="mis-pend-item-empresa">${escHtml(p.nombre_empresa || "-")}</span>
+                    <span class="mis-pend-item-campos">Falta: ${(p.campos || []).map((c) => escHtml(CAMPO_LABELS_BANNER[c] || c)).join(", ")}</span>
+                  </div>
+                  <button type="button" class="btn-avisar" data-ir-sucursal="${p.sucursal_id}">Revisar</button>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `;
+        cont.querySelectorAll("[data-ir-sucursal]").forEach((btn) => {
+          btn.addEventListener("click", () => irASucursalPendiente(Number(btn.dataset.irSucursal)));
+        });
+      } catch (_) {}
+    }
+
+    function irASucursalPendiente(sucursalId) {
+      const index = allRows.findIndex((row) => Number(row[0]) === sucursalId);
+      if (index === -1) return;
+      const searchInput = document.getElementById("searchInput");
+      if (searchInput) searchInput.value = "";
+      renderList(allRows);
+      selectSucursal(index);
+      document.getElementById("detailPanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
       cargarUsuarioActual();
-      init();
+      init().then(cargarMisPendientesBitacora);
     });
   </script>
 <script src="/static/auth-guard.js"></script>

@@ -7,8 +7,8 @@ combinado) más, por puesto, `intrusivos_detalle`: por cada protocolo
 intrusivo, la lista de incidencias activas en el momento, el operador,
 el desenlace (protocolo_exitoso), la hora aproximada y — solo para los
 puestos que se narran en detalle (el top por intrusivos) — movimientos de
-bitácora del puesto completo y del operador puntual, ambos en una ventana
-de +/-30min alrededor del evento (el operador cubre un puesto entero como
+bitácora del puesto completo y del operador puntual, ambos en los 15min
+ANTERIORES al evento (no hacia adelante) (el operador cubre un puesto entero como
 asignación normal, así que lo relevante no es en cuántas sucursales tuvo
 actividad — eso es simplemente su pega de siempre — sino cuánta bitácora
 escribió él mismo justo en ese momento, como señal de qué tan ocupado
@@ -97,6 +97,8 @@ def _nivel(valor: float, promedio: float) -> str:
     if ratio <= 0.85:
         return "por debajo del promedio"
     return "en línea con el promedio"
+
+
 
 
 def _enriquecer(puestos: list[dict]) -> list[dict]:
@@ -352,6 +354,7 @@ def generar_informe_puestos_pdf(data: dict) -> bytes:
     prom_mov_sin = mean([p["movimientos_bitacora"] for p in sin_intrusivos]) if sin_intrusivos else 0
     prom_suc_con = mean([p["sucursales"] for p in con_intrusivos]) if con_intrusivos else 0
     prom_suc_sin = mean([p["sucursales"] for p in sin_intrusivos]) if sin_intrusivos else 0
+    prom_cam_sin = mean([p["camaras_monitoreadas"] for p in sin_intrusivos]) if sin_intrusivos else 0
 
     seccion("PUESTOS CON MÁS INTRUSIONES — ANÁLISIS")
 
@@ -391,7 +394,8 @@ def generar_informe_puestos_pdf(data: dict) -> bytes:
             f"<b>{p['protocolos_intrusivos']} {intr_txt}</b>. El puesto agrupa "
             f"<b>{p['sucursales']} {suc_txt}</b> y acumula <b>{p['movimientos_bitacora']} {mov_txt}</b> en el "
             f"período, {_nivel(p['movimientos_bitacora'], prom_mov_global)} ({etiqueta_periodo}). "
-            f"Índice de carga combinado: <b>{p['indice_carga']:.0f}/100</b>."
+            f"Señales de carga alta (de 4 posibles, por encima del promedio del grupo): "
+            f"<b>{p['senales_carga_alta']}/4</b>."
         )
         story.append(Paragraph(texto, st_body_r))
 
@@ -465,11 +469,11 @@ def generar_informe_puestos_pdf(data: dict) -> bytes:
 
             exitoso = ev.get("exitoso", "")
             if exitoso == "NO":
-                desenlace_txt = "NO contenido"
+                desenlace_txt = "Protocolo No Exitoso"
             elif exitoso == "SI":
-                desenlace_txt = "Contenido"
+                desenlace_txt = "Protocolo Exitoso"
             else:
-                desenlace_txt = "sin dato"
+                desenlace_txt = "Protocolo sin dato de desenlace"
 
             if activas:
                 conteo = Counter(activas)
@@ -478,14 +482,14 @@ def generar_informe_puestos_pdf(data: dict) -> bytes:
             else:
                 inc_txt = "sin incidencias activas"
 
-            mov_txt = ev.get("movimientos_ventana_30min", "—")
-            op_mov_txt = ev.get("movimientos_operador_30min", "—")
+            mov_txt = ev.get("movimientos_ventana_15min", "—")
+            op_mov_txt = ev.get("movimientos_operador_15min", "—")
 
             bloque = (
                 f"<b>{idx}. {fecha_txt}{hora_txt} — {sucursal_txt}</b><br/>"
-                f"Operador: {operador_txt} · Desenlace: {desenlace_txt}<br/>"
+                f"Operador: {operador_txt} · {desenlace_txt}<br/>"
                 f"Incidencias activas en esa sucursal: {inc_txt}<br/>"
-                f"Bitácora del puesto ±30m: {mov_txt} · Bitácora de este operador ±30m: {op_mov_txt}"
+                f"Bitácora del puesto -15m: {mov_txt} · Bitácora de este operador -15m: {op_mov_txt}"
             )
             story.append(Paragraph(bloque, st_body_r))
             story.append(Spacer(1, 5))
@@ -501,45 +505,86 @@ def generar_informe_puestos_pdf(data: dict) -> bytes:
 
     if sin_intrusivos:
         seccion("PUESTOS SIN INTRUSIONES")
-        nombres_sin = _lista_texto([f"Puesto {p['puesto']}" for p in sorted(sin_intrusivos, key=lambda p: p["puesto"])[:12]])
-        extra = f" (y {len(sin_intrusivos) - 12} más)" if len(sin_intrusivos) > 12 else ""
-        texto_sin = (
-            f"{nombres_sin}{extra} no registraron protocolos intrusivos en el período. En promedio, estos "
-            f"puestos acumulan {prom_mov_sin:.1f} movimientos de bitácora y cubren {prom_suc_sin:.1f} "
-            f"sucursales cada uno."
-        )
-        story.append(Paragraph(texto_sin, st_body))
+        story.append(Paragraph(
+            "No registraron protocolos intrusivos en el período.",
+            st_body,
+        ))
+        filas_sin = [[
+            Paragraph("Puesto", st_th), Paragraph("Sucursales", st_th),
+            Paragraph("Cámaras", st_th), Paragraph("Movimientos de bitácora", st_th),
+        ]]
+        for p in sorted(sin_intrusivos, key=lambda p: -p["movimientos_bitacora"]):
+            filas_sin.append([
+                Paragraph(f"Puesto {p['puesto']}", st_td),
+                Paragraph(str(p["sucursales"]), st_td),
+                Paragraph(str(p["camaras_monitoreadas"]), st_td),
+                Paragraph(str(p["movimientos_bitacora"]), st_td),
+            ])
+        filas_sin.append([
+            Paragraph("<b>Promedio</b>", st_td),
+            Paragraph(f"<b>{prom_suc_sin:.1f}</b>", st_td),
+            Paragraph(f"<b>{prom_cam_sin:.1f}</b>", st_td),
+            Paragraph(f"<b>{prom_mov_sin:.1f}</b>", st_td),
+        ])
+        tabla_sin = Table(filas_sin, colWidths=[0.28 * fw, 0.24 * fw, 0.20 * fw, 0.28 * fw], repeatRows=1)
+        tabla_sin.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), C_DARK),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("GRID", (0, 0), (-1, -1), 0.5, C_BORDER),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ("LEFTPADDING", (0, 0), (-1, -1), 5),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+            ("LINEABOVE", (0, -1), (-1, -1), 1, C_DARK),
+        ] + [("BACKGROUND", (0, i), (-1, i), HexColor("#f8f9fb")) for i in range(2, len(filas_sin) - 1, 2)]))
+        story.append(tabla_sin)
         story.append(Spacer(1, 6))
 
-    # ── Índice de carga combinado: ranking ponderado para decidir prioridad
-    # de redistribución de sucursales entre puestos (protocolos/sucursal +
-    # movimientos/sucursal + incidencias simultáneas promedio, normalizado
-    # 0-100 relativo a este mismo informe).
-    seccion("ÍNDICE DE CARGA COMBINADO")
+    # ── Señales de carga alta: en vez de un índice ponderado 0-100 (una
+    # fórmula que hay que confiar a ciegas), se muestran las 4 métricas por
+    # cámara tal cual y se cuenta cuántas de esas 4 están por encima del
+    # promedio del grupo — se puede verificar a simple vista en la misma
+    # tabla, comparando cada valor contra el promedio de su columna.
+    seccion("SEÑALES DE CARGA POR PUESTO")
     story.append(Paragraph(
-        "Ranking ponderado 0-100 por puesto, pensado como insumo para decidir cómo redistribuir sucursales "
-        "entre puestos: combina en partes iguales protocolos/sucursal, movimientos de bitácora/sucursal e "
-        "incidencias activas simultáneas promedio durante los intrusivos. Es un ranking relativo entre los "
+        "Para cada puesto se calculan 4 métricas normalizadas por cámara monitoreada: "
+        "<b>protocolos/cámara</b>, <b>movimientos de bitácora/cámara</b>, "
+        "<b>incidencias activas simultáneas promedio</b> durante los intrusivos, y "
+        "<b>cámaras/pantalla</b> (cámaras repartidas entre las pantallas físicas del puesto: 4 pantallas "
+        "en puestos 1-12, 6 en puestos 13-29). Se normaliza por cámaras monitoreadas, no por sucursales "
+        "(que varían mucho de tamaño entre puestos), para comparar la carga real de monitoreo. El valor "
+        "en <b>negrita</b> indica que ese puesto está por encima del promedio del grupo en esa métrica; "
+        "la última columna cuenta en cuántas de las 4 lo está. Es una comparación relativa entre los "
         "puestos de este informe, no una escala absoluta.",
         st_body,
     ))
-    ranking = sorted(puestos, key=lambda p: -p["indice_carga"])[:10]
+    puestos_con_senales = [p for p in puestos if p.get("senales_carga_alta") is not None]
+    ranking = sorted(
+        puestos_con_senales,
+        key=lambda p: (-p["senales_carga_alta"], -p["protocolos_por_camara"]),
+    )[:10]
     filas_ranking = [[
-        Paragraph("#", st_th), Paragraph("Puesto", st_th), Paragraph("Índice", st_th),
-        Paragraph("Protocolos/sucursal", st_th), Paragraph("Movimientos/sucursal", st_th),
-        Paragraph("Incid. simult. prom.", st_th),
+        Paragraph("Puesto", st_th), Paragraph("Protocolos/cámara", st_th),
+        Paragraph("Movimientos/cámara", st_th), Paragraph("Cám/Pantalla", st_th),
+        Paragraph("Incid. simult. prom.", st_th), Paragraph("Señales de carga alta", st_th),
     ]]
-    for i, p in enumerate(ranking, start=1):
+    for p in ranking:
+        def _celda(valor: str, alto: bool) -> Paragraph:
+            return Paragraph(f"<b>{valor}</b>" if alto else valor, st_td)
+
+        senales_style = st_td_bad if p["senales_carga_alta"] >= 3 else st_td
         filas_ranking.append([
-            Paragraph(str(i), st_td),
             Paragraph(f"Puesto {p['puesto']}", st_td),
-            Paragraph(f"{p['indice_carga']:.0f}/100", st_td_bad if i <= 3 else st_td),
-            Paragraph(f"{p['protocolos_por_sucursal']:.2f}", st_td),
-            Paragraph(f"{p['movimientos_por_sucursal']:.1f}", st_td),
-            Paragraph(f"{p['incidencias_simultaneas_promedio']:.1f}", st_td),
+            _celda(f"{p['protocolos_por_camara']:.2f}", p["protocolos_camara_alto"]),
+            _celda(f"{p['movimientos_por_camara']:.1f}", p["movimientos_camara_alto"]),
+            _celda(f"{p['camaras_por_pantalla']:.1f}", p["camaras_pantalla_alto"]),
+            _celda(f"{p['incidencias_simultaneas_promedio']:.1f}", p["incidencias_simultaneas_alto"]),
+            Paragraph(f"<b>{p['senales_carga_alta']}/4</b>", senales_style),
         ])
     tabla_ranking = Table(
-        filas_ranking, colWidths=[0.06 * fw, 0.16 * fw, 0.14 * fw, 0.22 * fw, 0.22 * fw, 0.20 * fw], repeatRows=1
+        filas_ranking,
+        colWidths=[0.15 * fw, 0.19 * fw, 0.19 * fw, 0.15 * fw, 0.17 * fw, 0.15 * fw],
+        repeatRows=1,
     )
     tabla_ranking.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), C_DARK),
@@ -552,7 +597,8 @@ def generar_informe_puestos_pdf(data: dict) -> bytes:
     ] + [("BACKGROUND", (0, i), (-1, i), HexColor("#f8f9fb")) for i in range(2, len(filas_ranking), 2)]))
     story.append(tabla_ranking)
     story.append(Paragraph(
-        "Los 3 valores de índice más altos están destacados en rojo.",
+        "Ordenado por señales de carga alta (de más a menos). Los puestos con 3 o 4 señales están "
+        "destacados en rojo.",
         st_caption,
     ))
     story.append(Spacer(1, 6))
@@ -663,8 +709,9 @@ def generar_informe_puestos_pdf(data: dict) -> bytes:
         if ranking:
             lider = ranking[0]
             conclusion += (
-                f" Según el índice de carga combinado, el puesto con el valor más alto es "
-                f"<b>Puesto {lider['puesto']}</b> (índice {lider['indice_carga']:.0f}/100)."
+                f" Según las señales de carga por puesto, el que acumula más es "
+                f"<b>Puesto {lider['puesto']}</b> ({lider['senales_carga_alta']}/4 métricas por encima del "
+                f"promedio del grupo)."
             )
         if mayor_sobre_rep:
             conclusion += (

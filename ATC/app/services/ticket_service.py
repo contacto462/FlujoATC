@@ -1,5 +1,6 @@
 ﻿from sqlalchemy.orm import Session
 
+from ATC.app.core.timeutil import chile_now
 from ATC.app.models.ticket import Ticket
 from ATC.app.models.requester import Requester
 from ATC.app.models.message import Message
@@ -36,6 +37,7 @@ def _create_ticket(
         sender_type=sender_type,
         channel=channel,
         content=initial_message,
+        created_at=chile_now(),
     )
 
     db.add(message)

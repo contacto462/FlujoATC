@@ -10,8 +10,6 @@ import re
 import unicodedata
 from pathlib import Path
 from typing import Annotated
-from urllib.parse import quote_plus, urlencode
-from urllib.request import Request as UrlRequest, urlopen
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Query, Request, Response, UploadFile
@@ -25,12 +23,14 @@ from ATC.app.core.db_compat import add_column, dialect_name, drop_column, quote_
 from ATC.app.core.incidencias_db import Base, SessionLocal, build_engine, engine, get_db
 from ATC.app.core.incidencias_config import settings
 from ATC.app.models.incidencias import LoginSession, User, PruebaSonido, Registro, Rendicion, ProtocoloInforme
+from ATC.app.core.timeutil import chile_now
 from ATC.app.models.message import Message
 from ATC.app.models.requester import Requester
 from ATC.app.models.ticket import Ticket
 from ATC.app.routes.bitacora_access import can_access_bitacora
 from ATC.app.core.session_policy import max_age_cookie_segundos
 from ATC.app.schemas.incidencias import (
+    ActualizarRegionComunaRequest,
     CerrarIncidenciaRequest,
     DerivarTecnicoRequest,
     EditarIncidenciaTablaRequest,
@@ -46,7 +46,12 @@ from ATC.app.schemas.incidencias import (
     RegenerarInformeCierreRequest,
     RendicionRequest,
 )
-from ATC.app.services.incidencias_service import AREA_PANEL_DESTINOS, IncidenciasService, seed_default_identity_data
+from ATC.app.services.incidencias_service import (
+    AREA_PANEL_DESTINOS,
+    IncidenciasService,
+    geocodificar_region_comuna_google,
+    seed_default_identity_data,
+)
 from ATC.app.services.incidencias_drive_report_service import download_support_drive_file_bytes
 from ATC.app.services.protocolos_service import ProtocolosService
 
@@ -57,8 +62,6 @@ templates = Jinja2Templates(directory=str(INCIDENCIAS_APP_DIR / "templates"))
 router = APIRouter()
 LOGGER = logging.getLogger(__name__)
 _protocolos_weekly_worker_started = False
-_SONIDO_REVERSE_GEOCODE_CACHE: dict[str, str] = {}
-_SONIDO_GEOCODE_WORKER_RUNNING = False
 
 TIPOS_Y_ESPECIFICACIONES = {
     "Gestión de Grabaciones y Evidencia": [
@@ -717,6 +720,8 @@ def _ensure_servicio_tecnico_ventas_optional_columns() -> None:
         "fecha_instalacion_finalizada": "DATETIME2",
         "finalizado": "BIT NOT NULL DEFAULT 0",
         "fecha_cierre": "DATETIME2",
+        "camaras_instaladas_reales": "INT",
+        "layout_final": "TEXT",
     }
     try:
         with engine.begin() as conn:
@@ -1008,6 +1013,7 @@ def create_oficina_atc_ticket(
             channel="internal",
             content=content,
             is_internal_note=False,
+            created_at=chile_now(),
         )
         service.db.add(message)
         service.db.commit()
@@ -1309,12 +1315,18 @@ def do_get(
 
         from ATC.app.services.venta_service import get_servicio_tecnico_ventas_rows
 
-        filas_ventas_st = get_servicio_tecnico_ventas_rows(service.db)
-        pendiente_ventas_st = sum(
-            1
-            for fila in filas_ventas_st
-            if not fila.get("anulada") and not fila.get("estados", {}).get("instalacion_finalizada")
-        )
+        try:
+            _ensure_servicio_tecnico_ventas_optional_columns()
+            filas_ventas_st = get_servicio_tecnico_ventas_rows(service.db)
+            pendiente_ventas_st = sum(
+                1
+                for fila in filas_ventas_st
+                if not fila.get("anulada") and not fila.get("estados", {}).get("instalacion_finalizada")
+            )
+        except Exception as exc:
+            service.db.rollback()
+            LOGGER.warning("No fue posible calcular pendientes de ventas ST para panel servicio: %s", exc)
+            pendiente_ventas_st = 0
 
         pendiente_rendiciones_st = sum(
             1
@@ -1975,7 +1987,11 @@ current_user=Depends(_require_login)):
     content = await file.read()
     try:
         return service.guardar_imagen_cierre_apertura(
-            client_id=client_id, client_name=client_name, content=content, token=token
+            client_id=client_id,
+            client_name=client_name,
+            content=content,
+            token=token,
+            usuario_fallback=_current_user_label(current_user),
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -2180,6 +2196,7 @@ def cerrar_instalacion_venta(
     payload: dict = Body(...),
 current_user=Depends(_require_login)):
     try:
+        cantidad_instalada_total = payload.get("cantidadInstaladaTotal") or payload.get("cantidad_instalada_total")
         return service.cerrar_instalacion_venta(
             str(payload.get("odt") or ""),
             observacion=str(payload.get("observacion") or ""),
@@ -2187,6 +2204,7 @@ current_user=Depends(_require_login)):
             pruebas_cierre=payload.get("pruebasCierre") or payload.get("pruebas_cierre") or [],
             fotos_base64=payload.get("fotosBase64") or payload.get("fotos_base64") or [],
             token=str(payload.get("token") or ""),
+            cantidad_instalada_total=int(cantidad_instalada_total) if cantidad_instalada_total else None,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -2214,6 +2232,7 @@ current_user=Depends(_require_login)):
     )
     fotos = [service.url_publica_upload(path) for path in staged_files]
 
+    cantidad_instalada_total = data.get("cantidadInstaladaTotal") or data.get("cantidad_instalada_total")
     try:
         result = service.cerrar_instalacion_venta(
             odt_limpia,
@@ -2222,6 +2241,7 @@ current_user=Depends(_require_login)):
             pruebas_cierre=data.get("pruebasCierre") or data.get("pruebas_cierre") or [],
             fotos_base64=fotos,
             token=token,
+            cantidad_instalada_total=int(cantidad_instalada_total) if cantidad_instalada_total else None,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -2345,7 +2365,7 @@ def derivar_incidencia_tecnico(
     service: Annotated[IncidenciasService, Depends(get_service)],
 current_user=Depends(_require_login)):
     try:
-        ok = service.derivar_odt_a_tecnico(
+        resultado = service.derivar_odt_a_tecnico(
             payload.odt,
             payload.tecnico,
             payload.acompanante or "",
@@ -2354,9 +2374,9 @@ current_user=Depends(_require_login)):
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    if not ok:
+    if resultado is None:
         raise HTTPException(status_code=404, detail=f"ODT {payload.odt} no encontrada")
-    return {"ok": True}
+    return {"ok": True, **resultado}
 
 
 @router.patch("/api/incidencias/editar-tabla")
@@ -2380,6 +2400,25 @@ current_user=Depends(_require_login)):
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if not result.get("ok"):
         raise HTTPException(status_code=404, detail=f"ODT {payload.odt} no encontrada")
+    return result
+
+
+@router.post("/api/incidencias/actualizar-region-comuna")
+def actualizar_region_comuna(
+    payload: ActualizarRegionComunaRequest,
+    service: Annotated[IncidenciasService, Depends(get_service)],
+current_user=Depends(_require_login)):
+    try:
+        result = service.actualizar_region_comuna_sucursal(
+            tabla=payload.tabla,
+            entidad_id=payload.entidad_id,
+            region=payload.region,
+            comuna=payload.comuna,
+            observacion=payload.observacion,
+            usuario=_current_user_label(current_user),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return result
 
 
@@ -2526,7 +2565,7 @@ def obtener_contactos_por_sucursal(service: Annotated[IncidenciasService, Depend
 
 # ──────────────────────────────────────────────
 # Cámaras por sucursal — desde sucursal_camaras_monitoreo (BBDD real)
-# (usado en incidencias_puestos_copia.html)
+# (usado en incidencias_puestos.html)
 # ──────────────────────────────────────────────
 
 def _normalizar_nombre_sucursal_camaras(valor: str) -> str:
@@ -2584,6 +2623,307 @@ def _cargar_camaras_por_sucursal(db: Session) -> dict:
 @router.get("/api/incidencias/camaras-por-sucursal")
 def obtener_camaras_por_sucursal(db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return _cargar_camaras_por_sucursal(db)
+
+
+# ──────────────────────────────────────────────
+# "Calidad de Visita Técnica entre Incidencias" (dashboard_servicio.html):
+# visitas repetidas del técnico a la MISMA cámara de una sucursal. El nombre
+# de cámara no es un campo propio de `incidencias` — viaje como texto libre
+# dentro de detalle_problema (lo arma el picker de checkboxes de
+# incidencias_soporte.html, con prefijos segun el tipo de problema). Antes
+# de construir esto se validó contra datos reales: con matching exacto
+# contra sucursal_camaras_monitoreo, el historico completo solo calza en
+# 0.5% de los casos (la mayoria escribe texto abreviado tipo "Camara 8" en
+# vez del nombre completo real) — pero desde que el picker se empezó a usar
+# en serio (~04-08-2026) el calce sube a ~21%, y sigue mejorando. Por eso se
+# filtra desde ese corte: antes de esa fecha los datos no son confiables
+# para esta métrica en particular (pedido explícito, ago 2026).
+# ──────────────────────────────────────────────
+
+CALIDAD_VISITA_CUTOFF = datetime(2026, 8, 4)
+
+_CALIDAD_VISITA_PREFIJOS = (
+    "desconocida de:",
+    "camara movida:",
+    "cámara movida:",
+    "intermitencia:",
+    "debido a internet de:",
+    "camara caida:",
+    "cámara caída:",
+    "sin señal:",
+    "sin senal:",
+)
+
+
+def _normalizar_nombre_camara(valor: str) -> str:
+    s = unicodedata.normalize("NFD", str(valor or ""))
+    s = "".join(c for c in s if unicodedata.category(c) != "Mn")
+    return re.sub(r"\s+", " ", s.strip()).upper()
+
+
+def _parsear_camaras_de_detalle(detalle: str | None) -> list[str]:
+    """Extrae los tokens de cámara/equipo candidatos de detalle_problema.
+    Devuelve strings normalizados (mayúscula, sin tildes) — el llamador es
+    quien decide cuáles calzan con una cámara real registrada."""
+    texto = str(detalle or "")
+    # Quita el prefijo de auditoria "[Nombre - dd/mm/aaaa hh:mm] "
+    texto = re.sub(r"^\[[^\]]+\]\s*", "", texto)
+    # Todo lo que sigue a "Contacto:" es el contacto de emergencia, no la cámara.
+    texto = re.split(r"\bContacto\s*:", texto, maxsplit=1)[0]
+    texto_low = texto.strip().lower()
+    for prefijo in _CALIDAD_VISITA_PREFIJOS:
+        if texto_low.startswith(prefijo):
+            texto = texto[len(prefijo):]
+            break
+    return [_normalizar_nombre_camara(p) for p in texto.split(",") if p.strip()]
+
+
+def _token_equipo_unico_equivale_todo(token: str, info_sucursal: dict | None) -> bool:
+    try:
+        cantidad_equipos = int((info_sucursal or {}).get("cantidad_equipos") or 1)
+    except (TypeError, ValueError):
+        cantidad_equipos = 1
+    if cantidad_equipos != 1:
+        return False
+    return re.fullmatch(r"(NVR|EQUIPO)\s*0*1", token or "") is not None
+
+
+def _calidad_visita_camaras(db: Session) -> list[dict]:
+    from sqlalchemy import func
+
+    camaras_por_sucursal = _cargar_camaras_por_sucursal(db)
+
+    rows = (
+        db.query(
+            Registro.odt,
+            Registro.cliente,
+            Registro.problema,
+            Registro.tecnicos,
+            Registro.fecha_registro,
+            Registro.detalle_problema,
+        )
+        .filter(Registro.derivacion.ilike("%servicio t%"))
+        .filter(func.lower(func.trim(Registro.estado)) != "repetida")
+        .filter(Registro.detalle_problema.isnot(None))
+        .filter(Registro.fecha_registro >= CALIDAD_VISITA_CUTOFF)
+        .order_by(Registro.fecha_registro.asc())
+        .all()
+    )
+
+    # sucursal_key -> { camara_normalizada: nombre_camara_original }
+    camaras_por_sucursal_norm: dict[str, dict[str, str]] = {
+        clave: {_normalizar_nombre_camara(c): c for c in info["camaras"]}
+        for clave, info in camaras_por_sucursal.items()
+    }
+
+    visitas: dict[tuple[str, str], list[dict]] = {}
+    sucursal_display: dict[str, str] = {}
+
+    for odt, cliente, problema, tecnicos, fecha_registro, detalle in rows:
+        suc_key = _normalizar_nombre_sucursal_camaras(cliente or "")
+        cam_by_norm = camaras_por_sucursal_norm.get(suc_key)
+        if not cam_by_norm:
+            continue
+        info_sucursal = camaras_por_sucursal.get(suc_key, {})
+        camaras_afectadas: list[str] = []
+        for token in _parsear_camaras_de_detalle(detalle):
+            if token == "TODO" or _token_equipo_unico_equivale_todo(token, info_sucursal):
+                camaras_afectadas = list(cam_by_norm.values())
+                break
+            if token not in cam_by_norm:
+                continue
+            camaras_afectadas.append(cam_by_norm[token])
+        for camara_original in dict.fromkeys(camaras_afectadas):
+            key = (suc_key, camara_original)
+            visitas.setdefault(key, []).append(
+                {
+                    "fecha": fecha_registro.strftime("%Y-%m-%d") if fecha_registro else None,
+                    "tecnico": (tecnicos or "").strip() or "Sin técnico asignado",
+                    "motivo": (problema or "").strip() or "Sin especificar",
+                    "odt": odt or "",
+                }
+            )
+            sucursal_display[suc_key] = info_sucursal["sucursal"]
+
+    agrupado: dict[str, dict] = {}
+    for (suc_key, camara), lista_visitas in visitas.items():
+        entrada = agrupado.setdefault(suc_key, {"sucursal": sucursal_display[suc_key], "camaras": []})
+        entrada["camaras"].append({"camara": camara, "visitas": lista_visitas})
+
+    return list(agrupado.values())
+
+
+# ──────────────────────────────────────────────
+# "Calidad de Instalación" (dashboard_servicio.html): cámaras recién
+# instaladas que se caen poco después. A diferencia de "Calidad de Visita"
+# de arriba, acá SÍ se necesita identificar la cámara puntual instalada —
+# pero el campo pensado para eso (sucursal_camaras_monitoreo.odt_origen)
+# está 100% vacío (0 de 3153 filas) y nunca se usó, y solo hay 7 ODT en toda
+# la BBDD con SoporteTecnicoVentaODT.camaras_registradas (el nombre exacto
+# de cada cámara instalada) poblado. No hay base histórica confiable para
+# ligar "esta cámara puntual" a una caída posterior. Por pedido explícito
+# (ago 2026) se cuenta solo desde CALIDAD_INSTALACION_CUTOFF en adelante,
+# asumiendo que camaras_registradas se empieza a llenar de forma consistente
+# desde ahora — antes de esa fecha esta métrica no es confiable.
+# ──────────────────────────────────────────────
+
+CALIDAD_INSTALACION_CUTOFF = datetime(2026, 8, 11)
+
+# Mismas categorías que usaba el demo original para "caída" — desconexión o
+# falla de video de la cámara misma; otros tipos (alarma, cámara sucia, etc)
+# no son indicio de una instalación defectuosa.
+_CALIDAD_INSTALACION_FALLA_TIPOS = {"DESCONEXION", "FALLA DE VIDEO"}
+
+
+def _calidad_instalacion_camaras(db: Session) -> list[dict]:
+    from ATC.app.models.incidencias import ServicioTecnicoVentaODT, SoporteTecnicoVentaODT, VentaODS
+
+    instal_rows = (
+        db.query(SoporteTecnicoVentaODT, ServicioTecnicoVentaODT, VentaODS)
+        .join(VentaODS, VentaODS.codigo == SoporteTecnicoVentaODT.odt)
+        .outerjoin(ServicioTecnicoVentaODT, ServicioTecnicoVentaODT.odt == SoporteTecnicoVentaODT.odt)
+        .filter(SoporteTecnicoVentaODT.camaras_registradas.isnot(None))
+        .all()
+    )
+
+    instalaciones: list[dict] = []
+    for sop, st, v in instal_rows:
+        fecha_instalacion = (
+            (st.fecha_instalacion_finalizada if st else None)
+            or sop.fecha_configuracion_camaras
+            or sop.fecha_terminado
+        )
+        if not fecha_instalacion or fecha_instalacion < CALIDAD_INSTALACION_CUTOFF:
+            continue
+        try:
+            nombres_camaras = json.loads(sop.camaras_registradas or "[]")
+        except Exception:
+            nombres_camaras = []
+        if not isinstance(nombres_camaras, list) or not nombres_camaras:
+            continue
+        sucursal = (v.nombre_sucursal or v.razon_social or "").strip()
+        if not sucursal:
+            continue
+        for nombre_camara in nombres_camaras:
+            nombre_camara = str(nombre_camara or "").strip()
+            if not nombre_camara:
+                continue
+            instalaciones.append(
+                {
+                    "ods": sop.odt,
+                    "sucursal": sucursal,
+                    "suc_key": _normalizar_nombre_sucursal_camaras(sucursal),
+                    "camaraId": nombre_camara,
+                    "camara_norm": _normalizar_nombre_camara(nombre_camara),
+                    "fechaInstalacion": fecha_instalacion,
+                    "tecnico": ((st.tecnico_a_cargo if st else "") or "").strip() or "Sin técnico asignado",
+                }
+            )
+
+    if not instalaciones:
+        return []
+
+    min_fecha = min(i["fechaInstalacion"] for i in instalaciones)
+
+    incidencia_rows = (
+        db.query(Registro.cliente, Registro.problema, Registro.fecha_registro, Registro.detalle_problema)
+        .filter(Registro.derivacion.ilike("%servicio t%"))
+        .filter(Registro.fecha_registro > min_fecha)
+        .filter(Registro.detalle_problema.isnot(None))
+        .all()
+    )
+
+    incidencias_por_sucursal: dict[str, list[dict]] = {}
+    for cliente, problema, fecha_registro, detalle in incidencia_rows:
+        if _normalizar_nombre_camara(problema or "") not in _CALIDAD_INSTALACION_FALLA_TIPOS:
+            continue
+        tokens = set(_parsear_camaras_de_detalle(detalle))
+        if not tokens:
+            continue
+        suc_key = _normalizar_nombre_sucursal_camaras(cliente or "")
+        if not suc_key:
+            continue
+        incidencias_por_sucursal.setdefault(suc_key, []).append(
+            {"fecha": fecha_registro, "problema": problema, "tokens": tokens}
+        )
+
+    resultado: list[dict] = []
+    for inst in instalaciones:
+        caida = None
+        for inc in incidencias_por_sucursal.get(inst["suc_key"], []):
+            if not inc["fecha"] or inc["fecha"] <= inst["fechaInstalacion"]:
+                continue
+            if inst["camara_norm"] not in inc["tokens"]:
+                continue
+            if caida is None or inc["fecha"] < caida["fecha"]:
+                caida = inc
+
+        item = {
+            "ods": inst["ods"],
+            "sucursal": inst["sucursal"],
+            "camaraId": inst["camaraId"],
+            "fechaInstalacion": inst["fechaInstalacion"].strftime("%Y-%m-%d"),
+            "tecnico": inst["tecnico"],
+            "caida": caida is not None,
+        }
+        if caida:
+            item["fechaCaida"] = caida["fecha"].strftime("%Y-%m-%d")
+            item["motivoCaida"] = (caida["problema"] or "").strip()
+        resultado.append(item)
+
+    return resultado
+
+
+def _cargar_sucursales_por_puesto(db: Session) -> dict[str, list[str]]:
+    """Mapa puesto (1-29, columna `central`) -> nombres de sucursal que
+    monitorea, a partir de sucursal_camaras_monitoreo — la misma fuente que
+    usa el informe "Información Puestos" de Bitácora. Se usa para acotar el
+    selector de Sucursal al abrir el formulario de un puesto puntual en
+    lugar de mostrar las sucursales de todo el sistema.
+
+    El puesto 30 ("Solo clientes con alarma") es un caso especial: no viene
+    de sucursal_camaras_monitoreo (no es un puesto de monitoreo real), asi
+    que se arma aparte con TODAS las sucursales (bbdd_sucursales) de
+    cualquier cliente en bbdd_clientes — antes caia al fallback generico
+    (listasGlobales.sucursales en el frontend), que en realidad lista
+    nombres de EMPRESA (ClienteBBDD.cliente), no de sucursal."""
+    from ATC.app.models.incidencias import ClienteBBDD, SucursalBBDD, SucursalCamaraMonitoreo
+
+    rows = (
+        db.query(SucursalCamaraMonitoreo.central, SucursalBBDD.nombre_sucursal)
+        .join(SucursalBBDD, SucursalCamaraMonitoreo.sucursal_id == SucursalBBDD.id)
+        .filter(SucursalCamaraMonitoreo.central.isnot(None))
+        .all()
+    )
+    agrupado: dict[str, dict[str, str]] = {}
+    for central, nombre_sucursal in rows:
+        nombre = (nombre_sucursal or "").strip()
+        if not nombre:
+            continue
+        clave_puesto = str(int(central))
+        vistas = agrupado.setdefault(clave_puesto, {})
+        vistas.setdefault(_normalizar_nombre_sucursal_camaras(nombre), nombre)
+    resultado = {puesto: sorted(nombres.values()) for puesto, nombres in agrupado.items()}
+
+    sucursales_alarma = (
+        db.query(SucursalBBDD.nombre_sucursal)
+        .join(ClienteBBDD, SucursalBBDD.rut == ClienteBBDD.rut)
+        .all()
+    )
+    vistas_alarma: dict[str, str] = {}
+    for (nombre_sucursal,) in sucursales_alarma:
+        nombre = (nombre_sucursal or "").strip()
+        if not nombre:
+            continue
+        vistas_alarma.setdefault(_normalizar_nombre_sucursal_camaras(nombre), nombre)
+    resultado["30"] = sorted(vistas_alarma.values())
+
+    return resultado
+
+
+@router.get("/api/incidencias/sucursales-por-puesto")
+def obtener_sucursales_por_puesto(db: Session = Depends(get_db), current_user=Depends(_require_login)):
+    return _cargar_sucursales_por_puesto(db)
 
 
 @router.post("/api/contacto-cliente/enviar-info")
@@ -3241,8 +3581,24 @@ def servicio_kpis_data(db: Annotated[Session, Depends(get_db)], current_user=Dep
         LOGGER.warning("kpis-data: error al cargar avance cámaras: %s", exc)
         db.rollback()
 
+    try:
+        calidad_visita_camaras = _calidad_visita_camaras(db)
+    except Exception as exc:
+        LOGGER.warning("kpis-data: error al cargar calidad de visita por camara: %s", exc)
+        db.rollback()
+        calidad_visita_camaras = []
+
+    try:
+        calidad_instalacion_camaras = _calidad_instalacion_camaras(db)
+    except Exception as exc:
+        LOGGER.warning("kpis-data: error al cargar calidad de instalacion: %s", exc)
+        db.rollback()
+        calidad_instalacion_camaras = []
+
     return {
         "avance_camaras": avance_camaras,
+        "calidad_visita_camaras": calidad_visita_camaras,
+        "calidad_instalacion_camaras": calidad_instalacion_camaras,
         "config": {
             "sla_dias": settings.servicio_sla_dias,
             "odt_antigua_dias": settings.servicio_odt_antigua_dias,
@@ -3312,100 +3668,32 @@ def servicio_indicadores_informe(
 
 @router.get("/api/pruebas-sonido/sucursales")
 def pruebas_sonido_sucursales(db: Session = Depends(get_db), current_user=Depends(_require_login)):
-    """Devuelve sucursales agrupadas en 4 semanas por zona geográfica."""
+    """Devuelve sucursales agrupadas en 4 semanas por zona geográfica.
+
+    La comuna/región de cada sucursal se lee directo de SucursalBBDD.comuna
+    / .region — la misma columna que se edita desde "Región / Comuna" en
+    incidencias_servicio_tecnico.html (ver actualizar_region_comuna_sucursal
+    en incidencias_service.py) — así que un cambio hecho ahí se refleja acá
+    sin nada adicional. Si a una sucursal le falta comuna, se completa al
+    vuelo con la API de Geocoding de Google (misma fuente que usa esa
+    pantalla), ya no con Nominatim/Photon (gratuitas, menos precisas para
+    comunas chilenas y con un worker en segundo plano que las mezclaba)."""
     import unicodedata as _ud
 
     import re as _re
 
     def _norm(c: str) -> str:
-        """Normaliza nombre de comuna: sin tildes, sin puntuación, guiones→espacio."""
-        c = c.strip().replace("-", " ")
+        """Normaliza texto para comparar/agrupar: sin tildes, sin puntuación."""
+        c = (c or "").strip().replace("-", " ")
         c = _ud.normalize("NFD", c.lower())
         c = "".join(ch for ch in c if _ud.category(ch) != "Mn")
         c = _re.sub(r"[^a-z0-9 ]", "", c)
         return " ".join(c.split())
 
-    # Lista de comunas conocidas ordenadas de más larga a más corta (para match greedy)
-    _COMUNAS_CL = sorted([
-        "Arica","Iquique","Calama","Antofagasta","Copiapó","La Serena","Coquimbo",
-        "Ovalle","Los Andes","Llay Llay","Hijuelas","La Calera","Quillota",
-        "Quintero","Concón","Viña del Mar","Valparaíso","Quilpué","Villa Alemana",
-        "Limache","Olmué","Casablanca","Lampa","Colina","Huechuraba","Quilicura",
-        "Pudahuel","Lo Barnechea","Vitacura","Las Condes","Providencia","La Reina",
-        "Ñuñoa","Santiago","Macul","La Florida","Maipú","Cerrillos","Pedro Aguirre Cerda",
-        "San Miguel","San Joaquín","Lo Espejo","El Bosque","La Pintana","San Ramón",
-        "Lo Prado","Estación Central","Cerro Navia","Renca","Conchalí","Independencia",
-        "Recoleta","Cartagena","San Antonio","San Bernardo","Buin","Paine","Melipilla",
-        "El Tabo",
-        "Rancagua","Rengo","San Fernando","Curicó","Talca","Linares","Chillán","Chillán Viejo",
-        "Concepción","Talcahuano","Coronel","Los Ángeles","Temuco","Valdivia",
-        "Osorno","Puerto Montt","Peñalolén","Puente Alto","La Cisterna","Quinta Normal",
-        "Reñaca","Tiltil","Padre Hurtado","Laja","Penco","Pucón","Villarrica",
-        "La Ligua","Nogales","El Melón","Petorca","Cabildo","Los Vilos",
-        "San Felipe","Llaillay","Panquehue","Catemu","Putaendo","Santa María",
-        "Coinco","Litueche","Navidad","Pichilemu","Requínoa","Peumo",
-    ], key=len, reverse=True)
-
-    # Mapa norm→display para las conocidas
-    _COMUNA_NORM_DISPLAY = {_norm(c): c for c in _COMUNAS_CL}
-    _COMUNA_ALIASES = {
-        "con con": "concon",
-        "colina santiago": "colina",
-        "v region valparaiso": "valparaiso",
-        "colindante ruta 5 sur buin": "buin",
-        "el melon": "nogales",
-        "huelquen": "paine",
-        "las cruces": "el tabo",
-        "lo herrera": "san bernardo",
-        "loncura": "quintero",
-        "los pinos renaca": "vina del mar",
-        "placilla": "valparaiso",
-        "renaca": "vina del mar",
-        "sata ines de miraflores": "vina del mar",
-        "valle grande": "lampa",
-    }
-
-    def _comuna_canonica(valor: str) -> tuple[str, str]:
-        comuna_norm = _norm(valor) if valor else ""
-        comuna_norm = _COMUNA_ALIASES.get(comuna_norm, comuna_norm)
-        if not comuna_norm:
-            return "sin_comuna", "Por geocodificar"
-        return comuna_norm, _COMUNA_NORM_DISPLAY.get(comuna_norm, _titulo(comuna_norm))
-
-    _DIRECCIONES_VERIFICADAS = {
-        _norm("Av Argentina 740"): {
-            "comuna": "Valparaíso",
-            "lat": -33.052700,
-            "lon": -71.602900,
-        },
-    }
-
-    def _extraer_comuna(s) -> str:
-        """Extrae la comuna de la sucursal buscando en: columna, dirección con coma, texto libre."""
-        # 1. Columna directa
-        if (s.comuna or "").strip():
-            return s.comuna.strip()
-        dir_ = (s.direccion_sucursal or "").strip()
-        if not dir_:
-            return ""
-        # 2. Dirección con comas: tomar última parte que no sea región
-        if "," in dir_:
-            for parte in reversed([p.strip() for p in dir_.split(",")]):
-                p_n = _norm(parte)
-                if p_n.startswith("region") or p_n.startswith("regi") or not p_n:
-                    continue
-                # Si el segmento es corto y no tiene números, es una comuna
-                if len(parte) < 40 and not _re.search(r"\d{3}", parte):
-                    return parte
-        # 3. Buscar nombre de comuna conocida dentro del texto de la dirección
-        dir_n = _norm(dir_)
-        for c in _COMUNAS_CL:
-            cn = _norm(c)
-            if _re.search(r"\b" + _re.escape(cn) + r"\b", dir_n):
-                return _COMUNA_NORM_DISPLAY.get(cn, c)
-        return ""
-
     # Coordenadas de referencia para las principales comunas de Chile (lat, lon)
+    # — solo para estimar la ZONA geográfica (centro/sur/norte) de una
+    # sucursal que no tenga lat/lon propia; la comuna en sí nunca sale de
+    # acá, siempre de SucursalBBDD.comuna o de Google más arriba.
     _COORDS_CL: dict[str, tuple[float, float]] = {
         "arica": (-18.47, -70.31), "iquique": (-20.21, -70.15),
         "calama": (-22.47, -68.93), "antofagasta": (-23.65, -70.40),
@@ -3453,13 +3741,6 @@ def pruebas_sonido_sucursales(db: Session = Depends(get_db), current_user=Depend
         "region metropolitana": (-33.46, -70.65),
     }
 
-    def _titulo(c: str) -> str:
-        # Palabras que van en minúscula dentro del nombre
-        _min = {"de", "del", "la", "las", "los", "el", "y"}
-        partes = c.strip().split()
-        return " ".join(p if (i > 0 and p in _min) else p.capitalize()
-                        for i, p in enumerate(partes))
-
     from ATC.app.models.incidencias import SucursalBBDD
     now = datetime.now()
     anio, mes = now.year, now.month
@@ -3469,6 +3750,7 @@ def pruebas_sonido_sucursales(db: Session = Depends(get_db), current_user=Depend
         .where(SucursalBBDD.habilitada == True)  # noqa: E712 - .is_(True) genera "IS 1", invalido en T-SQL
         .order_by(SucursalBBDD.nombre_sucursal)
     ).all()
+    camaras_por_sucursal = _cargar_camaras_por_sucursal(db)
 
     registros_mes = db.scalars(
         select(PruebaSonido).where(PruebaSonido.anio == anio, PruebaSonido.mes == mes)
@@ -3508,294 +3790,51 @@ def pruebas_sonido_sucursales(db: Session = Depends(get_db), current_user=Depend
     def _coords_validas(lat: float | None, lon: float | None) -> bool:
         return lat is not None and lon is not None and -90 <= lat <= 90 and -180 <= lon <= 180
 
-    def _direccion_verificada(s) -> dict | None:
-        direccion_norm = _norm(s.direccion_sucursal or "")
-        if not direccion_norm:
-            return None
-        return _DIRECCIONES_VERIFICADAS.get(direccion_norm)
+    # ── Resolver cada sucursal a comuna/coordenada: SucursalBBDD.comuna es
+    # la unica fuente (compartida con incidencias_servicio_tecnico); solo se
+    # llama a Google si de verdad falta comuna, y se guarda al toque para no
+    # volver a pedirla despues en cada carga de esta pantalla. ──
+    # Comunas que Google (u otra fuente) puede devolver con variantes de
+    # escritura pero que son la misma comuna real — se dejan todas con la
+    # misma grafía para no duplicar el grupo en la grilla.
+    _COMUNA_ALIAS_CANONICA = {"concon": "Con Con", "con con": "Con Con"}
 
-    def _display_comuna_api(valor: str) -> str:
-        txt = str(valor or "").strip()
-        if not txt:
-            return ""
-        txt = _re.sub(r"^(comuna|municipalidad|ilustre municipalidad)\s+(de\s+)?", "", txt, flags=_re.I).strip()
-        txt_norm = _norm(txt)
-        if not txt_norm or txt_norm.startswith("provincia") or txt_norm.startswith("region"):
-            return ""
-        return _COMUNA_NORM_DISPLAY.get(txt_norm, _titulo(txt_norm))
-
-    def _reverse_comuna_api(lat: float, lon: float) -> str:
-        cache_key = f"{lat:.5f},{lon:.5f}"
-        if cache_key in _SONIDO_REVERSE_GEOCODE_CACHE:
-            return _SONIDO_REVERSE_GEOCODE_CACHE[cache_key]
-
-        params = urlencode({
-            "format": "jsonv2",
-            "lat": f"{lat:.7f}",
-            "lon": f"{lon:.7f}",
-            "zoom": "14",
-            "addressdetails": "1",
-            "accept-language": "es",
-        })
-        comuna = ""
-        try:
-            req = UrlRequest(
-                f"https://nominatim.openstreetmap.org/reverse?{params}",
-                headers={
-                    "User-Agent": "ATC-PruebasSonido/1.0",
-                    "Accept": "application/json",
-                },
-            )
-            with urlopen(req, timeout=5.0) as response:
-                payload = json.loads(response.read().decode("utf-8", errors="replace"))
-            address = payload.get("address") if isinstance(payload, dict) else {}
-            if isinstance(address, dict):
-                for key in ("city", "town", "village", "municipality", "city_district", "suburb", "county"):
-                    comuna = _display_comuna_api(str(address.get(key) or ""))
-                    if comuna:
-                        break
-        except Exception:
-            comuna = ""
-
-        _SONIDO_REVERSE_GEOCODE_CACHE[cache_key] = comuna
-        return comuna
-
-    def _geocodificar_direccion_chile(query: str) -> tuple[float | None, float | None, str]:
-        query_txt = str(query or "").strip()
-        if not query_txt:
-            return None, None, ""
-
-        def _parse_feature(feature: dict) -> tuple[float | None, float | None, str]:
-            props = feature.get("properties") if isinstance(feature, dict) else {}
-            geom = feature.get("geometry") if isinstance(feature, dict) else {}
-            if not isinstance(props, dict) or not isinstance(geom, dict):
-                return None, None, ""
-            if str(props.get("countrycode") or "").upper() != "CL":
-                return None, None, ""
-            coords = geom.get("coordinates")
-            if not isinstance(coords, (list, tuple)) or len(coords) < 2:
-                return None, None, ""
-            lon = _parse_coord(coords[0])
-            lat = _parse_coord(coords[1])
-            comuna = ""
-            for key in ("city", "town", "municipality", "village", "locality", "district", "county"):
-                comuna = _display_comuna_api(str(props.get(key) or ""))
-                if comuna:
-                    break
-            return lat, lon, comuna
-
-        try:
-            req = UrlRequest(
-                f"https://photon.komoot.io/api/?q={quote_plus(query_txt)}&limit=10",
-                headers={
-                    "User-Agent": "ATC-PruebasSonido/1.0",
-                    "Accept": "application/json",
-                },
-            )
-            with urlopen(req, timeout=5.0) as response:
-                payload = json.loads(response.read().decode("utf-8", errors="replace"))
-            features = payload.get("features") if isinstance(payload, dict) else []
-            if isinstance(features, list):
-                for feature in features:
-                    lat, lon, comuna = _parse_feature(feature or {})
-                    if _coords_validas(lat, lon):
-                        return lat, lon, comuna
-        except Exception:
-            pass
-
-        params = urlencode({
-            "q": query_txt,
-            "format": "jsonv2",
-            "limit": "3",
-            "countrycodes": "cl",
-            "addressdetails": "1",
-            "accept-language": "es",
-        })
-        try:
-            req = UrlRequest(
-                f"https://nominatim.openstreetmap.org/search?{params}",
-                headers={
-                    "User-Agent": "ATC-PruebasSonido/1.0",
-                    "Accept": "application/json",
-                },
-            )
-            with urlopen(req, timeout=5.0) as response:
-                payload = json.loads(response.read().decode("utf-8", errors="replace"))
-            if isinstance(payload, list):
-                for row in payload:
-                    if str(row.get("country_code") or "").upper() != "CL":
-                        continue
-                    lat = _parse_coord(row.get("lat"))
-                    lon = _parse_coord(row.get("lon"))
-                    address = row.get("address") if isinstance(row, dict) else {}
-                    comuna = ""
-                    if isinstance(address, dict):
-                        for key in ("city", "town", "municipality", "village", "city_district", "suburb", "county"):
-                            comuna = _display_comuna_api(str(address.get(key) or ""))
-                            if comuna:
-                                break
-                    if _coords_validas(lat, lon):
-                        return lat, lon, comuna
-        except Exception:
-            pass
-
-        return None, None, ""
-
-    def _geocodificar_sucursal(s) -> tuple[float | None, float | None, bool]:
-        verificada = _direccion_verificada(s)
-        if verificada:
-            lat = _parse_coord(verificada.get("lat"))
-            lon = _parse_coord(verificada.get("lon"))
-            if _coords_validas(lat, lon):
-                return lat, lon, False
-
-        lat = _parse_coord(s.latitud)
-        lon = _parse_coord(s.longitud)
-        if _coords_validas(lat, lon):
-            return lat, lon, False
-        return None, None, False
-
-    def _resolver_geo_sucursal(s) -> dict:
-        lat, lon, actualizado = _geocodificar_sucursal(s)
-        comuna_api = ""
-        verificada = _direccion_verificada(s)
-        comuna_actual = str((verificada or {}).get("comuna") or s.comuna or "").strip()
-        if verificada and _norm(s.comuna or "") != _norm(comuna_actual):
-            s.comuna = comuna_actual
-            actualizado = True
-
-        comuna_txt = comuna_api or comuna_actual
-        comuna_norm, comuna_display = _comuna_canonica(comuna_txt)
-        if comuna_api and _norm(s.comuna or "") != _norm(comuna_api):
-            s.comuna = comuna_api
-            actualizado = True
-        return {
-            "sucursal": s,
-            "comuna_norm": comuna_norm,
-            "comuna_display": comuna_display,
-            "region_norm": _norm(s.region or ""),
-            "lat": lat,
-            "lon": lon,
-            "actualizado": actualizado,
-        }
-
-    def _sucursal_requiere_geo(s) -> bool:
-        verificada = _direccion_verificada(s)
-        lat = _parse_coord(s.latitud)
-        lon = _parse_coord(s.longitud)
-        sin_coords = not _coords_validas(lat, lon)
-        sin_comuna = not (s.comuna or "").strip()
-        if verificada:
-            return bool((s.direccion_sucursal or "").strip() and (sin_coords or sin_comuna or _norm(s.comuna or "") != _norm(verificada.get("comuna"))))
-        return bool((s.direccion_sucursal or "").strip() and (sin_coords or sin_comuna))
-
-    def _iniciar_geocodificacion_fondo(ids: list[int]) -> None:
-        global _SONIDO_GEOCODE_WORKER_RUNNING
-        ids = [int(v) for v in ids if v]
-        if not ids or _SONIDO_GEOCODE_WORKER_RUNNING:
-            return
-
-        def _worker(pendientes: list[int]) -> None:
-            global _SONIDO_GEOCODE_WORKER_RUNNING
-            _SONIDO_GEOCODE_WORKER_RUNNING = True
-            try:
-                from ATC.app.models.incidencias import SucursalBBDD as _SucursalBBDD
-                with SessionLocal() as bg_db:
-                    for suc_id in pendientes:
-                        s = bg_db.get(_SucursalBBDD, suc_id)
-                        if not s:
-                            continue
-                        direccion = (s.direccion_sucursal or "").strip()
-                        if not direccion:
-                            continue
-
-                        lat = _parse_coord(s.latitud)
-                        lon = _parse_coord(s.longitud)
-                        comuna_api = ""
-                        changed = False
-                        verificada = _direccion_verificada(s)
-                        if verificada:
-                            comuna_api = str(verificada.get("comuna") or "").strip()
-                            lat = _parse_coord(verificada.get("lat"))
-                            lon = _parse_coord(verificada.get("lon"))
-                            if _coords_validas(lat, lon):
-                                if str(s.latitud or "").strip() != f"{lat:.6f}":
-                                    s.latitud = f"{lat:.6f}"
-                                    changed = True
-                                if str(s.longitud or "").strip() != f"{lon:.6f}":
-                                    s.longitud = f"{lon:.6f}"
-                                    changed = True
-                                lat_lon_txt = f"{lat:.6f}, {lon:.6f}"
-                                if str(s.latitud_longitud or "").strip() != lat_lon_txt:
-                                    s.latitud_longitud = lat_lon_txt
-                                    changed = True
-                            if comuna_api and _norm(s.comuna or "") != _norm(comuna_api):
-                                s.comuna = comuna_api
-                                changed = True
-
-                        # Si no hay comuna ni corrección conocida, la dirección es ambigua:
-                        # no persistir un resultado público que puede corresponder a otra ciudad.
-                        if not verificada and not (s.comuna or "").strip():
-                            if changed:
-                                bg_db.commit()
-                            time.sleep(1.1)
-                            continue
-
-                        if not _coords_validas(lat, lon):
-                            queries = [
-                                ", ".join(dict.fromkeys([
-                                    direccion,
-                                    (s.comuna or "").strip(),
-                                    (s.nombre_sucursal or "").strip(),
-                                    (s.nombre_empresa or "").strip(),
-                                    "Chile",
-                                ])),
-                                f"{direccion}, Chile",
-                            ]
-                            for query in queries:
-                                lat, lon, comuna_api = _geocodificar_direccion_chile(query)
-                                if _coords_validas(lat, lon):
-                                    s.latitud = f"{lat:.6f}"
-                                    s.longitud = f"{lon:.6f}"
-                                    s.latitud_longitud = f"{lat:.6f}, {lon:.6f}"
-                                    changed = True
-                                    break
-
-                        if _coords_validas(lat, lon):
-                            comuna_api = comuna_api or _reverse_comuna_api(lat, lon)
-                            if comuna_api and _norm(s.comuna or "") != _norm(comuna_api):
-                                s.comuna = comuna_api
-                                changed = True
-
-                        if changed:
-                            bg_db.commit()
-                        time.sleep(1.1)
-            except Exception:
-                LOGGER.exception("Error geocodificando pruebas de sonido en segundo plano")
-            finally:
-                _SONIDO_GEOCODE_WORKER_RUNNING = False
-
-        threading.Thread(
-            target=_worker,
-            args=(ids,),
-            daemon=True,
-            name="pruebas-sonido-geocode",
-        ).start()
-
-    # ── Resolver cada sucursal a comuna/coordenada por datos reales o API ─
     items = []
     geo_actualizada = False
-    ids_geo_pendiente = []
     for s in sucursales:
-        if _sucursal_requiere_geo(s):
-            ids_geo_pendiente.append(s.id)
-        item = _resolver_geo_sucursal(s)
-        geo_actualizada = geo_actualizada or bool(item["actualizado"])
-        items.append(item)
+        comuna_display = (s.comuna or "").strip()
+        if not comuna_display and (s.direccion_sucursal or "").strip():
+            region_google, comuna_google, error = geocodificar_region_comuna_google(
+                direccion=s.direccion_sucursal
+            )
+            if comuna_google:
+                s.comuna = comuna_google
+                comuna_display = comuna_google
+                if region_google and not (s.region or "").strip():
+                    s.region = region_google
+                geo_actualizada = True
+            elif error:
+                LOGGER.warning(
+                    "pruebas-sonido: no se pudo geocodificar comuna de sucursal %s: %s",
+                    s.id, error,
+                )
+        comuna_canonica = _COMUNA_ALIAS_CANONICA.get(_norm(comuna_display))
+        if comuna_canonica and comuna_display != comuna_canonica:
+            comuna_display = comuna_canonica
+            if s.comuna != comuna_canonica:
+                s.comuna = comuna_canonica
+                geo_actualizada = True
+        items.append({
+            "sucursal": s,
+            "comuna_norm": _norm(comuna_display) or "sin_comuna",
+            "comuna_display": comuna_display or "Por geocodificar",
+            "region_norm": _norm(s.region or ""),
+            "lat": _parse_coord(s.latitud),
+            "lon": _parse_coord(s.longitud),
+        })
 
     if geo_actualizada:
         db.commit()
-    _iniciar_geocodificacion_fondo(ids_geo_pendiente)
 
     def _coords_ref_item(item) -> tuple[float | None, float | None]:
         if _coords_validas(item["lat"], item["lon"]):
@@ -3873,30 +3912,38 @@ def pruebas_sonido_sucursales(db: Session = Depends(get_db), current_user=Depend
         for idx, grupo in enumerate(grupos_ordenados)
     }
 
-    # ── Dividir en 4 semanas con el balance exacto actual ───────────────
-    # Una comuna grande puede continuar en la semana siguiente solamente
-    # cuando coincide con uno de los tres cortes; nunca reaparece dispersa.
+    # ── Dividir en 4 semanas EN CANTIDAD lo más pareja posible ───────────
+    # Antes se llenaba la semana actual con grupos de comuna ENTEROS hasta
+    # cruzar la cuota (total/4) y recién ahí se pasaba a la siguiente —
+    # como nunca se partía una comuna, el último grupo que cruzaba la cuota
+    # podía dejar esa semana muy por arriba del objetivo (p. ej. 144/176/
+    # 143/107 en vez de ~143 parejo). Ahora se aplana la lista completa (ya
+    # viene ordenada geográficamente/por comuna) y se corta en 4 partes de
+    # tamaño casi idéntico (a lo sumo 1 de diferencia); si el corte cae a
+    # mitad de una comuna, esa comuna queda repartida entre dos semanas
+    # — pedido explícito, ago 2026.
     cantidad_semanas = 4
     total_suc = sum(len(grupo) for grupo in grupos_ordenados)
-    base = total_suc // cantidad_semanas
-    extra = total_suc % cantidad_semanas
-    tamanos = [base + (1 if i < extra else 0) for i in range(cantidad_semanas)]
 
     def _sucursal_direccion_key(s):
         direccion = (s.direccion_sucursal or "").strip()
         nombre = (s.nombre_sucursal or "").strip()
         return (0 if direccion else 1, _norm(direccion), _norm(nombre))
 
-    items_ordenados = [
-        item
+    grupos_ordenados = [
+        sorted(grupo, key=lambda value: _sucursal_direccion_key(value["sucursal"]))
         for grupo in grupos_ordenados
-        for item in sorted(grupo, key=lambda value: _sucursal_direccion_key(value["sucursal"]))
     ]
+
+    filas_totales = [item for grupo in grupos_ordenados for item in grupo]
+    base = total_suc // cantidad_semanas
+    extra = total_suc % cantidad_semanas
     semanas: list[list[dict]] = []
-    posicion = 0
-    for tamano in tamanos:
-        semanas.append(items_ordenados[posicion:posicion + tamano])
-        posicion += tamano
+    pos = 0
+    for i in range(cantidad_semanas):
+        tamano = base + (1 if i < extra else 0)
+        semanas.append(filas_totales[pos:pos + tamano])
+        pos += tamano
 
     # ── Construir respuesta flat con campo semana ────────────────────────
     result = []
@@ -3912,6 +3959,14 @@ def pruebas_sonido_sucursales(db: Session = Depends(get_db), current_user=Depend
             s = item["sucursal"]
             lat, lon = _coords_ref_item(item)
             reg = estado_por_id.get(s.id)
+            camaras_info = camaras_por_sucursal.get(
+                _normalizar_nombre_sucursal_camaras(s.nombre_sucursal or ""),
+                {},
+            )
+            try:
+                cantidad_equipos = max(1, int(camaras_info.get("cantidad_equipos") or 1))
+            except (TypeError, ValueError):
+                cantidad_equipos = 1
             result.append({
                 "id": s.id,
                 "nombre_sucursal": s.nombre_sucursal or "",
@@ -3922,6 +3977,7 @@ def pruebas_sonido_sucursales(db: Session = Depends(get_db), current_user=Depend
                 "latitud": f"{lat:.6f}" if lat is not None else "",
                 "longitud": f"{lon:.6f}" if lon is not None else "",
                 "email_facturas": s.email_facturas or "",
+                "cantidad_equipos": cantidad_equipos,
                 "semana": sem_idx + 1,
                 "resultado": reg.resultado if reg else None,
                 "observacion": reg.observacion if reg else None,
@@ -3947,6 +4003,7 @@ current_user=Depends(_require_login)):
     sucursal_id = int(payload.get("sucursal_id") or 0)
     resultado   = str(payload.get("resultado") or "").strip()   # exitoso | falla
     observacion = str(payload.get("observacion") or "").strip()
+    equipo_audio = str(payload.get("equipo_audio") or "").strip()
     operador    = str(payload.get("operador") or "").strip()
 
     if not sucursal_id:
@@ -3971,10 +4028,15 @@ current_user=Depends(_require_login)):
     )
 
     incidencia_odt = existente.incidencia_odt if existente else None
+    observacion_registro = observacion
+    if resultado == "falla" and equipo_audio:
+        observacion_registro = f"{equipo_audio} sin audio"
+        if observacion:
+            observacion_registro += f": {observacion}"
 
     if existente:
         existente.resultado   = resultado
-        existente.observacion = observacion
+        existente.observacion = observacion_registro
         existente.operador    = operador
         prueba = existente
     else:
@@ -3983,7 +4045,7 @@ current_user=Depends(_require_login)):
             anio=anio,
             mes=mes,
             resultado=resultado,
-            observacion=observacion,
+            observacion=observacion_registro,
             operador=operador,
         )
         db.add(prueba)
@@ -3995,7 +4057,11 @@ current_user=Depends(_require_login)):
             nuevo_odt = svc._proximo_odt("I")
             usuario_obs = operador or "Usuario no identificado"
             marca_obs = now.strftime("%d/%m/%Y %H:%M")
-            observacion_firmada = f"[{usuario_obs} - {marca_obs}] {observacion}".strip() if observacion else ""
+            observacion_firmada = (
+                f"[{usuario_obs} - {marca_obs}] {observacion_registro}".strip()
+                if observacion_registro
+                else ""
+            )
             reg = Registro(
                 odt=nuevo_odt,
                 fecha_registro=now,
@@ -4017,7 +4083,7 @@ current_user=Depends(_require_login)):
             prueba.incidencia_odt = nuevo_odt
             incidencia_odt = nuevo_odt
         except Exception:
-            logger.exception("Error creando incidencia prueba sonido sucursal=%s", sucursal_id)
+            LOGGER.exception("Error creando incidencia prueba sonido sucursal=%s", sucursal_id)
 
     db.commit()
     db.refresh(prueba)
@@ -4204,9 +4270,12 @@ current_user=Depends(_require_login)):
                         logo=_logo_bytes, sid=sucursal_id):
                 try:
                     svc_mail = IncidenciasService(SessionLocal())
-                    svc_mail._enviar_correo_automatico(dest, subj, txt, html_body=html, logo_bytes=logo)
+                    svc_mail._enviar_correo_automatico(
+                        dest, subj, txt, html_body=html, logo_bytes=logo,
+                        cfg_override=svc_mail._contacto_smtp_runtime_config(),
+                    )
                 except Exception:
-                    logger.exception("Error enviando email prueba sonido sucursal=%s", sid)
+                    LOGGER.exception("Error enviando email prueba sonido sucursal=%s", sid)
             _thr.Thread(target=_enviar, daemon=True, name=f"email-sonido-{sucursal_id}").start()
             email_enviado = True
 

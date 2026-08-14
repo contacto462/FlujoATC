@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="es">
 <head>
-<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
-<link rel="shortcut icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png?v=2">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png?v=2">
+<link rel="shortcut icon" href="/favicon.ico?v=2">
 
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -51,7 +51,7 @@ body{background:var(--bg);color:var(--text);font-size:13px;font-weight:500;displ
 /* ── HERO / TOPBAR ─────────────────────────────── */
 .hero{
   flex-shrink:0;
-  display:flex;align-items:center;gap:20px;
+  display:flex;align-items:center;flex-wrap:wrap;gap:20px;
   padding:18px 28px;
   background:linear-gradient(180deg,var(--header-bg-from) 0%,var(--header-bg-to) 100%);
   border-bottom:1px solid rgba(255,255,255,.06);
@@ -109,6 +109,7 @@ body{background:var(--bg);color:var(--text);font-size:13px;font-weight:500;displ
 .badge-solo-qr{background:var(--solo-qr-bg);border-color:var(--solo-qr-border);color:var(--solo-qr-text)}
 .badge-solo-sv{background:var(--solo-sv-bg);border-color:var(--solo-sv-border);color:var(--solo-sv-text)}
 .badge-mismatch{background:var(--mis-bg);border-color:var(--mis-border);color:var(--mis-text)}
+.badge-conflicto{background:#eff4ff;border-color:#93c5fd;color:#1e3a8a}
 .legend-note{font-size:11px;color:var(--muted);margin-left:auto;white-space:nowrap}
 
 /* ── RESUMEN DE ALERTAS (toolbar) ────────────────── */
@@ -129,6 +130,12 @@ button.alert-chip:hover{filter:brightness(0.96)}
 .notif-panel-body.open{display:block}
 .notif-panel-caret{display:inline-block;transform:rotate(0deg)}
 .notif-panel-caret.open{transform:rotate(90deg)}
+
+.jornada-body{max-height:min(50vh,420px);overflow-y:auto}
+.jornada-items{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 12px}
+@media (max-width:720px){
+  .jornada-items{grid-template-columns:1fr}
+}
 
 /* ── POPUP DE CELDA ──────────────────────────────── */
 .cell-popup-overlay{
@@ -181,6 +188,9 @@ button.alert-chip:hover{filter:brightness(0.96)}
 .alert-discrepancia{background:#fdf6ed;border-color:#b45309}
 .alert-discrepancia .popup-alert-label{color:#92400e}
 .alert-discrepancia .popup-alert-detail{color:#78350f}
+.alert-conflicto{background:#eff4ff;border-color:#1e3a8a}
+.alert-conflicto .popup-alert-label{color:#1e3a8a}
+.alert-conflicto .popup-alert-detail{color:#1e3a8a}
 
 /* ── TABLE WRAPPER ───────────────────────────────── */
 .table-wrap{flex:1;overflow:auto;padding:16px 28px 32px}
@@ -327,11 +337,13 @@ td.cell-solo-qr {background:#f5f8ff;border-left:3px solid #93c5fd}
 td.cell-solo-sv {background:#fdfbf0;border-left:3px solid #d4b96a}
 td.cell-falta   {background:#fdf5f5;border-left:4px solid #b91c1c}
 td.cell-mismatch{background:#fdf8f3;border-left:4px solid #b45309}
+td.cell-conflicto{background:#f5f8ff;border-left:4px solid #1e3a8a}
 tbody tr:hover td.cell-ok      {background:#effdf6}
 tbody tr:hover td.cell-solo-qr {background:#edf3ff}
 tbody tr:hover td.cell-solo-sv {background:#fdf6e3}
 tbody tr:hover td.cell-falta   {background:#fdeaea}
 tbody tr:hover td.cell-mismatch{background:#fdf0e3}
+tbody tr:hover td.cell-conflicto{background:#eaf0ff}
 
 /* ── aviso inline de inasistencia dentro de la celda ── */
 .alerta-cruce{
@@ -341,6 +353,7 @@ tbody tr:hover td.cell-mismatch{background:#fdf0e3}
   font-size:10.5px;font-weight:700;line-height:1.35;
 }
 .alerta-cruce .alerta-icon{font-size:12px;line-height:1;flex-shrink:0;margin-top:1px}
+.alerta-cruce.alerta-conflicto-inline{background:#eff4ff;border-color:#93c5fd;color:#1e3a8a}
 .tag-permiso-inline{
   display:inline-block;background:#7c5cbf;color:#fff;
   font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.02em;
@@ -477,6 +490,49 @@ tbody tr:hover td.cell-mismatch{background:#fdf0e3}
   thead th.col-recinto,td.col-recinto{position:static}
   .view-section{display:block!important}
 }
+
+/* ── MOBILE / ORIENTACIÓN APAISADA ───────────────────
+   Se dispara por ancho angosto (celular vertical) O por alto reducido
+   (celular horizontal: puede tener 700-900px de ancho pero solo 350-420px
+   de alto — con ancho angosto solo no alcanza, el hero se comía toda la
+   pantalla porque el título se envolvía en 5+ líneas). */
+@media (max-width:720px), (max-height:520px){
+  html,body{overflow-x:hidden;overflow-y:auto}
+  .hero{
+    padding:12px 14px;gap:10px;
+  }
+  .hero-logo img{height:34px}
+  .hero-copy h1{font-size:15.5px}
+  .hero-copy p{font-size:11px}
+  .hero-actions{
+    flex:1 1 100%;margin-left:0;justify-content:flex-start;
+  }
+  .btn-hero{padding:6px 11px;font-size:12px}
+  .month-label{min-width:auto;font-size:12.5px}
+  .toolbar{padding:8px 14px;gap:10px}
+  .legend-note{display:none}
+  .legend{gap:6px}
+  .chip,.badge{font-size:10px;padding:2px 7px}
+  .alert-chips{gap:4px}
+  .alert-chip{font-size:10px;padding:2px 7px}
+  .jornada-bar{padding:6px 14px!important}
+  .jornada-body{padding:0 14px 8px!important}
+  .table-wrap{padding:10px 12px 20px}
+  :root{--recinto-w:130px;--cell-w:76px}
+  thead th.col-recinto,td.col-recinto{padding-left:10px;padding-right:10px}
+}
+
+/* ── ALTO MUY REDUCIDO (celular en horizontal) ───────────────────── */
+@media (max-height:460px){
+  .hero{padding:7px 14px;gap:8px}
+  .hero-logo img{height:22px}
+  .hero-copy p{display:none}
+  .hero-copy h1{font-size:13.5px}
+  .btn-hero{padding:4px 9px;font-size:11px}
+  .toolbar{padding:5px 14px}
+  .jornada-bar{padding:4px 14px!important}
+  .table-wrap{padding:6px 10px 14px}
+}
 </style>
 </head>
 <body>
@@ -522,6 +578,7 @@ tbody tr:hover td.cell-mismatch{background:#fdf0e3}
     <span class="badge badge-ok">Conforme</span>
     <span class="badge badge-solo-qr">Solo sistema</span>
     <span class="badge badge-solo-sv">Solo supervisor</span>
+    <span class="badge badge-conflicto">Conflicto de destino</span>
     <div class="alert-chips" id="alertChips" style="margin-left:8px;display:none">
       {% if alertas_inasistencia %}<button type="button" class="alert-chip chip-inasistencia" onclick="abrirAlertPopup('inasistencia')"><span class="chip-dot"></span>{{ alertas_inasistencia|length }} inasistencia{{ 's' if alertas_inasistencia|length != 1 }}</button>{% endif %}
       {% if alertas_discrepancia %}<button type="button" class="alert-chip chip-discrepancia" onclick="abrirAlertPopup('discrepancia')"><span class="chip-dot"></span>{{ alertas_discrepancia|length }} discrepancia{{ 's' if alertas_discrepancia|length != 1 }}</button>{% endif %}
@@ -535,13 +592,13 @@ tbody tr:hover td.cell-mismatch{background:#fdf0e3}
 <!-- alertas de jornada extendida: solo si hay, en una sola línea colapsable -->
 {% if alertas %}
 <div style="flex-shrink:0;border-bottom:1px solid var(--border);background:#fffbeb">
-  <div style="display:flex;align-items:center;gap:10px;padding:7px 28px;cursor:pointer;user-select:none" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('.jc').classList.toggle('open')">
+  <div class="jornada-bar" style="display:flex;align-items:center;gap:10px;padding:7px 28px;cursor:pointer;user-select:none" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('.jc').classList.toggle('open')">
     <span style="font-size:11.5px;font-weight:700;color:#92400e;flex:1">Jornada extendida — 5 o más días consecutivos</span>
     <span style="background:#d97706;color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px">{{ alertas|length }}</span>
     <span class="jc notif-panel-caret" style="font-size:9px;font-style:normal;transition:transform .18s;opacity:.55">&#9654;</span>
   </div>
-  <div class="notif-panel-body" style="padding:0 28px 8px">
-    <div style="display:flex;flex-direction:column;gap:3px">
+  <div class="notif-panel-body jornada-body" style="padding:0 28px 8px">
+    <div class="jornada-items">
       {% for a in alertas %}
       <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #fde68a;border-left:3px solid #d97706;border-radius:4px;padding:5px 10px;font-size:11.5px">
         <span style="background:#d97706;color:#fff;font-size:9.5px;font-weight:800;padding:1px 5px;border-radius:3px">{{ a.dias }}d</span>
@@ -637,6 +694,11 @@ tbody tr:hover td.cell-mismatch{background:#fdf0e3}
             <div class="alerta-cruce alerta-falta-inline">
               <span class="alerta-icon">⚠</span>
               <span>{{ razon.replace(' (Permiso sin Goce)', '') }}{% if ' (Permiso sin Goce)' in razon %} <span class="tag-permiso-inline">Permiso sin Goce</span>{% endif %}</span>
+            </div>
+            {% elif razon.startswith('Conflicto de destino') %}
+            <div class="alerta-cruce alerta-conflicto-inline">
+              <span class="alerta-icon">⇄</span>
+              <span>{{ razon }}</span>
             </div>
             {% endif %}
           {% endfor %}
@@ -835,6 +897,7 @@ function openPopup(event, td) {
     solo_sv:  '<span style="color:#5c4516;font-weight:700">Solo en supervisor</span>',
     falta:    '<span style="color:#991b1b;font-weight:700">Inasistencia</span>',
     mismatch: '<span style="color:#92400e;font-weight:700">Discrepancia</span>',
+    conflicto:'<span style="color:#1e3a8a;font-weight:700">Conflicto de destino</span>',
     empty:    '',
   }[data.status] || '';
 
@@ -880,6 +943,8 @@ function openPopup(event, td) {
         }
       } else if (r.startsWith("Turno diferente")) {
         cls="alert-discrepancia"; label="Discrepancia de turno"; detail=r.slice(18);
+      } else if (r.startsWith("Conflicto de destino")) {
+        cls="alert-conflicto"; label="Conflicto de destino"; detail=r.slice(23);
       } else {
         cls="alert-discrepancia"; label="Sin confirmación supervisor"; detail=r.slice(12);
       }

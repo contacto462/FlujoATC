@@ -42,6 +42,11 @@ class VentaSucursalTableUpdateRequest(BaseModel):
     values: list[str]
 
 
+class VentaClienteTelefonoUpdateRequest(BaseModel):
+    rut: str
+    telefono: str = ""
+
+
 class VentaSucursalContactoEmergenciaRequest(BaseModel):
     nombre: str | None = Field(default=None, max_length=255)
     rut: str | None = Field(default=None, max_length=32)

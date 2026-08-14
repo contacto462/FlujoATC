@@ -14,11 +14,13 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ATC.app.core.config import settings
+from ATC.app.core.image_optimizer import optimize_image_bytes
 from ATC.app.core.text import decode_mime_words
 from ATC.app.models.email_sync_state import EmailSyncState
 from ATC.app.models.message import Message
 from ATC.app.models.requester import Requester
 from ATC.app.models.ticket import Ticket
+from ATC.app.models.user import User
 from ATC.app.services.ticket_status_service import apply_ticket_status_change
 
 
@@ -416,6 +418,7 @@ def _extract_html_and_save_images(msg) -> str | None:
         payload = part.get_payload(decode=True)
         if not payload:
             continue
+        payload = optimize_image_bytes(payload, content_type=content_type)
 
         content_id = str(part.get("Content-ID") or "").strip().strip("<>")
         location = str(part.get("Content-Location") or "").strip()
@@ -548,6 +551,22 @@ def _support_mailboxes() -> set[str]:
         _normalize_email_address(settings.SMTP_FROM),
     }
     return {item for item in mailboxes if item}
+
+
+def _agent_emails(db: Session) -> dict[str, tuple[int, str]]:
+    """Correos de agentes/usuarios internos activos (email -> (id, nombre)).
+    Un agente que responde desde su propio correo (fuera de la ticketera) no
+    es un cliente: si su correo termina matcheando/creando un Requester, esa
+    cuenta queda "enlazada" para siempre (Requester.email es un campo global,
+    sin alcance por ticket) y sus correos futuros se atribuyen a ese cliente
+    en vez de al agente — paso con felipe.mora@soporteatc.cl, ago 2026."""
+    mapping: dict[str, tuple[int, str]] = {}
+    rows = db.query(User.id, User.name, User.email).filter(User.is_active == True).all()  # noqa: E712
+    for uid, name, email_addr in rows:
+        norm = _normalize_email_address(email_addr)
+        if norm:
+            mapping[norm] = (uid, name)
+    return mapping
 
 
 def _mailbox_key(user: str | None = None, folder: str | None = None) -> str:
@@ -705,10 +724,11 @@ def _resolve_ticket(
     body: str,
     from_email: str,
     support_mailboxes: set[str],
-    requester_id: int,
+    requester_id: int | None,
     message_dt: datetime,
     inbound_mailbox: str | None = None,
-) -> tuple[Ticket, bool]:
+    allow_create: bool = True,
+) -> tuple[Ticket | None, bool]:
     ticket: Ticket | None = None
 
     ticket_id = _extract_ticket_id_from_headers(msg)
@@ -754,6 +774,13 @@ def _resolve_ticket(
             # usada por el resto del sistema.
             apply_ticket_status_change(ticket, "open")
         return ticket, True
+
+    if not allow_create:
+        # Correo de un agente/usuario interno que no encajo en ningun hilo
+        # existente: no es un cliente nuevo, no se crea Requester ni Ticket
+        # a partir de el (ver _agent_emails). Se descarta en silencio, igual
+        # que los correos que llegan desde los buzones compartidos.
+        return None, False
 
     # Deduplicación: si ya existe un ticket con el mismo asunto del mismo
     # requester creado en los últimos 10 minutos, reutilizarlo en vez de
@@ -880,6 +907,7 @@ def fetch_emails_and_create_tickets(
             uid_values = uid_values[:limit]
 
         support_mailboxes = _support_mailboxes()
+        agent_emails = _agent_emails(db)
         inbound_mailbox = _normalize_email_address(user)
 
         # Mientras haya un UID mas viejo pendiente de reintento, el cursor
@@ -951,18 +979,46 @@ def fetch_emails_and_create_tickets(
                     print(f"Email UID {uid} (msgid {message_id}) sin contenido visible tras extraer/sanitizar; se guarda placeholder")
                     body = "<p><em>Este correo no incluyo contenido de texto legible.</em></p>"
 
-                requester = _resolve_requester(db, from_name, from_email)
-                ticket, ticket_exists = _resolve_ticket(
-                    db,
-                    msg=msg,
-                    subject=subject,
-                    body=body,
-                    from_email=from_email,
-                    support_mailboxes=support_mailboxes,
-                    requester_id=requester.id,
-                    message_dt=message_dt,
-                    inbound_mailbox=inbound_mailbox,
-                )
+                agent_match = agent_emails.get(from_email)
+
+                if agent_match:
+                    # Correo desde el buzon propio de un agente (no via la
+                    # ticketera): no crea ni matchea un Requester (eso
+                    # dejaria su cuenta "enlazada" como cliente para
+                    # siempre). Solo se adjunta si encaja en un hilo
+                    # existente; si no, se descarta sin crear nada nuevo.
+                    requester = None
+                    ticket, ticket_exists = _resolve_ticket(
+                        db,
+                        msg=msg,
+                        subject=subject,
+                        body=body,
+                        from_email=from_email,
+                        support_mailboxes=support_mailboxes,
+                        requester_id=None,
+                        message_dt=message_dt,
+                        inbound_mailbox=inbound_mailbox,
+                        allow_create=False,
+                    )
+                    if ticket is None:
+                        _uid_failure_counts.pop(fail_key, None)
+                        if can_advance_cursor:
+                            sync_state.last_uid = uid
+                            db.commit()
+                        continue
+                else:
+                    requester = _resolve_requester(db, from_name, from_email)
+                    ticket, ticket_exists = _resolve_ticket(
+                        db,
+                        msg=msg,
+                        subject=subject,
+                        body=body,
+                        from_email=from_email,
+                        support_mailboxes=support_mailboxes,
+                        requester_id=requester.id,
+                        message_dt=message_dt,
+                        inbound_mailbox=inbound_mailbox,
+                    )
 
                 if not getattr(ticket, "inbound_mailbox", None):
                     ticket.inbound_mailbox = inbound_mailbox
@@ -984,12 +1040,13 @@ def fetch_emails_and_create_tickets(
                 db.add(
                     Message(
                         ticket_id=ticket.id,
-                        sender_type="requester",
+                        sender_type="agent" if agent_match else "requester",
+                        sender_id=agent_match[0] if agent_match else None,
                         channel="email",
                         content=body,
                         external_id=message_id,
                         is_internal_note=False,
-                        sender_name=(from_name or from_email.split("@")[0]).strip() or None,
+                        sender_name=(agent_match[1] if agent_match else (from_name or from_email.split("@")[0])).strip() or None,
                         sender_email=from_email,
                         created_at=message_dt,
                     )

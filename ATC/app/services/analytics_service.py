@@ -1083,7 +1083,7 @@ def get_ticket_timeline(db, ticket_id: int) -> dict | None:
 
     def _nombre(uid: int | None) -> str:
         if not uid:
-            return "—"
+            return "Equipo"
         return user_names.get(uid) or "—"
 
     events: list[dict] = []
@@ -1145,21 +1145,37 @@ def get_ticket_timeline(db, ticket_id: int) -> dict | None:
                     "date": m.created_at,
                 })
 
-    # 5) Finalizacion ------------------------------------------------------
-    if ticket.resolved_at:
+    # 5) Finalizacion --------------------------------------------------------
+    # Se usa last_resolved_at (nunca se borra) en vez de resolved_at (que se
+    # limpia al reabrir) para que el historial no pierda el hecho de que el
+    # ticket sí se resolvió, aunque el cliente lo haya reabierto despues.
+    ultima_resolucion = ticket.last_resolved_at or ticket.resolved_at
+    if ultima_resolucion:
         # Quien tenia el ticket asignado al momento de resolverlo — el ultimo
-        # evento de asignacion antes (o igual) a resolved_at, o el asignado
+        # evento de asignacion antes (o igual) a esa fecha, o el asignado
         # actual si no hay historial.
         resolved_by_id = ticket.assigned_to_id
         for ev in assignment_events:
-            if ev.created_at and ev.created_at <= ticket.resolved_at and ev.to_user_id:
+            if ev.created_at and ev.created_at <= ultima_resolucion and ev.to_user_id:
                 resolved_by_id = ev.to_user_id
         events.append({
             "type": "finalizado",
             "label": "Ticket finalizado",
             "detail": f"Cerrado por {_nombre(resolved_by_id)}",
-            "date": ticket.resolved_at,
+            "date": ultima_resolucion,
         })
+
+        # 6) Reapertura ------------------------------------------------------
+        # Si hubo una reapertura posterior a esa resolución, el ticket sigue
+        # (o volvió a estar) abierto/pendiente — se deja explícito para no dar
+        # a entender que el agente nunca lo terminó.
+        if ticket.last_reopened_at and ticket.last_reopened_at > ultima_resolucion:
+            events.append({
+                "type": "reabierto",
+                "label": "Ticket reabierto",
+                "detail": "Vuelve a quedar abierto luego de haber sido resuelto",
+                "date": ticket.last_reopened_at,
+            })
 
     events.sort(key=lambda e: e["date"] or datetime.min.replace(tzinfo=timezone.utc))
 

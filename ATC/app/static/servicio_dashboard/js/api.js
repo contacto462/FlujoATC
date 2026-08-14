@@ -64,7 +64,7 @@ const MOCK_TIPOS = [
 
 const MOCK_TECNICOS = [
   'Bryan Rebolledo', 'Marco López', 'Ricardo Vergara',
-  'Luis Bustamante', 'Jesús González', 'Nicolás Bravo',
+  'Luis Bustamante',
 ];
 
 const MOCK_RESPONSABLES = [

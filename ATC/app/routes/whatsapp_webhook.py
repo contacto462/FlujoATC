@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from ATC.app.core.config import settings
 from ATC.app.core.db import get_db
+from ATC.app.core.timeutil import to_chile_naive
 from ATC.app.models.message import Message
 from ATC.app.models.requester import Requester
 from ATC.app.models.ticket import Ticket
@@ -94,7 +95,15 @@ def _resolve_ticket(
         .first()
     )
     if last_ticket and last_ticket.updated_at is not None:
-        delta = received_at - last_ticket.updated_at
+        # received_at ya viene naive (hora de Chile, ver to_chile_naive en el
+        # caller) — updated_at puede volver naive o aware según el driver;
+        # se despoja el tzinfo de ambos lados antes de restar para no
+        # reventar con "can't subtract offset-naive and offset-aware
+        # datetimes". Es una ventana de 3 días, no hace falta precisión al
+        # segundo.
+        updated_at_naive = last_ticket.updated_at.replace(tzinfo=None)
+        received_at_naive = received_at.replace(tzinfo=None) if received_at.tzinfo else received_at
+        delta = received_at_naive - updated_at_naive
         if delta.total_seconds() <= THREAD_REUSE_WINDOW_SECONDS:
             if last_ticket.status == "resolved":
                 apply_ticket_status_change(last_ticket, "open")
@@ -234,6 +243,14 @@ async def receive_webhook(request: Request, db: Session = Depends(get_db)):
                     )
                 except Exception:
                     received_at = datetime.now(timezone.utc)
+                # Meta manda el timestamp en UTC real — convertir a hora de
+                # Chile naive acá, antes de usarlo tanto para la ventana de
+                # reuso de ticket como para guardarlo en Message/Ticket.
+                # created_at (que en el resto de la app son GETDATE() del
+                # SQL Server, hora de Chile mal-etiquetada como UTC). Antes
+                # esto quedaba en UTC real y mostraba la hora del mensaje de
+                # WhatsApp corrida 3-4 horas en detalle_ticket.html.
+                received_at = to_chile_naive(received_at)
 
                 content = _extract_text_content(message)
                 profile_name = contacts_by_wa_id.get(raw_from) or contacts_by_wa_id.get(phone) or ""

@@ -16,6 +16,7 @@ from ATC.app.schemas.venta import (
     VentaClienteCreateRequest,
     VentaClienteCreateResponse,
     VentaClienteTableUpdateRequest,
+    VentaClienteTelefonoUpdateRequest,
     VentaContratoUploadRequest,
     VentaFinanzasEstadoRequest,
     VentaODSCreateRequest,
@@ -46,6 +47,7 @@ from ATC.app.services.venta_service import (
     get_admin_ods_detail,
     get_admin_ods_rows,
     get_cliente_nombre_by_rut,
+    get_clientes_informacion_list,
     get_cliente_resumen_by_rut,
     get_cliente_sucursal_resumen,
     get_clientes_table,
@@ -64,12 +66,14 @@ from ATC.app.services.venta_service import (
     get_servicio_tecnico_ventas_detail,
     get_servicio_tecnico_ventas_rows,
     get_sucursal_revision_bitacora,
+    get_sucursales_pendientes_bitacora_comercial,
     get_sucursales_table,
     resolve_ods_archivo_path,
     rut_exists,
     subir_contrato_venta,
     update_admin_ods_estado,
     update_cliente_row,
+    update_cliente_telefono,
     update_finanzas_ods_estado,
     update_ods,
     update_operaciones_ods_estado,
@@ -79,6 +83,7 @@ from ATC.app.services.venta_service import (
     update_servicio_tecnico_ventas_estado,
     update_servicio_tecnico_ventas_valor,
     update_sucursal_row,
+    delete_sucursal_row,
     upsert_sucursal_info_extra,
 )
 
@@ -362,13 +367,21 @@ def venta_bbdd_ods_page(
 def venta_informacion_cliente_page(
     request: Request,
     token: str = Query(default=""),
+    next_form: str = Query(default="panelSelectorVenta", alias="next"),
     db: Session = Depends(get_db),
     service: Annotated[IncidenciasService, Depends(get_service)] = None,
 ):
-    guard = _guard_page(request, db, service, token, next_form='panelSelectorVenta')
+    if next_form not in {"panelSelectorVenta", "panelSelectorAdministracion"}:
+        next_form = "panelSelectorVenta"
+    guard = _guard_page(request, db, service, token, next_form=next_form)
     if guard:
         return guard
-    return _template(request, "informacion_cliente.html", token)
+    back_url = (
+        f"/venta/administracion?token={token or ''}"
+        if next_form == "panelSelectorAdministracion"
+        else f"/venta/panel-selector?token={token or ''}"
+    )
+    return _template(request, "informacion_cliente.html", token, back_url=back_url)
 
 
 @router.get("/venta/tabla-comercial", response_class=HTMLResponse)
@@ -849,6 +862,14 @@ def venta_clientes_tabla_guardar(payload: VentaClienteTableUpdateRequest, db: Se
     return {"ok": True}
 
 
+@router.post("/api/venta/clientes/telefono")
+def venta_cliente_telefono_guardar(payload: VentaClienteTelefonoUpdateRequest, db: Session = Depends(get_db), current_user=Depends(_require_login)):
+    """Edición inline del teléfono del cliente desde Información Clientes (campo
+    "Contacto" que marca Bitácora — vive en bbdd_clientes, no en la sucursal)."""
+    update_cliente_telefono(db, payload.rut, payload.telefono)
+    return {"ok": True}
+
+
 @router.get("/api/venta/sucursales/tabla")
 def venta_sucursales_tabla(db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return get_sucursales_table(db)
@@ -860,6 +881,12 @@ def venta_sucursales_tabla_guardar(payload: VentaSucursalTableUpdateRequest, db:
     return {"ok": True}
 
 
+@router.delete("/api/venta/sucursales/{sucursal_id}")
+def venta_sucursal_eliminar(sucursal_id: int, db: Session = Depends(get_db), current_user=Depends(_require_login)):
+    delete_sucursal_row(db, sucursal_id)
+    return {"ok": True}
+
+
 @router.get("/api/venta/sucursales/{sucursal_id}/revision-bitacora")
 def venta_sucursal_revision_bitacora(sucursal_id: int, db: Session = Depends(get_db), current_user=Depends(_require_login)):
     """Qué campos marcó Bitácora como falta/mal la última vez que notificó sobre
@@ -867,6 +894,19 @@ def venta_sucursal_revision_bitacora(sucursal_id: int, db: Session = Depends(get
     Información Clientes resalten esos campos y muestren el botón "Avisar que está
     listo" solo cuando corresponde."""
     return get_sucursal_revision_bitacora(db, sucursal_id)
+
+
+@router.get("/api/venta/sucursales/mis-pendientes-bitacora")
+def venta_sucursales_mis_pendientes_bitacora(
+    todos: bool = Query(default=False),
+    db: Session = Depends(get_db),
+    current_user=Depends(_require_login),
+):
+    """Banner de Tabla Sucursal: sucursales que Bitácora marcó como "falta o está
+    mal". Por defecto devuelve solo las del comercial logueado; con todos=1
+    devuelve el total pendiente para alimentar badges de panel."""
+    nombre = str(getattr(current_user, "name", "") or getattr(current_user, "username", "") or "").strip()
+    return get_sucursales_pendientes_bitacora_comercial(db, nombre, todos=todos)
 
 
 class SucursalAvisarListoRequest(BaseModel):
@@ -896,6 +936,11 @@ current_user=Depends(_require_login)):
 @router.get("/api/venta/clientes/resumen")
 def venta_cliente_resumen(rut: str = Query(default=""), db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return get_cliente_resumen_by_rut(db, rut)
+
+
+@router.get("/api/venta/clientes/buscar")
+def venta_clientes_buscar(q: str = Query(default=""), db: Session = Depends(get_db), current_user=Depends(_require_login)):
+    return get_clientes_informacion_list(db, q)
 
 
 @router.get("/api/venta/clientes/resumen-sucursal")

@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="es">
 <head>
-<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
-<link rel="shortcut icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png?v=2">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png?v=2">
+<link rel="shortcut icon" href="/favicon.ico?v=2">
 
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -278,6 +278,20 @@ table {
   font-size: 13px;
 }
 
+col.c-codigo { width: 3.6%; }
+col.c-fecha { width: 4.3%; }
+col.c-ejecutivo { width: 5.2%; }
+col.c-rut { width: 4.6%; }
+col.c-sucursal { width: 5.4%; }
+col.c-direccion { width: 6%; }
+col.c-servicio { width: 4.8%; }
+col.c-plan { width: 4%; }
+col.c-estado { width: 5.2%; }
+col.c-requiere { width: 5.2%; }
+col.c-central { width: 5.2%; }
+col.c-pantalla { width: 5.5%; }
+col.c-terminado { width: 4.8%; }
+
 @media (max-width: 760px) {
   html, body {
     height: auto;
@@ -296,15 +310,8 @@ table {
     overflow: visible;
   }
 
-  .tabla-container {
-    max-width: 100vw;
-    overflow-x: auto;
-    overflow-y: visible;
-    -webkit-overflow-scrolling: touch;
-  }
-
   table {
-    min-width: 1760px;
+    min-width: 2060px;
   }
 
   thead th,
@@ -494,6 +501,11 @@ td {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(127,196,151,.20);
 }
+.pantalla-select {
+  max-width: 100%;
+  min-width: 0;
+  text-align: left;
+}
 
 /* Filtro en thead (deprecado, ahora va en barra superior; protejo por si queda) */
 .filtro-container { display: none; }
@@ -640,7 +652,7 @@ tr.fila-detalles {
 }
 .camera-input-row {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
+  grid-template-columns: 96px minmax(0, 1fr) minmax(160px, 220px);
   align-items: center;
   gap: 10px;
 }
@@ -649,7 +661,8 @@ tr.fila-detalles {
   font-size: 12px;
   font-weight: 800;
 }
-.camera-input-row input {
+.camera-input-row input,
+.camera-input-row select {
   width: 100%;
   min-height: 38px;
   border: 1px solid var(--border);
@@ -660,7 +673,8 @@ tr.fila-detalles {
   font: inherit;
   outline: none;
 }
-.camera-input-row input:focus {
+.camera-input-row input:focus,
+.camera-input-row select:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(127,196,151,.20);
 }
@@ -674,6 +688,40 @@ tr.fila-detalles {
   margin: 0 0 12px;
   color: var(--text-soft);
   font-size: 13px;
+}
+.camera-existing-box {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-alt);
+}
+.camera-existing-title {
+  margin: 0 0 8px;
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 800;
+}
+.camera-existing-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.camera-existing-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.camera-existing-empty {
+  color: var(--text-muted);
+  font-size: 12px;
 }
 .popup-history {
   display: grid;
@@ -931,27 +979,50 @@ tr.modal-subida {
 <!-- Table -->
 <div class="tabla-container" id="contenedor-tabla" style="display:none;">
   <table>
+    <colgroup>
+      <col class="c-codigo">
+      <col class="c-fecha">
+      <col class="c-ejecutivo">
+      <col class="c-rut">
+      <col class="c-sucursal">
+      <col class="c-direccion">
+      <col class="c-servicio">
+      <col class="c-plan">
+      <col class="c-estado">
+      <col class="c-estado">
+      <col class="c-estado">
+      <col class="c-estado">
+      <col class="c-estado">
+      <col class="c-estado">
+      <col class="c-requiere">
+      <col class="c-central">
+      <col class="c-pantalla">
+      <col class="c-estado">
+      <col class="c-estado">
+      <col class="c-terminado">
+    </colgroup>
     <thead>
       <tr>
-        <th style="width:4%">Código</th>
-        <th style="width:4.5%">Fecha</th>
-        <th style="width:5%">Ejecutivo</th>
-        <th style="width:4.5%">RUT</th>
-        <th style="width:4.5%">Sucursal</th>
-        <th style="width:5%">Dirección Sucursal</th>
-        <th style="width:4.5%">Tipo Servicio</th>
-        <th style="width:4%">Tipo Plan</th>
-        <th style="width:5.5%">Instalación Finalizada</th>
-        <th style="width:5.5%">Configuración Cámaras</th>
-        <th style="width:5.5%">Posicionamiento Imagen</th>
-        <th style="width:5.5%">Enlace con Servidor</th>
-        <th style="width:5.5%">Configuración IVS</th>
-        <th style="width:5.5%">Plan de Grabación</th>
-        <th style="width:5.5%">Requiere Puesto Nuevo</th>
-        <th style="width:5.5%">N° Central Asignado</th>
-        <th style="width:5.5%">Configuración Cliente</th>
-        <th style="width:5.5%">V°B Final de Servicio</th>
-        <th style="width:6%" class="th-terminado">
+        <th>Código</th>
+        <th>Fecha</th>
+        <th>Ejecutivo</th>
+        <th>RUT</th>
+        <th>Sucursal</th>
+        <th>Dirección Sucursal</th>
+        <th>Tipo Servicio</th>
+        <th>Tipo Plan</th>
+        <th>Instalación Finalizada</th>
+        <th>Configuración Cámaras</th>
+        <th>Posicionamiento Imagen</th>
+        <th>Enlace con Servidor</th>
+        <th>Configuración IVS</th>
+        <th>Plan de Grabación</th>
+        <th>Requiere Puesto Nuevo</th>
+        <th>N° Central Asignado</th>
+        <th>Pantalla</th>
+        <th>Configuración Cliente</th>
+        <th>V°B Final de Servicio</th>
+        <th class="th-terminado">
           Terminado
           <div class="filtro-th">
             <select id="filtro-terminado" onchange="filtrarTabla()">
@@ -1046,10 +1117,42 @@ tr.modal-subida {
     11: "enlace_servidor",
     12: "configuracion_ivs",
     13: "plan_grabacion",
-    16: "configuracion_cliente",
-    17: "vb_final_servicio",
-    18: "terminado",
+    17: "configuracion_cliente",
+    18: "vb_final_servicio",
+    19: "terminado",
   };
+
+  const PANTALLAS_PUESTO_4 = ["Izquierda Arriba", "Derecha Arriba", "Izquierda Abajo", "Derecha Abajo"];
+  const PANTALLAS_PUESTO_6 = [
+    "Izquierda Arriba", "Centro Arriba", "Derecha Arriba",
+    "Izquierda Abajo", "Centro Abajo", "Derecha Abajo",
+  ];
+
+  function parsePuestoCentral(valor) {
+    const match = String(valor || "").match(/\d+/);
+    if (!match) return null;
+    const puesto = parseInt(match[0], 10);
+    return puesto >= 1 && puesto <= 29 ? puesto : null;
+  }
+
+  function pantallasParaCentral(valor) {
+    const puesto = parsePuestoCentral(valor);
+    if (!puesto) return [];
+    return puesto <= 12 ? PANTALLAS_PUESTO_4 : PANTALLAS_PUESTO_6;
+  }
+
+  function configurarOpcionesPantalla(select, fila, instalacionLista) {
+    const opciones = pantallasParaCentral(fila?.[15]);
+    const actual = String(fila?.[16] || select.value || "").trim();
+    const placeholder = opciones.length ? "Seleccionar" : "Primero ingresa central";
+    select.innerHTML = `<option value="">${placeholder}</option>` + opciones
+      .map(opcion => `<option value="${htmlEsc(opcion)}">${htmlEsc(opcion)}</option>`)
+      .join("");
+    select.value = opciones.includes(actual) ? actual : "";
+    select.disabled = false;
+    select.title = "";
+    if (fila) fila[16] = select.value;
+  }
 
   function normalizarTipoServicio(valor) {
     return (valor || "")
@@ -1070,6 +1173,10 @@ tr.modal-subida {
     return partes.length === 1 && partes[0] === "televigilancia";
   }
 
+  function contieneTelevigilanciaTipo(tipoServicio) {
+    return normalizarTipoServicio(tipoServicio).includes("televigilancia");
+  }
+
   function instalacionListaParaSoporte(fila) {
     if (esSoloTelevigilanciaTipo(fila?.[6])) return true;
     const valor = (fila?.[8] || "").toString().trim().toLowerCase();
@@ -1082,12 +1189,14 @@ tr.modal-subida {
   }
 
   function pendientesEditablesSoporte(fila) {
-    if (!fila || (fila[19] || "").toString().trim().toLowerCase() === "anulada") return 0;
+    if (!fila || (fila[20] || "").toString().trim().toLowerCase() === "anulada") return 0;
     if (!instalacionListaParaSoporte(fila)) return 0;
-    const camposEstado = [9, 10, 11, 12, 13, 16, 17, 18];
+    const requiereDatosPuesto = contieneTelevigilanciaTipo(fila?.[6]);
+    const camposEstado = [9, 10, 11, 12, 13, 17, 18, 19];
     let total = camposEstado.reduce((acc, idx) => acc + (valorPendienteEditable(fila[idx]) ? 1 : 0), 0);
     if (valorPendienteEditable(fila[14])) total += 1;
-    if (valorPendienteEditable(fila[15])) total += 1;
+    if (requiereDatosPuesto && valorPendienteEditable(fila[15])) total += 1;
+    if (requiereDatosPuesto && valorPendienteEditable(fila[16])) total += 1;
     return total;
   }
 
@@ -1104,6 +1213,21 @@ tr.modal-subida {
         return a.index - b.index;
       })
       .map(item => item.fila);
+  }
+
+  function estadoTerminadoFila(fila) {
+    const estado = String(fila?.[19] || "").trim().toLowerCase();
+    return (!estado || estado === "pendiente" || estado === "false" || estado === "0")
+      ? "Pendiente"
+      : "Finalizado";
+  }
+
+  function actualizarMetaFila(tr, fila) {
+    if (!tr || !fila) return;
+    tr.dataset.estadoTerminado = estadoTerminadoFila(fila);
+    tr.dataset.pendientesEditables = String(pendientesEditablesSoporte(fila));
+    tr.dataset.anulada = (String(fila?.[20] || "").trim().toLowerCase() === "anulada") ? "1" : "0";
+    tr.classList.toggle("fila-anulada", tr.dataset.anulada === "1");
   }
 
   /* ===== Load table ===== */
@@ -1124,10 +1248,10 @@ tr.modal-subida {
     let vis = 0;
     document.querySelectorAll("#tabla-datos tr").forEach(fila => {
       if (fila.classList.contains("fila-detalles") || fila.classList.contains("modal-subida")) return;
-      const estado = (fila.cells[18] && fila.cells[18].textContent.trim()) || "";
+      const estado = fila.dataset.estadoTerminado || "";
       const texto = fila.textContent.toLowerCase();
       const matchTxt = !txt || texto.includes(txt);
-      const anulada = fila.classList.contains("fila-anulada");
+      const anulada = fila.dataset.anulada === "1";
       const matchEst =
         filtro === "Anuladas"
           ? anulada
@@ -1149,7 +1273,7 @@ tr.modal-subida {
     datos.forEach((fila) => {
       const tr = document.createElement("tr");
       const tipoServicio = (fila[6] || "").toString().toLowerCase();
-      const esTelevigilancia = tipoServicio.includes("televigilancia");
+      const esTelevigilancia = contieneTelevigilanciaTipo(fila[6]);
       const esSoloTelevigilancia = esSoloTelevigilanciaTipo(fila[6]);
       const instalacionFinalizada = fila[8];
       const instalacionLista = (() => {
@@ -1158,12 +1282,10 @@ tr.modal-subida {
         return Boolean(valor && valor !== "pendiente");
       })();
 
-      if ((fila[19] || "").toLowerCase() === "anulada") {
-        tr.classList.add("fila-anulada");
-      }
+      actualizarMetaFila(tr, fila);
 
       fila.forEach((celda, idx) => {
-        if (idx === 19) return;
+        if (idx === 20) return;
         const td = document.createElement("td");
 
         if (idx === 0) {
@@ -1205,7 +1327,10 @@ tr.modal-subida {
                 });
               }
               try {
+                fila[14] = nuevoValor;
                 await apiPost("/api/soporte-tecnico/ods/actualizar-valor", { codigo: fila[0], campo: "requiere_puesto_nuevo", valor: nuevoValor });
+                actualizarMetaFila(tr, fila);
+                filtrarTabla();
               } catch (err) { alert("Error: " + err.message); }
             };
             cont.appendChild(btn);
@@ -1213,8 +1338,15 @@ tr.modal-subida {
           td.appendChild(cont);
 
         } else if (idx === 15) {
+          if (!esTelevigilancia) {
+            td.textContent = "No aplica";
+            tr.appendChild(td);
+            return;
+          }
           const input = document.createElement("input");
           input.type = "number";
+          input.min = "1";
+          input.max = "29";
           input.value = celda || "";
           input.classList.add("input-number");
           input.disabled = !instalacionLista;
@@ -1222,14 +1354,44 @@ tr.modal-subida {
           input.onchange = async () => {
             if (!instalacionLista) return;
             try {
+              fila[15] = input.value;
               await apiPost("/api/soporte-tecnico/ods/actualizar-valor", { codigo: fila[0], campo: "numero_central_asignado", valor: input.value });
+              const pantallaSelect = tr.querySelector("select[data-pantalla-asignada]");
+              if (pantallaSelect) configurarOpcionesPantalla(pantallaSelect, fila, instalacionLista);
+              actualizarMetaFila(tr, fila);
+              filtrarTabla();
               await apiPost("/api/soporte-tecnico/ods/notificar-termino", { codigo: fila[0] });
             } catch (err) { alert("Error: " + err.message); }
           };
           td.appendChild(input);
 
+        } else if (idx === 16) {
+          if (!esTelevigilancia) {
+            td.textContent = "No aplica";
+            tr.appendChild(td);
+            return;
+          }
+          const select = document.createElement("select");
+          select.className = "input-number pantalla-select";
+          select.dataset.pantallaAsignada = "1";
+          configurarOpcionesPantalla(select, fila, instalacionLista);
+          select.onchange = async () => {
+            if (!parsePuestoCentral(fila[15])) {
+              alert("Primero ingresa un N° de central entre 1 y 29.");
+              select.value = "";
+              return;
+            }
+            fila[16] = select.value;
+            try {
+              await apiPost("/api/soporte-tecnico/ods/actualizar-valor", { codigo: fila[0], campo: "pantalla_asignada", valor: select.value });
+              actualizarMetaFila(tr, fila);
+              filtrarTabla();
+            } catch (err) { alert("Error: " + err.message); }
+          };
+          td.appendChild(select);
+
         } else if (
-          (idx >= 9 && idx <= 13) || (idx >= 16 && idx <= 18)
+          (idx >= 9 && idx <= 13) || (idx >= 17 && idx <= 19)
         ) {
           const btn = document.createElement("button");
           const estadoActual = (celda && celda !== "Pendiente") ? "Finalizado" : "Pendiente";
@@ -1243,7 +1405,7 @@ tr.modal-subida {
             btn.onclick = async () => {
               const nuevo = btn.textContent === "Pendiente";
               const campo = campoReal[idx];
-              if (idx === 18 && nuevo && esTelevigilancia) {
+              if (idx === 19 && nuevo && esTelevigilancia) {
                 const puedeFinalizar = await abrirRegistroCamarasSiFaltan(fila);
                 if (!puedeFinalizar) return;
               }
@@ -1252,7 +1414,10 @@ tr.modal-subida {
               btn.classList.toggle("completado");
               try {
                 await apiPost("/api/soporte-tecnico/ods/actualizar-estado", { codigo: fila[0], campo, valor: nuevo });
-                if (idx === 18 && nuevo) {
+                fila[idx] = nuevo ? "Finalizado" : "Pendiente";
+                actualizarMetaFila(tr, fila);
+                filtrarTabla();
+                if (idx === 19 && nuevo) {
                   await apiPost("/api/soporte-tecnico/ods/notificar-termino", { codigo: fila[0] });
                 }
               } catch (err) {
@@ -1267,13 +1432,6 @@ tr.modal-subida {
 
         } else if (idx === 8) {
           td.textContent = celda || "Pendiente";
-        } else if (idx === 19 || idx === 20) {
-          td.textContent = celda || "Pendiente";
-        } else if (idx === 21) {
-          const texto = String(celda || "").trim();
-          td.innerHTML = texto
-            ? `<div class="camera-registered-list">${htmlEsc(texto).replaceAll("\n", "<br>")}</div>`
-            : "Pendiente";
         } else {
           td.textContent = celda || "Pendiente";
         }
@@ -1458,17 +1616,58 @@ tr.modal-subida {
     if (title) title.textContent = `Cámaras en servidor - ${codigo}`;
     if (help) help.textContent = `Registra ${total} cámara${total === 1 ? "" : "s"} según la cantidad a monitorear.`;
     if (!inputs) return;
+    const camarasExistentes = Array.isArray(context?.info?.camarasExistentesSucursal)
+      ? context.info.camarasExistentesSucursal
+      : [];
+    const opcionesReemplazo = camarasExistentes
+      .map((camara) => {
+        const id = Number(camara?.id || 0);
+        const nombre = String(camara?.camara || "").trim();
+        if (!id || !nombre) return "";
+        const meta = [
+          camara?.central ? `Puesto ${camara.central}` : "",
+          camara?.pantalla || "",
+        ].filter(Boolean).join(" · ");
+        const label = meta ? `${nombre} (${meta})` : nombre;
+        return `<option value="${id}">${htmlEsc(label)}</option>`;
+      })
+      .filter(Boolean)
+      .join("");
+    const existentesHtml = camarasExistentes.length ? `
+      <div class="camera-existing-box">
+        <p class="camera-existing-title">Cámaras actuales de ${htmlEsc(context?.info?.sucursalExistenteNombre || context?.info?.sucursal || "la sucursal")}</p>
+        <div class="camera-existing-list">
+          ${camarasExistentes.map((camara) => {
+            const meta = [
+              camara?.central ? `Puesto ${htmlEsc(camara.central)}` : "",
+              camara?.pantalla ? htmlEsc(camara.pantalla) : "",
+            ].filter(Boolean).join(" · ");
+            return `<span class="camera-existing-pill">${htmlEsc(camara?.camara || "")}${meta ? ` <small>${meta}</small>` : ""}</span>`;
+          }).join("")}
+        </div>
+      </div>
+    ` : `
+      <div class="camera-existing-box">
+        <p class="camera-existing-title">Cámaras actuales de ${htmlEsc(context?.info?.sucursal || "la sucursal")}</p>
+        <div class="camera-existing-empty">No hay cámaras registradas para esta sucursal.</div>
+      </div>
+    `;
     const completas = Array.from({ length: total }, (_, index) => String(guardadas?.[index] || "").trim()).filter(Boolean).length;
-    inputs.innerHTML = Array.from({ length: total }, (_, index) => {
+    const filasHtml = Array.from({ length: total }, (_, index) => {
       const valor = String(guardadas?.[index] || "").trim();
       const locked = Boolean(valor);
       return `
         <div class="camera-input-row">
           <label for="camara-servidor-${index}">Cámara ${index + 1}</label>
           <input id="camara-servidor-${index}" data-camera-index="${index}" type="text" value="${htmlEsc(valor)}" placeholder="Nombre o ID en servidor" ${locked ? "readonly" : ""}>
+          <select data-reemplazo-camera="${index}" ${locked || !opcionesReemplazo ? "disabled" : ""}>
+            <option value="">No reemplaza</option>
+            ${opcionesReemplazo}
+          </select>
         </div>
       `;
     }).join("");
+    inputs.innerHTML = existentesHtml + filasHtml;
     const btnGuardar = document.getElementById("btnGuardarCamarasServidor");
     if (btnGuardar) {
       btnGuardar.disabled = completas >= total;
@@ -1482,7 +1681,9 @@ tr.modal-subida {
     if (!camarasServidorContext) return;
     const { codigo, totalVigilar, info } = camarasServidorContext;
     const inputs = Array.from(document.querySelectorAll("#camarasServidorInputs input"));
+    const reemplazoSelects = Array.from(document.querySelectorAll("#camarasServidorInputs select[data-reemplazo-camera]"));
     const ids = inputs.map((input) => String(input.value || "").trim());
+    const reemplazos = reemplazoSelects.map((select) => select.disabled ? null : (select.value ? Number(select.value) : null));
     const faltante = ids.findIndex((value) => !value);
     if (faltante >= 0) {
       alert(`Completa el nombre o ID de la Cámara ${faltante + 1}.`);
@@ -1491,6 +1692,11 @@ tr.modal-subida {
     }
     if (ids.length !== Number(totalVigilar || 0)) {
       alert("La cantidad de cámaras no coincide con la cantidad a monitorear.");
+      return;
+    }
+    const reemplazosSeleccionados = reemplazos.filter(Boolean);
+    if (new Set(reemplazosSeleccionados).size !== reemplazosSeleccionados.length) {
+      alert("Una cámara existente no puede ser reemplazada por más de una cámara nueva.");
       return;
     }
     const btn = document.getElementById("btnGuardarCamarasServidor");
@@ -1508,12 +1714,16 @@ tr.modal-subida {
         razonSocial: info.razonSocial,
         sucursal: info.sucursal,
         direccion: info.direccion,
+        reemplazos,
       });
       if (finalizarDespues) {
         await apiPost("/api/soporte-tecnico/ods/actualizar-estado", { codigo, campo: "terminado", valor: true });
         await apiPost("/api/soporte-tecnico/ods/notificar-termino", { codigo });
       }
-      alert(finalizarDespues ? "Cámaras guardadas y ODS finalizada." : (res.mensaje || "Cámaras guardadas"));
+      const syncOk = Boolean(res?.sync?.synced);
+      const syncReason = String(res?.sync?.reason || "revisa N° Central Asignado, Pantalla y sucursal").trim();
+      const syncAviso = syncOk ? "" : `\n\nNo se actualizó Puestos/Pantallas: ${syncReason}.`;
+      alert((finalizarDespues ? "Cámaras guardadas y ODS finalizada." : (res.mensaje || "Cámaras guardadas")) + syncAviso);
       cerrarCamarasServidorModal();
       cargarDatosTablaSoporteTecnico();
     } catch (err) {
@@ -1564,7 +1774,7 @@ tr.modal-subida {
     const filaDetalle = document.createElement("tr");
     filaDetalle.className = "modal-subida";
     const tdModal = document.createElement("td");
-    tdModal.colSpan = 19;
+    tdModal.colSpan = 20;
     tdModal.innerHTML = `
       <div class="upload-card">
         <h4>Vista de cámaras — <span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-weight:700;">${odt}</span></h4>

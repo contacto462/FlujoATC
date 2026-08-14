@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png">
-<link rel="shortcut icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png?v=2">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png?v=2">
+<link rel="shortcut icon" href="/favicon.ico?v=2">
 
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -273,24 +273,6 @@
       display: inline-block;
     }
 
-    .btn-save {
-      padding: 10px 22px;
-      background: linear-gradient(135deg, var(--orange) 0%, var(--orange-2) 100%);
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      font-size: 13.5px;
-      font-weight: 800;
-      font-family: inherit;
-      cursor: pointer;
-      transition: opacity .18s, transform .12s, box-shadow .18s;
-      box-shadow: 0 4px 14px rgba(255,122,43,.28);
-      white-space: nowrap;
-    }
-
-    .btn-save:hover { opacity: .9; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(255,122,43,.36); }
-    .btn-save:disabled { background: #94a3b8; box-shadow: none; cursor: not-allowed; transform: none; }
-
     /* Fields */
     .fields-grid {
       display: grid;
@@ -556,9 +538,6 @@
             <div class="detail-title">${escHTML(name)}</div>
             <span class="detail-id-badge">ID ${escHTML(String(rowId))}</span>
           </div>
-          <button class="btn-save" id="btnSave" onclick="guardarCliente(${index})" type="button">
-            Guardar cambios
-          </button>
         </div>
         ${fieldsHTML}
       `;
@@ -566,6 +545,17 @@
       // async load selects
       const regionJ = 5, comunaJ = 6;
       loadRegionesSelect(`field-${index}-${regionJ}`, String(row[regionJ]||''), index, comunaJ, String(row[comunaJ]||''));
+      bindAutoSaveCliente(index);
+    }
+
+    /* ── AUTO-GUARDADO: cada campo se guarda solo al perder el foco / cambiar,
+       ya no hay botón "Guardar cambios". ── */
+    function bindAutoSaveCliente(index) {
+      allHeaders.forEach((header, j) => {
+        if (j === 0) return;
+        const el = document.getElementById(`field-${index}-${j}`);
+        el?.addEventListener('change', () => guardarCliente(index));
+      });
     }
 
     /* ── REGION / COMUNA LOADERS ── */
@@ -621,7 +611,6 @@
     async function guardarCliente(index) {
       const row = allRows[index];
       const rowId = Number(row[0]);
-      const btn = document.getElementById("btnSave");
 
       // Collect current values (ID first, then editable fields)
       const values = [String(rowId)];
@@ -630,9 +619,6 @@
         const input = document.getElementById(`field-${index}-${j}`);
         values.push(input ? input.value : String(row[j] || ''));
       });
-
-      btn.disabled = true;
-      btn.textContent = "Guardando...";
 
       try {
         const res = await fetch(withToken('/api/venta/clientes/tabla/guardar-fila'), {
@@ -656,15 +642,11 @@
         });
 
         showToast("Guardado correctamente ✓", "success");
-        btn.textContent = "Guardar cambios";
-        btn.disabled = false;
 
         // Refresh list item name
         filtrarLista();
       } catch (error) {
         showToast(error.message || 'Error al guardar', 'error');
-        btn.disabled = false;
-        btn.textContent = "Guardar cambios";
       }
     }
 

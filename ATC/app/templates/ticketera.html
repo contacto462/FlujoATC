@@ -253,7 +253,7 @@ body.sidebar-collapsed .sidebar-rail-toggle{
   font-weight:800;
   letter-spacing:.08em;
   text-transform:uppercase;
-  color: rgba(255,255,255,.7);
+  color: rgb(248, 244, 244);
 }
 
 .nav{
@@ -303,17 +303,14 @@ body.sidebar-collapsed .sidebar-rail-toggle{
 
 
 .pill{
-  background: rgba(255,255,255,.10);
-  padding:3px 8px;
-  border-radius:999px;
   font-size:11px;
   line-height: 1;
-  border: 1px solid rgba(255,255,255,.10);
+  font-weight:700;
+  color: var(--sidebar-muted);
 }
 
 .sidebar a.active .pill{
-  background: rgba(255,255,255,.18);
-  border-color: rgba(255,255,255,.18);
+  color: rgba(255,255,255,.92);
 }
 
 
@@ -1642,6 +1639,18 @@ body.dark-mode .card-main::before{
 body.dark-mode .card.unread-ticket .card-main::before{
   background:linear-gradient(180deg,#60a5fa,#3b82f6);
 }
+body.dark-mode .card.mentioned-ticket{
+  border-color:rgba(192,132,252,.55) !important;
+  box-shadow:0 0 0 1px rgba(168,85,247,.28), 0 12px 28px rgba(0,0,0,.40) !important;
+  background:linear-gradient(180deg, rgba(88,28,135,.28), rgba(15,23,41,.94)) !important;
+}
+body.dark-mode .card.mentioned-ticket .ticket-title{
+  color:#e9d5ff !important;
+  font-weight:900 !important;
+}
+body.dark-mode .card.mentioned-ticket .card-main::before{
+  background:linear-gradient(180deg,#c084fc,#9333ea) !important;
+}
 
 body.dark-mode .user-box{
   background:transparent;
@@ -2501,6 +2510,18 @@ body.dark-mode .select-all-check:hover{ color:#e2e8f0; }
 .ticket-new-message-dot svg{
   display:none;
 }
+.card.mentioned-ticket{
+  border-color:rgba(147,51,234,.35) !important;
+  box-shadow:0 0 0 2px rgba(147,51,234,.18), 0 10px 24px rgba(147,51,234,.18) !important;
+  background:linear-gradient(180deg, rgba(250,245,255,.85), rgba(255,255,255,.96)) !important;
+}
+.card.mentioned-ticket .card-main::before{
+  background:linear-gradient(180deg,#9333ea,#7c3aed) !important;
+}
+.card.mentioned-ticket .ticket-title{
+  color:#6b21a8 !important;
+  font-weight:800 !important;
+}
 .ticket-source-mini{
   width:40px;
   height:40px;
@@ -3245,6 +3266,7 @@ body.dark-mode .kpi.kpi-resolved{
 
 <div class="sidebar-section">Usuarios</div>
 <nav class="nav">
+  <a href="/ticketera?user_filter=all" class="{{ 'active' if user_filters == ['all'] else '' }}"><span>Todos</span></a>
   <a href="/ticketera?user_filter=unassigned" class="{{ 'active' if user_filters == ['unassigned'] else '' }}"><span>Sin asignar</span></a>
   {% for u in users %}
   <a href="/ticketera?user_filter={{ u.id }}" class="{{ 'active' if user_filters == [u.id|string] else '' }}"><span>{{ u.name }}</span></a>
@@ -3375,7 +3397,7 @@ body.dark-mode .kpi.kpi-resolved{
         {% set _qparts = [] %}
         {% if filter_qs %}{% set _ = _qparts.append(filter_qs) %}{% endif %}
         {% if ticket_unseen_message_id.get(ticket.id) %}{% set _ = _qparts.append('focus_message_id=' ~ ticket_unseen_message_id.get(ticket.id)) %}{% endif %}
-        <div class="card {% if ticket_has_new_message.get(ticket.id) or manual_unread %}unread-ticket{% endif %}">
+        <div class="card {% if ticket_has_new_message.get(ticket.id) or manual_unread %}unread-ticket{% endif %} {% if ticket_has_mention.get(ticket.id) %}mentioned-ticket{% endif %}">
 
           <span class="ticket-id">{{ ticket.id }}</span>
 
@@ -3743,7 +3765,7 @@ body.dark-mode .kpi.kpi-resolved{
       <div class="field">
         <label>Asignar a</label>
         <select name="assigned_to_id">
-          <option value="">Sin asignar</option>
+          <option value="">Equipo</option>
           {% for u in users %}
             <option value="{{ u.id }}">{{ u.name }}</option>
           {% endfor %}

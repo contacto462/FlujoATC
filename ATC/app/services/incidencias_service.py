@@ -34,6 +34,7 @@ from sqlalchemy.orm import Session
 from ATC.app.data.materiales_catalogo import MATERIALES_CATALOGO_SEED
 from ATC.app.core.incidencias_config import settings
 from ATC.app.core.incidencias_db import SessionLocal, build_engine
+from ATC.app.core.image_optimizer import optimize_image_bytes
 from ATC.app.core.session_policy import expiracion_sesion
 from ATC.app.services.incidencias_drive_report_service import (
     DriveReportError,
@@ -734,6 +735,18 @@ def _obs_edit_last_line(current_text: str, entry: dict, usuario: str, nuevo_text
     nueva_linea = f"[{usuario} - {entry['fecha_str']}] (editado) {nuevo_texto}"
     nuevas_lineas = lines[: entry["start_idx"]] + [nueva_linea]
     return "\n".join(nuevas_lineas).strip()
+
+
+# Cache de introspección de esquema (information_schema) a nivel de proceso.
+# _schemas_con_tabla/_columnas_tabla se llaman ~20 veces por archivo en el
+# camino de request más usado del sitio, y una instancia nueva de
+# IncidenciasService se crea por request (Depends), así que un cache de
+# instancia no serviría de nada — el esquema no cambia sin un reinicio del
+# server (todo cambio de código Python ya requiere reinicio), por eso el
+# cache es seguro a nivel de módulo y elimina round-trips a SQL Server
+# repetidos en cada carga de página.
+_SCHEMAS_CON_TABLA_CACHE: dict[str, list[str]] = {}
+_COLUMNAS_TABLA_CACHE: dict[tuple[str, str], set[str]] = {}
 
 
 class IncidenciasService:
@@ -1563,6 +1576,8 @@ class IncidenciasService:
             return []
 
     def _schemas_con_tabla(self, table_name: str) -> list[str]:
+        if table_name in _SCHEMAS_CON_TABLA_CACHE:
+            return _SCHEMAS_CON_TABLA_CACHE[table_name]
         rows = self.db.execute(
             text(
                 """
@@ -1575,9 +1590,14 @@ class IncidenciasService:
             ),
             {"table_name": table_name},
         ).all()
-        return [str(r[0]).strip() for r in rows if r and r[0]]
+        resultado = [str(r[0]).strip() for r in rows if r and r[0]]
+        _SCHEMAS_CON_TABLA_CACHE[table_name] = resultado
+        return resultado
 
     def _columnas_tabla(self, schema_name: str, table_name: str) -> set[str]:
+        cache_key = (schema_name, table_name)
+        if cache_key in _COLUMNAS_TABLA_CACHE:
+            return _COLUMNAS_TABLA_CACHE[cache_key]
         rows = self.db.execute(
             text(
                 """
@@ -1589,7 +1609,9 @@ class IncidenciasService:
             ),
             {"schema_name": schema_name, "table_name": table_name},
         ).all()
-        return {str(r[0]).strip() for r in rows if r and r[0]}
+        resultado = {str(r[0]).strip() for r in rows if r and r[0]}
+        _COLUMNAS_TABLA_CACHE[cache_key] = resultado
+        return resultado
 
     def _pick_col(self, cols: set[str], opciones: list[str]) -> str | None:
         return next((c for c in opciones if c in cols), None)
@@ -1661,10 +1683,18 @@ class IncidenciasService:
 
     def _usuarios_login_tecnicos(self) -> list[str]:
         nombres: dict[str, str] = {}
+        excluidos = {
+            "nicolas alfonso bravo rain",
+            "nicolas bravo",
+            "jesus sebastian gonzalez aguilera",
+            "jesus gonzalez",
+        }
 
         def _add(valor: Any) -> None:
             for nombre in self._extraer_nombres_desde_texto(valor):
                 key = self._normalizar_nombre_login(nombre)
+                if key in excluidos:
+                    continue
                 if key and key not in nombres:
                     nombres[key] = nombre
 
@@ -2164,13 +2194,13 @@ class IncidenciasService:
         equipos_por_patente = {
             "RTXG 52": ["Cristopher Enrique Soto Diaz", "Dwait German Aros Contreras"],
             "RHPV 38": ["Emmanuel Issak Correa Ubilla", "Haxel Samir Del Carmen Saavedra Villanueva"],
-            "KVTG 28": ["Nicolas Alfonso Bravo Rain", "Omar Alejandro Triviño Silva"],
+            "KVTG 28": ["Omar Alejandro Triviño Silva"],
             "SRVP 17": ["Diego Antonio Moncada Sepulveda", "Ricardo Andres Vergara Guerra"],
             "SSZW 51": ["Bryan Benjamin Ibaceta Fabrega", "Rodrigo Octavio Carmona Agurto"],
             "SSZS 24": ["Michael Alejandro Herrera Navia", "Hans Reinhold Schemmel Rodriguez"],
             "RJXX 46": ["Marco Antonio Lopez Aguirre", "Bryan Alexander Rebolledo Hidalgo"],
             "VXLG 86": ["Luis Alberto Bustamante Aguilera", "Enrique Alejandro Sandoval Nunez"],
-            "VXLG 93": ["Jesus Sebastian Gonzalez Aguilera", "Mauro Estefano Reyes Villegas"],
+            "VXLG 93": ["Mauro Estefano Reyes Villegas"],
         }
         patentes_fijas = [
             "RTXG 52",
@@ -2195,7 +2225,6 @@ class IncidenciasService:
                 "christopher enrique soto diaz": "RTXG 52",
                 "dwait german aros contreras": "RTXG 52",
                 "omar alejandro trivino silva": "KVTG 28",
-                "nicolas alfonso bravo rain": "KVTG 28",
                 "emmanuel issak correa ubilla": "RHPV 38",
                 "haxel samir del carmen saavedra villanueva": "RHPV 38",
                 "diego antonio moncada sepulveda": "SRVP 17",
@@ -2211,7 +2240,6 @@ class IncidenciasService:
                 "luis alberto bustamante aguilera": "VXLG 86",
                 "enrique alejandro sandoval nunez": "VXLG 86",
                 "enrique alejandro sandoval": "VXLG 86",
-                "jesus sebastian gonzalez aguilera": "VXLG 93",
                 "mauro estefano reyes villegas": "VXLG 93",
                 "javier ignacio salgado brito": "SRVP 17",
                 "ricardo andres vergara guerra": "SRVP 17",
@@ -3601,6 +3629,24 @@ class IncidenciasService:
         self._registrar_sync_soporte_nueva(odt, data, ahora, observacion_registro)
         return odt
 
+    def _sugerir_acompanante_para_tecnico(self, tecnico: str) -> str:
+        """Acompañante mas frecuente historicamente para este tecnico (segun
+        incidencias.tecnicos/acompanante ya registrados) — base de la
+        asignacion automatica de acompanante al derivar una ODT."""
+        tecnico_txt = (tecnico or "").strip()
+        if not tecnico_txt:
+            return ""
+        fila = self.db.execute(
+            select(Registro.acompanante, func.count().label("n"))
+            .where(Registro.tecnicos == tecnico_txt)
+            .where(Registro.acompanante.is_not(None))
+            .where(Registro.acompanante != "")
+            .group_by(Registro.acompanante)
+            .order_by(func.count().desc())
+            .limit(1)
+        ).first()
+        return str(fila[0] or "").strip() if fila else ""
+
     def derivar_odt_a_tecnico(
         self,
         odt: str,
@@ -3608,7 +3654,7 @@ class IncidenciasService:
         acompanante: str = "",
         derivacion: str = "Servicio Técnico",
         estado: str = "Pendiente",
-    ) -> bool:
+    ) -> dict[str, Any] | None:
         odt_limpia = (odt or "").strip()
         tecnico_limpio = (tecnico or "").strip()
         acompanante_limpio = (acompanante or "").strip()
@@ -3619,7 +3665,7 @@ class IncidenciasService:
 
         row = self.db.scalar(select(Registro).where(Registro.odt == odt_limpia))
         if not row:
-            return False
+            return None
 
         ahora = datetime.now()
         if not derivacion_final:
@@ -3631,6 +3677,12 @@ class IncidenciasService:
         if tecnico_limpio:
             estado_final = "Pendiente" if dejar_pendiente else "En Proceso"
             row.tecnicos = tecnico_limpio
+            if not acompanante_limpio:
+                # Asignacion automatica: no se pisa un acompañante ya elegido
+                # a mano, solo se sugiere cuando el campo viene vacio (p.ej.
+                # al derivar la ODT a un tecnico por primera vez). Sigue
+                # siendo editable despues desde la celda de Acompañante.
+                acompanante_limpio = self._sugerir_acompanante_para_tecnico(tecnico_limpio)
             row.acompanante = acompanante_limpio or None
             if not dejar_pendiente:
                 row.fecha_derivacion_tecnico = ahora
@@ -3659,7 +3711,12 @@ class IncidenciasService:
             self._sync_estado_ticket_soporte_silencioso(odt_limpia, TICKET_STATUS_PENDIENTE_SERVICIO)
         else:
             self._sync_estado_ticket_soporte_silencioso(odt_limpia, TICKET_STATUS_PENDIENTE)
-        return True
+        return {
+            "tecnico": row.tecnicos or "",
+            "acompanante": row.acompanante or "",
+            "estado": row.estado or "",
+            "derivacion": row.derivacion or "",
+        }
 
     def editar_incidencia_tabla(
         self,
@@ -4317,13 +4374,23 @@ class IncidenciasService:
             [r.odt for r in rows] if solo_servicio_tecnico else None
         )
         direccion_cache = _build_direccion_cache()
+        # Memo por nombre de sucursal: muchas filas comparten la misma sucursal
+        # y _direccion_cliente_cached hace un scan con fuzzy-match (costoso) del
+        # cache completo cuando no hay match exacto — sin este memo se repetía
+        # ese scan una vez POR FILA en vez de una vez por sucursal distinta,
+        # el cuello de botella real detras de la lentitud de esta pagina.
+        direccion_por_sucursal: dict[str, tuple[str, str, str, str, int]] = {}
         for r in rows:
             if solo_panel_tecnico and not _fila_visible_panel_tecnico(r):
                 continue
             if tecnico_norm and not self._fila_aplica_a_tecnico(r, tecnico_norm):
                 continue
             sucursal = str(r.cliente or "").strip()
-            direccion_bd, region, comuna, geo_tabla, geo_id = _direccion_cliente_cached(sucursal, direccion_cache)
+            if sucursal in direccion_por_sucursal:
+                direccion_bd, region, comuna, geo_tabla, geo_id = direccion_por_sucursal[sucursal]
+            else:
+                direccion_bd, region, comuna, geo_tabla, geo_id = _direccion_cliente_cached(sucursal, direccion_cache)
+                direccion_por_sucursal[sucursal] = (direccion_bd, region, comuna, geo_tabla, geo_id)
             direccion = str(r.direccion or "").strip() or direccion_bd
             # Para incidencias_servicio_tecnico.html la observacion visible debe salir de "observacion"
             # y no de "detalle_problema".
@@ -6767,6 +6834,7 @@ class IncidenciasService:
         pruebas_cierre: list[Any] | None = None,
         fotos_base64: list[str] | None = None,
         token: str = "",
+        cantidad_instalada_total: int | None = None,
     ) -> dict[str, Any]:
         odt_limpia = (odt or "").strip()
         if not odt_limpia:
@@ -6842,6 +6910,13 @@ class IncidenciasService:
             self.db.add(row)
 
         total_camaras = max(int(getattr(venta_row, "numero_camaras_instalar", 0) or 0), 0)
+        try:
+            cantidad_instalada_total = int(cantidad_instalada_total) if cantidad_instalada_total is not None else None
+        except (TypeError, ValueError):
+            cantidad_instalada_total = None
+        excede_presupuesto = bool(
+            cantidad_instalada_total and total_camaras > 0 and cantidad_instalada_total > total_camaras
+        )
         row.estado = "Terminado"
         row.derivacion = "Servicio Técnico"
         row.observacion_final = obs_cierre
@@ -6883,6 +6958,8 @@ class IncidenciasService:
         st_row.fecha_instalacion_finalizada = st_row.fecha_instalacion_finalizada or ahora
         st_row.finalizado = True
         st_row.fecha_cierre = ahora
+        if excede_presupuesto:
+            st_row.camaras_instaladas_reales = cantidad_instalada_total
         if not getattr(st_row, "fecha_inicio_trabajo", None) and getattr(row, "fecha_inicio_trabajo", None):
             st_row.fecha_inicio_trabajo = row.fecha_inicio_trabajo
         if getattr(st_row, "fecha_inicio_trabajo", None) and not getattr(st_row, "fecha_fin_trabajo", None):
@@ -6897,10 +6974,20 @@ class IncidenciasService:
                 name=f"drive-report-{odt_limpia}",
             )
             worker.start()
+        if excede_presupuesto:
+            self._enviar_correo_exceso_instalacion(
+                odt=odt_limpia,
+                cliente=str(row.cliente or venta_row.nombre_sucursal or venta_row.razon_social or "").strip(),
+                tecnico=str(row.tecnicos or "").strip(),
+                acompanante=str(row.acompanante or "").strip(),
+                camaras_contratadas=total_camaras,
+                camaras_instaladas=cantidad_instalada_total,
+                creado_por=str(getattr(venta_row, "creado_por", "") or "").strip(),
+            )
         return {
             "result": "OK",
             "odt": odt_limpia,
-            "camaras_instaladas": total_camaras,
+            "camaras_instaladas": cantidad_instalada_total if excede_presupuesto else total_camaras,
             "instalacion_finalizada": True,
             "imagenes_recibidas": len(fotos),
             "imagenes_informe": min(len(fotos), self.MAX_FOTOS_INFORME_ODS),
@@ -7283,6 +7370,7 @@ class IncidenciasService:
                 col_prob = self._pick_col(cols, ["tipo_incidencia", "problema", "tipo", "servicio", "incidencia"])
                 col_deriv = self._pick_col(cols, ["derivacion", "servicio", "area"])
                 col_obs = self._pick_col(cols, ["observacion_final", "descripcion", "detalle", "observacion", "detalle_problema"])
+                col_odt = self._pick_col(cols, ["odt", "codigo_odt", "codigo", "nro_odt"])
                 if not col_cliente or not col_obs:
                     continue
 
@@ -7292,6 +7380,7 @@ class IncidenciasService:
                     f'COALESCE(CAST("{col_prob}" AS NVARCHAR(MAX)), \'\') AS problema' if col_prob else "'' AS problema",
                     f'COALESCE(CAST("{col_deriv}" AS NVARCHAR(MAX)), \'\') AS derivacion' if col_deriv else "'' AS derivacion",
                     f'COALESCE(CAST("{col_obs}" AS NVARCHAR(MAX)), \'\') AS texto',
+                    f'COALESCE(CAST("{col_odt}" AS NVARCHAR(MAX)), \'\') AS odt' if col_odt else "'' AS odt",
                 ]
 
                 sql = text(
@@ -7317,6 +7406,7 @@ class IncidenciasService:
                             "fecha": _fmt_fecha_texto(row.get("fecha")),
                             "problema": str(row.get("problema") or "").strip(),
                             "texto": texto,
+                            "odt": str(row.get("odt") or "").strip(),
                         }
                     )
         except Exception:
@@ -7338,6 +7428,7 @@ class IncidenciasService:
                         "fecha": _to_ddmmyyyy_hhmm(r.fecha_registro),
                         "problema": r.problema or "",
                         "texto": texto,
+                        "odt": r.odt or "",
                     }
                 )
 
@@ -10358,7 +10449,19 @@ class IncidenciasService:
         static_dir = _UPLOADS_ROOT / "rendiciones"
         static_dir.mkdir(parents=True, exist_ok=True)
         destino = static_dir / nombre_final
-        destino.write_bytes(bytes(content))
+
+        mime = {
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".png": "image/png",
+            ".webp": "image/webp",
+        }.get(ext)
+        contenido_guardar = (
+            optimize_image_bytes(bytes(content), content_type=mime, jpeg_quality=60, webp_quality=60)
+            if mime
+            else bytes(content)
+        )
+        destino.write_bytes(contenido_guardar)
         return f"/uploads/rendiciones/{nombre_final}"
 
     def _generar_informe_rendicion_pdf(self, rend: "Rendicion") -> str | None:
@@ -10859,6 +10962,417 @@ class IncidenciasService:
         buffer.seek(0)
         return buffer
 
+    def _formatear_clp(self, monto) -> str:
+        try:
+            valor = int(round(float(monto or 0)))
+        except (TypeError, ValueError):
+            valor = 0
+        texto = f"{valor:,}".replace(",", ".")
+        return f"${texto}"
+
+    def _construir_email_rendicion(self, rend: "Rendicion", aprobada: bool) -> tuple[str, str, str]:
+        """Arma asunto/texto/html del correo de aprobacion o rechazo de una
+        rendicion — mismo estilo (header azul marino + logo) que el correo
+        de pruebas de sonido en routes/incidencias.py."""
+        estado_label = "APROBADA" if aprobada else "RECHAZADA"
+        color_badge_bg = "#f0fdf4" if aprobada else "#fef2f2"
+        color_badge_border = "#a7f3d0" if aprobada else "#fecaca"
+        color_badge_text = "#15803d" if aprobada else "#b91c1c"
+        verbo = "aprobada" if aprobada else "rechazada"
+
+        tecnico = str(rend.tecnico or "").strip() or "Tecnico"
+        monto_fmt = self._formatear_clp(rend.monto_total)
+        fecha_doc = rend.fecha_documento.strftime("%d-%m-%Y") if rend.fecha_documento else "-"
+
+        asunto = f"Rendición {estado_label} - Folio {rend.id}"
+
+        detalle_filas = [
+            ("Código", rend.codigo_diario or "-"),
+            ("ODT", rend.odt or "-"),
+            ("Cliente", rend.cliente or "-"),
+            ("Tipo de gasto", rend.tipo_gasto or "-"),
+            ("N° documento", rend.nro_documento or "-"),
+            ("Fecha documento", fecha_doc),
+            ("Monto", monto_fmt),
+        ]
+
+        texto_lineas = [f"Hola {tecnico},", "", f"Tu rendición ha sido {verbo}.", ""]
+        texto_lineas += [f"{label}: {valor}" for label, valor in detalle_filas]
+        texto_lineas += ["", "Equipo de Rendiciones", "Alguien Te Cuida SpA"]
+        cuerpo_txt = "\n".join(texto_lineas)
+
+        filas_html = "".join(
+            f'''
+              <tr>
+                <td style="padding:7px 0;font-family:Arial,sans-serif;font-size:13px;color:#6b7280;border-bottom:1px solid #f1f5f9;width:150px;">{label}</td>
+                <td style="padding:7px 0;font-family:Arial,sans-serif;font-size:13px;color:#111827;font-weight:600;border-bottom:1px solid #f1f5f9;">{valor}</td>
+              </tr>'''
+            for label, valor in detalle_filas
+        )
+
+        nota_rechazo = ""
+        if not aprobada:
+            nota_rechazo = '''
+            <p style="margin:0 0 13px;font-family:Arial,sans-serif;font-size:14px;line-height:1.65;color:#374151;">
+              Si tienes dudas sobre el motivo del rechazo, contacta al equipo de Finanzas.
+            </p>'''
+
+        cuerpo_html = f"""<!DOCTYPE html>
+<html lang="es" xmlns="http://www.w3.org/1999/xhtml" style="color-scheme:light;">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>{asunto}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f2f4f7;-webkit-text-size-adjust:100%;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+       style="background-color:#f2f4f7;min-width:320px;">
+  <tr>
+    <td align="center" style="padding:40px 16px;">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"
+             style="max-width:600px;width:100%;background-color:#ffffff;border-radius:6px;
+                    overflow:hidden;border:1px solid #d1d5db;">
+
+        <tr>
+          <td style="background-color:#0d1f2d;padding:20px 36px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="vertical-align:middle;">
+                  <img src="cid:logoatc" alt="Alguien Te Cuida"
+                       style="height:34px;width:auto;display:block;border:0;" />
+                </td>
+                <td align="right" style="vertical-align:middle;">
+                  <span style="font-family:Arial,sans-serif;font-size:10px;font-weight:600;
+                               color:#8aabb8;letter-spacing:0.12em;text-transform:uppercase;">
+                    Rendición de Gastos
+                  </span>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="background-color:#1e3a5f;padding:20px 36px;">
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:10px;font-weight:600;
+                      color:#93b4cc;letter-spacing:0.12em;text-transform:uppercase;">
+              Folio {rend.id}
+            </p>
+            <p style="margin:7px 0 0;font-family:Arial,sans-serif;font-size:20px;font-weight:700;
+                      color:#ffffff;letter-spacing:-0.01em;line-height:1.25;">
+              Rendición {estado_label.capitalize()}
+            </p>
+            <p style="margin:5px 0 0;font-family:Arial,sans-serif;font-size:13px;
+                      color:#a8c4d8;line-height:1.4;">
+              {tecnico}
+            </p>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="background-color:#ffffff;padding:26px 36px 4px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="background-color:{color_badge_bg};border:1px solid {color_badge_border};border-radius:5px;
+                           padding:9px 16px;">
+                  <span style="font-family:Arial,sans-serif;font-size:12px;font-weight:700;
+                               color:{color_badge_text};letter-spacing:0.02em;">{estado_label}</span>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:20px 36px 8px;background-color:#ffffff;">
+            <p style="margin:0 0 13px;font-family:Arial,sans-serif;font-size:14px;
+                      line-height:1.65;color:#374151;">Hola <strong>{tecnico}</strong>,</p>
+            <p style="margin:0 0 20px;font-family:Arial,sans-serif;font-size:14px;
+                      line-height:1.65;color:#374151;">
+              Tu rendición de gastos ha sido <strong>{verbo}</strong>. Te dejamos el detalle a continuación:
+            </p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:8px;">
+              {filas_html}
+            </table>
+            {nota_rechazo}
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:16px 36px 18px;background-color:#ffffff;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr><td style="border-top:1px solid #e5e7eb;font-size:0;line-height:0;">&nbsp;</td></tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:0 36px 26px;background-color:#ffffff;">
+            <p style="margin:0 0 1px;font-family:Arial,sans-serif;font-size:13px;
+                      font-weight:700;color:#111827;">Equipo de Rendiciones</p>
+            <p style="margin:0 0 1px;font-family:Arial,sans-serif;font-size:12px;color:#6b7280;">Alguien Te Cuida SpA</p>
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:12px;color:#6b7280;">contacto@alguientecuida.cl</p>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="background-color:#f8fafc;border-top:1px solid #e5e7eb;
+                     padding:14px 36px;border-radius:0 0 6px 6px;">
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:11px;color:#9ca3af;line-height:1.5;">
+              Este mensaje fue generado automáticamente por el sistema de Alguien Te Cuida SpA.
+              Por favor no responda directamente a este correo.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>"""
+        return asunto, cuerpo_txt, cuerpo_html
+
+    def _enviar_correo_rendicion(self, rend: "Rendicion", aprobada: bool) -> None:
+        dest = str(rend.mail or "").strip()
+        if not dest:
+            LOGGER.warning("Rendición id=%s sin correo asociado, no se notifica.", rend.id)
+            return
+        asunto, cuerpo_txt, cuerpo_html = self._construir_email_rendicion(rend, aprobada)
+
+        logo_path = Path(__file__).resolve().parents[2] / "static" / "img" / "logo-atc.png"
+        logo_bytes = logo_path.read_bytes() if logo_path.exists() else None
+
+        def _enviar(dest=dest, subj=asunto, txt=cuerpo_txt, html=cuerpo_html, logo=logo_bytes, rid=rend.id):
+            try:
+                svc_mail = IncidenciasService(SessionLocal())
+                svc_mail._enviar_correo_automatico(
+                    dest, subj, txt, html_body=html, logo_bytes=logo,
+                    cfg_override=svc_mail._contacto_smtp_runtime_config(),
+                )
+            except Exception:
+                LOGGER.exception("Error enviando email de rendición id=%s", rid)
+
+        threading.Thread(target=_enviar, daemon=True, name=f"email-rendicion-{rend.id}").start()
+
+    def _resolver_correo_comercial(self, creado_por: str) -> tuple[str, str]:
+        """(email, nombre) del comercial a cargo de la ODS — VentaODS.creado_por
+        normalmente ya guarda el email; si en cambio guarda un nombre (pasa
+        en algunas filas antiguas), se resuelve contra User.name."""
+        valor = str(creado_por or "").strip()
+        if not valor:
+            return "", ""
+        if "@" in valor:
+            usuario = self.db.scalar(select(User).where(func.lower(User.email) == valor.lower()))
+            nombre = str(getattr(usuario, "name", "") or "").strip() or valor
+            return valor, nombre
+        email = self._resolver_mail_tecnico(valor, "")
+        return email, valor
+
+    def _construir_email_exceso_instalacion(
+        self,
+        *,
+        odt: str,
+        cliente: str,
+        tecnico: str,
+        acompanante: str,
+        camaras_contratadas: int,
+        camaras_instaladas: int,
+        comercial_nombre: str,
+    ) -> tuple[str, str, str]:
+        """Correo informativo cuando una instalación (ODT de venta) cierra con
+        más cámaras instaladas que las contratadas — mismo estilo (header
+        azul marino + logo) que el correo de rendiciones."""
+        diferencia = camaras_instaladas - camaras_contratadas
+        asunto = f"Instalación ODT {odt} — {camaras_instaladas} cámaras instaladas (contratadas: {camaras_contratadas})"
+
+        detalle_filas = [
+            ("Código", odt or "-"),
+            ("Cliente / Sucursal", cliente or "-"),
+            ("Técnico", tecnico or "-"),
+            ("Acompañante", acompanante or "-"),
+            ("Comercial a cargo", comercial_nombre or "-"),
+            ("Cantidad contratada", str(camaras_contratadas)),
+            ("Cantidad instalada", str(camaras_instaladas)),
+            ("Diferencia", f"+{diferencia}"),
+        ]
+
+        texto_lineas = [
+            f"La instalación de la ODT {odt} se cerró con {camaras_instaladas} cámaras instaladas,",
+            f"{diferencia} más que las {camaras_contratadas} contratadas originalmente.",
+            "",
+        ]
+        texto_lineas += [f"{label}: {valor}" for label, valor in detalle_filas]
+        texto_lineas += ["", "Equipo Servicio Técnico", "Alguien Te Cuida SpA"]
+        cuerpo_txt = "\n".join(texto_lineas)
+
+        filas_html = "".join(
+            f'''
+              <tr>
+                <td style="padding:7px 0;font-family:Arial,sans-serif;font-size:13px;color:#6b7280;border-bottom:1px solid #f1f5f9;width:170px;">{label}</td>
+                <td style="padding:7px 0;font-family:Arial,sans-serif;font-size:13px;color:#111827;font-weight:600;border-bottom:1px solid #f1f5f9;">{valor}</td>
+              </tr>'''
+            for label, valor in detalle_filas
+        )
+
+        cuerpo_html = f"""<!DOCTYPE html>
+<html lang="es" xmlns="http://www.w3.org/1999/xhtml" style="color-scheme:light;">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>{asunto}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f2f4f7;-webkit-text-size-adjust:100%;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+       style="background-color:#f2f4f7;min-width:320px;">
+  <tr>
+    <td align="center" style="padding:40px 16px;">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"
+             style="max-width:600px;width:100%;background-color:#ffffff;border-radius:6px;
+                    overflow:hidden;border:1px solid #d1d5db;">
+
+        <tr>
+          <td style="background-color:#0d1f2d;padding:20px 36px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="vertical-align:middle;">
+                  <img src="cid:logoatc" alt="Alguien Te Cuida"
+                       style="height:34px;width:auto;display:block;border:0;" />
+                </td>
+                <td align="right" style="vertical-align:middle;">
+                  <span style="font-family:Arial,sans-serif;font-size:10px;font-weight:600;
+                               color:#8aabb8;letter-spacing:0.12em;text-transform:uppercase;">
+                    Servicio Técnico
+                  </span>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="background-color:#1e3a5f;padding:20px 36px;">
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:10px;font-weight:600;
+                      color:#93b4cc;letter-spacing:0.12em;text-transform:uppercase;">
+              ODT {odt}
+            </p>
+            <p style="margin:7px 0 0;font-family:Arial,sans-serif;font-size:20px;font-weight:700;
+                      color:#ffffff;letter-spacing:-0.01em;line-height:1.25;">
+              Instalación cerrada con cámaras adicionales
+            </p>
+            <p style="margin:5px 0 0;font-family:Arial,sans-serif;font-size:13px;
+                      color:#a8c4d8;line-height:1.4;">
+              {cliente}
+            </p>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="background-color:#ffffff;padding:26px 36px 4px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="background-color:#fff7ed;border:1px solid #fed7aa;border-radius:5px;
+                           padding:9px 16px;">
+                  <span style="font-family:Arial,sans-serif;font-size:12px;font-weight:700;
+                               color:#c2410c;letter-spacing:0.02em;">{camaras_instaladas} INSTALADAS · {camaras_contratadas} CONTRATADAS</span>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:20px 36px 8px;background-color:#ffffff;">
+            <p style="margin:0 0 20px;font-family:Arial,sans-serif;font-size:14px;
+                      line-height:1.65;color:#374151;">
+              La instalación de la ODT <strong>{odt}</strong> en <strong>{cliente}</strong> se cerró con
+              <strong>{camaras_instaladas} cámaras instaladas</strong>, {diferencia} más que las
+              <strong>{camaras_contratadas}</strong> contratadas originalmente. Te dejamos el detalle a continuación.
+            </p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:8px;">
+              {filas_html}
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:16px 36px 18px;background-color:#ffffff;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr><td style="border-top:1px solid #e5e7eb;font-size:0;line-height:0;">&nbsp;</td></tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:0 36px 26px;background-color:#ffffff;">
+            <p style="margin:0 0 1px;font-family:Arial,sans-serif;font-size:13px;
+                      font-weight:700;color:#111827;">Equipo Servicio Técnico</p>
+            <p style="margin:0 0 1px;font-family:Arial,sans-serif;font-size:12px;color:#6b7280;">Alguien Te Cuida SpA</p>
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:12px;color:#6b7280;">contacto@alguientecuida.cl</p>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="background-color:#f8fafc;border-top:1px solid #e5e7eb;
+                     padding:14px 36px;border-radius:0 0 6px 6px;">
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:11px;color:#9ca3af;line-height:1.5;">
+              Este mensaje fue generado automáticamente por el sistema de Alguien Te Cuida SpA.
+              Por favor no responda directamente a este correo.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>"""
+        return asunto, cuerpo_txt, cuerpo_html
+
+    def _enviar_correo_exceso_instalacion(
+        self,
+        *,
+        odt: str,
+        cliente: str,
+        tecnico: str,
+        acompanante: str,
+        camaras_contratadas: int,
+        camaras_instaladas: int,
+        creado_por: str,
+    ) -> None:
+        CZAMORA_EMAIL = "czamora@alguientecuida.cl"
+        comercial_email, comercial_nombre = self._resolver_correo_comercial(creado_por)
+        dest = comercial_email or CZAMORA_EMAIL
+        cc = [CZAMORA_EMAIL] if dest.lower() != CZAMORA_EMAIL.lower() else None
+
+        asunto, cuerpo_txt, cuerpo_html = self._construir_email_exceso_instalacion(
+            odt=odt,
+            cliente=cliente,
+            tecnico=tecnico,
+            acompanante=acompanante,
+            camaras_contratadas=camaras_contratadas,
+            camaras_instaladas=camaras_instaladas,
+            comercial_nombre=comercial_nombre,
+        )
+
+        logo_path = Path(__file__).resolve().parents[2] / "static" / "img" / "logo-atc.png"
+        logo_bytes = logo_path.read_bytes() if logo_path.exists() else None
+
+        def _enviar(dest=dest, cc=cc, subj=asunto, txt=cuerpo_txt, html=cuerpo_html, logo=logo_bytes, odt_id=odt):
+            try:
+                svc_mail = IncidenciasService(SessionLocal())
+                svc_mail._enviar_correo_automatico(
+                    dest, subj, txt, html_body=html, logo_bytes=logo, cc_emails=cc,
+                    cfg_override=svc_mail._contacto_smtp_runtime_config(),
+                )
+            except Exception:
+                LOGGER.exception("Error enviando email de exceso de instalación ODT=%s", odt_id)
+
+        threading.Thread(target=_enviar, daemon=True, name=f"email-exceso-instalacion-{odt}").start()
+
     def actualizar_monto_rendicion(self, rendicion_id: int, monto: float) -> dict[str, Any] | None:
         rend = self.db.scalar(select(Rendicion).where(Rendicion.id == rendicion_id))
         if not rend:
@@ -10895,6 +11409,8 @@ class IncidenciasService:
         else:
             raise ValueError("Acción inválida. Debe ser 'aceptar', 'rechazar' o 'pagar'.")
         self.db.commit()
+        if accion in ("aceptar", "rechazar"):
+            self._enviar_correo_rendicion(rend, aprobada=(accion == "aceptar"))
         return True
 
     # =========================
