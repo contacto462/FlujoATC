@@ -167,11 +167,27 @@ def _build_google_credentials():
     return service_account.Credentials.from_service_account_file(str(creds_path), scopes=SCOPES)
 
 
-@lru_cache(maxsize=1)
 def _build_clients():
+    # IMPORTANTE: no cachear (ni compartir entre threads) el objeto http/
+    # AuthorizedHttp resultante. httplib2.Http no es thread-safe — mantiene
+    # un pool de conexiones interno — y este proceso hace llamadas Drive
+    # concurrentes desde threads de background (_generar_drive_para_cierre)
+    # y desde requests simultaneos (subida sincronica de fotos, proxy de
+    # imagenes). Compartir una sola instancia via @lru_cache causaba
+    # corrupcion de memoria nativa (crashes 0xc0000005/0xc0000374 del
+    # proceso python.exe bajo carga, ago 2026). Construir un cliente nuevo
+    # por llamada es barato (no hace I/O) y elimina el estado compartido.
+    #
+    # Sin timeout explicito, ademas, una conexion colgada contra la API de
+    # Drive (throttling silencioso, corte de red, etc.) deja el thread del
+    # server esperando para siempre.
+    import httplib2
+    from google_auth_httplib2 import AuthorizedHttp
+
     creds = _build_google_credentials()
-    drive = build("drive", "v3", credentials=creds, cache_discovery=False)
-    docs = build("docs", "v1", credentials=creds, cache_discovery=False)
+    http = AuthorizedHttp(creds, http=httplib2.Http(timeout=30))
+    drive = build("drive", "v3", http=http, cache_discovery=False)
+    docs = build("docs", "v1", http=http, cache_discovery=False)
     return drive, docs
 
 
@@ -361,13 +377,29 @@ def _iter_text_runs(content: list[dict[str, Any]]):
 def _find_placeholder_range(document: dict[str, Any], token: str) -> tuple[int, int] | None:
     body = document.get("body", {})
     content = body.get("content", [])
-    for text_value, start_index in _iter_text_runs(content):
-        idx = text_value.find(token)
-        if idx >= 0:
-            token_start = start_index + idx
-            token_end = token_start + len(token)
-            return token_start, token_end
-    return None
+    runs = list(_iter_text_runs(content))
+    if not runs:
+        return None
+
+    # Google Docs puede partir un mismo placeholder en varios "text runs" si
+    # el texto tiene un formato levemente distinto (negrita, color, celda de
+    # tabla, etc.) aunque se vea como una sola palabra. Buscar run por run
+    # (como antes) fallaba en silencio en ese caso: se reconstruye el texto
+    # completo con un mapa de índice por caracter para poder ubicar el token
+    # aunque cruce el límite entre runs.
+    full_text_parts: list[str] = []
+    index_map: list[int] = []
+    for text_value, start_index in runs:
+        full_text_parts.append(text_value)
+        index_map.extend(start_index + offset for offset in range(len(text_value)))
+    full_text = "".join(full_text_parts)
+
+    idx = full_text.find(token)
+    if idx < 0:
+        return None
+    token_start = index_map[idx]
+    token_end = index_map[idx + len(token) - 1] + 1
+    return token_start, token_end
 
 
 def _insert_images_on_placeholders(docs, doc_id: str, token_to_uri: dict[str, str]) -> None:

@@ -275,6 +275,8 @@ body{
   cursor:pointer;
   position:relative;
   transition:border-color .15s ease, box-shadow .15s ease, background .15s ease;
+  -webkit-user-select:text;
+  user-select:text;
 }
 
 .ods-card::before{
@@ -319,6 +321,40 @@ body{
 
 .ods-card.completed.active{
   border-color:var(--success);
+}
+
+.ods-card.con-registro{
+  border-color:rgba(244,166,114,.55);
+  background:var(--accent-soft);
+}
+
+.ods-card.con-registro::before{
+  background:var(--accent);
+}
+
+.ods-card.con-registro .ods-code{
+  color:var(--accent-hover);
+}
+
+.ods-card.con-registro.active{
+  border-color:var(--accent);
+}
+
+.ods-card.sin-registro{
+  border-color:rgba(37,99,235,.3);
+  background:var(--primary-soft);
+}
+
+.ods-card.sin-registro::before{
+  background:var(--primary);
+}
+
+.ods-card.sin-registro .ods-code{
+  color:var(--primary);
+}
+
+.ods-card.sin-registro.active{
+  border-color:var(--primary);
 }
 
 .ods-top{
@@ -749,6 +785,7 @@ body{
               <div id="saveStatus" class="status"></div>
               <div class="actions">
                 <button id="saveButton" class="btn btn-primary" type="button">Guardar registro</button>
+                <button id="fillAllDeliveredButton" class="btn btn-secondary" type="button">Todo entregado</button>
                 <button id="addMaterialButton" class="btn btn-secondary" type="button">Agregar material</button>
               </div>
             </div>
@@ -896,6 +933,7 @@ const els = {
   addMaterialButton: document.getElementById("addMaterialButton"),
   saveStatus: document.getElementById("saveStatus"),
   saveButton: document.getElementById("saveButton"),
+  fillAllDeliveredButton: document.getElementById("fillAllDeliveredButton"),
 };
 
 function escapeHtml(value) {
@@ -977,31 +1015,21 @@ function getSavedBodegaItems(detail) {
 }
 
 function mergeItems(parsedItems, savedItems) {
-  if (!savedItems.length) return parsedItems;
-  const max = Math.max(parsedItems.length, savedItems.length);
-  const merged = [];
-  for (let i = 0; i < max; i += 1) {
-    const parsed = parsedItems[i] || { presupuestado: "", nombre: "", entregado: "" };
-    const saved = savedItems[i] || { presupuestado: "", nombre: "", entregado: "" };
-    merged.push({
-      presupuestado: saved.presupuestado || parsed.presupuestado,
-      nombre: saved.nombre || parsed.nombre,
-      entregado: saved.entregado || parsed.entregado,
-      agregado: Boolean(saved.agregado || i >= parsedItems.length),
-      guardado: saved.guardado ?? Boolean(saved.nombre || saved.presupuestado || saved.entregado),
-    });
-  }
-  return merged.filter((item) => item.nombre || item.presupuestado || item.entregado);
+  // Una vez que bodega guardo algo, "savedItems" ya es la lista completa y
+  // autoritativa (collectMaterialItems manda TODAS las filas del DOM, no
+  // solo las agregadas) — no se vuelve a mezclar por posicion con un
+  // re-parseo del texto original. Mezclar por indice se rompia apenas se
+  // borraba o renombraba una fila base (quedaba desalineado con savedItems
+  // en la siguiente carga). Solo se usa el parseo en vivo la primera vez,
+  // antes de que exista ningun guardado.
+  if (savedItems.length) return savedItems;
+  return parsedItems;
 }
 
 function normalizeQty(value) {
   return String(value || "")
     .trim()
     .replace(",", ".");
-}
-
-function hasDeliveredQty(value) {
-  return normalizeQty(value) !== "";
 }
 
 function isAddedItemReadyToSave(item) {
@@ -1037,69 +1065,62 @@ function isOdsCompleted(detail) {
   return true;
 }
 
+const DELETE_ROW_ICON = `<svg class="icon-default" viewBox="0 0 297 297" aria-hidden="true"><path d="M221.227 32.615H191V9.884C191 4.426 186.575 0 181.116 0h-65.231c-5.458 0-9.884 4.425-9.884 9.884v22.732H75.773c-19.301 0-35.004 15.703-35.004 35.004v23.803c0 5.458 4.425 9.884 9.884 9.884h6.967l11.124 186.399A9.883 9.883 0 0 0 78.61 297h139.78a9.884 9.884 0 0 0 9.866-9.295l11.124-186.399h6.967c5.458 0 9.884-4.425 9.884-9.884V67.619c0-19.301-15.703-35.004-35.004-35.004m-95.459-12.848h45.464v12.849h-45.464zM89.693 277.233h-1.772L77.452 101.8h12.241zm31.451 0H109.46V101.306h11.684zm34.946 0h-15.179V101.8h15.179zm31.45 0h-11.684V101.306h11.684zm21.539 0h-1.772V101.8h12.241zm27.384-195.694H60.537v-13.92c0-8.401 6.835-15.236 15.236-15.236h145.453c8.402 0 15.237 6.835 15.237 15.236z"/></svg><svg class="icon-hover" viewBox="0 0 297 297" aria-hidden="true"><path d="M248.596 80.468c-3.988-8.124-10.903-14.209-19.467-17.133l-27.689-9.453 7.109-20.824c1.707-5-.962-10.437-5.962-12.144L142.833.512a9.57 9.57 0 0 0-12.146 5.963l-7.109 20.823-27.69-9.454c-17.676-6.036-36.974 3.438-43.012 21.118l-7.444 21.804a9.57 9.57 0 0 0 5.962 12.146l46.897 16.011H57.694a9.566 9.566 0 0 0-9.55 10.136L59.42 288.003A9.57 9.57 0 0 0 68.97 297h135.3a9.567 9.567 0 0 0 9.55-8.997l9.336-156.45 7.502 2.561a9.6 9.6 0 0 0 3.092.516 9.57 9.57 0 0 0 9.053-6.478l7.444-21.805c2.924-8.564 2.338-17.756-1.651-25.879M79.697 277.866h-1.715l-10.134-169.81h11.849zM145.704 21.71l41.647 14.219-4.018 11.77-41.647-14.219zM110.14 277.866H98.831v-169.81h11.309zm33.826 0h-14.692v-169.81h14.692zm30.442.001h-11.309V111.049l11.309 3.861zm20.849-.001h-1.715V121.442l10.83 3.698zm36.883-177.701-4.353 12.751L66.631 57.895l4.354-12.75c2.628-7.695 11.03-11.818 18.722-9.193l133.241 45.491a14.65 14.65 0 0 1 8.474 7.457 14.65 14.65 0 0 1 .718 11.265"/></svg>`;
+
 function buildMaterialRow(item, index) {
-  const nombre = item.nombre || `Material ${index + 1}`;
-  if (item.agregado) {
-    const canDeleteAddedRow = !hasDeliveredQty(item.entregado);
-    if (item.guardado) {
-      return `
-        <tr data-added-row="true" data-guardado="true" data-index="${index}">
-          <td>
-            <span class="qty-text">${escapeHtml(item.presupuestado || "-")}</span>
-            <input type="hidden" data-role="presupuestado" data-index="${index}" value="${escapeHtml(item.presupuestado)}">
-          </td>
-          <td>
-            <div class="material-name">${escapeHtml(item.nombre || "-")}</div>
-            <div class="material-extra-flag">Material agregado</div>
-            <input type="hidden" data-role="nombre" data-index="${index}" value="${escapeHtml(item.nombre)}">
-          </td>
-          <td>
-            <div class="entregado-actions">
-              <input class="qty-input" type="text" inputmode="decimal" data-role="entregado" data-index="${index}" value="${escapeHtml(item.entregado)}" placeholder="0">
-              ${canDeleteAddedRow ? `<button class="btn-delete-row" type="button" data-delete-index="${index}" title="Borrar fila" aria-label="Borrar fila"><svg class="icon-default" viewBox="0 0 297 297" aria-hidden="true"><path d="M221.227 32.615H191V9.884C191 4.426 186.575 0 181.116 0h-65.231c-5.458 0-9.884 4.425-9.884 9.884v22.732H75.773c-19.301 0-35.004 15.703-35.004 35.004v23.803c0 5.458 4.425 9.884 9.884 9.884h6.967l11.124 186.399A9.883 9.883 0 0 0 78.61 297h139.78a9.884 9.884 0 0 0 9.866-9.295l11.124-186.399h6.967c5.458 0 9.884-4.425 9.884-9.884V67.619c0-19.301-15.703-35.004-35.004-35.004m-95.459-12.848h45.464v12.849h-45.464zM89.693 277.233h-1.772L77.452 101.8h12.241zm31.451 0H109.46V101.306h11.684zm34.946 0h-15.179V101.8h15.179zm31.45 0h-11.684V101.306h11.684zm21.539 0h-1.772V101.8h12.241zm27.384-195.694H60.537v-13.92c0-8.401 6.835-15.236 15.236-15.236h145.453c8.402 0 15.237 6.835 15.237 15.236z"/></svg><svg class="icon-hover" viewBox="0 0 297 297" aria-hidden="true"><path d="M248.596 80.468c-3.988-8.124-10.903-14.209-19.467-17.133l-27.689-9.453 7.109-20.824c1.707-5-.962-10.437-5.962-12.144L142.833.512a9.57 9.57 0 0 0-12.146 5.963l-7.109 20.823-27.69-9.454c-17.676-6.036-36.974 3.438-43.012 21.118l-7.444 21.804a9.57 9.57 0 0 0 5.962 12.146l46.897 16.011H57.694a9.566 9.566 0 0 0-9.55 10.136L59.42 288.003A9.57 9.57 0 0 0 68.97 297h135.3a9.567 9.567 0 0 0 9.55-8.997l9.336-156.45 7.502 2.561a9.6 9.6 0 0 0 3.092.516 9.57 9.57 0 0 0 9.053-6.478l7.444-21.805c2.924-8.564 2.338-17.756-1.651-25.879M79.697 277.866h-1.715l-10.134-169.81h11.849zM145.704 21.71l41.647 14.219-4.018 11.77-41.647-14.219zM110.14 277.866H98.831v-169.81h11.309zm33.826 0h-14.692v-169.81h14.692zm30.442.001h-11.309V111.049l11.309 3.861zm20.849-.001h-1.715V121.442l10.83 3.698zm36.883-177.701-4.353 12.751L66.631 57.895l4.354-12.75c2.628-7.695 11.03-11.818 18.722-9.193l133.241 45.491a14.65 14.65 0 0 1 8.474 7.457 14.65 14.65 0 0 1 .718 11.265"/></svg></button>` : ""}
-            </div>
-          </td>
-        </tr>
-      `;
-    }
-    return `
-      <tr data-added-row="true" data-guardado="false" data-index="${index}">
-        <td>
-          <input type="text" data-role="presupuestado" data-index="${index}" value="${escapeHtml(item.presupuestado)}" placeholder="0">
-        </td>
-        <td>
-          <input type="text" data-role="nombre" data-index="${index}" value="${escapeHtml(item.nombre)}" placeholder="Nombre del material agregado">
-          <div class="material-extra-flag">Material agregado</div>
-        </td>
-        <td>
-          <div class="entregado-actions">
-            <input class="qty-input" type="text" inputmode="decimal" data-role="entregado" data-index="${index}" value="${escapeHtml(item.entregado)}" placeholder="0">
-            ${canDeleteAddedRow ? `<button class="btn-delete-row" type="button" data-delete-index="${index}" title="Borrar fila" aria-label="Borrar fila"><svg class="icon-default" viewBox="0 0 297 297" aria-hidden="true"><path d="M221.227 32.615H191V9.884C191 4.426 186.575 0 181.116 0h-65.231c-5.458 0-9.884 4.425-9.884 9.884v22.732H75.773c-19.301 0-35.004 15.703-35.004 35.004v23.803c0 5.458 4.425 9.884 9.884 9.884h6.967l11.124 186.399A9.883 9.883 0 0 0 78.61 297h139.78a9.884 9.884 0 0 0 9.866-9.295l11.124-186.399h6.967c5.458 0 9.884-4.425 9.884-9.884V67.619c0-19.301-15.703-35.004-35.004-35.004m-95.459-12.848h45.464v12.849h-45.464zM89.693 277.233h-1.772L77.452 101.8h12.241zm31.451 0H109.46V101.306h11.684zm34.946 0h-15.179V101.8h15.179zm31.45 0h-11.684V101.306h11.684zm21.539 0h-1.772V101.8h12.241zm27.384-195.694H60.537v-13.92c0-8.401 6.835-15.236 15.236-15.236h145.453c8.402 0 15.237 6.835 15.237 15.236z"/></svg><svg class="icon-hover" viewBox="0 0 297 297" aria-hidden="true"><path d="M248.596 80.468c-3.988-8.124-10.903-14.209-19.467-17.133l-27.689-9.453 7.109-20.824c1.707-5-.962-10.437-5.962-12.144L142.833.512a9.57 9.57 0 0 0-12.146 5.963l-7.109 20.823-27.69-9.454c-17.676-6.036-36.974 3.438-43.012 21.118l-7.444 21.804a9.57 9.57 0 0 0 5.962 12.146l46.897 16.011H57.694a9.566 9.566 0 0 0-9.55 10.136L59.42 288.003A9.57 9.57 0 0 0 68.97 297h135.3a9.567 9.567 0 0 0 9.55-8.997l9.336-156.45 7.502 2.561a9.6 9.6 0 0 0 3.092.516 9.57 9.57 0 0 0 9.053-6.478l7.444-21.805c2.924-8.564 2.338-17.756-1.651-25.879M79.697 277.866h-1.715l-10.134-169.81h11.849zM145.704 21.71l41.647 14.219-4.018 11.77-41.647-14.219zM110.14 277.866H98.831v-169.81h11.309zm33.826 0h-14.692v-169.81h14.692zm30.442.001h-11.309V111.049l11.309 3.861zm20.849-.001h-1.715V121.442l10.83 3.698zm36.883-177.701-4.353 12.751L66.631 57.895l4.354-12.75c2.628-7.695 11.03-11.818 18.722-9.193l133.241 45.491a14.65 14.65 0 0 1 8.474 7.457 14.65 14.65 0 0 1 .718 11.265"/></svg></button>` : ""}
-          </div>
-        </td>
-      </tr>
-    `;
-  }
+  // Todas las filas (parseadas del texto original o agregadas por bodega,
+  // guardadas o no) permiten editar el nombre y borrarse — antes las
+  // parseadas eran de solo lectura y las agregadas se bloqueaban despues de
+  // guardar, y encima solo se podian borrar si "Entregado" seguia vacio
+  // (pedido explicito, ago 2026: ahora se puede borrar cualquier fila,
+  // tenga o no cantidad entregada).
+  const deleteBtn = `<button class="btn-delete-row" type="button" data-delete-index="${index}" title="Borrar fila" aria-label="Borrar fila">${DELETE_ROW_ICON}</button>`;
+  const presupuestadoCell = item.agregado && !item.guardado
+    ? `<input type="text" data-role="presupuestado" data-index="${index}" value="${escapeHtml(item.presupuestado)}" placeholder="0">`
+    : `<span class="qty-text">${escapeHtml(item.presupuestado || "-")}</span><input type="hidden" data-role="presupuestado" data-index="${index}" value="${escapeHtml(item.presupuestado)}">`;
 
   return `
-    <tr data-guardado="true">
+    <tr data-added-row="${item.agregado ? "true" : "false"}" data-guardado="${item.guardado ? "true" : "false"}" data-index="${index}">
+      <td>${presupuestadoCell}</td>
       <td>
-        <span class="qty-text">${escapeHtml(item.presupuestado || "-")}</span>
-        <input type="hidden" data-role="presupuestado" data-index="${index}" value="${escapeHtml(item.presupuestado)}">
+        <input type="text" data-role="nombre" data-index="${index}" value="${escapeHtml(item.nombre)}" placeholder="Nombre del material">
+        ${item.agregado ? '<div class="material-extra-flag">Material agregado</div>' : ""}
       </td>
       <td>
-        <div class="material-name">${escapeHtml(nombre)}</div>
-        <input type="hidden" data-role="nombre" data-index="${index}" value="${escapeHtml(item.nombre)}">
-      </td>
-      <td>
-        <input class="qty-input" type="text" inputmode="decimal" data-role="entregado" data-index="${index}" value="${escapeHtml(item.entregado)}" placeholder="0">
+        <div class="entregado-actions">
+          <input class="qty-input" type="text" inputmode="decimal" data-role="entregado" data-index="${index}" value="${escapeHtml(item.entregado)}" placeholder="0">
+          ${deleteBtn}
+        </div>
       </td>
     </tr>
   `;
 }
 
+function odsTieneBodega(detail) {
+  return Boolean(detail?.materialesBodega?.items?.length || detail?.materialesBodega?.observacion);
+}
+
+function odsSortRank(codigo) {
+  // 0 = tiene registro de bodega, todavia no completo (arriba), 1 = sin
+  // registro de bodega (medio), 2 = ya completo (al final) — pedido
+  // explicito, ago 2026.
+  const detail = state.detailCache.get(codigo);
+  if (isOdsCompleted(detail)) return 2;
+  return odsTieneBodega(detail) ? 0 : 1;
+}
+
+function odsStateClass(codigo) {
+  const detail = state.detailCache.get(codigo);
+  if (isOdsCompleted(detail)) return "completed";
+  return odsTieneBodega(detail) ? "con-registro" : "sin-registro";
+}
+
+function sortedRows(rows) {
+  return [...rows].sort((a, b) => odsSortRank(a.codigo) - odsSortRank(b.codigo));
+}
+
 function renderList() {
-  const items = state.filteredRows;
+  const items = sortedRows(state.filteredRows);
   els.metricTotal.textContent = String(items.length);
   els.metricConMaterial.textContent = String(
     items.filter((row) => {
@@ -1108,10 +1129,7 @@ function renderList() {
     }).length
   );
   els.metricGuardadas.textContent = String(
-    items.filter((row) => {
-      const detail = state.detailCache.get(row.codigo);
-      return Boolean(detail?.materialesBodega?.items?.length || detail?.materialesBodega?.observacion);
-    }).length
+    items.filter((row) => odsTieneBodega(state.detailCache.get(row.codigo))).length
   );
 
   if (!items.length) {
@@ -1120,7 +1138,7 @@ function renderList() {
   }
 
   els.odsList.innerHTML = items.map((row) => `
-    <button class="ods-card ${row.codigo === state.selectedCode ? "active" : ""} ${isOdsCompleted(state.detailCache.get(row.codigo)) ? "completed" : ""}" type="button" data-code="${escapeHtml(row.codigo)}">
+    <button class="ods-card ${row.codigo === state.selectedCode ? "active" : ""} ${odsStateClass(row.codigo)}" type="button" data-code="${escapeHtml(row.codigo)}">
       <div class="ods-top">
         <div class="ods-code">${escapeHtml(row.codigo)}</div>
       </div>
@@ -1279,6 +1297,19 @@ function addMaterialRow() {
   els.saveStatus.textContent = "";
 }
 
+function fillAllDelivered() {
+  const rows = els.materialTableBody.querySelectorAll("tr");
+  if (!rows.length) return;
+  rows.forEach((tr) => {
+    const presupuestadoInput = tr.querySelector('[data-role="presupuestado"]');
+    const entregadoInput = tr.querySelector('[data-role="entregado"]');
+    if (!presupuestadoInput || !entregadoInput) return;
+    entregadoInput.value = presupuestadoInput.value || "";
+  });
+  els.saveStatus.textContent = "Guardando registro...";
+  scheduleAutoSave();
+}
+
 async function saveCurrent(silent = false, { allowEmpty = false } = {}) {
   const row = getSelectedRow();
   if (!row) return;
@@ -1357,9 +1388,7 @@ function deleteAddedRow(index) {
   const detail = state.detailCache.get(row.codigo) || {};
   const items = collectMaterialItems();
   const targetItem = items[index];
-  if (targetItem?.agregado && hasDeliveredQty(targetItem.entregado)) {
-    return;
-  }
+  if (!targetItem) return;
   const eliminandoFilaGuardada = !!targetItem?.guardado;
   const nextItems = items.filter((_, itemIndex) => itemIndex !== index);
   detail.materialesBodega = {
@@ -1394,8 +1423,9 @@ async function init() {
     renderList();
     els.loadingState.hidden = true;
     els.emptyState.hidden = false;
-    if (state.rows.length) {
-      await selectOds(state.rows[0].codigo);
+    const primeraVisible = sortedRows(state.filteredRows)[0];
+    if (primeraVisible) {
+      await selectOds(primeraVisible.codigo);
     }
   } catch (_error) {
     els.loadingState.textContent = "No fue posible cargar las ODS.";
@@ -1405,6 +1435,7 @@ async function init() {
 els.searchInput.addEventListener("input", applyFilter);
 els.addMaterialButton.addEventListener("click", addMaterialRow);
 els.saveButton.addEventListener("click", () => void saveCurrent(false));
+els.fillAllDeliveredButton.addEventListener("click", fillAllDelivered);
 els.materialTableBody.addEventListener("change", scheduleAutoSave);
 els.materialTableBody.addEventListener("click", (event) => {
   const target = event.target;

@@ -44,6 +44,7 @@ from ATC.app.models.inicio_turno import (
     RecintoQrGenerado,
     RondaRegistro,
     SupervisorRegistro,
+    TurnoEstipulado,
 )
 from ATC.app.models.user import User
 from ATC.app.services.incidencias_service import IncidenciasService
@@ -584,15 +585,33 @@ def _alertar_doble_marcaje_si_corresponde(db: Session, registro: InicioTurnoRegi
     marcajes = [
         item
         for item in registros_dia
-        if (
-            rut_registro
-            and _normalizar_rut(item.rut) == rut_registro
-        ) or (
-            not rut_registro
-            and str(item.nombre_guardia or "").strip().casefold() == nombre_registro
+        if str(item.estado or "activo") != "archivado" and (
+            (
+                rut_registro
+                and _normalizar_rut(item.rut) == rut_registro
+            ) or (
+                not rut_registro
+                and str(item.nombre_guardia or "").strip().casefold() == nombre_registro
+            )
         )
     ]
     if len(marcajes) < 2:
+        return
+
+    # Farmacia Municipal <-> DESAM: el mismo guardia cubriendo ambos puntos
+    # el mismo dia no es un error de doble marcaje (ver
+    # _PAR_FARMACIA_DESAM_SIN_ALERTA) — se suprime el aviso solo si TODOS
+    # los marcajes del dia caen dentro de este par, con ambos representados.
+    # Muchos marcajes de DESAM se cargan manualmente con sucursal_id NULL
+    # (solo `recinto` como texto), por eso se resuelve por texto tambien.
+    es_farmacia_o_desam = [_es_recinto_farmacia_o_desam(m.sucursal_id, m.recinto) for m in marcajes]
+    es_farmacia = any(_normalizar_texto(m.recinto) == _normalizar_texto("Farmacia Municipal") for m in marcajes)
+    es_desam = any(
+        _normalizar_texto(m.recinto) == _normalizar_texto("MQUIN Edificio de Administración DESAM")
+        or m.sucursal_id == _SUCURSAL_DESAM
+        for m in marcajes
+    )
+    if all(es_farmacia_o_desam) and es_farmacia and es_desam:
         return
 
     _enviar_alerta_doble_marcaje_async(
@@ -608,6 +627,159 @@ def _alertar_doble_marcaje_si_corresponde(db: Session, registro: InicioTurnoRegi
         ],
         registro_id=registro.id,
     )
+
+
+def _fusionar_automatico_si_corresponde(db: Session, registro: InicioTurnoRegistro) -> None:
+    """Fusion automatica de marcajes duplicados por traslado (ago 2026 —
+    fin de la marcha blanca manual, ver _detectar_candidatos_fusion). Si
+    este marcaje calza en el mismo dia, mismo guardia, y mismo grupo de
+    _GRUPOS_FUSION_RECINTOS con otro(s) marcaje(s) activo(s) — sin importar
+    tipo_turno, salvo "Noche" (excluido) — se archiva automaticamente el o
+    los mas antiguos y queda activo solo el mas tardio (el recinto donde el
+    guardia termino). No requiere aprobacion manual."""
+    if _normalizar_texto(registro.tipo_turno) == _normalizar_texto("Noche"):
+        return
+    idx_grupo = _grupo_fusion_de(registro.sucursal_id)
+    if idx_grupo is None:
+        return
+
+    rut_registro = _normalizar_rut(registro.rut)
+    nombre_registro = str(registro.nombre_guardia or "").strip().casefold()
+    if not rut_registro and not nombre_registro:
+        return
+
+    dia = registro.registrado_at.date()
+    dia_inicio = datetime(dia.year, dia.month, dia.day)
+    dia_fin = dia_inicio + timedelta(days=1)
+    registros_dia = (
+        db.query(InicioTurnoRegistro)
+        .filter(
+            InicioTurnoRegistro.registrado_at >= dia_inicio,
+            InicioTurnoRegistro.registrado_at < dia_fin,
+        )
+        .all()
+    )
+
+    grupo_regs = []
+    for item in registros_dia:
+        if str(item.estado or "activo") == "archivado":
+            continue
+        if _normalizar_texto(item.tipo_turno) == _normalizar_texto("Noche"):
+            continue
+        if _grupo_fusion_de(item.sucursal_id) != idx_grupo:
+            continue
+        item_rut = _normalizar_rut(item.rut)
+        item_nombre = str(item.nombre_guardia or "").strip().casefold()
+        mismo_guardia = (
+            (rut_registro and item_rut == rut_registro)
+            or (not rut_registro and item_nombre == nombre_registro)
+        )
+        if mismo_guardia:
+            grupo_regs.append(item)
+
+    if len(grupo_regs) < 2:
+        return
+
+    grupo_regs.sort(key=lambda r: r.registrado_at)
+    sobreviviente = grupo_regs[-1]
+    tz = ZoneInfo(settings.timezone or "America/Santiago")
+    ahora = datetime.now(tz).replace(tzinfo=None)
+    motivo = f"Fusion automatica con marcaje en {sobreviviente.recinto} ({sobreviviente.registrado_at.strftime('%H:%M')})"
+    for reg in grupo_regs[:-1]:
+        reg.estado = "archivado"
+        reg.fusionado_con_id = sobreviviente.id
+        reg.archivado_motivo = motivo
+        reg.archivado_en = ahora
+        reg.archivado_por = "sistema (fusion automatica)"
+    db.commit()
+
+
+_SIN_TURNO_DESTINOS = [
+    "jefe.seguridadfisica@alguientecuida.cl",
+]
+
+
+def _email_alerta_sucursal_sin_turno(*, dependencia: str, fecha_str: str, estipulado: int) -> str:
+    """Alerta de alto impacto (pedido explicito: 'profesional, unico y
+    llamativo de advertencia, sin emoji, con presencia') para una sucursal
+    que quedo un dia entero sin ningun turno registrado. Deliberadamente NO
+    reusa el estilo generico de _email_html (venta_trace_email_service) —
+    esto tiene que destacar por sobre las demas alertas de turnos."""
+    estipulado_txt = str(estipulado) if estipulado else "—"
+    return f"""<!doctype html>
+<html>
+<body style="margin:0;padding:0;background:#eef1f5;font-family:Arial,Helvetica,sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef1f5;padding:36px 16px;">
+<tr><td align="center">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 10px 32px rgba(15,23,42,.22);">
+
+<tr><td style="background:#111318;padding:0;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr><td style="background:#b91c1c;height:6px;line-height:6px;font-size:0;">&nbsp;</td></tr>
+    <tr><td style="padding:30px 32px 26px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.16em;color:#f87171;text-transform:uppercase;margin:0 0 12px;">Alerta operacional &mdash; cobertura de guardia</div>
+      <div style="font-size:27px;font-weight:800;letter-spacing:-.01em;color:#ffffff;line-height:1.18;margin:0;">Sucursal sin guardia registrado</div>
+    </td></tr>
+  </table>
+</td></tr>
+
+<tr><td style="padding:28px 32px 8px;border-bottom:1px solid #eef0f2;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td style="width:100px;vertical-align:top;">
+        <div style="font-size:46px;font-weight:800;color:#b91c1c;line-height:1;">0</div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#9ca3af;text-transform:uppercase;margin-top:5px;">Turnos</div>
+      </td>
+      <td style="vertical-align:top;padding-left:6px;">
+        <div style="font-size:18px;font-weight:800;color:#111827;line-height:1.3;">{dependencia}</div>
+        <div style="font-size:13px;color:#4b5563;margin-top:6px;line-height:1.6;">No se registro ningun inicio de turno en esta sucursal durante el {fecha_str}. La sucursal quedó sin cobertura.</div>
+      </td>
+    </tr>
+  </table>
+</td></tr>
+
+<tr><td style="padding:24px 32px 8px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+    <tr style="background:#f8fafc;">
+      <td style="padding:12px 16px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#6b7280;border-bottom:1px solid #e5e7eb;width:46%;">Sucursal</td>
+      <td style="padding:12px 16px;font-size:13.5px;font-weight:700;color:#111827;border-bottom:1px solid #e5e7eb;">{dependencia}</td>
+    </tr>
+    <tr>
+      <td style="padding:12px 16px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#6b7280;border-bottom:1px solid #e5e7eb;">Fecha</td>
+      <td style="padding:12px 16px;font-size:13.5px;font-weight:700;color:#111827;border-bottom:1px solid #e5e7eb;">{fecha_str}</td>
+    </tr>
+    <tr style="background:#f8fafc;">
+      <td style="padding:12px 16px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#6b7280;border-bottom:1px solid #e5e7eb;">Turnos estipulados</td>
+      <td style="padding:12px 16px;font-size:13.5px;font-weight:700;color:#111827;border-bottom:1px solid #e5e7eb;">{estipulado_txt}</td>
+    </tr>
+    <tr>
+      <td style="padding:12px 16px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#6b7280;">Estado</td>
+      <td style="padding:12px 16px;font-size:13.5px;font-weight:800;color:#b91c1c;">Sin cobertura</td>
+    </tr>
+  </table>
+</td></tr>
+
+<tr><td style="padding:24px 32px 30px;">
+  <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:17px 19px;font-size:13.5px;color:#7f1d1d;line-height:1.65;font-weight:700;">
+    Requiere revision inmediata &mdash; confirmar con el guardia asignado y regularizar el registro, o gestionar un reemplazo.
+  </div>
+</td></tr>
+
+<tr><td style="background:#f8fafc;padding:16px 32px;border-top:1px solid #e5e7eb;">
+  <div style="font-size:11px;color:#9ca3af;font-weight:600;">Alguien Te Cuida &mdash; Sistema de Control de Turnos</div>
+</td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>"""
+
+
+def _enviar_alerta_sucursal_sin_turno(*, dependencia: str, fecha_str: str, estipulado: int) -> None:
+    subject = f"ALERTA: {dependencia} sin guardia registrado — {fecha_str}"
+    body = _email_alerta_sucursal_sin_turno(dependencia=dependencia, fecha_str=fecha_str, estipulado=estipulado)
+    _send_contacto_inicio_turno(_SIN_TURNO_DESTINOS, subject, body)
 
 
 def _dias_trabajados_guardia(db: Session, nombre_guardia: str, centro: date | None = None) -> set:
@@ -751,6 +923,115 @@ _QUINTERO_SUCURSAL_IDS = [
     257,   # Farmacia Municipal       -> al final
     236,   # Edificio de Administración DESAM -> al final
 ]
+
+
+# Grupos de recintos entre los que un guardia se traslada dentro del MISMO
+# turno (pedido explicito, ago 2026): ej. 4 marcan en Consistorial a las 8am
+# y 1 de ellos se traslada a Juzgado a las 10am porque abre a esa hora — hoy
+# eso genera 2 filas en inicio_turno_registros para ese guardia ese dia, e
+# infla el conteo mensual de "Total Turnos". Solo dentro de estos grupos se
+# sugiere fusionar (ver _detectar_candidatos_fusion) — independiente del
+# tipo_turno de cada marcaje, salvo turno "Noche" (excluido a proposito).
+_GRUPOS_FUSION_RECINTOS: list[set[int]] = [
+    {234, 380, 668},   # Edificio Consistorial Base <-> Juzgado Policia Local <-> Nueva Biblioteca Municipal
+    {439, 666, 667},   # Terminal de Buses <-> Cancha Sintetica 1 <-> Cancha Sintetica 2
+    # Farmacia Municipal <-> DESAM (257, 236) NO entra aca a proposito — ver
+    # _PAR_FARMACIA_DESAM_SIN_ALERTA mas abajo: ese par no se fusiona (los 2
+    # marcajes se necesitan vivos para pago/contabilidad de turnos), solo se
+    # evita que infle el conteo del informe y se suprime el mail de doble
+    # marcaje — pedido explicito, ago 2026.
+]
+
+# Farmacia Municipal <-> DESAM: el mismo guardia de Farmacia se traslada a
+# cubrir DESAM de 17 a 20hrs. A diferencia de _GRUPOS_FUSION_RECINTOS, ese
+# segundo marcaje NO se archiva (sigue vivo, sigue contando turno real en
+# Cumplimiento de Turnos) — solo se excluye del conteo de "Dia" en el
+# informe/vista previa de "tabla de asistencia" (_agrupar_turnos_por_guardia,
+# no debe pagarse como turno aparte) y del mail de doble marcaje
+# (_alertar_doble_marcaje_si_corresponde) — pedido explicito, ago 2026.
+_SUCURSAL_FARMACIA = 257
+_SUCURSAL_DESAM = 236
+_PAR_FARMACIA_DESAM_SIN_ALERTA = {_SUCURSAL_FARMACIA, _SUCURSAL_DESAM}
+# Muchos marcajes de DESAM se cargan manualmente desde el panel y solo
+# guardan `recinto` como texto, con sucursal_id NULL (mismo problema que ya
+# se resolvio para el conteo real de Cumplimiento de Turnos) — se matchea
+# tambien por texto normalizado, no solo por sucursal_id.
+_RECINTOS_FARMACIA_DESAM_NORM = {
+    _normalizar_texto("Farmacia Municipal"),
+    _normalizar_texto("MQUIN Edificio de Administración DESAM"),
+}
+
+
+def _es_recinto_farmacia_o_desam(sucursal_id: int | None, recinto: object) -> bool:
+    if sucursal_id in _PAR_FARMACIA_DESAM_SIN_ALERTA:
+        return True
+    return _normalizar_texto(recinto) in _RECINTOS_FARMACIA_DESAM_NORM
+
+
+def _grupo_fusion_de(sucursal_id: int | None) -> int | None:
+    if sucursal_id is None:
+        return None
+    for idx, grupo in enumerate(_GRUPOS_FUSION_RECINTOS):
+        if sucursal_id in grupo:
+            return idx
+    return None
+
+
+def _detectar_candidatos_fusion(
+    registros_qr: list[InicioTurnoRegistro],
+    rut_lookup: dict[str, str],
+) -> list[dict]:
+    """Candidatos a fusion: mismo guardia, mismo dia, 2+ marcajes activos en
+    recintos del mismo grupo de traslado (_GRUPOS_FUSION_RECINTOS),
+    independiente del tipo_turno de cada marcaje — salvo turno "Noche", que
+    queda afuera de esta deteccion (pedido explicito, ago 2026). El
+    "sobreviviente" propuesto es siempre el marcaje mas tardio del dia (el
+    recinto donde el guardia termino)."""
+    grupos: dict[tuple, list[InicioTurnoRegistro]] = defaultdict(list)
+    for r in registros_qr:
+        if str(r.estado or "activo") == "archivado":
+            continue
+        if _normalizar_texto(r.tipo_turno) == _normalizar_texto("Noche"):
+            continue
+        idx_grupo = _grupo_fusion_de(r.sucursal_id)
+        if idx_grupo is None:
+            continue
+        nombre_key = _normalizar_texto(r.nombre_guardia)
+        rut = rut_lookup.get(nombre_key, "") or _normalizar_rut(r.rut)
+        identidad = rut or nombre_key
+        if not identidad:
+            continue
+        dia = r.registrado_at.date()
+        grupos[(identidad, dia, idx_grupo)].append(r)
+
+    candidatos: list[dict] = []
+    for (_identidad, dia, _idx_grupo), regs in grupos.items():
+        if len(regs) < 2:
+            continue
+        regs_ordenados = sorted(regs, key=lambda item: item.registrado_at)
+        sobreviviente = regs_ordenados[-1]
+        archivar = regs_ordenados[:-1]
+        candidatos.append({
+            "nombre": sobreviviente.nombre_guardia,
+            "fecha": dia.strftime("%d/%m/%Y"),
+            "sobreviviente": {
+                "id": sobreviviente.id,
+                "recinto": sobreviviente.recinto,
+                "hora": sobreviviente.registrado_at.strftime("%H:%M"),
+                "turno": sobreviviente.tipo_turno,
+            },
+            "archivar": [
+                {
+                    "id": r.id,
+                    "recinto": r.recinto,
+                    "hora": r.registrado_at.strftime("%H:%M"),
+                    "turno": r.tipo_turno,
+                }
+                for r in archivar
+            ],
+        })
+    candidatos.sort(key=lambda c: c["fecha"])
+    return candidatos
 
 
 def _listar_recintos_qr(db: Session) -> list[dict[str, str | int]]:
@@ -917,6 +1198,13 @@ def _agrupar_turnos_por_guardia(
     usa_rut_registro: bool,
 ) -> list[dict]:
     rows: dict[str, dict] = {}
+    # Farmacia Municipal (257) <-> DESAM (236): el mismo guardia de Farmacia
+    # se traslada a cubrir DESAM de 17 a 20hrs — ambos marcajes se conservan
+    # intactos en la BBDD (no se fusionan/archivan, siguen sirviendo para
+    # pago/contabilidad de turnos), pero en ESTE informe (descarga y vista
+    # previa de "tabla de asistencia") cuentan como 1 solo turno "Dia" por
+    # guardia y dia, no 2 — pedido explicito, ago 2026.
+    farmacia_desam_contados: set[tuple[str, object]] = set()
     for reg in registros:
         nombre = str(reg.nombre_guardia or "").strip()
         if not nombre:
@@ -942,6 +1230,13 @@ def _agrupar_turnos_por_guardia(
         if not row.get("tipo_guardia"):
             row["tipo_guardia"] = _tipo_guardia_para(nombre, row["rut"], tipo_guardia_lookup)
         turno = _turno_informe(reg.tipo_turno)
+        if turno == "Dia" and _es_recinto_farmacia_o_desam(getattr(reg, "sucursal_id", None), getattr(reg, "recinto", None)):
+            dia_marcaje = getattr(reg, "registrado_at", None)
+            dia_marcaje = dia_marcaje.date() if dia_marcaje is not None else getattr(reg, "fecha", None)
+            dedup_key = (key, dia_marcaje)
+            if dedup_key in farmacia_desam_contados:
+                continue
+            farmacia_desam_contados.add(dedup_key)
         if turno:
             row["turnos"][turno] += 1
 
@@ -1036,6 +1331,48 @@ def _permisos_sin_goce_lookup(db: Session, year: int, month: int) -> dict[str, l
     for j in filas:
         lookup[_normalizar_rut(j.rut)].append((j.fecha_desde, j.fecha_hasta))
     return lookup
+
+
+def _justificaciones_lookup(
+    db: Session, year: int, month: int, tipo_guardia_lookup: dict[str, dict[str, str]]
+) -> list[dict]:
+    """Guardias con una justificación (Licencia Médica, Vacaciones, Permiso
+    con/sin Goce, Falta con fecha, Desvinculado, Renuncia — ver
+    MOTIVOS_JUSTIFICACION) vigente durante el mes del informe. Mismo criterio
+    de superposición de fechas que _permisos_sin_goce_lookup, pero sin
+    acotar a un solo motivo y devolviendo las filas completas para su propia
+    sección del informe, en vez de solo un lookup rut->rangos."""
+    primer_dia = date(year, month, 1)
+    ultimo_dia = date(year, month, calendar.monthrange(year, month)[1])
+    filas = (
+        db.query(GuardiaJustificacion)
+        .filter(
+            GuardiaJustificacion.fecha_desde.isnot(None),
+            GuardiaJustificacion.fecha_desde <= ultimo_dia,
+            or_(
+                GuardiaJustificacion.fecha_hasta.is_(None),
+                GuardiaJustificacion.fecha_hasta >= primer_dia,
+            ),
+        )
+        .order_by(GuardiaJustificacion.fecha_desde)
+        .all()
+    )
+    rows = []
+    for j in filas:
+        nombre = str(j.nombre_guardia or "").strip()
+        rut = _normalizar_rut(j.rut)
+        rows.append(
+            {
+                "nombre": nombre,
+                "rut": j.rut or "",
+                "tipo_guardia": _tipo_guardia_para(nombre, rut, tipo_guardia_lookup),
+                "motivo": j.motivo or "",
+                "fecha_desde": j.fecha_desde,
+                "fecha_hasta": j.fecha_hasta,
+                "notas": j.notas or "",
+            }
+        )
+    return sorted(rows, key=lambda item: (item["nombre"].casefold(), item["fecha_desde"] or date.min))
 
 
 def _clave_falta_guardia(reg, rut_lookup: dict[str, str]) -> tuple:
@@ -1490,6 +1827,62 @@ def _crear_hoja_turno_extra(ws, periodo: str, rows: list[dict], *, tipo_turno: s
             fila[5].fill = PatternFill("solid", fgColor="FDF2F2")
 
     widths = [34, 16, 16, 13, 44, 20, 52]
+    for idx, width in enumerate(widths, start=1):
+        ws.column_dimensions[chr(64 + idx)].width = width
+    ws.freeze_panes = "A5"
+
+
+def _crear_hoja_justificaciones(ws, periodo: str, rows: list[dict]) -> None:
+    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+
+    azul = "0B1424"
+    azul_medio = "1E3A5F"
+    borde = Side(style="thin", color="CBD5E1")
+    headers = ["Nombre", "RUT", "Tipo de Contrato", "Motivo", "Desde", "Hasta", "Notas"]
+
+    ws.append(["ATC - Justificaciones"])
+    ws.append([periodo])
+    ws.append([])
+    ws.append(headers)
+
+    for row in rows:
+        desde = row["fecha_desde"].strftime("%d/%m/%Y") if row["fecha_desde"] else "—"
+        hasta = row["fecha_hasta"].strftime("%d/%m/%Y") if row["fecha_hasta"] else "En curso"
+        ws.append([
+            row["nombre"],
+            row["rut"],
+            row.get("tipo_guardia", ""),
+            row["motivo"],
+            desde,
+            hasta,
+            row["notas"],
+        ])
+
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(headers))
+    ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=len(headers))
+    ws["A1"].font = Font(bold=True, color="FFFFFF", size=14)
+    ws["A1"].fill = PatternFill("solid", fgColor=azul)
+    ws["A1"].alignment = Alignment(horizontal="center")
+    ws["A2"].font = Font(bold=True, color="334155")
+    ws["A2"].alignment = Alignment(horizontal="center")
+
+    for cell in ws[4]:
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = PatternFill("solid", fgColor=azul_medio)
+        cell.alignment = Alignment(horizontal="center")
+        cell.border = Border(top=borde, left=borde, right=borde, bottom=borde)
+
+    for fila in ws.iter_rows(min_row=5, max_row=ws.max_row, min_col=1, max_col=len(headers)):
+        for cell in fila:
+            cell.border = Border(top=borde, left=borde, right=borde, bottom=borde)
+            if cell.column in (3, 4, 5, 6):
+                cell.alignment = Alignment(horizontal="center", vertical="top")
+            elif cell.column == 7:
+                cell.alignment = Alignment(wrap_text=True, vertical="top")
+            else:
+                cell.alignment = Alignment(vertical="top")
+
+    widths = [34, 16, 16, 20, 14, 14, 44]
     for idx, width in enumerate(widths, start=1):
         ws.column_dimensions[chr(64 + idx)].width = width
     ws.freeze_panes = "A5"
@@ -2783,6 +3176,28 @@ def _preview_turnos_extra_section(titulo: str, rows: list[dict], *, tipo_turno: 
     }
 
 
+def _preview_justificaciones_section(rows: list[dict]) -> dict:
+    preview_rows = []
+    for row in rows:
+        desde = row["fecha_desde"].strftime("%d/%m/%Y") if row["fecha_desde"] else "—"
+        hasta = row["fecha_hasta"].strftime("%d/%m/%Y") if row["fecha_hasta"] else "En curso"
+        preview_rows.append([
+            _preview_cell(row["nombre"]),
+            _preview_cell(row["rut"]),
+            _preview_cell(row.get("tipo_guardia", "")),
+            _preview_cell(row["motivo"]),
+            _preview_cell(desde),
+            _preview_cell(hasta),
+            _preview_cell(row["notas"]),
+        ])
+    return {
+        "title": "Justificaciones",
+        "subtitle": f"{len(preview_rows)} justificación(es) vigente(s) en el período (licencias, vacaciones, permisos, etc.)",
+        "headers": ["Nombre", "RUT", "Tipo de Contrato", "Motivo", "Desde", "Hasta", "Notas"],
+        "rows": preview_rows,
+    }
+
+
 _TURNO_BADGE_SLUGS = {
     "dia": "dia",
     "noche": "noche",
@@ -2888,6 +3303,9 @@ def _datos_informe_guardias(db: Session, year: int, month: int, grupo: str) -> d
         .order_by(InicioTurnoRegistro.registrado_at, InicioTurnoRegistro.id)
         .all()
     )
+    # Marcajes fusionados (ver _detectar_candidatos_fusion) quedan afuera de
+    # todo conteo/informe — el turno real es el marcaje sobreviviente.
+    registros_qr = [r for r in registros_qr if str(r.estado or "activo") != "archivado"]
     registros_sv = (
         db.query(SupervisorRegistro)
         .filter(
@@ -2925,6 +3343,7 @@ def _datos_informe_guardias(db: Session, year: int, month: int, grupo: str) -> d
     rows_extra = _agrupar_turnos_extra(registros_qr, registros_sv, rut_lookup, tipo_guardia_lookup, tipo_turno="Extra")
     rows_contrato_diario = _agrupar_turnos_extra(registros_qr, registros_sv, rut_lookup, tipo_guardia_lookup, tipo_turno="Contrato Diario")
     rows_domingos = _agrupar_domingos_guardias(registros_qr, rut_lookup, tipo_guardia_lookup)
+    rows_justificaciones = _justificaciones_lookup(db, year, month, tipo_guardia_lookup)
 
     matrix_sv: dict[str, dict[int, list]] = defaultdict(lambda: defaultdict(list))
     for r in registros_sv:
@@ -2956,11 +3375,229 @@ def _datos_informe_guardias(db: Session, year: int, month: int, grupo: str) -> d
         "rows_extra": rows_extra,
         "rows_contrato_diario": rows_contrato_diario,
         "rows_domingos": rows_domingos,
+        "rows_justificaciones": rows_justificaciones,
         "matrix_sv": matrix_sv,
         "matrix_qr": matrix_qr,
         "recintos": recintos,
         "days_info": days_info,
     }
+
+
+def _datos_cumplimiento_turnos(db: Session, year: int, month: int, grupo: str) -> dict:
+    """Compara la cuota EXACTA de turnos mensuales por dependencia
+    (TurnoEstipulado, ver _importar_turnos_estipulados_concon.py) contra el
+    conteo real de marcajes ACTIVOS (ya excluyendo fusionados/archivados,
+    ver _fusionar_automatico_si_corresponde) — solo cantidades, sin
+    nombres de guardias."""
+    grupo = str(grupo or "concon").strip().lower()
+    estipulados = (
+        db.query(TurnoEstipulado)
+        .filter(TurnoEstipulado.grupo == grupo)
+        .order_by(TurnoEstipulado.id)
+        .all()
+    )
+
+    dias_en_mes = calendar.monthrange(year, month)[1]
+
+    def _parse_dias_semana(raw: str | None) -> set[int] | None:
+        txt = str(raw or "").strip()
+        if not txt:
+            return None
+        try:
+            return {int(x) for x in txt.split(",") if x.strip() != ""}
+        except ValueError:
+            return None
+
+    def _regla_aplica(dias_semana: set[int] | None, weekday: int) -> bool:
+        return dias_semana is None or weekday in dias_semana
+
+    # Varias filas de TurnoEstipulado pueden ser la misma dependencia con
+    # tramos horarios/dias distintos (ej. Juzgado Lunes/Miercoles/Jueves,
+    # cada uno con su propio turnos_dia) — se guardan como reglas separadas
+    # y el estipulado de cada dia se recalcula sumando las reglas que
+    # aplican ese dia de la semana, no con un total fijo de la planilla
+    # (que asume un mes puntual de 30 o 31 dias con una combinacion de
+    # dias de semana que no es la misma todos los meses).
+    por_dependencia: dict[tuple, dict] = {}
+    for est in estipulados:
+        clave = (est.dependencia, est.sucursal_id)
+        row = por_dependencia.setdefault(clave, {
+            "dependencia": est.dependencia,
+            "sucursal_id": est.sucursal_id,
+            "reglas": [],
+        })
+        row["reglas"].append((est.turnos_dia or 0, _parse_dias_semana(est.dias_semana)))
+
+    ids_sucursal = [row["sucursal_id"] for row in por_dependencia.values() if row["sucursal_id"]]
+
+    # El texto de "dependencia" viene tal cual de la planilla del cliente
+    # (a veces en minusculas, sin el prefijo "MC ..." real) — para mostrar
+    # el nombre real se usa el de bbdd_sucursales via el cruce ya hecho en
+    # el import (sucursal_id), con el texto de la planilla como respaldo si
+    # no hay cruce.
+    nombres_sucursal: dict[int, str] = {}
+    if ids_sucursal:
+        nombres_sucursal = {
+            sid: nombre
+            for sid, nombre in db.query(SucursalBBDD.id, SucursalBBDD.nombre_sucursal)
+            .filter(SucursalBBDD.id.in_(ids_sucursal))
+            .all()
+        }
+    for row in por_dependencia.values():
+        if row["sucursal_id"] and nombres_sucursal.get(row["sucursal_id"]):
+            row["dependencia"] = nombres_sucursal[row["sucursal_id"]]
+
+    # El conteo "real" tiene que sumar TODOS los tipos de turno (Dia, Noche,
+    # Extra, Contrato Diario — pedido explicito) y no puede depender solo de
+    # sucursal_id: hay marcajes del registro de guardias con sucursal_id
+    # NULL (ej. cargados manualmente desde el panel, que solo guardan
+    # `recinto` como texto) que igual corresponden a estas dependencias.
+    # Se matchea por sucursal_id cuando esta, y si no por el texto exacto
+    # de `recinto` contra el nombre real de la sucursal.
+    ids_sucursal_set = set(ids_sucursal)
+    recinto_por_sucursal_norm: dict[str, int] = {
+        _normalizar_texto(nombre): sid for sid, nombre in nombres_sucursal.items()
+    }
+
+    reales_por_sucursal: dict[int, int] = defaultdict(int)
+    reales_diarios: dict[int, dict[int, int]] = defaultdict(lambda: defaultdict(int))
+    if ids_sucursal:
+        registros_relevantes = (
+            db.query(
+                InicioTurnoRegistro.sucursal_id,
+                InicioTurnoRegistro.recinto,
+                InicioTurnoRegistro.registrado_at,
+            )
+            .filter(
+                extract("year", InicioTurnoRegistro.registrado_at) == year,
+                extract("month", InicioTurnoRegistro.registrado_at) == month,
+                InicioTurnoRegistro.estado != "archivado",
+                or_(
+                    InicioTurnoRegistro.sucursal_id.in_(ids_sucursal),
+                    InicioTurnoRegistro.recinto.in_(list(nombres_sucursal.values())),
+                ),
+            )
+            .all()
+        )
+        for sid, recinto_txt, registrado_at in registros_relevantes:
+            resuelto = sid if sid in ids_sucursal_set else recinto_por_sucursal_norm.get(_normalizar_texto(recinto_txt))
+            if not resuelto:
+                continue
+            reales_por_sucursal[resuelto] += 1
+            reales_diarios[resuelto][registrado_at.day] += 1
+
+    hoy = date.today()
+
+    filas = []
+    total_estipulado = 0
+    total_real = 0
+    total_cumplidas = 0
+    totales_dia_real = [0] * dias_en_mes
+    totales_dia_estipulado = [0] * dias_en_mes
+    for row in sorted(por_dependencia.values(), key=lambda r: r["dependencia"]):
+        sucursal_id = row["sucursal_id"]
+        reglas = row["reglas"]
+        real = reales_por_sucursal.get(sucursal_id, 0) if sucursal_id else 0
+        conteo_dia = reales_diarios.get(sucursal_id, {}) if sucursal_id else {}
+        dias = []
+        estipulado = 0
+        for d in range(1, dias_en_mes + 1):
+            weekday = date(year, month, d).weekday()
+            estipulado_dia = sum(turnos for turnos, regla in reglas if _regla_aplica(regla, weekday))
+            estipulado += estipulado_dia
+            real_dia = conteo_dia.get(d, 0)
+            totales_dia_real[d - 1] += real_dia
+            totales_dia_estipulado[d - 1] += estipulado_dia
+            if date(year, month, d) >= hoy:
+                estado_dia = "futuro"
+            else:
+                estado_dia = "ok" if real_dia == estipulado_dia else "bajo"
+            dias.append({"day": d, "real": real_dia, "estipulado": estipulado_dia, "estado": estado_dia})
+        diferencia = real - estipulado
+        cumplido = diferencia == 0
+        total_estipulado += estipulado
+        total_real += real
+        if cumplido:
+            total_cumplidas += 1
+        filas.append({
+            "dependencia": row["dependencia"],
+            "sucursal_id": sucursal_id,
+            "estipulado": estipulado,
+            "real": real,
+            "diferencia": diferencia,
+            "cumplido": cumplido,
+            "sin_cruce": sucursal_id is None,
+            "dias": dias,
+        })
+
+    days_info = [
+        {"day": d, "dow": _DAY_NAMES[date(year, month, d).weekday()]}
+        for d in range(1, dias_en_mes + 1)
+    ]
+
+    dias_totales = []
+    for d in range(1, dias_en_mes + 1):
+        real_dia = totales_dia_real[d - 1]
+        estipulado_dia = totales_dia_estipulado[d - 1]
+        if date(year, month, d) >= hoy:
+            estado_dia = "futuro"
+        else:
+            estado_dia = "ok" if real_dia == estipulado_dia else "bajo"
+        dias_totales.append({"day": d, "real": real_dia, "estipulado": estipulado_dia, "estado": estado_dia})
+
+    return {
+        "grupo": grupo,
+        "dias_en_mes": dias_en_mes,
+        "days_info": days_info,
+        "filas": filas,
+        "dias_totales": dias_totales,
+        "total_estipulado": total_estipulado,
+        "total_real": total_real,
+        "total_diferencia": total_real - total_estipulado,
+        "total_cumplidas": total_cumplidas,
+        "total_dependencias": len(filas),
+    }
+
+
+@router.get("/guardia/cumplimiento-turnos", response_class=HTMLResponse)
+def guardia_cumplimiento_turnos_page(
+    request: Request,
+    year: int = Query(default=None),
+    month: int = Query(default=None),
+    grupo: str = Query(default="concon"),
+    db: Session = Depends(get_db),
+):
+    tz = ZoneInfo(settings.timezone or "America/Santiago")
+    today = datetime.now(tz).date()
+    year = year or today.year
+    month = month or today.month
+    data = _datos_cumplimiento_turnos(db, year, month, grupo)
+
+    prev_y, prev_m = (year - 1, 12) if month == 1 else (year, month - 1)
+    next_y, next_m = (year + 1, 1) if month == 12 else (year, month + 1)
+
+    return templates.TemplateResponse(
+        request,
+        "guardia_cumplimiento_turnos.html",
+        {
+            "request": request,
+            "year": year,
+            "month": month,
+            "month_name": _MONTH_NAMES[month - 1],
+            "grupo": data["grupo"],
+            "dias_en_mes": data["dias_en_mes"],
+            "days_info": data["days_info"],
+            "filas": data["filas"],
+            "dias_totales": data["dias_totales"],
+            "total_estipulado": data["total_estipulado"],
+            "total_real": data["total_real"],
+            "total_diferencia": data["total_diferencia"],
+            "total_cumplidas": data["total_cumplidas"],
+            "total_dependencias": data["total_dependencias"],
+            "prev_y": prev_y, "prev_m": prev_m,
+            "next_y": next_y, "next_m": next_m,
+        },
+    )
 
 
 @router.get("/guardia/tabla-rondas/informes/preview", response_class=HTMLResponse)
@@ -3508,7 +4145,7 @@ def guardia_tabla_page(
     year  = year  or today.year
     month = month or today.month
 
-    registros_qr = (
+    registros_qr_todos = (
         db.query(InicioTurnoRegistro)
         .filter(
             extract("year",  InicioTurnoRegistro.registrado_at) == year,
@@ -3517,6 +4154,13 @@ def guardia_tabla_page(
         .order_by(InicioTurnoRegistro.registrado_at)
         .all()
     )
+    by_id_qr = {r.id: r for r in registros_qr_todos}
+    registros_qr_archivados = [r for r in registros_qr_todos if str(r.estado or "activo") == "archivado"]
+    # El resto de esta funcion (matriz, cruce, conflictos, conteos) usa solo
+    # marcajes activos — los fusionados ya no deben generar alertas ni
+    # ocupar celdas del calendario operativo; su trazabilidad vive aparte en
+    # "fusionados_mes" (ver mas abajo), no mezclada en la matriz principal.
+    registros_qr = [r for r in registros_qr_todos if str(r.estado or "activo") != "archivado"]
 
     registros_sv = (
         db.query(SupervisorRegistro)
@@ -3535,6 +4179,36 @@ def guardia_tabla_page(
     rut_lookup = _rut_lookup_guardias(db, registros_qr, registros_sv)
     permisos_sin_goce = _permisos_sin_goce_lookup(db, year, month)
 
+    candidatos_fusion = _detectar_candidatos_fusion(registros_qr, rut_lookup)
+
+    fusionados_mes: list[dict] = []
+    for r in registros_qr_archivados:
+        destino = by_id_qr.get(r.fusionado_con_id) if r.fusionado_con_id else None
+        fusionados_mes.append({
+            "id": r.id,
+            "fecha": f"{r.registrado_at.day}/{month:02d}",
+            "nombre": r.nombre_guardia,
+            "recinto_original": r.recinto,
+            "hora_original": r.registrado_at.strftime("%H:%M"),
+            "recinto_destino": destino.recinto if destino else "",
+            "hora_destino": destino.registrado_at.strftime("%H:%M") if destino else "",
+            "motivo": r.archivado_motivo or "",
+            "archivado_por": r.archivado_por or "",
+        })
+    fusionados_mes.sort(key=lambda x: x["fecha"])
+
+    # id del marcaje sobreviviente -> texto "de donde vino" (recinto+hora
+    # del/los marcaje(s) archivado(s) que se fusionaron en el) — para
+    # mostrar en la celda del calendario que este guardia paso antes por
+    # otro recinto ese mismo dia.
+    origenes_fusion_txt: dict[int, str] = {}
+    for r in registros_qr_archivados:
+        if not r.fusionado_con_id:
+            continue
+        pieza = f"{r.recinto} ({r.registrado_at.strftime('%H:%M')})"
+        previo = origenes_fusion_txt.get(r.fusionado_con_id, "")
+        origenes_fusion_txt[r.fusionado_con_id] = f"{previo}; {pieza}" if previo else pieza
+
     matrix_qr: dict[str, dict[int, list]] = defaultdict(lambda: defaultdict(list))
     for r in registros_qr:
         d = r.registrado_at.day
@@ -3543,6 +4217,7 @@ def guardia_tabla_page(
             "nombre": r.nombre_guardia,
             "turno":  r.tipo_turno,
             "hora":   r.registrado_at.strftime("%H:%M"),
+            "fusion_origen": origenes_fusion_txt.get(r.id, ""),
         })
 
     # dia -> {nombres_norm} con QR en CUALQUIER recinto (sin importar el
@@ -3648,9 +4323,17 @@ def guardia_tabla_page(
                 else:
                     turnos_qr = [qe["turno"] for qe in qr_por_nombre[nn]]
                     turno_ok = any(_norm(e["turno"]) == _norm(t) for t in turnos_qr)
+                    # Aunque el guardia SI tenga QR en este recinto, si ademas
+                    # tiene QR en otro(s) recinto(s) el mismo dia tambien es
+                    # un conflicto de destino — antes solo se marcaba cuando
+                    # NO se encontraba localmente, y un caso como este (QR+SV
+                    # calzando en dos recintos distintos el mismo dia, ej.
+                    # Cemco y Parque Municipal) pasaba como "ok" sin ninguna
+                    # alerta (reportado por el cliente, ago 2026).
+                    otros_recintos_qr = qr_por_dia_recintos.get(d, {}).get(nn, set()) - {recinto}
                     sv_annotated.append({**e, "falta": False, "es_permiso": False, "turno_mismatch": control_activo and not turno_ok,
                                          "turno_qr": " / ".join(turnos_qr) if control_activo and not turno_ok else None,
-                                         "conflicto_destino": False})
+                                         "conflicto_destino": control_activo and bool(otros_recintos_qr)})
 
             qr_annotated = [{**e, "sin_supervisor": control_activo and _norm(e["nombre"]) not in sv_nombres} for e in qr_entries]
 
@@ -3840,6 +4523,8 @@ def guardia_tabla_page(
             "alertas_inasistencia": alertas_inasistencia,
             "alertas_discrepancia": alertas_discrepancia,
             "alertas_conflicto":    alertas_conflicto,
+            "candidatos_fusion":    candidatos_fusion,
+            "fusionados_mes":       fusionados_mes,
             "prev_y": prev_y, "prev_m": prev_m,
             "next_y": next_y, "next_m": next_m,
             "today_day": today.day if (today.year == year and today.month == month) else -1,
@@ -3887,6 +4572,7 @@ def preview_informes_guardias(
             data["rows_contrato_diario"],
             tipo_turno="Contrato Diario",
         ),
+        _preview_justificaciones_section(data["rows_justificaciones"]),
     ]
 
     return templates.TemplateResponse(
@@ -3927,6 +4613,9 @@ def descargar_informes_guardias(
         .order_by(InicioTurnoRegistro.registrado_at, InicioTurnoRegistro.id)
         .all()
     )
+    # Marcajes fusionados (ver _detectar_candidatos_fusion) quedan afuera de
+    # todo conteo/informe — el turno real es el marcaje sobreviviente.
+    registros_qr = [r for r in registros_qr if str(r.estado or "activo") != "archivado"]
     registros_sv = (
         db.query(SupervisorRegistro)
         .filter(
@@ -3977,6 +4666,7 @@ def descargar_informes_guardias(
     rows_extra = _agrupar_turnos_extra(registros_qr, registros_sv, rut_lookup, tipo_guardia_lookup, tipo_turno="Extra")
     rows_contrato_diario = _agrupar_turnos_extra(registros_qr, registros_sv, rut_lookup, tipo_guardia_lookup, tipo_turno="Contrato Diario")
     rows_domingos = _agrupar_domingos_guardias(registros_qr, rut_lookup, tipo_guardia_lookup)
+    rows_justificaciones = _justificaciones_lookup(db, year, month, tipo_guardia_lookup)
 
     matrix_sv: dict[str, dict[int, list]] = defaultdict(lambda: defaultdict(list))
     for r in registros_sv:
@@ -4025,6 +4715,7 @@ def descargar_informes_guardias(
     )
     _crear_hoja_turno_extra(wb.create_sheet("Turno Extra"), periodo, rows_extra, tipo_turno="Extra")
     _crear_hoja_turno_extra(wb.create_sheet("Contrato Diario"), periodo, rows_contrato_diario, tipo_turno="Contrato Diario")
+    _crear_hoja_justificaciones(wb.create_sheet("Justificaciones"), periodo, rows_justificaciones)
 
     buffer = BytesIO()
     wb.save(buffer)
@@ -4171,6 +4862,15 @@ def registrar_inicio_turno(
         origen="el marcaje QR del guardia",
         registro_id=f"qr-{registro.id}",
     )
+
+    # Fusion automatica de marcajes duplicados por traslado (ver
+    # _fusionar_automatico_si_corresponde) — corre antes de la alerta de
+    # doble marcaje para que esta ya no dispare por algo que se acaba de
+    # resolver solo.
+    try:
+        _fusionar_automatico_si_corresponde(db, registro)
+    except Exception as exc:
+        _log.warning("No se pudo evaluar fusion automatica para registro %s: %s", registro.id, exc)
 
     # Alerta de doble marcaje: mismo guardia y mismo dia, sin importar turno,
     # sucursal ni recinto.
@@ -4918,6 +5618,10 @@ def crear_registro_guardia_manual(
         registro_id=f"manual-{reg.id}",
     )
     try:
+        _fusionar_automatico_si_corresponde(db, reg)
+    except Exception as exc:
+        _log.warning("No se pudo evaluar fusion automatica para registro manual %s: %s", reg.id, exc)
+    try:
         _alertar_doble_marcaje_si_corresponde(db, reg)
     except Exception as exc:
         _log.warning("No se pudo evaluar doble marcaje para registro manual %s: %s", reg.id, exc)
@@ -4959,6 +5663,65 @@ def eliminar_registro_guardia_manual(
     db.delete(reg)
     db.commit()
     return {"ok": True}
+
+
+class FusionarRegistrosPayload(BaseModel):
+    sobreviviente_id: int
+    archivar_ids: list[int]
+    motivo: str = ""
+
+
+@router.post("/api/guardia/registro-guardia/fusionar")
+def fusionar_registros_guardia(
+    request: Request,
+    payload: FusionarRegistrosPayload,
+    db: Session = Depends(get_db),
+):
+    """Marcha blanca (ago 2026): fusion de marcajes duplicados por traslado
+    entre recintos del mismo grupo (_GRUPOS_FUSION_RECINTOS). Requiere
+    confirmacion manual de un supervisor por ahora — no se ejecuta sola."""
+    sobreviviente = db.get(InicioTurnoRegistro, payload.sobreviviente_id)
+    if not sobreviviente:
+        raise HTTPException(status_code=404, detail="Registro sobreviviente no encontrado")
+    if not payload.archivar_ids:
+        raise HTTPException(status_code=400, detail="Debes indicar al menos un registro a archivar")
+
+    usuario = _nombre_usuario_sesion(request, db) or "sistema"
+    tz = ZoneInfo(settings.timezone or "America/Santiago")
+    ahora = datetime.now(tz).replace(tzinfo=None)
+    motivo_default = f"Fusionado con marcaje en {sobreviviente.recinto} ({sobreviviente.registrado_at.strftime('%H:%M')})"
+    archivados: list[int] = []
+    for reg_id in payload.archivar_ids:
+        if reg_id == sobreviviente.id:
+            continue
+        reg = db.get(InicioTurnoRegistro, reg_id)
+        if not reg or str(reg.estado or "activo") == "archivado":
+            continue
+        reg.estado = "archivado"
+        reg.fusionado_con_id = sobreviviente.id
+        reg.archivado_motivo = payload.motivo.strip() or motivo_default
+        reg.archivado_en = ahora
+        reg.archivado_por = usuario
+        archivados.append(reg.id)
+    db.commit()
+    return {"ok": True, "sobreviviente_id": sobreviviente.id, "archivados": archivados}
+
+
+@router.post("/api/guardia/registro-guardia/{registro_id}/restaurar")
+def restaurar_registro_guardia(
+    registro_id: int,
+    db: Session = Depends(get_db),
+):
+    reg = db.get(InicioTurnoRegistro, registro_id)
+    if not reg:
+        raise HTTPException(status_code=404, detail="Registro no encontrado")
+    reg.estado = "activo"
+    reg.fusionado_con_id = None
+    reg.archivado_motivo = None
+    reg.archivado_en = None
+    reg.archivado_por = None
+    db.commit()
+    return {"ok": True, "id": reg.id}
 
 
 # ──────────────────────────────────────────────

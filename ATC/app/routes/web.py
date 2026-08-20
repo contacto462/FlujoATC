@@ -77,6 +77,9 @@ from ATC.app.services.drive_report_service import (
     create_drive_report_for_odt,
     DriveReportError,
 )
+from ATC.app.services.incidencias_drive_report_service import (
+    upload_camaras_monitoreo_fotos as _upload_camaras_monitoreo_fotos,
+)
 from ATC.app.services.sla_feedback_service import (
     build_configured_sla_survey_link,
     build_static_sla_survey_link,
@@ -235,6 +238,12 @@ def _apply_ticket_visibility_for_user(query, user: User):
             Ticket.inbound_mailbox.is_(None),
             func.lower(Ticket.inbound_mailbox) != restricted,
             Ticket.assigned_to_id == user.id,
+            # Un ticket del buzon restringido "Asignado a Equipo" debe
+            # seguir siendo visible para todos (mismo criterio que ya aplica
+            # el filtro de Usuarios en _ticketera_build_filtered_query) —
+            # antes esta capa de visibilidad lo tapaba igual, pedido
+            # explicito, ago 2026.
+            Ticket.team_broadcast_at.isnot(None),
         )
     )
 
@@ -245,7 +254,11 @@ def _can_view_ticket(ticket: Ticket | None, user: User) -> bool:
     mailbox = str(getattr(ticket, "inbound_mailbox", "") or "").strip().casefold()
     if mailbox != RESTRICTED_SUPPORT_MAILBOX:
         return True
-    return _has_unrestricted_support_mailbox_access(user) or int(ticket.assigned_to_id or 0) == int(user.id or 0)
+    return (
+        _has_unrestricted_support_mailbox_access(user)
+        or int(ticket.assigned_to_id or 0) == int(user.id or 0)
+        or getattr(ticket, "team_broadcast_at", None) is not None
+    )
 
 
 def _strip_ticket_thread_tail_for_display(content: str, *, ticket_id: int) -> str:
@@ -702,30 +715,55 @@ def _build_attachments_html(attachments: list[dict[str, str | int]]) -> str:
     if not attachments:
         return ""
 
-    rows: list[str] = []
-    for item in attachments:
-        filename = html.escape(str(item.get("filename") or "archivo"))
-        public_url = html.escape(str(item.get("public_url") or "#"))
-        size_label = _format_size_for_humans(int(item.get("size") or 0))
-        rows.append(
-            (
-                "<li>"
-                f"<a href=\"{public_url}\" target=\"_blank\" rel=\"noopener\">{filename}</a>"
-                f" <span style=\"color:#64748b;\">({size_label})</span>"
-                "</li>"
+    image_items = [item for item in attachments if str(item.get("content_type") or "").startswith("image/")]
+    image_ids = {id(item) for item in image_items}
+    file_items = [item for item in attachments if id(item) not in image_ids]
+
+    images_html = ""
+    if image_items:
+        figures = []
+        for item in image_items:
+            filename = html.escape(str(item.get("filename") or "archivo"))
+            public_url = html.escape(str(item.get("public_url") or "#"))
+            figures.append(
+                f"<a href=\"{public_url}\" target=\"_blank\" rel=\"noopener\">"
+                f"<img src=\"{public_url}\" alt=\"{filename}\" "
+                "style=\"max-width:260px;max-height:260px;border-radius:8px;display:block;"
+                "margin:4px 8px 4px 0;\"></a>"
             )
+        images_html = (
+            "<div style=\"margin-top:14px;display:flex;flex-wrap:wrap;\">"
+            + "".join(figures)
+            + "</div>"
         )
 
-    return (
-        "<div style=\"margin-top:14px;padding:10px 12px;border:1px solid #dbeafe;"
-        "border-radius:10px;background:#f8fbff;\">"
-        "<div style=\"font-size:12px;font-weight:700;color:#1e40af;margin-bottom:6px;\">"
-        "Adjuntos enviados"
-        "</div>"
-        "<ul style=\"margin:0;padding-left:18px;\">"
-        + "".join(rows)
-        + "</ul></div>"
-    )
+    files_html = ""
+    if file_items:
+        rows: list[str] = []
+        for item in file_items:
+            filename = html.escape(str(item.get("filename") or "archivo"))
+            public_url = html.escape(str(item.get("public_url") or "#"))
+            size_label = _format_size_for_humans(int(item.get("size") or 0))
+            rows.append(
+                (
+                    "<li>"
+                    f"<a href=\"{public_url}\" target=\"_blank\" rel=\"noopener\">{filename}</a>"
+                    f" <span style=\"color:#64748b;\">({size_label})</span>"
+                    "</li>"
+                )
+            )
+        files_html = (
+            "<div style=\"margin-top:14px;padding:10px 12px;border:1px solid #dbeafe;"
+            "border-radius:10px;background:#f8fbff;\">"
+            "<div style=\"font-size:12px;font-weight:700;color:#1e40af;margin-bottom:6px;\">"
+            "Adjuntos enviados"
+            "</div>"
+            "<ul style=\"margin:0;padding-left:18px;\">"
+            + "".join(rows)
+            + "</ul></div>"
+        )
+
+    return images_html + files_html
 
 
 def _has_reception_sent(db: Session, ticket_id: int) -> bool:
@@ -2456,7 +2494,7 @@ def _ticketera_build_filtered_query(
     Siguiente respeten el filtro activo en vez de recorrer todos los tickets."""
     view = request.query_params.get("view")
 
-    allowed_scopes = {"all", "open", "pending", "resolved", "spam", "trash", "no_ticket"}
+    allowed_scopes = {"all", "open", "pending", "resolved", "spam", "trash", "no_ticket", "sent"}
     allowed_sources = {"all", "email", "whatsapp", "internal"}
     allowed_priorities = {"all", "unassigned", "low", "medium", "high", "urgent"}
 
@@ -2588,6 +2626,23 @@ def _ticketera_build_filtered_query(
                 and_(
                     Ticket.is_no_ticket == True,
                     Ticket.is_deleted == False,
+                )
+            )
+        if "sent" in scope_filters:
+            # "Enviados": correos mandados desde "Redactar" (compose), no
+            # respuestas dentro de un ticket ya existente — Message.from_compose
+            # distingue esto (ago 2026). Los id 1 y 2 ven los enviados de
+            # todos los agentes, el resto solo los propios.
+            sent_messages_query = db.query(Message.ticket_id).filter(
+                Message.channel == "email",
+                Message.from_compose == True,  # noqa: E712
+            )
+            if current_user.id not in (1, 2):
+                sent_messages_query = sent_messages_query.filter(Message.sender_id == current_user.id)
+            scope_clauses.append(
+                and_(
+                    Ticket.is_deleted == False,
+                    Ticket.id.in_(sent_messages_query.scalar_subquery()),
                 )
             )
         if scope_clauses:
@@ -2861,6 +2916,19 @@ def ticketera(
     first_page_url = build_ticketera_url(page_number=1) if safe_page > 1 else None
     last_page_url = build_ticketera_url(page_number=total_pages) if safe_page < total_pages else None
 
+    # Links del sidebar (Estado/Usuarios): antes eran hrefs fijos con un solo
+    # parametro (ej. "?scope=open"), asi que al hacer click se perdia
+    # cualquier otro filtro activo (ej. un usuario ya seleccionado) — se
+    # combinan ahora con el resto de filtros vigentes via build_ticketera_url,
+    # para que Estado y Usuarios se puedan combinar en vez de pisarse uno al
+    # otro — pedido explicito, ago 2026.
+    sidebar_scope_urls = {
+        value: build_ticketera_url(scope_values=[value])
+        for value in ("all", "open", "pending", "resolved", "spam", "trash")
+    }
+    sidebar_user_urls = {"all": build_ticketera_url(user_values=["all"]), "unassigned": build_ticketera_url(user_values=["unassigned"])}
+    sidebar_user_urls.update({str(u.id): build_ticketera_url(user_values=[str(u.id)]) for u in users})
+
     # Los conteos deben reflejar lo que este usuario puede ver realmente en
     # la lista (mismo filtro de visibilidad por buzon restringido que la
     # query de tickets), no el total global de la BBDD (bug reportado: el
@@ -2900,6 +2968,23 @@ def ticketera(
         "no_ticket": _apply_ticket_visibility_for_user(db.query(Ticket), current_user).filter(
             Ticket.is_no_ticket == True,
             Ticket.is_deleted == False,
+        ).count(),
+        "sent": _apply_ticket_visibility_for_user(db.query(Ticket), current_user).filter(
+            Ticket.is_deleted == False,
+            Ticket.id.in_(
+                (
+                    db.query(Message.ticket_id).filter(
+                        Message.channel == "email",
+                        Message.from_compose == True,  # noqa: E712
+                    )
+                    if current_user.id in (1, 2)
+                    else db.query(Message.ticket_id).filter(
+                        Message.channel == "email",
+                        Message.from_compose == True,  # noqa: E712
+                        Message.sender_id == current_user.id,
+                    )
+                ).scalar_subquery()
+            ),
         ).count(),
     }
 
@@ -2973,6 +3058,8 @@ def ticketera(
             "next_page_url": next_page_url,
             "first_page_url": first_page_url,
             "last_page_url": last_page_url,
+            "sidebar_scope_urls": sidebar_scope_urls,
+            "sidebar_user_urls": sidebar_user_urls,
         },
     )
 
@@ -7251,43 +7338,19 @@ def send_reception_notice(
     return RedirectResponse(url=f"/ticketera/tickets/{ticket_id}", status_code=303)
 
 
-def _extract_inline_images_for_compose(body: str) -> tuple[str, list[dict]]:
-    """Extrae data:image base64 del body y los convierte a CID in-memory.
-    Devuelve (html_con_cid, inline_images_bytes) para send_email_reply."""
-    if not body or "data:image/" not in body.lower():
-        return body, []
-
-    inline_bytes: list[dict] = []
-    count = 0
-
-    def _replacer(m: re.Match) -> str:
-        nonlocal count
-        prefix, quote, data_url = m.group(1), m.group(2), m.group(3)
-        parsed = re.match(r"^data:([^;]+);base64,(.+)$", data_url, re.IGNORECASE | re.DOTALL)
-        if not parsed:
-            return m.group(0)
-        mime = parsed.group(1).strip().lower()
-        if not mime.startswith("image/"):
-            return m.group(0)
-        try:
-            img_bytes = base64.b64decode(re.sub(r"\s+", "", parsed.group(2)), validate=False)
-        except Exception:
-            return m.group(0)
-        if not img_bytes:
-            return m.group(0)
-        img_bytes = optimize_image_bytes(img_bytes, content_type=mime)
-        count += 1
-        ext = mime.split("/")[-1].replace("jpeg", "jpg")[:8]
-        fname = f"compose_inline_{count}.{ext}"
-        cid = f"compose.inline.{uuid4().hex}@atc.local"
-        inline_bytes.append({"cid": cid, "bytes": img_bytes, "mime_type": mime, "filename": fname})
-        return f"{prefix}{quote}cid:{cid}{quote}"
-
-    result = _INLINE_DATA_IMAGE_RE.sub(_replacer, body)
-    return result, inline_bytes
-
-
 _VALID_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def _generate_outgoing_message_id() -> str:
+    """Message-ID propio para un correo saliente nuevo (no respuesta). Se
+    guarda en Message.external_id para que, si el destinatario responde, el
+    hilo se pueda encontrar via In-Reply-To/References (_resolve_ticket en
+    email_service.py) — mismo mecanismo que ya usa reply_ticket()."""
+    from_email = parseaddr(settings.SMTP_FROM or settings.SMTP_USER or "")[1].strip()
+    if "@" not in from_email:
+        from_email = parseaddr(settings.SMTP_USER or "")[1].strip()
+    message_domain = from_email.split("@", 1)[1] if "@" in from_email else "localhost"
+    return f"{uuid4()}@{message_domain}"
 
 def _save_compose_emails_to_db(db: Session, *address_fields: str, flush_only: bool = False) -> None:
     """Registra en Requester solo los emails válidos y recién enviados (To/CC/CCO).
@@ -7345,7 +7408,41 @@ async def ticketera_compose_send(
     if not body:
         return JSONResponse({"ok": False, "error": "El cuerpo del mensaje está vacío."}, status_code=400)
 
-    body, inline_images_bytes = _extract_inline_images_for_compose(body)
+    # Se registra como ticket "no_ticket" (mismo mecanismo que ya usa el
+    # boton "No es un ticket": no aparece en Todos/Abierto/Pendiente/Cerrado,
+    # solo se cuenta y se lista aparte) solo para dejar rastro del envio en
+    # "Enviados" — antes este flujo no guardaba nada en BBDD (aparte del
+    # Requester) y el correo quedaba imposible de rastrear despues de
+    # mandado — pedido explicito, ago 2026.
+    to_email = to.split(",")[0].strip().lower()
+    requester = db.query(Requester).filter(Requester.email == to_email).first()
+    if not requester:
+        requester = db.query(Requester).filter(Requester.name == to_email).first()
+    if not requester:
+        requester = Requester(name=to_email, email=to_email)
+        db.add(requester)
+        db.flush()
+
+    ticket = Ticket(
+        subject=subject,
+        requester_id=requester.id,
+        assigned_to_id=current_user.id if _is_visible_support_user(current_user) else None,
+        status="open",
+        source="email",
+        is_no_ticket=True,
+    )
+    db.add(ticket)
+    db.flush()
+
+    (
+        body_for_send,
+        body_for_db,
+        inline_images_for_email,
+        saved_inline_image_paths,
+    ) = _extract_inline_data_images(
+        ticket_id=ticket.id,
+        html_content=body,
+    )
 
     saved: list[dict] = []
     try:
@@ -7370,26 +7467,44 @@ async def ticketera_compose_send(
             saved.append({"path": str(dest), "filename": fname,
                           "content_type": content_type})
 
+        out_message_id = _generate_outgoing_message_id()
         await run_in_threadpool(
             send_email_reply,
             to=to,
             cc=cc or None,
             bcc=bcc or None,
             subject=subject,
-            body=body,
-            inline_images_bytes=inline_images_bytes or None,
+            body=body_for_send,
+            message_id=out_message_id,
+            inline_images=inline_images_for_email or None,
             attachments=saved or None,
         )
     except Exception as exc:
+        db.rollback()
         for item in saved:
             Path(item["path"]).unlink(missing_ok=True)
+        for path in saved_inline_image_paths:
+            path.unlink(missing_ok=True)
         err = re.sub(r"\s+", " ", str(exc).replace("\n", " ")).strip()[:220]
         return JSONResponse({"ok": False, "error": err}, status_code=500)
 
     for item in saved:
         Path(item["path"]).unlink(missing_ok=True)
-    _save_compose_emails_to_db(db, to, cc, bcc)
-    return JSONResponse({"ok": True})
+
+    db.add(Message(
+        ticket_id=ticket.id,
+        sender_type="agent",
+        sender_id=current_user.id,
+        channel="email",
+        content=body_for_db,
+        is_internal_note=False,
+        external_id=out_message_id,
+        from_compose=True,
+        created_at=chile_now(),
+    ))
+    _save_compose_emails_to_db(db, to, cc, bcc, flush_only=True)
+    db.commit()
+    return JSONResponse({"ok": True, "ticket_id": ticket.id, "ticket_url": f"/ticketera/tickets/{ticket.id}"})
 
 
 @router.post("/ticketera/compose/send-as-ticket")
@@ -7484,6 +7599,7 @@ async def ticketera_compose_send_as_ticket(
                           "content_type": content_type})
 
         # Enviar el correo
+        out_message_id = _generate_outgoing_message_id()
         await run_in_threadpool(
             send_email_reply,
             to=to,
@@ -7491,6 +7607,7 @@ async def ticketera_compose_send_as_ticket(
             bcc=bcc or None,
             subject=subject,
             body=body_for_send,
+            message_id=out_message_id,
             inline_images=inline_images_for_email or None,
             attachments=saved or None,
         )
@@ -7514,6 +7631,8 @@ async def ticketera_compose_send_as_ticket(
         channel="email",
         content=body_for_db,
         is_internal_note=False,
+        external_id=out_message_id,
+        from_compose=True,
         created_at=chile_now(),
     )
     db.add(msg)
@@ -7604,8 +7723,12 @@ def reply_ticket(
 
     ticket_source = (ticket.source or "").strip().lower()
 
-    if ticket_source != "email" and uploaded_count:
-        return _redirect_with_error("Los adjuntos solo estan disponibles para respuestas por correo.")
+    # Los adjuntos estaban restringidos a tickets por correo — para tickets
+    # internos (source="internal") no hay envio externo de por medio, asi
+    # que guardarlos es igual de seguro (mismo _save_email_attachments,
+    # solo almacena el archivo) — pedido explicito, ago 2026.
+    if ticket_source not in ("email", "internal") and uploaded_count:
+        return _redirect_with_error("Los adjuntos solo estan disponibles para respuestas por correo o notas internas.")
 
     to_recipients: list[str] = []
     cc_recipients: list[str] = []
@@ -7627,6 +7750,7 @@ def reply_ticket(
         except ValueError as exc:
             return _redirect_with_error(str(exc))
 
+    if ticket_source in ("email", "internal"):
         try:
             saved_attachments = _save_email_attachments(ticket_id=ticket_id, uploads=attachments)
         except ValueError as exc:
@@ -7634,7 +7758,7 @@ def reply_ticket(
         except Exception:
             return _redirect_with_error("No se pudieron procesar los adjuntos.")
 
-        if content:
+        if ticket_source in ("email", "internal") and content:
             attachments_total_bytes = sum(int(item.get("size") or 0) for item in saved_attachments)
             try:
                 (
@@ -7693,7 +7817,7 @@ def reply_ticket(
         message_domain = from_email.split("@", 1)[1] if "@" in from_email else "localhost"
         out_message_id_db = f"{uuid4()}@{message_domain}"
 
-    if ticket_source == "email" and saved_attachments:
+    if saved_attachments:
         attachments_html = _build_attachments_html(saved_attachments)
         if content_for_db:
             content_for_db = f"{content_for_db}\n\n{attachments_html}"
@@ -8909,8 +9033,34 @@ def _st_parse_puesto(value: object) -> int | None:
     return puesto if 1 <= puesto <= 29 else None
 
 
+def _st_parse_puesto_amplio(value: object) -> int | None:
+    """Igual que _st_parse_puesto pero sin tope en 29 — para 'puesto nuevo'
+    (numero_central_asignado >= 30, reservado hasta que ese puesto exista
+    fisicamente en Bitácora) — pedido explicito, ago 2026."""
+    match = re.search(r"\d+", str(value or ""))
+    if not match:
+        return None
+    puesto = int(match.group(0))
+    return puesto if puesto >= 1 else None
+
+
+def _st_validar_numero_central(value: object, requiere_nuevo: bool) -> int | None:
+    numero = _st_parse_puesto_amplio(value)
+    if numero is None:
+        return None
+    if requiere_nuevo:
+        return numero if numero >= 30 else None
+    return numero if 1 <= numero <= 29 else None
+
+
 def _st_pantallas_de_puesto(puesto: int) -> tuple[str, ...]:
     return _ST_PANTALLAS_4 if puesto <= 12 else _ST_PANTALLAS_6
+
+
+def _st_capacidad_puesto(puesto: int) -> int:
+    # Misma capacidad por pantalla que usa Bitacora en "Administrar Puestos"
+    # (routes/bitacora.py: api_bitacora_puestos) — es el mismo grid fisico.
+    return 25 if puesto <= 12 else 20
 
 
 def _st_normalizar_pantalla(value: object, puesto: int | None = None) -> str | None:
@@ -8994,9 +9144,12 @@ def _st_camaras_existentes_sucursal(db: Session, ods_row, exclude_odt: str = "")
             COALESCE(nombre_camara_monitoreo, camara_sin_monitoreo, nombre_servidor, '') AS camara,
             central,
             ubicacion_pantalla,
+            slot_index,
+            foto_url,
             COALESCE(odt_origen, '') AS odt_origen
         FROM sucursal_camaras_monitoreo
         WHERE sucursal_id = :sucursal_id
+          AND eliminado_en IS NULL
           AND COALESCE(TRIM(COALESCE(nombre_camara_monitoreo, camara_sin_monitoreo, nombre_servidor, '')), '') <> ''
           AND (
             :exclude_odt = ''
@@ -9015,17 +9168,32 @@ def _st_camaras_existentes_sucursal(db: Session, ods_row, exclude_odt: str = "")
             continue
         vistos.add(key)
         central = row.get("central")
+        slot_index = row.get("slot_index")
         camaras.append({
             "id": int(row.get("id")),
             "camara": nombre,
             "central": int(central) if central is not None else None,
             "pantalla": str(row.get("ubicacion_pantalla") or "").strip(),
+            "slotIndex": int(slot_index) if slot_index is not None else None,
+            "fotoUrl": str(row.get("foto_url") or "").strip() or None,
             "odtOrigen": str(row.get("odt_origen") or "").strip(),
         })
     return {"sucursal_id": sucursal_id, "sucursal": nombre_sucursal, "camaras": camaras}
 
 
-def _st_sync_camaras_sucursal(db: Session, codigo: str, reemplazos: list[int] | None = None) -> dict[str, object]:
+def _st_sync_camaras_sucursal(
+    db: Session,
+    codigo: str,
+    reemplazos: list[int] | None = None,
+    ubicaciones: dict[str, dict] | None = None,
+    fotos: dict[str, str] | None = None,
+) -> dict[str, object]:
+    """`ubicaciones` (opcional): {nombre_camara: {"pantalla": str, "slotIndex": int}}
+    — casillero exacto elegido en el picker de 'Ubicar cámaras' (mismo grid
+    que Administrar Puestos en Bitácora). Si una cámara no viene ahí, cae al
+    valor unico legado sp.pantalla_asignada (compatibilidad hacia atras),
+    sin casillero fijo. `fotos` (opcional): {nombre_camara: url_drive} —
+    pedido explicito, ago 2026."""
     _ensure_sucursal_camaras_sync_campos(db)
     row = db.execute(text("""
         SELECT TOP 1
@@ -9046,17 +9214,35 @@ def _st_sync_camaras_sucursal(db: Session, codigo: str, reemplazos: list[int] | 
     if not row:
         return {"synced": False, "reason": "ODS no encontrada"}
 
+    # Esta función borra y re-crea las filas del ODT cada vez que se llama
+    # (incluso solo por cambiar N° de central) — se rescatan las fotos ya
+    # subidas antes de borrar, para no perderlas en un resync sin `fotos`.
+    fotos_previas = {
+        str(r["nombre_camara_monitoreo"] or "").strip(): r["foto_url"]
+        for r in db.execute(text("""
+            SELECT nombre_camara_monitoreo, foto_url
+            FROM sucursal_camaras_monitoreo
+            WHERE LOWER(TRIM(COALESCE(odt_origen, ''))) = LOWER(TRIM(:c))
+              AND foto_url IS NOT NULL
+        """), {"c": codigo}).mappings().all()
+        if r["nombre_camara_monitoreo"]
+    }
+
     db.execute(
         text("DELETE FROM sucursal_camaras_monitoreo WHERE LOWER(TRIM(COALESCE(odt_origen, ''))) = LOWER(TRIM(:c))"),
         {"c": codigo},
     )
 
-    puesto = _st_parse_puesto(row.get("numero_central_asignado"))
-    pantalla = _st_normalizar_pantalla(row.get("pantalla_asignada"), puesto)
+    # Puesto amplio (sin tope 29): un "puesto nuevo" (>=30) no tiene grid
+    # fisico todavia en Bitácora, pero la camara igual se guarda en SQL
+    # (sin pantalla/casillero) para no perder el registro — pedido
+    # explicito, ago 2026.
+    puesto = _st_parse_puesto_amplio(row.get("numero_central_asignado"))
+    pantalla_legada = _st_normalizar_pantalla(row.get("pantalla_asignada"), puesto)
     camaras = [str(v or "").strip() for v in _st_parse_json_list(row.get("camaras_registradas"))]
     camaras = [camara for camara in camaras if camara]
-    if not puesto or not pantalla or not camaras:
-        return {"synced": False, "reason": "Faltan puesto, pantalla o cámaras"}
+    if not puesto or not camaras:
+        return {"synced": False, "reason": "Faltan puesto o cámaras"}
 
     sucursal_id, nombre_sucursal = _st_find_sucursal_para_ods(db, row)
     if not sucursal_id:
@@ -9070,8 +9256,21 @@ def _st_sync_camaras_sucursal(db: Session, codigo: str, reemplazos: list[int] | 
               AND sucursal_id = :sucursal_id
         """), {"id": reemplazo_id, "sucursal_id": sucursal_id})
 
+    ubicaciones = ubicaciones or {}
+    fotos = fotos or {}
+    capacidad = _st_capacidad_puesto(puesto)
     total = len(camaras)
     for camara in camaras:
+        ubicacion = ubicaciones.get(camara) or {}
+        pantalla_camara = _st_normalizar_pantalla(ubicacion.get("pantalla"), puesto) or pantalla_legada
+        slot_index = ubicacion.get("slotIndex")
+        try:
+            slot_index = int(slot_index)
+        except (TypeError, ValueError):
+            slot_index = None
+        if slot_index is not None and not (0 <= slot_index < capacidad):
+            slot_index = None
+        foto_url = str(fotos.get(camara) or fotos_previas.get(camara) or "").strip() or None
         db.execute(text("""
             INSERT INTO sucursal_camaras_monitoreo (
                 sucursal_id,
@@ -9084,6 +9283,8 @@ def _st_sync_camaras_sucursal(db: Session, codigo: str, reemplazos: list[int] | 
                 cantidad_equipos,
                 camara_sin_monitoreo,
                 ubicacion_pantalla,
+                slot_index,
+                foto_url,
                 odt_origen
             )
             VALUES (
@@ -9097,6 +9298,8 @@ def _st_sync_camaras_sucursal(db: Session, codigo: str, reemplazos: list[int] | 
                 1,
                 NULL,
                 :ubicacion_pantalla,
+                :slot_index,
+                :foto_url,
                 :odt_origen
             )
         """), {
@@ -9106,7 +9309,9 @@ def _st_sync_camaras_sucursal(db: Session, codigo: str, reemplazos: list[int] | 
             "central": puesto,
             "cantidad_camaras": total,
             "nombre_camara_monitoreo": camara,
-            "ubicacion_pantalla": pantalla,
+            "ubicacion_pantalla": pantalla_camara,
+            "slot_index": slot_index,
+            "foto_url": foto_url,
             "odt_origen": codigo,
         })
     return {"synced": True, "camaras": total, "sucursal_id": sucursal_id}
@@ -9381,6 +9586,61 @@ def st_ods_camaras(
         return []
 
 
+@router.get("/api/soporte-tecnico/puesto/{puesto}/pantallas")
+def st_puesto_pantallas(
+    puesto: int,
+    db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    """Grilla de pantallas de un puesto (mismo layout fisico que 'Administrar
+    Puestos' en Bitácora, solo lectura, sin cruce de incidencias) — para
+    poder elegir el casillero exacto donde va cada cámara nueva desde
+    'Tabla Soporte ODS' — pedido explicito, ago 2026."""
+    _ = current_user
+    if puesto < 1 or puesto > 29:
+        raise HTTPException(status_code=400, detail="Puesto inválido.")
+
+    pantallas_nombres = _st_pantallas_de_puesto(puesto)
+    capacidad = _st_capacidad_puesto(puesto)
+
+    rows = db.execute(text("""
+        SELECT m.id, m.ubicacion_pantalla, m.nombre_camara_monitoreo, m.slot_index,
+               m.foto_url, s.nombre_sucursal, m.odt_origen
+        FROM sucursal_camaras_monitoreo m
+        LEFT JOIN bbdd_sucursales s ON s.id = m.sucursal_id
+        WHERE m.central = :puesto
+          AND m.eliminado_en IS NULL
+          AND m.nombre_camara_monitoreo IS NOT NULL
+        ORDER BY m.slot_index
+    """), {"puesto": puesto}).mappings().all()
+
+    por_pantalla: dict[str, list[dict]] = {nombre: [] for nombre in pantallas_nombres}
+    for row in rows:
+        etiqueta = _st_normalizar_pantalla(row["ubicacion_pantalla"], puesto)
+        if etiqueta not in por_pantalla:
+            continue
+        por_pantalla[etiqueta].append({
+            "id": row["id"],
+            "camara": row["nombre_camara_monitoreo"] or "",
+            "empresa": row["nombre_sucursal"] or "",
+            "odtOrigen": row["odt_origen"] or "",
+            "slotIndex": row["slot_index"],
+            "fotoUrl": row["foto_url"] or None,
+        })
+
+    pantallas = []
+    for nombre in pantallas_nombres:
+        ocupados: dict[int, dict] = {}
+        for item in por_pantalla.get(nombre, []):
+            si = item.get("slotIndex")
+            if isinstance(si, int) and 0 <= si < capacidad and si not in ocupados:
+                ocupados[si] = item
+        slots = [ocupados.get(i) for i in range(capacidad)]
+        pantallas.append({"nombre": nombre, "capacidad": capacidad, "slots": slots})
+
+    return {"puesto": puesto, "pantallas": pantallas}
+
+
 @router.get("/api/soporte-tecnico/ods/{codigo}/vistas-ejecutivo")
 def st_ods_vistas_ejecutivo(
     codigo: str,
@@ -9517,8 +9777,17 @@ def st_ods_actualizar_valor(
         raise HTTPException(status_code=400, detail="Parametros invalidos")
     if campo in {"numero_central_asignado", "pantalla_asignada"} and valor and not _st_ods_contiene_televigilancia(db, codigo):
         raise HTTPException(status_code=400, detail="N° de central y pantalla solo aplican si el tipo de servicio contiene Televigilancia.")
-    if campo == "numero_central_asignado" and valor and not _st_parse_puesto(valor):
-        raise HTTPException(status_code=400, detail="El N° de central debe estar entre 1 y 29.")
+    if campo == "numero_central_asignado" and valor:
+        requiere_nuevo_actual = db.execute(text("""
+            SELECT TOP 1 requiere_puesto_nuevo
+            FROM venta_soporte_tecnico
+            WHERE LOWER(TRIM(odt)) = LOWER(TRIM(:c))
+        """), {"c": codigo}).scalar_one_or_none()
+        requiere_nuevo = str(requiere_nuevo_actual or "").strip().lower() == "si"
+        numero_central = _st_validar_numero_central(valor, requiere_nuevo)
+        if numero_central is None:
+            detalle = "El N° de central debe ser 30 o mayor (puesto nuevo)." if requiere_nuevo else "El N° de central debe estar entre 1 y 29."
+            raise HTTPException(status_code=400, detail=detalle)
     if campo == "pantalla_asignada" and valor:
         central_actual = db.execute(text("""
             SELECT TOP 1 numero_central_asignado
@@ -9575,12 +9844,11 @@ def st_ods_actualizar_valor(
         """), {"c": codigo}).mappings().first()
         requiere_puesto = str(soporte_vals.get("requiere_puesto_nuevo") or "").strip() if soporte_vals else ""
         numero_puesto = str(soporte_vals.get("numero_central_asignado") or "").strip() if soporte_vals else ""
-        requiere_norm = unicodedata.normalize("NFD", requiere_puesto).encode("ascii", "ignore").decode("ascii").strip().lower()
-        debe_notificar = (
-            requiere_norm.startswith("no")
-            or (requiere_norm.startswith("si") and bool(numero_puesto))
-            or (campo == "numero_central_asignado" and bool(numero_puesto))
-        )
+        # Solo notificar cuando AMBOS campos ya estan rellenos (pedido
+        # explicito, ago 2026): antes se notificaba apenas se marcaba
+        # "No" en requiere_puesto_nuevo, sin importar si numero_puesto
+        # seguia vacio — el correo salia con "Numero de Puesto" en blanco.
+        debe_notificar = bool(requiere_puesto) and bool(numero_puesto)
         if debe_notificar:
             from ATC.app.services.venta_trace_email_service import notify_puesto_soporte
             email_result = notify_puesto_soporte(db, codigo, requiere_puesto, numero_puesto)
@@ -9598,6 +9866,8 @@ def st_ods_guardar_camaras(
     codigo = str(payload.get("odt") or payload.get("codigo") or "").strip()
     ids = payload.get("ids") or []
     reemplazos_raw = payload.get("reemplazos") or []
+    ubicaciones_raw = payload.get("ubicaciones") or {}
+    ubicaciones = ubicaciones_raw if isinstance(ubicaciones_raw, dict) else {}
     token = str(payload.get("token") or "").strip()
     if not codigo:
         raise HTTPException(status_code=400, detail="Codigo ODT requerido")
@@ -9658,13 +9928,66 @@ def st_ods_guardar_camaras(
         db.execute(text(
             "INSERT INTO venta_soporte_tecnico (odt, camaras_registradas) VALUES (:odt, :v)"
         ), {"odt": codigo, "v": ids_json})
-    sync_result = _st_sync_camaras_sucursal(db, codigo, reemplazos_validos)
+
+    # Foto individual por cámara (opcional): {nombre_camara: {"data": base64,
+    # "filename": str, "mimeType": str}} — se sube a Drive (subcarpeta por
+    # sucursal) antes del sync para que la fila nueva ya nazca con foto_url.
+    # Pedido explicito, ago 2026: nada de esto se guarda en SQL si Drive
+    # falla (solo la URL final, si se logra subir) — guardar bytes crudos en
+    # SQL fue lo que infló el log de transacciones antes.
+    fotos_raw = payload.get("fotos") or {}
+    fotos_urls: dict[str, str] = {}
+    if isinstance(fotos_raw, dict) and fotos_raw:
+        image_payloads = []
+        for nombre_camara, foto in fotos_raw.items():
+            if not isinstance(foto, dict):
+                continue
+            data_b64 = str(foto.get("data") or "")
+            if "," in data_b64:
+                data_b64 = data_b64.split(",", 1)[1]
+            if not data_b64:
+                continue
+            try:
+                foto_bytes = base64.b64decode(data_b64, validate=False)
+            except (ValueError, binascii.Error):
+                continue
+            if not foto_bytes:
+                continue
+            image_payloads.append({
+                "camara": nombre_camara,
+                "bytes": foto_bytes,
+                "filename": str(foto.get("filename") or f"{nombre_camara}.jpg"),
+                "mime_type": str(foto.get("mimeType") or "image/jpeg"),
+            })
+        if image_payloads:
+            ods_row = db.execute(text("""
+                SELECT TOP 1 rut_cliente, nombre_sucursal, direccion_sucursal, razon_social
+                FROM venta_comercial
+                WHERE LOWER(TRIM(codigo)) = LOWER(TRIM(:c))
+                ORDER BY id DESC
+            """), {"c": codigo}).mappings().first()
+            sucursal_id_foto, nombre_sucursal_foto = (
+                _st_find_sucursal_para_ods(db, ods_row) if ods_row else (None, "")
+            )
+            if sucursal_id_foto:
+                try:
+                    resultado_fotos = _upload_camaras_monitoreo_fotos(
+                        sucursal_id=sucursal_id_foto,
+                        nombre_sucursal=nombre_sucursal_foto,
+                        image_payloads=image_payloads,
+                    )
+                    fotos_urls = resultado_fotos.get("urls") or {}
+                except Exception as exc:
+                    _log.warning("subir foto camara sucursal %s: %s", sucursal_id_foto, exc)
+
+    sync_result = _st_sync_camaras_sucursal(db, codigo, reemplazos_validos, ubicaciones, fotos_urls)
     db.commit()
     return {
         "ok": True,
         "mensaje": f"{len([v for v in merged if v])} camaras guardadas",
         "ids": merged,
         "sync": sync_result,
+        "fotosSubidas": len(fotos_urls),
     }
 
 

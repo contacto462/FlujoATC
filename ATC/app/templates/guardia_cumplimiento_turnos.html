@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png?v=2">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png?v=2">
+<link rel="shortcut icon" href="/favicon.ico?v=2">
+
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Cumplimiento de Turnos — {{ month_name }} {{ year }}</title>
+<link rel="stylesheet" href="/static/base.css">
+<style>
+:root{
+  --bg:#f7f8fa;
+  --surface:#fff;
+  --border:#e5e7eb;
+  --text:#111827;
+  --text-soft:#4b5563;
+  --muted:#6b7280;
+  --header-bg-from:#0b1424;
+  --header-bg-to:#111c2f;
+  --shadow-sm:0 1px 2px rgba(15,23,42,.04);
+  --shadow-md:0 1px 3px rgba(15,23,42,.06),0 1px 2px rgba(15,23,42,.04);
+  --ok-bg:#eaf4ec;   --ok-border:#a3c9a8; --ok-text:#1e4430;
+  --mis-bg:#f4e8e8;  --mis-border:#c9a3a3; --mis-text:#7a2020;
+  --warn-bg:#fdf6ed; --warn-border:#d97706; --warn-text:#92400e;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{font-family:"Inter",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+body{background:var(--bg);color:var(--text);font-size:13px;font-weight:500;display:flex;flex-direction:column;min-height:100vh}
+
+.hero{
+  flex-shrink:0;
+  display:flex;align-items:center;flex-wrap:wrap;gap:20px;
+  padding:18px 28px;
+  background:linear-gradient(180deg,var(--header-bg-from) 0%,var(--header-bg-to) 100%);
+  border-bottom:1px solid rgba(255,255,255,.06);
+  box-shadow:0 2px 8px rgba(0,0,0,.28);
+}
+.hero-logo img{height:54px;width:auto;display:block;object-fit:contain;filter:drop-shadow(0 2px 6px rgba(0,0,0,.3))}
+.hero-copy{flex:1;min-width:0}
+.hero-copy h1{font-size:19px;font-weight:700;letter-spacing:-.02em;color:#fff;line-height:1.2}
+.hero-copy p{margin-top:4px;font-size:12.5px;color:rgba(255,255,255,.6);line-height:1.4}
+.hero-actions{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end;row-gap:8px}
+.btn-hero{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 14px;border-radius:8px;font-size:12.5px;font-weight:600;
+  text-decoration:none;cursor:pointer;
+  border:1px solid rgba(255,255,255,.16);
+  background:rgba(255,255,255,.07);color:rgba(255,255,255,.9);
+  transition:background .15s,border-color .15s;white-space:nowrap;
+}
+.btn-hero:hover{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.24)}
+.month-nav{display:flex;align-items:center;gap:6px}
+.month-label{font-size:14px;font-weight:700;color:#fff;min-width:140px;text-align:center}
+
+.summary-bar{
+  flex-shrink:0;
+  display:flex;align-items:center;gap:22px;flex-wrap:wrap;
+  padding:14px 28px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  box-shadow:var(--shadow-sm);
+}
+.summary-item{display:flex;flex-direction:column;gap:2px}
+.summary-item .num{font-size:20px;font-weight:800;color:var(--text);letter-spacing:-.02em}
+.summary-item .lbl{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.summary-item.ok .num{color:#1e4430}
+.summary-item.mis .num{color:#7a2020}
+
+.content{flex:1;min-height:0;padding:14px 20px 20px;display:flex;flex-direction:column}
+.table-card{
+  flex:1;min-height:0;display:flex;flex-direction:column;
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  overflow:hidden;box-shadow:var(--shadow-md);
+}
+.table-scroll{flex:1;min-height:0;overflow:auto;max-width:100%}
+table{width:100%;border-collapse:collapse}
+thead th{
+  text-align:left;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.02em;
+  color:var(--muted);padding:7px 4px;background:#f8fafc;border-bottom:1px solid var(--border);
+  white-space:nowrap;position:sticky;z-index:2;box-sizing:border-box;
+}
+thead th.num-col{text-align:center}
+thead tr.dow-row th{top:0;height:21px;padding:4px 4px 3px;font-size:8px;font-weight:700;color:#9ca3af;border-bottom:none;z-index:3}
+thead tr.day-row th{top:21px;font-size:11px;z-index:2}
+thead th.dependencia-col-h{position:sticky;left:0;padding-left:12px;white-space:nowrap}
+thead th.real-col-h,thead th.estipulado-col-h,thead th.diferencia-col-h{position:sticky;text-align:center}
+thead th.diferencia-col-h{right:0}
+thead th.estipulado-col-h{right:56px}
+thead th.real-col-h{right:112px}
+thead th.day-row-placeholder{background:#f8fafc}
+thead tr.dow-row th.dependencia-col-h,
+thead tr.dow-row th.real-col-h,
+thead tr.dow-row th.estipulado-col-h,
+thead tr.dow-row th.diferencia-col-h{
+  font-size:9.5px;font-weight:800;color:var(--muted);
+}
+tbody td,tfoot td{padding:9px 4px;border-bottom:1px solid var(--border);font-size:12.5px;color:var(--text)}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:#fafbfc}
+td.num-col{text-align:center;font-weight:700;font-variant-numeric:tabular-nums;min-width:30px;font-size:11.5px}
+td.dependencia-col{font-weight:600;position:sticky;left:0;z-index:1;background:var(--surface);padding-left:12px;white-space:nowrap;font-size:13.5px}
+tbody tr:hover td.dependencia-col{background:#fafbfc}
+.sin-cruce-note{display:block;font-size:9px;font-weight:500;color:var(--muted);margin-top:2px}
+.dia-cell{color:var(--text-soft)}
+.dia-cell.ok{background:var(--ok-bg);color:var(--ok-text)}
+.dia-cell.bajo{background:var(--mis-bg);color:var(--mis-text)}
+.dia-cell.futuro{background:var(--warn-bg);color:var(--warn-text)}
+td.real-col,td.estipulado-col,td.diferencia-col{
+  position:sticky;z-index:1;background:var(--surface);
+  text-align:center;min-width:56px;font-weight:800;font-size:14px;
+}
+td.diferencia-col{right:0;padding-right:12px}
+td.estipulado-col{right:56px}
+td.real-col{right:112px}
+tbody tr:hover td.real-col,tbody tr:hover td.estipulado-col,tbody tr:hover td.diferencia-col{background:#fafbfc}
+.diferencia.zero{color:var(--muted)}
+.diferencia.neg{color:var(--mis-text)}
+.diferencia.pos{color:var(--warn-text)}
+.footer-spacer td{padding:12px 0;border:none;background:var(--bg)}
+tfoot td{background:#eef1f6;font-weight:800;font-size:13.5px;padding:13px 4px;border-top:3px solid #0b1424;border-bottom:none}
+tfoot td.dependencia-col{background:#eef1f6;font-size:14px}
+tfoot td.real-col,tfoot td.estipulado-col,tfoot td.diferencia-col{background:#eef1f6;font-size:15px}
+.empty-state{padding:40px 20px;text-align:center;color:var(--muted);font-size:13px}
+
+.grupo-tabs{
+  flex-shrink:0;
+  display:flex;align-items:center;gap:0;
+  background:var(--header-bg-from);
+  border-top:1px solid rgba(255,255,255,.1);
+  padding:0 20px;height:42px;
+}
+.grupo-tab{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:0 16px;height:100%;
+  font-size:12.5px;font-weight:700;color:rgba(255,255,255,.55);
+  text-decoration:none;border-bottom:3px solid transparent;
+  transition:color .15s,border-color .15s;white-space:nowrap;
+}
+.grupo-tab:hover{color:rgba(255,255,255,.85)}
+.grupo-tab.active{color:#fff;border-bottom-color:#ff6e23}
+.grupo-tab .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dot-quintero{background:#3d73a8}
+.dot-concon{background:#20a6b8}
+.dot-privados{background:#a8543d}
+
+@media (max-width:760px){
+  .hero{padding:16px}
+  .content{padding:16px}
+  .summary-bar{padding:12px 16px;gap:14px}
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-logo">
+    <img src="/shared-static/img/logo-atc.png" alt="ATC">
+  </div>
+  <div class="hero-copy">
+    <h1>Cumplimiento de Turnos — {{ grupo|title }}</h1>
+    <p>Turnos estipulados vs turnos reales registrados — {{ month_name }} {{ year }}</p>
+  </div>
+  <div class="hero-actions">
+    <a class="btn-hero" href="/gerencia?token={{ token|default('') }}">Volver</a>
+    <div class="month-nav">
+      <a class="btn-hero" href="?year={{ prev_y }}&month={{ prev_m }}&grupo={{ grupo }}">&#8249;</a>
+      <span class="month-label">{{ month_name }} {{ year }}</span>
+      <a class="btn-hero" href="?year={{ next_y }}&month={{ next_m }}&grupo={{ grupo }}">&#8250;</a>
+    </div>
+  </div>
+</header>
+
+<div class="summary-bar">
+  <div class="summary-item">
+    <span class="num">{{ total_dependencias }}</span>
+    <span class="lbl">Sucursales</span>
+  </div>
+  <div class="summary-item {% if total_cumplidas == total_dependencias %}ok{% else %}mis{% endif %}">
+    <span class="num">{{ total_cumplidas }}/{{ total_dependencias }}</span>
+    <span class="lbl">Cumplen de manera exacta</span>
+  </div>
+  <div class="summary-item">
+    <span class="num">{{ total_estipulado }}</span>
+    <span class="lbl">Turnos estipulados ({{ dias_en_mes }} días)</span>
+  </div>
+  <div class="summary-item {% if total_real == total_estipulado %}ok{% else %}mis{% endif %}">
+    <span class="num">{{ total_real }}</span>
+    <span class="lbl">Turnos reales</span>
+  </div>
+</div>
+
+<div class="content">
+  <div class="table-card">
+    {% if filas %}
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr class="dow-row">
+          <th class="dependencia-col-h">Sucursal</th>
+          {% for d in days_info %}
+          <th class="num-col dow-only">{{ d.dow }}</th>
+          {% endfor %}
+          <th class="real-col-h">Real</th>
+          <th class="estipulado-col-h">Estipulado</th>
+          <th class="diferencia-col-h">Diferencia</th>
+        </tr>
+        <tr class="day-row">
+          <th class="dependencia-col-h day-row-placeholder"></th>
+          {% for d in days_info %}
+          <th class="num-col">{{ d.day }}</th>
+          {% endfor %}
+          <th class="real-col-h day-row-placeholder"></th>
+          <th class="estipulado-col-h day-row-placeholder"></th>
+          <th class="diferencia-col-h day-row-placeholder"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for fila in filas %}
+        <tr>
+          <td class="dependencia-col">
+            {{ fila.dependencia }}
+            {% if fila.sin_cruce %}<span class="sin-cruce-note">Sin sucursal cruzada</span>{% endif %}
+          </td>
+          {% for dia in fila.dias %}
+          <td class="num-col dia-cell {{ dia.estado }}" title="Día {{ dia.day }}">{{ dia.real }}/{{ dia.estipulado }}</td>
+          {% endfor %}
+          <td class="real-col">{{ fila.real }}</td>
+          <td class="estipulado-col">{{ fila.estipulado }}</td>
+          <td class="diferencia-col">
+            <span class="diferencia {% if fila.diferencia == 0 %}zero{% elif fila.diferencia < 0 %}neg{% else %}pos{% endif %}">
+              {% if fila.diferencia > 0 %}+{% endif %}{{ fila.diferencia }}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr class="footer-spacer">
+          <td colspan="{{ 4 + dias_en_mes }}"></td>
+        </tr>
+        <tr>
+          <td class="dependencia-col">Total</td>
+          {% for dia in dias_totales %}
+          <td class="num-col dia-cell {{ dia.estado }}" title="Día {{ dia.day }}">{{ dia.real }}/{{ dia.estipulado }}</td>
+          {% endfor %}
+          <td class="real-col">{{ total_real }}</td>
+          <td class="estipulado-col">{{ total_estipulado }}</td>
+          <td class="diferencia-col">
+            <span class="diferencia {% if total_diferencia == 0 %}zero{% elif total_diferencia < 0 %}neg{% else %}pos{% endif %}">
+              {% if total_diferencia > 0 %}+{% endif %}{{ total_diferencia }}
+            </span>
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+    </div>
+    {% else %}
+    <div class="empty-state">No hay cuotas estipuladas cargadas para "{{ grupo }}" todavía.</div>
+    {% endif %}
+  </div>
+</div>
+
+<nav class="grupo-tabs">
+  <a class="grupo-tab {% if grupo == 'quintero' %}active{% endif %}" href="?year={{ year }}&month={{ month }}&grupo=quintero">
+    <span class="dot dot-quintero"></span>Quintero
+  </a>
+  <a class="grupo-tab {% if grupo == 'concon' %}active{% endif %}" href="?year={{ year }}&month={{ month }}&grupo=concon">
+    <span class="dot dot-concon"></span>Concón
+  </a>
+  <a class="grupo-tab {% if grupo == 'privados' %}active{% endif %}" href="?year={{ year }}&month={{ month }}&grupo=privados">
+    <span class="dot dot-privados"></span>Privados
+  </a>
+</nav>
+
+</body>
+</html>

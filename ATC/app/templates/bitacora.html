@@ -242,90 +242,36 @@
 
     .page {
       height: 100vh;
-      display: grid;
-      grid-template-columns: 260px minmax(0, 1fr);
+      display: flex;
+      flex-direction: column;
       background: var(--bg);
-      transition: grid-template-columns .22s ease;
-    }
-
-    body.sidebar-collapsed .page {
-      grid-template-columns: 0px minmax(0, 1fr);
     }
 
     .sidebar {
-      background: linear-gradient(180deg, var(--sidebar-top) 0%, var(--sidebar-bottom) 100%);
+      background: linear-gradient(135deg, var(--sidebar-top) 0%, var(--sidebar-bottom) 100%);
       color: var(--sidebar-text);
-      border-right: 1px solid rgba(255,255,255,.06);
-      padding: 20px 0 18px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      padding: 10px 20px;
       display: flex;
-      flex-direction: column;
-      min-height: 0;
-      box-shadow: inset -1px 0 0 rgba(255,255,255,.03);
-      transition: padding .22s ease, border-color .22s ease;
-    }
-
-    body.sidebar-collapsed .sidebar {
-      padding: 0;
-      border-right-color: transparent;
-      overflow: hidden;
-    }
-
-    body.sidebar-collapsed .sidebar > * {
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .sidebar-rail-toggle {
-      position: fixed;
-      top: 50%;
-      left: 244px;
-      transform: translateY(-50%);
-      width: 32px;
-      height: 52px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.14);
-      background: var(--sidebar-top);
-      color: #fff;
-      display: flex;
+      flex-direction: row;
       align-items: center;
-      justify-content: center;
-      z-index: 1400;
-      cursor: pointer;
-      box-shadow: 0 16px 30px rgba(2,6,23,.24);
-      transition: left .22s ease, background .18s ease, border-color .18s ease, transform .18s ease;
-    }
-
-    .sidebar-rail-toggle:hover {
-      background: var(--sidebar-bottom);
-    }
-
-    .sidebar-rail-toggle svg {
-      width: 18px;
-      height: 18px;
-      display: block;
-    }
-    /* Caja del mismo azul del sidebar y flechas blancas, sin variar por tema —
-       el color real lo define currentColor, heredado del
-       .sidebar-rail-toggle de más arriba. */
-    .sidebar-rail-toggle svg polyline {
-      stroke: currentColor !important;
-    }
-
-    body.sidebar-collapsed .sidebar-rail-toggle {
-      left: 8px;
+      flex-wrap: wrap;
+      gap: 8px 20px;
+      flex: none;
+      box-shadow: inset 0 -1px 0 rgba(255,255,255,.03);
     }
 
     .brand {
-      padding: 4px 18px 18px;
-      border-bottom: 1px solid rgba(255,255,255,.08);
-      margin-bottom: 18px;
+      padding: 0;
+      border-bottom: 0;
+      margin: 0;
       display: flex;
-      flex-direction: column;
       align-items: center;
+      flex: none;
     }
 
     .brand img {
-      width: 188px;
+      width: 120px;
       max-width: 100%;
       height: auto;
       display: block;
@@ -333,35 +279,40 @@
     }
 
     .nav {
-      display: grid;
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
       gap: 2px;
       min-height: 0;
       overflow: visible;
-      width: 100%;
+      flex: 1;
+      min-width: 0;
       position: relative;
       z-index: 30;
     }
 
     .nav-item {
       position: relative;
-      width: 100%;
+      width: auto;
     }
 
     .nav-btn {
       appearance: none;
-      width: 100%;
+      width: auto;
       border: 1px solid transparent;
       background: transparent;
       color: var(--sidebar-text);
-      border-radius: 0;
-      padding: 13px 18px;
-      text-align: left;
+      border-radius: 8px;
+      padding: 10px 14px;
+      text-align: center;
       font: inherit;
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
       transition: background .16s ease, border-color .16s ease, transform .16s ease, color .16s ease, box-shadow .16s ease;
       transform: translateY(0);
+      white-space: nowrap;
     }
 
     .nav-badge {
@@ -1443,6 +1394,93 @@
       padding: 8px 10px; font-size: 13px; font-family: inherit;
       color: var(--text); background: #fff;
     }
+
+    /* ── Selector de rango de fechas unificado (reemplaza los pares
+       Desde/Hasta sueltos: Información Puestos, Bitácora Empresa,
+       Buscar por Empresa). El input[type=date] original queda oculto
+       detrás, sigue siendo la fuente de verdad que lee el resto del
+       código (icDesde.value, beDesde.value, etc.) ── */
+    .rango-fechas { position: relative; display: inline-flex; }
+    .rango-fechas-trigger {
+      display: inline-flex; align-items: center; gap: 8px;
+      border: 1px solid var(--border); border-radius: 8px;
+      background: #fff; color: var(--text);
+      padding: 9px 12px; font: inherit; font-size: 13px;
+      cursor: pointer; min-width: 195px; text-align: left;
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    .rango-fechas-trigger:hover { border-color: var(--border-strong); }
+    .rango-fechas-trigger.is-open,
+    .rango-fechas-trigger:focus-visible {
+      outline: none; border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(244,166,114,.18);
+    }
+    .rango-fechas-trigger svg { flex-shrink: 0; width: 15px; height: 15px; color: var(--text-muted); }
+    .rango-fechas-trigger .rango-fechas-texto { flex: 1; color: var(--text); white-space: nowrap; }
+    .rango-fechas-trigger .rango-fechas-texto.is-placeholder { color: var(--text-faint); }
+
+    .rango-fechas-panel {
+      position: fixed;
+      z-index: 900;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 12px 32px rgba(15,23,42,.18);
+      padding: 16px;
+      display: none;
+    }
+    .rango-fechas-panel.is-open { display: block; }
+    .rango-fechas-meses { display: flex; gap: 22px; }
+    .rango-fechas-mes { width: 232px; }
+    .rango-fechas-mes-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .rango-fechas-mes-titulo { font-size: 13px; font-weight: 700; color: var(--text); }
+    .rango-fechas-nav {
+      border: none; background: transparent; cursor: pointer;
+      width: 26px; height: 26px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-muted); font-size: 16px; line-height: 1; padding: 0;
+    }
+    .rango-fechas-nav:hover { background: var(--surface-hover); color: var(--text); }
+    .rango-fechas-nav.is-invisible { visibility: hidden; }
+    .rango-fechas-grid {
+      display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
+    }
+    .rango-fechas-diasemana {
+      font-size: 10px; font-weight: 700; color: var(--text-faint);
+      text-align: center; text-transform: uppercase; padding-bottom: 4px;
+    }
+    .rango-fechas-dia {
+      position: relative; border: none; background: transparent; cursor: pointer;
+      font: inherit; font-size: 12.5px; color: var(--text);
+      height: 30px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .rango-fechas-dia:hover:not(:disabled) { background: var(--surface-hover); }
+    .rango-fechas-dia.is-fuera-de-mes { color: var(--text-faint); }
+    .rango-fechas-dia.is-hoy { box-shadow: inset 0 0 0 1px var(--border-strong); }
+    .rango-fechas-dia.is-en-rango { background: rgba(222,123,54,.14); border-radius: 0; }
+    .rango-fechas-dia.is-inicio-rango,
+    .rango-fechas-dia.is-fin-rango {
+      background: var(--accent); color: #fff; font-weight: 700;
+    }
+    .rango-fechas-dia.is-inicio-rango { border-radius: 6px 0 0 6px; }
+    .rango-fechas-dia.is-fin-rango { border-radius: 0 6px 6px 0; }
+    .rango-fechas-dia.is-unico { border-radius: 6px; }
+    .rango-fechas-pie {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; margin-top: 14px; padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+    .rango-fechas-resumen { font-size: 12.5px; color: var(--text-muted); }
+    .rango-fechas-acciones { display: flex; gap: 8px; }
+    @media (max-width: 560px) {
+      .rango-fechas-meses { flex-direction: column; gap: 14px; }
+      .rango-fechas-mes { width: 100%; }
+    }
+
     .ic-filtro-hint {
       font-size: 12px; font-weight: 600; color: var(--text-soft);
       align-self: center;
@@ -1525,6 +1563,15 @@
     }
     .puestos-toolbar .field { margin: 0; min-width: 0; }
     .puestos-toolbar .field.grow { min-width: 0; }
+    .puestos-toolbar-actions {
+      grid-column: 1 / -1;
+      display: flex;
+      gap: 10px;
+    }
+    .puestos-toolbar-actions .btn {
+      flex: 1;
+      text-align: center;
+    }
 
     /* ── Información Puestos: filtro/descargas (propio, no comparte grid
        con .puestos-toolbar de Administrar Puestos) ── */
@@ -1920,6 +1967,60 @@
       background: var(--primary);
       border-color: var(--primary);
       color: #fff;
+    }
+
+    .pantalla-box-borrar-btn {
+      position: absolute;
+      top: 3px;
+      right: 26px;
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      border: 1px solid var(--border-strong);
+      background: #fff;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0;
+      transform: scale(.8);
+      transition: opacity .14s ease, transform .14s ease, background .14s ease, color .14s ease;
+      z-index: 2;
+    }
+    .pantalla-box-borrar-btn svg { width: 11px; height: 11px; }
+    .pantalla-box:not(.is-empty):hover .pantalla-box-borrar-btn {
+      opacity: 1;
+      transform: scale(1);
+    }
+    .pantalla-box-borrar-btn:hover {
+      background: #d92d2d;
+      border-color: #d92d2d;
+      color: #fff;
+    }
+    .puestos-pantallas-grid.selection-mode .pantalla-box-borrar-btn { display: none; }
+
+    /* ── Reposicionar por arrastre directo en la grilla (Administrar Puestos) ── */
+    #moverCamarasModoBtn.is-active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+    .puestos-pantallas-grid.move-mode .pantalla-box:not(.is-empty) {
+      cursor: move;
+    }
+    .puestos-pantallas-grid.move-mode .pantalla-box-repos-btn,
+    .puestos-pantallas-grid.move-mode .pantalla-box-borrar-btn,
+    .puestos-pantallas-grid.move-mode .pantalla-box-check {
+      display: none;
+    }
+    .puestos-pantallas-grid.move-mode .pantalla-box.is-drag-over {
+      outline: 2px dashed var(--primary);
+      outline-offset: -2px;
+      background: rgba(37,99,235,.08);
+    }
+    .puestos-pantallas-grid.move-mode .pantalla-box.is-dragging {
+      opacity: .4;
     }
 
     /* ── Selección múltiple + mover en lote (Administrar Puestos) ── */
@@ -2433,6 +2534,40 @@
     .cam-status-title { margin: 0 0 3px; font-size: 17px; font-weight: 800; color: var(--text); letter-spacing: -.01em; }
     .cam-status-sub { margin: 0; font-size: 12.5px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
 
+    .cam-status-foto {
+      display: block; width: 100%; max-height: 220px; object-fit: cover;
+      margin-top: 14px; border-radius: var(--radius); border: 1px solid var(--border);
+    }
+    .cam-status-foto-wrap { position: relative; }
+    .cam-status-foto-borrar {
+      display: block; margin: 8px auto 0;
+      background: transparent; border: none; cursor: pointer;
+      font-size: 11.5px; font-weight: 700; color: #dc2626;
+      padding: 4px 8px; border-radius: 6px;
+      transition: background .12s ease;
+    }
+    .cam-status-foto-borrar:hover { background: rgba(220,38,38,.10); }
+    .cam-status-foto-agregar {
+      margin-top: 14px; padding: 12px 14px;
+      background: var(--surface-alt); border: 1px dashed var(--border);
+      border-radius: var(--radius); text-align: left;
+    }
+    .cam-status-foto-label {
+      display: block; margin-bottom: 8px;
+      font-size: 12px; font-weight: 800; color: var(--text-soft);
+    }
+    .cam-status-foto-picker {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    .cam-status-foto-btn { flex: none; padding: 7px 13px; font-size: 12.5px; }
+    .cam-status-foto-filename {
+      font-size: 11.5px; color: var(--text-muted);
+      flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .cam-status-foto-estado {
+      display: block; margin-top: 6px; font-size: 12px; color: var(--text-muted);
+    }
+
     .cam-status-badge {
       display: inline-flex; align-items: center; gap: 6px;
       margin: 16px 0 2px; padding: 6px 16px; border-radius: 999px;
@@ -2455,6 +2590,24 @@
       font-size: 12px; color: var(--text-soft); line-height: 1.5; text-align: left;
     }
     .cam-status-loading { padding: 10px 0 2px; color: var(--text-muted); font-size: 13px; }
+
+    .cam-status-borrar-actions {
+      display: flex; gap: 10px; margin-top: 18px;
+    }
+    .cam-status-btn-cancel, .cam-status-btn-eliminar {
+      flex: 1; padding: 11px 14px; border-radius: 12px;
+      font-size: 13.5px; font-weight: 800; cursor: pointer;
+      transition: filter .14s ease, transform .1s ease;
+    }
+    .cam-status-btn-cancel {
+      background: var(--surface-alt); border: 1px solid var(--border); color: var(--text);
+    }
+    .cam-status-btn-cancel:hover { filter: brightness(.97); }
+    .cam-status-btn-eliminar {
+      background: rgba(220,38,38,.12); border: 1px solid transparent; color: #dc2626;
+    }
+    .cam-status-btn-eliminar:hover { background: rgba(220,38,38,.20); }
+    .cam-status-btn-cancel:active, .cam-status-btn-eliminar:active { transform: scale(.98); }
 
     .form-grid {
       display: grid;
@@ -3553,7 +3706,11 @@
             </div>
             <div class="puestos-search-hint">Busca por cliente, sucursal o cámara. Enter abre el puesto y pantalla donde está.</div>
             {% if can_manage_puestos %}
-            <button type="button" class="btn btn-light" id="reposModoSeleccionBtn">Seleccionar varias</button>
+            <div class="puestos-toolbar-actions">
+              <button type="button" class="btn btn-light" id="moverCamarasModoBtn" title="Arrastrá una cámara sobre otra casilla para reposicionarla">Habilitar movimiento</button>
+              <button type="button" class="btn btn-light" id="reposModoSeleccionBtn">Seleccionar varias</button>
+              <button type="button" class="btn btn-light" id="camarasEliminadasBtn">Eliminadas</button>
+            </div>
             {% endif %}
           </div>
 
@@ -3566,6 +3723,7 @@
             <span class="repos-bulk-hint">Click en el nombre de la sucursal selecciona todas sus cámaras. Podés cambiar de puesto sin perder la selección.</span>
             <div class="repos-bulk-actions">
               <button type="button" class="btn btn-light" id="reposBulkCancelar">Cancelar</button>
+              <button type="button" class="btn btn-danger" id="reposBulkEliminar" style="background:#dc2626;color:#fff;border-color:#dc2626;">Eliminar seleccionadas</button>
               <button type="button" class="btn btn-primary" id="reposBulkMover">Mover seleccionadas</button>
             </div>
           </div>
@@ -3573,6 +3731,44 @@
         </div>
         </div>
       </section>
+
+      <!-- MODAL CONFIRMAR ELIMINAR CÁMARA (Administrar Puestos) -->
+      <div class="cam-status-overlay" id="camaraBorrarModal" hidden>
+        <div class="cam-status-modal is-warn" role="dialog" aria-modal="true" aria-labelledby="camaraBorrarModalTitle">
+          <button class="cam-status-close" type="button" id="camaraBorrarModalClose" aria-label="Cerrar">&times;</button>
+          <div class="cam-status-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+              <path d="M10 11v6"></path>
+              <path d="M14 11v6"></path>
+              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+            </svg>
+          </div>
+          <h3 class="cam-status-title" id="camaraBorrarModalTitle">Eliminar cámara</h3>
+          <p class="cam-status-sub" id="camaraBorrarModalNombre">—</p>
+          <div class="cam-status-detail" style="text-align:center;">
+            <div class="cam-status-detail-desc">¿Seguro que quieres eliminar esta cámara? Podrás revertirlo despues desde el botón "Eliminadas".</div>
+          </div>
+          <div class="cam-status-borrar-actions">
+            <button type="button" class="cam-status-btn-cancel" id="camaraBorrarModalCancelar">Cancelar</button>
+            <button type="button" class="cam-status-btn-eliminar" id="camaraBorrarModalConfirmar">Eliminar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODAL CÁMARAS ELIMINADAS (Administrar Puestos) -->
+      <div class="modal-overlay" id="camarasEliminadasModal" hidden>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="camarasEliminadasTitle" style="width:min(640px,calc(100vw - 48px));max-height:calc(100vh - 112px);overflow-y:auto;">
+          <div class="modal-head" style="display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:2;background:var(--surface);">
+            <h3 id="camarasEliminadasTitle">Cámaras eliminadas</h3>
+            <button type="button" id="camarasEliminadasCerrar" aria-label="Cerrar" style="border:none;background:transparent;font-size:22px;line-height:1;cursor:pointer;color:var(--text-muted);">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div id="camarasEliminadasLista" style="display:flex;flex-direction:column;gap:8px;"></div>
+          </div>
+        </div>
+      </div>
 
       {% if is_bitacora_admin %}
       <section class="panel" data-panel="informacion-puestos">
@@ -3586,12 +3782,15 @@
           <div class="ip-toolbar">
             <div class="ip-toolbar-dates">
               <div class="field">
-                <label for="ipDesde">Desde</label>
-                <input id="ipDesde" type="date" />
-              </div>
-              <div class="field">
-                <label for="ipHasta">Hasta</label>
-                <input id="ipHasta" type="date" />
+                <label for="ipRangoTrigger">Período</label>
+                <div class="rango-fechas">
+                  <button type="button" class="rango-fechas-trigger" id="ipRangoTrigger">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                    <span class="rango-fechas-texto" id="ipRangoTexto">Seleccionar período</span>
+                  </button>
+                  <input id="ipDesde" type="date" hidden />
+                  <input id="ipHasta" type="date" hidden />
+                </div>
               </div>
             </div>
             <div class="ip-toolbar-downloads">
@@ -4000,13 +4199,16 @@
                 <option value="">Todas las sucursales</option>
               </select>
             </div>
-            <div class="field" style="min-width:140px;margin:0">
-              <label for="beDesde">Desde</label>
-              <input type="date" id="beDesde">
-            </div>
-            <div class="field" style="min-width:140px;margin:0">
-              <label for="beHasta">Hasta</label>
-              <input type="date" id="beHasta">
+            <div class="field" style="min-width:195px;margin:0">
+              <label for="beRangoTrigger">Período</label>
+              <div class="rango-fechas">
+                <button type="button" class="rango-fechas-trigger" id="beRangoTrigger">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                  <span class="rango-fechas-texto" id="beRangoTexto">Seleccionar período</span>
+                </button>
+                <input type="date" id="beDesde" hidden>
+                <input type="date" id="beHasta" hidden>
+              </div>
             </div>
             <button type="button" class="btn btn-primary" onclick="beBuscar()" style="flex-shrink:0;align-self:flex-end">Buscar</button>
           </div>
@@ -4688,12 +4890,15 @@
             </div>
             <div class="ic-filtros-row">
               <div class="ic-filtro-fecha">
-                <label for="icDesde">Desde</label>
-                <input type="date" id="icDesde" />
-              </div>
-              <div class="ic-filtro-fecha">
-                <label for="icHasta">Hasta</label>
-                <input type="date" id="icHasta" />
+                <label for="icRangoTrigger">Período</label>
+                <div class="rango-fechas">
+                  <button type="button" class="rango-fechas-trigger" id="icRangoTrigger">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                    <span class="rango-fechas-texto" id="icRangoTexto">Seleccionar período</span>
+                  </button>
+                  <input type="date" id="icDesde" hidden />
+                  <input type="date" id="icHasta" hidden />
+                </div>
               </div>
               <button type="button" class="btn btn-primary" id="icAplicar" disabled>Aplicar</button>
               <button type="button" class="btn btn-light" id="icDescargar" disabled>Descargar informe Excel</button>
@@ -5190,6 +5395,36 @@
     .clave-btn-accept:hover   { opacity: 0.88; }
     .clave-btn-accept:disabled { opacity: 0.45; cursor: not-allowed; }
 
+    /* ── Confirmación "¿Aceptar esta sucursal?" (mismo esqueleto .clave-modal-*
+       que el resto de los modales de Sucursales Pendientes, con el sello de
+       check + kicker que pidió el usuario, en la línea del modal de
+       confirmación de Pruebas de Sonido) ── */
+    .pend-aceptar-header { position: relative; overflow: hidden; }
+    .pend-aceptar-header::after {
+      content: "";
+      position: absolute;
+      inset: auto -20% 0 -20%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
+    }
+    .pend-aceptar-kicker {
+      font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--primary); margin-bottom: 5px;
+    }
+    .pend-aceptar-check {
+      width: 66px; height: 66px; margin: 2px auto 16px; border-radius: 50%;
+      display: grid; place-items: center; color: var(--primary);
+      background: radial-gradient(circle, rgba(222,123,54,.14) 0 52%, transparent 53%);
+      border: 2px solid rgba(222,123,54,.32);
+      animation: pendAceptarStamp .4s cubic-bezier(.16,1,.3,1) both;
+    }
+    .pend-aceptar-check svg { width: 30px; height: 30px; }
+    .pend-aceptar-detalle { text-align: center; font-size: 13.5px; color: var(--text); margin: 0 0 6px; }
+    .pend-aceptar-detalle strong { display: block; font-size: 14.5px; margin-bottom: 3px; }
+    .pend-aceptar-detalle span { display: block; color: var(--text-muted); font-size: 12.5px; }
+    @keyframes pendAceptarStamp { from { transform: scale(.75) rotate(-8deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) { .pend-aceptar-check { animation: none; } }
+
     .pa-btn-danger {
       display: flex; justify-content: center; align-items: center;
       padding: 0; width: 32px; height: 32px;
@@ -5231,12 +5466,15 @@
     :root[data-theme="dark"] .ic-filtro-fecha input[type="date"],
     :root[data-theme="dark"] .pend-editable input,
     :root[data-theme="dark"] .pend-inline-input,
-    :root[data-theme="dark"] .repos-field select {
+    :root[data-theme="dark"] .repos-field select,
+    :root[data-theme="dark"] .rango-fechas-trigger {
       background: var(--surface);
       color: var(--text);
       border-color: var(--border-strong);
     }
-    :root[data-theme="dark"] .pantalla-box-repos-btn {
+    :root[data-theme="dark"] .rango-fechas-dia.is-en-rango { background: rgba(222,123,54,.22); }
+    :root[data-theme="dark"] .pantalla-box-repos-btn,
+    :root[data-theme="dark"] .pantalla-box-borrar-btn {
       background: var(--surface);
       border-color: var(--border-strong);
       color: var(--text-muted);
@@ -5880,6 +6118,26 @@
         <div class="clave-modal-actions">
           <button type="button" class="clave-btn-cancel" id="pendDuplicadoCancelar">Cancelar</button>
           <button type="button" class="clave-btn-accept" id="pendDuplicadoConfirmar" style="background:#b45309;">Confirmar duplicado</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="clave-modal-overlay" id="pendAceptarModal" hidden>
+    <div class="clave-modal" role="dialog" aria-modal="true" aria-labelledby="pendAceptarModalTitle">
+      <div class="clave-modal-header pend-aceptar-header">
+        <div class="pend-aceptar-kicker">Sucursales pendientes</div>
+        <h2 id="pendAceptarModalTitle">¿Aceptar esta sucursal?</h2>
+        <p>Quedará visible en Bitácora para todos los operadores.</p>
+      </div>
+      <div class="clave-modal-body">
+        <div class="pend-aceptar-check" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 9.2 16.5 19 7.5"/></svg>
+        </div>
+        <div class="pend-aceptar-detalle" id="pendAceptarDetalle"></div>
+        <div class="clave-modal-actions">
+          <button type="button" class="clave-btn-cancel" id="pendAceptarCancelar">Revisar de nuevo</button>
+          <button type="button" class="clave-btn-accept" id="pendAceptarConfirmar">Sí, aceptar</button>
         </div>
       </div>
     </div>
@@ -6961,6 +7219,11 @@
       const pendDuplicadoCancelar = document.getElementById("pendDuplicadoCancelar");
       const pendDuplicadoConfirmar = document.getElementById("pendDuplicadoConfirmar");
       let pendDuplicadoTargetId = null;
+      const pendAceptarModal = document.getElementById("pendAceptarModal");
+      const pendAceptarDetalle = document.getElementById("pendAceptarDetalle");
+      const pendAceptarCancelar = document.getElementById("pendAceptarCancelar");
+      const pendAceptarConfirmar = document.getElementById("pendAceptarConfirmar");
+      let pendAceptarTargetId = null;
 
       async function loadPendientes() {
         if (!pendResults && !navPendientesBadge) {
@@ -7035,6 +7298,23 @@
         } catch (error) {
           pendStatus.textContent = error.message || "No se pudo aceptar la sucursal.";
         }
+      }
+
+      function pendAbrirConfirmarAceptar(id) {
+        if (!pendAceptarModal) { pendAceptar(id); return; }
+        const row = pendientesData.find((r) => String(r.id) === String(id));
+        pendAceptarTargetId = id;
+        if (pendAceptarDetalle) {
+          pendAceptarDetalle.innerHTML = row
+            ? `<strong>${esc(row.nombre_sucursal || "Sin nombre")}</strong><span>${esc(row.nombre_empresa || "-")} · ${esc(row.direccion_sucursal || "-")}${row.comuna ? ", " + esc(row.comuna) : ""}</span>`
+            : "";
+        }
+        pendAceptarModal.hidden = false;
+      }
+
+      function pendCerrarConfirmarAceptar() {
+        if (pendAceptarModal) pendAceptarModal.hidden = true;
+        pendAceptarTargetId = null;
       }
 
       // Mismos campos editables de la ficha, en el mismo orden en que aparecen ahí,
@@ -7989,9 +8269,28 @@
           if (!article) return;
           const id = article.dataset.pendId;
           const action = btn.dataset.pendAction;
-          if (action === "aceptar") pendAceptar(id);
+          if (action === "aceptar") pendAbrirConfirmarAceptar(id);
           else if (action === "preview") pendAbrirPreview(id);
           else if (action === "duplicado") pendAbrirDuplicado(article);
+        });
+      }
+      if (pendAceptarCancelar) {
+        pendAceptarCancelar.addEventListener("click", pendCerrarConfirmarAceptar);
+      }
+      if (pendAceptarModal) {
+        pendAceptarModal.addEventListener("click", (e) => { if (e.target === pendAceptarModal) pendCerrarConfirmarAceptar(); });
+      }
+      if (pendAceptarConfirmar) {
+        pendAceptarConfirmar.addEventListener("click", async () => {
+          if (!pendAceptarTargetId) return;
+          const id = pendAceptarTargetId;
+          pendAceptarConfirmar.disabled = true;
+          try {
+            await pendAceptar(id);
+          } finally {
+            pendAceptarConfirmar.disabled = false;
+            pendCerrarConfirmarAceptar();
+          }
         });
       }
       if (pendNotificarCancelar) {
@@ -8784,6 +9083,250 @@
       });
     })();
 
+    /* ── Selector de rango de fechas unificado ────────────────
+       Reemplaza los pares de <input type="date"> Desde/Hasta sueltos por
+       un único trigger con calendario de 2 meses (estilo date-range
+       picker). Los input[type=date] originales quedan ocultos como
+       fuente de verdad: el resto del código sigue leyendo/escribiendo
+       su .value igual que antes (icDesde.value, beDesde.value, etc.),
+       por eso initRangoFechas solo envuelve la UI, no reemplaza esos ids. */
+    window._rangoFechasInstancias = window._rangoFechasInstancias || {};
+    function sincronizarRangoFechas(prefix) {
+      window._rangoFechasInstancias[prefix]?.refrescarEtiqueta();
+    }
+
+    (function () {
+      const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+      const DIAS_SEMANA = ["Lu","Ma","Mi","Ju","Vi","Sa","Do"];
+      let panelAbiertoActual = null;
+
+      function pad2(n) { return String(n).padStart(2, "0"); }
+      function isoDeFecha(d) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; }
+      function fechaDeIso(iso) {
+        if (!iso) return null;
+        const [y, m, d] = String(iso).split("-").map(Number);
+        if (!y || !m || !d) return null;
+        return new Date(y, m - 1, d);
+      }
+      function formatoCorto(iso) {
+        const d = fechaDeIso(iso);
+        if (!d) return "";
+        return `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()}`;
+      }
+
+      function initRangoFechas(prefix) {
+        const trigger = document.getElementById(prefix + "RangoTrigger");
+        const inputDesde = document.getElementById(prefix + "Desde");
+        const inputHasta = document.getElementById(prefix + "Hasta");
+        const texto = document.getElementById(prefix + "RangoTexto");
+        if (!trigger || !inputDesde || !inputHasta || !texto) return null;
+
+        let panel = null;
+        let mesAncla = new Date();
+        let inicioTmp = fechaDeIso(inputDesde.value);
+        let finTmp = fechaDeIso(inputHasta.value);
+
+        function refrescarEtiqueta() {
+          const d = inputDesde.value, h = inputHasta.value;
+          if (!d && !h) {
+            texto.textContent = "Seleccionar período";
+            texto.classList.add("is-placeholder");
+          } else if (d && h && d === h) {
+            texto.textContent = formatoCorto(d);
+            texto.classList.remove("is-placeholder");
+          } else {
+            texto.textContent = `${d ? formatoCorto(d) : "…"} - ${h ? formatoCorto(h) : "…"}`;
+            texto.classList.remove("is-placeholder");
+          }
+        }
+
+        function cerrarPanel() {
+          if (panel) panel.classList.remove("is-open");
+          trigger.classList.remove("is-open");
+          if (panelAbiertoActual === cerrarPanel) panelAbiertoActual = null;
+          document.removeEventListener("mousedown", onDocMouseDown, true);
+          document.removeEventListener("keydown", onDocKeyDown, true);
+          window.removeEventListener("scroll", cerrarPanel, true);
+          window.removeEventListener("resize", cerrarPanel, true);
+        }
+        function onDocMouseDown(e) {
+          if (panel && (panel.contains(e.target) || trigger.contains(e.target))) return;
+          cerrarPanel();
+        }
+        function onDocKeyDown(e) {
+          if (e.key === "Escape") cerrarPanel();
+        }
+
+        function seleccionarDia(fecha) {
+          if (!inicioTmp || finTmp) {
+            inicioTmp = fecha; finTmp = null;
+          } else if (fecha < inicioTmp) {
+            finTmp = inicioTmp; inicioTmp = fecha;
+          } else {
+            finTmp = fecha;
+          }
+          renderizarPanel();
+        }
+
+        function celda(fecha, fueraDeMes, hoy) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "rango-fechas-dia";
+          btn.textContent = String(fecha.getDate());
+          if (fueraDeMes) btn.classList.add("is-fuera-de-mes");
+          if (fecha.getTime() === hoy.getTime()) btn.classList.add("is-hoy");
+
+          const t = fecha.getTime();
+          const enInicio = inicioTmp && t === inicioTmp.getTime();
+          const enFin = finTmp && t === finTmp.getTime();
+          if (enInicio && enFin) btn.classList.add("is-unico", "is-inicio-rango", "is-fin-rango");
+          else if (enInicio) btn.classList.add("is-inicio-rango");
+          else if (enFin) btn.classList.add("is-fin-rango");
+          else if (inicioTmp && finTmp && t > inicioTmp.getTime() && t < finTmp.getTime()) btn.classList.add("is-en-rango");
+
+          btn.addEventListener("click", () => seleccionarDia(fecha));
+          return btn;
+        }
+
+        function construirMes(fechaMes) {
+          const anio = fechaMes.getFullYear();
+          const mes = fechaMes.getMonth();
+          const primerDia = new Date(anio, mes, 1);
+          const offset = (primerDia.getDay() + 6) % 7;
+          const diasEnMes = new Date(anio, mes + 1, 0).getDate();
+          const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+
+          const cont = document.createElement("div");
+          cont.className = "rango-fechas-mes";
+          const head = document.createElement("div");
+          head.className = "rango-fechas-mes-head";
+          head.innerHTML = `<span class="rango-fechas-mes-titulo">${MESES[mes]} ${anio}</span>`;
+          cont.appendChild(head);
+
+          const grid = document.createElement("div");
+          grid.className = "rango-fechas-grid";
+          DIAS_SEMANA.forEach(d => {
+            const el = document.createElement("div");
+            el.className = "rango-fechas-diasemana";
+            el.textContent = d;
+            grid.appendChild(el);
+          });
+
+          for (let i = 0; i < offset; i++) grid.appendChild(celda(new Date(anio, mes, i - offset + 1), true, hoy));
+          for (let dia = 1; dia <= diasEnMes; dia++) grid.appendChild(celda(new Date(anio, mes, dia), false, hoy));
+          const restante = (7 - ((offset + diasEnMes) % 7)) % 7;
+          for (let i = 1; i <= restante; i++) grid.appendChild(celda(new Date(anio, mes + 1, i), true, hoy));
+
+          cont.appendChild(grid);
+          return cont;
+        }
+
+        function envolverConNav(mesEl, esIzquierdo) {
+          const head = mesEl.querySelector(".rango-fechas-mes-head");
+          if (esIzquierdo) {
+            const btnPrev = document.createElement("button");
+            btnPrev.type = "button"; btnPrev.className = "rango-fechas-nav"; btnPrev.innerHTML = "&#8249;";
+            btnPrev.setAttribute("aria-label", "Mes anterior");
+            btnPrev.addEventListener("click", () => { mesAncla = new Date(mesAncla.getFullYear(), mesAncla.getMonth() - 1, 1); renderizarPanel(); });
+            head.prepend(btnPrev);
+            const espaciador = document.createElement("span"); espaciador.className = "rango-fechas-nav is-invisible";
+            head.appendChild(espaciador);
+          } else {
+            const espaciador = document.createElement("span"); espaciador.className = "rango-fechas-nav is-invisible";
+            head.prepend(espaciador);
+            const btnNext = document.createElement("button");
+            btnNext.type = "button"; btnNext.className = "rango-fechas-nav"; btnNext.innerHTML = "&#8250;";
+            btnNext.setAttribute("aria-label", "Mes siguiente");
+            btnNext.addEventListener("click", () => { mesAncla = new Date(mesAncla.getFullYear(), mesAncla.getMonth() + 1, 1); renderizarPanel(); });
+            head.appendChild(btnNext);
+          }
+          return mesEl;
+        }
+
+        function renderizarPanel() {
+          const meses = panel.querySelector(".rango-fechas-meses");
+          meses.innerHTML = "";
+          const mesIzq = new Date(mesAncla.getFullYear(), mesAncla.getMonth(), 1);
+          const mesDer = new Date(mesAncla.getFullYear(), mesAncla.getMonth() + 1, 1);
+          meses.appendChild(envolverConNav(construirMes(mesIzq), true));
+          meses.appendChild(envolverConNav(construirMes(mesDer), false));
+
+          const resumen = panel.querySelector(".rango-fechas-resumen");
+          const i = inicioTmp ? formatoCorto(isoDeFecha(inicioTmp)) : "…";
+          const f = finTmp ? formatoCorto(isoDeFecha(finTmp)) : (inicioTmp ? formatoCorto(isoDeFecha(inicioTmp)) : "…");
+          resumen.textContent = `${i} - ${f}`;
+        }
+
+        function aplicar() {
+          inputDesde.value = inicioTmp ? isoDeFecha(inicioTmp) : "";
+          inputHasta.value = finTmp ? isoDeFecha(finTmp) : (inicioTmp ? isoDeFecha(inicioTmp) : "");
+          inputDesde.dispatchEvent(new Event("change", { bubbles: true }));
+          inputHasta.dispatchEvent(new Event("change", { bubbles: true }));
+          refrescarEtiqueta();
+          cerrarPanel();
+        }
+
+        function crearPanel() {
+          panel = document.createElement("div");
+          panel.className = "rango-fechas-panel";
+          panel.innerHTML = `
+            <div class="rango-fechas-meses"></div>
+            <div class="rango-fechas-pie">
+              <span class="rango-fechas-resumen"></span>
+              <div class="rango-fechas-acciones">
+                <button type="button" class="btn btn-light rango-fechas-cancelar">Cancelar</button>
+                <button type="button" class="btn btn-primary rango-fechas-aplicar">Aplicar</button>
+              </div>
+            </div>`;
+          document.body.appendChild(panel);
+          panel.querySelector(".rango-fechas-cancelar").addEventListener("click", cerrarPanel);
+          panel.querySelector(".rango-fechas-aplicar").addEventListener("click", aplicar);
+        }
+
+        function posicionarPanel() {
+          panel.classList.add("is-open");
+          const r = trigger.getBoundingClientRect();
+          const pr = panel.getBoundingClientRect();
+          let left = r.left;
+          let top = r.bottom + 6;
+          if (left + pr.width > window.innerWidth - 12) left = window.innerWidth - pr.width - 12;
+          if (top + pr.height > window.innerHeight - 12) top = r.top - pr.height - 6;
+          if (left < 12) left = 12;
+          if (top < 12) top = 12;
+          panel.style.left = `${left}px`;
+          panel.style.top = `${top}px`;
+        }
+
+        function abrirPanel() {
+          if (panelAbiertoActual && panelAbiertoActual !== cerrarPanel) panelAbiertoActual();
+          if (!panel) crearPanel();
+          inicioTmp = fechaDeIso(inputDesde.value);
+          finTmp = fechaDeIso(inputHasta.value);
+          mesAncla = inicioTmp || new Date();
+          renderizarPanel();
+          posicionarPanel();
+          trigger.classList.add("is-open");
+          panelAbiertoActual = cerrarPanel;
+          document.addEventListener("mousedown", onDocMouseDown, true);
+          document.addEventListener("keydown", onDocKeyDown, true);
+          window.addEventListener("scroll", cerrarPanel, true);
+          window.addEventListener("resize", cerrarPanel, true);
+        }
+
+        trigger.addEventListener("click", () => {
+          if (panel && panel.classList.contains("is-open")) cerrarPanel();
+          else abrirPanel();
+        });
+
+        refrescarEtiqueta();
+        const api = { refrescarEtiqueta };
+        window._rangoFechasInstancias[prefix] = api;
+        return api;
+      }
+
+      window.initRangoFechas = initRangoFechas;
+    })();
+
     /* ── BITÁCORA EMPRESA ──────────────────────────────────── */
     const IS_BITACORA_ADMIN = {{ "true" if is_bitacora_admin else "false" }};
     const CURRENT_USER_NAME = {{ (user.name or user.username or "")|tojson }};
@@ -8800,6 +9343,7 @@
       const today = new Date().toISOString().slice(0, 10);
       document.getElementById("beDesde").value = today;
       document.getElementById("beHasta").value = today;
+      initRangoFechas("be");
     })();
 
     async function beCargarSucursales() {
@@ -9142,6 +9686,7 @@
       if (beSucursalSel) beSucursalSel.innerHTML = '<option value="">Todas las sucursales</option>';
       if (beDesde) beDesde.value = today;
       if (beHasta) beHasta.value = today;
+      sincronizarRangoFechas("be");
       if (beBody) beBody.innerHTML = '<tr><td colspan="6" style="color:var(--text-faint);text-align:center;padding:24px">Selecciona filtros y presiona Buscar.</td></tr>';
       beRegistrosCache = [];
 
@@ -10254,6 +10799,7 @@
       const icRangoLabel = document.getElementById("icRangoLabel");
       let icSucursalVal = "";
       if (!icEmpresaTrigger || !icSucursalTrigger) return;
+      initRangoFechas("ic");
 
       function icOpenSelect(sel, menu, filter) {
         sel.classList.add("is-open");
@@ -10510,6 +11056,7 @@
         icPoblarSucursales("");
         if (icDesde) icDesde.value = "";
         if (icHasta) icHasta.value = "";
+        sincronizarRangoFechas("ic");
         loadInformacionCliente("", "");
       });
     })();
@@ -10625,8 +11172,27 @@
           <polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
         </svg>`;
 
+      const BORRAR_ICON = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+          <path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+        </svg>`;
+
       function puestoBoxHtml(item, meta = {}) {
-        if (!item) return '<div class="pantalla-box is-empty"></div>';
+        if (!item) {
+          // Se le agrega la misma metadata de posicion que a las ocupadas
+          // (puesto/pantalla/casillero) para que tambien puedan recibir un
+          // drop en el modo "Habilitar movimiento" — antes quedaba sin
+          // datos y no se podia soltar una camara arrastrada ahi.
+          const emptyAttrs = [
+            meta.puestoId != null ? `data-puesto-id="${escaparAtributo(meta.puestoId)}"` : "",
+            meta.pantallaIndex != null ? `data-pantalla-index="${escaparAtributo(meta.pantallaIndex)}"` : "",
+            meta.itemIndex != null ? `data-item-index="${escaparAtributo(meta.itemIndex)}"` : "",
+            meta.pantallaNombre ? `data-pantalla-nombre="${escaparAtributo(meta.pantallaNombre)}"` : "",
+          ].filter(Boolean).join(" ");
+          return `<div class="pantalla-box is-empty" ${emptyAttrs}></div>`;
+        }
         const empresaRaw = String(item.empresa || "");
         const camaraRaw = String(item.camara || "");
         const incidencias = Array.isArray(item.incidencias) ? item.incidencias : [];
@@ -10638,12 +11204,18 @@
           meta.puestoId != null ? `data-puesto-id="${escaparAtributo(meta.puestoId)}"` : "",
           meta.pantallaIndex != null ? `data-pantalla-index="${escaparAtributo(meta.pantallaIndex)}"` : "",
           meta.itemIndex != null ? `data-item-index="${escaparAtributo(meta.itemIndex)}"` : "",
+          meta.pantallaNombre ? `data-pantalla-nombre="${escaparAtributo(meta.pantallaNombre)}"` : "",
+          item.id != null ? `data-camara-id="${escaparAtributo(item.id)}"` : "",
+          item.fotoUrl ? `data-foto-url="${escaparAtributo(item.fotoUrl)}"` : "",
           hasProblem ? `data-estado-camara="problema"` : `data-estado-camara="en_linea"`,
           cantidadEquipos ? `data-cantidad-equipos="${escaparAtributo(cantidadEquipos)}"` : "",
         ].filter(Boolean).join(" ");
         const reposSlot = meta.itemIndex != null ? meta.itemIndex : "";
         const reposBtn = CAN_MANAGE_PUESTOS && item.id != null
           ? `<button type="button" class="pantalla-box-repos-btn" data-repos-camara-id="${escaparAtributo(item.id)}" data-repos-puesto="${escaparAtributo(meta.puestoId)}" data-repos-pantalla="${escaparAtributo(meta.pantallaNombre || "")}" data-repos-slot="${escaparAtributo(reposSlot)}" data-repos-empresa="${escaparAtributo(empresaRaw)}" data-repos-camara="${escaparAtributo(camaraRaw)}" title="Reposicionar cámara" aria-label="Reposicionar cámara">${REPOS_ICON}</button>`
+          : "";
+        const borrarBtn = CAN_MANAGE_PUESTOS && item.id != null
+          ? `<button type="button" class="pantalla-box-borrar-btn" data-borrar-camara-id="${escaparAtributo(item.id)}" data-borrar-empresa="${escaparAtributo(empresaRaw)}" data-borrar-camara="${escaparAtributo(camaraRaw)}" title="Eliminar cámara" aria-label="Eliminar cámara">${BORRAR_ICON}</button>`
           : "";
         const problemaResumen = hasProblem ? problemaCamaraResumen(incidencias, problemCount) : null;
         const problemPill = hasProblem
@@ -10652,9 +11224,11 @@
         const checkboxHtml = CAN_MANAGE_PUESTOS && item.id != null
           ? `<span class="pantalla-box-check" data-select-camara-id="${escaparAtributo(item.id)}" data-select-empresa="${escaparAtributo(empresaRaw)}" data-select-camara="${escaparAtributo(camaraRaw)}" data-select-puesto="${escaparAtributo(meta.puestoId)}" data-select-pantalla="${escaparAtributo(meta.pantallaNombre || "")}" data-select-slot="${escaparAtributo(reposSlot)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>`
           : "";
+        const draggableAttr = (CAN_MANAGE_PUESTOS && item.id != null && moverCamarasModoActivo) ? ' draggable="true"' : "";
         return `
-          <div class="pantalla-box${hasProblem ? " has-problem" : ""}" data-empresa="${normalizarPuestoBusqueda(empresaRaw)}" data-search="${escaparAtributo(searchText)}" data-empresa-raw="${escaparAtributo(empresaRaw)}" data-camara="${escaparAtributo(camaraRaw)}" ${metaAttrs}>
+          <div class="pantalla-box${hasProblem ? " has-problem" : ""}" data-empresa="${normalizarPuestoBusqueda(empresaRaw)}" data-search="${escaparAtributo(searchText)}" data-empresa-raw="${escaparAtributo(empresaRaw)}" data-camara="${escaparAtributo(camaraRaw)}"${draggableAttr} ${metaAttrs}>
             ${reposBtn}
+            ${borrarBtn}
             ${checkboxHtml}
             ${problemPill}
             <span class="camara">${camaraRaw || "-"}</span>
@@ -10975,6 +11549,31 @@
         camOverlay.hidden = true;
       }
 
+      function camaraFotoAgregarHtml(camaraId) {
+        if (!CAN_MANAGE_PUESTOS || !camaraId) return "";
+        return `
+          <div class="cam-status-foto-agregar" data-camara-foto-agregar="${escaparAtributo(camaraId)}">
+            <label class="cam-status-foto-label">Agregar imagen de la cámara</label>
+            <div class="cam-status-foto-picker">
+              <label class="btn btn-light cam-status-foto-btn" for="camFotoInput-${escaparAtributo(camaraId)}">Seleccionar imagen</label>
+              <input type="file" id="camFotoInput-${escaparAtributo(camaraId)}" accept="image/*" class="cam-status-foto-input" data-camara-foto-input="${escaparAtributo(camaraId)}" hidden>
+              <span class="cam-status-foto-filename" data-camara-foto-filename="${escaparAtributo(camaraId)}">Sin imagen — o pega con Ctrl+V</span>
+            </div>
+            <span class="cam-status-foto-estado" data-camara-foto-estado="${escaparAtributo(camaraId)}"></span>
+          </div>`;
+      }
+
+      function camaraFotoConImagenHtml(fotoUrl, camaraRaw, camaraId) {
+        const borrarBtn = (CAN_MANAGE_PUESTOS && camaraId)
+          ? `<button type="button" class="cam-status-foto-borrar" data-camara-foto-borrar="${escaparAtributo(camaraId)}">Eliminar imagen</button>`
+          : "";
+        return `
+          <div class="cam-status-foto-wrap" data-camara-foto-wrap="${escaparAtributo(camaraId || "")}">
+            <img src="${escaparAtributo(fotoUrl)}" alt="Foto de ${escaparAtributo(camaraRaw || "cámara")}" class="cam-status-foto">
+            ${borrarBtn}
+          </div>`;
+      }
+
       async function consultarEstadoCamara(empresaRaw, camaraRaw, cantidadEquipos) {
         const params = new URLSearchParams({ empresa: empresaRaw, camara: camaraRaw });
         if (cantidadEquipos) params.set("cantidad_equipos", cantidadEquipos);
@@ -10988,7 +11587,7 @@
         return payload;
       }
 
-      async function abrirEstadoCamara(empresaRaw, camaraRaw, cantidadEquipos) {
+      async function abrirEstadoCamara(empresaRaw, camaraRaw, cantidadEquipos, fotoUrl, camaraId) {
         if (!camOverlay || !camModal) return;
         camModal.className = "cam-status-modal";
         camIcon.innerHTML = "";
@@ -10996,6 +11595,10 @@
         camSub.textContent = empresaRaw || "";
         camBody.innerHTML = '<div class="cam-status-loading">Consultando incidencias…</div>';
         camOverlay.hidden = false;
+
+        const fotoHtml = fotoUrl
+          ? camaraFotoConImagenHtml(fotoUrl, camaraRaw, camaraId)
+          : camaraFotoAgregarHtml(camaraId);
 
         try {
           const data = await consultarEstadoCamara(empresaRaw, camaraRaw, cantidadEquipos);
@@ -11011,21 +11614,213 @@
                 <div class="cam-status-detail-row"><span>Registrado</span><span>${escaparAtributo(inc.fecha_registro || "—")}</span></div>
               </div>`).join("");
             camBody.innerHTML = `
+              ${fotoHtml}
               <span class="cam-status-badge is-warn">⚠ ${n > 1 ? `${n} problemas detectados` : "Problema detectado"}</span>
               ${bloques}`;
           } else {
             camModal.classList.add("is-ok");
             camIcon.innerHTML = ICON_OK;
-            camBody.innerHTML = `<span class="cam-status-badge is-ok">✓ En línea</span>`;
+            camBody.innerHTML = `${fotoHtml}<span class="cam-status-badge is-ok">✓ En línea</span>`;
           }
         } catch (err) {
           camModal.classList.add("is-warn");
           camIcon.innerHTML = ICON_WARN;
-          camBody.innerHTML = `<div class="cam-status-detail"><div class="cam-status-detail-desc">No se pudo consultar el estado: ${escaparAtributo(err.message || "error desconocido")}</div></div>`;
+          camBody.innerHTML = `${fotoHtml}<div class="cam-status-detail"><div class="cam-status-detail-desc">No se pudo consultar el estado: ${escaparAtributo(err.message || "error desconocido")}</div></div>`;
         }
       }
 
-      document.addEventListener("click", (event) => {
+      // Eliminar la foto de una cámara ya subida (vuelve a quedar en estado
+      // "sin imagen", con la opción de agregar una nueva) — pedido
+      // explicito, ago 2026.
+      document.addEventListener("click", async (event) => {
+        const btn = event.target.closest?.("button[data-camara-foto-borrar]");
+        if (!btn) return;
+        const camaraId = btn.dataset.camaraFotoBorrar;
+        if (!camaraId || !confirm("¿Eliminar la imagen de esta cámara?")) return;
+        btn.disabled = true;
+        btn.textContent = "Eliminando...";
+        try {
+          const response = await fetch(`/api/bitacora/puestos/${camaraId}/foto`, {
+            method: "DELETE",
+            credentials: "same-origin",
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(payload.detail || "No se pudo eliminar la imagen.");
+          const box = document.querySelector(`.pantalla-box[data-camara-id="${camaraId}"]`);
+          if (box) delete box.dataset.fotoUrl;
+          const wrap = document.querySelector(`[data-camara-foto-wrap="${camaraId}"]`);
+          if (wrap) wrap.outerHTML = camaraFotoAgregarHtml(camaraId);
+        } catch (err) {
+          alert("Error: " + err.message);
+          btn.disabled = false;
+          btn.textContent = "Eliminar imagen";
+        }
+      });
+
+      // Subida de foto para cámaras que todavía no tienen ninguna, desde el
+      // popup de estado de "Administrar puestos" — pedido explicito, ago
+      // 2026. Se sube apenas se elige el archivo (sin botón "guardar"
+      // aparte); si falla, no se guarda nada localmente. Se puede elegir
+      // con el botón o pegar directo con Ctrl+V — pedido explicito, ago 2026.
+      function subirFotoCamaraPuesto(camaraId, file) {
+        const estado = document.querySelector(`[data-camara-foto-estado="${camaraId}"]`);
+        const filenameEl = document.querySelector(`[data-camara-foto-filename="${camaraId}"]`);
+        const input = document.querySelector(`input[data-camara-foto-input="${camaraId}"]`);
+        if (!file.type.startsWith("image/")) {
+          if (estado) estado.textContent = "El archivo debe ser una imagen.";
+          return;
+        }
+        if (filenameEl) filenameEl.textContent = file.name || "Imagen pegada";
+        const reader = new FileReader();
+        reader.onload = async () => {
+          if (estado) estado.textContent = "Subiendo...";
+          if (input) input.disabled = true;
+          try {
+            const response = await fetch(`/api/bitacora/puestos/${camaraId}/foto`, {
+              method: "POST",
+              credentials: "same-origin",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                data: String(reader.result || ""),
+                filename: file.name || `camara-${camaraId}.png`,
+                mimeType: file.type || "image/jpeg",
+              }),
+            });
+            const payload = await response.json();
+            if (!response.ok) throw new Error(payload.detail || "No se pudo subir la foto.");
+            const box = document.querySelector(`.pantalla-box[data-camara-id="${camaraId}"]`);
+            if (box) box.dataset.fotoUrl = payload.fotoUrl;
+            const agregar = document.querySelector(`[data-camara-foto-agregar="${camaraId}"]`);
+            if (agregar) {
+              agregar.outerHTML = `<img src="${escaparAtributo(payload.fotoUrl)}" alt="Foto de cámara" class="cam-status-foto">`;
+            }
+          } catch (err) {
+            if (estado) estado.textContent = "Error: " + err.message;
+            if (input) input.disabled = false;
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+
+      document.addEventListener("change", (event) => {
+        const input = event.target.closest?.("input[data-camara-foto-input]");
+        if (!input) return;
+        const file = input.files && input.files[0];
+        if (!file) return;
+        subirFotoCamaraPuesto(input.dataset.camaraFotoInput, file);
+      });
+
+      document.addEventListener("paste", (event) => {
+        const agregar = event.target.closest?.(".cam-status-foto-agregar") || camModal?.querySelector(".cam-status-foto-agregar");
+        if (!agregar || camOverlay?.hidden) return;
+        const items = event.clipboardData?.items || [];
+        let imageFile = null;
+        for (const item of items) {
+          if (item.kind === "file" && item.type.startsWith("image/")) {
+            imageFile = item.getAsFile();
+            break;
+          }
+        }
+        if (!imageFile) return;
+        event.preventDefault();
+        const camaraId = agregar.dataset.camaraFotoAgregar;
+        if (!camaraId) return;
+        subirFotoCamaraPuesto(camaraId, imageFile);
+      });
+
+      const camaraBorrarModal          = document.getElementById("camaraBorrarModal");
+      const camaraBorrarModalNombre    = document.getElementById("camaraBorrarModalNombre");
+      const camaraBorrarModalCancelar  = document.getElementById("camaraBorrarModalCancelar");
+      const camaraBorrarModalConfirmar = document.getElementById("camaraBorrarModalConfirmar");
+      const camaraBorrarModalClose     = document.getElementById("camaraBorrarModalClose");
+      let _camaraBorrarPendingResolve = null;
+      function _closeCamaraBorrarModal(confirmed) {
+        camaraBorrarModal.hidden = true;
+        if (_camaraBorrarPendingResolve) { _camaraBorrarPendingResolve(confirmed); _camaraBorrarPendingResolve = null; }
+      }
+      camaraBorrarModalCancelar.addEventListener("click", () => _closeCamaraBorrarModal(false));
+      camaraBorrarModalClose?.addEventListener("click", () => _closeCamaraBorrarModal(false));
+      camaraBorrarModal.addEventListener("click", (e) => { if (e.target === camaraBorrarModal) _closeCamaraBorrarModal(false); });
+      camaraBorrarModalConfirmar.addEventListener("click", () => _closeCamaraBorrarModal(true));
+      async function confirmarBorrarCamara(empresaTxt, camaraTxt) {
+        camaraBorrarModalNombre.textContent = `${camaraTxt || "—"} · ${empresaTxt || "—"}`;
+        camaraBorrarModal.hidden = false;
+        return new Promise(resolve => { _camaraBorrarPendingResolve = resolve; });
+      }
+
+      async function confirmarBorrarCamaraLabel(label) {
+        camaraBorrarModalNombre.textContent = label;
+        camaraBorrarModal.hidden = false;
+        return new Promise(resolve => { _camaraBorrarPendingResolve = resolve; });
+      }
+
+      // ── Cámaras eliminadas (revertir) ──────────────────────────────────
+      const camarasEliminadasBtn    = document.getElementById("camarasEliminadasBtn");
+      const camarasEliminadasModal  = document.getElementById("camarasEliminadasModal");
+      const camarasEliminadasCerrar = document.getElementById("camarasEliminadasCerrar");
+      const camarasEliminadasLista  = document.getElementById("camarasEliminadasLista");
+
+      async function cargarCamarasEliminadas() {
+        camarasEliminadasLista.innerHTML = '<p class="muted">Cargando...</p>';
+        try {
+          const r = await fetch("/api/bitacora/puestos/eliminadas", { credentials: "same-origin" });
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          const data = await r.json();
+          const eliminadas = data.eliminadas || [];
+          if (!eliminadas.length) {
+            camarasEliminadasLista.innerHTML = '<p class="muted">No hay cámaras eliminadas.</p>';
+            return;
+          }
+          camarasEliminadasLista.innerHTML = eliminadas.map(item => `
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;">
+              <div style="min-width:0;">
+                <div style="font-weight:700;font-size:13px;">${escaparAtributo(item.camara || "-")}</div>
+                <div style="font-size:12px;color:var(--text-muted);">${escaparAtributo(item.empresa || "-")} · Puesto ${escaparAtributo(item.puesto ?? "-")}</div>
+                <div style="font-size:11px;color:var(--text-faint,var(--text-muted));">Eliminada ${escaparAtributo(item.eliminado_en || "")}${item.eliminado_por ? " por " + escaparAtributo(item.eliminado_por) : ""}</div>
+              </div>
+              <button type="button" class="btn btn-light" data-restaurar-camara-id="${escaparAtributo(item.id)}" style="flex-shrink:0;">Restaurar</button>
+            </div>
+          `).join("");
+        } catch (err) {
+          camarasEliminadasLista.innerHTML = `<p class="muted">No se pudo cargar: ${escaparAtributo(err.message || "error")}</p>`;
+        }
+      }
+
+      function abrirCamarasEliminadas() {
+        camarasEliminadasModal.hidden = false;
+        cargarCamarasEliminadas();
+      }
+      function cerrarCamarasEliminadas() {
+        camarasEliminadasModal.hidden = true;
+      }
+      camarasEliminadasBtn?.addEventListener("click", abrirCamarasEliminadas);
+      camarasEliminadasCerrar?.addEventListener("click", cerrarCamarasEliminadas);
+      camarasEliminadasModal?.addEventListener("click", (e) => { if (e.target === camarasEliminadasModal) cerrarCamarasEliminadas(); });
+
+      camarasEliminadasLista?.addEventListener("click", async (event) => {
+        const btn = event.target.closest("[data-restaurar-camara-id]");
+        if (!btn) return;
+        const camaraId = parseInt(btn.dataset.restaurarCamaraId, 10);
+        if (!Number.isFinite(camaraId)) return;
+        btn.disabled = true;
+        btn.textContent = "Restaurando...";
+        try {
+          const r = await fetch(`/api/bitacora/puestos/${camaraId}/restaurar`, { method: "POST", credentials: "same-origin" });
+          if (!r.ok) {
+            const d = await r.json().catch(() => ({}));
+            throw new Error(d.detail || "No se pudo restaurar.");
+          }
+          await cargarCamarasEliminadas();
+          await cargarPuestosData({ mostrarCargando: false });
+          renderPuestosPantallas();
+        } catch (err) {
+          alert(err.message || "No se pudo restaurar.");
+          btn.disabled = false;
+          btn.textContent = "Restaurar";
+        }
+      });
+
+      document.addEventListener("click", async (event) => {
         const reposBtn = event.target.closest(".pantalla-box-repos-btn");
         if (reposBtn) {
           event.stopPropagation();
@@ -11037,6 +11832,31 @@
             pantallaOrigen: reposBtn.dataset.reposPantalla || "",
             slotOrigen: reposBtn.dataset.reposSlot || "",
           }]);
+          return;
+        }
+        const borrarBtn = event.target.closest(".pantalla-box-borrar-btn");
+        if (borrarBtn) {
+          event.stopPropagation();
+          const camaraId = parseInt(borrarBtn.dataset.borrarCamaraId, 10);
+          const empresaTxt = borrarBtn.dataset.borrarEmpresa || "";
+          const camaraTxt = borrarBtn.dataset.borrarCamara || "";
+          if (!Number.isFinite(camaraId)) return;
+          const confirmado = await confirmarBorrarCamara(empresaTxt, camaraTxt);
+          if (!confirmado) return;
+          borrarBtn.disabled = true;
+          fetch(`/api/bitacora/puestos/${camaraId}`, { method: "DELETE", credentials: "same-origin" })
+            .then(async (r) => {
+              if (!r.ok) {
+                const d = await r.json().catch(() => ({}));
+                throw new Error(d.detail || "No se pudo eliminar la cámara.");
+              }
+              return cargarPuestosData({ mostrarCargando: false });
+            })
+            .then(renderPuestosPantallas)
+            .catch((err) => {
+              alert(err.message || "No se pudo eliminar la cámara.");
+              borrarBtn.disabled = false;
+            });
           return;
         }
         const box = event.target.closest("#puestosPantallasGrid .pantalla-box[data-camara]");
@@ -11094,7 +11914,7 @@
           return;
         }
         if (box) {
-          abrirEstadoCamara(box.dataset.empresaRaw || box.dataset.empresa || "", box.dataset.camara || "", box.dataset.cantidadEquipos || "");
+          abrirEstadoCamara(box.dataset.empresaRaw || box.dataset.empresa || "", box.dataset.camara || "", box.dataset.cantidadEquipos || "", box.dataset.fotoUrl || "", box.dataset.camaraId || "");
           return;
         }
         if (event.target === camOverlay) cerrarEstadoCamara();
@@ -11120,9 +11940,13 @@
       const reposBulkCount = document.getElementById("reposBulkCount");
       const reposBulkCancelar = document.getElementById("reposBulkCancelar");
       const reposBulkMover = document.getElementById("reposBulkMover");
+      const reposBulkEliminar = document.getElementById("reposBulkEliminar");
 
       let modoSeleccionActivo = false;
       const reposSeleccion = new Map(); // persiste entre cambios de puesto: id -> {empresa, camara}
+
+      const moverCamarasModoBtn = document.getElementById("moverCamarasModoBtn");
+      let moverCamarasModoActivo = false;
 
       let colocarPool = []; // [{id, empresa, camara}, ...] — pendientes de ubicar
       let colocarPantallas = []; // [{nombre, capacidad, slots: [null|{id,empresa,camara}, ...]}, ...] — TODAS las pantallas del puesto a la vez
@@ -11523,6 +12347,7 @@
 
       function setModoSeleccion(activo) {
         if (!CAN_MANAGE_PUESTOS) return;
+        if (activo) setModoMover(false);
         modoSeleccionActivo = activo;
         puestosPantallasGrid.classList.toggle("selection-mode", activo);
         if (reposModoSeleccionBtn) {
@@ -11536,9 +12361,107 @@
         }
       }
 
+      function setModoMover(activo) {
+        if (!CAN_MANAGE_PUESTOS) return;
+        if (activo) setModoSeleccion(false);
+        moverCamarasModoActivo = activo;
+        puestosPantallasGrid.classList.toggle("move-mode", activo);
+        if (moverCamarasModoBtn) {
+          moverCamarasModoBtn.classList.toggle("is-active", activo);
+          moverCamarasModoBtn.textContent = activo ? "Desactivar movimiento" : "Habilitar movimiento";
+        }
+        puestosPantallasGrid.querySelectorAll(".pantalla-box[data-camara]").forEach((box) => {
+          box.draggable = activo;
+        });
+      }
+
       if (reposModoSeleccionBtn) {
         reposModoSeleccionBtn.addEventListener("click", () => setModoSeleccion(!modoSeleccionActivo));
       }
+      if (moverCamarasModoBtn) {
+        moverCamarasModoBtn.addEventListener("click", () => setModoMover(!moverCamarasModoActivo));
+      }
+
+      // ── Arrastrar una cámara directo sobre otra casilla para reposicionarla
+      // (dentro de la misma pantalla hace swap; a otra pantalla/puesto mueve
+      // y desplaza a la que estaba ahí, igual que "Reposicionar cámara") ──
+      let dragCamaraOrigen = null; // {id, puesto, pantalla, slot}
+      puestosPantallasGrid.addEventListener("dragstart", (event) => {
+        if (!moverCamarasModoActivo) return;
+        const box = event.target.closest(".pantalla-box[data-camara]");
+        if (!box || !box.dataset.camaraId) { event.preventDefault(); return; }
+        dragCamaraOrigen = {
+          id: parseInt(box.dataset.camaraId, 10),
+          puesto: box.dataset.puestoId,
+          pantalla: box.dataset.pantallaNombre || "",
+          slot: box.dataset.itemIndex != null && box.dataset.itemIndex !== "" ? parseInt(box.dataset.itemIndex, 10) : null,
+        };
+        box.classList.add("is-dragging");
+        event.dataTransfer.effectAllowed = "move";
+      });
+      puestosPantallasGrid.addEventListener("dragend", (event) => {
+        const box = event.target.closest(".pantalla-box");
+        if (box) box.classList.remove("is-dragging");
+        puestosPantallasGrid.querySelectorAll(".pantalla-box.is-drag-over").forEach((b) => b.classList.remove("is-drag-over"));
+      });
+      puestosPantallasGrid.addEventListener("dragover", (event) => {
+        if (!moverCamarasModoActivo || !dragCamaraOrigen) return;
+        const box = event.target.closest(".pantalla-box");
+        if (!box || box.dataset.itemIndex == null || box.dataset.itemIndex === "") return;
+        event.preventDefault();
+        box.classList.add("is-drag-over");
+      });
+      puestosPantallasGrid.addEventListener("dragleave", (event) => {
+        const box = event.target.closest(".pantalla-box");
+        if (box) box.classList.remove("is-drag-over");
+      });
+      puestosPantallasGrid.addEventListener("drop", async (event) => {
+        if (!moverCamarasModoActivo || !dragCamaraOrigen) return;
+        const box = event.target.closest(".pantalla-box");
+        if (!box || box.dataset.itemIndex == null || box.dataset.itemIndex === "") return;
+        event.preventDefault();
+        box.classList.remove("is-drag-over");
+
+        const origen = dragCamaraOrigen;
+        dragCamaraOrigen = null;
+        const destino = {
+          puesto: box.dataset.puestoId,
+          pantalla: box.dataset.pantallaNombre || "",
+          slot: parseInt(box.dataset.itemIndex, 10),
+          camaraId: box.dataset.camaraId ? parseInt(box.dataset.camaraId, 10) : null,
+        };
+        if (destino.camaraId === origen.id) return; // soltó sobre sí misma
+        if (destino.puesto === origen.puesto && destino.slot === origen.slot) return;
+
+        const mismaPantalla = destino.puesto === origen.puesto && destino.pantalla === origen.pantalla;
+        const colocaciones = [{ camara_id: origen.id, slot_index: destino.slot }];
+        if (mismaPantalla && destino.camaraId != null && origen.slot != null) {
+          // swap: la que estaba en el destino pasa al casillero de origen
+          colocaciones.push({ camara_id: destino.camaraId, slot_index: origen.slot });
+        }
+
+        try {
+          const r = await fetch("/api/bitacora/puestos/colocar", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              puesto_destino: parseInt(destino.puesto, 10),
+              pantalla_destino: destino.pantalla,
+              colocaciones,
+            }),
+          });
+          if (!r.ok) {
+            const d = await r.json().catch(() => ({}));
+            throw new Error(d.detail || "No se pudo mover la cámara.");
+          }
+          await cargarPuestosData({ mostrarCargando: false });
+          renderPuestosPantallas();
+          setModoMover(true);
+        } catch (err) {
+          alert(err.message || "No se pudo mover la cámara.");
+        }
+      });
       if (reposBulkCancelar) {
         reposBulkCancelar.addEventListener("click", () => setModoSeleccion(false));
       }
@@ -11553,6 +12476,35 @@
 	            slotOrigen: info.slotOrigen,
 	          }));
 	          abrirColocar(items);
+	        });
+	      }
+	      if (reposBulkEliminar) {
+	        reposBulkEliminar.addEventListener("click", async () => {
+	          const ids = [...reposSeleccion.keys()];
+	          if (!ids.length) return;
+	          const n = ids.length;
+	          const confirmado = await confirmarBorrarCamaraLabel(`${n} cámara${n === 1 ? "" : "s"} seleccionada${n === 1 ? "" : "s"}`);
+	          if (!confirmado) return;
+	          reposBulkEliminar.disabled = true;
+	          try {
+	            const r = await fetch("/api/bitacora/puestos/eliminar-lote", {
+	              method: "POST",
+	              credentials: "same-origin",
+	              headers: { "Content-Type": "application/json" },
+	              body: JSON.stringify({ camara_ids: ids }),
+	            });
+	            if (!r.ok) {
+	              const d = await r.json().catch(() => ({}));
+	              throw new Error(d.detail || "No se pudieron eliminar las cámaras.");
+	            }
+	            setModoSeleccion(false);
+	            await cargarPuestosData({ mostrarCargando: false });
+	            renderPuestosPantallas();
+	          } catch (err) {
+	            alert(err.message || "No se pudieron eliminar las cámaras.");
+	          } finally {
+	            reposBulkEliminar.disabled = false;
+	          }
 	        });
 	      }
 
@@ -11582,6 +12534,7 @@
       const ipExcelPreview = document.getElementById("ipExcelPreview");
       const ipPdfPreview = document.getElementById("ipPdfPreview");
       const ipRecintoPreview = document.getElementById("ipRecintoPreview");
+      initRangoFechas("ip");
 
       const ipDetalleTable = document.getElementById("ipDetalleTable");
 
@@ -11748,6 +12701,7 @@
       window._panelResetFns.push(function () {
         if (ipDesde) ipDesde.value = "";
         if (ipHasta) ipHasta.value = "";
+        sincronizarRangoFechas("ip");
         ipPuestoActivo = null;
         if (ipDetalleWrap) ipDetalleWrap.hidden = true;
         if (IP_DATA.length) ipRenderResumen();

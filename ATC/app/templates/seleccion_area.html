@@ -182,8 +182,8 @@
 	      display:grid;
 	      place-items:center;
 	      border-radius:12px;
-	      background:linear-gradient(180deg, rgba(var(--area-accent),.34), rgba(var(--area-accent),.18));
-	      border:1px solid rgba(var(--area-accent),.46);
+	      background:linear-gradient(180deg, rgba(54,95,141,.34), rgba(54,95,141,.18));
+	      border:1px solid rgba(54,95,141,.46);
 	      color:white;
 	      font-weight:800;
 	      font-size:15px;
@@ -227,7 +227,7 @@
 	      <p class="sub">Tu cuenta tiene mas de un acceso habilitado. Selecciona el area en la que vas a trabajar.</p>
 	      <div class="user">{{ user.name or user.username }}</div>
 	    </section>
-
+	
 	    <section class="body">
 	      <div class="section-head">
 	        <div>
@@ -235,7 +235,7 @@
 	        </div>
 	      </div>
 	      {% include "_cambio_clave_inicial.html" %}
-
+	
 	      <div class="grid">
 	        {% for area in areas %}
 	          {% if area.code != "protocolos" and area.code != "bitacora" %}

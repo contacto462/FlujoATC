@@ -125,6 +125,8 @@ button.alert-chip:hover{filter:brightness(0.96)}
 .chip-discrepancia{background:#fdf6ed;border-color:#d97706;color:#92400e}
 .chip-conflicto   {background:#eff4ff;border-color:#93c5fd;color:#1e3a8a}
 .chip-jornada     {background:#fffbeb;border-color:#fcd34d;color:#92400e}
+.chip-fusion      {background:#f0fdfa;border-color:#0f766e;color:#0f766e}
+.chip-fusionados  {background:#f8fafc;border-color:#94a3b8;color:#475569}
 .chip-dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
 .notif-panel-body{display:none}
 .notif-panel-body.open{display:block}
@@ -285,6 +287,12 @@ tbody tr:hover td.weekend{background:#faf0e8}
 .entry-normal{background:var(--normal-bg);color:var(--normal-text)}
 .entry .hora{font-weight:400;font-size:10px;opacity:.65;margin-left:3px}
 .entry{position:relative}
+.fusion-origen-badge{
+  display:block;margin-top:2px;
+  font-size:9px;font-weight:700;letter-spacing:.01em;
+  color:#0f766e;opacity:.9;
+  white-space:normal;overflow-wrap:break-word;
+}
 .entry .entry-tools{display:none;gap:2px}
 .entry:hover .entry-tools{display:inline-flex}
 .tool-btn{
@@ -414,7 +422,7 @@ tbody tr:hover td.cell-conflicto{background:#eaf0ff}
 .notif-inasistencia .notif-detail{color:#7f1d1d}
 .notif-permiso-badge{
   display:inline-flex;align-items:center;
-  width:max-content;margin-top:4px;
+  align-self:flex-start;width:max-content;
   font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
   padding:1px 6px;border-radius:999px;
   background:#9a3412;color:#fff;
@@ -429,6 +437,29 @@ tbody tr:hover td.cell-conflicto{background:#eaf0ff}
 }
 .notif-conflicto .notif-type{color:#1e3a8a}
 .notif-conflicto .notif-detail{color:#1e3a8a}
+.notif-fusion{
+  background:#f0fdfa;border-color:#0f766e;
+  grid-template-columns:1fr;
+}
+.notif-fusion .notif-type{color:#0f766e}
+.notif-fusion .notif-detail{color:#115e59;margin-top:2px}
+.notif-fusion-actions{margin-top:8px}
+.btn-fusionar,.btn-restaurar{
+  font-size:11.5px;font-weight:700;font-family:inherit;cursor:pointer;
+  padding:5px 12px;border-radius:7px;transition:filter .15s;
+}
+.btn-fusionar{background:#0f766e;border:1.5px solid #0f766e;color:#fff}
+.btn-fusionar:hover{filter:brightness(1.08)}
+.btn-fusionar:disabled{opacity:.6;cursor:not-allowed}
+.btn-restaurar{background:#f8fafc;border:1.5px solid var(--border);color:var(--muted);margin-left:8px}
+.btn-restaurar:hover{background:#f1f5f9}
+.btn-restaurar:disabled{opacity:.6;cursor:not-allowed}
+.notif-fusionado{
+  background:#f8fafc;border-color:#94a3b8;
+  grid-template-columns:1fr;
+}
+.notif-fusionado .notif-type{color:#475569}
+.notif-fusionado .notif-detail{color:#475569;margin-top:2px}
 
 /* ── POPUP DE ALERTAS (inasistencias / discrepancias / conflictos) ── */
 .alert-popup-overlay{
@@ -572,6 +603,10 @@ tbody tr:hover td.cell-conflicto{background:#eaf0ff}
     <span class="chip chip-noche">Noche</span>
     <span class="chip chip-extra">Extra</span>
     <span class="chip chip-contrato-diario">Contrato Diario</span>
+    <div class="alert-chips" id="alertChipsQR" style="margin-left:8px;display:none">
+      {% if candidatos_fusion %}<button type="button" class="alert-chip chip-fusion" onclick="abrirAlertPopup('fusion')"><span class="chip-dot"></span>{{ candidatos_fusion|length }} posible{{ 's' if candidatos_fusion|length != 1 }} duplicado{{ 's' if candidatos_fusion|length != 1 }} por traslado</button>{% endif %}
+      {% if fusionados_mes %}<button type="button" class="alert-chip chip-fusionados" onclick="abrirAlertPopup('fusionados')"><span class="chip-dot"></span>{{ fusionados_mes|length }} fusionado{{ 's' if fusionados_mes|length != 1 }} este mes</button>{% endif %}
+    </div>
     <span class="legend-note">Hora = hora del registro</span>
   </div>
   <div class="legend" id="legendCruce" style="display:none">
@@ -583,6 +618,8 @@ tbody tr:hover td.cell-conflicto{background:#eaf0ff}
       {% if alertas_inasistencia %}<button type="button" class="alert-chip chip-inasistencia" onclick="abrirAlertPopup('inasistencia')"><span class="chip-dot"></span>{{ alertas_inasistencia|length }} inasistencia{{ 's' if alertas_inasistencia|length != 1 }}</button>{% endif %}
       {% if alertas_discrepancia %}<button type="button" class="alert-chip chip-discrepancia" onclick="abrirAlertPopup('discrepancia')"><span class="chip-dot"></span>{{ alertas_discrepancia|length }} discrepancia{{ 's' if alertas_discrepancia|length != 1 }}</button>{% endif %}
       {% if alertas_conflicto %}<button type="button" class="alert-chip chip-conflicto" onclick="abrirAlertPopup('conflicto')"><span class="chip-dot"></span>{{ alertas_conflicto|length }} conflicto{{ 's' if alertas_conflicto|length != 1 }} de destino</button>{% endif %}
+      {% if candidatos_fusion %}<button type="button" class="alert-chip chip-fusion" onclick="abrirAlertPopup('fusion')"><span class="chip-dot"></span>{{ candidatos_fusion|length }} posible{{ 's' if candidatos_fusion|length != 1 }} duplicado{{ 's' if candidatos_fusion|length != 1 }} por traslado</button>{% endif %}
+      {% if fusionados_mes %}<button type="button" class="alert-chip chip-fusionados" onclick="abrirAlertPopup('fusionados')"><span class="chip-dot"></span>{{ fusionados_mes|length }} fusionado{{ 's' if fusionados_mes|length != 1 }} este mes</button>{% endif %}
       {% if alertas %}<span class="alert-chip chip-jornada"><span class="chip-dot"></span>{{ alertas|length }} jornada{{ 's' if alertas|length != 1 }} extendida{{ 's' if alertas|length != 1 }}</span>{% endif %}
     </div>
     <span class="legend-note">Clic en una celda para ver detalle</span>
@@ -645,6 +682,7 @@ tbody tr:hover td.cell-conflicto{background:#eaf0ff}
             <div class="entry entry-{{ e.turno|lower|replace(' ','-') }}"
                  data-id="{{ e.id }}" data-nombre="{{ e.nombre|e }}" data-turno="{{ e.turno|e }}" data-hora="{{ e.hora }}">
               {{ e.nombre or "—" }}<span class="hora">{{ e.hora }}</span>
+              {% if e.fusion_origen %}<span class="fusion-origen-badge" title="Antes marcó en {{ e.fusion_origen }} — fusionado en este registro">⇄ antes en {{ e.fusion_origen }}</span>{% endif %}
               <span class="entry-tools">
                 <button class="tool-btn" title="Editar" onclick="editarQRDesdeCelda(this)">✎</button>
                 <button class="tool-btn" title="Eliminar" onclick="borrarRegistro(event,'qr',{{ e.id }})">✕</button>
@@ -789,10 +827,55 @@ const TITLES = {
 const BASE = "/guardia/tabla-registro-guardia";
 const PREV = "{{ prev_y }}-{{ prev_m }}";
 const NEXT = "{{ next_y }}-{{ next_m }}";
+const GRUPO = {{ grupo|tojson }};
 
 const ALERTAS_INASISTENCIA = {{ alertas_inasistencia|tojson }};
 const ALERTAS_DISCREPANCIA = {{ alertas_discrepancia|tojson }};
 const ALERTAS_CONFLICTO    = {{ alertas_conflicto|tojson }};
+const CANDIDATOS_FUSION    = {{ candidatos_fusion|tojson }};
+const FUSIONADOS_MES       = {{ fusionados_mes|tojson }};
+
+async function confirmarFusion(sobrevivienteId, archivarIds, btn) {
+  if (!confirm("¿Fusionar estos marcajes? El(los) marcaje(s) sobrante(s) quedará(n) archivado(s) — no se borra, y se puede restaurar después desde 'fusionados este mes'.")) return;
+  btn.disabled = true;
+  btn.textContent = "Fusionando...";
+  try {
+    const res = await fetch("/api/guardia/registro-guardia/fusionar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sobreviviente_id: sobrevivienteId, archivar_ids: archivarIds }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: "No se pudo fusionar." }));
+      throw new Error(typeof err?.detail === "string" ? err.detail : "No se pudo fusionar.");
+    }
+    _guardarScroll();
+    location.reload();
+  } catch (e) {
+    alert(e.message || "No se pudo fusionar.");
+    btn.disabled = false;
+    btn.textContent = "Fusionar";
+  }
+}
+
+async function restaurarFusion(registroId, btn) {
+  if (!confirm("¿Restaurar este marcaje? Volverá a contar como turno este mes.")) return;
+  btn.disabled = true;
+  btn.textContent = "Restaurando...";
+  try {
+    const res = await fetch(`/api/guardia/registro-guardia/${registroId}/restaurar`, { method: "POST" });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: "No se pudo restaurar." }));
+      throw new Error(typeof err?.detail === "string" ? err.detail : "No se pudo restaurar.");
+    }
+    _guardarScroll();
+    location.reload();
+  } catch (e) {
+    alert(e.message || "No se pudo restaurar.");
+    btn.disabled = false;
+    btn.textContent = "Restaurar";
+  }
+}
 
 function escHtmlAlert(s) {
   return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
@@ -807,8 +890,9 @@ function abrirAlertPopup(tipo) {
         <div class="notif-left">
           <span class="notif-fecha">${escHtmlAlert(a.fecha)}</span>
           <span class="notif-type">${escHtmlAlert(a.recinto)}</span>
+          ${a.permiso_sin_goce ? '<span class="notif-permiso-badge">Permiso sin Goce</span>' : ''}
         </div>
-        <span class="notif-detail">${escHtmlAlert(a.detalle)}${a.permiso_sin_goce ? '<span class="notif-permiso-badge">Permiso sin Goce</span>' : ''}</span>
+        <span class="notif-detail">${escHtmlAlert(a.detalle)}</span>
       </div>`,
     },
     discrepancia: {
@@ -831,6 +915,41 @@ function abrirAlertPopup(tipo) {
           <span class="notif-type">${escHtmlAlert(a.guardia)} · ${escHtmlAlert(a.turno)}</span>
         </div>
         <span class="notif-detail">Registrado en <strong>${escHtmlAlert(a.recinto_qr)}</strong> — supervisor lo marcó en <strong>${escHtmlAlert(a.recinto_sv)}</strong></span>
+      </div>`,
+    },
+    fusion: {
+      titulo: "Posibles marcajes duplicados por traslado",
+      items: CANDIDATOS_FUSION,
+      render: a => {
+        const archivarIds = a.archivar.map(x => x.id).join(",");
+        const archivarTxt = a.archivar.map(x => `${escHtmlAlert(x.recinto)} (${escHtmlAlert(x.hora)}, ${escHtmlAlert(x.turno)})`).join(", ");
+        return `<div class="notif notif-fusion">
+          <div class="notif-left">
+            <span class="notif-fecha">${escHtmlAlert(a.fecha)}</span>
+            <span class="notif-type">${escHtmlAlert(a.nombre)}</span>
+          </div>
+          <div class="notif-detail">
+            Se propone conservar <strong>${escHtmlAlert(a.sobreviviente.recinto)} (${escHtmlAlert(a.sobreviviente.hora)}, ${escHtmlAlert(a.sobreviviente.turno)})</strong>
+            y archivar: ${archivarTxt}
+          </div>
+          <div class="notif-fusion-actions">
+            <button type="button" class="btn-fusionar" onclick="confirmarFusion(${a.sobreviviente.id}, [${archivarIds}], this)">Fusionar</button>
+          </div>
+        </div>`;
+      },
+    },
+    fusionados: {
+      titulo: "Marcajes fusionados este mes",
+      items: FUSIONADOS_MES,
+      render: a => `<div class="notif notif-fusionado">
+        <div class="notif-left">
+          <span class="notif-fecha">${escHtmlAlert(a.fecha)}</span>
+          <span class="notif-type">${escHtmlAlert(a.nombre)}</span>
+        </div>
+        <div class="notif-detail">
+          ${escHtmlAlert(a.recinto_original)} (${escHtmlAlert(a.hora_original)}) → fusionado con ${escHtmlAlert(a.recinto_destino)} (${escHtmlAlert(a.hora_destino)})
+          <button type="button" class="btn-restaurar" onclick="restaurarFusion(${a.id}, this)">Restaurar</button>
+        </div>
       </div>`,
     },
   };
@@ -860,15 +979,27 @@ function setView(v) {
   document.getElementById("pageSub").textContent   = TITLES[v][1];
   const [py, pm] = PREV.split("-");
   const [ny, nm] = NEXT.split("-");
-  document.getElementById("navPrev").href = `${BASE}?year=${py}&month=${pm}&view=${v}`;
-  document.getElementById("navNext").href = `${BASE}?year=${ny}&month=${nm}&view=${v}`;
-  history.replaceState(null, "", `?year={{ year }}&month={{ month }}&view=${v}`);
+  document.getElementById("navPrev").href = `${BASE}?year=${py}&month=${pm}&grupo=${GRUPO}&view=${v}`;
+  document.getElementById("navNext").href = `${BASE}?year=${ny}&month=${nm}&grupo=${GRUPO}&view=${v}`;
+  // Los tabs de grupo (Quintero/Privados/Concon) viven mas abajo en el HTML,
+  // fuera de este <script> — al llamarse setView() en la carga inicial
+  // (antes de que el resto del documento se parsee) todavia no existen; se
+  // actualizan igual una vez cargados via el script chico despues del <nav>.
+  const tabQuintero = document.getElementById("tabQuintero");
+  const tabPrivados = document.getElementById("tabPrivados");
+  const tabConcon   = document.getElementById("tabConcon");
+  if (tabQuintero) tabQuintero.href = `${BASE}?year={{ year }}&month={{ month }}&grupo=quintero&view=${v}`;
+  if (tabPrivados) tabPrivados.href = `${BASE}?year={{ year }}&month={{ month }}&grupo=privados&view=${v}`;
+  if (tabConcon)   tabConcon.href   = `${BASE}?year={{ year }}&month={{ month }}&grupo=concon&view=${v}`;
+  history.replaceState(null, "", `?year={{ year }}&month={{ month }}&grupo=${GRUPO}&view=${v}`);
   const chips = document.getElementById("alertChips");
   if (chips) chips.style.display = v === "cruce" ? "flex" : "none";
+  const chipsQR = document.getElementById("alertChipsQR");
+  if (chipsQR) chipsQR.style.display = v === "qr" ? "flex" : "none";
 }
 
 const _v = new URLSearchParams(location.search).get("view");
-if (_v === "cruce") setView("cruce");
+setView(_v === "cruce" ? "cruce" : "qr");
 
 /* ── Popup de celda ── */
 const POPUP   = document.getElementById("cellPopup");
@@ -1200,19 +1331,33 @@ function editarQRDesdeCelda(btn) {
 </style>
 
 <nav class="grupo-tabs">
-  <a class="grupo-tab {% if grupo == 'quintero' %}active{% endif %}"
+  <a class="grupo-tab {% if grupo == 'quintero' %}active{% endif %}" id="tabQuintero"
      href="/guardia/tabla-registro-guardia?year={{ year }}&month={{ month }}&grupo=quintero">
     <span class="dot dot-quintero"></span>Quintero
   </a>
-  <a class="grupo-tab {% if grupo == 'privados' %}active{% endif %}"
+  <a class="grupo-tab {% if grupo == 'privados' %}active{% endif %}" id="tabPrivados"
      href="/guardia/tabla-registro-guardia?year={{ year }}&month={{ month }}&grupo=privados">
     <span class="dot dot-privados"></span>Privados
   </a>
-  <a class="grupo-tab {% if grupo == 'concon' %}active{% endif %}"
+  <a class="grupo-tab {% if grupo == 'concon' %}active{% endif %}" id="tabConcon"
      href="/guardia/tabla-registro-guardia?year={{ year }}&month={{ month }}&grupo=concon">
     <span class="dot dot-concon"></span>Concón
   </a>
 </nav>
+<script>
+  // setView() ya intento fijar estos hrefs en la carga inicial, pero este
+  // <nav> todavia no existia en ese momento — se completan aca, apenas
+  // existe, para que conserven la vista (Registro/Cruce) actual.
+  (function () {
+    const v = document.getElementById("viewCruce")?.classList.contains("active") ? "cruce" : "qr";
+    const t1 = document.getElementById("tabQuintero");
+    const t2 = document.getElementById("tabPrivados");
+    const t3 = document.getElementById("tabConcon");
+    if (t1) t1.href = `${BASE}?year={{ year }}&month={{ month }}&grupo=quintero&view=${v}`;
+    if (t2) t2.href = `${BASE}?year={{ year }}&month={{ month }}&grupo=privados&view=${v}`;
+    if (t3) t3.href = `${BASE}?year={{ year }}&month={{ month }}&grupo=concon&view=${v}`;
+  })();
+</script>
 <div style="height:46px"></div>
   <script src="/static/atc-logo-home.js"></script>
   <script src="/static/guardias-informe-preview.js"></script>

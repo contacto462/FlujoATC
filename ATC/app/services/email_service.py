@@ -773,6 +773,12 @@ def _resolve_ticket(
             # Reutilizamos la misma regla de reapertura
             # usada por el resto del sistema.
             apply_ticket_status_change(ticket, "open")
+        if getattr(ticket, "is_no_ticket", False):
+            # Un correo enviado desde "Redactar" sin marcar "Es un ticket"
+            # queda registrado como "no es un ticket" — si el destinatario
+            # responde, se transforma en un ticket real (pedido explicito,
+            # ago 2026).
+            ticket.is_no_ticket = False
         return ticket, True
 
     if not allow_create:
@@ -983,10 +989,14 @@ def fetch_emails_and_create_tickets(
 
                 if agent_match:
                     # Correo desde el buzon propio de un agente (no via la
-                    # ticketera): no crea ni matchea un Requester (eso
-                    # dejaria su cuenta "enlazada" como cliente para
-                    # siempre). Solo se adjunta si encaja en un hilo
-                    # existente; si no, se descarta sin crear nada nuevo.
+                    # ticketera): primero se intenta adjuntar a un hilo de
+                    # ticket existente sin crear Requester. Si no encaja en
+                    # ninguno, se crea igual — antes se descartaba en
+                    # silencio (ver incidente felipe.mora, ago 2026), pero
+                    # eso tambien perdio correos reales de otros agentes
+                    # (jefe.cctv@/glubiano@/administracion@alguientecuida.cl,
+                    # ago 2026); a partir de aca su cuenta queda "enlazada"
+                    # como Requester para futuros envios desde ese correo.
                     requester = None
                     ticket, ticket_exists = _resolve_ticket(
                         db,
@@ -1001,11 +1011,18 @@ def fetch_emails_and_create_tickets(
                         allow_create=False,
                     )
                     if ticket is None:
-                        _uid_failure_counts.pop(fail_key, None)
-                        if can_advance_cursor:
-                            sync_state.last_uid = uid
-                            db.commit()
-                        continue
+                        requester = _resolve_requester(db, from_name, from_email)
+                        ticket, ticket_exists = _resolve_ticket(
+                            db,
+                            msg=msg,
+                            subject=subject,
+                            body=body,
+                            from_email=from_email,
+                            support_mailboxes=support_mailboxes,
+                            requester_id=requester.id,
+                            message_dt=message_dt,
+                            inbound_mailbox=inbound_mailbox,
+                        )
                 else:
                     requester = _resolve_requester(db, from_name, from_email)
                     ticket, ticket_exists = _resolve_ticket(

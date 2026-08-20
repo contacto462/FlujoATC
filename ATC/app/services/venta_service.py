@@ -2011,6 +2011,8 @@ def update_servicio_tecnico_ventas_valor(db: Session, codigo: str, campo: str, v
     valor_limpio = str(valor or "").strip()
     previous_value = str(getattr(row, campo_limpio, "") or "").strip()
     setattr(row, campo_limpio, valor_limpio)
+    if campo_limpio == "solicitud_materiales" and valor_limpio != previous_value:
+        ods.materiales = valor_limpio
     db.commit()
     if campo_limpio == "solicitud_materiales" and valor_limpio and valor_limpio != previous_value:
         _codigo_bg = codigo_limpio
@@ -2095,9 +2097,15 @@ def update_ods(db: Session, payload, usuario_email: str) -> VentaODS:
     record.montos_a_cobrar = _clean_text(payload.montoACobrar)
     record.dias_monitoreo_adicional = _clean_text(payload.diasAdicional)
     record.horario_monitoreo = _clean_text(payload.horario)
+    previous_materiales = str(record.materiales or "").strip()
     record.materiales = _clean_text(payload.materiales)
+    nuevo_materiales = str(record.materiales or "").strip()
     record.consideraciones = _clean_text(payload.consideraciones)
     record.observacion = _clean_text(payload.observacion)
+
+    if nuevo_materiales and nuevo_materiales != previous_materiales:
+        st_row_mat = _get_or_create_servicio_tecnico_venta_row(db, record.codigo)
+        st_row_mat.solicitud_materiales = nuevo_materiales
 
     tipos_anteriores = [item.strip() for item in str(record.tipo_servicio or "").split("|") if item.strip()]
     areas_antes = _calcular_areas_aplicables(tipos_anteriores)
@@ -2155,6 +2163,19 @@ def update_ods(db: Session, payload, usuario_email: str) -> VentaODS:
     db.commit()
     db.refresh(record)
 
+    if nuevo_materiales and nuevo_materiales != previous_materiales:
+        _codigo_bg = record.codigo
+        def _bg_mat_ods():
+            from ATC.app.core.db import SessionLocal
+            _db = SessionLocal()
+            try:
+                notify_materiales_bodega(_db, _codigo_bg)
+            except Exception as exc:
+                _log.warning("notify_materiales_bodega %s falló (edición ODS): %s", _codigo_bg, exc)
+            finally:
+                _db.close()
+        threading.Thread(target=_bg_mat_ods, daemon=True).start()
+
     if drive_files:
         _codigo_u = record.codigo
         _rut_u = record.rut_cliente or ""
@@ -2208,6 +2229,33 @@ def get_sucursales_table(db: Session) -> dict:
         "Nombre Emergencia",
     ]
     rows = db.query(SucursalBBDD).order_by(SucursalBBDD.id.asc()).all()
+
+    # Sucursales que Bitácora marcó como "falta o está mal" y notificó a
+    # Comercial (mismo criterio que get_sucursales_pendientes_bitacora_comercial,
+    # pero sin filtrar por created_by: acá se ve independiente de quién la
+    # registró) — se usa para resaltarlas arriba de la lista en bbdd_sucursal.html.
+    pendientes_rows = db.execute(text("""
+        SELECT s.id, e.campos_pendientes, e.campos_pendientes_obs,
+               e.campos_pendientes_fecha, e.campos_pendientes_por
+        FROM bbdd_sucursales s
+        JOIN sucursal_info_extra e ON e.sucursal_id = s.id
+        WHERE s.aceptada_bitacora = 0
+          AND COALESCE(TRIM(e.campos_pendientes), '') <> ''
+    """)).mappings().all()
+    pendientes_bitacora: dict[str, dict] = {}
+    for prow in pendientes_rows:
+        campos_raw = str(prow.get("campos_pendientes") or "").strip()
+        campos = [c.strip() for c in campos_raw.split(",") if c.strip()]
+        if not campos:
+            continue
+        fecha = prow.get("campos_pendientes_fecha")
+        pendientes_bitacora[str(prow.get("id"))] = {
+            "campos": campos,
+            "observacion": str(prow.get("campos_pendientes_obs") or "").strip(),
+            "observado_en": fecha.isoformat(sep=" ", timespec="minutes") if isinstance(fecha, datetime) else "",
+            "observado_por": str(prow.get("campos_pendientes_por") or "").strip(),
+        }
+
     data_rows: list[list[str]] = []
     for row in rows:
         primer_contacto = (
@@ -2238,7 +2286,7 @@ def get_sucursales_table(db: Session) -> dict:
             row.email_facturas or "",
             primer_contacto.nombre if primer_contacto and primer_contacto.nombre else "",
         ])
-    return {"headers": headers, "rows": data_rows}
+    return {"headers": headers, "rows": data_rows, "pendientes_bitacora": pendientes_bitacora}
 
 
 def update_sucursal_row(db: Session, row_id: int, values: list[str]) -> None:

@@ -74,6 +74,14 @@ class Message(Base):
         nullable=False,
     )
 
+    # Mensaje originado desde "Redactar" (compose), no desde una respuesta
+    # dentro de un ticket existente. Distingue lo que se lista en "Enviados".
+    from_compose: Mapped[bool] = mapped_column(
+        Boolean,
+        server_default="false",
+        nullable=False,
+    )
+
     # ==============================
     # ðŸ•’ FECHA
     # ==============================

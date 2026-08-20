@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+import binascii
 import bisect
 import html
 import hmac
@@ -37,6 +39,9 @@ from ATC.app.models.incidencias import (
 from ATC.app.models.user import User
 from ATC.app.core.security import hash_password
 from ATC.app.services.user_service import UserService
+from ATC.app.services.incidencias_drive_report_service import (
+    upload_camaras_monitoreo_fotos as _upload_camaras_monitoreo_fotos,
+)
 
 
 router = APIRouter(tags=["bitacora"])
@@ -3992,10 +3997,14 @@ def api_bitacora_puestos(
             SucursalCamaraMonitoreo.cantidad_equipos,
             SucursalCamaraMonitoreo.sucursal_id,
             SucursalCamaraMonitoreo.slot_index,
+            SucursalCamaraMonitoreo.foto_url,
             SucursalBBDD.nombre_sucursal,
         )
         .outerjoin(SucursalBBDD, SucursalCamaraMonitoreo.sucursal_id == SucursalBBDD.id)
-        .filter(SucursalCamaraMonitoreo.central.isnot(None))
+        .filter(
+            SucursalCamaraMonitoreo.central.isnot(None),
+            SucursalCamaraMonitoreo.eliminado_en.is_(None),
+        )
         .order_by(
             SucursalCamaraMonitoreo.central,
             case((SucursalCamaraMonitoreo.slot_index.is_(None), 1), else_=0),
@@ -4010,7 +4019,7 @@ def api_bitacora_puestos(
     # grouped[central][etiqueta_pantalla] = [ {id, empresa, camara, slotIndex}, ... ] — solo monitoreadas
     grouped: dict[int, dict[str, list[dict]]] = {}
     camaras_sin_monitoreo: list[dict] = []
-    for fila_id, central, ubicacion_pantalla, cam_monitoreada, cam_sin_monitoreo, cantidad_equipos, sucursal_id, slot_index, nombre_sucursal in rows:
+    for fila_id, central, ubicacion_pantalla, cam_monitoreada, cam_sin_monitoreo, cantidad_equipos, sucursal_id, slot_index, foto_url, nombre_sucursal in rows:
         empresa = (nombre_sucursal or "").strip() or "(sucursal sin nombre)"
         try:
             cantidad_equipos_int = max(1, int(cantidad_equipos or 1))
@@ -4035,6 +4044,7 @@ def api_bitacora_puestos(
                 "estado": "problema" if incidencias_camara else "en_linea",
                 "sucursalId": sucursal_id,
                 "slotIndex": slot_index,
+                "fotoUrl": (foto_url or "").strip() or None,
             }
             if incidencias_camara:
                 item["incidencias_count"] = len(incidencias_camara)
@@ -4191,6 +4201,289 @@ def colocar_camaras_puesto(
     incidencias_db.commit()
 
     return {"ok": True, "puesto": payload.puesto_destino, "pantalla": payload.pantalla_destino, "movidas": movidas}
+
+
+def _eliminar_camara_puesto_core(incidencias_db: Session, fila: SucursalCamaraMonitoreo, eliminado_por: str) -> None:
+    """Borrado logico de una fila + compactado de casilleros a la derecha en
+    la misma pantalla (sin commit — el caller decide cuando confirmar, para
+    poder procesar varias en una sola transaccion desde el borrado en
+    lote)."""
+    slot_original = fila.slot_index
+    if slot_original is not None and fila.central is not None:
+        siguientes = (
+            incidencias_db.query(SucursalCamaraMonitoreo)
+            .filter(
+                SucursalCamaraMonitoreo.central == fila.central,
+                SucursalCamaraMonitoreo.ubicacion_pantalla == fila.ubicacion_pantalla,
+                SucursalCamaraMonitoreo.eliminado_en.is_(None),
+                SucursalCamaraMonitoreo.slot_index.isnot(None),
+                SucursalCamaraMonitoreo.slot_index > slot_original,
+                SucursalCamaraMonitoreo.id != fila.id,
+            )
+            .order_by(SucursalCamaraMonitoreo.slot_index.asc())
+            .all()
+        )
+        for siguiente in siguientes:
+            siguiente.slot_index -= 1
+
+    fila.eliminado_en = datetime.now()
+    fila.eliminado_por = eliminado_por
+
+
+@router.delete("/api/bitacora/puestos/{camara_id}")
+def eliminar_camara_puesto(
+    camara_id: int,
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    """Elimina (borrado logico) una fila de sucursal_camaras_monitoreo (una
+    camara/cantidad de camaras de un cliente) desde 'Administrar puestos'.
+    No se borra de la BBDD — se marca eliminado_en/eliminado_por para poder
+    revertir por si el usuario se equivoca (ver /restaurar), y se compactan
+    los casilleros de las camaras que quedaban a la derecha en la misma
+    pantalla, para que no quede un hueco vacio — pedido explicito, ago
+    2026."""
+    _require_bitacora_access(current_user)
+    if not can_manage_bitacora_puestos(current_user):
+        raise HTTPException(status_code=403, detail="Solo usuarios de Soporte pueden eliminar cámaras.")
+
+    fila = incidencias_db.get(SucursalCamaraMonitoreo, camara_id)
+    if not fila or fila.eliminado_en is not None:
+        raise HTTPException(status_code=404, detail="No se encontró esa cámara.")
+
+    eliminado_por = getattr(current_user, "name", None) or getattr(current_user, "email", None) or ""
+    _eliminar_camara_puesto_core(incidencias_db, fila, eliminado_por)
+    incidencias_db.commit()
+
+    return {"ok": True}
+
+
+class CamaraFotoPayload(BaseModel):
+    data: str
+    filename: str = ""
+    mimeType: str = ""
+
+
+@router.post("/api/bitacora/puestos/{camara_id}/foto")
+def subir_foto_camara_puesto(
+    camara_id: int,
+    payload: CamaraFotoPayload,
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    """Sube la foto de una cámara ya registrada desde el popup de estado de
+    'Administrar puestos' (para cámaras que todavía no tienen ninguna) — a
+    Drive, subcarpeta por sucursal, mismo destino que las fotos subidas
+    desde Tabla Soporte ODS. Nada se guarda en SQL si Drive falla (solo se
+    persiste la URL final si la subida es exitosa) — pedido explicito, ago
+    2026."""
+    _require_bitacora_access(current_user)
+    if not can_manage_bitacora_puestos(current_user):
+        raise HTTPException(status_code=403, detail="Solo usuarios de Soporte pueden subir fotos de cámaras.")
+
+    fila = incidencias_db.get(SucursalCamaraMonitoreo, camara_id)
+    if not fila or fila.eliminado_en is not None:
+        raise HTTPException(status_code=404, detail="No se encontró esa cámara.")
+    if not fila.sucursal_id or not (fila.nombre_camara_monitoreo or "").strip():
+        raise HTTPException(status_code=400, detail="Esta cámara no tiene sucursal o nombre válido.")
+
+    data_b64 = payload.data or ""
+    if "," in data_b64:
+        data_b64 = data_b64.split(",", 1)[1]
+    try:
+        foto_bytes = base64.b64decode(data_b64, validate=False)
+    except (ValueError, binascii.Error):
+        foto_bytes = b""
+    if not foto_bytes:
+        raise HTTPException(status_code=400, detail="Imagen inválida.")
+
+    sucursal = incidencias_db.get(SucursalBBDD, fila.sucursal_id)
+    nombre_sucursal = (sucursal.nombre_sucursal if sucursal else "") or ""
+
+    try:
+        resultado = _upload_camaras_monitoreo_fotos(
+            sucursal_id=fila.sucursal_id,
+            nombre_sucursal=nombre_sucursal,
+            image_payloads=[{
+                "camara": fila.nombre_camara_monitoreo,
+                "bytes": foto_bytes,
+                "filename": payload.filename or f"{fila.nombre_camara_monitoreo}.jpg",
+                "mime_type": payload.mimeType or "image/jpeg",
+            }],
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"No se pudo subir la foto a Drive: {exc}")
+
+    url = (resultado.get("urls") or {}).get(fila.nombre_camara_monitoreo)
+    if not url:
+        raise HTTPException(status_code=502, detail="No se pudo subir la foto a Drive.")
+
+    fila.foto_url = url
+    incidencias_db.commit()
+    return {"ok": True, "fotoUrl": url}
+
+
+@router.delete("/api/bitacora/puestos/{camara_id}/foto")
+def eliminar_foto_camara_puesto(
+    camara_id: int,
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    """Quita la foto de una cámara (vuelve a quedar sin imagen, con la
+    opción de 'Agregar imagen de la cámara' disponible de nuevo) — no borra
+    el archivo en Drive, solo desvincula la URL en SQL — pedido explicito,
+    ago 2026."""
+    _require_bitacora_access(current_user)
+    if not can_manage_bitacora_puestos(current_user):
+        raise HTTPException(status_code=403, detail="Solo usuarios de Soporte pueden eliminar fotos de cámaras.")
+
+    fila = incidencias_db.get(SucursalCamaraMonitoreo, camara_id)
+    if not fila or fila.eliminado_en is not None:
+        raise HTTPException(status_code=404, detail="No se encontró esa cámara.")
+
+    fila.foto_url = None
+    incidencias_db.commit()
+    return {"ok": True}
+
+
+class EliminarCamarasLotePayload(BaseModel):
+    camara_ids: list[int]
+
+
+@router.post("/api/bitacora/puestos/eliminar-lote")
+def eliminar_camaras_puesto_lote(
+    payload: EliminarCamarasLotePayload,
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    """Elimina (borrado logico) varias camaras de una — para "seleccionar
+    varias" o para borrar de una vez todas las de una sucursal (el front ya
+    permite seleccionar todas las cámaras de una sucursal con un click,
+    mismo mecanismo que 'Mover seleccionadas') — pedido explicito, ago
+    2026."""
+    _require_bitacora_access(current_user)
+    if not can_manage_bitacora_puestos(current_user):
+        raise HTTPException(status_code=403, detail="Solo usuarios de Soporte pueden eliminar cámaras.")
+
+    camara_ids = list(dict.fromkeys(payload.camara_ids or []))
+    if not camara_ids:
+        raise HTTPException(status_code=400, detail="No se indicó ninguna cámara para eliminar.")
+    if len(camara_ids) > 500:
+        raise HTTPException(status_code=400, detail="Demasiadas cámaras en un solo lote.")
+
+    filas = (
+        incidencias_db.query(SucursalCamaraMonitoreo)
+        .filter(
+            SucursalCamaraMonitoreo.id.in_(camara_ids),
+            SucursalCamaraMonitoreo.eliminado_en.is_(None),
+        )
+        .all()
+    )
+    filas_por_id = {f.id: f for f in filas}
+    faltantes = [cid for cid in camara_ids if cid not in filas_por_id]
+    if faltantes:
+        raise HTTPException(status_code=404, detail=f"No se encontraron {len(faltantes)} de las cámaras seleccionadas.")
+
+    eliminado_por = getattr(current_user, "name", None) or getattr(current_user, "email", None) or ""
+
+    # Agrupadas por pantalla y procesadas de casillero mas alto a mas bajo:
+    # asi cada compactado solo mueve camaras que ya se proceso su turno (o
+    # ninguna del lote), sin pisarse entre si dentro del mismo lote.
+    por_pantalla: dict[tuple, list[SucursalCamaraMonitoreo]] = defaultdict(list)
+    for cid in camara_ids:
+        fila = filas_por_id[cid]
+        por_pantalla[(fila.central, fila.ubicacion_pantalla)].append(fila)
+
+    eliminadas = 0
+    for grupo in por_pantalla.values():
+        grupo.sort(key=lambda f: (f.slot_index is None, -(f.slot_index or 0)))
+        for fila in grupo:
+            _eliminar_camara_puesto_core(incidencias_db, fila, eliminado_por)
+            eliminadas += 1
+
+    incidencias_db.commit()
+    return {"ok": True, "eliminadas": eliminadas}
+
+
+@router.get("/api/bitacora/puestos/eliminadas")
+def listar_camaras_eliminadas_puesto(
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    """Lista las camaras eliminadas de 'Administrar puestos' (mas recientes
+    primero) para poder revertir una eliminacion por error — pedido
+    explicito, ago 2026."""
+    _require_bitacora_access(current_user)
+    if not can_manage_bitacora_puestos(current_user):
+        raise HTTPException(status_code=403, detail="Solo usuarios de Soporte pueden ver esto.")
+
+    filas = (
+        incidencias_db.query(SucursalCamaraMonitoreo, SucursalBBDD.nombre_sucursal)
+        .outerjoin(SucursalBBDD, SucursalCamaraMonitoreo.sucursal_id == SucursalBBDD.id)
+        .filter(SucursalCamaraMonitoreo.eliminado_en.isnot(None))
+        .order_by(SucursalCamaraMonitoreo.eliminado_en.desc())
+        .limit(100)
+        .all()
+    )
+    return {
+        "eliminadas": [
+            {
+                "id": fila.id,
+                "empresa": (nombre_sucursal or "").strip() or "(sucursal sin nombre)",
+                "camara": (fila.nombre_camara_monitoreo or fila.camara_sin_monitoreo or "").strip(),
+                "puesto": fila.central,
+                "pantalla": fila.ubicacion_pantalla,
+                "eliminado_en": fila.eliminado_en.strftime("%d/%m/%Y %H:%M") if fila.eliminado_en else "",
+                "eliminado_por": fila.eliminado_por or "",
+            }
+            for fila, nombre_sucursal in filas
+        ]
+    }
+
+
+@router.post("/api/bitacora/puestos/{camara_id}/restaurar")
+def restaurar_camara_puesto(
+    camara_id: int,
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    """Revierte la eliminacion de una camara (ver eliminar_camara_puesto) —
+    le hace campo en su casillero original corriendo hacia la derecha a las
+    que quedaron ahi desde que se elimino, o la deja sin casillero fijo (se
+    ubica sola en un espacio libre) si ya no hay lugar — pedido explicito,
+    ago 2026."""
+    _require_bitacora_access(current_user)
+    if not can_manage_bitacora_puestos(current_user):
+        raise HTTPException(status_code=403, detail="Solo usuarios de Soporte pueden restaurar cámaras.")
+
+    fila = incidencias_db.get(SucursalCamaraMonitoreo, camara_id)
+    if not fila or fila.eliminado_en is None:
+        raise HTTPException(status_code=404, detail="No se encontró esa cámara eliminada.")
+
+    if fila.slot_index is not None and fila.central is not None:
+        capacidad = 25 if fila.central <= 12 else 20
+        posteriores = (
+            incidencias_db.query(SucursalCamaraMonitoreo)
+            .filter(
+                SucursalCamaraMonitoreo.central == fila.central,
+                SucursalCamaraMonitoreo.ubicacion_pantalla == fila.ubicacion_pantalla,
+                SucursalCamaraMonitoreo.eliminado_en.is_(None),
+                SucursalCamaraMonitoreo.slot_index.isnot(None),
+                SucursalCamaraMonitoreo.slot_index >= fila.slot_index,
+                SucursalCamaraMonitoreo.id != fila.id,
+            )
+            .order_by(SucursalCamaraMonitoreo.slot_index.desc())
+            .all()
+        )
+        for posterior in posteriores:
+            nuevo_slot = posterior.slot_index + 1
+            posterior.slot_index = nuevo_slot if nuevo_slot < capacidad else None
+
+    fila.eliminado_en = None
+    fila.eliminado_por = None
+    incidencias_db.commit()
+
+    return {"ok": True}
 
 
 # ──────────────────────────────────────────────

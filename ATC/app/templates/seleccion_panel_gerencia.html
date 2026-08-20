@@ -227,8 +227,8 @@
 	  font-size:15px;
 	  font-weight:800;
 	  margin-left:0;
-	  background:linear-gradient(180deg, rgba(var(--option-accent),.34), rgba(var(--option-accent),.18));
-	  border:1px solid rgba(var(--option-accent),.46);
+	  background:linear-gradient(180deg, rgba(54,95,141,.34), rgba(54,95,141,.18));
+	  border:1px solid rgba(54,95,141,.46);
 	}
 	.icon svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 	.option strong,
@@ -360,6 +360,10 @@
           <a class="option" href="/venta/panel-selector?token={{ token|default('')|urlencode }}&next=panelSelectorVenta" style="--option-accent:13,148,136;">
             <span class="icon">C</span>
             <strong>Comercial</strong>
+          </a>
+          <a class="option" href="/guardia/cumplimiento-turnos?token={{ token|default('')|urlencode }}&grupo=concon" style="--option-accent:15,118,110;">
+            <span class="icon">CT</span>
+            <strong>Cumplimiento de Turnos</strong>
           </a>
         </div>
       </div>

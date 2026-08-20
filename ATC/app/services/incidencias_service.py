@@ -38,10 +38,19 @@ from ATC.app.core.image_optimizer import optimize_image_bytes
 from ATC.app.core.session_policy import expiracion_sesion
 from ATC.app.services.incidencias_drive_report_service import (
     DriveReportError,
+    download_support_drive_file_bytes,
     list_support_images_for_odt,
+    resolve_odt_cierre_folder,
     retry_odt_cierre_drive_upload,
+    upload_cierre_apertura_image_to_drive,
+    upload_odt_cierre_images_to_drive,
+    upload_odt_cierre_pdf_to_drive,
     upload_odt_cierre_to_drive,
     upload_support_images_for_odt,
+)
+from ATC.app.services.rendiciones_drive_service import (
+    upload_rendicion_boleta_to_drive,
+    upload_rendicion_informe_to_drive,
 )
 from ATC.app.models.prevencion import EstatusDocumentacionTecnico
 from ATC.app.models.incidencias import (
@@ -94,6 +103,36 @@ def _url_to_path(url: str) -> Path:
     if stripped.startswith("uploads/"):
         return _ATC_ROOT / stripped
     return _INCIDENCIAS_APP_DIR / stripped
+
+
+_PENDING_DRIVE_ROOT = _UPLOADS_ROOT / "_pending_drive"
+
+
+def _guardar_en_cuarentena_drive(
+    flujo: str,
+    identificador: str,
+    filename: str,
+    content: bytes,
+    retry_meta: dict[str, Any],
+) -> str:
+    """Fallback cuando falla una subida a Drive: guarda el archivo en una
+    carpeta de cuarentena acotada (no la carpeta normal de uploads) y deja un
+    sidecar .meta.json con los datos que necesita el job de reintento
+    (automation_loop) para reintentar la subida y actualizar la fila
+    correspondiente. Devuelve la URL local temporal a guardar en la BBDD."""
+    safe_id = re.sub(r"[^A-Za-z0-9_-]+", "_", identificador or "sin_id")
+    carpeta = _PENDING_DRIVE_ROOT / flujo / safe_id
+    carpeta.mkdir(parents=True, exist_ok=True)
+    destino = carpeta / filename
+    destino.write_bytes(content)
+    meta_path = destino.with_suffix(destino.suffix + ".meta.json")
+    meta_path.write_text(json.dumps({"flujo": flujo, **retry_meta}), encoding="utf-8")
+    rel = destino.relative_to(_UPLOADS_ROOT)
+    LOGGER.warning(
+        "Cuarentena Drive: flujo=%s id=%s archivo=%s (subida a Drive fallo, reintentara automation_loop)",
+        flujo, identificador, filename,
+    )
+    return f"/uploads/{rel.as_posix()}"
 IDENTITY_SEED_FILE = _ATC_ROOT / "app" / "data" / "users_areas_seed.csv"
 AREA_DESTINOS: dict[str, str] = {
     "auto": "",
@@ -752,9 +791,7 @@ _COLUMNAS_TABLA_CACHE: dict[tuple[str, str], set[str]] = {}
 class IncidenciasService:
     MANTENCION_CIERRE_MAX_IMAGENES = 80
     MANTENCION_CIERRE_MAX_BYTES = 10 * 1024 * 1024
-    MANTENCION_CIERRE_UPLOADS_DIR = _ATC_ROOT / "uploads" / "cierres_mantencion"
     CIERRE_ODT_MAX_BYTES = 10 * 1024 * 1024
-    CIERRE_ODT_UPLOADS_DIR = _ATC_ROOT / "uploads" / "cierres_odt"
 
     CAUSAS_CIERRE: dict[str, set[str]] = {
         "ATC": {
@@ -810,6 +847,59 @@ class IncidenciasService:
         "requiere_cotizacion_visita_adicional",
     }
     PRUEBAS_CIERRE = {"camaras_ok", "grabacion_ok", "audio_ok", "red_ok", "energia_ok"}
+
+    # Equipos fijos (camioneta -> tecnicos asignados) que arma el tablero de
+    # obtener_resumen_equipos_tecnicos_hoy(). Unica fuente de verdad: tambien
+    # la usa la sugerencia de acompanante al derivar una ODT (ver
+    # _sugerir_acompanante_para_tecnico), para que ambas coincidan siempre —
+    # un tecnico que aparece solo en un equipo (lista de 1) nunca se sugiere
+    # con acompanante.
+    EQUIPOS_TECNICOS_POR_PATENTE: dict[str, list[str]] = {
+        "RTXG 52": ["Cristopher Enrique Soto Diaz", "Dwait German Aros Contreras"],
+        "RHPV 38": ["Emmanuel Issak Correa Ubilla", "Haxel Samir Del Carmen Saavedra Villanueva"],
+        "KVTG 28": ["Omar Alejandro Triviño Silva"],
+        "SRVP 17": ["Diego Antonio Moncada Sepulveda", "Ricardo Andres Vergara Guerra"],
+        "SSZW 51": ["Bryan Benjamin Ibaceta Fabrega", "Rodrigo Octavio Carmona Agurto"],
+        "SSZS 24": ["Michael Alejandro Herrera Navia", "Hans Reinhold Schemmel Rodriguez"],
+        "RJXX 46": ["Marco Antonio Lopez Aguirre", "Bryan Alexander Rebolledo Hidalgo"],
+        "VXLG 86": ["Luis Alberto Bustamante Aguilera", "Enrique Alejandro Sandoval Nunez"],
+        "VXLG 93": ["Mauro Estefano Reyes Villegas"],
+    }
+    PATENTES_TECNICOS_FIJAS: list[str] = [
+        "RTXG 52",
+        "RHPV 38",
+        "KVTG 28",
+        "SRVP 17",
+        "SSZW 51",
+        "SSZS 24",
+        "RJXX 46",
+        "VXLG 86",
+        "VXLG 93",
+    ]
+    ALIASES_PATENTE_TECNICO: dict[str, str] = {
+        "christopher enrique soto diaz": "RTXG 52",
+        "dwait german aros contreras": "RTXG 52",
+        "omar alejandro trivino silva": "KVTG 28",
+        "emmanuel issak correa ubilla": "RHPV 38",
+        "haxel samir del carmen saavedra villanueva": "RHPV 38",
+        "diego antonio moncada sepulveda": "SRVP 17",
+        "diego moncada sepulveda": "SRVP 17",
+        "ricardo vergara": "SRVP 17",
+        "michael alejandro herrera navia": "SSZS 24",
+        "hans reinhold schemmel rodriguez": "SSZS 24",
+        "marco antonio lopez aguirre": "RJXX 46",
+        "bryan alexander rebolledo hidalgo": "RJXX 46",
+        "bryan rebolledo hidalgo": "RJXX 46",
+        "bryan benjamin ibaceta fabrega": "SSZW 51",
+        "rodrigo octavio carmona agurto": "SSZW 51",
+        "luis alberto bustamante aguilera": "VXLG 86",
+        "enrique alejandro sandoval nunez": "VXLG 86",
+        "enrique alejandro sandoval": "VXLG 86",
+        "mauro estefano reyes villegas": "VXLG 93",
+        "javier ignacio salgado brito": "SRVP 17",
+        "ricardo andres vergara guerra": "SRVP 17",
+        "*por confirmar*": "SSZS 24",
+    }
     MAX_FOTOS_CIERRE_ODS = 20
     MAX_FOTOS_INFORME_ODS = 2
     MATERIALES_CIERRE = {
@@ -2160,59 +2250,10 @@ class IncidenciasService:
             return re.sub(r"\s+", " ", self._reparar_texto_mojibake(value)).strip()
 
         def _nombre_corto(value: str) -> str:
-            partes = [
-                parte
-                for parte in _clean(value).split()
-                if parte and self._normalizar_texto(parte) not in {"atc"}
-            ]
-            if not partes:
-                return ""
-            if len(partes) == 1:
-                return partes[0]
-            if len(partes) >= 4:
-                return f"{partes[0]} {partes[-2]}"
-            nombres_intermedios = {
-                "alberto",
-                "alejandro",
-                "alfonso",
-                "andres",
-                "antonio",
-                "benjamin",
-                "constanza",
-                "enrique",
-                "estefano",
-                "ignacio",
-                "issak",
-                "kevin",
-                "octavio",
-                "samir",
-                "sebastian",
-            }
-            apellido = partes[-1] if len(partes) == 3 and self._normalizar_texto(partes[1]) in nombres_intermedios else partes[1]
-            return f"{partes[0]} {apellido}"
+            return self._nombre_corto_tecnico(value)
 
-        equipos_por_patente = {
-            "RTXG 52": ["Cristopher Enrique Soto Diaz", "Dwait German Aros Contreras"],
-            "RHPV 38": ["Emmanuel Issak Correa Ubilla", "Haxel Samir Del Carmen Saavedra Villanueva"],
-            "KVTG 28": ["Omar Alejandro Triviño Silva"],
-            "SRVP 17": ["Diego Antonio Moncada Sepulveda", "Ricardo Andres Vergara Guerra"],
-            "SSZW 51": ["Bryan Benjamin Ibaceta Fabrega", "Rodrigo Octavio Carmona Agurto"],
-            "SSZS 24": ["Michael Alejandro Herrera Navia", "Hans Reinhold Schemmel Rodriguez"],
-            "RJXX 46": ["Marco Antonio Lopez Aguirre", "Bryan Alexander Rebolledo Hidalgo"],
-            "VXLG 86": ["Luis Alberto Bustamante Aguilera", "Enrique Alejandro Sandoval Nunez"],
-            "VXLG 93": ["Mauro Estefano Reyes Villegas"],
-        }
-        patentes_fijas = [
-            "RTXG 52",
-            "RHPV 38",
-            "KVTG 28",
-            "SRVP 17",
-            "SSZW 51",
-            "SSZS 24",
-            "RJXX 46",
-            "VXLG 86",
-            "VXLG 93",
-        ]
+        equipos_por_patente = self.EQUIPOS_TECNICOS_POR_PATENTE
+        patentes_fijas = self.PATENTES_TECNICOS_FIJAS
         patentes_por_tecnico: dict[str, str] = {}
         for patente, miembros in equipos_por_patente.items():
             for nombre in miembros:
@@ -2220,32 +2261,7 @@ class IncidenciasService:
                     key = self._normalizar_nombre_login(alias)
                     if key:
                         patentes_por_tecnico[key] = patente
-        patentes_por_tecnico.update(
-            {
-                "christopher enrique soto diaz": "RTXG 52",
-                "dwait german aros contreras": "RTXG 52",
-                "omar alejandro trivino silva": "KVTG 28",
-                "emmanuel issak correa ubilla": "RHPV 38",
-                "haxel samir del carmen saavedra villanueva": "RHPV 38",
-                "diego antonio moncada sepulveda": "SRVP 17",
-                "diego moncada sepulveda": "SRVP 17",
-                "ricardo vergara": "SRVP 17",
-                "michael alejandro herrera navia": "SSZS 24",
-                "hans reinhold schemmel rodriguez": "SSZS 24",
-                "marco antonio lopez aguirre": "RJXX 46",
-                "bryan alexander rebolledo hidalgo": "RJXX 46",
-                "bryan rebolledo hidalgo": "RJXX 46",
-                "bryan benjamin ibaceta fabrega": "SSZW 51",
-                "rodrigo octavio carmona agurto": "SSZW 51",
-                "luis alberto bustamante aguilera": "VXLG 86",
-                "enrique alejandro sandoval nunez": "VXLG 86",
-                "enrique alejandro sandoval": "VXLG 86",
-                "mauro estefano reyes villegas": "VXLG 93",
-                "javier ignacio salgado brito": "SRVP 17",
-                "ricardo andres vergara guerra": "SRVP 17",
-                "*por confirmar*": "SSZS 24",
-            }
-        )
+        patentes_por_tecnico.update(self.ALIASES_PATENTE_TECNICO)
 
         def _patente_tecnico(value: str) -> str:
             nombre = _clean(value)
@@ -2316,6 +2332,7 @@ class IncidenciasService:
             cliente: str,
             problema: str,
             detalle: str = "",
+            detalle_alt: str = "",
             direccion: str = "",
             estado: str = "Pendiente",
             prioridad: Any = None,
@@ -2364,16 +2381,29 @@ class IncidenciasService:
                     "odts": [],
                 }
 
+            cliente_limpio = _clean(cliente)
+            problema_limpio = _clean(problema)
+            direccion_limpia = _clean(direccion)
+            estado_limpio = _clean(estado) or "Pendiente"
+            fecha_texto = _to_ddmmyyyy_hhmm(fecha_ref)
+            # Solo Desconexion guarda su detalle estructurado (contacto,
+            # prioridad) en detalle_problema — otros tipos como Problema de
+            # Parlante lo guardan en observacion en su lugar (mismo formato
+            # "[quien - fecha] detalle"). Si no hay ninguno de los dos, se
+            # cae al nombre del problema, nunca al estado — pedido
+            # explicito, ago 2026.
+            detalle_limpio = _clean(detalle) or _clean(detalle_alt) or problema_limpio
+
             equipos[key]["odts"].append(
                 {
                     "odt": _clean(odt),
-                    "cliente": _clean(cliente),
-                    "problema": _clean(problema),
-                    "detalle": _clean(detalle),
-                    "direccion": _clean(direccion),
-                    "estado": _clean(estado) or "Pendiente",
+                    "cliente": cliente_limpio,
+                    "problema": problema_limpio,
+                    "detalle": detalle_limpio,
+                    "direccion": direccion_limpia,
+                    "estado": estado_limpio,
                     "prioridad": prioridad,
-                    "fecha": _to_ddmmyyyy_hhmm(fecha_ref),
+                    "fecha": fecha_texto,
                     "origen": origen,
                 }
             )
@@ -2416,6 +2446,7 @@ class IncidenciasService:
                 cliente=row.cliente,
                 problema=row.problema,
                 detalle=row.detalle_problema,
+                detalle_alt=row.observacion,
                 direccion=row.direccion,
                 estado=row.estado,
                 prioridad=row.prioridad,
@@ -2466,6 +2497,7 @@ class IncidenciasService:
                 odt=ods.codigo,
                 cliente=ods.nombre_sucursal or ods.razon_social or "",
                 problema=ods.tipo_servicio or "",
+                detalle=ods.observacion or ods.consideraciones or "",
                 direccion=ods.direccion_sucursal or "",
                 estado="En Proceso",
                 fecha_ref=fecha_ref,
@@ -2522,6 +2554,18 @@ class IncidenciasService:
                     "columna_prioritaria": True,
                 }
             )
+        # Dentro de cada equipo, las ODT se muestran por prioridad (1 = más
+        # urgente, definida en la tabla de Incidencias Servicio Técnico) en
+        # vez del orden de derivación con el que llegaron arriba. Las que no
+        # tienen prioridad asignada quedan al final, en el mismo orden en que
+        # ya venían.
+        def _clave_orden_prioridad(odt: dict[str, Any]) -> tuple[bool, int]:
+            prioridad = odt.get("prioridad")
+            return (prioridad is None, prioridad if prioridad is not None else 0)
+
+        for equipo in equipos_ordenados:
+            equipo["odts"].sort(key=_clave_orden_prioridad)
+
         return {
             "fecha": hoy.strftime("%d/%m/%Y"),
             "equipos": equipos_ordenados,
@@ -3629,23 +3673,81 @@ class IncidenciasService:
         self._registrar_sync_soporte_nueva(odt, data, ahora, observacion_registro)
         return odt
 
+    def _nombre_corto_tecnico(self, value: str) -> str:
+        """Nombre corto (primer nombre + apellido representativo) para
+        matchear tecnicos contra EQUIPOS_TECNICOS_POR_PATENTE sin importar
+        si el dato original viene con nombre completo o ya abreviado.
+        Misma logica que usaba el closure _nombre_corto de
+        obtener_resumen_equipos_tecnicos_hoy, ahora compartida."""
+        texto = re.sub(r"\s+", " ", self._reparar_texto_mojibake(value)).strip()
+        partes = [p for p in texto.split() if p and self._normalizar_texto(p) not in {"atc"}]
+        if not partes:
+            return ""
+        if len(partes) == 1:
+            return partes[0]
+        if len(partes) >= 4:
+            return f"{partes[0]} {partes[-2]}"
+        nombres_intermedios = {
+            "alberto", "alejandro", "alfonso", "andres", "antonio", "benjamin",
+            "constanza", "enrique", "estefano", "ignacio", "issak", "kevin",
+            "octavio", "samir", "sebastian",
+        }
+        apellido = partes[-1] if len(partes) == 3 and self._normalizar_texto(partes[1]) in nombres_intermedios else partes[1]
+        return f"{partes[0]} {apellido}"
+
+    def _patente_para_tecnico(self, value: str) -> str:
+        """Resuelve nombre de tecnico -> patente de su equipo fijo, con la
+        misma logica (roster + alias manuales) que usa el tablero de
+        obtener_resumen_equipos_tecnicos_hoy."""
+        patentes_por_tecnico: dict[str, str] = {}
+        for patente, miembros in self.EQUIPOS_TECNICOS_POR_PATENTE.items():
+            for nombre in miembros:
+                for alias in (nombre, self._nombre_corto_tecnico(nombre)):
+                    key = self._normalizar_nombre_login(alias)
+                    if key:
+                        patentes_por_tecnico[key] = patente
+        patentes_por_tecnico.update(self.ALIASES_PATENTE_TECNICO)
+
+        nombre = re.sub(r"\s+", " ", self._reparar_texto_mojibake(value)).strip()
+        candidatos = [
+            self._normalizar_nombre_login(nombre),
+            self._normalizar_nombre_login(nombre.strip("*")),
+            self._normalizar_nombre_login(self._nombre_corto_tecnico(nombre)),
+        ]
+        return next((patentes_por_tecnico.get(c) for c in candidatos if patentes_por_tecnico.get(c)), "")
+
+    def sugerir_acompanante(self, tecnico: str) -> str:
+        """Wrapper publico de _sugerir_acompanante_para_tecnico, para el
+        endpoint de sugerencia (GET, de solo lectura) que el frontend
+        consulta antes de pedirle confirmacion al usuario."""
+        return self._sugerir_acompanante_para_tecnico(tecnico)
+
     def _sugerir_acompanante_para_tecnico(self, tecnico: str) -> str:
-        """Acompañante mas frecuente historicamente para este tecnico (segun
-        incidencias.tecnicos/acompanante ya registrados) — base de la
-        asignacion automatica de acompanante al derivar una ODT."""
+        """Acompañante del equipo fijo (camioneta) de este tecnico, segun
+        EQUIPOS_TECNICOS_POR_PATENTE — la misma fuente que usa el tablero de
+        obtener_resumen_equipos_tecnicos_hoy, para que la sugerencia al
+        derivar una ODT siempre coincida con el equipo que se ve ahi. Si el
+        tecnico trabaja solo (su equipo tiene un unico integrante) o no esta
+        en ningun equipo, no hay sugerencia — el frontend no pregunta nada
+        en ese caso, se queda sin acompanante."""
         tecnico_txt = (tecnico or "").strip()
         if not tecnico_txt:
             return ""
-        fila = self.db.execute(
-            select(Registro.acompanante, func.count().label("n"))
-            .where(Registro.tecnicos == tecnico_txt)
-            .where(Registro.acompanante.is_not(None))
-            .where(Registro.acompanante != "")
-            .group_by(Registro.acompanante)
-            .order_by(func.count().desc())
-            .limit(1)
-        ).first()
-        return str(fila[0] or "").strip() if fila else ""
+        patente = self._patente_para_tecnico(tecnico_txt)
+        if not patente:
+            return ""
+        miembros = self.EQUIPOS_TECNICOS_POR_PATENTE.get(patente) or []
+        if len(miembros) < 2:
+            return ""
+        candidatos_propios = {
+            self._normalizar_nombre_login(tecnico_txt),
+            self._normalizar_nombre_login(tecnico_txt.strip("*")),
+            self._normalizar_nombre_login(self._nombre_corto_tecnico(tecnico_txt)),
+        }
+        for miembro in miembros:
+            if self._normalizar_nombre_login(miembro) not in candidatos_propios:
+                return self._nombre_corto_tecnico(miembro)
+        return ""
 
     def derivar_odt_a_tecnico(
         self,
@@ -3677,12 +3779,12 @@ class IncidenciasService:
         if tecnico_limpio:
             estado_final = "Pendiente" if dejar_pendiente else "En Proceso"
             row.tecnicos = tecnico_limpio
-            if not acompanante_limpio:
-                # Asignacion automatica: no se pisa un acompañante ya elegido
-                # a mano, solo se sugiere cuando el campo viene vacio (p.ej.
-                # al derivar la ODT a un tecnico por primera vez). Sigue
-                # siendo editable despues desde la celda de Acompañante.
-                acompanante_limpio = self._sugerir_acompanante_para_tecnico(tecnico_limpio)
+            # Ya no se auto-asigna un acompañante acá: el frontend consulta
+            # la sugerencia por separado (GET /api/incidencias/sugerir-acompanante)
+            # y confirma con el usuario antes de mandarla en este mismo campo.
+            # Así "acompanante" siempre refleja exactamente lo que se pidió
+            # guardar — incluido vacío, para poder borrarlo sin que se vuelva
+            # a rellenar solo.
             row.acompanante = acompanante_limpio or None
             if not dejar_pendiente:
                 row.fecha_derivacion_tecnico = ahora
@@ -6556,20 +6658,6 @@ class IncidenciasService:
             raise ValueError("La carga masiva de imagenes aplica solo a Mantencion Preventiva.")
         return row
 
-    def crear_staging_cierre_mantencion(self, odt: str) -> Path:
-        odt_limpia = re.sub(r"[^A-Za-z0-9_-]+", "_", str(odt or "").strip()) or "sin_odt"
-        batch_id = datetime.utcnow().strftime("%Y%m%d_%H%M%S_") + uuid.uuid4().hex[:8]
-        target = self.MANTENCION_CIERRE_UPLOADS_DIR / odt_limpia / batch_id
-        target.mkdir(parents=True, exist_ok=True)
-        return target
-
-    def crear_staging_cierre_odt(self, odt: str) -> Path:
-        odt_limpia = re.sub(r"[^A-Za-z0-9_-]+", "_", str(odt or "").strip()) or "sin_odt"
-        batch_id = datetime.utcnow().strftime("%Y%m%d_%H%M%S_") + uuid.uuid4().hex[:8]
-        target = self.CIERRE_ODT_UPLOADS_DIR / odt_limpia / batch_id
-        target.mkdir(parents=True, exist_ok=True)
-        return target
-
     @staticmethod
     def nombre_staging_cierre_mantencion(index: int, filename: str, mime_type: str = "") -> str:
         raw_name = str(filename or "").strip()
@@ -6620,14 +6708,13 @@ class IncidenciasService:
     @staticmethod
     def _subir_imagenes_cierre_mantencion_worker(
         odt: str,
-        staged_files: list[str],
+        foto_payloads: list[dict[str, object]],
         observacion: str,
     ) -> None:
         db = SessionLocal()
         try:
             service = IncidenciasService(db)
-            fuentes = [p for p in staged_files if Path(p).exists() and Path(p).is_file()]
-            result = service._generar_drive_para_cierre(odt, observacion, fuentes)
+            result = service._generar_drive_para_cierre(odt, observacion, [], foto_payloads=foto_payloads)
             folder_id = str(result.get("folder_id") or "").strip()
             if folder_id:
                 folder_url = f"https://drive.google.com/drive/folders/{folder_id}"
@@ -6640,7 +6727,7 @@ class IncidenciasService:
     def cerrar_mantencion_con_imagenes_staging(
         self,
         odt: str,
-        staged_files: list[Path],
+        foto_payloads: list[dict[str, object]],
         observacion: str,
         *,
         responsable_cierre: str,
@@ -6655,10 +6742,10 @@ class IncidenciasService:
     ) -> dict[str, Any]:
         odt_limpia = str(odt or "").strip()
         row = self.validar_odt_mantencion_preventiva(odt_limpia)
-        staged_clean = [Path(p) for p in staged_files or [] if Path(p).exists() and Path(p).is_file()]
-        if not staged_clean:
+        payloads_validos = [p for p in foto_payloads or [] if isinstance(p.get("bytes"), (bytes, bytearray)) and p.get("bytes")]
+        if not payloads_validos:
             raise ValueError("Debes adjuntar al menos una imagen para cerrar una mantencion.")
-        if len(staged_clean) > self.MANTENCION_CIERRE_MAX_IMAGENES:
+        if len(payloads_validos) > self.MANTENCION_CIERRE_MAX_IMAGENES:
             raise ValueError(f"Solo puedes adjuntar hasta {self.MANTENCION_CIERRE_MAX_IMAGENES} imagenes.")
 
         # Mantención preventiva no requiere diagnóstico — proveer defaults
@@ -6686,7 +6773,7 @@ class IncidenciasService:
         if drive_enabled:
             worker = threading.Thread(
                 target=self._subir_imagenes_cierre_mantencion_worker,
-                args=(odt_limpia, [str(p) for p in staged_clean], observacion),
+                args=(odt_limpia, payloads_validos, observacion),
                 daemon=True,
                 name=f"mantencion-cierre-img-{odt_limpia}",
             )
@@ -6695,7 +6782,7 @@ class IncidenciasService:
         return {
             "result": result,
             "odt": odt_limpia,
-            "imagenes_recibidas": len(staged_clean),
+            "imagenes_recibidas": len(payloads_validos),
             "drive_enabled": drive_enabled,
             "drive_queued": drive_enabled,
             "message": (
@@ -6835,6 +6922,7 @@ class IncidenciasService:
         fotos_base64: list[str] | None = None,
         token: str = "",
         cantidad_instalada_total: int | None = None,
+        foto_payloads: list[dict[str, object]] | None = None,
     ) -> dict[str, Any]:
         odt_limpia = (odt or "").strip()
         if not odt_limpia:
@@ -6969,7 +7057,7 @@ class IncidenciasService:
         if drive_enabled:
             worker = threading.Thread(
                 target=self._ejecutar_drive_en_segundo_plano,
-                args=(odt_limpia, obs_cierre, fotos, self.MAX_FOTOS_INFORME_ODS),
+                args=(odt_limpia, obs_cierre, fotos, self.MAX_FOTOS_INFORME_ODS, foto_payloads),
                 daemon=True,
                 name=f"drive-report-{odt_limpia}",
             )
@@ -7731,7 +7819,16 @@ class IncidenciasService:
             "drive_folder_name": str(drive_result.get("folder_name") or ""),
         }
 
-    _CIERRE_APERTURA_UPLOADS_DIR = Path(__file__).resolve().parents[2] / "uploads" / "cierre_apertura"
+    @staticmethod
+    def _url_cierre_apertura(ruta_archivo: str) -> str:
+        """ruta_archivo puede ser una URL completa ya armada (Drive proxy o
+        cuarentena local, ambas con "/" al inicio) para filas nuevas, o un
+        path relativo tipo "cierre_apertura/{cliente}/{archivo}" para filas
+        anteriores a la migracion a Drive."""
+        ruta = ruta_archivo or ""
+        if ruta.startswith(("/", "http")):
+            return ruta
+        return f"/uploads/{ruta}"
 
     def guardar_imagen_cierre_apertura(
         self,
@@ -7751,20 +7848,39 @@ class IncidenciasService:
         if not usuario or usuario == "Desconocido":
             usuario = (usuario_fallback or "").strip() or "Usuario no identificado"
 
-        carpeta_cliente = self._CIERRE_APERTURA_UPLOADS_DIR / re.sub(r"[^A-Za-z0-9_-]+", "_", client_id_limpio)
-        carpeta_cliente.mkdir(parents=True, exist_ok=True)
-
+        nombre_cliente = (client_name or client_id_limpio).strip()
         ahora = datetime.now()
         stamp = ahora.strftime("%Y%m%d_%H%M%S")
         filename = f"{stamp}_{uuid.uuid4().hex[:8]}.png"
-        ruta_absoluta = carpeta_cliente / filename
-        ruta_absoluta.write_bytes(content)
 
-        ruta_relativa = f"cierre_apertura/{carpeta_cliente.name}/{filename}"
+        try:
+            drive_result = upload_cierre_apertura_image_to_drive(
+                client_id=client_id_limpio,
+                client_name=nombre_cliente,
+                content=content,
+                filename=filename,
+                mime_type="image/png",
+            )
+            ruta_archivo = drive_result["public_uri"]
+        except Exception:
+            LOGGER.exception("No se pudo subir foto de apertura/cierre a Drive (client_id=%s)", client_id_limpio)
+            ruta_archivo = _guardar_en_cuarentena_drive(
+                "cierre_apertura",
+                client_id_limpio,
+                filename,
+                content,
+                {
+                    "client_id": client_id_limpio,
+                    "client_name": nombre_cliente,
+                    "filename": filename,
+                    "mime_type": "image/png",
+                },
+            )
+
         fila = CierreAperturaImagen(
             client_id=client_id_limpio,
-            client_name=(client_name or client_id_limpio).strip(),
-            ruta_archivo=ruta_relativa,
+            client_name=nombre_cliente,
+            ruta_archivo=ruta_archivo,
             created_by=usuario,
             created_at=ahora,
         )
@@ -7772,10 +7888,11 @@ class IncidenciasService:
         self.db.commit()
         self.db.refresh(fila)
 
+        LOGGER.info("Foto apertura/cierre guardada: id=%s client_id=%s -> %s", fila.id, client_id_limpio, ruta_archivo)
         return {
             "ok": True,
             "id": fila.id,
-            "url": f"/uploads/{ruta_relativa}",
+            "url": self._url_cierre_apertura(fila.ruta_archivo),
             "created_by": fila.created_by,
             "created_at": fila.created_at.isoformat(),
         }
@@ -7791,7 +7908,7 @@ class IncidenciasService:
                 "id": fila.id,
                 "client_id": fila.client_id,
                 "client_name": fila.client_name,
-                "url": f"/uploads/{fila.ruta_archivo}",
+                "url": self._url_cierre_apertura(fila.ruta_archivo),
                 "created_by": fila.created_by or "",
                 "created_at": fila.created_at.isoformat() if fila.created_at else None,
             }
@@ -8286,10 +8403,11 @@ class IncidenciasService:
         snapshot: dict[str, str],
         observacion: str,
         fotos: list[str],
-    ) -> str | None:
+    ) -> bytes | None:
         """Genera un PDF corporativo de cierre de ODT con reportlab.
 
-        Devuelve la URL relativa /uploads/odt/informes/<nombre>.pdf o None.
+        Devuelve los bytes del PDF (no se escribe a disco: lo sube a Drive
+        el llamador) o None si falla la generacion.
         """
         try:
             from reportlab.lib.pagesizes import A4
@@ -8301,7 +8419,7 @@ class IncidenciasService:
             )
             from reportlab.platypus import Image as RLImage
             from reportlab.lib.styles import ParagraphStyle
-            import io, uuid
+            import io
             from PIL import Image as PILImage
 
             C_DARK   = HexColor("#0b1424")
@@ -8668,6 +8786,10 @@ class IncidenciasService:
                             import base64 as _b64
                             _, b64data = fuente_s.split(",", 1)
                             img_buf = io.BytesIO(_b64.b64decode(b64data))
+                        elif fuente_s.startswith("/api/incidencias/drive-image/"):
+                            file_id = fuente_s.rsplit("/", 1)[-1]
+                            content, _mime, _name = download_support_drive_file_bytes(file_id=file_id)
+                            img_buf = io.BytesIO(content)
                         else:
                             p = Path(fuente_s)
                             if fuente_s.startswith("/uploads/") or fuente_s.startswith("uploads/"):
@@ -8678,6 +8800,12 @@ class IncidenciasService:
                                 continue
                             img_buf = io.BytesIO(p.read_bytes())
                         pil = PILImage.open(io.BytesIO(img_buf.getvalue()))
+                        pil.load()  # fuerza la decodificacion completa: un
+                        # archivo truncado (subida cortada a mitad, etc.)
+                        # pasa el open() (solo lee el header) pero falla aca
+                        # — sin este chequeo, reportlab recien lo detecta
+                        # durante doc.build() y tira abajo el PDF completo
+                        # en vez de solo saltear esta foto puntual.
                         ow, oh = pil.size
                         ratio = ow / oh if oh else 1
                         iw = min(max_w, max_h * ratio)
@@ -8703,15 +8831,7 @@ class IncidenciasService:
                     story.append(foto_t)
 
             doc.build(story)
-
-            dest_dir = _UPLOADS_ROOT / "odt" / "informes"
-            dest_dir.mkdir(parents=True, exist_ok=True)
-            ts       = datetime.now().strftime("%Y%m%d_%H%M%S")
-            uid      = uuid.uuid4().hex[:8]
-            odt_slug = odt_num.replace("/", "-").replace(" ", "_")
-            nombre   = f"cierre_{odt_slug}_{ts}_{uid}.pdf"
-            (dest_dir / nombre).write_bytes(buf.getvalue())
-            return f"/uploads/odt/informes/{nombre}"
+            return buf.getvalue()
 
         except Exception:
             LOGGER.exception("Error generando PDF local cierre ODT %s", snapshot.get("odt"))
@@ -8723,62 +8843,114 @@ class IncidenciasService:
         observacion: str,
         fotos: list[str],
         max_fotos_informe: int | None = None,
+        foto_payloads: list[dict[str, object]] | None = None,
     ) -> dict[str, Any]:
+        """Genera el PDF de cierre (en memoria) y lo sube a Drive junto con
+        las fotos, sin escribir nada a disco local salvo que Drive falle
+        (ver _guardar_en_cuarentena_drive).
+
+        foto_payloads son las fotos ya en memoria (bytes) de los flujos
+        nuevos (cierre de ODT sincronico, mantencion) — si vienen, se suben
+        primero y solo falta el PDF. Si no vienen, se usa el esquema viejo
+        (fotos como URLs/data-uris ya resueltas por el llamador, ej. el
+        fallback legacy de base64), subiendo fotos+PDF juntos como siempre.
+        """
+        import base64
+
         snapshot = self._obtener_snapshot_cierre_odt(odt)
         observacion_final = str(observacion or snapshot.get("observacion_final") or "").strip()
-        fuentes = [str(f or "").strip() for f in (fotos or self.obtener_imagenes_finalizacion(odt)) if str(f or "").strip()]
-        if max_fotos_informe is not None:
-            fuentes_informe = fuentes[: max(0, int(max_fotos_informe or 0))]
+        sucursal = str(snapshot.get("sucursal") or snapshot.get("cliente") or "").strip()
+        cliente = str(snapshot.get("cliente") or "").strip()
+        odt_id = str(snapshot.get("odt") or odt).strip()
+
+        if foto_payloads:
+            fuentes_informe_src = [
+                f"data:{str(p.get('mime_type') or '').strip() or 'image/jpeg'};base64,{base64.b64encode(bytes(p.get('bytes') or b'')).decode()}"
+                for p in foto_payloads
+                if p.get("bytes")
+            ]
+            fotos_legacy: list[str] = []
         else:
-            fuentes_informe = fuentes
-        tecnico = str(snapshot.get("tecnico") or "").strip()
-        acompanante = str(snapshot.get("acompanante") or "").strip()
-        tecnico_reporte = tecnico
-        if acompanante:
-            tecnico_reporte = f"{tecnico} / {acompanante}".strip(" /")
+            fuentes_informe_src = [str(f or "").strip() for f in (fotos or self.obtener_imagenes_finalizacion(odt)) if str(f or "").strip()]
+            fotos_legacy = fuentes_informe_src
+        if max_fotos_informe is not None:
+            fuentes_informe = fuentes_informe_src[: max(0, int(max_fotos_informe or 0))]
+        else:
+            fuentes_informe = fuentes_informe_src
 
-        # 1. Generar PDF local con estilo corporativo (es el informe primario)
-        local_url = self._generar_pdf_local_cierre_odt(snapshot, observacion_final, fuentes_informe)
-        if local_url:
-            self._guardar_pdf_url_odt(odt, local_url)
+        # 1. Generar PDF en memoria con estilo corporativo (es el informe primario)
+        pdf_bytes = self._generar_pdf_local_cierre_odt(snapshot, observacion_final, fuentes_informe)
 
-        # 2. Subir el PDF local a Drive como archivo (sin usar template de Google Docs)
+        # 2. Subir fotos (si no se subieron ya) y el PDF a la misma carpeta Drive.
+        folder_id = ""
+        pdf_url = ""
         drive_meta: dict = {}
+        imagenes_drive: list[str] = []
         try:
-            if local_url:
-                pdf_abs = _url_to_path(local_url)
-                drive_meta = dict(upload_odt_cierre_to_drive(
-                    pdf_local_path=str(pdf_abs),
-                    odt=str(snapshot.get("odt") or odt).strip(),
-                    sucursal=str(snapshot.get("sucursal") or snapshot.get("cliente") or "").strip(),
-                    cliente=str(snapshot.get("cliente") or "").strip(),
-                    image_sources=fuentes,
-                ))
-                folder_id  = drive_meta.get("folder_id", "")
-                folder_url = f"https://drive.google.com/drive/folders/{folder_id}" if folder_id else ""
-                if folder_id:
-                    self._guardar_drive_cierre_folder(odt, folder_id, folder_url)
-                imagenes_drive = [
-                    str(url or "").strip()
-                    for url in (drive_meta.get("imagenes") or [])
-                    if str(url or "").strip()
-                ]
-                if imagenes_drive:
-                    self._upsert_unified_images(
-                        str(snapshot.get("odt") or odt).strip(),
-                        str(snapshot.get("sucursal") or snapshot.get("cliente") or "").strip(),
-                        "drive_cierre",
-                        imagenes_drive,
-                        max_imagenes=max(len(imagenes_drive), 3),
+            if foto_payloads:
+                folder_id, _folder_name = resolve_odt_cierre_folder(odt=odt_id, sucursal=sucursal, cliente=cliente)
+                if fotos:
+                    # Las fotos ya se subieron sincronicamente antes de
+                    # llegar aca (ver subir_fotos_cierre_odt_sync) — no
+                    # volver a subirlas (eso las duplicaba en Drive), solo
+                    # reusar las URLs ya obtenidas para la tabla unificada.
+                    imagenes_drive = [str(u or "").strip() for u in fotos if str(u or "").strip()]
+                else:
+                    imagenes_drive = upload_odt_cierre_images_to_drive(
+                        folder_id=folder_id, odt=odt_id, image_payloads=foto_payloads,
                     )
-                    self.db.commit()
-        except Exception:
-            LOGGER.exception("No se pudo subir informe ODT %s a Drive", odt)
+                if pdf_bytes:
+                    pdf_meta = upload_odt_cierre_pdf_to_drive(
+                        folder_id=folder_id, odt=odt_id, sucursal=sucursal, pdf_bytes=pdf_bytes,
+                    )
+                    drive_meta = {"folder_id": folder_id, **pdf_meta}
+                    pdf_file_id = pdf_meta.get("pdf_file_id", "")
+                    if pdf_file_id:
+                        pdf_url = f"/api/incidencias/drive-image/{pdf_file_id}"
+            elif pdf_bytes:
+                drive_meta = dict(upload_odt_cierre_to_drive(
+                    pdf_bytes=pdf_bytes, odt=odt_id, sucursal=sucursal, cliente=cliente,
+                    image_sources=fotos_legacy,
+                ))
+                folder_id = drive_meta.get("folder_id", "")
+                imagenes_drive = [
+                    str(url or "").strip() for url in (drive_meta.get("imagenes") or []) if str(url or "").strip()
+                ]
+                pdf_file_id = drive_meta.get("pdf_file_id", "")
+                if pdf_file_id:
+                    pdf_url = f"/api/incidencias/drive-image/{pdf_file_id}"
 
+            if folder_id:
+                self._guardar_drive_cierre_folder(
+                    odt, folder_id, f"https://drive.google.com/drive/folders/{folder_id}"
+                )
+            if imagenes_drive:
+                self._upsert_unified_images(
+                    odt_id, sucursal, "drive_cierre", imagenes_drive, max_imagenes=max(len(imagenes_drive), 3),
+                )
+                self.db.commit()
+        except Exception:
+            LOGGER.exception("No se pudo subir informe/fotos de ODT %s a Drive", odt)
+
+        if not pdf_url and pdf_bytes:
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            odt_slug = odt_id.replace("/", "-").replace(" ", "_") or "SIN_ODT"
+            pdf_url = _guardar_en_cuarentena_drive(
+                "cierre_odt", odt_id, f"cierre_{odt_slug}_{ts}.pdf", pdf_bytes,
+                {"odt": odt_id, "sucursal": sucursal, "cliente": cliente},
+            )
+        if pdf_url:
+            self._guardar_pdf_url_odt(odt, pdf_url)
+
+        LOGGER.info(
+            "Cierre Drive ODT %s: folder_id=%s imagenes=%d pdf_url=%s",
+            odt, folder_id or "-", len(imagenes_drive), pdf_url or "(ninguno)",
+        )
         return {
-            "pdf_web_view_link": local_url or "",
-            "local_pdf_url":     local_url or "",
-            **{k: v for k, v in drive_meta.items() if k != "pdf_web_view_link"},
+            "pdf_web_view_link": pdf_url,
+            "local_pdf_url":     pdf_url,
+            "folder_id":         folder_id,
+            "imagenes":          imagenes_drive,
         }
 
     def _localizar_carpeta_drive_odt(self, drive, odt: str, cliente: str) -> str:
@@ -8867,13 +9039,13 @@ class IncidenciasService:
         snapshot = self._obtener_snapshot_cierre_odt(odt_limpia)
         fotos = self.obtener_imagenes_finalizacion(odt_limpia)
 
-        local_url = self._generar_pdf_local_cierre_odt(snapshot, texto_nuevo, fotos)
-        if not local_url:
+        pdf_bytes = self._generar_pdf_local_cierre_odt(snapshot, texto_nuevo, fotos)
+        if not pdf_bytes:
             raise RuntimeError("No se pudo generar el PDF actualizado")
-        self._guardar_pdf_url_odt(odt_limpia, local_url)
 
         drive_actualizado = False
         folder_id = ""
+        pdf_url = ""
         try:
             if settings.google_drive_enabled:
                 from ATC.app.services.drive_base_service import _build_clients, _clean_filename, _upload_bytes
@@ -8896,7 +9068,6 @@ class IncidenciasService:
                         except Exception:
                             LOGGER.exception("No se pudo archivar PDF viejo %s de ODT %s", f.get("id"), odt_limpia)
 
-                    pdf_abs = _url_to_path(local_url)
                     safe_sucursal = _clean_filename(
                         str(snapshot.get("sucursal") or snapshot.get("cliente") or "Sucursal"), fallback="Sucursal"
                     )
@@ -8905,7 +9076,8 @@ class IncidenciasService:
                         f"ODT_{odt_limpia}_{safe_sucursal}_{now_stamp}.pdf",
                         fallback=f"ODT_{odt_limpia}_{now_stamp}.pdf",
                     )
-                    _upload_bytes(drive, folder_id, pdf_name, pdf_abs.read_bytes(), "application/pdf")
+                    uploaded = _upload_bytes(drive, folder_id, pdf_name, pdf_bytes, "application/pdf")
+                    pdf_url = f"/api/incidencias/drive-image/{uploaded['id']}"
 
                     if not row_reg.drive_cierre_folder_id:
                         self._guardar_drive_cierre_folder(
@@ -8915,10 +9087,19 @@ class IncidenciasService:
         except Exception:
             LOGGER.exception("No se pudo actualizar el PDF en Drive para ODT %s", odt_limpia)
 
+        if not pdf_url:
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            odt_slug = odt_limpia.replace("/", "-").replace(" ", "_") or "SIN_ODT"
+            pdf_url = _guardar_en_cuarentena_drive(
+                "cierre_odt", odt_limpia, f"cierre_{odt_slug}_{ts}.pdf", pdf_bytes,
+                {"odt": odt_limpia, "sucursal": str(snapshot.get("sucursal") or "")},
+            )
+        self._guardar_pdf_url_odt(odt_limpia, pdf_url)
+
         return {
             "odt": odt_limpia,
             "observacion_final": texto_nuevo,
-            "pdf_url": local_url,
+            "pdf_url": pdf_url,
             "drive_actualizado": drive_actualizado,
             "drive_folder_id": folder_id,
         }
@@ -8995,17 +9176,213 @@ class IncidenciasService:
 
         return resultado
 
+    def reintentar_uploads_pendientes_drive(self, *, limite: int = 30) -> dict[str, int]:
+        """Reintenta subir a Drive los archivos que quedaron en cuarentena
+        local (ATC/uploads/_pending_drive/..., ver _guardar_en_cuarentena_drive)
+        porque Drive fallo en el momento del upload. Al lograrlo, actualiza la
+        fila de BBDD correspondiente con la URL definitiva de Drive y borra
+        el archivo local — asi la cuarentena no crece sin limite. Pensado
+        para correr periodicamente desde automation_loop()."""
+        resultado = {"revisados": 0, "reparados": 0, "con_error": 0}
+        try:
+            if not settings.google_drive_enabled or not _PENDING_DRIVE_ROOT.exists():
+                return resultado
+        except Exception:
+            return resultado
+
+        meta_files = sorted(_PENDING_DRIVE_ROOT.rglob("*.meta.json"))[:limite]
+        for meta_path in meta_files:
+            resultado["revisados"] += 1
+            data_path = Path(str(meta_path)[: -len(".meta.json")])
+            try:
+                if not data_path.exists():
+                    # Se perdio el archivo real; limpiar el sidecar huerfano.
+                    meta_path.unlink(missing_ok=True)
+                    continue
+                meta = json.loads(meta_path.read_text(encoding="utf-8"))
+                content = data_path.read_bytes()
+                flujo = str(meta.get("flujo") or "")
+                quarantine_url = f"/uploads/{data_path.relative_to(_UPLOADS_ROOT).as_posix()}"
+
+                nueva_url = self._reintentar_un_pendiente_drive(flujo, meta, content, quarantine_url)
+                if nueva_url:
+                    data_path.unlink(missing_ok=True)
+                    meta_path.unlink(missing_ok=True)
+                    resultado["reparados"] += 1
+                    LOGGER.info("Cuarentena Drive reparada: flujo=%s %s -> %s", flujo, quarantine_url, nueva_url)
+                else:
+                    resultado["con_error"] += 1
+                    LOGGER.warning(
+                        "Cuarentena Drive sigue pendiente: flujo=%s %s (fila no encontrada o Drive sigue fallando)",
+                        flujo, quarantine_url,
+                    )
+            except Exception:
+                resultado["con_error"] += 1
+                LOGGER.exception("Reintento de cuarentena Drive fallo para %s", meta_path)
+        return resultado
+
+    def _reintentar_un_pendiente_drive(
+        self, flujo: str, meta: dict[str, Any], content: bytes, quarantine_url: str,
+    ) -> str:
+        """Reintenta un item puntual de cuarentena; devuelve la nueva URL de
+        Drive si tuvo exito (y ya actualizo la fila en BBDD), o "" si sigue
+        fallando o la fila ya no existe/coincide (ej. se borro mientras
+        tanto)."""
+        if flujo == "cierre_apertura":
+            fila_ca = self.db.scalar(
+                select(CierreAperturaImagen).where(CierreAperturaImagen.ruta_archivo == quarantine_url)
+            )
+            if not fila_ca:
+                return ""
+            drive_result = upload_cierre_apertura_image_to_drive(
+                client_id=str(meta.get("client_id") or ""),
+                client_name=str(meta.get("client_name") or ""),
+                content=content,
+                filename=str(meta.get("filename") or "imagen.png"),
+                mime_type=str(meta.get("mime_type") or "image/png"),
+            )
+            fila_ca.ruta_archivo = drive_result["public_uri"]
+            self.db.commit()
+            return drive_result["public_uri"]
+
+        if flujo == "rendicion_boleta":
+            fila_rb = self.db.scalar(select(Rendicion).where(Rendicion.url_boleta == quarantine_url))
+            if not fila_rb:
+                return ""
+            drive_result = upload_rendicion_boleta_to_drive(
+                tecnico=str(meta.get("tecnico") or "") or "Sin tecnico",
+                rendicion_ref=str(meta.get("rendicion_ref") or fila_rb.id),
+                content=content,
+                filename=str(meta.get("filename") or "boleta.jpg"),
+                mime_type=str(meta.get("mime_type") or "application/octet-stream"),
+            )
+            fila_rb.url_boleta = drive_result["public_uri"]
+            self.db.commit()
+            return drive_result["public_uri"]
+
+        if flujo == "rendicion_informe":
+            fila_ri = self.db.scalar(select(Rendicion).where(Rendicion.url_informe == quarantine_url))
+            if not fila_ri:
+                return ""
+            drive_result = upload_rendicion_informe_to_drive(
+                tecnico=str(meta.get("tecnico") or "") or str(fila_ri.tecnico or "Sin tecnico"),
+                rendicion_id=int(meta.get("rendicion_id") or fila_ri.id),
+                pdf_bytes=content,
+                filename=str(meta.get("filename") or f"informe_{fila_ri.id}.pdf"),
+            )
+            fila_ri.url_informe = drive_result["public_uri"]
+            self.db.commit()
+            return drive_result["public_uri"]
+
+        if flujo in ("cierre_odt", "cierre_odt_foto"):
+            odt = str(meta.get("odt") or "").strip()
+            if not odt:
+                return ""
+            fila_reg = self.db.scalar(select(Registro).where(Registro.odt == odt))
+            if not fila_reg:
+                return ""
+            sucursal = str(meta.get("sucursal") or "")
+            cliente = str(meta.get("cliente") or "")
+            folder_id, _folder_name = resolve_odt_cierre_folder(odt=odt, sucursal=sucursal, cliente=cliente)
+            if folder_id:
+                self._guardar_drive_cierre_folder(
+                    odt, folder_id, f"https://drive.google.com/drive/folders/{folder_id}"
+                )
+
+            if flujo == "cierre_odt":
+                if fila_reg.pdf_url != quarantine_url:
+                    return ""
+                pdf_meta = upload_odt_cierre_pdf_to_drive(
+                    folder_id=folder_id, odt=odt, sucursal=sucursal, pdf_bytes=content,
+                )
+                nueva_url = f"/api/incidencias/drive-image/{pdf_meta['pdf_file_id']}"
+                fila_reg.pdf_url = nueva_url
+                self.db.commit()
+                return nueva_url
+
+            campo = next(
+                (nombre for nombre in ("foto_1", "foto_2", "foto_3") if getattr(fila_reg, nombre, "") == quarantine_url),
+                None,
+            )
+            if not campo:
+                return ""
+            urls = upload_odt_cierre_images_to_drive(
+                folder_id=folder_id, odt=odt,
+                image_payloads=[{
+                    "filename": str(meta.get("filename") or "imagen.jpg"),
+                    "mime_type": str(meta.get("mime_type") or "image/jpeg"),
+                    "bytes": content,
+                }],
+            )
+            if not urls:
+                return ""
+            setattr(fila_reg, campo, urls[0])
+            self.db.commit()
+            return urls[0]
+
+        return ""
+
+    def subir_fotos_cierre_odt_sync(self, odt: str, image_payloads: list[dict[str, object]]) -> list[str]:
+        """Sube las fotos de cierre de ODT a Drive de forma sincronica (antes
+        de responder el request), para que foto_1/2/3 queden con la URL
+        definitiva de inmediato. Si Drive falla para una foto puntual, esa
+        foto cae en cuarentena local (ver _guardar_en_cuarentena_drive) sin
+        perder su posicion en la lista, para no desalinear foto_1/2/3."""
+        if not image_payloads:
+            return []
+
+        snapshot = self._obtener_snapshot_cierre_odt(odt)
+        sucursal = str(snapshot.get("sucursal") or snapshot.get("cliente") or "").strip()
+        cliente = str(snapshot.get("cliente") or "").strip()
+        odt_id = str(snapshot.get("odt") or odt).strip() or odt
+
+        folder_id = ""
+        try:
+            folder_id, _folder_name = resolve_odt_cierre_folder(odt=odt_id, sucursal=sucursal, cliente=cliente)
+        except Exception:
+            LOGGER.exception("No se pudo resolver carpeta Drive para fotos de cierre ODT %s", odt)
+
+        urls: list[str] = []
+        for idx, payload in enumerate(image_payloads, start=1):
+            content = payload.get("bytes") or b""
+            filename = str(payload.get("filename") or f"img_{idx}")
+            mime_type = str(payload.get("mime_type") or "image/jpeg")
+            url = ""
+            if folder_id and content:
+                try:
+                    subidas = upload_odt_cierre_images_to_drive(
+                        folder_id=folder_id, odt=odt_id, image_payloads=[payload],
+                    )
+                    if subidas:
+                        url = subidas[0]
+                except Exception:
+                    LOGGER.exception("No se pudo subir foto %s de cierre ODT %s a Drive", idx, odt)
+            if not url:
+                url = _guardar_en_cuarentena_drive(
+                    "cierre_odt_foto", odt_id, filename, bytes(content),
+                    {"odt": odt_id, "sucursal": sucursal, "cliente": cliente, "index": idx, "mime_type": mime_type},
+                )
+            urls.append(url)
+        cuarentena = sum(1 for u in urls if u.startswith("/uploads/_pending_drive/"))
+        LOGGER.info(
+            "Fotos sync cierre ODT %s: %d subidas, %d en cuarentena", odt, len(urls) - cuarentena, cuarentena,
+        )
+        return urls
+
     @staticmethod
     def _ejecutar_drive_en_segundo_plano(
         odt: str,
         observacion: str,
         fotos: list[str],
         max_fotos_informe: int | None = None,
+        foto_payloads: list[dict[str, object]] | None = None,
     ) -> None:
         db = SessionLocal()
         try:
             service = IncidenciasService(db)
-            service._generar_drive_para_cierre(odt, observacion, fotos, max_fotos_informe=max_fotos_informe)
+            service._generar_drive_para_cierre(
+                odt, observacion, fotos, max_fotos_informe=max_fotos_informe, foto_payloads=foto_payloads,
+            )
         except Exception:
             LOGGER.exception("Fallo la generacion automatica del informe Drive para ODT %s", odt)
         finally:
@@ -9025,6 +9402,7 @@ class IncidenciasService:
         materiales: list[Any] | None = None,
         materiales_sin_uso: bool = False,
         requiere_seguimiento: bool = False,
+        foto_payloads: list[dict[str, object]] | None = None,
     ) -> dict[str, Any] | str:
         odt_limpia = (odt or "").strip()
         if not odt_limpia:
@@ -9089,7 +9467,7 @@ class IncidenciasService:
         if drive_enabled:
             worker = threading.Thread(
                 target=self._ejecutar_drive_en_segundo_plano,
-                args=(odt_limpia, self._observacion_drive_cierre(obs_cierre, diagnostico), fotos),
+                args=(odt_limpia, self._observacion_drive_cierre(obs_cierre, diagnostico), fotos, None, foto_payloads),
                 daemon=True,
                 name=f"drive-report-{odt_limpia}",
             )
@@ -10445,10 +10823,7 @@ class IncidenciasService:
         ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
         unique = uuid.uuid4().hex[:10]
         nombre_final = f"{ts}_{odt_seguro}_{tecnico_seguro}_{unique}{ext}"
-
-        static_dir = _UPLOADS_ROOT / "rendiciones"
-        static_dir.mkdir(parents=True, exist_ok=True)
-        destino = static_dir / nombre_final
+        rendicion_ref = f"{odt_seguro}_{tecnico_seguro}_{ts}_{unique}"
 
         mime = {
             ".jpg": "image/jpeg",
@@ -10461,8 +10836,32 @@ class IncidenciasService:
             if mime
             else bytes(content)
         )
-        destino.write_bytes(contenido_guardar)
-        return f"/uploads/rendiciones/{nombre_final}"
+        mime_final = mime or (mimetypes.guess_type(nombre_final)[0] or "application/octet-stream")
+
+        try:
+            drive_result = upload_rendicion_boleta_to_drive(
+                tecnico=tecnico or "Sin tecnico",
+                rendicion_ref=rendicion_ref,
+                content=contenido_guardar,
+                filename=nombre_final,
+                mime_type=mime_final,
+            )
+            LOGGER.info("Boleta rendicion subida a Drive: odt=%s tecnico=%s -> %s", odt, tecnico, drive_result["public_uri"])
+            return drive_result["public_uri"]
+        except Exception:
+            LOGGER.exception("No se pudo subir boleta de rendicion a Drive (odt=%s, tecnico=%s)", odt, tecnico)
+            return _guardar_en_cuarentena_drive(
+                "rendicion_boleta",
+                rendicion_ref,
+                nombre_final,
+                contenido_guardar,
+                {
+                    "tecnico": tecnico or "",
+                    "rendicion_ref": rendicion_ref,
+                    "filename": nombre_final,
+                    "mime_type": mime_final,
+                },
+            )
 
     def _generar_informe_rendicion_pdf(self, rend: "Rendicion") -> str | None:
         try:
@@ -10625,15 +11024,27 @@ class IncidenciasService:
             boleta_url = str(rend.url_boleta or "").strip()
             if boleta_url:
                 boleta_path: Path | None = None
-                if boleta_url.startswith("/"):
+                boleta_bytes: bytes | None = None
+                boleta_label = "boleta"
+                if boleta_url.startswith("/api/incidencias/drive-image/"):
+                    file_id = boleta_url.rsplit("/", 1)[-1]
+                    try:
+                        boleta_bytes, _mime, boleta_label = download_support_drive_file_bytes(file_id=file_id)
+                    except Exception:
+                        logging.exception("No se pudo descargar boleta desde Drive (file_id=%s)", file_id)
+                elif boleta_url.startswith("/"):
                     boleta_path = _url_to_path(boleta_url)
 
-                if boleta_path and boleta_path.exists():
+                tiene_boleta = boleta_bytes is not None or bool(boleta_path and boleta_path.exists())
+                if tiene_boleta:
                     story.append(Paragraph("IMAGEN DEL DOCUMENTO", st_sec))
                     try:
                         from PIL import Image as PILImage
-                        with PILImage.open(boleta_path) as pil_img:
+                        img_source = io.BytesIO(boleta_bytes) if boleta_bytes is not None else boleta_path
+                        with PILImage.open(img_source) as pil_img:
                             iw, ih = pil_img.size
+                        if boleta_bytes is not None:
+                            img_source.seek(0)
                         ratio  = ih / iw if iw else 1
                         max_h  = 13 * cm
                         img_w  = min(fw, max_h / ratio)
@@ -10641,7 +11052,10 @@ class IncidenciasService:
                         if img_h > max_h:
                             img_h = max_h
                             img_w = img_h / ratio
-                        img_el = RLImage(str(boleta_path), width=img_w, height=img_h)
+                        img_el = RLImage(
+                            img_source if boleta_bytes is not None else str(boleta_path),
+                            width=img_w, height=img_h,
+                        )
                         img_table = Table([[img_el]], colWidths=[fw])
                         img_table.setStyle(TableStyle([
                             ("ALIGN",         (0, 0), (-1, -1), "CENTER"),
@@ -10653,18 +11067,38 @@ class IncidenciasService:
                         ]))
                         story.append(KeepTogether([img_table]))
                     except Exception:
-                        story.append(Paragraph(f"Boleta: {boleta_path.name}", st_value))
+                        nombre_boleta = boleta_path.name if boleta_path else boleta_label
+                        story.append(Paragraph(f"Boleta: {nombre_boleta}", st_value))
 
             doc.build(story)
 
-            informe_dir = _UPLOADS_ROOT / "rendiciones" / "informes"
-            informe_dir.mkdir(parents=True, exist_ok=True)
             ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
             odt_safe = re.sub(r"[^A-Za-z0-9_-]+", "", str(rend.odt or "").upper()) or "X"
             nombre_pdf = f"informe_{rend.id}_{ts}_{odt_safe}.pdf"
-            dest_pdf = informe_dir / nombre_pdf
-            dest_pdf.write_bytes(buf.getvalue())
-            return f"/uploads/rendiciones/informes/{nombre_pdf}"
+            pdf_bytes = buf.getvalue()
+
+            try:
+                drive_result = upload_rendicion_informe_to_drive(
+                    tecnico=str(rend.tecnico or "") or "Sin tecnico",
+                    rendicion_id=rend.id,
+                    pdf_bytes=pdf_bytes,
+                    filename=nombre_pdf,
+                )
+                LOGGER.info("Informe de rendicion subido a Drive: id=%s -> %s", rend.id, drive_result["public_uri"])
+                return drive_result["public_uri"]
+            except Exception:
+                LOGGER.exception("No se pudo subir informe de rendicion a Drive (id=%s)", rend.id)
+                return _guardar_en_cuarentena_drive(
+                    "rendicion_informe",
+                    str(rend.id),
+                    nombre_pdf,
+                    pdf_bytes,
+                    {
+                        "tecnico": str(rend.tecnico or ""),
+                        "rendicion_id": rend.id,
+                        "filename": nombre_pdf,
+                    },
+                )
 
         except Exception:
             logging.exception("Error generando PDF rendicion id=%s", getattr(rend, "id", "?"))
@@ -11014,7 +11448,7 @@ class IncidenciasService:
         if not aprobada:
             nota_rechazo = '''
             <p style="margin:0 0 13px;font-family:Arial,sans-serif;font-size:14px;line-height:1.65;color:#374151;">
-              Si tienes dudas sobre el motivo del rechazo, contacta al equipo de Finanzas.
+              Si tienes dudas sobre el motivo del rechazo, contacta a tu jefatura.
             </p>'''
 
         cuerpo_html = f"""<!DOCTYPE html>

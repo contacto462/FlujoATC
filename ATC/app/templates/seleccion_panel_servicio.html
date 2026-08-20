@@ -268,8 +268,8 @@ h1{
   color:#fff;
   font-size:14px;
   font-weight:800;
-  background:linear-gradient(180deg, rgba(200,133,89,.34), rgba(200,133,89,.18));
-  border:1px solid rgba(200,133,89,.46);
+  background:linear-gradient(180deg, rgba(54,95,141,.34), rgba(54,95,141,.18));
+  border:1px solid rgba(54,95,141,.46);
 }
 
 .notif-badge{
@@ -289,27 +289,6 @@ h1{
   justify-content:center;
   line-height:1;
   box-shadow:0 1px 3px rgba(0,0,0,.4);
-}
-
-.review-badge{
-  position:absolute;
-  top:12px;
-  right:12px;
-  min-width:24px;
-  height:22px;
-  padding:0 7px;
-  border-radius:999px;
-  display:none;
-  align-items:center;
-  justify-content:center;
-  background:#ef4444;
-  color:#fff;
-  border:2px solid rgba(255,255,255,.72);
-  box-shadow:0 7px 16px rgba(0,0,0,.28);
-  font-size:11px;
-  font-weight:900;
-  line-height:1;
-  z-index:3;
 }
 
 .option strong{
@@ -399,7 +378,6 @@ h1{
         </a>
 
         <a class="option" id="cardVentasRevision" href="/?form=TablaServicioTecnico&token={{ token|default('') }}">
-          <span class="review-badge" id="badgeRevisionVenta">0</span>
           <div class="option-top">
             <div class="icon">V{% if pendiente_ventas_st %}<span class="notif-badge" title="{{ pendiente_ventas_st }} ODS pendiente(s)">{{ pendiente_ventas_st if pendiente_ventas_st <= 99 else "99+" }}</span>{% endif %}</div>
             <strong>Ventas</strong>
@@ -459,43 +437,6 @@ h1{
   </main>
 
   <script>
-    const tokenSesionServicio = new URLSearchParams(window.location.search).get("token") || "";
-
-    function withTokenServicio(url) {
-      const sep = url.includes("?") ? "&" : "?";
-      return tokenSesionServicio ? `${url}${sep}token=${encodeURIComponent(tokenSesionServicio)}` : url;
-    }
-
-    function setRevisionBadge(value) {
-      const el = document.getElementById("badgeRevisionVenta");
-      if (!el) return;
-      if (value > 0) {
-        el.textContent = value > 99 ? "99+" : String(value);
-        el.style.display = "flex";
-      } else {
-        el.textContent = "0";
-        el.style.display = "none";
-      }
-    }
-
-    async function cargarPendientesRevisionBitacora() {
-      try {
-        const res = await fetch(withTokenServicio("/api/venta/sucursales/mis-pendientes-bitacora?todos=1"));
-        if (!res.ok) return;
-        const data = await res.json().catch(() => ({}));
-        const pendientes = Array.isArray(data?.pendientes) ? data.pendientes : [];
-        let totalCampos = 0;
-        pendientes.forEach(item => {
-          const campos = Array.isArray(item.campos) ? item.campos : [];
-          totalCampos += campos.length;
-        });
-
-        setRevisionBadge(totalCampos);
-      } catch (_err) {
-        setRevisionBadge(0);
-      }
-    }
-
     (function () {
       const el = document.getElementById("welcomeMessage");
       if (!el) return;
@@ -510,8 +451,6 @@ h1{
         ? `${greeting} ${firstName}, qué gusto tenerte de vuelta!`
         : `${greeting}!`;
     })();
-
-    cargarPendientesRevisionBitacora();
   </script>
   <script src="/static/auth-guard.js"></script>
   <script>window.ATC_ES_PANEL_SELECTOR = true;</script>

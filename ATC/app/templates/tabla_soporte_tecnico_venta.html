@@ -287,10 +287,18 @@ col.c-direccion { width: 6%; }
 col.c-servicio { width: 4.8%; }
 col.c-plan { width: 4%; }
 col.c-estado { width: 5.2%; }
-col.c-requiere { width: 5.2%; }
-col.c-central { width: 5.2%; }
-col.c-pantalla { width: 5.5%; }
+/* Requiere puesto / N° Central / Pantalla: la edición real se hace desde el
+   modal "Cámaras en servidor" — estas columnas quedan solo visuales
+   (texto, sin botones/input/select) para no duplicar la edición —
+   pedido explicito, ago 2026. */
+col.c-requiere { width: 6%; }
+col.c-central { width: 4%; }
+col.c-pantalla { width: 6%; }
 col.c-terminado { width: 4.8%; }
+/* "No aplica" (fila que no es Televigilancia): casi invisible, para no
+   competir visualmente con los valores que sí aplican — pedido
+   explicito, ago 2026. */
+.td-no-aplica { color: #d1d5db; }
 
 @media (max-width: 760px) {
   html, body {
@@ -501,12 +509,6 @@ td {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(127,196,151,.20);
 }
-.pantalla-select {
-  max-width: 100%;
-  min-width: 0;
-  text-align: left;
-}
-
 /* Filtro en thead (deprecado, ahora va en barra superior; protejo por si queda) */
 .filtro-container { display: none; }
 
@@ -656,6 +658,9 @@ tr.fila-detalles {
   align-items: center;
   gap: 10px;
 }
+.camera-input-row.sin-reemplazo {
+  grid-template-columns: 96px minmax(0, 1fr);
+}
 .camera-input-row label {
   color: var(--text-soft);
   font-size: 12px;
@@ -683,6 +688,36 @@ tr.fila-detalles {
   color: var(--text-soft);
   border-color: var(--border);
   cursor: not-allowed;
+}
+.camera-foto-row {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: -2px;
+  flex-wrap: wrap;
+}
+.foto-picker-btn {
+  background: var(--info-bg);
+  color: var(--info-fg);
+  border-color: var(--info-bd);
+  flex: none;
+}
+.camera-foto-filename {
+  font-size: 11.5px;
+  color: var(--text-soft);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.camera-foto-preview {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--border);
 }
 .camera-help {
   margin: 0 0 12px;
@@ -723,6 +758,157 @@ tr.fila-detalles {
   color: var(--text-muted);
   font-size: 12px;
 }
+
+/* ── Requiere puesto / N° Central (dentro del modal de cámaras) ── */
+.camera-puesto-box {
+  margin: 0 0 14px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-alt);
+  display: grid;
+  gap: 10px;
+}
+.camera-puesto-box .camera-input-row {
+  grid-template-columns: 96px minmax(0, 1fr) minmax(160px, 240px);
+}
+.camera-puesto-toggle {
+  display: flex;
+  gap: 8px;
+}
+#camaraServidorRequierePuestoWrap .boton {
+  padding: 7px 16px;
+  font-size: 12px;
+}
+
+/* ── Ubicar cámaras en pantallas: simula Administrar Puestos de Bitácora,
+   pantalla completa (sin la barra lateral) ── */
+.ubc-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: none;
+  flex-direction: column;
+  background: var(--surface);
+}
+.ubc-overlay.is-open { display: flex; }
+.ubc-head {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-alt);
+}
+.ubc-title { margin: 0; font-size: 18px; font-weight: 800; color: var(--text); }
+.ubc-sub { margin: 4px 0 0; font-size: 12.5px; color: var(--text-soft); }
+.ubc-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 16px;
+  padding: 16px 22px;
+  overflow: auto;
+}
+.ubc-pool {
+  flex-shrink: 0;
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-content: flex-start;
+}
+.ubc-pool-chip {
+  padding: 9px 10px;
+  border-radius: 8px;
+  border: 1.5px solid var(--accent);
+  background: #fff;
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+}
+.ubc-pool-chip.is-armed {
+  background: var(--accent);
+  color: #fff;
+}
+.ubc-pool-chip.is-placed {
+  opacity: .5;
+  cursor: default;
+  border-style: dashed;
+}
+.ubc-pantallas {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px;
+  align-content: start;
+}
+.ubc-pantalla-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-alt);
+  padding: 10px;
+}
+.ubc-pantalla-nombre {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-soft);
+  margin: 0 0 8px;
+}
+.ubc-slots {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+}
+.ubc-slot {
+  min-height: 46px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  font-size: 9.5px;
+  line-height: 1.25;
+  padding: 3px 4px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  word-break: break-word;
+}
+.ubc-slot.is-empty {
+  background: repeating-linear-gradient(45deg, #f8fafc, #f8fafc 6px, #f1f5f9 6px, #f1f5f9 12px);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.ubc-slot.is-empty:hover { border-color: var(--accent); }
+.ubc-slot.is-occupied { background: #f1f5f9; color: var(--text-soft); }
+.ubc-slot.is-replace {
+  background: #fff7ed;
+  border-color: #ea580c;
+  color: #9a3412;
+}
+.ubc-slot.is-new {
+  background: var(--ok-bg);
+  border-color: var(--ok-bd);
+  color: var(--ok-fg);
+  cursor: pointer;
+}
+.ubc-foot {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 22px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-alt);
+}
+
 .popup-history {
   display: grid;
   gap: 8px;
@@ -1017,9 +1203,9 @@ tr.modal-subida {
         <th>Enlace con Servidor</th>
         <th>Configuración IVS</th>
         <th>Plan de Grabación</th>
-        <th>Requiere Puesto Nuevo</th>
-        <th>N° Central Asignado</th>
-        <th>Pantalla</th>
+        <th class="c-requiere">Requiere Puesto Nuevo</th>
+        <th class="c-central">N° Central Asignado</th>
+        <th class="c-pantalla">Pantalla</th>
         <th>Configuración Cliente</th>
         <th>V°B Final de Servicio</th>
         <th class="th-terminado">
@@ -1060,6 +1246,22 @@ tr.modal-subida {
       <button type="button" class="st-modal-close" onclick="cerrarCamarasServidorModal()">Cerrar</button>
     </div>
     <p id="camarasServidorHelp" class="camera-help"></p>
+    <div class="camera-puesto-box">
+      <div class="camera-input-row">
+        <label for="camaraServidorRequierePuesto">Requiere puesto</label>
+        <div class="camera-puesto-toggle" id="camaraServidorRequierePuestoWrap">
+          <button type="button" class="boton" data-requiere-puesto="si">SI</button>
+          <button type="button" class="boton" data-requiere-puesto="no">NO</button>
+        </div>
+        <span></span>
+      </div>
+      <div class="camera-input-row">
+        <label for="camaraServidorPuesto">N° Central</label>
+        <input id="camaraServidorPuesto" type="number" min="1" max="29" placeholder="1 a 29">
+        <button type="button" id="btnUbicarCamaras" class="btn btn-light" disabled>Ubicar cámaras en pantallas</button>
+      </div>
+      <p id="camaraServidorPuestoEstado" class="camera-help" style="margin:6px 0 0;"></p>
+    </div>
     <div id="camarasServidorInputs" class="camera-form-grid"></div>
     <div class="st-modal-actions">
       <button type="button" class="btn btn-light" onclick="cerrarCamarasServidorModal()">Cancelar</button>
@@ -1068,11 +1270,88 @@ tr.modal-subida {
   </div>
 </div>
 
+<!-- ===== Ubicar cámaras en pantallas (simula Administrar Puestos de Bitácora, pantalla completa) ===== -->
+<div id="ubicarCamarasModal" class="ubc-overlay" aria-hidden="true">
+  <div class="ubc-head">
+    <div>
+      <h2 id="ubicarCamarasTitle" class="ubc-title">Ubicar cámaras — Puesto</h2>
+      <p class="ubc-sub">Click en una cámara pendiente y despues en el casillero donde va. Las que reemplazan a otra ya quedan ubicadas en su mismo lugar.</p>
+    </div>
+    <button type="button" class="btn btn-light" id="btnCerrarUbicarCamaras">Cerrar</button>
+  </div>
+  <div class="ubc-body">
+    <div class="ubc-pool" id="ubcPool"></div>
+    <div class="ubc-pantallas" id="ubcPantallas"></div>
+  </div>
+  <div class="ubc-foot">
+    <span id="ubcEstado" class="camera-help"></span>
+    <button type="button" class="btn btn-primary" id="btnConfirmarUbicacion">Confirmar ubicación</button>
+  </div>
+</div>
+
 <script>
   const token = new URLSearchParams(window.location.search).get("token") || localStorage.getItem("atc_token") || "";
   let obtenerIDsGlobal = () => [];
   let camarasServidorContext = null;
   const vistasEjecutivoCache = {};
+
+  // Foto individual por cámara: se lee a base64 en el navegador y se manda
+  // junto con el resto del payload al guardar — la subida real a Drive pasa
+  // en el backend (st_ods_guardar_camaras) — pedido explicito, ago 2026.
+  // Se puede elegir con el botón o pegar directo con Ctrl+V — pedido
+  // explicito, ago 2026.
+  function handleCameraFotoFile(idx, file) {
+    if (!camarasServidorContext) return;
+    if (!file.type.startsWith("image/")) {
+      alert("El archivo debe ser una imagen.");
+      return;
+    }
+    const preview = document.querySelector(`img[data-camera-foto-preview="${idx}"]`);
+    const filenameEl = document.querySelector(`[data-camera-foto-filename="${idx}"]`);
+    const reader = new FileReader();
+    reader.onload = () => {
+      camarasServidorContext.fotos = camarasServidorContext.fotos || {};
+      camarasServidorContext.fotos[idx] = {
+        data: String(reader.result || ""),
+        filename: file.name || `camara-${idx}.png`,
+        mimeType: file.type || "image/jpeg",
+      };
+      if (preview) {
+        preview.src = String(reader.result || "");
+        preview.hidden = false;
+      }
+      if (filenameEl) filenameEl.textContent = file.name || "Imagen pegada";
+    };
+    reader.readAsDataURL(file);
+  }
+
+  document.addEventListener("change", (event) => {
+    const input = event.target.closest?.("input[data-camera-foto-index]");
+    if (!input) return;
+    const file = input.files && input.files[0];
+    if (!file) return;
+    handleCameraFotoFile(input.dataset.cameraFotoIndex, file);
+  });
+
+  document.addEventListener("paste", (event) => {
+    if (!camarasServidorContext) return;
+    const row = event.target.closest?.(".camera-input-row");
+    if (!row) return;
+    const items = event.clipboardData?.items || [];
+    let imageFile = null;
+    for (const item of items) {
+      if (item.kind === "file" && item.type.startsWith("image/")) {
+        imageFile = item.getAsFile();
+        break;
+      }
+    }
+    if (!imageFile) return;
+    event.preventDefault();
+    const fotoInput = row.querySelector("input[data-camera-foto-index]");
+    const idx = fotoInput?.dataset.cameraFotoIndex;
+    if (idx == null) return;
+    handleCameraFotoFile(idx, imageFile);
+  });
 
   async function cargarUsuarioActual() {
     const el = document.getElementById("usuarioActual");
@@ -1121,38 +1400,6 @@ tr.modal-subida {
     18: "vb_final_servicio",
     19: "terminado",
   };
-
-  const PANTALLAS_PUESTO_4 = ["Izquierda Arriba", "Derecha Arriba", "Izquierda Abajo", "Derecha Abajo"];
-  const PANTALLAS_PUESTO_6 = [
-    "Izquierda Arriba", "Centro Arriba", "Derecha Arriba",
-    "Izquierda Abajo", "Centro Abajo", "Derecha Abajo",
-  ];
-
-  function parsePuestoCentral(valor) {
-    const match = String(valor || "").match(/\d+/);
-    if (!match) return null;
-    const puesto = parseInt(match[0], 10);
-    return puesto >= 1 && puesto <= 29 ? puesto : null;
-  }
-
-  function pantallasParaCentral(valor) {
-    const puesto = parsePuestoCentral(valor);
-    if (!puesto) return [];
-    return puesto <= 12 ? PANTALLAS_PUESTO_4 : PANTALLAS_PUESTO_6;
-  }
-
-  function configurarOpcionesPantalla(select, fila, instalacionLista) {
-    const opciones = pantallasParaCentral(fila?.[15]);
-    const actual = String(fila?.[16] || select.value || "").trim();
-    const placeholder = opciones.length ? "Seleccionar" : "Primero ingresa central";
-    select.innerHTML = `<option value="">${placeholder}</option>` + opciones
-      .map(opcion => `<option value="${htmlEsc(opcion)}">${htmlEsc(opcion)}</option>`)
-      .join("");
-    select.value = opciones.includes(actual) ? actual : "";
-    select.disabled = false;
-    select.title = "";
-    if (fila) fila[16] = select.value;
-  }
 
   function normalizarTipoServicio(valor) {
     return (valor || "")
@@ -1304,91 +1551,19 @@ tr.modal-subida {
           td.appendChild(enlace);
 
         } else if (idx === 14) {
-          const cont = document.createElement("div");
-          cont.style.cssText = "display:flex;justify-content:center;gap:6px;";
-          let estadoActual = (celda || "").toString().trim().toLowerCase();
-          ["si", "no"].forEach(opcion => {
-            const btn = document.createElement("button");
-            btn.textContent = opcion.toUpperCase();
-            btn.classList.add("boton", opcion);
-            btn.dataset.opcion = opcion;
-            btn.style.opacity = estadoActual === opcion ? "1" : "0.4";
-            btn.disabled = !instalacionLista;
-            if (!instalacionLista) btn.title = "Debe estar finalizada la instalación";
-            btn.onclick = async () => {
-              if (!instalacionLista) return;
-              const yaSeleccionado = estadoActual === opcion;
-              const nuevoValor = yaSeleccionado ? "" : (opcion === "si" ? "Si" : "No");
-              Array.from(cont.children).forEach(b => b.style.opacity = "1");
-              estadoActual = yaSeleccionado ? "" : opcion;
-              if (!yaSeleccionado) {
-                Array.from(cont.children).forEach(b => {
-                  b.style.opacity = b.dataset.opcion === opcion ? "1" : "0.4";
-                });
-              }
-              try {
-                fila[14] = nuevoValor;
-                await apiPost("/api/soporte-tecnico/ods/actualizar-valor", { codigo: fila[0], campo: "requiere_puesto_nuevo", valor: nuevoValor });
-                actualizarMetaFila(tr, fila);
-                filtrarTabla();
-              } catch (err) { alert("Error: " + err.message); }
-            };
-            cont.appendChild(btn);
-          });
-          td.appendChild(cont);
+          const valor = (celda || "").toString().trim().toLowerCase();
+          td.textContent = valor === "si" ? "Sí" : valor === "no" ? "No" : "-";
+          td.style.textAlign = "center";
 
         } else if (idx === 15) {
-          if (!esTelevigilancia) {
-            td.textContent = "No aplica";
-            tr.appendChild(td);
-            return;
-          }
-          const input = document.createElement("input");
-          input.type = "number";
-          input.min = "1";
-          input.max = "29";
-          input.value = celda || "";
-          input.classList.add("input-number");
-          input.disabled = !instalacionLista;
-          if (!instalacionLista) input.title = "Debe estar finalizada la instalación";
-          input.onchange = async () => {
-            if (!instalacionLista) return;
-            try {
-              fila[15] = input.value;
-              await apiPost("/api/soporte-tecnico/ods/actualizar-valor", { codigo: fila[0], campo: "numero_central_asignado", valor: input.value });
-              const pantallaSelect = tr.querySelector("select[data-pantalla-asignada]");
-              if (pantallaSelect) configurarOpcionesPantalla(pantallaSelect, fila, instalacionLista);
-              actualizarMetaFila(tr, fila);
-              filtrarTabla();
-              await apiPost("/api/soporte-tecnico/ods/notificar-termino", { codigo: fila[0] });
-            } catch (err) { alert("Error: " + err.message); }
-          };
-          td.appendChild(input);
+          td.textContent = esTelevigilancia ? (celda || "-") : "No aplica";
+          td.style.textAlign = "center";
+          if (!esTelevigilancia) td.classList.add("td-no-aplica");
 
         } else if (idx === 16) {
-          if (!esTelevigilancia) {
-            td.textContent = "No aplica";
-            tr.appendChild(td);
-            return;
-          }
-          const select = document.createElement("select");
-          select.className = "input-number pantalla-select";
-          select.dataset.pantallaAsignada = "1";
-          configurarOpcionesPantalla(select, fila, instalacionLista);
-          select.onchange = async () => {
-            if (!parsePuestoCentral(fila[15])) {
-              alert("Primero ingresa un N° de central entre 1 y 29.");
-              select.value = "";
-              return;
-            }
-            fila[16] = select.value;
-            try {
-              await apiPost("/api/soporte-tecnico/ods/actualizar-valor", { codigo: fila[0], campo: "pantalla_asignada", valor: select.value });
-              actualizarMetaFila(tr, fila);
-              filtrarTabla();
-            } catch (err) { alert("Error: " + err.message); }
-          };
-          td.appendChild(select);
+          td.textContent = esTelevigilancia ? (celda || "-") : "No aplica";
+          td.style.textAlign = "center";
+          if (!esTelevigilancia) td.classList.add("td-no-aplica");
 
         } else if (
           (idx >= 9 && idx <= 13) || (idx >= 17 && idx <= 19)
@@ -1524,6 +1699,8 @@ tr.modal-subida {
 
   function cerrarCamarasServidorModal() {
     camarasServidorContext = null;
+    ubcState = null;
+    document.getElementById("ubicarCamarasModal")?.classList.remove("is-open");
     cerrarModalById("camarasServidorModal");
   }
 
@@ -1586,6 +1763,8 @@ tr.modal-subida {
           codigo,
           totalVigilar,
           info,
+          requierePuesto: fila[14] || "",
+          puesto: fila[15] || "",
         });
       }
     } catch (err) {
@@ -1656,16 +1835,27 @@ tr.modal-subida {
     const filasHtml = Array.from({ length: total }, (_, index) => {
       const valor = String(guardadas?.[index] || "").trim();
       const locked = Boolean(valor);
-      return `
-        <div class="camera-input-row">
-          <label for="camara-servidor-${index}">Cámara ${index + 1}</label>
-          <input id="camara-servidor-${index}" data-camera-index="${index}" type="text" value="${htmlEsc(valor)}" placeholder="Nombre o ID en servidor" ${locked ? "readonly" : ""}>
-          <select data-reemplazo-camera="${index}" ${locked || !opcionesReemplazo ? "disabled" : ""}>
+      // Si no hay ninguna cámara existente de esta sucursal, no hay nada
+      // que reemplazar — se oculta el select en vez de mostrarlo
+      // deshabilitado con la única opción "No reemplaza" — pedido
+      // explicito, ago 2026.
+      const selectHtml = opcionesReemplazo ? `
+          <select data-reemplazo-camera="${index}" ${locked ? "disabled" : ""}>
             <option value="">No reemplaza</option>
             ${opcionesReemplazo}
-          </select>
-        </div>
-      `;
+          </select>` : "";
+      return `
+        <div class="camera-input-row${opcionesReemplazo ? "" : " sin-reemplazo"}">
+          <label for="camara-servidor-${index}">Cámara ${index + 1}</label>
+          <input id="camara-servidor-${index}" data-camera-index="${index}" type="text" value="${htmlEsc(valor)}" placeholder="Nombre o ID en servidor" ${locked ? "readonly" : ""}>
+          ${selectHtml}
+          <div class="camera-foto-row">
+            <label class="boton foto-picker-btn" for="camara-foto-${index}">Seleccionar imagen</label>
+            <input type="file" id="camara-foto-${index}" accept="image/*" data-camera-foto-index="${index}" class="camera-foto-input" hidden>
+            <span class="camera-foto-filename" data-camera-foto-filename="${index}">Sin imagen — o pega con Ctrl+V</span>
+            <img class="camera-foto-preview" data-camera-foto-preview="${index}" hidden alt="Foto cámara ${index + 1}">
+          </div>
+        </div>`;
     }).join("");
     inputs.innerHTML = existentesHtml + filasHtml;
     const btnGuardar = document.getElementById("btnGuardarCamarasServidor");
@@ -1673,9 +1863,241 @@ tr.modal-subida {
       btnGuardar.disabled = completas >= total;
       btnGuardar.textContent = completas >= total ? "Cámaras registradas" : "Guardar cámaras";
     }
+    camarasServidorContext.ubicaciones = {};
+    camarasServidorContext.fotos = {};
+    inicializarPuestoEnModalCamaras(context);
     abrirModalById("camarasServidorModal");
     setTimeout(() => inputs.querySelector("input:not([readonly])")?.focus(), 40);
   }
+
+  /* ===== Requiere puesto / N° Central dentro del modal de cámaras ===== */
+  function inicializarPuestoEnModalCamaras(context) {
+    const wrap = document.getElementById("camaraServidorRequierePuestoWrap");
+    const inputPuesto = document.getElementById("camaraServidorPuesto");
+    const btnUbicar = document.getElementById("btnUbicarCamaras");
+    const estado = document.getElementById("camaraServidorPuestoEstado");
+    if (!wrap || !inputPuesto || !btnUbicar) return;
+
+    let requiere = String(context?.requierePuesto || "").trim().toLowerCase();
+    camarasServidorContext.requierePuesto = requiere;
+    inputPuesto.value = String(context?.puesto || "").trim();
+
+    function pintarToggle() {
+      wrap.querySelectorAll("[data-requiere-puesto]").forEach((btn) => {
+        const activo = btn.dataset.requierePuesto === requiere;
+        btn.classList.toggle("si", btn.dataset.requierePuesto === "si");
+        btn.classList.toggle("no", btn.dataset.requierePuesto === "no");
+        btn.style.opacity = activo ? "1" : "0.4";
+      });
+      const esNuevo = requiere === "si";
+      inputPuesto.placeholder = esNuevo ? "30 en adelante" : "1 a 29";
+      inputPuesto.min = esNuevo ? "30" : "1";
+      if (esNuevo) inputPuesto.removeAttribute("max"); else inputPuesto.max = "29";
+      actualizarEstadoUbicar();
+    }
+    function actualizarEstadoUbicar() {
+      const esNuevo = requiere === "si";
+      const puestoNum = parseInt(inputPuesto.value, 10);
+      const puestoValido = Number.isFinite(puestoNum) && (esNuevo ? puestoNum >= 30 : (puestoNum >= 1 && puestoNum <= 29));
+      // Un puesto nuevo (>=30) todavía no existe físicamente en Bitácora —
+      // no hay pantallas donde ubicar nada, se guarda la cámara sin
+      // casillero hasta que ese puesto se construya de verdad.
+      btnUbicar.disabled = !puestoValido || esNuevo;
+      const pendientes = Object.keys(camarasServidorContext?.ubicaciones || {}).length;
+      if (!puestoValido) {
+        estado.textContent = "Ingresa un N° de central válido.";
+      } else if (esNuevo) {
+        estado.textContent = "Puesto nuevo: sin pantallas físicas todavía — las cámaras se guardan sin ubicar por ahora.";
+      } else if (pendientes > 0) {
+        estado.textContent = `Ubicación guardada para ${pendientes} cámara${pendientes === 1 ? "" : "s"}.`;
+      } else {
+        estado.textContent = "Aún falta ubicar las cámaras en las pantallas.";
+      }
+    }
+
+    wrap.querySelectorAll("[data-requiere-puesto]").forEach((btn) => {
+      btn.onclick = async () => {
+        const nuevo = btn.dataset.requierePuesto;
+        requiere = requiere === nuevo ? "" : nuevo;
+        camarasServidorContext.requierePuesto = requiere;
+        pintarToggle();
+        try {
+          await apiPost("/api/soporte-tecnico/ods/actualizar-valor", {
+            codigo: context.codigo,
+            campo: "requiere_puesto_nuevo",
+            valor: requiere ? (requiere === "si" ? "Si" : "No") : "",
+          });
+        } catch (err) { alert("Error: " + err.message); }
+      };
+    });
+    inputPuesto.onchange = async () => {
+      camarasServidorContext.ubicaciones = {};
+      actualizarEstadoUbicar();
+      try {
+        await apiPost("/api/soporte-tecnico/ods/actualizar-valor", {
+          codigo: context.codigo,
+          campo: "numero_central_asignado",
+          valor: inputPuesto.value,
+        });
+      } catch (err) { alert("Error: " + err.message); }
+    };
+    btnUbicar.onclick = () => abrirUbicarCamaras(parseInt(inputPuesto.value, 10));
+    pintarToggle();
+  }
+
+  /* ===== Ubicar cámaras en pantallas (simula Administrar Puestos de Bitácora) ===== */
+  let ubcState = null;
+
+  function ubcRecolectarPendientes() {
+    const inputs = Array.from(document.querySelectorAll("#camarasServidorInputs input[data-camera-index]"));
+    return inputs
+      .filter((input) => !input.readOnly && String(input.value || "").trim())
+      .map((input) => {
+        const idx = parseInt(input.dataset.cameraIndex, 10);
+        const select = document.querySelector(`#camarasServidorInputs select[data-reemplazo-camera="${idx}"]`);
+        const reemplazaId = select && !select.disabled && select.value ? Number(select.value) : null;
+        return { index: idx, nombre: String(input.value || "").trim(), reemplazaId };
+      });
+  }
+
+  async function abrirUbicarCamaras(puesto) {
+    if (!Number.isFinite(puesto) || puesto < 1 || puesto > 29) {
+      alert("Ingresa un N° de central entre 1 y 29.");
+      return;
+    }
+    const pendientes = ubcRecolectarPendientes();
+    if (!pendientes.length) {
+      alert("No hay cámaras nuevas para ubicar (todas ya están registradas o los campos están vacíos).");
+      return;
+    }
+    let data;
+    try {
+      data = await apiGet(`/api/soporte-tecnico/puesto/${puesto}/pantallas`);
+    } catch (err) {
+      alert("Error cargando las pantallas del puesto: " + err.message);
+      return;
+    }
+
+    const existentes = Array.isArray(camarasServidorContext?.info?.camarasExistentesSucursal)
+      ? camarasServidorContext.info.camarasExistentesSucursal
+      : [];
+    camarasServidorContext.ubicaciones = camarasServidorContext.ubicaciones || {};
+
+    // Reemplazo: la cámara nueva toma automáticamente el mismo casillero de
+    // la que reemplaza — así "también aparece la pantalla con esos casos
+    // puntuales" en vez de quedar oculto en un dropdown.
+    pendientes.forEach((p) => {
+      if (!p.reemplazaId) return;
+      const existente = existentes.find((c) => Number(c.id) === p.reemplazaId);
+      if (existente && existente.pantalla && Number.isInteger(existente.slotIndex)) {
+        camarasServidorContext.ubicaciones[p.index] = { pantalla: existente.pantalla, slotIndex: existente.slotIndex, reemplazaId: p.reemplazaId, reemplazaNombre: existente.camara };
+      }
+    });
+
+    ubcState = { puesto, pantallas: data.pantallas || [], pendientes, armado: null };
+    document.getElementById("ubicarCamarasTitle").textContent = `Ubicar cámaras — Puesto ${puesto}`;
+    ubcRender();
+    document.getElementById("ubicarCamarasModal").classList.add("is-open");
+  }
+
+  function cerrarUbicarCamaras() {
+    document.getElementById("ubicarCamarasModal").classList.remove("is-open");
+  }
+
+  function ubcRender() {
+    if (!ubcState) return;
+    const ubicaciones = camarasServidorContext?.ubicaciones || {};
+    const pool = document.getElementById("ubcPool");
+    const pantallasEl = document.getElementById("ubcPantallas");
+    const estadoEl = document.getElementById("ubcEstado");
+
+    pool.innerHTML = ubcState.pendientes.map((p) => {
+      const ubicada = ubicaciones[p.index];
+      const clases = ["ubc-pool-chip"];
+      if (ubcState.armado === p.index) clases.push("is-armed");
+      if (ubicada) clases.push("is-placed");
+      const detalle = ubicada ? `<br><small>${htmlEsc(ubicada.pantalla)} · casillero ${ubicada.slotIndex + 1}</small>` : "";
+      return `<button type="button" class="${clases.join(" ")}" data-pool-index="${p.index}">${htmlEsc(p.nombre)}${detalle}</button>`;
+    }).join("");
+
+    pantallasEl.innerHTML = ubcState.pantallas.map((pantalla) => {
+      const slotsHtml = Array.from({ length: pantalla.capacidad }, (_, i) => {
+        const propia = Object.entries(ubicaciones).find(([, u]) => u.pantalla === pantalla.nombre && u.slotIndex === i);
+        if (propia) {
+          const [idxStr, u] = propia;
+          const pend = ubcState.pendientes.find((p) => p.index === Number(idxStr));
+          const esReemplazo = Boolean(u.reemplazaId);
+          const clase = esReemplazo ? "is-replace" : "is-new";
+          const texto = esReemplazo
+            ? `↺ ${htmlEsc(pend?.nombre || "")}<br><small>reemplaza a ${htmlEsc(u.reemplazaNombre || "")}</small>`
+            : htmlEsc(pend?.nombre || "");
+          return `<div class="ubc-slot ${clase}" data-slot-pantalla="${htmlEsc(pantalla.nombre)}" data-slot-index="${i}" data-slot-propia="${idxStr}" title="Click para quitar de este casillero">${texto}</div>`;
+        }
+        const ocupado = pantalla.slots[i];
+        if (ocupado) {
+          return `<div class="ubc-slot is-occupied" title="${htmlEsc(ocupado.empresa || "")}">${htmlEsc(ocupado.camara || "")}</div>`;
+        }
+        return `<div class="ubc-slot is-empty" data-slot-pantalla="${htmlEsc(pantalla.nombre)}" data-slot-index="${i}">+</div>`;
+      }).join("");
+      return `
+        <div class="ubc-pantalla-card">
+          <p class="ubc-pantalla-nombre">${htmlEsc(pantalla.nombre)}</p>
+          <div class="ubc-slots">${slotsHtml}</div>
+        </div>
+      `;
+    }).join("");
+
+    const total = ubcState.pendientes.length;
+    const ubicadas = ubcState.pendientes.filter((p) => ubicaciones[p.index]).length;
+    estadoEl.textContent = `${ubicadas} de ${total} cámara${total === 1 ? "" : "s"} ubicada${total === 1 ? "" : "s"}.`;
+  }
+
+  document.getElementById("ubcPool")?.addEventListener("click", (event) => {
+    const chip = event.target.closest("[data-pool-index]");
+    if (!chip || !ubcState) return;
+    const idx = Number(chip.dataset.poolIndex);
+    ubcState.armado = ubcState.armado === idx ? null : idx;
+    ubcRender();
+  });
+
+  document.getElementById("ubcPantallas")?.addEventListener("click", (event) => {
+    const slot = event.target.closest(".ubc-slot");
+    if (!slot || !ubcState) return;
+    const ubicaciones = camarasServidorContext.ubicaciones;
+
+    if (slot.dataset.slotPropia != null) {
+      // click en una ya ubicada: la quita y vuelve al pool
+      delete ubicaciones[Number(slot.dataset.slotPropia)];
+      ubcRender();
+      return;
+    }
+    if (!slot.classList.contains("is-empty")) return;
+    if (ubcState.armado == null) {
+      alert("Primero hacé click en una cámara pendiente (a la izquierda).");
+      return;
+    }
+    // libera si esa cámara ya estaba en otro casillero
+    delete ubicaciones[ubcState.armado];
+    ubicaciones[ubcState.armado] = {
+      pantalla: slot.dataset.slotPantalla,
+      slotIndex: Number(slot.dataset.slotIndex),
+    };
+    ubcState.armado = null;
+    ubcRender();
+  });
+
+  document.getElementById("btnCerrarUbicarCamaras")?.addEventListener("click", cerrarUbicarCamaras);
+  document.getElementById("btnConfirmarUbicacion")?.addEventListener("click", () => {
+    const ubicaciones = camarasServidorContext?.ubicaciones || {};
+    const faltantes = (ubcState?.pendientes || []).filter((p) => !ubicaciones[p.index]);
+    if (faltantes.length) {
+      alert(`Falta ubicar: ${faltantes.map((p) => p.nombre).join(", ")}.`);
+      return;
+    }
+    cerrarUbicarCamaras();
+    document.getElementById("camaraServidorPuestoEstado").textContent =
+      `Ubicación guardada para ${ubcState.pendientes.length} cámara${ubcState.pendientes.length === 1 ? "" : "s"}.`;
+  });
 
   async function guardarCamarasServidor() {
     if (!camarasServidorContext) return;
@@ -1699,12 +2121,44 @@ tr.modal-subida {
       alert("Una cámara existente no puede ser reemplazada por más de una cámara nueva.");
       return;
     }
+    // "Requiere puesto nuevo" = SI significa que el puesto (>=30) todavia no
+    // existe fisicamente — ahi NO se exige ubicar en pantallas (no hay
+    // donde). Solo se exige ubicar cuando es un puesto EXISTENTE (1-29).
+    const puestoEsNuevo = String(camarasServidorContext.requierePuesto || "").toLowerCase() === "si";
+    const puestoIngresado = parseInt(document.getElementById("camaraServidorPuesto")?.value, 10);
+    const puestoExistenteValido = !puestoEsNuevo && Number.isFinite(puestoIngresado) && puestoIngresado >= 1 && puestoIngresado <= 29;
+    const ubicacionesPorIndice = camarasServidorContext.ubicaciones || {};
+    const ubicaciones = {};
+    if (puestoExistenteValido) {
+      const sinUbicar = inputs.filter((input) => !input.readOnly && String(input.value || "").trim() && !ubicacionesPorIndice[parseInt(input.dataset.cameraIndex, 10)]);
+      if (sinUbicar.length) {
+        alert("Faltan cámaras por ubicar en las pantallas. Usá el botón \"Ubicar cámaras en pantallas\".");
+        return;
+      }
+      inputs.forEach((input) => {
+        const idx = parseInt(input.dataset.cameraIndex, 10);
+        const u = ubicacionesPorIndice[idx];
+        const nombre = String(input.value || "").trim();
+        if (u && nombre) ubicaciones[nombre] = { pantalla: u.pantalla, slotIndex: u.slotIndex };
+      });
+    }
     const btn = document.getElementById("btnGuardarCamarasServidor");
     if (btn) {
       btn.disabled = true;
       btn.textContent = "Guardando...";
     }
     const finalizarDespues = Boolean(camarasServidorContext.finalizarDespues);
+    // Las fotos se guardaron en camarasServidorContext.fotos por índice de
+    // fila — se remapean a nombre de cámara (mismo valor final que "ids"),
+    // que es la clave que usa el backend para asociarlas.
+    const fotosPorIndice = camarasServidorContext.fotos || {};
+    const fotos = {};
+    inputs.forEach((input) => {
+      const idx = input.dataset.cameraIndex;
+      const foto = fotosPorIndice[idx];
+      const nombre = String(input.value || "").trim();
+      if (foto && nombre) fotos[nombre] = foto;
+    });
     try {
       const res = await apiPost("/api/soporte-tecnico/ods/guardar-camaras", {
         odt: codigo,
@@ -1715,6 +2169,8 @@ tr.modal-subida {
         sucursal: info.sucursal,
         direccion: info.direccion,
         reemplazos,
+        ubicaciones,
+        fotos,
       });
       if (finalizarDespues) {
         await apiPost("/api/soporte-tecnico/ods/actualizar-estado", { codigo, campo: "terminado", valor: true });

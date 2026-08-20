@@ -451,11 +451,12 @@ function renderizar() {
   });
 
   // Semana 1 y 2 al dia: terminadas, o sin sucursales asignadas (nada que
-  // bloquee). Semana 3 y 4 quedan bloqueadas hasta que eso se cumpla, para
-  // forzar el orden en vez de saltar semanas.
+  // bloquee). Semana 4 queda bloqueada hasta que eso se cumpla, para forzar
+  // el orden en vez de saltar semanas. Semana 3 se desbloqueo a pedido
+  // explicito (ago 2026) — ya no depende de que 1 y 2 esten completas.
   const semanaOk = (r) => r.total === 0 || r.completa;
   const semanas1y2Ok = semanaOk(resumenSemanas[0]) && semanaOk(resumenSemanas[1]);
-  resumenSemanas.forEach(r => { r.bloqueada = r.idx >= 2 && !semanas1y2Ok; });
+  resumenSemanas.forEach(r => { r.bloqueada = r.idx === 3 && !semanas1y2Ok; });
 
   // La primera vez, arrancar en la primera semana con pendientes — asi se
   // avanza semana por semana en orden y no queda ninguna a medio hacer sin

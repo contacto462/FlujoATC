@@ -588,6 +588,23 @@
     const appModalButton = document.getElementById("appModalButton");
     const UBICACION_HABILITADA = false;
 
+    // Los radios de tipo_turno son opcionales (sin seleccion = Turno Normal):
+    // si el guardia marca "Extra" o "Contrato Diario" por error, debe poder
+    // volver a dejarlo sin seleccion tocando la misma opcion de nuevo — un
+    // radio nativo no permite eso solo. Se compara contra el valor propio
+    // (no contra `checked`, que ya cambio antes de que dispare el evento).
+    let turnoSeleccionadoActual = null;
+    document.querySelectorAll('input[name="tipo_turno"]').forEach((radio) => {
+      radio.addEventListener("click", function () {
+        if (turnoSeleccionadoActual === this.value) {
+          this.checked = false;
+          turnoSeleccionadoActual = null;
+        } else {
+          turnoSeleccionadoActual = this.value;
+        }
+      });
+    });
+
     let ubicacion = {
       latitud: null,
       longitud: null,
@@ -720,6 +737,7 @@
       opt.classList.toggle("disabled", !habilitado);
       if (!habilitado && input.checked) {
         input.checked = false;
+        if (turnoSeleccionadoActual === input.value) turnoSeleccionadoActual = null;
       }
     }
 

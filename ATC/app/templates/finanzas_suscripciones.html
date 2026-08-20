@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32.png?v=2">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16.png?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon-180.png?v=2">
+<link rel="shortcut icon" href="/favicon.ico?v=2">
+
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Registro de Suscripción · Finanzas</title>
+  <link rel="stylesheet" href="/static/base.css">
+<link rel="stylesheet" href="/static/finanzas_shared.css?v=20260813">
+<style>
+  /* Filas alternadas blanco/gris para que sea mas facil seguir una fila
+     larga con la vista. El hover va despues a proposito, para que siga
+     ganando el resalte incluso en las filas grises. */
+  tbody tr:nth-child(even) td { background: #f8fafc; }
+  tbody tr:hover td { background: #eef2f7; }
+
+  /* Celda de Nombre Sucursal editable: click abre el buscador. */
+  .celda-sucursal { cursor: pointer; }
+  .celda-sucursal:hover { text-decoration: underline dotted; }
+  .celda-sucursal .dash { text-decoration: none; }
+
+  .sucursal-popover {
+    position: absolute; z-index: 400; width: 320px; max-height: 340px;
+    display: flex; flex-direction: column;
+    background: var(--surface); border: 1px solid var(--border-strong);
+    border-radius: var(--radius); box-shadow: 0 12px 32px rgba(15,23,42,.18);
+    overflow: hidden;
+  }
+  .sucursal-popover-buscar {
+    margin: 8px; padding: 7px 10px; border: 1px solid var(--border-strong);
+    border-radius: 6px; font: inherit; font-size: 13px; color: var(--text);
+  }
+  .sucursal-popover-buscar:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(29,78,216,.12); }
+  .sucursal-popover-lista { overflow-y: auto; flex: 1; padding: 0 6px 6px; }
+  .sucursal-popover-item {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+    width: 100%; text-align: left; padding: 7px 8px; border: none; border-radius: 6px;
+    background: transparent; cursor: pointer; font: inherit;
+  }
+  .sucursal-popover-item:hover { background: var(--surface-hover); }
+  .sucursal-popover-sub { font-size: 11.5px; color: var(--text-muted); }
+  .sucursal-popover-vacio { padding: 14px 10px; color: var(--text-muted); font-size: 12.5px; text-align: center; }
+
+  /* Cantidad Camaras sin dato confirmado en BBDD (Bitacora > Informacion
+     Puestos): se muestra el valor del CSV como respaldo, marcado en
+     amarillo para que quede claro que no esta verificado contra BBDD. */
+  td.celda-camaras-sin-bbdd { background: #fef9c3 !important; font-weight: 600; }
+  tbody tr:hover td.celda-camaras-sin-bbdd { background: #fef08a !important; }
+  td.celda-sucursal-sin-asignar { background: #fee2e2 !important; font-weight: 600; }
+  tbody tr:hover td.celda-sucursal-sin-asignar { background: #fecaca !important; }
+
+  /* Filtros por columna estilo Google Sheets — mismo patrón que
+     finanzas_rendiciones.html (Panel Rendiciones), un solo popover
+     reutilizado para todas las columnas. */
+  .th-inner{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .filter-chip{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border:1px solid #c2cfde;border-radius:6px;background:#f8fafc;color:#64748b;cursor:pointer;flex-shrink:0;transition:background .12s,border-color .12s,color .12s,transform .12s;font-size:10px;line-height:1;}
+  .filter-chip:hover{background:#eff6ff;border-color:#93c5fd;color:#1d4ed8;}
+  .filter-chip.active{background:#1d4ed8;border-color:#1e40af;color:#fff;}
+  .filter-menu{position:fixed;z-index:500;min-width:300px;max-width:340px;background:#fff;border:1px solid #cbd5e1;border-radius:12px;box-shadow:0 18px 44px rgba(15,23,42,.20);display:none;overflow:hidden;}
+  .filter-menu.open{display:block;}
+  .filter-head{padding:12px 12px 10px;border-bottom:1px solid #e2e8f0;background:#f8fafc;}
+  .filter-title{font-size:12.5px;font-weight:800;color:#0f172a;}
+  .filter-search{width:100%;margin-top:9px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;font:inherit;font-size:12px;background:#fff;box-sizing:border-box;}
+  .filter-actions{display:flex;gap:8px;padding:9px 12px;border-bottom:1px solid #e2e8f0;background:#fff;flex-wrap:wrap;}
+  .filter-link{appearance:none;border:1px solid transparent;background:none;padding:3px 6px;border-radius:6px;color:#2563eb;cursor:pointer;font:inherit;font-size:12px;font-weight:700;}
+  .filter-values{max-height:300px;overflow:auto;padding:7px 0;background:#fff;}
+  .filter-option{display:flex;align-items:center;gap:9px;padding:7px 12px;font-size:12px;color:#334155;}
+  .filter-option input{margin:0;accent-color:var(--accent);}
+  .filter-empty{padding:14px 12px;color:#64748b;font-size:12px;text-align:center;}
+  .filter-foot{display:flex;justify-content:flex-end;gap:8px;padding:10px 12px;border-top:1px solid #e2e8f0;background:#f8fafc;}
+  .filter-summary{font-size:12.5px;color:var(--text-muted);font-weight:600;}
+  .filter-summary.has-filters{color:#1d4ed8;}
+  .btn-filter-reset:disabled{opacity:.5;cursor:not-allowed;}
+</style>
+<script>if(new URLSearchParams(location.search).get('embed')==='1')document.documentElement.classList.add('embed');</script>
+    <script src="/static/utils.js"></script>
+</head>
+<body>
+<main class="shell">
+  <header class="page-header">
+    <div class="brand">
+      <img src="/shared-static/img/logo-atc.png" alt="ATC" onerror="this.style.display='none'">
+      <div>
+        <h1>Registro de Suscripción</h1>
+        <p class="subtitle">Registro de suscripciones — solo los clientes que están en ese registro</p>
+      </div>
+    </div>
+    <nav class="actions">
+      <a id="btnVolver" class="btn" href="/venta/finanzas?token={{ token|default('') }}">Volver</a>
+      <button class="btn" type="button" onclick="cargar()">Actualizar</button>
+    </nav>
+  </header>
+
+  <section class="panel">
+    <div class="filters">
+      <label for="fQ">Buscar</label>
+      <input id="fQ" type="search" placeholder="RUT, nombre cliente o dirección...">
+    </div>
+    <span class="filter-summary" id="filterSummary" aria-live="polite">Sin filtros activos</span>
+    <button class="btn btn-small btn-filter-reset" type="button" id="clearAllFilters" disabled>Limpiar filtros</button>
+    <div class="sheet-note">Cada fila es un registro del CSV de suscripciones (no una sucursal de ATC). "Nombre Sucursal" se completa cruzando por RUT + dirección exacta contra ATC cuando el registro no lo trae — si no hay coincidencia clara se deja vacío a propósito (no se adivina).</div>
+  </section>
+
+  <section class="table-wrap">
+    <table>
+      <thead><tr>
+        <th style="text-align:right;">N°</th>
+        <th><div class="th-inner"><span>Código</span><button class="filter-chip" data-filter-btn="codigo" type="button">▼</button></div></th>
+        <th><div class="th-inner"><span>RUT</span><button class="filter-chip" data-filter-btn="rut" type="button">▼</button></div></th>
+        <th><div class="th-inner"><span>Nombre Cliente</span><button class="filter-chip" data-filter-btn="nombreCliente" type="button">▼</button></div></th>
+        <th><div class="th-inner"><span>Link Piriod</span><button class="filter-chip" data-filter-btn="linkPiriod" type="button">▼</button></div></th>
+        <th><div class="th-inner"><span>Servicio</span><button class="filter-chip" data-filter-btn="servicio" type="button">▼</button></div></th>
+        <th><div class="th-inner"><span>Inicio Servicio</span><button class="filter-chip" data-filter-btn="inicioServicio" type="button">▼</button></div></th>
+        <th style="text-align:right;"><div class="th-inner"><span>Cantidad Cámaras</span><button class="filter-chip" data-filter-btn="cantidadCamaras" type="button">▼</button></div></th>
+        <th><div class="th-inner"><span>Moneda</span><button class="filter-chip" data-filter-btn="moneda" type="button">▼</button></div></th>
+        <th style="text-align:right;"><div class="th-inner"><span>Valor Neto Mensual</span><button class="filter-chip" data-filter-btn="valorNetoMensual" type="button">▼</button></div></th>
+        <th style="text-align:right;"><div class="th-inner"><span>Descuento</span><button class="filter-chip" data-filter-btn="descuento" type="button">▼</button></div></th>
+        <th style="text-align:right;"><div class="th-inner"><span>Internet</span><button class="filter-chip" data-filter-btn="internet" type="button">▼</button></div></th>
+        <th style="text-align:right;"><div class="th-inner"><span>Valor Neto Televigilancia</span><button class="filter-chip" data-filter-btn="valorNetoTelevigilancia" type="button">▼</button></div></th>
+        <th style="text-align:right;"><div class="th-inner"><span>Valor Neto Total</span><button class="filter-chip" data-filter-btn="valorNetoTotal" type="button">▼</button></div></th>
+        <th style="text-align:right;"><div class="th-inner"><span>Valor por Cámara</span><button class="filter-chip" data-filter-btn="valorPorCamara" type="button">▼</button></div></th>
+        <th><div class="th-inner"><span>Dirección</span><button class="filter-chip" data-filter-btn="direccion" type="button">▼</button></div></th>
+        <th><div class="th-inner"><span>Comuna</span><button class="filter-chip" data-filter-btn="comuna" type="button">▼</button></div></th>
+        <th><div class="th-inner"><span>Región</span><button class="filter-chip" data-filter-btn="region" type="button">▼</button></div></th>
+        <th><div class="th-inner"><span>Dirección Completa</span><button class="filter-chip" data-filter-btn="direccionCompleta" type="button">▼</button></div></th>
+        <th><div class="th-inner"><span>Nombre Sucursal</span><button class="filter-chip" data-filter-btn="nombreSucursal" type="button">▼</button></div></th>
+        <th><div class="th-inner"><span>Estado</span><button class="filter-chip" data-filter-btn="estado" type="button">▼</button></div></th>
+        <th><div class="th-inner"><span>Fecha Término Suscripción</span><button class="filter-chip" data-filter-btn="fechaTermino" type="button">▼</button></div></th>
+      </tr></thead>
+      <tbody id="tbody"><tr><td class="empty-cell" colspan="22">Cargando...</td></tr></tbody>
+    </table>
+  </section>
+</main>
+
+<div id="filterMenu" class="filter-menu">
+  <div class="filter-head">
+    <div class="filter-title" id="filterTitle">Filtrar</div>
+    <input id="filterSearch" class="filter-search" type="search" placeholder="Buscar valor">
+  </div>
+  <div class="filter-actions">
+    <button class="filter-link" type="button" id="filterSelectAll">Seleccionar todo</button>
+    <button class="filter-link" type="button" id="filterDeselectAll">Deseleccionar todo</button>
+    <button class="filter-link" type="button" id="filterClear">Limpiar filtro</button>
+  </div>
+  <div id="filterValues" class="filter-values"></div>
+  <div class="filter-foot">
+    <button class="btn btn-small" type="button" id="filterCancel">Cancelar</button>
+    <button class="btn btn-small btn-primary" type="button" id="filterApply">Aplicar</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script>
+const tokenSesion = {{ token|tojson }};
+let data = [];
+function $(id){return document.getElementById(id);}
+function esc(t){const d=document.createElement("div");d.textContent=String(t||"");return d.innerHTML;}
+function dash(v){return v ? esc(v) : '<span class="dash">—</span>';}
+function showToast(t,ok=true){const el=$("toast");el.className=ok?"":"error";el.textContent=t;el.style.display="block";clearTimeout(showToast._id);showToast._id=setTimeout(()=>{el.style.display="none";},2800);}
+
+function applyFilter(){
+  const q=$("fQ").value.trim().toLowerCase();
+  let rows = q
+    ? data.filter(r => [r.rut, r.nombreCliente, r.direccion, r.direccionCompleta].some(x => String(x||"").toLowerCase().includes(q)))
+    : data;
+  rows = rows.filter(r => Object.entries(filtrosCabecera).every(([campo, values]) => coincideFiltroCampo(r, campo, values)));
+  // Orden: primero las filas rojas (sin Nombre Sucursal), luego las
+  // amarillas (sin cruce de camaras en BBDD), luego el resto — pedido
+  // explicito, ago 2026. Sort estable: dentro de cada grupo se conserva
+  // el orden original.
+  const prioridad = r => !r.nombreSucursal ? 0 : (r.camarasSinBbdd ? 1 : 2);
+  return [...rows].sort((a, b) => prioridad(a) - prioridad(b));
+}
+
+// ── Filtros por columna estilo Google Sheets (mismo patrón que
+// finanzas_rendiciones.html / "Panel Rendiciones") ──
+let filtrosCabecera = {};   // { campo: string[] de valores seleccionados }
+let filterState = { campo: "", label: "", values: [], selected: new Set(), anchor: null };
+const EMPTY_FILTER_TOKEN = "__ATC_FILTER_EMPTY_SELECTION__";
+const FILTER_LABELS = {
+  codigo: "Código", rut: "RUT", nombreCliente: "Nombre Cliente", linkPiriod: "Link Piriod",
+  servicio: "Servicio", inicioServicio: "Inicio Servicio", cantidadCamaras: "Cantidad Cámaras",
+  moneda: "Moneda", valorNetoMensual: "Valor Neto Mensual", descuento: "Descuento", internet: "Internet",
+  valorNetoTelevigilancia: "Valor Neto Televigilancia", valorNetoTotal: "Valor Neto Total",
+  valorPorCamara: "Valor por Cámara", direccion: "Dirección", comuna: "Comuna", region: "Región",
+  direccionCompleta: "Dirección Completa", nombreSucursal: "Nombre Sucursal", estado: "Estado",
+  fechaTermino: "Fecha Término Suscripción",
+};
+
+function normalizarBusquedaFiltro(v){
+  return String(v ?? "").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().trim();
+}
+
+function valorFiltroCampo(row, campo){
+  const v = row?.[campo];
+  if (v === null || v === undefined || v === "") return "(Vacío)";
+  return String(v).trim() || "(Vacío)";
+}
+
+function coincideFiltroCampo(row, campo, values){
+  if (!Array.isArray(values) || !values.length) return true;
+  if (values.includes(EMPTY_FILTER_TOKEN)) return false;
+  return values.includes(valorFiltroCampo(row, campo));
+}
+
+function valoresUnicosCampo(campo){
+  return Array.from(new Set(data.map(row => valorFiltroCampo(row, campo))))
+    .sort((a,b) => String(a).localeCompare(String(b), "es"));
+}
+
+function actualizarEstadoBotonesFiltro(){
+  const filtrosActivos = Object.entries(filtrosCabecera).filter(([, values]) => Array.isArray(values) && values.length > 0);
+  document.querySelectorAll("[data-filter-btn]").forEach(btn => {
+    const activo = Array.isArray(filtrosCabecera[btn.dataset.filterBtn]) && filtrosCabecera[btn.dataset.filterBtn].length > 0;
+    btn.classList.toggle("active", activo);
+  });
+  const resumen = $("filterSummary");
+  const limpiar = $("clearAllFilters");
+  if (resumen){
+    resumen.classList.toggle("has-filters", filtrosActivos.length > 0);
+    resumen.textContent = filtrosActivos.length
+      ? `${filtrosActivos.length} filtro${filtrosActivos.length === 1 ? "" : "s"} activo${filtrosActivos.length === 1 ? "" : "s"}`
+      : "Sin filtros activos";
+  }
+  if (limpiar) limpiar.disabled = filtrosActivos.length === 0;
+}
+
+function cerrarMenuFiltro(){
+  $("filterMenu").classList.remove("open");
+  filterState.campo = "";
+  filterState.anchor = null;
+}
+
+function renderValoresFiltro(){
+  const search = normalizarBusquedaFiltro($("filterSearch").value);
+  const cont = $("filterValues");
+  const visibles = filterState.values.filter(v => normalizarBusquedaFiltro(v).includes(search));
+  if (!visibles.length){ cont.innerHTML = `<div class="filter-empty">Sin valores</div>`; return; }
+  cont.innerHTML = visibles.map(value => `
+    <label class="filter-option">
+      <input type="checkbox" data-filter-value="${esc(value)}" ${filterState.selected.has(value) ? "checked" : ""}>
+      <span>${esc(value)}</span>
+    </label>
+  `).join("");
+  cont.querySelectorAll("[data-filter-value]").forEach(input => {
+    input.addEventListener("change", () => {
+      const value = input.getAttribute("data-filter-value");
+      if (input.checked) filterState.selected.add(value); else filterState.selected.delete(value);
+    });
+  });
+}
+
+function abrirMenuFiltro(campo, anchor){
+  filterState.campo = campo;
+  filterState.label = FILTER_LABELS[campo] || campo;
+  filterState.values = valoresUnicosCampo(campo);
+  const guardado = Array.isArray(filtrosCabecera[campo]) && filtrosCabecera[campo].length ? filtrosCabecera[campo] : null;
+  filterState.selected = new Set(guardado ? guardado.filter(v => v !== EMPTY_FILTER_TOKEN) : filterState.values);
+  filterState.anchor = anchor;
+  $("filterTitle").textContent = `Filtrar por ${filterState.label}`;
+  $("filterSearch").value = "";
+  renderValoresFiltro();
+  const menu = $("filterMenu");
+  menu.classList.add("open");
+  menu.style.visibility = "hidden";
+  requestAnimationFrame(() => {
+    const rect = anchor.getBoundingClientRect();
+    const menuRect = menu.getBoundingClientRect();
+    menu.style.top = `${Math.min(window.innerHeight - 20 - menuRect.height, rect.bottom + 6)}px`;
+    menu.style.left = `${Math.min(window.innerWidth - 20 - menuRect.width, Math.max(10, rect.left - 220 + rect.width))}px`;
+    menu.style.visibility = "visible";
+  });
+}
+
+function aplicarFiltroActual(){
+  if (!filterState.campo) return;
+  const seleccion = Array.from(filterState.selected);
+  if (seleccion.length === 0){
+    filtrosCabecera[filterState.campo] = [EMPTY_FILTER_TOKEN];
+  } else if (seleccion.length === filterState.values.length){
+    delete filtrosCabecera[filterState.campo];
+  } else {
+    filtrosCabecera[filterState.campo] = seleccion;
+  }
+  actualizarEstadoBotonesFiltro();
+  render();
+  cerrarMenuFiltro();
+}
+
+function limpiarTodosLosFiltros(){
+  filtrosCabecera = {};
+  actualizarEstadoBotonesFiltro();
+  render();
+}
+
+document.querySelectorAll("[data-filter-btn]").forEach(btn => {
+  btn.addEventListener("click", ev => {
+    ev.stopPropagation();
+    const campo = btn.dataset.filterBtn;
+    const menu = $("filterMenu");
+    if (menu.classList.contains("open") && filterState.campo === campo){ cerrarMenuFiltro(); return; }
+    abrirMenuFiltro(campo, btn);
+  });
+});
+$("filterSearch").addEventListener("input", renderValoresFiltro);
+$("filterSelectAll").addEventListener("click", () => { filterState.selected = new Set(filterState.values); renderValoresFiltro(); });
+$("filterDeselectAll").addEventListener("click", () => { filterState.selected = new Set(); renderValoresFiltro(); });
+$("filterClear").addEventListener("click", () => { delete filtrosCabecera[filterState.campo]; actualizarEstadoBotonesFiltro(); render(); cerrarMenuFiltro(); });
+$("filterCancel").addEventListener("click", cerrarMenuFiltro);
+$("filterApply").addEventListener("click", aplicarFiltroActual);
+$("clearAllFilters").addEventListener("click", limpiarTodosLosFiltros);
+document.addEventListener("click", ev => {
+  const menu = $("filterMenu");
+  if (!menu.classList.contains("open")) return;
+  if (menu.contains(ev.target)) return;
+  if (ev.target.closest("[data-filter-btn]")) return;
+  cerrarMenuFiltro();
+});
+
+function render(){
+  const rows=applyFilter();
+  if(!rows.length){$("tbody").innerHTML=`<tr><td class="empty-cell" colspan="22">Sin resultados.</td></tr>`;return;}
+  $("tbody").innerHTML=rows.map((r,i)=>`
+    <tr>
+      <td class="right">${i+1}</td>
+      <td>${dash(r.codigo)}</td>
+      <td class="text-strong">${dash(r.rut)}</td>
+      <td class="text-strong">${dash(r.nombreCliente)}</td>
+      <td>${dash(r.linkPiriod)}</td>
+      <td>${dash(r.servicio)}</td>
+      <td>${dash(r.inicioServicio)}</td>
+      <td class="right${r.camarasSinBbdd ? " celda-camaras-sin-bbdd" : ""}" title="${r.camarasSinBbdd ? "Sin dato de cámaras en BBDD (Información Puestos) — se muestra el valor del CSV" : ""}">${dash(r.cantidadCamaras)}</td>
+      <td>${dash(r.moneda)}</td>
+      <td class="right">${dash(r.valorNetoMensual)}</td>
+      <td class="right">${dash(r.descuento)}</td>
+      <td class="right">${dash(r.internet)}</td>
+      <td class="right">${dash(r.valorNetoTelevigilancia)}</td>
+      <td class="right">${dash(r.valorNetoTotal)}</td>
+      <td class="right">${dash(r.valorPorCamara)}</td>
+      <td class="wrap">${dash(r.direccion)}</td>
+      <td>${dash(r.comuna)}</td>
+      <td>${dash(r.region)}</td>
+      <td class="wrap">${dash(r.direccionCompleta)}</td>
+      <td class="celda-sucursal${r.nombreSucursal ? "" : " celda-sucursal-sin-asignar"}" data-codigo="${esc(r.codigo)}" data-rut="${esc(r.rut)}">${r.nombreSucursal ? esc(r.nombreSucursal) : '<span class="dash">— asignar</span>'}</td>
+      <td>${dash(r.estado)}</td>
+      <td>${dash(r.fechaTermino)}</td>
+    </tr>
+  `).join("");
+}
+
+// ── Asignar sucursal a mano (cuando el cruce automatico no encontro la
+// correcta): click en la celda abre un buscador de sucursales de ATC. ──
+let opcionesSucursales = [];
+let popoverActual = null;
+
+async function cargarOpcionesSucursales(){
+  try{
+    const resp = await api("/api/venta/sucursales/opciones");
+    opcionesSucursales = resp.opciones || [];
+  }catch(_e){ opcionesSucursales = []; }
+}
+
+function cerrarPopoverSucursal(){
+  if(popoverActual){ popoverActual.remove(); popoverActual = null; }
+  document.removeEventListener("mousedown", onDocClickCerrarPopover, true);
+  document.removeEventListener("keydown", onDocKeyCerrarPopover, true);
+}
+function onDocClickCerrarPopover(e){
+  if(popoverActual && !popoverActual.contains(e.target)) cerrarPopoverSucursal();
+}
+function onDocKeyCerrarPopover(e){
+  if(e.key === "Escape") cerrarPopoverSucursal();
+}
+
+function normalizarRut(v){ return String(v||"").toUpperCase().replace(/[^0-9K]/g, ""); }
+
+function abrirPopoverSucursal(td, codigo, rut){
+  if(popoverActual && popoverActual.dataset.codigo === codigo){ cerrarPopoverSucursal(); return; }
+  cerrarPopoverSucursal();
+
+  const rutNorm = normalizarRut(rut);
+  const deEsteRut = opcionesSucursales.filter(o => normalizarRut(o.rut) === rutNorm);
+
+  const pop = document.createElement("div");
+  pop.className = "sucursal-popover";
+  pop.dataset.codigo = codigo;
+  pop.innerHTML = `
+    <input type="text" class="sucursal-popover-buscar" placeholder="Buscar sucursal o dirección de este RUT...">
+    <div class="sucursal-popover-lista"></div>
+  `;
+  document.body.appendChild(pop);
+
+  const rect = td.getBoundingClientRect();
+  let left = rect.left + window.scrollX;
+  if(left + 320 > window.innerWidth - 12) left = window.innerWidth - 332;
+  pop.style.left = `${Math.max(12, left)}px`;
+  pop.style.top = `${rect.bottom + window.scrollY + 4}px`;
+
+  const input = pop.querySelector(".sucursal-popover-buscar");
+  const lista = pop.querySelector(".sucursal-popover-lista");
+
+  function renderLista(){
+    const q = input.value.trim().toLowerCase();
+    const filtradas = (!q ? deEsteRut : deEsteRut.filter(o =>
+      [o.nombre_sucursal, o.nombre_empresa, o.direccion].some(x => String(x||"").toLowerCase().includes(q))
+    )).slice(0, 50);
+    if(!filtradas.length){
+      lista.innerHTML = `<div class="sucursal-popover-vacio">${deEsteRut.length ? "Sin resultados." : "No hay sucursales de ATC con este RUT."}</div>`;
+      return;
+    }
+    lista.innerHTML = filtradas.map(o => `
+      <button type="button" class="sucursal-popover-item" data-id="${o.id}">
+        <span class="text-strong">${esc(o.nombre_sucursal || "(sin nombre)")}</span>
+        <span class="sucursal-popover-sub">${esc(o.direccion || o.nombre_empresa || "")}</span>
+      </button>
+    `).join("");
+    lista.querySelectorAll(".sucursal-popover-item").forEach(btn => {
+      btn.addEventListener("click", () => asignarSucursal(codigo, Number(btn.dataset.id)));
+    });
+  }
+  input.addEventListener("input", renderLista);
+  renderLista();
+  input.focus();
+
+  popoverActual = pop;
+  setTimeout(() => {
+    document.addEventListener("mousedown", onDocClickCerrarPopover, true);
+    document.addEventListener("keydown", onDocKeyCerrarPopover, true);
+  }, 0);
+}
+
+async function asignarSucursal(codigo, sucursalId){
+  try{
+    const resp = await api("/api/venta/finanzas/suscripciones/asignar-sucursal", {
+      method: "POST",
+      body: JSON.stringify({codigo, sucursal_id: sucursalId}),
+    });
+    const row = data.find(r => r.codigo === codigo);
+    if(row){
+      row.nombreSucursal = resp.nombre_sucursal || "";
+      // La cantidad de camaras solo se recalcula desde BBDD para filas de
+      // Televigilancia — para el resto el backend la devuelve pero no
+      // corresponde aplicarla (mismo criterio que la carga inicial).
+      if(row.servicio === "Televigilancia"){
+        row.cantidadCamaras = resp.cantidad_camaras === "" || resp.cantidad_camaras === undefined ? "" : resp.cantidad_camaras;
+        row.camarasSinBbdd = !!resp.camaras_sin_bbdd;
+      }
+    }
+    cerrarPopoverSucursal();
+    render();
+    showToast("Sucursal asignada.");
+  }catch(err){
+    showToast("Error: " + err.message, false);
+  }
+}
+
+$("tbody").addEventListener("click", (e) => {
+  const td = e.target.closest(".celda-sucursal");
+  if(!td) return;
+  abrirPopoverSucursal(td, td.dataset.codigo, td.dataset.rut);
+});
+
+async function cargar(){
+  try{
+    const resp = await api("/api/venta/finanzas/suscripciones");
+    const filas = resp.rows || [];
+    data = filas.map(r => ({
+      codigo: r.codigo || "",
+      rut: r.rut || "",
+      nombreCliente: r.nombre_cliente || "",
+      linkPiriod: r.link_piriod || "",
+      servicio: r.servicio || "",
+      inicioServicio: r.inicio_servicio || "",
+      cantidadCamaras: r.cantidad_camaras === "" || r.cantidad_camaras === undefined ? "" : r.cantidad_camaras,
+      camarasSinBbdd: !!r.camaras_sin_bbdd,
+      moneda: r.moneda || "",
+      valorNetoMensual: r.valor_neto_mensual === "" || r.valor_neto_mensual === undefined ? "" : r.valor_neto_mensual,
+      descuento: r.descuento === "" || r.descuento === undefined ? "" : r.descuento,
+      internet: r.internet === "" || r.internet === undefined ? "" : r.internet,
+      valorNetoTelevigilancia: r.valor_neto_televigilancia === "" || r.valor_neto_televigilancia === undefined ? "" : r.valor_neto_televigilancia,
+      valorNetoTotal: r.valor_neto_total === "" || r.valor_neto_total === undefined ? "" : r.valor_neto_total,
+      valorPorCamara: r.valor_por_camara === "" || r.valor_por_camara === undefined ? "" : r.valor_por_camara,
+      direccion: r.direccion || "",
+      comuna: r.comuna || "",
+      region: r.region || "",
+      direccionCompleta: r.direccion_completa || "",
+      nombreSucursal: r.nombre_sucursal || "",
+      estado: r.estado || "",
+      fechaTermino: r.fecha_termino || "",
+    }));
+    render();
+  }catch(err){$("tbody").innerHTML=`<tr><td class="empty-cell" colspan="22">Error: ${esc(err.message)}</td></tr>`;showToast("Error: "+err.message,false);}
+}
+$("fQ").addEventListener("input",render);
+cargar();
+cargarOpcionesSucursales();
+
+</script>
+<script src="/static/auth-guard.js"></script>
+  <script src="/static/atc-logo-home.js"></script>
+<script src="/static/atc-volver.js"></script>
+</body></html>

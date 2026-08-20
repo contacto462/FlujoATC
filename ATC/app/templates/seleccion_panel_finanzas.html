@@ -245,8 +245,8 @@ h1{
   font-weight:800;
   margin-bottom:10px;
   --option-accent:140,194,126;
-  background:linear-gradient(180deg, rgba(var(--option-accent),.34), rgba(var(--option-accent),.18));
-  border:1px solid rgba(var(--option-accent),.46);
+  background:linear-gradient(180deg, rgba(54,95,141,.34), rgba(54,95,141,.18));
+  border:1px solid rgba(54,95,141,.46);
   box-shadow:none;
 }
 
@@ -331,13 +331,18 @@ h1{
           <strong>Rendiciones</strong>
           <p>Libro estilo Excel con 5 hojas: Rendicion, Consolidado, Viatico, Pagos y Suma.</p>
         </a>
+        <a class="option" href="/venta/finanzas/suscripciones?token={{ token|default('') }}" style="--option-accent:13,148,136;">
+          <div class="icon" style="--option-accent:13,148,136;">RS</div>
+          <strong>Registro de Suscripción</strong>
+          <p>Cruce por RUT, nombre cliente y dirección — cantidad de cámaras y datos de suscripción por sucursal.</p>
+        </a>
         <a class="option" href="/compras/panel-control?token={{ token|default('')|urlencode }}" style="--option-accent:108,92,231;">
-          <div class="icon" style="--option-accent:108,92,231;">⚙{% if pendiente_compras_control %}<span class="notif-badge" title="{{ pendiente_compras_control }} pendiente(s)">{{ pendiente_compras_control if pendiente_compras_control <= 99 else "99+" }}</span>{% endif %}</div>
+          <div class="icon" style="--option-accent:108,92,231;">CC{% if pendiente_compras_control %}<span class="notif-badge" title="{{ pendiente_compras_control }} pendiente(s)">{{ pendiente_compras_control if pendiente_compras_control <= 99 else "99+" }}</span>{% endif %}</div>
           <strong>Control de Compras</strong>
           <p>Gestión de compras aprobadas: cambia estado a En proceso o Terminado.</p>
         </a>
         <a class="option" href="/compras/panel-contabilidad?token={{ token|default('')|urlencode }}" style="--option-accent:52,152,219;">
-          <div class="icon" style="--option-accent:52,152,219;">✓</div>
+          <div class="icon" style="--option-accent:52,152,219;">RC</div>
           <strong>Revisión Contabilidad</strong>
           <p>Solicitudes pendientes de aprobación contable. Aprueba o rechaza con motivo.</p>
         </a>

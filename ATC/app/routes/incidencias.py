@@ -2092,44 +2092,47 @@ current_user=Depends(_require_login)):
     return {"result": result}
 
 
-async def _stage_cierre_odt_uploads(
+async def _read_cierre_odt_uploads(
     *,
     service: IncidenciasService,
-    odt: str,
     uploads: list[UploadFile],
     max_files: int,
-) -> list[Path]:
+) -> list[dict[str, object]]:
+    """Lee las imagenes de cierre de ODT a memoria (no se escriben a disco:
+    se suben a Drive de forma sincronica en el propio endpoint)."""
     files = [upload for upload in (uploads or []) if upload and upload.filename]
     if not files:
         raise HTTPException(status_code=400, detail="Debes adjuntar al menos una imagen para cerrar la ODT.")
     if len(files) > max_files:
         raise HTTPException(status_code=400, detail=f"Solo puedes adjuntar hasta {max_files} imagenes.")
 
-    staging_dir = service.crear_staging_cierre_odt(odt)
-    staged_files: list[Path] = []
+    payloads: list[dict[str, object]] = []
     for idx, upload in enumerate(files, start=1):
         mime_type = str(upload.content_type or "").lower()
         if not mime_type.startswith("image/"):
             raise HTTPException(status_code=400, detail=f"{upload.filename or 'archivo'} no es una imagen valida.")
 
-        target = staging_dir / service.nombre_staging_cierre_odt(idx, upload.filename or "", mime_type)
+        chunks: list[bytes] = []
         total = 0
-        with target.open("wb") as fh:
-            while True:
-                chunk = await upload.read(1024 * 1024)
-                if not chunk:
-                    break
-                total += len(chunk)
-                if total > service.CIERRE_ODT_MAX_BYTES:
-                    raise HTTPException(
-                        status_code=400,
-                        detail=f"{upload.filename or 'archivo'} supera el limite de 10 MB.",
-                    )
-                fh.write(chunk)
+        while True:
+            chunk = await upload.read(1024 * 1024)
+            if not chunk:
+                break
+            total += len(chunk)
+            if total > service.CIERRE_ODT_MAX_BYTES:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"{upload.filename or 'archivo'} supera el limite de 10 MB.",
+                )
+            chunks.append(chunk)
         if total <= 0:
             raise HTTPException(status_code=400, detail=f"{upload.filename or 'archivo'} esta vacio.")
-        staged_files.append(target)
-    return staged_files
+        payloads.append({
+            "filename": service.nombre_staging_cierre_odt(idx, upload.filename or "", mime_type),
+            "mime_type": mime_type,
+            "bytes": b"".join(chunks),
+        })
+    return payloads
 
 
 @router.post("/api/incidencias/finalizar-completo-archivos")
@@ -2146,13 +2149,12 @@ current_user=Depends(_require_login)):
     except json.JSONDecodeError as exc:
         raise HTTPException(status_code=400, detail="Diagnostico de cierre invalido.") from exc
 
-    staged_files = await _stage_cierre_odt_uploads(
+    foto_payloads = await _read_cierre_odt_uploads(
         service=service,
-        odt=odt_limpia,
         uploads=files,
         max_files=3,
     )
-    fotos = [service.url_publica_upload(path) for path in staged_files]
+    fotos = service.subir_fotos_cierre_odt_sync(odt_limpia, foto_payloads)
 
     try:
         service.registrar_finalizacion_rapida(
@@ -2180,6 +2182,7 @@ current_user=Depends(_require_login)):
             materiales=data.get("materiales") or [],
             materiales_sin_uso=bool(data.get("materialesSinUso")),
             requiere_seguimiento=bool(data.get("requiereSeguimiento")),
+            foto_payloads=foto_payloads,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -2224,13 +2227,12 @@ current_user=Depends(_require_login)):
     except json.JSONDecodeError as exc:
         raise HTTPException(status_code=400, detail="Diagnostico de cierre invalido.") from exc
 
-    staged_files = await _stage_cierre_odt_uploads(
+    foto_payloads = await _read_cierre_odt_uploads(
         service=service,
-        odt=odt_limpia,
         uploads=files,
         max_files=service.MAX_FOTOS_CIERRE_ODS,
     )
-    fotos = [service.url_publica_upload(path) for path in staged_files]
+    fotos = service.subir_fotos_cierre_odt_sync(odt_limpia, foto_payloads)
 
     cantidad_instalada_total = data.get("cantidadInstaladaTotal") or data.get("cantidad_instalada_total")
     try:
@@ -2242,6 +2244,7 @@ current_user=Depends(_require_login)):
             fotos_base64=fotos,
             token=token,
             cantidad_instalada_total=int(cantidad_instalada_total) if cantidad_instalada_total else None,
+            foto_payloads=foto_payloads,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -2275,33 +2278,35 @@ current_user=Depends(_require_login)):
 
     try:
         service.validar_odt_mantencion_preventiva(odt_limpia)
-        staging_dir = service.crear_staging_cierre_mantencion(odt_limpia)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    staged_files = []
+    foto_payloads: list[dict[str, object]] = []
     for idx, upload in enumerate(uploads, start=1):
         mime_type = str(upload.content_type or "").lower()
         if not mime_type.startswith("image/"):
             raise HTTPException(status_code=400, detail=f"{upload.filename or 'archivo'} no es una imagen valida.")
 
-        target = staging_dir / service.nombre_staging_cierre_mantencion(idx, upload.filename or "", mime_type)
+        chunks: list[bytes] = []
         total = 0
-        with target.open("wb") as fh:
-            while True:
-                chunk = await upload.read(1024 * 1024)
-                if not chunk:
-                    break
-                total += len(chunk)
-                if total > service.MANTENCION_CIERRE_MAX_BYTES:
-                    raise HTTPException(
-                        status_code=400,
-                        detail=f"{upload.filename or 'archivo'} supera el limite de 10 MB.",
-                    )
-                fh.write(chunk)
+        while True:
+            chunk = await upload.read(1024 * 1024)
+            if not chunk:
+                break
+            total += len(chunk)
+            if total > service.MANTENCION_CIERRE_MAX_BYTES:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"{upload.filename or 'archivo'} supera el limite de 10 MB.",
+                )
+            chunks.append(chunk)
         if total <= 0:
             raise HTTPException(status_code=400, detail=f"{upload.filename or 'archivo'} esta vacio.")
-        staged_files.append(target)
+        foto_payloads.append({
+            "filename": service.nombre_staging_cierre_mantencion(idx, upload.filename or "", mime_type),
+            "mime_type": mime_type,
+            "bytes": b"".join(chunks),
+        })
 
     def _coerce_lista(valor: object) -> list[str]:
         if isinstance(valor, list):
@@ -2314,7 +2319,7 @@ current_user=Depends(_require_login)):
     try:
         return service.cerrar_mantencion_con_imagenes_staging(
             odt=odt_limpia,
-            staged_files=staged_files,
+            foto_payloads=foto_payloads,
             observacion=str(data.get("observacion") or ""),
             responsable_cierre=str(data.get("responsableCierre") or ""),
             causa_cierre=_coerce_lista(data.get("causaCierre")),
@@ -2357,6 +2362,18 @@ current_user=Depends(_require_login)):
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"result": ok}
+
+
+@router.get("/api/incidencias/sugerir-acompanante")
+def sugerir_acompanante_tecnico(
+    tecnico: str,
+    service: Annotated[IncidenciasService, Depends(get_service)],
+    current_user=Depends(_require_login),
+):
+    """Solo lectura: acompañante más frecuente históricamente con este
+    técnico, para que el frontend le pregunte al usuario antes de asignarlo
+    (no se guarda nada acá)."""
+    return {"acompanante": service.sugerir_acompanante(tecnico)}
 
 
 @router.post("/api/incidencias/derivar-tecnico")

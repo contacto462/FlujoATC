@@ -169,6 +169,27 @@
     }
     .sidebar-item.active .item-sub { color: rgba(255,255,255,.6); }
 
+    /* ── Aviso de Bitácora ("falta o está mal") ── */
+    .sidebar-item.has-alert { background: #fff7ed; border: 1px solid #fed7aa; }
+    .sidebar-item.has-alert:hover { background: #ffedd5; }
+    .sidebar-item.has-alert.active { background: linear-gradient(135deg, var(--navy-1), var(--navy-2)); border-color: transparent; }
+    .item-name-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+    .item-alert-dot {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 16px;
+      height: 16px;
+      padding: 0 4px;
+      border-radius: 999px;
+      background: #ff3b30;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 800;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
     .sidebar-empty {
       padding: 40px 16px;
       text-align: center;
@@ -532,6 +553,7 @@
     let allHeaders = [];
     let allRows = [];
     let activeRowIndex = null;
+    let pendientesBitacora = {}; // { [sucursal_id]: { campos, observacion, observado_en, observado_por } }
 
     /* ── TOAST ── */
     let toastTimer = null;
@@ -551,6 +573,7 @@
         const data = await res.json();
         allHeaders = data.headers || [];
         allRows = data.rows || [];
+        pendientesBitacora = data.pendientes_bitacora || {};
         buildUI();
       } catch (e) {
         document.getElementById("workspace").innerHTML =
@@ -596,18 +619,36 @@
 
       count.textContent = `${rows.length} sucursal${rows.length !== 1 ? "es" : ""}`;
 
-      rows.forEach((row) => {
+      // Las que Bitácora notificó a Comercial ("falta o está mal") van primero,
+      // sin perder el orden relativo entre ellas ni entre el resto (sort estable).
+      const ordenadas = rows.slice().sort((a, b) => {
+        const pa = pendientesBitacora[String(a[0])] ? 1 : 0;
+        const pb = pendientesBitacora[String(b[0])] ? 1 : 0;
+        return pb - pa;
+      });
+
+      ordenadas.forEach((row) => {
         const originalIndex = allRows.indexOf(row);
         /* headers: [id, rut_empresa, nombre_empresa, nombre_sucursal, direccion, ...] */
         const empresa = String(row[2] || "—");
         const sucursal = String(row[3] || "—");
         const rut = String(row[1] || "");
+        const pendiente = pendientesBitacora[String(row[0])];
 
         const item = document.createElement("div");
-        item.className = "sidebar-item" + (originalIndex === activeRowIndex ? " active" : "");
+        item.className = "sidebar-item" + (originalIndex === activeRowIndex ? " active" : "") + (pendiente ? " has-alert" : "");
         item.dataset.index = originalIndex;
+        const camposTexto = pendiente
+          ? pendiente.campos.map((c) => SUCU_CAMPO_LABEL[c] || c).join(", ")
+          : "";
+        const badge = pendiente
+          ? `<span class="item-alert-dot" title="Bitácora notificó a Comercial: ${camposTexto}${pendiente.observacion ? " — " + pendiente.observacion : ""}">!</span>`
+          : "";
         item.innerHTML = `
-          <div class="item-name">${sucursal}</div>
+          <div class="item-name-row">
+            <div class="item-name">${sucursal}</div>
+            ${badge}
+          </div>
           <div class="item-sub">${empresa}${rut ? " · " + rut : ""}</div>
         `;
         item.addEventListener("click", () => selectSucursal(originalIndex));

@@ -166,5 +166,5 @@ class Ticket(Base):
     # =========================
     def __repr__(self) -> str:
         return f"<Ticket id={self.id} status={self.status}>"
-
+    
 

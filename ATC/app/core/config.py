@@ -158,6 +158,9 @@ class Settings(BaseSettings):
     google_doc_template_protocolos_diario_id: str = "1IazJgh23qh5qHu_gSrmivcStLg4NW-qnt8nxdrHf0VE"
     google_doc_template_protocolos_semanal_id: str = "1RgaKKrsgacVEFhbfjhOn8qpqtuOQEe-cUiiE7vuZ0xQ"
     google_drive_protocolos_folder_id: str = "1beVaXbf23FTHlBa2FfO1mnz55RcKf_iW"
+    google_drive_rendiciones_folder_id: str = ""
+    google_drive_cierre_apertura_folder_id: str = ""
+    google_drive_camaras_monitoreo_folder_id: str = "1suqSxbPXjS-ZOETPTHSRpKm6zQQA_fW4"
     google_maps_api_key: str = ""
 
     # ==============================

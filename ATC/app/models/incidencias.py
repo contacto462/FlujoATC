@@ -225,6 +225,17 @@ class SucursalCamaraMonitoreo(Base):
     odt_origen: Mapped[Optional[str]] = mapped_column(String(30), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
+    # Borrado logico ("Administrar puestos" permite eliminar una camara,
+    # ago 2026) — se conserva la fila para poder revertir por si el usuario
+    # se equivoca, en vez de perderla al 100%. eliminado_en NULL = activa.
+    eliminado_en: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    eliminado_por: Mapped[Optional[str]] = mapped_column(String(180), nullable=True)
+
+    # Foto individual de la camara (subida desde "Cámaras en servidor" en
+    # Tabla Soporte ODS, a Google Drive) — se ve al presionar la camara en
+    # "Administrar puestos" de Bitácora — pedido explicito, ago 2026.
+    foto_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
     sucursal: Mapped[Optional["SucursalBBDD"]] = relationship(back_populates="camaras_monitoreo")
 
 

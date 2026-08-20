@@ -23,7 +23,9 @@ integrada de Windows porque la app corre en el mismo Windows Server que la base,
 con usuario/contraseña. `10.20.30.8,14330` es la dirección para conectarse a esa misma instancia SQL
 Server desde afuera, por ejemplo una herramienta externa, no lo que usa la app. Este repo vive
 montado por SMB en `/Volumes/PROYECTO-ATC-SERVIDOR` desde
-`C:\Users\Administrador\Downloads\proyectos\PROYECTO-ATC-SERVIDOR` en ese mismo Windows Server, y
+`D:\PROYECTO-ATC-SERVIDOR` en ese mismo Windows Server (movido desde
+`C:\Users\Administrador\Downloads\proyectos\PROYECTO-ATC-SERVIDOR` el 2026-08-14; si algún script o
+nota vieja todavía referencia la ruta de Descargas, está desactualizada), y
 la app corre en `http://10.20.30.8:8000`. También se accede externamente por `200.75.22.35:8000`.
 Existe `INCIDENCIAS_DATABASE_URL` (postgresql) en `.env`, pero **no se usa**:
 `ATC/app/core/db.py` arma el engine único desde `settings.DATABASE_URL` exclusivamente. Es un resabio
@@ -149,6 +151,27 @@ PYTHONPYCACHEPREFIX=/private/tmp/atc_compile_cache python3 -m compileall ATC/app
 
 Si necesitas correr localmente, crea un venv nuevo con `uv` (Python 3.12+) e instala desde
 `requirements.txt`.
+
+## Backup De La Base De Datos
+
+`backup_sql.ps1` (raíz del repo) hace `BACKUP DATABASE PROYECTO_ATC` a `D:\BackUpSQLServer\`,
+comprime a `.zip` (SQL Server **Express** no soporta `WITH COMPRESSION`; se comprime aparte con
+clases de .NET porque `Compress-Archive` no existe en la PowerShell 4.0 instalada en el server) y
+borra lo más viejo que 30 días. Corre solo `PROYECTO_ATC`; `BDATC` no se usa y queda afuera a
+propósito.
+
+Programado como tarea de Windows **"ATC SQL Backup"** (diaria, 03:00 AM), no como job de SQL
+Server Agent porque **Express no lo soporta** (el servicio `SQLAgent$SQLEXPRESS` existe pero está
+detenido y no es funcional en esta edición). Corre como `NT AUTHORITY\SYSTEM`, que tiene el rol
+`db_backupoperator` otorgado en `PROYECTO_ATC` específicamente para esto (2026-08-14); no tiene
+rol de servidor ni permisos en otras bases.
+
+Antes de esta tarea (creada 2026-08-14) no existía ningún backup funcional: solo un diferencial
+huérfano del 30-jul sin backup full como base, y cuyo archivo ya no existía en disco. Backup crudo
+~1.5GB, comprimido ~250MB (84% de reducción); con 30 días de retención son ~7-8GB en
+`D:\BackUpSQLServer\`, hay margen amplio (D: tiene ~47GB libres). El log de cada corrida queda en
+`D:\BackUpSQLServer\backup_sql.log`. La corrida tarda ~17-18 min (~1.5 MB/seg, lento para un
+backup local; señal de que el disco D: no es muy rápido, no bloqueante pero a tener en cuenta).
 
 ## Validación
 

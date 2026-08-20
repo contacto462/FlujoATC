@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import logging
 import re
+import time
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
@@ -442,6 +443,83 @@ def upload_support_images_for_odt(
     }
 
 
+def _find_sucursal_folder_id(drive, root_id: str, prefix: str) -> tuple[str, str] | None:
+    query = (
+        "mimeType='application/vnd.google-apps.folder' "
+        f"and '{root_id}' in parents and trashed=false"
+    )
+    page_token = None
+    while True:
+        response = drive.files().list(
+            q=query,
+            fields="nextPageToken, files(id,name)",
+            pageSize=200,
+            pageToken=page_token,
+            includeItemsFromAllDrives=True,
+            supportsAllDrives=True,
+        ).execute()
+        for f in response.get("files", []):
+            if str(f.get("name") or "").startswith(prefix):
+                return f["id"], f.get("name", "")
+        page_token = response.get("nextPageToken")
+        if not page_token:
+            return None
+
+
+def _find_or_create_sucursal_folder(drive, root_id: str, sucursal_id: int, nombre_sucursal: str) -> str:
+    # Carpeta nombrada "{sucursal_id} - {nombre}": el prefijo del id permite
+    # ubicar la carpeta aunque la sucursal se haya renombrado en Bitácora
+    # despues (se renombra la carpeta existente en vez de crear una nueva y
+    # dejar huerfanas las fotos ya subidas) — pedido explicito, ago 2026.
+    prefix = f"{sucursal_id} - "
+    desired_name = _clean_filename(f"{prefix}{nombre_sucursal}".strip(), fallback=str(sucursal_id))
+    existing = _find_sucursal_folder_id(drive, root_id, prefix)
+    if existing:
+        folder_id, current_name = existing
+        if current_name != desired_name:
+            drive.files().update(fileId=folder_id, body={"name": desired_name}, fields="id,name").execute()
+        return folder_id
+    return _find_or_create_folder(drive, root_id, desired_name)
+
+
+def upload_camaras_monitoreo_fotos(
+    *,
+    sucursal_id: int,
+    nombre_sucursal: str,
+    image_payloads: list[dict[str, object]],
+) -> dict[str, Any]:
+    """Sube fotos individuales de cámaras a Drive, en una subcarpeta por
+    sucursal bajo GOOGLE_DRIVE_CAMARAS_MONITOREO_FOLDER_ID. No hay fallback a
+    SQL si Drive falla (solo se propaga la excepción) — guardar bytes de
+    imagen en SQL fue lo que infló el log de transacciones a 9GB antes."""
+    if not settings.google_drive_enabled:
+        raise DriveReportError("GOOGLE_DRIVE_ENABLED=false")
+
+    root_id = _safe_text(settings.google_drive_camaras_monitoreo_folder_id)
+    if not root_id:
+        raise DriveReportError("Falta GOOGLE_DRIVE_CAMARAS_MONITOREO_FOLDER_ID")
+
+    drive, _ = _build_clients()
+    folder_id = _find_or_create_sucursal_folder(drive, root_id, sucursal_id, nombre_sucursal)
+
+    urls: dict[str, str] = {}
+    for payload in image_payloads or []:
+        camara = _safe_text(payload.get("camara"))
+        content = payload.get("bytes")
+        if not camara or not isinstance(content, (bytes, bytearray)) or not content:
+            continue
+        filename = _safe_text(payload.get("filename")) or f"{camara}.jpg"
+        mime_type = _safe_text(payload.get("mime_type")) or "image/jpeg"
+        _, ext = _guess_mime_and_ext(filename, default_mime=mime_type)
+        stamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        image_name = _clean_filename(f"{camara} {stamp}{ext}", fallback=f"camara_{stamp}{ext}")
+        uploaded = _upload_bytes(drive, folder_id, image_name, bytes(content), mime_type)
+        _set_public_read(drive, uploaded["id"])
+        urls[camara] = f"/api/incidencias/drive-image/{uploaded['id']}"
+
+    return {"folder_id": folder_id, "urls": urls}
+
+
 def list_support_images_for_odt(
     *,
     odt: str,
@@ -506,35 +584,46 @@ def download_support_drive_file_bytes(*, file_id: str) -> tuple[bytes, str, str]
     if not fid:
         raise DriveReportError("file_id invalido")
 
-    try:
-        drive, _ = _build_clients()
-        meta = (
-            drive.files()
-            .get(fileId=fid, fields="id,name,mimeType", supportsAllDrives=True)
-            .execute()
-        )
-        mime_type = _safe_text(meta.get("mimeType")) or "application/octet-stream"
-        filename = _safe_text(meta.get("name")) or f"{fid}.bin"
+    # Bajo trafico alto contra la API de Drive aparecen fallos transitorios
+    # (timeout, conexion cortada) que en un segundo intento funcionan bien
+    # — sin reintento, esos fallos se le mostraban al usuario como si el
+    # archivo no existiera (ver obtener_drive_image, mapea excepciones a 404).
+    last_exc: Exception | None = None
+    for intento in range(3):
+        try:
+            drive, _ = _build_clients()
+            meta = (
+                drive.files()
+                .get(fileId=fid, fields="id,name,mimeType", supportsAllDrives=True)
+                .execute()
+            )
+            mime_type = _safe_text(meta.get("mimeType")) or "application/octet-stream"
+            filename = _safe_text(meta.get("name")) or f"{fid}.bin"
 
-        # Los formatos nativos de Google (Docs/Sheets/Slides) no tienen bytes
-        # descargables directos — hay que exportarlos (se exportan como PDF).
-        if mime_type.startswith("application/vnd.google-apps."):
-            content = _export_doc_pdf(drive, fid)
-            if not filename.lower().endswith(".pdf"):
-                filename = f"{filename}.pdf"
-            return content, "application/pdf", filename
+            # Los formatos nativos de Google (Docs/Sheets/Slides) no tienen
+            # bytes descargables directos — hay que exportarlos (a PDF).
+            if mime_type.startswith("application/vnd.google-apps."):
+                content = _export_doc_pdf(drive, fid)
+                if not filename.lower().endswith(".pdf"):
+                    filename = f"{filename}.pdf"
+                return content, "application/pdf", filename
 
-        request = drive.files().get_media(fileId=fid, supportsAllDrives=True)
-        fh = io.BytesIO()
-        downloader = MediaIoBaseDownload(fh, request)
-        done = False
-        while not done:
-            _, done = downloader.next_chunk()
-        return fh.getvalue(), mime_type, filename
-    except DriveReportError:
-        raise
-    except Exception as exc:
-        raise DriveReportError(f"No se pudo descargar archivo Drive {fid}: {exc}") from exc
+            request = drive.files().get_media(fileId=fid, supportsAllDrives=True)
+            fh = io.BytesIO()
+            downloader = MediaIoBaseDownload(fh, request)
+            done = False
+            while not done:
+                _, done = downloader.next_chunk()
+            return fh.getvalue(), mime_type, filename
+        except DriveReportError:
+            raise
+        except Exception as exc:
+            last_exc = exc
+            if intento < 2:
+                time.sleep(1.5 * (intento + 1))
+                continue
+
+    raise DriveReportError(f"No se pudo descargar archivo Drive {fid}: {last_exc}") from last_exc
 
 
 @lru_cache(maxsize=1)
@@ -1663,27 +1752,105 @@ def create_protocol_weekly_report_pdf(
     )
 
 
+def resolve_odt_cierre_folder(*, odt: str, sucursal: str, cliente: str) -> tuple[str, str]:
+    """Resuelve (idempotente, cachea por nombre) la carpeta Drive
+    'Sucursal/ODT {odt}' donde conviven las fotos y el PDF de un cierre.
+    Compartida por la subida sincronica de fotos (en el request) y la
+    subida en background del PDF, para que ambas terminen en la misma
+    carpeta sin coordinarse entre si."""
+    _ensure_enabled()
+    drive, _ = _build_clients()
+    root_folder_id  = _safe_text(settings.google_drive_root_folder_id)
+    safe_sucursal   = _clean_filename(sucursal or cliente or "Sucursal", fallback="Sucursal")
+    safe_odt_folder = _clean_filename(f"ODT {odt}", fallback=f"ODT_{odt}")
+    sucursal_folder_id = _find_or_create_folder(drive, root_folder_id, safe_sucursal)
+    folder_id          = _find_or_create_folder(drive, sucursal_folder_id, safe_odt_folder)
+    return folder_id, safe_odt_folder
+
+
+def upload_odt_cierre_images_to_drive(
+    *,
+    folder_id: str,
+    odt: str,
+    image_payloads: list[dict[str, object]],
+) -> list[str]:
+    """Sube fotos ya en memoria (bytes) a una carpeta de cierre ya resuelta
+    (ver resolve_odt_cierre_folder). Pensada para subir las fotos de forma
+    sincronica, antes de responder el request de cierre, para que
+    foto_1/2/3 queden con la URL definitiva de inmediato. Salta en
+    silencio las que fallen, igual que el resto del modulo."""
+    drive, _ = _build_clients()
+    uploaded_urls: list[str] = []
+    for idx, payload in enumerate(image_payloads or [], start=1):
+        try:
+            content = payload.get("bytes")
+            if not isinstance(content, (bytes, bytearray)) or not content:
+                continue
+            mime_type = _safe_text(payload.get("mime_type")) or "image/jpeg"
+            base_name = _safe_text(payload.get("filename")) or f"img_{idx}"
+            _, ext = _guess_mime_and_ext(base_name, default_mime=mime_type)
+            img_name = _clean_filename(
+                f"ODT_{odt}_IMG_{idx:02d}{ext}", fallback=f"ODT_{odt}_IMG_{idx:02d}.jpg"
+            )
+            uploaded_img = _upload_bytes(drive, folder_id, img_name, bytes(content), mime_type)
+            try:
+                _set_public_read(drive, uploaded_img["id"])
+            except Exception:
+                pass
+            uploaded_urls.append(f"/api/incidencias/drive-image/{uploaded_img['id']}")
+        except Exception:
+            LOGGER.exception("Foto %s de cierre ODT %s no se pudo subir a Drive", idx, odt)
+            continue
+    return uploaded_urls
+
+
+def upload_odt_cierre_pdf_to_drive(
+    *,
+    folder_id: str,
+    odt: str,
+    sucursal: str,
+    pdf_bytes: bytes,
+) -> dict[str, Any]:
+    """Sube solo el PDF de cierre a una carpeta ya resuelta. Usada cuando
+    las fotos ya se subieron por separado (ver upload_odt_cierre_images_to_drive)
+    y solo falta el informe."""
+    drive, _ = _build_clients()
+    safe_sucursal = _clean_filename(sucursal or "Sucursal", fallback="Sucursal")
+    now_stamp = datetime.now().astimezone().strftime("%Y%m%d_%H%M")
+    pdf_name  = _clean_filename(
+        f"ODT_{odt}_{safe_sucursal}_{now_stamp}.pdf", fallback=f"ODT_{odt}_{now_stamp}.pdf"
+    )
+    uploaded = _upload_bytes(drive, folder_id, pdf_name, pdf_bytes, "application/pdf")
+    return {
+        "pdf_file_id":       uploaded["id"],
+        "pdf_web_view_link": uploaded.get("webViewLink", ""),
+        "pdf_content_link":  uploaded.get("webContentLink", ""),
+    }
+
+
 def upload_odt_cierre_to_drive(
     *,
-    pdf_local_path: str,
+    pdf_local_path: str = "",
+    pdf_bytes: bytes | None = None,
     odt: str,
     sucursal: str,
     cliente: str,
     image_sources: list[str],
 ) -> dict[str, Any]:
-    """Sube el PDF local de cierre de ODT y las imágenes a una carpeta Drive.
+    """Sube el PDF de cierre de ODT y las imágenes a una carpeta Drive.
 
-    No usa template de Google Docs — solo sube archivos.
+    El PDF puede venir ya en memoria (`pdf_bytes`, evita escribirlo a disco
+    local) o como ruta a un archivo ya guardado (`pdf_local_path`, usado por
+    los reintentos/regeneración que parten de un PDF que sí quedó en disco).
+    `image_sources` son URLs/data-uris (no bytes en memoria) — para ese caso
+    usar upload_odt_cierre_images_to_drive. No usa template de Google Docs —
+    solo sube archivos.
     """
     _ensure_enabled()
     drive, _ = _build_clients()
 
-    root_folder_id  = _safe_text(settings.google_drive_root_folder_id)
-    safe_sucursal   = _clean_filename(sucursal or cliente or "Sucursal", fallback="Sucursal")
-    safe_odt_folder = _clean_filename(f"ODT {odt}", fallback=f"ODT_{odt}")
-
-    sucursal_folder_id = _find_or_create_folder(drive, root_folder_id, safe_sucursal)
-    folder_id          = _find_or_create_folder(drive, sucursal_folder_id, safe_odt_folder)
+    folder_id, safe_odt_folder = resolve_odt_cierre_folder(odt=odt, sucursal=sucursal, cliente=cliente)
+    safe_sucursal = _clean_filename(sucursal or cliente or "Sucursal", fallback="Sucursal")
 
     uploaded_image_urls: list[str] = []
     for idx, source in enumerate(image_sources or [], start=1):
@@ -1699,6 +1866,7 @@ def upload_odt_cierre_to_drive(
                 pass
             uploaded_image_urls.append(f"/api/incidencias/drive-image/{uploaded_img['id']}")
         except Exception:
+            LOGGER.exception("Foto %s (fuente %r) de cierre ODT %s no se pudo subir a Drive", idx, source, odt)
             continue
 
     # El informe se sube en su propio try/except: si falla (red, cuota, etc.)
@@ -1710,15 +1878,19 @@ def upload_odt_cierre_to_drive(
     pdf_content_link = ""
     pdf_error = ""
     try:
-        pdf_path = Path(pdf_local_path)
-        if not pdf_path.exists():
-            raise DriveReportError(f"PDF local no encontrado: {pdf_local_path}")
+        if pdf_bytes is not None:
+            pdf_payload = pdf_bytes
+        else:
+            pdf_path = Path(pdf_local_path)
+            if not pdf_path.exists():
+                raise DriveReportError(f"PDF local no encontrado: {pdf_local_path}")
+            pdf_payload = pdf_path.read_bytes()
 
         now_stamp = datetime.now().astimezone().strftime("%Y%m%d_%H%M")
         pdf_name  = _clean_filename(
             f"ODT_{odt}_{safe_sucursal}_{now_stamp}.pdf", fallback=f"ODT_{odt}_{now_stamp}.pdf"
         )
-        uploaded = _upload_bytes(drive, folder_id, pdf_name, pdf_path.read_bytes(), "application/pdf")
+        uploaded = _upload_bytes(drive, folder_id, pdf_name, pdf_payload, "application/pdf")
         pdf_file_id = uploaded["id"]
         pdf_web_view_link = uploaded.get("webViewLink", "")
         pdf_content_link = uploaded.get("webContentLink", "")
@@ -1735,6 +1907,43 @@ def upload_odt_cierre_to_drive(
         "pdf_error":         pdf_error,
         "imagenes":          uploaded_image_urls,
         "imagenes_guardadas": len(uploaded_image_urls),
+    }
+
+
+def upload_cierre_apertura_image_to_drive(
+    *,
+    client_id: str,
+    client_name: str,
+    content: bytes,
+    filename: str,
+    mime_type: str = "image/png",
+) -> dict[str, Any]:
+    """Sube una foto de apertura/cierre de sucursal a Drive, en una subcarpeta
+    por cliente bajo GOOGLE_DRIVE_CIERRE_APERTURA_FOLDER_ID."""
+    if not settings.google_drive_enabled:
+        raise DriveReportError("GOOGLE_DRIVE_ENABLED=false")
+
+    root_id = _safe_text(settings.google_drive_cierre_apertura_folder_id)
+    if not root_id:
+        raise DriveReportError("Falta GOOGLE_DRIVE_CIERRE_APERTURA_FOLDER_ID")
+
+    drive, _ = _build_clients()
+
+    safe_client = _clean_filename(client_name or client_id, fallback=client_id or "Cliente")
+    folder_id = _find_or_create_folder(drive, root_id, safe_client)
+
+    uploaded = _upload_bytes(drive, folder_id, filename, content, mime_type)
+    try:
+        _set_public_read(drive, uploaded["id"])
+    except Exception:
+        pass
+    uploaded["public_uri"] = f"/api/incidencias/drive-image/{uploaded['id']}"
+
+    return {
+        "folder_id": folder_id,
+        "folder_name": safe_client,
+        "file_id": uploaded["id"],
+        "public_uri": uploaded["public_uri"],
     }
 
 
@@ -1787,6 +1996,7 @@ def retry_odt_cierre_drive_upload(
                 pass
             uploaded_image_urls.append(f"/api/incidencias/drive-image/{uploaded_img['id']}")
         except Exception:
+            LOGGER.exception("Reintento: foto %s de cierre ODT %s no se pudo subir a Drive", idx, odt)
             continue
 
     pdf_file_id = ""

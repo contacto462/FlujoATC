@@ -468,11 +468,12 @@
               {% if equipo.odts %}
                 {% for odt in equipo.odts %}
                   <div
-                    class="odt-row{% if odt.detalle %} has-detalle{% endif %}"
+                    class="odt-row has-detalle"
                     draggable="true"
                     data-odt="{{ odt.odt or '' }}"
                     data-origen="{{ odt.origen or '' }}"
-                    {% if odt.detalle %}data-detalle="{{ odt.detalle }}" onclick="_toggleDetalleOdt(this)"{% endif %}
+                    data-detalle="{{ odt.detalle }}"
+                    onclick="_toggleDetalleOdt(this)"
                   >
                     <span class="odt-code">{{ odt.odt or "-" }}</span>
                     <div class="odt-main">
@@ -509,7 +510,7 @@
       float._filaActual = null;
       if (mismaFila) return;
 
-      float.textContent = el.dataset.detalle || "";
+      float.textContent = el.dataset.detalle || "Sin detalle adicional.";
       float.classList.remove("arriba");
       float.classList.add("visible");
       float._filaActual = el;

@@ -444,6 +444,61 @@
       .fields-grid { grid-template-columns: 1fr; }
       .checkbox-grid { grid-template-columns: repeat(2, 1fr); }
     }
+
+    /* ── CAMPO MODAL (Materiales / Consideraciones / Observación) ── */
+    .campo-modal {
+      position: fixed; inset: 0; z-index: 1000;
+      display: none; align-items: center; justify-content: center;
+      padding: 22px; background: rgba(15,23,42,.48);
+    }
+    .campo-modal.abierto { display: flex; }
+    .campo-modal-card {
+      width: min(640px, 100%); max-height: min(82vh, 720px);
+      overflow: auto; display: flex; flex-direction: column;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; box-shadow: 0 22px 60px rgba(15,23,42,.28);
+    }
+    .campo-modal-head {
+      position: sticky; top: 0; z-index: 1;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 14px; padding: 16px 18px;
+      background: var(--surface); border-bottom: 1px solid var(--border);
+    }
+    .campo-modal-title { font-size: 15.5px; font-weight: 800; color: var(--text); letter-spacing: -.015em; }
+    .campo-modal-close {
+      width: 32px; height: 32px; border-radius: 8px;
+      border: 1.5px solid var(--border); background: #f8fafc;
+      color: var(--muted); cursor: pointer; font-size: 19px; line-height: 1;
+      transition: all .18s;
+    }
+    .campo-modal-close:hover { background: #fff5ef; border-color: var(--orange); color: var(--orange); }
+    .campo-modal-body { padding: 18px; }
+    .campo-modal-body textarea {
+      width: 100%; min-height: 220px; resize: vertical;
+      padding: 12px 14px; font: inherit; font-size: 13.5px;
+      color: var(--text); background: #fff;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      outline: none; transition: border-color .18s, box-shadow .18s;
+    }
+    .campo-modal-body textarea:focus {
+      border-color: var(--orange); box-shadow: 0 0 0 3px rgba(255,122,43,.1);
+    }
+    .campo-modal-actions {
+      display: flex; justify-content: flex-end; gap: 10px;
+      padding: 14px 18px; border-top: 1px solid var(--border);
+    }
+    .campo-modal-actions button {
+      padding: 9px 18px; border-radius: 9px; font-size: 13px; font-weight: 700;
+      font-family: inherit; cursor: pointer; transition: all .18s;
+    }
+    .campo-modal-btn-cancelar {
+      background: #f8fafc; border: 1.5px solid var(--border); color: var(--muted);
+    }
+    .campo-modal-btn-cancelar:hover { background: #f1f5f9; }
+    .campo-modal-btn-guardar {
+      background: var(--orange); border: 1.5px solid var(--orange); color: #fff;
+    }
+    .campo-modal-btn-guardar:hover { background: var(--orange-dark); }
   </style>
 </head>
 <body>
@@ -492,6 +547,22 @@
   </div>
 
   <div class="toast" id="toast"></div>
+
+  <div class="campo-modal" id="campoModal" aria-hidden="true">
+    <div class="campo-modal-card" role="dialog" aria-modal="true" aria-labelledby="campoModalTitle">
+      <div class="campo-modal-head">
+        <div class="campo-modal-title" id="campoModalTitle">Editar</div>
+        <button class="campo-modal-close" type="button" onclick="cerrarCampoModal()" aria-label="Cerrar">×</button>
+      </div>
+      <div class="campo-modal-body">
+        <textarea id="campoModalText"></textarea>
+      </div>
+      <div class="campo-modal-actions">
+        <button class="campo-modal-btn-cancelar" type="button" onclick="cerrarCampoModal()">Cancelar</button>
+        <button class="campo-modal-btn-guardar" type="button" id="campoModalGuardar">Guardar</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     const qsToken = new URLSearchParams(window.location.search).get("token") || "";
@@ -668,39 +739,27 @@
           <div class="section-sep"><span class="section-sep-dot"></span>Información Adicional</div>
           <div class="field">
             <label>Materiales</label>
-            <button class="btn-toggle" id="btn-materiales" onclick="toggleField('materiales','btn-materiales')" type="button">
+            <button class="btn-toggle" id="btn-materiales" onclick="abrirCampoModal('materiales','Materiales')" type="button">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
               Ver Materiales
             </button>
             <textarea id="materiales" style="display:none;"></textarea>
-            <button class="btn-toggle btn-toggle-hide" id="anular-btn-materiales" style="display:none;" onclick="toggleField('materiales','btn-materiales')" type="button">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
-              Ocultar
-            </button>
           </div>
           <div class="field">
             <label>Consideraciones</label>
-            <button class="btn-toggle" id="btn-consideraciones" onclick="toggleField('consideraciones','btn-consideraciones')" type="button">
+            <button class="btn-toggle" id="btn-consideraciones" onclick="abrirCampoModal('consideraciones','Consideraciones')" type="button">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
               Ver Consideraciones
             </button>
             <textarea id="consideraciones" style="display:none;"></textarea>
-            <button class="btn-toggle btn-toggle-hide" id="anular-btn-consideraciones" style="display:none;" onclick="toggleField('consideraciones','btn-consideraciones')" type="button">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
-              Ocultar
-            </button>
           </div>
           <div class="field">
             <label>Observación</label>
-            <button class="btn-toggle" id="btn-observacion" onclick="toggleField('observacion','btn-observacion')" type="button">
+            <button class="btn-toggle" id="btn-observacion" onclick="abrirCampoModal('observacion','Observación')" type="button">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
               Ver Observación
             </button>
             <textarea id="observacion" style="display:none;"></textarea>
-            <button class="btn-toggle btn-toggle-hide" id="anular-btn-observacion" style="display:none;" onclick="toggleField('observacion','btn-observacion')" type="button">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
-              Ocultar
-            </button>
           </div>
 
           <!-- ARCHIVOS ADJUNTOS -->
@@ -1017,16 +1076,47 @@
       }
     }
 
-    /* ── TOGGLE HELPERS ── */
-    function toggleField(f, b) {
-      const field = document.getElementById(f);
-      const btn = document.getElementById(b);
-      const an = document.getElementById("anular-" + b);
-      const visible = field.style.display === "block";
-      field.style.display = visible ? "none" : "block";
-      btn.style.display = visible ? "inline-flex" : "none";
-      if (an) an.style.display = visible ? "none" : "inline-flex";
+    /* ── CAMPO MODAL (Materiales / Consideraciones / Observación) ── */
+    let campoModalActivo = null;
+
+    function abrirCampoModal(campoId, titulo) {
+      const field = document.getElementById(campoId);
+      const modal = document.getElementById("campoModal");
+      const title = document.getElementById("campoModalTitle");
+      const text = document.getElementById("campoModalText");
+      campoModalActivo = campoId;
+      title.textContent = titulo;
+      text.value = field?.value || "";
+      modal.classList.add("abierto");
+      modal.setAttribute("aria-hidden", "false");
+      setTimeout(() => {
+        text.focus();
+        text.setSelectionRange(text.value.length, text.value.length);
+      }, 0);
     }
+
+    function cerrarCampoModal() {
+      const modal = document.getElementById("campoModal");
+      modal.classList.remove("abierto");
+      modal.setAttribute("aria-hidden", "true");
+      campoModalActivo = null;
+    }
+
+    function guardarCampoModal() {
+      if (!campoModalActivo) return;
+      const field = document.getElementById(campoModalActivo);
+      const text = document.getElementById("campoModalText");
+      if (field) {
+        field.value = text.value;
+        field.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      cerrarCampoModal();
+    }
+
+    document.getElementById("campoModalGuardar").addEventListener("click", guardarCampoModal);
+    document.getElementById("campoModal").addEventListener("click", (event) => {
+      if (event.target.id === "campoModal") cerrarCampoModal();
+    });
 
     function toggleServicio() {
       const div = document.getElementById("servicios-wrapper");

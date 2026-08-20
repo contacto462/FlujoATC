@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from ATC.app.core.incidencias_db import get_db
+from ATC.app.models.incidencias import SucursalBBDD
 from ATC.app.schemas.venta import (
     VentaAdminEstadoRequest,
     VentaAnularODSRequest,
@@ -85,6 +86,11 @@ from ATC.app.services.venta_service import (
     update_sucursal_row,
     delete_sucursal_row,
     upsert_sucursal_info_extra,
+)
+from ATC.app.services.suscripciones_service import (
+    asignar_sucursal_suscripcion,
+    obtener_camaras_monitoreadas_por_sucursal,
+    obtener_suscripciones,
 )
 
 
@@ -535,6 +541,19 @@ def venta_finanzas_consolidado_page(
     return _template(request, "finanzas_consolidado.html", token)
 
 
+@router.get("/venta/finanzas/suscripciones", response_class=HTMLResponse)
+def venta_finanzas_suscripciones_page(
+    request: Request,
+    token: str = Query(default=""),
+    db: Session = Depends(get_db),
+    service: Annotated[IncidenciasService, Depends(get_service)] = None,
+):
+    guard = _guard_page(request, db, service, token, next_form='panelSelectorFinanzas')
+    if guard:
+        return guard
+    return _template(request, "finanzas_suscripciones.html", token)
+
+
 @router.get("/venta/finanzas/viatico-especial", response_class=HTMLResponse)
 def venta_finanzas_viatico_page(
     request: Request,
@@ -873,6 +892,73 @@ def venta_cliente_telefono_guardar(payload: VentaClienteTelefonoUpdateRequest, d
 @router.get("/api/venta/sucursales/tabla")
 def venta_sucursales_tabla(db: Session = Depends(get_db), current_user=Depends(_require_login)):
     return get_sucursales_table(db)
+
+
+@router.get("/api/venta/finanzas/suscripciones")
+def venta_finanzas_suscripciones_api(db: Session = Depends(get_db), current_user=Depends(_require_login)):
+    """Datos para la hoja 'Registro de Suscripción': las filas son las de
+    la tabla `suscripcion` (importada del CSV una vez — ver
+    ATC/scripts/_importar_suscripciones_csv.py), no todas las sucursales de
+    ATC. "Cantidad Cámaras" se reemplaza por el dato de bbdd_sucursales
+    (Bitácora > Información Puestos) solo cuando Servicio es
+    "Televigilancia" (ver suscripciones_service.obtener_suscripciones)."""
+    camaras_por_sucursal = obtener_camaras_monitoreadas_por_sucursal(db)
+    return {"rows": obtener_suscripciones(db, camaras_por_sucursal)}
+
+
+@router.get("/api/venta/sucursales/opciones")
+def venta_sucursales_opciones_api(db: Session = Depends(get_db), current_user=Depends(_require_login)):
+    """Lista liviana de sucursales (id, nombre, empresa, rut) para el
+    selector de 'Registro de Suscripción' — a diferencia de /tabla, no trae
+    las ~17 columnas completas de cada sucursal."""
+    tabla = get_sucursales_table(db)
+    opciones = [
+        {
+            "id": row[0] if len(row) > 0 else None,
+            "rut": row[1] if len(row) > 1 else "",
+            "nombre_empresa": row[2] if len(row) > 2 else "",
+            "nombre_sucursal": row[3] if len(row) > 3 else "",
+            "direccion": row[4] if len(row) > 4 else "",
+        }
+        for row in tabla.get("rows", [])
+    ]
+    return {"opciones": opciones}
+
+
+class AsignarSucursalSuscripcionRequest(BaseModel):
+    codigo: str
+    sucursal_id: int
+
+
+@router.post("/api/venta/finanzas/suscripciones/asignar-sucursal")
+def venta_finanzas_suscripciones_asignar_sucursal(
+    payload: AsignarSucursalSuscripcionRequest,
+    db: Session = Depends(get_db),
+    current_user=Depends(_require_login),
+):
+    """Asigna a mano la sucursal de ATC que corresponde a una fila de
+    `suscripcion` (identificada por su Código), para cuando el cruce
+    automático de la importación no la encontró o la encontró equivocada."""
+    sucursal = db.query(SucursalBBDD).filter(SucursalBBDD.id == payload.sucursal_id).first()
+    if not sucursal:
+        raise HTTPException(status_code=404, detail="Sucursal no encontrada.")
+    try:
+        asignar_sucursal_suscripcion(
+            db,
+            codigo=payload.codigo,
+            sucursal_id=payload.sucursal_id,
+            nombre_sucursal=sucursal.nombre_sucursal or "",
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    camaras_por_sucursal = obtener_camaras_monitoreadas_por_sucursal(db)
+    cantidad_camaras = camaras_por_sucursal.get(payload.sucursal_id)
+    return {
+        "ok": True,
+        "nombre_sucursal": sucursal.nombre_sucursal or "",
+        "cantidad_camaras": cantidad_camaras if cantidad_camaras is not None else "",
+        "camaras_sin_bbdd": cantidad_camaras is None,
+    }
 
 
 @router.post("/api/venta/sucursales/tabla/guardar-fila")

@@ -1443,6 +1443,59 @@
       background: #e5e7eb;
     }
 
+    /* Confirmar acompañante sugerido: mismo esqueleto visual que el modal
+       de asignación masiva (h3 + texto de contexto + 2 botones), sin lista. */
+    .panel-confirmar-acompanante {
+      width: min(440px, 96vw);
+      padding: 26px;
+    }
+    .panel-confirmar-acompanante h3 {
+      font-size: 19px;
+      font-weight: 800;
+      margin: 0 0 8px;
+      color: #111827;
+      letter-spacing: -0.01em;
+    }
+    .panel-confirmar-acompanante .am-ctx {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.55;
+      margin-bottom: 20px;
+    }
+    .panel-confirmar-acompanante .am-ctx b {
+      color: var(--accent-strong);
+    }
+    .panel-confirmar-acompanante .am-acts {
+      display: flex;
+      gap: 10px;
+    }
+    .panel-confirmar-acompanante .am-acts button {
+      flex: 1;
+      min-height: 44px;
+      border: none;
+      border-radius: var(--radius);
+      font: inherit;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: background-color .15s ease, transform .1s ease;
+    }
+    .panel-confirmar-acompanante .am-save {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 8px 18px rgba(244, 166, 114, .35);
+    }
+    .panel-confirmar-acompanante .am-save:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+    .panel-confirmar-acompanante .am-cancel {
+      background: #f3f4f6;
+      color: #374151;
+    }
+    .panel-confirmar-acompanante .am-cancel:hover {
+      background: #e5e7eb;
+    }
 
     .tabla-imagen-header {
       display: flex;
@@ -2136,6 +2189,17 @@
       <div class="am-acts">
         <button type="button" class="am-cancel" onclick="cancelarAsignacionMasiva()">No, gracias</button>
         <button type="button" class="am-save" id="amConfirmarBtn" onclick="confirmarAsignacionMasiva()">Sí, asignar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalConfirmarAcompanante" class="modal">
+    <div class="panel panel-confirmar-acompanante">
+      <h3>¿Asignar acompañante?</h3>
+      <div class="am-ctx" id="caCtx"></div>
+      <div class="am-acts">
+        <button type="button" class="am-cancel" onclick="cerrarModalConfirmarAcompanante(false)">No, dejar sin acompañante</button>
+        <button type="button" class="am-save" onclick="cerrarModalConfirmarAcompanante(true)">Sí, asignar</button>
       </div>
     </div>
   </div>
@@ -3007,6 +3071,42 @@
       cerrarModalAsignacionMasiva(false);
     }
 
+    // ── Confirmar acompañante sugerido: al derivar un tecnico por primera
+    // vez (sin acompañante ya asignado), se consulta el mas frecuente
+    // historicamente con ese tecnico y se le pregunta al usuario antes de
+    // guardarlo — ya no se asigna solo. ──
+    let resolverConfirmarAcompanante = null;
+
+    async function sugerirAcompanante(tecnico) {
+      try {
+        const r = await api(`/api/incidencias/sugerir-acompanante?tecnico=${encodeURIComponent(tecnico)}`);
+        return String(r?.acompanante || "").trim();
+      } catch (_err) {
+        return "";
+      }
+    }
+
+    function abrirModalConfirmarAcompanante(tecnico, acompanante) {
+      const modal = document.getElementById("modalConfirmarAcompanante");
+      const ctx = document.getElementById("caCtx");
+      if (!modal) return Promise.resolve(false);
+      if (ctx) {
+        ctx.innerHTML = `<b>${esc(acompanante)}</b> es el acompañante más frecuente históricamente con <b>${esc(tecnico)}</b>. ¿Lo asignamos también a esta ODT? Después lo puedes cambiar con doble clic en la celda de Acompañante.`;
+      }
+      modal.style.display = "block";
+      return new Promise((resolve) => {
+        resolverConfirmarAcompanante = resolve;
+      });
+    }
+
+    function cerrarModalConfirmarAcompanante(confirmado) {
+      const modal = document.getElementById("modalConfirmarAcompanante");
+      if (modal) modal.style.display = "none";
+      const resolver = resolverConfirmarAcompanante;
+      resolverConfirmarAcompanante = null;
+      if (resolver) resolver(!!confirmado);
+    }
+
     function confirmarAsignacionMasiva() {
       cerrarModalAsignacionMasiva(true);
     }
@@ -3606,19 +3706,14 @@
 
         try {
           td.textContent = tecnicoObjetivo;
-          const resultado = await guardarDerivacionTecnicoFlexible(
+          await guardarDerivacionTecnicoFlexible(
             odt,
             tecnicoObjetivo,
             acompananteObjetivo,
             derivacionObjetivo,
             estadoObjetivo
           );
-          // El backend puede haber asignado un acompañante automáticamente
-          // (el más frecuente históricamente con este técnico) cuando el
-          // campo llegó vacío — reflejar ESE valor, no el que se envió, y
-          // sigue siendo editable a mano desde la celda de Acompañante.
-          const acompananteFinal = limpiarAsignacion ? "" : (resultado?.acompanante ?? acompananteObjetivo);
-          const seAsignoAuto = !limpiarAsignacion && !acompananteActual && !!acompananteFinal;
+          let acompananteFinal = acompananteObjetivo;
           actualizarFilaLocalAsignacion(odt, {
             tecnico: tecnicoObjetivo,
             acompanante: acompananteFinal,
@@ -3630,11 +3725,30 @@
             setMensaje("La ODT quedo pendiente.");
           } else if (mismoTecnico && estadoActual === "Pendiente") {
             setMensaje("Tecnico confirmado. La ODT paso a En Proceso.");
-          } else if (seAsignoAuto) {
-            setMensaje(`Técnico derivado correctamente. Acompañante asignado automáticamente: ${acompananteFinal} (puedes ajustarlo con doble clic).`);
           } else {
             setMensaje("Tecnico derivado correctamente.");
           }
+
+          // Primera vez que se asigna este tecnico a la ODT (no tenia
+          // acompañante ya elegido): en vez de rellenarlo solo, se pregunta
+          // antes de guardar nada.
+          if (!limpiarAsignacion && !acompananteActual) {
+            const sugerido = await sugerirAcompanante(tecnicoObjetivo);
+            if (sugerido) {
+              const confirmado = await abrirModalConfirmarAcompanante(tecnicoObjetivo, sugerido);
+              if (confirmado) {
+                try {
+                  await guardarDerivacionTecnicoFlexible(odt, tecnicoObjetivo, sugerido, derivacionObjetivo, "En Proceso");
+                  acompananteFinal = sugerido;
+                  actualizarFilaLocalAsignacion(odt, { acompanante: acompananteFinal });
+                  setMensaje(`Tecnico y acompañante (${acompananteFinal}) asignados correctamente.`);
+                } catch (err) {
+                  setMensaje(`Tecnico derivado, pero no se pudo asignar el acompañante: ${err.message}`, false);
+                }
+              }
+            }
+          }
+
           if (!limpiarAsignacion) {
             await revisarYOfrecerAsignacionMasiva(odt, r?.cliente || "", tecnicoObjetivo, acompananteFinal);
           }

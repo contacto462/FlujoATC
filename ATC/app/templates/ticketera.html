@@ -3248,6 +3248,7 @@ body.dark-mode .kpi.kpi-resolved{
 </nav>
 
 <nav class="nav nav-standalone">
+  <a href="/ticketera?scope=sent" class="{{ 'active' if scope_filters == ['sent'] else '' }}"><span>Enviados</span><span class="pill">{{ counts['sent'] }}</span></a>
   <a href="#" id="borradoresNavLink" onclick="openBorradoresModal(); return false;">
     <span>Borradores</span>
     <span class="pill" id="borradoresCountBadge" hidden>0</span>
@@ -3256,20 +3257,20 @@ body.dark-mode .kpi.kpi-resolved{
 
 <div class="sidebar-section">Estado</div>
 <nav class="nav">
-  <a href="/ticketera?scope=all" class="{{ 'active' if scope_filters == ['all'] else '' }}"><span>Todos</span><span class="pill">{{ counts['all'] }}</span></a>
-  <a href="/ticketera?scope=open" class="{{ 'active' if scope_filters == ['open'] else '' }}"><span>Abierto</span><span class="pill">{{ counts['open'] }}</span></a>
-  <a href="/ticketera?scope=pending" class="{{ 'active' if scope_filters == ['pending'] else '' }}"><span>Pendiente</span><span class="pill">{{ counts['pending'] }}</span></a>
-  <a href="/ticketera?scope=resolved" class="{{ 'active' if scope_filters == ['resolved'] else '' }}"><span>Resuelto</span><span class="pill">{{ counts['resolved'] }}</span></a>
-  <a href="/ticketera?scope=spam" class="{{ 'active' if scope_filters == ['spam'] else '' }}"><span>Spam</span><span class="pill">{{ counts['spam'] }}</span></a>
-  <a href="/ticketera?scope=trash" class="{{ 'active' if scope_filters == ['trash'] else '' }}"><span>Papelera</span><span class="pill">{{ counts['trash'] }}</span></a>
+  <a href="{{ sidebar_scope_urls['all'] }}" class="{{ 'active' if scope_filters == ['all'] else '' }}"><span>Todos</span><span class="pill">{{ counts['all'] }}</span></a>
+  <a href="{{ sidebar_scope_urls['open'] }}" class="{{ 'active' if scope_filters == ['open'] else '' }}"><span>Abierto</span><span class="pill">{{ counts['open'] }}</span></a>
+  <a href="{{ sidebar_scope_urls['pending'] }}" class="{{ 'active' if scope_filters == ['pending'] else '' }}"><span>Pendiente</span><span class="pill">{{ counts['pending'] }}</span></a>
+  <a href="{{ sidebar_scope_urls['resolved'] }}" class="{{ 'active' if scope_filters == ['resolved'] else '' }}"><span>Resuelto</span><span class="pill">{{ counts['resolved'] }}</span></a>
+  <a href="{{ sidebar_scope_urls['spam'] }}" class="{{ 'active' if scope_filters == ['spam'] else '' }}"><span>Spam</span><span class="pill">{{ counts['spam'] }}</span></a>
+  <a href="{{ sidebar_scope_urls['trash'] }}" class="{{ 'active' if scope_filters == ['trash'] else '' }}"><span>Papelera</span><span class="pill">{{ counts['trash'] }}</span></a>
 </nav>
 
 <div class="sidebar-section">Usuarios</div>
 <nav class="nav">
-  <a href="/ticketera?user_filter=all" class="{{ 'active' if user_filters == ['all'] else '' }}"><span>Todos</span></a>
-  <a href="/ticketera?user_filter=unassigned" class="{{ 'active' if user_filters == ['unassigned'] else '' }}"><span>Sin asignar</span></a>
+  <a href="{{ sidebar_user_urls['all'] }}" class="{{ 'active' if user_filters == ['all'] else '' }}"><span>Todos</span></a>
+  <a href="{{ sidebar_user_urls['unassigned'] }}" class="{{ 'active' if user_filters == ['unassigned'] else '' }}"><span>Sin asignar</span></a>
   {% for u in users %}
-  <a href="/ticketera?user_filter={{ u.id }}" class="{{ 'active' if user_filters == [u.id|string] else '' }}"><span>{{ u.name }}</span></a>
+  <a href="{{ sidebar_user_urls[u.id|string] }}" class="{{ 'active' if user_filters == [u.id|string] else '' }}"><span>{{ u.name }}</span></a>
   {% endfor %}
 </nav>
 

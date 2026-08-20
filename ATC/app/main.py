@@ -6,6 +6,19 @@ import threading
 import time
 from pathlib import Path
 
+# Sin esto, LOGGER.info(...) en cualquier modulo de la app queda mudo en
+# produccion: el logger raiz de Python arranca en WARNING por defecto, asi
+# que solo LOGGER.warning/.exception llegaban a los logs (via el "last
+# resort handler" de stderr, sin timestamp propio). uvicorn no configura el
+# logger raiz (solo "uvicorn"/"uvicorn.error"/"uvicorn.access"), asi que esto
+# no pisa nada de lo suyo. stderr ya va redirigido a logs/uvicorn.err.log
+# por el watchdog, asi que no hace falta un FileHandler aparte.
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
+LOGGER = logging.getLogger(__name__)
+
 import ATC.app.models
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, RedirectResponse
@@ -73,6 +86,7 @@ from ATC.app.models.inicio_turno import (  # noqa: F401
     RecintoQrGenerado,
     RondaRegistro,
     SupervisorRegistro,
+    TurnoEstipulado,
 )
 from ATC.app.models.message import Message  # noqa: F401
 from ATC.app.models.portal_cliente import PortalPersonaLogin  # noqa: F401
@@ -96,6 +110,7 @@ from ATC.app.models.ticket_sla_feedback_event import (  # noqa: F401
     TicketSlaFeedbackEvent,
 )
 from ATC.app.models.user import User  # noqa: F401
+from ATC.app.models.suscripciones import Suscripcion  # noqa: F401
 
 # Carga adicional de modelos para create_all()
 from ATC.app.models import incidencias as _incidencias_models  # noqa: F401
@@ -1112,9 +1127,27 @@ def automation_loop() -> None:
 
             resultado = IncidenciasService(db).reintentar_informes_drive_pendientes()
             if resultado.get("revisados"):
-                print("Reintento informes Drive:", resultado)
-        except Exception as exc:
-            print("Error reintentando informes Drive:", exc)
+                LOGGER.info("Reintento informes Drive: %s", resultado)
+        except Exception:
+            LOGGER.exception("Error reintentando informes Drive")
+        finally:
+            db.close()
+
+        # Reintento de archivos en cuarentena local (uploads/_pending_drive/)
+        # de los flujos migrados a Drive (cierre ODT/mantencion, rendiciones,
+        # apertura/cierre de sucursal): si Drive fallo en el momento del
+        # upload, el archivo quedo guardado localmente como fallback y esta
+        # funcion reintenta subirlo, repuntando la fila en BBDD y borrando
+        # el archivo local al lograrlo (ver _guardar_en_cuarentena_drive).
+        db = SessionLocal()
+        try:
+            from ATC.app.services.incidencias_service import IncidenciasService
+
+            resultado_cuarentena = IncidenciasService(db).reintentar_uploads_pendientes_drive()
+            if resultado_cuarentena.get("revisados"):
+                LOGGER.info("Reintento cuarentena Drive: %s", resultado_cuarentena)
+        except Exception:
+            LOGGER.exception("Error reintentando cuarentena Drive")
         finally:
             db.close()
 

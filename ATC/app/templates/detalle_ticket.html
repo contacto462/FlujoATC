@@ -3581,7 +3581,7 @@ body.is-inline-image-resizing{
                       </svg>
                     </button>
                   </div>
-                  {% if (ticket.source or "").strip().lower() == "email" %}
+                  {% if (ticket.source or "").strip().lower() in ("email", "internal") %}
                     <div class="gmail-toolbar-side">
                       <button id="replyAttachBtn" class="gmail-clip-btn" type="button" title="Adjuntar archivo" aria-label="Adjuntar archivo" {% if ticket_locked %}disabled{% endif %}>
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" xml:space="preserve" aria-hidden="true">
@@ -3600,7 +3600,7 @@ body.is-inline-image-resizing{
                   {% endif %}
                 </div>
 
-                {% if (ticket.source or "").strip().lower() == "email" %}
+                {% if (ticket.source or "").strip().lower() in ("email", "internal") %}
                   <div class="gmail-attachments">
                     <div class="gmail-paste-status" id="replyPasteStatus">Puedes pegar capturas con Ctrl+V.</div>
                     <ul id="replyAttachmentsList" class="gmail-attachment-list"></ul>
@@ -5291,7 +5291,7 @@ body.is-inline-image-resizing{
           .trim();
 
         if (!plainText && !cleanedHtml) return "";
-        if (ticketSource === "email") {
+        if (ticketSource === "email" || ticketSource === "internal") {
           return cleanedHtml || plainText;
         }
         return plainText;
