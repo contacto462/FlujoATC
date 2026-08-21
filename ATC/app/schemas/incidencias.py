@@ -106,6 +106,7 @@ class EnProcesoRequest(BaseModel):
     avance: int
     observacion: str
     token: Optional[str] = ""
+    camaras_instaladas: Optional[int] = None
 
 
 class IniciarTrabajoRequest(BaseModel):
@@ -131,6 +132,8 @@ class EditarIncidenciaTablaRequest(BaseModel):
     observacion_final: Optional[str] = Field(default=None, alias="observacionFinal")
     repetida_odt_ref: Optional[str] = Field(default=None, alias="repetidaOdtRef")
     editar_ultima_observacion_servicio: bool = Field(default=False, alias="editarUltimaObservacionServicio")
+    observacion_coordinacion: Optional[str] = None
+    eliminar_ultima_observacion_coordinacion: bool = False
 
 
 class RegenerarInformeCierreRequest(BaseModel):

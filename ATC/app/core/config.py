@@ -160,7 +160,6 @@ class Settings(BaseSettings):
     google_drive_protocolos_folder_id: str = "1beVaXbf23FTHlBa2FfO1mnz55RcKf_iW"
     google_drive_rendiciones_folder_id: str = ""
     google_drive_cierre_apertura_folder_id: str = ""
-    google_drive_camaras_monitoreo_folder_id: str = "1suqSxbPXjS-ZOETPTHSRpKm6zQQA_fW4"
     google_maps_api_key: str = ""
 
     # ==============================

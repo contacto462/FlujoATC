@@ -11,7 +11,7 @@ USER = os.getenv("ATC_WINRM_USER", "Administrador")
 PASSWORD = os.getenv("ATC_WINRM_PASSWORD", "")
 PROJECT_DIR = os.getenv(
     "ATC_REMOTE_PROJECT_DIR",
-    r"D:\proyectos\PROYECTO-ATC-SERVIDOR",
+    r"D:\PROYECTO-ATC-SERVIDOR",
 )
 
 

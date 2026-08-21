@@ -34,6 +34,7 @@ class Registro(Base):
     observacion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     observacion_soporte: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     observacion_servicio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    observacion_coordinacion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     tecnicos: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     acompanante: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     estado: Mapped[str] = mapped_column(String(100), default="Pendiente", index=True)
@@ -655,7 +656,7 @@ class PruebaSonido(Base):
     sucursal_id: Mapped[int] = mapped_column(ForeignKey("bbdd_sucursales.id", ondelete="CASCADE"), index=True)
     anio: Mapped[int] = mapped_column(index=True)
     mes: Mapped[int] = mapped_column(index=True)
-    resultado: Mapped[str] = mapped_column(String(20))  # exitoso | falla
+    resultado: Mapped[str] = mapped_column(String(20))  # exitoso | falla | no_coordinacion | exitoso_terreno
     observacion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     operador: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     incidencia_odt: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)

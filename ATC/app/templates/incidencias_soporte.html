@@ -12,6 +12,7 @@
   <title>Incidencias Soporte Técnico</title>
   <script src="/static/gas_adapter_soporte.js?v=20260522_1"></script>
   <script src="/static/utils.js"></script>
+  <script src="/static/atc-notificacion-sonido.js"></script>
   <style>
     :root {
       --bg: #f7f8fa;
@@ -1206,19 +1207,6 @@
       gap: 10px;
     }
 
-    /* ── Registro por puesto (mismo sistema que incidencias_puestos.html) ── */
-    #gridPuestosOdt { display: flex; flex-wrap: wrap; gap: 9px; justify-content: center; margin: 0 0 20px; padding: 4px 0; }
-    .boton-puesto {
-      min-width: 50px; height: 40px; padding: 0 13px;
-      font-size: 13px; font-weight: 700; font-family: inherit; color: #d1dbe8;
-      border: 1px solid rgba(255,255,255,.10); border-radius: 8px;
-      background: linear-gradient(180deg,#526070 0%,#3f4f5e 100%);
-      cursor: pointer; display: flex; align-items: center; justify-content: center; white-space: nowrap;
-      box-shadow: 0 1px 3px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.08);
-      transition: transform .12s ease, box-shadow .14s ease, border-color .14s ease, background .14s ease, color .14s ease;
-    }
-    .boton-puesto:hover { background: linear-gradient(180deg,#63768a 0%,#4e6070 100%); border-color: var(--accent); color: #fff; transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,.30), 0 0 0 1px var(--accent); }
-    .boton-puesto.activo { background: linear-gradient(180deg,var(--accent) 0%,var(--accent-hover) 100%); border-color: var(--accent-strong); color: #fff; box-shadow: 0 0 0 2px rgba(127,196,151,.35), 0 3px 10px rgba(127,196,151,.30); transform: translateY(-1px); }
     .formulario-puesto { background: #fff; border: 1px solid rgba(148,163,184,.40); border-radius: var(--radius-lg); padding: 18px; margin: 0 0 16px; box-shadow: var(--shadow-md); }
     .titulo-formulario-puesto { margin: 0 0 10px; font-size: 15px; font-weight: 800; color: var(--text); }
     .inc-lista { display: flex; flex-direction: column; gap: 14px; margin-top: 10px; }
@@ -1727,7 +1715,6 @@
         <button type="button" class="odt-registro-close" onclick="cerrarOdt()">Cerrar</button>
       </div>
       <div id="odtMsg" class="odt-message"></div>
-      <div id="gridPuestosOdt"></div>
       <div id="formulariosContenedorOdt"></div>
       <div class="acciones-principales">
         <button type="button" id="btnRegistrarTodoOdt" class="btn-odt" onclick="regRegistrarTodas()">Registrar Todas las Incidencias</button>
@@ -3526,6 +3513,7 @@
     let odtDireccionGlobalPorSucursal = {};
     let odtListasCargadas = false;
     let sucursalesPorPuestoOdt = {};
+    let sucursalesTodasOdt = [];
     let contactosPorSucursalOdt = {};
 
     const TIPOS_INCIDENCIA_ODT = ["Desconexión", "Problema de Parlante", "Problema de Alarma", "Hora y/o Fecha Cambiada", "Problema de Visual"];
@@ -3558,6 +3546,19 @@
         };
         sucursalesPorClienteOdt = (sucPorCli && typeof sucPorCli === "object") ? sucPorCli : {};
         sucursalesPorPuestoOdt = (sucPorPuesto && typeof sucPorPuesto === "object") ? sucPorPuesto : {};
+        // El usuario ya no elige puesto a mano — busca directo por sucursal
+        // (el puesto se enlaza solo atrás, ver guardar_incidencia_nueva).
+        // La entrada "30" de sucursales-por-puesto ya trae TODAS las
+        // sucursales reales (bbdd_sucursales ⋈ bbdd_clientes), a diferencia
+        // de listasGlobalesOdt.sucursales que en realidad son nombres de
+        // EMPRESA — pedido explicito, ago 2026.
+        sucursalesTodasOdt = (Array.isArray(sucursalesPorPuestoOdt["30"]) && sucursalesPorPuestoOdt["30"].length)
+          ? sucursalesPorPuestoOdt["30"]
+          : Array.from(new Set(
+              Object.values(sucursalesPorClienteOdt).flat()
+                .map((s) => (s && s.nombre) ? String(s.nombre).trim() : "")
+                .filter(Boolean)
+            )).sort((a, b) => a.localeCompare(b));
         contactosPorSucursalOdt = (contactosMap && typeof contactosMap === "object") ? contactosMap : {};
         regCamarasPorSucursal = (camarasMap && typeof camarasMap === "object") ? camarasMap : {};
         odtDireccionGlobalPorSucursal = {};
@@ -3591,9 +3592,9 @@
       });
     }
 
-    /* ── Registro por puesto (mismo sistema que incidencias_puestos.html) ── */
-    const TOTAL_PUESTOS_ODT = 30;
-    let regPuestoActivo = null;
+    /* ── Registro de incidencias — busqueda directa por sucursal (el
+       puesto se enlaza solo atras, ver guardar_incidencia_nueva en el
+       backend) — pedido explicito, ago 2026. ── */
     let regUidInc = 0;
     let regCamarasPorSucursal = {};
     let regIncidenciasExistentes = [];
@@ -3602,45 +3603,6 @@
     let regSeleccionConflictos = [];
 
     function regALineas(v) { return escapeHtml(v).replace(/\n/g, "<br>"); }
-
-    function regActualizarBotonPuestoActivo(puesto) {
-      document.querySelectorAll("#gridPuestosOdt .boton-puesto").forEach((b) => {
-        b.classList.toggle("activo", String(b.dataset.puesto || "") === String(puesto || ""));
-      });
-    }
-
-    function regCrearBotonesPuestos() {
-      const grid = document.getElementById("gridPuestosOdt");
-      if (!grid) return;
-      grid.innerHTML = "";
-      for (let i = 1; i <= TOTAL_PUESTOS_ODT; i++) {
-        const b = document.createElement("button");
-        b.type = "button";
-        b.className = "boton-puesto";
-        b.dataset.puesto = String(i);
-        b.textContent = i === 30 ? "Solo clientes con alarma" : String(i);
-        b.onclick = () => regMostrarFormularioPuesto(i);
-        grid.appendChild(b);
-      }
-    }
-
-    function regMostrarFormularioPuesto(puesto) {
-      const id = `formulario-puesto-odt-${puesto}`;
-      const ex = document.getElementById(id);
-      if (ex) { ex.remove(); regPuestoActivo = null; regActualizarBotonPuestoActivo(null); return; }
-      document.querySelectorAll('[id^="formulario-puesto-odt-"]').forEach((n) => n.remove());
-      const nombre = puesto === 30 ? "Solo clientes con alarma" : `Puesto ${puesto}`;
-      regPuestoActivo = String(puesto);
-      regActualizarBotonPuestoActivo(regPuestoActivo);
-      const div = document.createElement("div");
-      div.className = "formulario-puesto";
-      div.id = id;
-      div.dataset.puesto = String(puesto);
-      div.innerHTML = `<h3 class="titulo-formulario-puesto">Incidencias - ${nombre}</h3><div class="tbody-odt-${puesto} inc-lista"></div><button type="button" class="btn-odt-secondary" onclick="regAgregarIncidencia(${puesto})">Agregar Otra Incidencia</button>`;
-      document.getElementById("formulariosContenedorOdt").appendChild(div);
-      regAgregarIncidencia(puesto);
-      setTimeout(() => div.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
-    }
 
     function regCrearSelectCliente(lista) {
       const s = document.createElement("select");
@@ -3835,7 +3797,7 @@
       function revisarSeleccionCompleta() {
         if (todoCb.checked) return;
         const todosLosEquipos = cantidadEquipos > 1 && equipoChecks.length > 0 && equipoChecks.every(({ cb }) => cb.checked);
-        const todasLasCamaras = camaras.length > 0 && camChecks.length > 0 && camChecks.every(({ cb }) => cb.checked);
+        const todasLasCamaras = camaras.length > 0 && camChecks.length > 1 && camChecks.every(({ cb }) => cb.checked);
         if (todosLosEquipos || todasLasCamaras) {
           todoCb.checked = true;
           todoCb.dispatchEvent(new Event("change"));
@@ -3856,8 +3818,8 @@
       container.appendChild(picker);
     }
 
-    function regAgregarIncidencia(puesto) {
-      const tbody = document.querySelector(`.tbody-odt-${puesto}`);
+    function regAgregarIncidencia() {
+      const tbody = document.querySelector(".tbody-odt-unico");
       if (!tbody) return;
       const gid = `g${Date.now()}_${regUidInc++}`;
 
@@ -3878,8 +3840,7 @@
       const campoCliente = document.createElement("div");
       campoCliente.className = "inc-field";
       campoCliente.innerHTML = '<label class="inc-label">Sucursal</label>';
-      const listaSucursalesPuesto = sucursalesPorPuestoOdt[String(puesto)] || null;
-      const selectCliente = regCrearSelectCliente(listaSucursalesPuesto);
+      const selectCliente = regCrearSelectCliente(sucursalesTodasOdt);
       campoCliente.appendChild(selectCliente);
       card.appendChild(campoCliente);
       regInicializarBuscadorSucursal(selectCliente);
@@ -3912,6 +3873,18 @@
       ta.name = "descripcion"; ta.rows = 2; ta.placeholder = "Descripción..."; ta.readOnly = true;
       campoDesc.appendChild(ta);
       card.appendChild(campoDesc);
+
+      // Descripción escrita, siempre editable, además de las cámaras — se
+      // concatena con la descripción auto-generada al enviar (ver
+      // regObtenerIncidenciasDesdeForm) — pedido explicito, ago 2026.
+      const campoDescExtra = document.createElement("div");
+      campoDescExtra.className = "inc-field inc-field-desc";
+      campoDescExtra.innerHTML = '<label class="inc-label">Descripción adicional (opcional)</label>';
+      const taExtra = document.createElement("textarea");
+      taExtra.name = "descripcionAdicional"; taExtra.rows = 2;
+      taExtra.placeholder = "Agregar detalle adicional...";
+      campoDescExtra.appendChild(taExtra);
+      card.appendChild(campoDescExtra);
 
       tbody.appendChild(card);
 
@@ -4008,44 +3981,46 @@
 
     function regObtenerIncidenciasDesdeForm() {
       const inc = [];
-      document.querySelectorAll('[id^="formulario-puesto-odt-"]').forEach((form) => {
-        const puesto = form.dataset.puesto || "";
-        form.querySelectorAll(".inc-card").forEach((f) => {
-          const cliente = String(f.querySelector('select[name="cliente"]')?.value || "").trim();
-          const tipo = String(f.querySelector('select[name="tipoIncidencia"]')?.value || "").trim();
-          let desc = String(f.querySelector('textarea[name="descripcion"]')?.value || "").trim();
+      document.querySelectorAll(".tbody-odt-unico .inc-card").forEach((f) => {
+        const cliente = String(f.querySelector('select[name="cliente"]')?.value || "").trim();
+        const tipo = String(f.querySelector('select[name="tipoIncidencia"]')?.value || "").trim();
+        let desc = String(f.querySelector('textarea[name="descripcion"]')?.value || "").trim();
 
-          const filaCon = f.querySelector(".fila-contacto");
-          const sel = filaCon?.querySelector('select[name="contacto"]');
-          const im = filaCon?.querySelector("input[type='text']");
-          let contacto = "";
-          if (sel) {
-            if (sel.value === "__otros__") contacto = String(im?.value || "").trim();
-            else if (sel.value) contacto = String(sel.value).trim();
-          }
+        const filaCon = f.querySelector(".fila-contacto");
+        const sel = filaCon?.querySelector('select[name="contacto"]');
+        const im = filaCon?.querySelector("input[type='text']");
+        let contacto = "";
+        if (sel) {
+          if (sel.value === "__otros__") contacto = String(im?.value || "").trim();
+          else if (sel.value) contacto = String(sel.value).trim();
+        }
 
-          if (!cliente && !tipo && !desc) return;
-          if (!cliente || !tipo) throw new Error("Debes seleccionar sucursal y tipo de incidencia.");
+        if (!cliente && !tipo && !desc) return;
+        if (!cliente || !tipo) throw new Error("Debes seleccionar sucursal y tipo de incidencia.");
 
-          const claveTipo = odtClaveTipo(tipo);
-          if (claveTipo === "desconexion" && !desc) throw new Error(`Debes indicar el tipo de desconexión para "${cliente}".`);
-          if (claveTipo === "visual" && !desc) throw new Error(`Debes seleccionar la especificación de Problema de Visual para "${cliente}".`);
-          if (claveTipo !== "alarma" && !desc) throw new Error(`Debes marcar al menos una cámara, equipo o "Todo" para "${cliente}".`);
-          if (!desc) throw new Error(`Debes completar la descripción para "${cliente}".`);
+        const claveTipo = odtClaveTipo(tipo);
+        if (claveTipo === "desconexion" && !desc) throw new Error(`Debes indicar el tipo de desconexión para "${cliente}".`);
+        if (claveTipo === "visual" && !desc) throw new Error(`Debes seleccionar la especificación de Problema de Visual para "${cliente}".`);
+        if (claveTipo !== "alarma" && !desc) throw new Error(`Debes marcar al menos una cámara, equipo o "Todo" para "${cliente}".`);
+        if (!desc) throw new Error(`Debes completar la descripción para "${cliente}".`);
 
-          if (claveTipo !== "hora" && !contacto) throw new Error(`Debes seleccionar contacto de emergencia para "${cliente}".`);
-          if (contacto) desc += `\nContacto: ${contacto}`;
+        // Descripción escrita opcional, además de las cámaras — pedido
+        // explicito, ago 2026.
+        const descAdicional = String(f.querySelector('textarea[name="descripcionAdicional"]')?.value || "").trim();
+        if (descAdicional) desc = `${desc}\n\n${descAdicional}`;
 
-          const direccion = odtDireccionGlobalPorSucursal[cliente] || "";
-          inc.push({
-            puesto: puesto === "30" ? "30" : puesto,
-            cliente,
-            tipoIncidencia: tipo,
-            descripcion: desc,
-            estado: "Pendiente",
-            direccion,
-            token: "",
-          });
+        if (claveTipo !== "hora" && !contacto) throw new Error(`Debes seleccionar contacto de emergencia para "${cliente}".`);
+        if (contacto) desc += `\nContacto: ${contacto}`;
+
+        const direccion = odtDireccionGlobalPorSucursal[cliente] || "";
+        inc.push({
+          cliente,
+          tipoIncidencia: tipo,
+          descripcion: desc,
+          estado: "Pendiente",
+          area: "soporte",
+          direccion,
+          token: "",
         });
       });
       return inc;
@@ -4156,8 +4131,6 @@
         const data = await api("/api/incidencias/multiples", { method: "POST", body: JSON.stringify(incidencias) });
         const odts = Array.isArray(data?.odts) ? data.odts.filter(Boolean) : [];
         document.getElementById("formulariosContenedorOdt").innerHTML = "";
-        regPuestoActivo = null;
-        regActualizarBotonPuestoActivo(null);
         cerrarOdt();
         cargarRegistros();
         mostrarToast(odts.length ? `Incidencias registradas: ${odts.join(", ")}.` : "Incidencias registradas exitosamente.");
@@ -4185,9 +4158,9 @@
       const modal = document.getElementById("modalOdt");
       const msg = document.getElementById("odtMsg");
       if (msg) { msg.textContent = ""; msg.style.display = "none"; }
-      document.getElementById("formulariosContenedorOdt").innerHTML = "";
-      regPuestoActivo = null;
-      regCrearBotonesPuestos();
+      document.getElementById("formulariosContenedorOdt").innerHTML =
+        '<div class="tbody-odt-unico inc-lista"></div><button type="button" class="btn-odt-secondary" onclick="regAgregarIncidencia()">Agregar Otra Incidencia</button>';
+      regAgregarIncidencia();
       regCargarIncidenciasExistentes();
       if (modal) {
         modal.style.display = "block";
@@ -4202,13 +4175,49 @@
         modal.setAttribute("aria-hidden", "true");
       }
       document.getElementById("formulariosContenedorOdt").innerHTML = "";
-      regPuestoActivo = null;
-      regActualizarBotonPuestoActivo(null);
       const msg = document.getElementById("odtMsg");
       if (msg) { msg.textContent = ""; msg.style.display = "none"; }
     }
 
     cargarListasOdt();
+
+    // Sonido cuando llega una incidencia nueva: poll a
+    // /api/registros/tabla/recientes (MAX(id) actual de la tabla, un solo
+    // número) cada 3s, comparando contra el ultimo máximo conocido. Si el
+    // máximo actual es mayor al conocido, sonó UNA vez y se actualiza el
+    // máximo — comparar un solo número es mucho más robusto que comparar
+    // listas de ODT (nada de falsos positivos por reordenamientos, ni
+    // necesidad de coordinar con el refresco pesado de la tabla, que ya NO
+    // participa en esto). Se persiste en localStorage para que un
+    // F5/recarga no "olvide" lo ya conocido y vuelva a sonar de nuevo —
+    // pedido explicito, ago 2026. Usa un Web Worker (iniciarTickerConfiable,
+    // en atc-notificacion-sonido.js) para que siga sondeando a tiempo
+    // aunque la pestaña lleve rato en segundo plano.
+    const SOPORTE_MAXID_KEY = "atc_soporte_max_id_conocido";
+    let soporteMaxIdConocido = null;
+    try {
+      const guardado = localStorage.getItem(SOPORTE_MAXID_KEY);
+      if (guardado !== null) soporteMaxIdConocido = parseInt(guardado, 10);
+    } catch (_) {}
+
+    function _soporteRevisarNuevosLiviano() {
+      fetch("/api/registros/tabla/recientes", { credentials: "same-origin" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (!data) return;
+          const maxIdActual = Number(data.maxId || 0);
+          if (!maxIdActual) return;
+          if (soporteMaxIdConocido !== null && maxIdActual > soporteMaxIdConocido) {
+            if (window.reproducirSonidoNotificacion) window.reproducirSonidoNotificacion();
+          }
+          if (soporteMaxIdConocido === null || maxIdActual > soporteMaxIdConocido) {
+            soporteMaxIdConocido = maxIdActual;
+            try { localStorage.setItem(SOPORTE_MAXID_KEY, String(maxIdActual)); } catch (_) {}
+          }
+        })
+        .catch(() => {});
+    }
+    if (window.iniciarTickerConfiable) window.iniciarTickerConfiable(3000, _soporteRevisarNuevosLiviano);
 
     function cargarRegistros() {
       google.script.run.withSuccessHandler((registros) => {
@@ -4253,7 +4262,12 @@
 
     function refreshSoporteSilently() {
       if (soporteLiveSyncing) return;
-      if (document.hidden) return;
+      // Antes se saltaba el refresco con la pestaña en segundo plano — pero
+      // el sonido de notificación debe sonar SIEMPRE que llegue algo nuevo,
+      // esté la pestaña activa o no, así que ya no cortamos por
+      // document.hidden (pedido explicito, ago 2026). El navegador puede
+      // igual limitar la frecuencia del setInterval en segundo plano; eso
+      // ya no depende de este código.
       if (isSoporteBusyForRefresh()) return;
 
       soporteLiveSyncing = true;
@@ -4339,13 +4353,12 @@ window.addEventListener("load", () => {
       startSoporteLiveRefresh();
     });
 
+    // El polling ya no se detiene con la pestaña en segundo plano (el
+    // sonido de notificación debe seguir sonando igual) — solo se dispara
+    // un refresco extra al volver a la pestaña, para que se vea al día de
+    // inmediato — pedido explicito, ago 2026.
     document.addEventListener("visibilitychange", () => {
-      if (document.hidden) {
-        stopSoporteLiveRefresh();
-        return;
-      }
-      refreshSoporteSilently();
-      startSoporteLiveRefresh();
+      if (!document.hidden) refreshSoporteSilently();
     });
 
     const soporteScrollContainer = document.getElementById("pageContentScroll");

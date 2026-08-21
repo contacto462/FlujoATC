@@ -1,6 +1,6 @@
 # Mapa rapido de `ATC/app/routes/incidencias.py`
 
-Ultima revision: 2026-08-03. Archivo medido: 4173 lineas.
+Ultima revision: 2026-08-21. Archivo medido: 4492 lineas.
 
 Objetivo: evitar leer completo `ATC/app/routes/incidencias.py` en cada cambio. Para trabajar sobre
 este router, partir por este mapa y luego abrir solo rangos acotados.
@@ -33,6 +33,13 @@ este router, partir por este mapa y luego abrir solo rangos acotados.
   `ATC/app/modules/client_notes.py`. No borrarlos ni agregar decoradores sin revisar ese despachador.
 - El bloque de pruebas de sonido ocupa gran parte final del archivo; al tocarlo, buscar tambien en
   templates y servicios relacionados.
+- Pruebas de sonido tiene 3 resultados posibles: `exitoso`, `falla` (crea incidencia, sin email) y
+  `no_coordinacion` (no crea incidencia, envia email). Los emails de `exitoso` y `no_coordinacion`
+  llevan copia oculta fija a `tahira.riquelme.atc@gmail.com` (`_CC_PRUEBAS_SONIDO`).
+- `DELETE /api/pruebas-sonido/{id}` ("Deshacer" en el frontend): si la prueba era `falla` y la
+  incidencia que generó sigue sin finalizar (mismo chequeo `finalizada` que usa el listado de
+  sucursales — `fecha_cierre` o estado/derivacion con termin/final/solucion/resuelt), borra tambien
+  esa incidencia. Si ya fue trabajada/cerrada, no se toca.
 
 ## Indice por rangos
 
@@ -58,7 +65,7 @@ este router, partir por este mapa y luego abrir solo rangos acotados.
 | 2674-2927 | Derivaciones, coordinacion, rendiciones y finanzas. |
 | 2931-2943 | Planificacion y debug DB. |
 | 3005-3225 | Indicadores de servicio y generacion de informe. |
-| 3256-4173 | Pruebas de sonido: sucursales, helpers internos, registro y borrado. |
+| 3256-4492 | Pruebas de sonido: sucursales, helpers internos, registro (exitoso/falla/no_coordinacion) y borrado (auto-borra incidencia de falla no finalizada). |
 
 ## Rutas principales
 

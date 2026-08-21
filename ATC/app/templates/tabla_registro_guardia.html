@@ -604,6 +604,7 @@ tbody tr:hover td.cell-conflicto{background:#eaf0ff}
     <span class="chip chip-extra">Extra</span>
     <span class="chip chip-contrato-diario">Contrato Diario</span>
     <div class="alert-chips" id="alertChipsQR" style="margin-left:8px;display:none">
+      {% if alertas_inasistencia %}<button type="button" class="alert-chip chip-inasistencia" onclick="abrirAlertPopup('inasistencia')"><span class="chip-dot"></span>{{ alertas_inasistencia|length }} inasistencia{{ 's' if alertas_inasistencia|length != 1 }}</button>{% endif %}
       {% if candidatos_fusion %}<button type="button" class="alert-chip chip-fusion" onclick="abrirAlertPopup('fusion')"><span class="chip-dot"></span>{{ candidatos_fusion|length }} posible{{ 's' if candidatos_fusion|length != 1 }} duplicado{{ 's' if candidatos_fusion|length != 1 }} por traslado</button>{% endif %}
       {% if fusionados_mes %}<button type="button" class="alert-chip chip-fusionados" onclick="abrirAlertPopup('fusionados')"><span class="chip-dot"></span>{{ fusionados_mes|length }} fusionado{{ 's' if fusionados_mes|length != 1 }} este mes</button>{% endif %}
     </div>

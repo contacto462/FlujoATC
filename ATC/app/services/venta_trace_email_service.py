@@ -496,6 +496,237 @@ def notify_inicio_servicio(db: Session, codigo: str, fecha_inicio: str) -> dict[
     return _send("inicio_servicio", f"{title} - ODS {ods.get('codigo') or codigo}", body)
 
 
+def _resolver_correo_comercial(db: Session, creado_por: str) -> tuple[str, str]:
+    """(email, nombre) del comercial a cargo de la ODS. VentaODS.creado_por normalmente
+    ya guarda el email; si en cambio guarda un nombre (pasa en algunas filas antiguas),
+    se resuelve contra la tabla users. Mismo criterio que
+    IncidenciasService._resolver_correo_comercial, versión standalone (este módulo no
+    usa modelos ORM, solo SQL directo)."""
+    valor = _clean(creado_por)
+    if not valor:
+        return "", ""
+    if "@" in valor:
+        nombre = db.execute(text("""
+            SELECT TOP 1 name FROM users WHERE LOWER(email) = LOWER(:email)
+        """), {"email": valor}).scalar_one_or_none()
+        return valor, _clean(nombre) or valor
+    email = db.execute(text("""
+        SELECT TOP 1 email FROM users WHERE LOWER(TRIM(name)) = LOWER(TRIM(:nombre))
+    """), {"nombre": valor}).scalar_one_or_none()
+    return _clean(email), valor
+
+
+def notify_fechas_instalacion_definidas(
+    db: Session, codigo: str, fecha_inicio: str, fecha_fin: str
+) -> dict[str, Any]:
+    """Avisa al ejecutivo/comercial a cargo de la ODS cuando Servicio Técnico ya
+    definió AMBAS fechas (inicio y fin estimado) de la instalación."""
+    ods = _ods_row(db, codigo)
+    if not ods:
+        return {"email_sent": False, "email_to": [], "email_error": "ODS no encontrada"}
+
+    comercial_email, comercial_nombre = _resolver_correo_comercial(db, _clean(ods.get("creado_por")))
+    if not comercial_email:
+        return {"email_sent": False, "email_to": [], "email_error": "No se encontró correo del ejecutivo a cargo."}
+
+    sucursal = _clean(ods.get("nombre_sucursal") or ods.get("razon_social"))
+    title = f"Fechas de Instalación Definidas — ODS {ods.get('codigo') or codigo}".strip()
+    sections = [
+        _paragraphs(
+            f"Estimado {comercial_nombre or 'Ejecutivo'}:",
+            (
+                "Junto con saludar, le informamos que el equipo de Servicio Técnico ha definido "
+                f"las fechas de instalación correspondientes a la Orden de Servicio {ods.get('codigo') or codigo} "
+                f"de {ods.get('razon_social') or 'su cliente'}"
+                + (f", sucursal {sucursal}" if sucursal else "")
+                + "."
+            ),
+            (
+                f"La instalación está programada para iniciarse el día {fecha_inicio}, y se estima "
+                f"que su término sea el día {fecha_fin}."
+            ),
+            (
+                "Cabe destacar que la fecha de término indicada corresponde a una estimación, "
+                "por lo que podría concretarse antes o después de lo proyectado según las "
+                "condiciones que se presenten en terreno. Le informaremos oportunamente una vez "
+                "que la instalación se encuentre finalizada y, de corresponder, configurada por "
+                "parte de nuestro equipo de Soporte Técnico."
+            ),
+            "Quedamos atentos ante cualquier consulta adicional.",
+            "Atentamente,\nAlguien Te Cuida",
+        ),
+        _table([
+            ("RUT Cliente", ods.get("rut_cliente")),
+            ("Razón Social", ods.get("razon_social")),
+            ("Sucursal", sucursal),
+            ("Dirección", ods.get("direccion_sucursal")),
+            ("Tipo de servicio", ods.get("tipo_servicio")),
+            ("Fecha inicio instalación", fecha_inicio),
+            ("Fecha estimada fin instalación", fecha_fin),
+        ]),
+    ]
+    body = _email_html(title=title, sections=sections)
+    return _send_to_representante(
+        "fechas_instalacion",
+        comercial_email,
+        f"{title}",
+        body,
+    )
+
+
+def notify_servicio_operativo(db: Session, codigo: str) -> dict[str, Any]:
+    """Avisa al ejecutivo/comercial a cargo cuando Soporte Técnico marca 'Terminado'
+    — el cliente ya quedó configurado y el sistema está listo para operar."""
+    ods = _ods_row(db, codigo)
+    if not ods:
+        return {"email_sent": False, "email_to": [], "email_error": "ODS no encontrada"}
+
+    comercial_email, comercial_nombre = _resolver_correo_comercial(db, _clean(ods.get("creado_por")))
+    if not comercial_email:
+        return {"email_sent": False, "email_to": [], "email_error": "No se encontró correo del ejecutivo a cargo."}
+
+    sucursal = _clean(ods.get("nombre_sucursal") or ods.get("razon_social"))
+    title = f"Sistema Operativo — ODS {ods.get('codigo') or codigo}".strip()
+    sections = [
+        _paragraphs(
+            f"Estimado {comercial_nombre or 'Ejecutivo'}:",
+            (
+                "Junto con saludar, le informamos que el equipo de Soporte Técnico ha finalizado "
+                f"la configuración correspondiente a la Orden de Servicio {ods.get('codigo') or codigo} "
+                f"de {ods.get('razon_social') or 'su cliente'}"
+                + (f", sucursal {sucursal}" if sucursal else "")
+                + "."
+            ),
+            (
+                "El cliente quedó listo para que el sistema comience a operar en correctas "
+                "condiciones, habiéndose verificado la configuración de cámaras, el "
+                "posicionamiento de imagen, el enlace con el servidor y el resto de los "
+                "parámetros necesarios para su correcto funcionamiento."
+            ),
+            (
+                "Quedamos atentos ante cualquier consulta o requerimiento adicional que surja de "
+                "parte del cliente."
+            ),
+            "Atentamente,\nAlguien Te Cuida",
+        ),
+        _table([
+            ("RUT Cliente", ods.get("rut_cliente")),
+            ("Razón Social", ods.get("razon_social")),
+            ("Sucursal", sucursal),
+            ("Dirección", ods.get("direccion_sucursal")),
+            ("Tipo de servicio", ods.get("tipo_servicio")),
+        ]),
+    ]
+    body = _email_html(title=title, sections=sections)
+    return _send_to_representante("servicio_operativo", comercial_email, title, body)
+
+
+def notify_instalacion_terreno_finalizada(db: Session, codigo: str) -> dict[str, Any]:
+    """Avisa al ejecutivo/comercial a cargo cuando Servicio Técnico marca 'Terminado'
+    en una ODS que solo requiere instalación (sin Soporte Técnico de por medio) — la
+    instalación en terreno ya fue finalizada."""
+    ods = _ods_row(db, codigo)
+    if not ods:
+        return {"email_sent": False, "email_to": [], "email_error": "ODS no encontrada"}
+
+    comercial_email, comercial_nombre = _resolver_correo_comercial(db, _clean(ods.get("creado_por")))
+    if not comercial_email:
+        return {"email_sent": False, "email_to": [], "email_error": "No se encontró correo del ejecutivo a cargo."}
+
+    sucursal = _clean(ods.get("nombre_sucursal") or ods.get("razon_social"))
+    title = f"Instalación Finalizada — ODS {ods.get('codigo') or codigo}".strip()
+    sections = [
+        _paragraphs(
+            f"Estimado {comercial_nombre or 'Ejecutivo'}:",
+            (
+                "Junto con saludar, le informamos que la instalación en terreno correspondiente "
+                f"a la Orden de Servicio {ods.get('codigo') or codigo} de {ods.get('razon_social') or 'su cliente'}"
+                + (f", sucursal {sucursal}" if sucursal else "")
+                + " fue finalizada por nuestro equipo de Servicio Técnico."
+            ),
+            (
+                "El servicio contratado se encuentra instalado y operativo en las condiciones "
+                "acordadas con el cliente."
+            ),
+            (
+                "Quedamos atentos ante cualquier consulta o requerimiento adicional que surja de "
+                "parte del cliente."
+            ),
+            "Atentamente,\nAlguien Te Cuida",
+        ),
+        _table([
+            ("RUT Cliente", ods.get("rut_cliente")),
+            ("Razón Social", ods.get("razon_social")),
+            ("Sucursal", sucursal),
+            ("Dirección", ods.get("direccion_sucursal")),
+            ("Tipo de servicio", ods.get("tipo_servicio")),
+        ]),
+    ]
+    body = _email_html(title=title, sections=sections)
+    return _send_to_representante("instalacion_terreno_finalizada", comercial_email, title, body)
+
+
+def notify_odt_dejada_pendiente(
+    db: Session,
+    codigo: str,
+    observacion: str,
+    avance_pct: int,
+    camaras_instaladas: int,
+    camaras_total: int,
+    tecnico: str,
+) -> dict[str, Any]:
+    """Avisa al ejecutivo/comercial a cargo del avance registrado cuando el técnico
+    deja una ODS de venta en 'Pendiente' (no la termina en el día) — con el detalle
+    de cámaras instaladas hasta el momento. Internamente la asignación del técnico
+    se libera para que el encargado la vuelva a derivar al día siguiente, pero eso
+    no se comunica en el correo: el tono es de avance en curso, no de atraso."""
+    ods = _ods_row(db, codigo)
+    if not ods:
+        return {"email_sent": False, "email_to": [], "email_error": "ODS no encontrada"}
+
+    comercial_email, comercial_nombre = _resolver_correo_comercial(db, _clean(ods.get("creado_por")))
+    if not comercial_email:
+        return {"email_sent": False, "email_to": [], "email_error": "No se encontró correo del ejecutivo a cargo."}
+
+    sucursal = _clean(ods.get("nombre_sucursal") or ods.get("razon_social"))
+    camaras_txt = (
+        f"{camaras_instaladas} de {camaras_total} cámaras instaladas"
+        if camaras_total > 0
+        else f"{avance_pct}% de avance"
+    )
+    title = f"AVANCE ODS {ods.get('codigo') or codigo}".strip()
+    sections = [
+        _paragraphs(
+            f"Estimado {comercial_nombre or 'Ejecutivo'}:",
+            (
+                "Junto con saludar, le informamos el avance registrado por nuestro equipo "
+                f"técnico en la Orden de Servicio {ods.get('codigo') or codigo} de {ods.get('razon_social') or 'su cliente'}"
+                + (f", sucursal {sucursal}" if sucursal else "")
+                + "."
+            ),
+            f"Detalle del avance registrado: {camaras_txt}.",
+            (f"Observación del técnico: {_clean(observacion)}" if _clean(observacion) else ""),
+            (
+                "Continuaremos coordinando los siguientes pasos para la correcta "
+                "finalización del servicio."
+            ),
+            "Quedamos atentos ante cualquier consulta adicional.",
+            "Atentamente,\nAlguien Te Cuida",
+        ),
+        _table([
+            ("RUT Cliente", ods.get("rut_cliente")),
+            ("Razón Social", ods.get("razon_social")),
+            ("Sucursal", sucursal),
+            ("Dirección", ods.get("direccion_sucursal")),
+            ("Tipo de servicio", ods.get("tipo_servicio")),
+            ("Técnico a cargo", tecnico or "-"),
+            ("Avance registrado", camaras_txt),
+        ]),
+    ]
+    body = _email_html(title=title, sections=sections)
+    return _send_to_representante("odt_dejada_pendiente", comercial_email, title, body)
+
+
 def notify_oc_requerida(db: Session, codigo: str) -> dict[str, Any]:
     ods = _ods_row(db, codigo)
     if not ods:
@@ -527,9 +758,9 @@ def _sucursal_row_para_bitacora(db: Session, sucursal_id: int) -> dict[str, Any]
 
 def _bitacora_team_emails(db: Session) -> list[str]:
     # Pedido explícito (ago 2026): "Avisar que está listo" se manda solo a
-    # fernando.lubiano.m@gmail.com, no a todo el equipo de Bitácora — ya no se usa
+    # jefe.cctv@alguientecuida.cl, no a todo el equipo de Bitácora — ya no se usa
     # la query por departamento "Bitacora".
-    return ["fernando.lubiano.m@gmail.com"]
+    return ["jefe.cctv@alguientecuida.cl"]
 
 
 def notify_sucursal_lista_para_bitacora(
@@ -570,7 +801,7 @@ def notify_sucursal_lista_para_bitacora(
         ]),
     ]
     if resumen_campos:
-        sections.append(_paragraphs("Quedó así lo que estaba marcado como falta o mal:"))
+        sections.append(_paragraphs("Quedó así lo que estaba marcado como malo o faltaba:"))
         sections.append(_table(list(resumen_campos)))
     body = _email_html(title="Sucursal corregida, lista para revisión", sections=sections)
     to = recipients[0]

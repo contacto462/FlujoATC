@@ -61,12 +61,14 @@ from ATC.app.models.incidencias import (
     MantencionImagenSucursal,
     LoginSession,
     ProtocoloInforme,
+    PruebaSonido,
     Registro,
     RegistroCorreoCliente,
     Rendicion,
     RendicionPago,
     RendicionViaticoCap,
     SucursalBBDD,
+    SucursalCamaraMonitoreo,
     SucursalContactoEmergencia,
     SucursalPersonaAutorizada,
     ServicioTecnicoVentaODT,
@@ -774,6 +776,11 @@ def _obs_edit_last_line(current_text: str, entry: dict, usuario: str, nuevo_text
     nueva_linea = f"[{usuario} - {entry['fecha_str']}] (editado) {nuevo_texto}"
     nuevas_lineas = lines[: entry["start_idx"]] + [nueva_linea]
     return "\n".join(nuevas_lineas).strip()
+
+
+def _obs_delete_last_line(current_text: str, entry: dict) -> str:
+    lines = (current_text or "").splitlines()
+    return "\n".join(lines[: entry["start_idx"]]).strip()
 
 
 # Cache de introspección de esquema (information_schema) a nivel de proceso.
@@ -3589,18 +3596,27 @@ class IncidenciasService:
         observacion: str,
         fecha: datetime,
         usuario_fallback: str | None = None,
+        area_label: str | None = None,
     ) -> str:
         texto = (observacion or "").strip()
         if not texto:
             return ""
         token_limpio = (token or "").strip()
-        usuario = self.get_usuario_actual(token_limpio) if token_limpio else "Usuario no identificado"
+        # Antes, si no llegaba token (ej. incidencias_soporte.html manda
+        # token="" siempre), se caia directo a "Usuario no identificado" sin
+        # intentar usuario_fallback (el usuario real logueado, que si esta
+        # disponible) — quedaba "Usuario no identificado" aunque supieramos
+        # perfectamente quien lo creo. Ahora el fallback SIEMPRE se intenta
+        # cuando no hay usuario resuelto por token — pedido explicito, ago 2026.
+        usuario = self.get_usuario_actual(token_limpio) if token_limpio else ""
         if not usuario or usuario == "Desconocido":
             usuario = (usuario_fallback or "").strip() or "Usuario no identificado"
         tz_name = (settings.timezone or "America/Santiago").strip() or "America/Santiago"
         fecha_local = fecha.replace(tzinfo=timezone.utc).astimezone(ZoneInfo(tz_name))
         marca = fecha_local.strftime("%d/%m/%Y %H:%M")
-        return f"[{usuario} - {marca}] {texto}"
+        area_txt = (area_label or "").strip()
+        firma = f"{usuario} - {area_txt} - {marca}" if area_txt else f"{usuario} - {marca}"
+        return f"[{firma}] {texto}"
 
     def _extraer_equipo_desde_observacion_servicio(self, texto: str) -> tuple[str, str]:
         raw = str(texto or "")
@@ -3622,21 +3638,64 @@ class IncidenciasService:
             acompanante = match_acompanante.group(1).strip()
         return tecnico, acompanante
 
+    def _resolver_puesto_por_sucursal(self, nombre_sucursal: str) -> str | None:
+        """Dado un nombre de sucursal, devuelve el puesto (columna `central`
+        de sucursal_camaras_monitoreo) mas frecuente para esa sucursal — el
+        usuario ya no elige el puesto a mano en el formulario de creacion de
+        ODT, se enlaza solo a partir de la sucursal elegida (para analisis
+        futuros) — pedido explicito, ago 2026. Si la sucursal no tiene
+        camaras registradas (ej. clientes solo-alarma) devuelve None, que es
+        un valor valido para Registro.puesto (ya nullable)."""
+        nombre = (nombre_sucursal or "").strip()
+        if not nombre:
+            return None
+        try:
+            rows = (
+                self.db.query(SucursalCamaraMonitoreo.central, func.count().label("n"))
+                .join(SucursalBBDD, SucursalCamaraMonitoreo.sucursal_id == SucursalBBDD.id)
+                .filter(SucursalCamaraMonitoreo.central.isnot(None))
+                .filter(func.trim(SucursalBBDD.nombre_sucursal) == nombre)
+                .group_by(SucursalCamaraMonitoreo.central)
+                .order_by(func.count().desc())
+                .all()
+            )
+        except SQLAlchemyError:
+            self.db.rollback()
+            return None
+        if not rows:
+            return None
+        return str(int(rows[0][0]))
+
     def guardar_incidencia_nueva(self, data: IncidenciaNueva, usuario_fallback: str | None = None) -> str:
         odt = self._proximo_odt("I")
         ahora = datetime.now()
         cliente = (data.cliente or "").strip()
+        puesto_valor = (data.puesto or "").strip()
+        if not puesto_valor:
+            puesto_valor = self._resolver_puesto_por_sucursal(cliente) or ""
+            data.puesto = puesto_valor or None
         descripcion = (data.descripcion or "").strip()
-        observacion_registro = self._firmar_observacion_registro(
-            data.token,
-            descripcion,
-            ahora,
-            usuario_fallback=usuario_fallback,
+        area_normalizada = (data.area or "").strip().lower()
+        es_servicio_tecnico = area_normalizada == "servicio_tecnico"
+        es_soporte = area_normalizada == "soporte"
+        # ODT creado desde "Crear ODT" en incidencias_soporte.html: va directo a
+        # "Gestión Soporte" (observacion_soporte), texto plano sin firma — no debe
+        # quedar en "Registro Operaciones" (observacion) — pedido explicito, ago 2026.
+        observacion_soporte_creacion = descripcion or None if es_soporte else None
+        observacion_registro = (
+            None
+            if es_soporte
+            else self._firmar_observacion_registro(
+                data.token,
+                descripcion,
+                ahora,
+                usuario_fallback=usuario_fallback,
+                area_label=("Servicio Técnico" if es_servicio_tecnico else ""),
+            )
         )
 
         derivacion = (data.derivacion or "").strip() or "Pendiente"
         estado = (data.estado or "").strip() or "Pendiente"
-        es_servicio_tecnico = (data.area or "").strip().lower() == "servicio_tecnico"
         direccion = (data.direccion or "").strip() or self._direccion_cliente(cliente)
         tecnico = (data.tecnico or "").strip()
         acompanante = (data.acompanante or "").strip()
@@ -3649,13 +3708,14 @@ class IncidenciasService:
         reg = Registro(
             odt=odt,
             fecha_registro=ahora,
-            puesto=((data.puesto or "").strip() or None),
+            puesto=(puesto_valor or None),
             cliente=cliente,
             problema=(data.tipo_incidencia or "").strip(),
-            detalle_problema=(observacion_registro or None),
+            detalle_problema=(observacion_registro or observacion_soporte_creacion or None),
             derivacion=derivacion,
-            observacion=(None if es_servicio_tecnico else (observacion_registro or None)),
+            observacion=(None if (es_servicio_tecnico or es_soporte) else (observacion_registro or None)),
             observacion_servicio=(observacion_registro if es_servicio_tecnico else None),
+            observacion_soporte=observacion_soporte_creacion,
             estado=estado,
             fecha_derivacion_area=ahora,
             direccion=direccion,
@@ -3831,6 +3891,8 @@ class IncidenciasService:
         observacion_final: str | None = None,
         repetida_odt_ref: str | None = None,
         editar_ultima_observacion_servicio: bool = False,
+        observacion_coordinacion: str | None = None,
+        eliminar_ultima_observacion_coordinacion: bool = False,
     ) -> dict[str, Any]:
         odt_limpia = (odt or "").strip()
         if not odt_limpia:
@@ -3848,12 +3910,15 @@ class IncidenciasService:
         observacion_servicio_in = (observacion_servicio or "").strip()
         observacion_final_in = (observacion_final or "").strip()
         repetida_ref_in = (repetida_odt_ref or "").strip()
+        observacion_coordinacion_in = (observacion_coordinacion or "").strip()
         if (
             not derivacion_in
             and not observacion_in
             and prioridad_in is None
             and not observacion_servicio_in
             and not observacion_final_in
+            and not observacion_coordinacion_in
+            and not eliminar_ultima_observacion_coordinacion
         ):
             raise ValueError("Debes enviar derivacion, observacion o prioridad para editar.")
 
@@ -3903,6 +3968,7 @@ class IncidenciasService:
 
         observacion_soporte_final = ""
         observacion_servicio_final = ""
+        observacion_coordinacion_final = ""
         estado_ticket_soporte = ""
         nota_ticket_soporte = ""
         correo_derivacion_result: dict[str, Any] | None = None
@@ -4038,6 +4104,29 @@ class IncidenciasService:
                 )
                 observacion_servicio_final = row.observacion_servicio
 
+        if eliminar_ultima_observacion_coordinacion:
+            base_coord = str(getattr(row, "observacion_coordinacion", "") or "").strip()
+            entry_coord = _obs_last_entry(base_coord)
+            if not _obs_can_edit_entry(entry_coord, usuario):
+                raise ValueError("Ya no puedes eliminar esta observacion (limite de 15 minutos).")
+            row.observacion_coordinacion = _obs_delete_last_line(base_coord, entry_coord)
+            observacion_coordinacion_final = row.observacion_coordinacion
+        elif observacion_coordinacion_in:
+            base_coord = str(getattr(row, "observacion_coordinacion", "") or "").strip()
+            nuevo_coord = observacion_coordinacion_in.strip()
+            if base_coord:
+                if nuevo_coord.startswith(base_coord):
+                    nuevo_coord = nuevo_coord[len(base_coord):].strip()
+                ultima_linea_coord = base_coord.splitlines()[-1].strip() if base_coord.splitlines() else ""
+                if nuevo_coord == ultima_linea_coord:
+                    nuevo_coord = ""
+            if nuevo_coord:
+                linea_coord = f"[{usuario} - {marca}] {nuevo_coord}"
+                row.observacion_coordinacion = (
+                    f"{base_coord}\n{linea_coord}".strip() if base_coord else linea_coord
+                )
+                observacion_coordinacion_final = row.observacion_coordinacion
+
         self.db.commit()
         if estado_ticket_soporte:
             self._sync_estado_ticket_soporte_silencioso(
@@ -4065,6 +4154,11 @@ class IncidenciasService:
                 or None
             ),
             "observacion_final": str(getattr(row, "observacion_final", "") or "").strip() or None,
+            "observacion_coordinacion": (
+                observacion_coordinacion_final
+                or str(getattr(row, "observacion_coordinacion", "") or "").strip()
+                or None
+            ),
             "prioridad": str(getattr(row, "prioridad", "") or "").strip() or None,
             "correo_derivacion": correo_derivacion_result,
         }
@@ -6624,6 +6718,267 @@ class IncidenciasService:
         )
         row.requiere_seguimiento = diagnostico["requiere_seguimiento"]
 
+    def _reflejar_audio_ok_en_prueba_sonido(self, row: Registro, pruebas_cierre: list[Any] | None) -> None:
+        """Si el técnico marcó 'audio_ok' al cerrar esta ODT y la sucursal está
+        Pendiente en Pruebas de Sonido este mes (sin registro todavía), la
+        marca como 'exitoso_terreno' automáticamente (máximo 1 por sucursal
+        por mes) y avisa por correo que el sistema se verificó en terreno.
+        Si la sucursal ya tiene CUALQUIER resultado este mes (exitoso,
+        exitoso_terreno, falla o no_coordinacion) no se toca — el caso
+        'falla' ya queda reflejado como Solucionado en pantalla en cuanto
+        esta incidencia se cierra (ver odts_finalizadas en
+        pruebas_sonido_sucursales), sin necesidad de nada adicional acá.
+
+        Se ejecuta después del commit del cierre de la ODT — una falla acá
+        no debe afectar el cierre, solo queda en el log."""
+        try:
+            if "audio_ok" not in (pruebas_cierre or []):
+                return
+
+            nombre_cliente = str(row.cliente or "").strip()
+            if not nombre_cliente:
+                return
+
+            suc = self.db.scalar(
+                select(SucursalBBDD).where(
+                    func.lower(func.trim(SucursalBBDD.nombre_sucursal)) == nombre_cliente.lower()
+                )
+            )
+            if not suc:
+                return
+
+            now = datetime.now()
+            anio, mes = now.year, now.month
+            existente = self.db.scalar(
+                select(PruebaSonido).where(
+                    PruebaSonido.sucursal_id == suc.id,
+                    PruebaSonido.anio == anio,
+                    PruebaSonido.mes == mes,
+                )
+            )
+            if existente:
+                return
+
+            operador = str(row.tecnico_cierre or row.tecnicos or "").strip()
+            prueba = PruebaSonido(
+                sucursal_id=suc.id,
+                anio=anio,
+                mes=mes,
+                resultado="exitoso_terreno",
+                observacion=f"Verificado en terreno por el equipo técnico al cerrar la ODT {row.odt}",
+                operador=operador,
+            )
+            self.db.add(prueba)
+            self.db.commit()
+
+            self._enviar_correo_prueba_sonido_terreno(suc, str(row.odt or ""))
+        except Exception:
+            LOGGER.exception("Error reflejando audio_ok de ODT %s en prueba de sonido", row.odt)
+            self.db.rollback()
+
+    def _construir_email_prueba_sonido_terreno(self, suc: SucursalBBDD, odt: str) -> tuple[str, str, str]:
+        _MESES_ES = ["enero", "febrero", "marzo", "abril", "mayo", "junio",
+                     "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+        now = datetime.now()
+        nombre_empresa = suc.nombre_empresa or suc.nombre_sucursal or ""
+        nombre_suc = suc.nombre_sucursal or ""
+        mes_nombre = f"{_MESES_ES[now.month - 1]} de {now.year}"
+        fecha_str = f"{now.day} de {_MESES_ES[now.month - 1]} de {now.year}"
+
+        asunto = f"Sistema de Sonido Verificado en Terreno — {nombre_suc}"
+
+        cuerpo_txt = (
+            f"Estimados,\n\n"
+            f"Junto con saludar, les informamos que durante la visita técnica realizada en la "
+            f"sucursal {nombre_suc} de {nombre_empresa}, nuestro equipo técnico verificó en terreno "
+            f"el sistema de sonido correspondiente a {mes_nombre}, obteniendo un resultado "
+            f"100% exitoso.\n\n"
+            f"Esta verificación confirma el correcto funcionamiento de parlantes, amplificadores y "
+            f"toda la cadena de audio del sistema, el cual se encuentra operativo y en condiciones "
+            f"óptimas.\n\n"
+            f"En Alguien Te Cuida realizamos estas verificaciones de forma periódica para garantizar "
+            f"que usted cuente siempre con un sistema operativo al 100%.\n\n"
+            f"Cualquier problema o dificultad que usted visualice en el sistema, ya sea de cámaras, "
+            f"parlantes u otros componentes, le rogamos avisarnos a la brevedad posible.\n\n"
+            f"Atentamente,\nEquipo Técnico — Alguien Te Cuida SpA"
+        )
+
+        cuerpo_html = f"""<!DOCTYPE html>
+<html lang="es" xmlns="http://www.w3.org/1999/xhtml" style="color-scheme:light;">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>{asunto}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f2f4f7;-webkit-text-size-adjust:100%;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+       style="background-color:#f2f4f7;min-width:320px;">
+  <tr>
+    <td align="center" style="padding:40px 16px;">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"
+             style="max-width:600px;width:100%;background-color:#ffffff;border-radius:6px;
+                    overflow:hidden;border:1px solid #d1d5db;">
+
+        <!-- HEADER -->
+        <tr>
+          <td style="background-color:#0d1f2d;padding:20px 36px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="vertical-align:middle;">
+                  <img src="cid:logoatc" alt="Alguien Te Cuida"
+                       style="height:38px;width:auto;display:block;border:0;" />
+                </td>
+                <td align="right" style="vertical-align:middle;">
+                  <span style="font-family:Arial,sans-serif;font-size:10px;font-weight:600;
+                               color:#8aabb8;letter-spacing:0.12em;text-transform:uppercase;">
+                    Informe Técnico
+                  </span>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- FRANJA ACENTO -->
+        <tr>
+          <td style="background-color:#1e3a5f;padding:20px 36px;">
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:10px;font-weight:600;
+                      color:#93b4cc;letter-spacing:0.12em;text-transform:uppercase;">
+              Visita técnica &nbsp;·&nbsp; {mes_nombre}
+            </p>
+            <p style="margin:7px 0 0;font-family:Arial,sans-serif;font-size:20px;font-weight:700;
+                      color:#ffffff;letter-spacing:-0.01em;line-height:1.25;">
+              Sistema de Sonido Verificado en Terreno
+            </p>
+            <p style="margin:5px 0 0;font-family:Arial,sans-serif;font-size:13px;
+                      color:#a8c4d8;line-height:1.4;">
+              {nombre_suc} &nbsp;·&nbsp; {nombre_empresa}
+            </p>
+          </td>
+        </tr>
+
+        <!-- BADGE RESULTADO -->
+        <tr>
+          <td style="background-color:#ffffff;padding:26px 36px 4px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="background-color:#f0fdf4;border:1px solid #a7f3d0;border-radius:5px;
+                           padding:9px 16px;">
+                  <span style="font-family:Arial,sans-serif;font-size:12px;font-weight:700;
+                               color:#15803d;letter-spacing:0.02em;">VERIFICADO EN TERRENO</span>
+                  <span style="font-family:Arial,sans-serif;font-size:12px;color:#6b7280;
+                               margin-left:14px;">{fecha_str}</span>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- CUERPO -->
+        <tr>
+          <td style="padding:20px 36px 8px;background-color:#ffffff;">
+            <p style="margin:0 0 13px;font-family:Arial,sans-serif;font-size:14px;
+                      line-height:1.65;color:#374151;">Estimados,</p>
+            <p style="margin:0 0 13px;font-family:Arial,sans-serif;font-size:14px;
+                      line-height:1.65;color:#374151;">
+              Junto con saludar, les informamos que durante la visita técnica realizada en la
+              sucursal <strong>{nombre_suc}</strong>, nuestro equipo técnico verificó
+              <strong>en terreno</strong> el sistema de sonido correspondiente a
+              <strong>{mes_nombre}</strong>, obteniendo un resultado <strong>100&#37; exitoso</strong>.
+            </p>
+            <p style="margin:0 0 13px;font-family:Arial,sans-serif;font-size:14px;
+                      line-height:1.65;color:#374151;">
+              Esta verificación confirma el correcto funcionamiento de parlantes, amplificadores y
+              toda la cadena de audio del sistema, el cual se encuentra operativo y en condiciones
+              óptimas.
+            </p>
+            <p style="margin:0 0 13px;font-family:Arial,sans-serif;font-size:14px;
+                      line-height:1.65;color:#374151;">
+              En <strong>Alguien Te Cuida</strong> entendemos que la tranquilidad de su operación
+              depende de que cada componente de su sistema de seguridad funcione correctamente.
+              Por eso realizamos estas verificaciones de forma periódica: para garantizar que usted
+              cuente siempre con un sistema al 100&#37;, sin sorpresas ni imprevistos.
+            </p>
+            <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:14px;
+                      line-height:1.65;color:#374151;">
+              Cualquier problema o dificultad que usted visualice en el sistema, ya sea de
+              <strong>cámaras</strong>, <strong>parlantes</strong> u otros componentes, le rogamos
+              avisarnos a la brevedad posible.
+            </p>
+          </td>
+        </tr>
+
+        <!-- SEPARADOR -->
+        <tr>
+          <td style="padding:0 36px 18px;background-color:#ffffff;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr><td style="border-top:1px solid #e5e7eb;font-size:0;line-height:0;">&nbsp;</td></tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- FIRMA -->
+        <tr>
+          <td style="padding:0 36px 26px;background-color:#ffffff;">
+            <p style="margin:0 0 1px;font-family:Arial,sans-serif;font-size:13px;
+                      font-weight:700;color:#111827;">Equipo Técnico</p>
+            <p style="margin:0 0 1px;font-family:Arial,sans-serif;font-size:12px;color:#6b7280;">Alguien Te Cuida SpA</p>
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:12px;color:#6b7280;">contacto@alguientecuida.cl</p>
+          </td>
+        </tr>
+
+        <!-- FOOTER -->
+        <tr>
+          <td style="background-color:#f8fafc;border-top:1px solid #e5e7eb;
+                     padding:14px 36px;border-radius:0 0 6px 6px;">
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:11px;color:#9ca3af;line-height:1.5;">
+              Este mensaje fue generado automáticamente por el sistema de Alguien Te Cuida SpA.
+              Por favor no responda directamente a este correo.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>"""
+        return asunto, cuerpo_txt, cuerpo_html
+
+    def _enviar_correo_prueba_sonido_terreno(self, suc: SucursalBBDD, odt: str) -> None:
+        contactos = [
+            str(c.email).strip()
+            for c in self.db.query(SucursalContactoEmergencia)
+                        .filter(SucursalContactoEmergencia.sucursal_id == suc.id)
+                        .order_by(SucursalContactoEmergencia.id.asc())
+                        .all()
+            if c.email and str(c.email).strip()
+        ]
+        email_destino = ", ".join(contactos)
+        if not email_destino:
+            return
+
+        asunto, cuerpo_txt, cuerpo_html = self._construir_email_prueba_sonido_terreno(suc, odt)
+
+        logo_path = _ATC_ROOT / "static" / "img" / "logo-atc.png"
+        logo_bytes = logo_path.read_bytes() if logo_path.exists() else None
+
+        def _enviar(dest=email_destino, subj=asunto, txt=cuerpo_txt, html=cuerpo_html,
+                    logo=logo_bytes, sid=suc.id, bcc=["tahira.riquelme.atc@gmail.com"]):
+            try:
+                svc_mail = IncidenciasService(SessionLocal())
+                svc_mail._enviar_correo_automatico(
+                    dest, subj, txt, html_body=html, logo_bytes=logo,
+                    cfg_override=svc_mail._contacto_smtp_runtime_config(),
+                    bcc_emails_extra=bcc,
+                )
+            except Exception:
+                LOGGER.exception("Error enviando email prueba sonido terreno sucursal=%s", sid)
+
+        threading.Thread(target=_enviar, daemon=True, name=f"email-sonido-terreno-{suc.id}").start()
+
     def _resumen_diagnostico_cierre(self, diagnostico: dict[str, Any]) -> str:
         materiales = diagnostico.get("materiales") or []
         if diagnostico.get("materiales_sin_uso"):
@@ -6854,6 +7209,7 @@ class IncidenciasService:
         if not row:
             raise ValueError(f"No se encontro la ODT {odt_limpia}")
 
+        estado_previo = str(getattr(row, "estado", "") or "").strip()
         row.estado = "Terminado"
         row.derivacion = "Servicio Técnico"
         row.observacion_final = obs_cierre
@@ -6873,6 +7229,16 @@ class IncidenciasService:
                 row.tecnico_cierre = usuario_token
         self._marcar_instalacion_venta_finalizada(odt_limpia, ahora)
         self.db.commit()
+        self._reflejar_audio_ok_en_prueba_sonido(row, diagnostico.get("pruebas_cierre"))
+        if estado_previo != "Terminado":
+            self._reforzar_inicio_odt_si_corresponde(
+                odt=row.odt,
+                tecnico=row.tecnicos,
+                acompanante=row.acompanante,
+                usuario_accion=row.tecnico_cierre,
+                fecha_inicio_trabajo=row.fecha_inicio_trabajo,
+                verbo_accion="finalizada",
+            )
         self._sync_estado_ticket_soporte_silencioso(
             odt_limpia,
             TICKET_STATUS_RESUELTO_SERVICIO,
@@ -6976,6 +7342,8 @@ class IncidenciasService:
                 usuario_token = ""
 
         row = self.db.scalar(select(Registro).where(func.lower(func.trim(Registro.odt)) == odt_limpia.lower()))
+        row_es_nueva = row is None
+        estado_previo = "" if row_es_nueva else str(getattr(row, "estado", "") or "").strip()
         if not row:
             row = Registro(
                 odt=odt_limpia,
@@ -7042,10 +7410,13 @@ class IncidenciasService:
         if row.fecha_registro and row.fecha_cierre:
             row.dias_ejecucion = (row.fecha_cierre.date() - row.fecha_registro.date()).days
 
+        # Solo "Instalación Finalizada" — "Terminado" (finalizado/fecha_cierre) es un
+        # paso posterior y deliberado que se marca a mano en la Tabla Servicio
+        # Técnico, no algo que el cierre de ODT del técnico deba marcar solo (ver
+        # update_servicio_tecnico_ventas_estado, que exige instalacion_finalizada
+        # antes de permitir marcar finalizado).
         st_row.instalacion_finalizada = True
         st_row.fecha_instalacion_finalizada = st_row.fecha_instalacion_finalizada or ahora
-        st_row.finalizado = True
-        st_row.fecha_cierre = ahora
         if excede_presupuesto:
             st_row.camaras_instaladas_reales = cantidad_instalada_total
         if not getattr(st_row, "fecha_inicio_trabajo", None) and getattr(row, "fecha_inicio_trabajo", None):
@@ -7053,6 +7424,15 @@ class IncidenciasService:
         if getattr(st_row, "fecha_inicio_trabajo", None) and not getattr(st_row, "fecha_fin_trabajo", None):
             st_row.fecha_fin_trabajo = ahora
         self.db.commit()
+        if estado_previo != "Terminado":
+            self._reforzar_inicio_odt_si_corresponde(
+                odt=row.odt,
+                tecnico=row.tecnicos,
+                acompanante=row.acompanante,
+                usuario_accion=row.tecnico_cierre,
+                fecha_inicio_trabajo=row.fecha_inicio_trabajo,
+                verbo_accion="finalizada",
+            )
         drive_enabled = bool(settings.google_drive_enabled)
         if drive_enabled:
             worker = threading.Thread(
@@ -8086,7 +8466,14 @@ class IncidenciasService:
         self.db.commit()
         return "OK"
 
-    def guardar_datos_en_proceso(self, odt: str, avance: int, observacion: str, token: str = "") -> str:
+    def guardar_datos_en_proceso(
+        self,
+        odt: str,
+        avance: int,
+        observacion: str,
+        token: str = "",
+        camaras_instaladas: int | None = None,
+    ) -> str:
         odt_limpia = (odt or "").strip()
         if not odt_limpia:
             raise ValueError("ODT invalida")
@@ -8097,9 +8484,15 @@ class IncidenciasService:
             if usuario_token == "Desconocido":
                 usuario_token = ""
 
+        # Se busca siempre (no solo si falta el Registro shadow) porque el aviso al
+        # comercial + borrado de asignación de más abajo debe aplicar cada vez que
+        # se deja pendiente una ODS de venta, no únicamente la primera vez.
+        venta_row = None
+        if odt_limpia[:1].upper() == "V":
+            venta_row = self.db.scalar(select(VentaODS).where(func.lower(func.trim(VentaODS.codigo)) == odt_limpia.lower()))
+
         row = self.db.scalar(select(Registro).where(Registro.odt == odt_limpia))
         if not row:
-            venta_row = self.db.scalar(select(VentaODS).where(func.lower(func.trim(VentaODS.codigo)) == odt_limpia.lower()))
             if not venta_row:
                 raise ValueError(f"No se encontro la ODT {odt_limpia}")
             st_row = self.db.scalar(
@@ -8147,6 +8540,7 @@ class IncidenciasService:
             self.db.add(row)
             self.db.flush()
 
+        estado_previo = str(getattr(row, "estado", "") or "").strip()
         avance_num = max(0, min(100, int(avance)))
         marca = datetime.now().strftime("%d/%m/%Y %H:%M")
         usuario = (self.get_usuario_actual((token or "").strip()) if (token or "").strip() else "").strip()
@@ -8175,6 +8569,8 @@ class IncidenciasService:
         # se sincroniza: evita que "tabla servicio tecnico venta" muestre el
         # ODT sin tecnico mientras "resumen_equipos_tecnicos" si lo muestra.
         tecnico_actual = str(getattr(row, "tecnicos", "") or "").strip()
+        acompanante_actual = str(getattr(row, "acompanante", "") or "").strip()
+        fecha_inicio_trabajo_actual = getattr(row, "fecha_inicio_trabajo", None)
         st_sync = self.db.scalar(
             select(ServicioTecnicoVentaODT).where(
                 func.lower(func.trim(ServicioTecnicoVentaODT.odt)) == odt_limpia.lower()
@@ -8186,8 +8582,63 @@ class IncidenciasService:
             if getattr(st_sync, "fecha_inicio_trabajo", None) and not getattr(st_sync, "fecha_fin_trabajo", None):
                 st_sync.fecha_fin_trabajo = ahora_fin
 
+        tecnico_para_email = ""
+        camaras_total_para_email = 0
+        camaras_instaladas_para_email = 0
+        if venta_row:
+            tecnico_para_email = tecnico_actual
+            camaras_total_para_email = int(getattr(venta_row, "numero_camaras_instalar", 0) or 0)
+            if camaras_instaladas is not None:
+                camaras_instaladas_para_email = max(0, int(camaras_instaladas))
+            elif camaras_total_para_email:
+                camaras_instaladas_para_email = round(avance_num / 100 * camaras_total_para_email)
+            # Se borra la asignación para que esta ODS quede sin técnico y el
+            # encargado la vuelva a derivar al día siguiente, en vez de quedar
+            # "colgada" asignada a alguien que ya no la va a retomar solo.
+            row.tecnicos = None
+            row.acompanante = None
+            if st_sync:
+                st_sync.tecnico_a_cargo = None
+                st_sync.acompanante = None
+
         self.db.commit()
+
+        if estado_previo != "Pendiente":
+            self._reforzar_inicio_odt_si_corresponde(
+                odt=odt_limpia,
+                tecnico=tecnico_actual,
+                acompanante=acompanante_actual,
+                usuario_accion=row.tecnico_cierre,
+                fecha_inicio_trabajo=fecha_inicio_trabajo_actual,
+                verbo_accion="dejada en pendiente",
+            )
+
+        if venta_row:
+            _codigo_bg = odt_limpia
+            _obs_bg = observacion.strip()
+            _avance_bg = avance_num
+            _camaras_instaladas_bg = camaras_instaladas_para_email
+            _camaras_total_bg = camaras_total_para_email
+            _tecnico_bg = tecnico_para_email
+
+            def _bg_pendiente():
+                from ATC.app.core.db import SessionLocal
+                from ATC.app.services.venta_trace_email_service import notify_odt_dejada_pendiente
+                _db = SessionLocal()
+                try:
+                    notify_odt_dejada_pendiente(
+                        _db, _codigo_bg, _obs_bg, _avance_bg,
+                        _camaras_instaladas_bg, _camaras_total_bg, _tecnico_bg,
+                    )
+                except Exception as exc:
+                    LOGGER.warning("notify_odt_dejada_pendiente %s falló: %s", _codigo_bg, exc)
+                finally:
+                    _db.close()
+
+            threading.Thread(target=_bg_pendiente, daemon=True).start()
+
         return "OK"
+
     def _obtener_snapshot_cierre_odt(self, odt: str) -> dict[str, str]:
         odt_limpia = (odt or "").strip()
         out = {
@@ -9428,6 +9879,7 @@ class IncidenciasService:
         if not row:
             raise ValueError(f"No se encontro la ODT {odt_limpia}")
 
+        estado_previo = str(getattr(row, "estado", "") or "").strip()
         cierre_ya_sincronizado = (
             self._normalizar_texto(getattr(row, "estado", "") or "") == "terminado"
             and str(getattr(row, "observacion_final", "") or "").strip() == obs_cierre
@@ -9448,6 +9900,16 @@ class IncidenciasService:
         self._aplicar_diagnostico_cierre(row, diagnostico)
         self._marcar_instalacion_venta_finalizada(odt_limpia)
         self.db.commit()
+        self._reflejar_audio_ok_en_prueba_sonido(row, diagnostico.get("pruebas_cierre"))
+        if estado_previo != "Terminado" and self._normalizar_texto(getattr(row, "estado", "") or "") == "terminado":
+            self._reforzar_inicio_odt_si_corresponde(
+                odt=row.odt,
+                tecnico=row.tecnicos,
+                acompanante=row.acompanante,
+                usuario_accion=row.tecnico_cierre,
+                fecha_inicio_trabajo=row.fecha_inicio_trabajo,
+                verbo_accion="finalizada",
+            )
         if not cierre_ya_sincronizado:
             self._sync_estado_ticket_soporte_silencioso(
                 odt_limpia,
@@ -10136,6 +10598,7 @@ class IncidenciasService:
         attachments: list[dict[str, Any]] | None = None,
         cfg_override: dict[str, Any] | None = None,
         cc_emails: list[str] | None = None,
+        bcc_emails_extra: list[str] | None = None,
     ) -> None:
         cfg = cfg_override if cfg_override is not None else self._smtp_runtime_config()
         if not cfg["enabled"]:
@@ -10154,7 +10617,7 @@ class IncidenciasService:
         if not host or not port or not from_email:
             raise ValueError("SMTP incompleto. Configura SMTP_HOST, SMTP_PORT y SMTP_FROM_EMAIL (o SMTP_USERNAME).")
 
-        bcc_emails: list[str] = cfg.get("bcc_emails") or []
+        bcc_emails: list[str] = list(cfg.get("bcc_emails") or []) + list(bcc_emails_extra or [])
 
         msg = EmailMessage()
         msg["Subject"] = subject
@@ -10785,6 +11248,7 @@ class IncidenciasService:
                     _to_ddmmyyyy_hhmm(correo_info.get("ultimo_correo") or correo_info.get("ultimo_envio")),
                     _to_ddmmyyyy_hhmm(correo_info.get("ultimo_mensaje")),
                     int(correo_info.get("cantidad_mensajes") or 0),
+                    getattr(r, "observacion_coordinacion", "") or "",
                 ]
             )
         return out
@@ -11589,6 +12053,226 @@ class IncidenciasService:
                 LOGGER.exception("Error enviando email de rendición id=%s", rid)
 
         threading.Thread(target=_enviar, daemon=True, name=f"email-rendicion-{rend.id}").start()
+
+    def _construir_email_reforzar_inicio_odt(self, *, nombre: str, odt: str, verbo_accion: str) -> tuple[str, str, str]:
+        """Correo de refuerzo cuando un técnico o acompañante finaliza/deja pendiente
+        una ODT sin haber presionado 'Iniciar' antes — mismo estilo (header azul
+        marino + logo) que el correo de rendiciones/pruebas de sonido.
+        verbo_accion: 'finalizada' o 'dejada en pendiente'."""
+        nombre_mostrar = nombre or "Técnico"
+        asunto = f"Recordatorio obligatorio: Inicia la ODT antes de continuar — ODT {odt}"
+
+        cuerpo_txt = (
+            f"Hola {nombre_mostrar},\n\n"
+            f"Notamos que la ODT {odt} fue {verbo_accion} sin haber sido marcada como iniciada "
+            f"previamente en el sistema.\n\n"
+            f"Te recordamos que presionar 'Iniciar' en la ODT es un paso estrictamente necesario "
+            f"antes de finalizarla o dejarla pendiente, ya que permite registrar correctamente los "
+            f"tiempos de trabajo y el seguimiento de la atención.\n\n"
+            f"Te pedimos que, a partir de ahora, recuerdes iniciar cada ODT antes de comenzar tu "
+            f"labor en terreno.\n\n"
+            f"Equipo Técnico\nAlguien Te Cuida SpA"
+        )
+
+        cuerpo_html = f"""<!DOCTYPE html>
+<html lang="es" xmlns="http://www.w3.org/1999/xhtml" style="color-scheme:light;">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>{asunto}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f2f4f7;-webkit-text-size-adjust:100%;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+       style="background-color:#f2f4f7;min-width:320px;">
+  <tr>
+    <td align="center" style="padding:40px 16px;">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"
+             style="max-width:600px;width:100%;background-color:#ffffff;border-radius:6px;
+                    overflow:hidden;border:1px solid #d1d5db;">
+
+        <tr>
+          <td style="background-color:#0d1f2d;padding:20px 36px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="vertical-align:middle;">
+                  <img src="cid:logoatc" alt="Alguien Te Cuida"
+                       style="height:34px;width:auto;display:block;border:0;" />
+                </td>
+                <td align="right" style="vertical-align:middle;">
+                  <span style="font-family:Arial,sans-serif;font-size:10px;font-weight:600;
+                               color:#8aabb8;letter-spacing:0.12em;text-transform:uppercase;">
+                    Recordatorio Operativo
+                  </span>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="background-color:#1e3a5f;padding:20px 36px;">
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:10px;font-weight:600;
+                      color:#93b4cc;letter-spacing:0.12em;text-transform:uppercase;">
+              ODT {odt}
+            </p>
+            <p style="margin:7px 0 0;font-family:Arial,sans-serif;font-size:20px;font-weight:700;
+                      color:#ffffff;letter-spacing:-0.01em;line-height:1.25;">
+              Inicio de ODT Obligatorio
+            </p>
+            <p style="margin:5px 0 0;font-family:Arial,sans-serif;font-size:13px;
+                      color:#a8c4d8;line-height:1.4;">
+              {nombre_mostrar}
+            </p>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="background-color:#ffffff;padding:26px 36px 4px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="background-color:#fffbeb;border:1px solid #fcd34d;border-radius:5px;
+                           padding:9px 16px;">
+                  <span style="font-family:Arial,sans-serif;font-size:12px;font-weight:700;
+                               color:#b45309;letter-spacing:0.02em;">RECORDATORIO</span>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:20px 36px 8px;background-color:#ffffff;">
+            <p style="margin:0 0 13px;font-family:Arial,sans-serif;font-size:14px;
+                      line-height:1.65;color:#374151;">Hola <strong>{nombre_mostrar}</strong>,</p>
+            <p style="margin:0 0 13px;font-family:Arial,sans-serif;font-size:14px;
+                      line-height:1.65;color:#374151;">
+              Notamos que la ODT <strong>{odt}</strong> fue {verbo_accion} sin haber sido marcada como
+              iniciada previamente en el sistema.
+            </p>
+            <p style="margin:0 0 13px;font-family:Arial,sans-serif;font-size:14px;
+                      line-height:1.65;color:#374151;">
+              Te recordamos que presionar &quot;Iniciar&quot; en la ODT es un paso
+              <strong>estrictamente necesario</strong> antes de finalizarla o dejarla pendiente, ya que
+              permite registrar correctamente los tiempos de trabajo y el seguimiento de la atención.
+            </p>
+            <p style="margin:0 0 20px;font-family:Arial,sans-serif;font-size:14px;
+                      line-height:1.65;color:#374151;">
+              Te pedimos que, a partir de ahora, recuerdes iniciar cada ODT antes de comenzar tu labor
+              en terreno.
+            </p>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:0 36px 18px;background-color:#ffffff;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr><td style="border-top:1px solid #e5e7eb;font-size:0;line-height:0;">&nbsp;</td></tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:0 36px 26px;background-color:#ffffff;">
+            <p style="margin:0 0 1px;font-family:Arial,sans-serif;font-size:13px;
+                      font-weight:700;color:#111827;">Equipo Técnico</p>
+            <p style="margin:0 0 1px;font-family:Arial,sans-serif;font-size:12px;color:#6b7280;">Alguien Te Cuida SpA</p>
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:12px;color:#6b7280;">contacto@alguientecuida.cl</p>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="background-color:#f8fafc;border-top:1px solid #e5e7eb;
+                     padding:14px 36px;border-radius:0 0 6px 6px;">
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:11px;color:#9ca3af;line-height:1.5;">
+              Este mensaje fue generado automáticamente por el sistema de Alguien Te Cuida SpA.
+              Por favor no responda directamente a este correo.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>"""
+        return asunto, cuerpo_txt, cuerpo_html
+
+    def _enviar_correo_reforzar_inicio_odt(self, email: str, nombre: str, odt: str, verbo_accion: str) -> None:
+        if not email:
+            return
+        asunto, cuerpo_txt, cuerpo_html = self._construir_email_reforzar_inicio_odt(
+            nombre=nombre, odt=odt, verbo_accion=verbo_accion
+        )
+        logo_path = Path(__file__).resolve().parents[2] / "static" / "img" / "logo-atc.png"
+        logo_bytes = logo_path.read_bytes() if logo_path.exists() else None
+        try:
+            self._enviar_correo_automatico(
+                email, asunto, cuerpo_txt, html_body=cuerpo_html, logo_bytes=logo_bytes,
+                cfg_override=self._contacto_smtp_runtime_config(),
+                cc_emails=["catalina.silva@soporteatc.cl"],
+            )
+        except Exception:
+            LOGGER.exception("Error enviando email de refuerzo inicio ODT %s a %s", odt, email)
+
+    def _reforzar_inicio_odt_si_corresponde(
+        self,
+        *,
+        odt: str,
+        tecnico: str | None,
+        acompanante: str | None,
+        usuario_accion: str | None = None,
+        fecha_inicio_trabajo: Any,
+        verbo_accion: str,
+    ) -> None:
+        """Si el técnico (o acompañante) finaliza o deja pendiente esta ODT sin haber
+        presionado 'Iniciar' antes (fecha_inicio_trabajo vacía), les refuerza por
+        correo que iniciar la ODT es estrictamente necesario. verbo_accion:
+        'finalizada' o 'dejada en pendiente'. Se llama después del commit del
+        cierre/pendiente — una falla acá no debe afectar esa operación.
+
+        Recibe tecnico/acompanante como strings explícitos (no lee row.tecnicos
+        directamente) porque en el flujo de venta esos campos se borran del
+        Registro antes del commit para forzar la re-derivación del día
+        siguiente (ver guardar_datos_en_proceso) — para esta notificación
+        igual necesitamos saber a quién avisar. usuario_accion es quien
+        realmente ejecutó el cierre/pendiente (row.tecnico_cierre) — puede
+        diferir del técnico/acompañante asignado si otra persona lo hizo por
+        ellos, y también debe recibir el aviso. Todos los envíos llevan copia
+        fija a catalina.silva@soporteatc.cl."""
+        try:
+            if fecha_inicio_trabajo:
+                return
+            odt = str(odt or "").strip()
+            if not odt:
+                return
+            nombres = {
+                str(tecnico or "").strip(),
+                str(acompanante or "").strip(),
+                str(usuario_accion or "").strip(),
+            }
+            nombres.discard("")
+            if not nombres:
+                return
+            for nombre in nombres:
+                email = self._resolver_mail_tecnico(nombre, "")
+                if not email:
+                    continue
+
+                def _bg(email=email, nombre=nombre, odt=odt, verbo_accion=verbo_accion):
+                    _db = SessionLocal()
+                    try:
+                        svc_mail = IncidenciasService(_db)
+                        svc_mail._enviar_correo_reforzar_inicio_odt(email, nombre, odt, verbo_accion)
+                    except Exception:
+                        LOGGER.exception("Error en hilo de refuerzo inicio ODT %s -> %s", odt, email)
+                    finally:
+                        _db.close()
+
+                threading.Thread(target=_bg, daemon=True, name=f"email-inicio-odt-{odt}").start()
+        except Exception:
+            LOGGER.exception("Error evaluando refuerzo de inicio de ODT %s", odt)
 
     def _resolver_correo_comercial(self, creado_por: str) -> tuple[str, str]:
         """(email, nombre) del comercial a cargo de la ODS — VentaODS.creado_por

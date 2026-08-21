@@ -307,6 +307,108 @@ def _strip_ticket_thread_tail_for_display(content: str, *, ticket_id: int) -> st
     return trimmed or text
 
 
+def _ticket_reply_image_candidates(
+    ticket_id: int,
+    message_created_at: datetime | None = None,
+) -> list[str]:
+    folder = EMAIL_ATTACHMENT_UPLOAD_ROOT / f"T{ticket_id}"
+    if not folder.exists():
+        return []
+
+    image_suffixes = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".tif", ".tiff"}
+    files = [
+        path
+        for path in folder.iterdir()
+        if path.is_file() and path.suffix.lower() in image_suffixes
+    ]
+    if not files:
+        return []
+
+    def _file_local_time(path: Path) -> datetime | None:
+        match = re.match(r"^(\d{8})_(\d{6})_", path.name)
+        if not match:
+            return None
+        try:
+            raw = f"{match.group(1)}{match.group(2)}"
+            utc_dt = datetime.strptime(raw, "%Y%m%d%H%M%S").replace(tzinfo=timezone.utc)
+            return utc_dt.astimezone(_TZ_LOCAL).replace(tzinfo=None)
+        except Exception:
+            return None
+
+    if message_created_at:
+        message_dt = message_created_at.replace(tzinfo=None)
+        nearby: list[Path] = []
+        for path in files:
+            file_dt = _file_local_time(path)
+            if file_dt and abs((file_dt - message_dt).total_seconds()) <= 20 * 60:
+                nearby.append(path)
+        if nearby:
+            files = nearby
+
+    files.sort(key=lambda path: (_file_local_time(path) or datetime.min, path.name))
+    return [f"/uploads/ticket_replies/T{ticket_id}/{path.name}" for path in files]
+
+
+def _repair_legacy_ticket_message_images(
+    content: str,
+    *,
+    ticket_id: int,
+    message_created_at: datetime | None = None,
+) -> str:
+    """Normaliza imagenes historicas de mensajes ya guardados.
+
+    Versiones anteriores podian dejar src="cid:..." o rutas relativas como
+    "uploads/..." en Message.content. El correo enviado al cliente podia estar
+    correcto, pero el detalle del ticket fallaba al volver a renderizarlo.
+    """
+    html_content = content or ""
+    if "<img" not in html_content.lower():
+        return html_content
+
+    html_content = re.sub(
+        r"(<img\b[^>]*?\bsrc\s*=\s*)([\"'])uploads/",
+        r"\1\2/uploads/",
+        html_content,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    html_content = re.sub(
+        r"(<img\b[^>]*?\bsrc\s*=\s*)([\"'])ticket_replies/",
+        r"\1\2/uploads/ticket_replies/",
+        html_content,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+
+    if "cid:" not in html_content.lower():
+        return html_content
+
+    candidates = _ticket_reply_image_candidates(
+        ticket_id,
+        message_created_at=message_created_at,
+    )
+    if not candidates:
+        return html_content
+
+    index = 0
+
+    def _replace_src(match: re.Match) -> str:
+        nonlocal index
+        prefix, quote, src = match.group(1), match.group(2), (match.group(3) or "").strip()
+        if not src.lower().startswith("cid:"):
+            return match.group(0)
+        if index >= len(candidates):
+            return match.group(0)
+        replacement = candidates[index]
+        index += 1
+        return f"{prefix}{quote}{replacement}{quote}"
+
+    return re.sub(
+        r"(<img\b[^>]*?\bsrc\s*=\s*)([\"'])([^\"']+)\2",
+        _replace_src,
+        html_content,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+
+
 def _parse_recipient_list(raw_value: str | None, *, field_name: str) -> list[str]:
     raw_value = (raw_value or "").strip()
     if not raw_value:
@@ -2700,6 +2802,29 @@ def _ticketera_build_filtered_query(
     return query, filter_state
 
 
+@router.get("/api/ticketera/recientes")
+def ticketera_recientes(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    """Devuelve solo el id maximo actual de ticket visible para el usuario
+    (misma visibilidad + filtro por defecto que /ticketera sin scope, ver
+    _ticketera_build_filtered_query) — MAX(id) agregado, muy liviano, para
+    poll frecuente desde el frontend. Un simple "subió el máximo" es mucho
+    mas robusto que comparar listas completas de IDs (evita falsos
+    positivos por reordenamientos/re-polls parciales) — pedido explicito,
+    ago 2026."""
+    _require_area_access(db, current_user, "soporte")
+    query = _apply_ticket_visibility_for_user(db.query(func.max(Ticket.id)), current_user)
+    query = query.filter(
+        Ticket.is_deleted == False,
+        Ticket.is_spam == False,
+        Ticket.is_no_ticket == False,
+    )
+    max_id = query.scalar()
+    return {"maxId": int(max_id) if max_id is not None else 0}
+
+
 @router.get("/ticketera", response_class=HTMLResponse)
 @router.get("/ticketera/pagina/{page}", response_class=HTMLResponse)
 def ticketera(
@@ -3979,6 +4104,25 @@ def _support_incidencia_id_by_sheet_row(db: Session, fila: int) -> int | None:
     return int(value) if isinstance(value, int) else None
 
 
+@router.get("/api/registros/tabla/recientes")
+def soporte_registros_tabla_recientes(
+    db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    """Devuelve solo el id maximo actual de la tabla de incidencias (una
+    sola fila agregada, MAX(id), muy liviano) — pensado para poll frecuente
+    (pocos segundos) y detectar si llegó algo nuevo comparando ese numero
+    contra el ultimo maximo conocido en el frontend. Un simple "subió el
+    máximo" es mucho mas robusto que comparar listas completas de IDs
+    (evita falsos positivos por reordenamientos/re-polls parciales) —
+    pedido explicito, ago 2026."""
+    _ = current_user
+    table = _support_incidencias_table(db)
+    stmt = select(func.max(table.c.id))
+    max_id = db.execute(stmt).scalar()
+    return {"maxId": int(max_id) if max_id is not None else 0}
+
+
 @router.get("/api/registros/tabla")
 def soporte_obtener_registros_tabla(
     db: Session = Depends(get_incidencias_db),
@@ -4982,14 +5126,17 @@ def update_ticket_stage(
     if safe_stage == "spam":
         ticket.is_spam = True
         ticket.is_deleted = False
+        ticket.deleted_at = None
         change = apply_ticket_status_change(ticket, "closed")
     elif safe_stage == "papelera":
         ticket.is_deleted = True
         ticket.is_spam = False
+        ticket.deleted_at = datetime.now(timezone.utc)
         change = apply_ticket_status_change(ticket, "closed")
     else:
         ticket.is_deleted = False
         ticket.is_spam = False
+        ticket.deleted_at = None
         _enforce_status_transition_rules(ticket, safe_stage)
         change = apply_ticket_status_change(ticket, safe_stage)
 
@@ -5751,6 +5898,11 @@ def ticket_detail(
         content = m.content.strip()
         if (m.channel or "").strip().lower() == "email":
             content = _strip_ticket_thread_tail_for_display(content, ticket_id=ticket.id)
+            content = _repair_legacy_ticket_message_images(
+                content,
+                ticket_id=ticket.id,
+                message_created_at=m.created_at,
+            )
 
         # Si ya es HTML real -> no tocar.
         if "<html" in content or "<div" in content or "<table" in content or "<a " in content or "<img" in content:
@@ -5950,11 +6102,16 @@ def ticket_detail(
             _requester_addr = (ticket.requester.email if ticket.requester else "") or ""
             _subject_label = _build_ticket_email_subject(ticket.subject, ticket.id)
             for _em in _outgoing:
+                _correo_content = _repair_legacy_ticket_message_images(
+                    _em.content or "",
+                    ticket_id=ticket.id,
+                    message_created_at=_em.created_at,
+                )
                 correos_enviados.append({
                     "fecha": _em.created_at,
                     "destinatario": _requester_addr,
                     "asunto": _subject_label,
-                    "contenido": _em.content or "",
+                    "contenido": _correo_content,
                 })
     except Exception:
         db.rollback()
@@ -8007,6 +8164,7 @@ def mark_spam(
 
     ticket.is_spam = True
     ticket.is_deleted = False
+    ticket.deleted_at = None
     apply_ticket_status_change(ticket, "closed")
 
     db.commit()
@@ -8188,6 +8346,7 @@ def delete_ticket(
 
     ticket.is_deleted = True
     ticket.is_spam = False
+    ticket.deleted_at = datetime.now(timezone.utc)
     apply_ticket_status_change(ticket, "closed")
 
     db.commit()
@@ -8219,6 +8378,7 @@ def restore_from_trash(
         raise HTTPException(status_code=404)
 
     ticket.is_deleted = False
+    ticket.deleted_at = None
 
     db.commit()
 
@@ -9736,7 +9896,11 @@ def st_ods_actualizar_estado(
     eid = db.execute(text(
         f"SELECT TOP 1 id FROM {tabla} WHERE LOWER(TRIM(odt)) = LOWER(TRIM(:c))"
     ), {"c": codigo}).scalar_one_or_none()
+    valor_anterior = False
     if eid:
+        valor_anterior = bool(db.execute(text(
+            f"SELECT {campo} FROM {tabla} WHERE id=:id"
+        ), {"id": eid}).scalar_one_or_none())
         if date_col:
             db.execute(text(
                 f"UPDATE {tabla} SET {campo}=:v, {date_col}=:d WHERE id=:id"
@@ -9757,6 +9921,28 @@ def st_ods_actualizar_estado(
             f"INSERT INTO {tabla} ({cols}) VALUES ({vals})"
         ), params)
     db.commit()
+
+    # Soporte marcó "Terminado": el cliente ya quedó configurado y operativo —
+    # avisar al comercial a cargo de la ODS (ver notify_servicio_operativo).
+    if campo == "terminado" and tabla == "venta_soporte_tecnico" and valor and not valor_anterior:
+        import logging as _logging
+        import threading as _threading
+        from ATC.app.core.db import SessionLocal as _SessionLocal
+        from ATC.app.services.venta_trace_email_service import notify_servicio_operativo
+
+        _codigo_bg = codigo
+
+        def _bg_servicio_operativo():
+            _db = _SessionLocal()
+            try:
+                notify_servicio_operativo(_db, _codigo_bg)
+            except Exception as exc:
+                _logging.getLogger(__name__).warning("notify_servicio_operativo %s falló: %s", _codigo_bg, exc)
+            finally:
+                _db.close()
+
+        _threading.Thread(target=_bg_servicio_operativo, daemon=True).start()
+
     return {"ok": True}
 
 
@@ -10002,6 +10188,10 @@ def st_ods_guardar_materiales_bodega(
     codigo = str(payload.get("codigo") or payload.get("odt") or "").strip()
     items = payload.get("items") or []
     observacion = str(payload.get("observacion") or "").strip()
+    guias_despacho_raw = payload.get("guias_despacho") or []
+    if not isinstance(guias_despacho_raw, list):
+        guias_despacho_raw = [guias_despacho_raw]
+    guias_despacho = [str(g).strip() for g in guias_despacho_raw if str(g or "").strip()]
     if not codigo:
         raise HTTPException(status_code=400, detail="Codigo ODS requerido")
     if not isinstance(items, list):
@@ -10028,6 +10218,7 @@ def st_ods_guardar_materiales_bodega(
         {
             "items": sane_items,
             "observacion": observacion,
+            "guias_despacho": guias_despacho,
             "guardado_por": str(current_user.name or current_user.username or "").strip(),
             "guardado_en": datetime.now().isoformat(),
         },

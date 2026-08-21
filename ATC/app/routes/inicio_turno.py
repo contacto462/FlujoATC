@@ -1669,6 +1669,134 @@ def _agregar_faltas_por_permiso_sin_goce(
     return sorted(rows_faltas, key=lambda item: (-int(item["faltas"]), item["nombre"].casefold(), item["rut"]))
 
 
+# La fecha/turno/recinto REALES del turno viven en el texto libre de `notas`
+# ("... — DD/MM/AAAA · Turno · Recinto; reemplazo: ..."), armado por
+# justificar_supervisor_registro — la fecha NO es lo mismo que created_at (se
+# suele registrar dias despues del turno, a veces hasta con el turno todavia
+# en el futuro) — confirmado en datos reales, ago 2026: hay casos con
+# created_at 12+ dias despues de la fecha real, y uno con la fecha real 2
+# dias en el futuro respecto a created_at.
+_NOTAS_FECHA_TURNO_RECINTO_RE = re.compile(r"—\s*(\d{2})/(\d{2})/(\d{4})\s*·\s*([^·;]+?)\s*·\s*([^;]+?)\s*;")
+
+
+def _agregar_faltas_por_justificacion_falta(
+    db: Session,
+    rows_faltas: list[dict],
+    rut_lookup: dict[str, str],
+    tipo_guardia_lookup: dict[str, dict[str, str]],
+    year: int,
+    month: int,
+    fecha_limite: date,
+    recintos_permitidos: set[str] | None = None,
+) -> list[dict]:
+    """Cuando en Registro Supervisor o Justificaciones se reemplaza a un
+    guardia con motivo "Falta" (ver justificar_supervisor_registro /
+    crear_justificacion), la fila de supervisor original queda sobreescrita
+    con el nombre del reemplazo — el cruce QR/supervisor de
+    _agrupar_faltas_guardias ya no puede detectar esa ausencia, porque la
+    fila ahora "pertenece" al reemplazo. La unica huella que queda es el
+    GuardiaJustificacion con motivo "Falta". Esta funcion la agrega de
+    vuelta al listado de faltas — fecha/recinto reales parseados desde
+    `notas` (ver _NOTAS_FECHA_TURNO_RECINTO_RE). Si no se puede parsear el
+    recinto (ej. justificacion cargada a mano desde la otra pantalla, sin
+    ese formato de notas), se descarta en vez de mostrarla en todos los
+    grupos — pedido explicito, ago 2026: no mezclar Quintero/Concón/Privados."""
+    primer_dia = date(year, month, 1)
+    ultimo_dia = min(date(year, month, calendar.monthrange(year, month)[1]), fecha_limite)
+    if ultimo_dia < primer_dia:
+        return rows_faltas
+
+    recintos_permitidos_norm: set[str] = set()
+    for recinto in recintos_permitidos or set():
+        raw = str(recinto or "").strip()
+        if raw:
+            recintos_permitidos_norm.add(_normalizar_texto(raw))
+            recintos_permitidos_norm.add(_normalizar_texto(_recinto_display(raw)))
+
+    def _parse_notas(j: "GuardiaJustificacion") -> tuple[date, str, str] | None:
+        m = _NOTAS_FECHA_TURNO_RECINTO_RE.search(str(j.notas or ""))
+        if not m:
+            return None
+        try:
+            fecha = date(int(m.group(3)), int(m.group(2)), int(m.group(1)))
+        except ValueError:
+            return None
+        return fecha, m.group(4).strip(), m.group(5).strip()
+
+    justificaciones: list[tuple["GuardiaJustificacion", date, str]] = []
+    for j in db.query(GuardiaJustificacion).filter(GuardiaJustificacion.motivo == "Falta").all():
+        parsed = _parse_notas(j)
+        if not parsed:
+            continue
+        fecha_real, turno, recinto = parsed
+        if not (primer_dia <= fecha_real <= ultimo_dia):
+            continue
+        if recintos_permitidos_norm:
+            recinto_norm = {_normalizar_texto(recinto), _normalizar_texto(_recinto_display(recinto))}
+            if not (recinto_norm & recintos_permitidos_norm):
+                continue
+        justificaciones.append((j, fecha_real, f"{turno} · {recinto}"))
+    if not justificaciones:
+        return rows_faltas
+
+    rows_por_identidad: dict[str, dict] = {}
+    dias_por_identidad: dict[str, dict[date, tuple[str, bool]]] = defaultdict(dict)
+    for row in rows_faltas:
+        identidad = _normalizar_rut(row.get("rut") or "") or _normalizar_texto(row.get("nombre") or "")
+        rows_por_identidad[identidad] = row
+        for texto, es_permiso in row.get("detalle", []):
+            m = _FALTA_DIA_RE.match(texto)
+            if not m:
+                continue
+            try:
+                dia = date(year, int(m.group(2)), int(m.group(1)))
+            except ValueError:
+                continue
+            dias_por_identidad[identidad][dia] = (texto, es_permiso)
+    identidades_en_salida = set(rows_por_identidad)
+
+    tocados: set[str] = set()
+    for just, dia, turno_recinto in justificaciones:
+        rut = _normalizar_rut(just.rut)
+        nombre = str(just.nombre_guardia or "").strip()
+        if not rut and not nombre:
+            continue
+        nombre_key = _normalizar_texto(nombre)
+        rut_final = rut or rut_lookup.get(nombre_key, "")
+        identidad = rut_final or nombre_key
+        if not identidad:
+            continue
+
+        if dia in dias_por_identidad[identidad]:
+            continue  # ya detectada por el cruce QR/supervisor — no duplicar
+
+        row = rows_por_identidad.get(identidad)
+        if row is None:
+            row = {
+                "nombre": nombre,
+                "rut": rut_final,
+                "tipo_guardia": _tipo_guardia_para(nombre, rut_final, tipo_guardia_lookup),
+                "faltas": 0,
+                "detalle": [],
+            }
+            rows_por_identidad[identidad] = row
+
+        texto = f"{dia.day:02d}/{dia.month:02d} · {turno_recinto}"
+        dias_por_identidad[identidad][dia] = (texto, False)
+        if identidad not in identidades_en_salida:
+            rows_faltas.append(row)
+            identidades_en_salida.add(identidad)
+        tocados.add(identidad)
+
+    for identidad in tocados:
+        row = rows_por_identidad[identidad]
+        dias = dias_por_identidad[identidad]
+        row["detalle"] = [dias[d] for d in sorted(dias)]
+        row["faltas"] = len(row["detalle"])
+
+    return sorted(rows_faltas, key=lambda item: (-int(item["faltas"]), item["nombre"].casefold(), item["rut"]))
+
+
 def _alertas_permiso_sin_goce(rows_faltas: list[dict], month: int) -> list[dict]:
     alertas: list[dict] = []
     for row in rows_faltas:
@@ -1688,6 +1816,33 @@ def _alertas_permiso_sin_goce(rows_faltas: list[dict], month: int) -> list[dict]
                 "recinto": recinto,
                 "detalle": nombre,
                 "permiso_sin_goce": True,
+            })
+    return sorted(alertas, key=lambda x: (x["fecha"], x["recinto"], x["detalle"]))
+
+
+def _alertas_justificacion_falta(rows_faltas: list[dict], month: int) -> list[dict]:
+    """Igual que _alertas_permiso_sin_goce pero para las faltas agregadas
+    por _agregar_faltas_por_justificacion_falta (marcadas es_permiso=False
+    a proposito, asi que NO deben filtrarse como excusadas) — pedido
+    explicito, ago 2026."""
+    alertas: list[dict] = []
+    for row in rows_faltas:
+        nombre = str(row.get("nombre") or "").strip()
+        for texto, es_permiso in row.get("detalle", []):
+            if es_permiso:
+                continue
+            dia = ""
+            recinto = "Lugar no informado"
+            partes = str(texto or "").split(" · ", 1)
+            if partes:
+                dia = partes[0].strip()
+            if len(partes) > 1 and partes[1].strip():
+                recinto = partes[1].strip()
+            alertas.append({
+                "fecha": dia or f"--/{month:02d}",
+                "recinto": recinto,
+                "detalle": nombre,
+                "permiso_sin_goce": False,
             })
     return sorted(alertas, key=lambda x: (x["fecha"], x["recinto"], x["detalle"]))
 
@@ -3340,6 +3495,10 @@ def _datos_informe_guardias(db: Session, year: int, month: int, grupo: str) -> d
         today - timedelta(days=1),
         recintos_permitidos=recintos_set,
     )
+    rows_faltas = _agregar_faltas_por_justificacion_falta(
+        db, rows_faltas, rut_lookup, tipo_guardia_lookup, year, month, today - timedelta(days=1),
+        recintos_permitidos=recintos_set,
+    )
     rows_extra = _agrupar_turnos_extra(registros_qr, registros_sv, rut_lookup, tipo_guardia_lookup, tipo_turno="Extra")
     rows_contrato_diario = _agrupar_turnos_extra(registros_qr, registros_sv, rut_lookup, tipo_guardia_lookup, tipo_turno="Contrato Diario")
     rows_domingos = _agrupar_domingos_guardias(registros_qr, rut_lookup, tipo_guardia_lookup)
@@ -4282,6 +4441,11 @@ def guardia_tabla_page(
         recintos_permitidos=recintos_set,
     )
     alertas_permiso_sin_goce = _alertas_permiso_sin_goce(rows_permiso_sin_goce, month)
+    rows_justificacion_falta = _agregar_faltas_por_justificacion_falta(
+        db, [], rut_lookup, tipo_guardia_lookup, year, month, control_hasta,
+        recintos_permitidos=recintos_set,
+    )
+    alertas_justificacion_falta = _alertas_justificacion_falta(rows_justificacion_falta, month)
 
     days_in_month = calendar.monthrange(year, month)[1]
     days_info     = [
@@ -4413,6 +4577,17 @@ def guardia_tabla_page(
         key = (_fecha_alerta_key(alerta.get("fecha")), _normalizar_texto(alerta.get("detalle")))
         if key not in alertas_normales:
             alertas_inasistencia.append(alerta)
+            alertas_normales.add(key)
+
+    # Faltas por reemplazo (Registro Supervisor / Justificaciones, motivo
+    # "Falta") — mismo mecanismo que permiso sin goce, pero marcadas
+    # permiso_sin_goce=False porque son ausencias reales, no excusadas —
+    # pedido explicito, ago 2026.
+    for alerta in alertas_justificacion_falta:
+        key = (_fecha_alerta_key(alerta.get("fecha")), _normalizar_texto(alerta.get("detalle")))
+        if key not in alertas_normales:
+            alertas_inasistencia.append(alerta)
+            alertas_normales.add(key)
 
     alertas_inasistencia.sort(key=lambda x: x["fecha"])
     alertas_discrepancia.sort(key=lambda x: x["fecha"])
@@ -4661,6 +4836,10 @@ def descargar_informes_guardias(
         year,
         month,
         today - timedelta(days=1),
+        recintos_permitidos=recintos_set,
+    )
+    rows_faltas = _agregar_faltas_por_justificacion_falta(
+        db, rows_faltas, rut_lookup, tipo_guardia_lookup, year, month, today - timedelta(days=1),
         recintos_permitidos=recintos_set,
     )
     rows_extra = _agrupar_turnos_extra(registros_qr, registros_sv, rut_lookup, tipo_guardia_lookup, tipo_turno="Extra")

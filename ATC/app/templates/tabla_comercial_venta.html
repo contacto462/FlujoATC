@@ -428,6 +428,7 @@ td.cod::before {
 .badge.ok   { background: var(--ok-bg);   color: var(--ok-fg);   border-color: var(--ok-bd); }
 .badge.proc { background: var(--warn-bg); color: var(--warn-fg); border-color: var(--warn-bd); }
 .badge.pend { background: var(--pend-bg); color: var(--pend-fg); border-color: var(--pend-bd); }
+.badge.na   { background: var(--pend-bg); color: var(--text-muted); border-color: var(--border); font-style: italic; opacity: .75; }
 
 /* contrato uploaded / no aplica / subir */
 .ctrt-ok {
@@ -498,7 +499,7 @@ td.cod::before {
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 20px 22px;
-  min-width: 290px; max-width: 380px;
+  min-width: 320px; max-width: 460px;
   box-shadow: 0 24px 60px rgba(15,23,42,.18);
 }
 .pop-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
@@ -515,8 +516,8 @@ td.cod::before {
   font-weight: 800; margin-bottom: 10px; color: var(--text-muted);
 }
 .pop-item {
-  font-size: 13px; font-weight: 500; padding: 4px 0;
-  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 500; padding: 5px 0;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px;
   color: var(--text-soft);
 }
 .pop-item.done { color: #166534; }
@@ -528,6 +529,10 @@ td.cod::before {
 .pop-item.pend::before {
   content: "•"; font-size: 16px; line-height: .85; color: #cbd5e1;
   display: inline-block; width: 12px; text-align: center;
+}
+.pop-item-fecha {
+  flex-basis: 100%; margin-left: 20px;
+  font-size: 11px; font-weight: 600; color: var(--text-muted);
 }
 
 /* ── Modal ──────────────────────────────────────────────── */
@@ -725,11 +730,13 @@ function toast(msg, type = "success") {
 function badgeCls(e) {
   if (e === "Terminado") return "ok";
   if (e === "En proceso") return "proc";
+  if (e === "No aplica") return "na";
   return "pend";
 }
 function badgeSym(e) {
   if (e === "Terminado") return "✓";
   if (e === "En proceso") return "◑";
+  if (e === "No aplica") return "–";
   return "○";
 }
 
@@ -748,20 +755,33 @@ function abrirPop(titulo, area) {
   body.innerHTML = "";
 
   const todosItems = [
-    ...area.completados.map(t => ({ nombre: t, hecho: true })),
-    ...area.detalles.map(t => ({ nombre: t, hecho: false })),
+    ...area.completados.map(t => ({ nombre: t.nombre, fecha: t.fecha, hecho: true })),
+    ...area.detalles.map(t => ({ nombre: t, fecha: null, hecho: false })),
   ];
 
-  if (!todosItems.length) {
+  if (area.estado === "No aplica") {
+    body.innerHTML = `<div class="pop-sec-title" style="color:#64748b;">Estado · No aplica</div>
+      <div style="font-size:12.5px;color:var(--text-muted);margin-top:4px;">
+        Esta área no corresponde al tipo de servicio contratado en esta ODS.
+      </div>`;
+  } else if (!todosItems.length) {
     body.innerHTML = `<div style="font-size:12.5px;color:var(--text-muted)">Sin registros.</div>`;
   } else {
     const sec = document.createElement("div"); sec.className = "pop-sec";
     const estadoColor = area.estado === "Terminado" ? "#166534" : area.estado === "En proceso" ? "#92400e" : "#64748b";
     sec.innerHTML = `<div class="pop-sec-title" style="color:${estadoColor};">Estado · ${area.estado}</div>`;
-    todosItems.forEach(({ nombre, hecho }) => {
+    todosItems.forEach(({ nombre, fecha, hecho }) => {
       const d = document.createElement("div");
       d.className = `pop-item ${hecho ? "done" : "pend"}`;
-      d.textContent = nombre;
+      const nombreSpan = document.createElement("span");
+      nombreSpan.textContent = nombre;
+      d.appendChild(nombreSpan);
+      if (fecha) {
+        const fechaSpan = document.createElement("span");
+        fechaSpan.className = "pop-item-fecha";
+        fechaSpan.textContent = `(${fecha})`;
+        d.appendChild(fechaSpan);
+      }
       sec.appendChild(d);
     });
     body.appendChild(sec);
@@ -778,7 +798,7 @@ function calcEstado(row) {
   if (row.anulada) return "anulado";
   const areas = [row.areaComercial, row.areaAdmin, row.areaServicio,
                  row.areaSoporte, row.areaOperaciones, row.areaFinanzas];
-  return areas.every(a => a.estado === "Terminado") ? "terminado" : "proceso";
+  return areas.every(a => a.estado === "Terminado" || a.estado === "No aplica") ? "terminado" : "proceso";
 }
 
 function mkFila(row) {

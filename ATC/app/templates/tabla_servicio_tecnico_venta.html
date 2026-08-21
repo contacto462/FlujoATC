@@ -574,28 +574,45 @@ td textarea { resize: vertical; min-height: 48px; }
     }
   }
   const tbody = document.getElementById("tablaDatos");
-  const tecnicos = [
-    "Alejandra Isabel Figueroa Delgado",
-    "Cristopher Enrique Soto Diaz",
-    "Dwait German Aros Contreras",
-    "Luis Alberto Bustamante Aguilera",
-    "Marco Antonio Lopez Aguirre",
-    "Diego Antonio Moncada Sepulveda",
-    "Jason Kevin Perez Ortiz",
-    "Enrique Alejandro Sandoval Nunez",
-    "Omar Alejandro Trivino Silva",
-    "Mauro Estefano Reyes Villegas",
-    "Haxel Samir Del Carmen Saavedra Villanueva",
-    "Felipe Ignacio Mora Munoz",
-    "Bryan Alexander Rebolledo Hidalgo",
-    "Ricardo Andres Vergara Guerra",
-    "Emmanuel Issak Correa Ubilla",
-    "Michael Alejandro Herrera Navia",
-    "Hans Reinhold Schemmel Rodriguez",
-    "Rodrigo Octavio Carmona Agurto",
-    "Bryan Benjamin Ibaceta Fabrega",
-    "Javier Ignacio Salgado Brito"
-  ];
+  // Antes era un array fijo de 20 nombres pegado acá — no se actualizaba solo
+  // al dar de alta/baja un técnico. Ahora se carga del mismo listado que usa
+  // Incidencias (/api/listas/bbdd → clave "tecnicos"), con el mismo filtro de
+  // supervisores no asignables (ver incidencias_servicio_tecnico.html).
+  let tecnicos = [];
+  const TECNICOS_NO_ASIGNABLES = ["fernando lubiano", "gianpiero lubiano"];
+
+  function tecnicoKey(value) {
+    return String(value || "")
+      .trim()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/\s+/g, " ")
+      .toLowerCase();
+  }
+
+  function filtrarTecnicosAsignables(values) {
+    const out = [];
+    const seen = new Set();
+    (values || []).forEach((value) => {
+      const clean = String(value || "").trim();
+      const key = tecnicoKey(clean);
+      if (!clean || !key || TECNICOS_NO_ASIGNABLES.some((name) => key.includes(name)) || seen.has(key)) return;
+      seen.add(key);
+      out.push(clean);
+    });
+    return out.sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+  }
+
+  async function cargarTecnicos() {
+    try {
+      const res = await fetch(api("/api/listas/bbdd"), { credentials: "include" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error("No se pudo cargar el listado de técnicos");
+      tecnicos = filtrarTecnicosAsignables(data?.tecnicos || []);
+    } catch (_err) {
+      tecnicos = [];
+    }
+  }
 
   function api(path){
     const sep = path.includes("?") ? "&" : "?";
@@ -1104,7 +1121,7 @@ td textarea { resize: vertical; min-height: 48px; }
 
   document.getElementById("filtroTerminado").addEventListener("change", aplicarFiltroTerminado);
   cargarUsuarioActual();
-  cargarDatos();
+  cargarTecnicos().finally(() => cargarDatos());
 </script>
 <script src="/static/auth-guard.js"></script>
   <script src="/static/atc-logo-home.js"></script>

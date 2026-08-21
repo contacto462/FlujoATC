@@ -540,6 +540,69 @@ body{
   border-radius:var(--radius-sm);
 }
 
+.guia-despacho-box{
+  margin:14px 0;
+}
+
+.guia-despacho-box label{
+  display:block;
+  font-size:12px;
+  font-weight:700;
+  color:var(--text-muted);
+  margin-bottom:5px;
+}
+
+.guia-despacho-list{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  margin-bottom:10px;
+}
+
+.guia-despacho-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  max-width:320px;
+}
+
+.guia-despacho-row input{
+  flex:1;
+  min-width:0;
+  border:1px solid var(--border-strong);
+  border-radius:var(--radius-sm);
+  padding:7px 10px;
+  font:inherit;
+  font-size:13px;
+  color:var(--text);
+  background:var(--surface);
+  transition:border-color .15s ease, box-shadow .15s ease;
+}
+
+.guia-despacho-row input:focus{
+  outline:none;
+  border-color:var(--primary);
+  box-shadow:0 0 0 3px rgba(37,99,235,.12);
+}
+
+.guia-despacho-row .guia-despacho-remove{
+  flex-shrink:0;
+  width:26px;
+  height:26px;
+  border:1px solid var(--border-strong);
+  border-radius:var(--radius-sm);
+  background:var(--surface);
+  color:var(--text-muted);
+  font-size:15px;
+  line-height:1;
+  cursor:pointer;
+}
+
+.guia-despacho-row .guia-despacho-remove:hover{
+  color:#dc2626;
+  border-color:#dc2626;
+}
+
 .material-name{
   font-weight:600;
   font-size:13px;
@@ -781,6 +844,12 @@ body{
 
             <div id="noMaterialsBox" class="empty-state" hidden>Esta ODS no trae materiales cargados.</div>
 
+            <div class="guia-despacho-box">
+              <label>Números de guía de despacho</label>
+              <div id="guiaDespachoList" class="guia-despacho-list"></div>
+              <button type="button" id="btnAgregarGuia" class="btn btn-secondary guia-despacho-add">+ Agregar guía</button>
+            </div>
+
             <div class="toolbar">
               <div id="saveStatus" class="status"></div>
               <div class="actions">
@@ -934,6 +1003,8 @@ const els = {
   saveStatus: document.getElementById("saveStatus"),
   saveButton: document.getElementById("saveButton"),
   fillAllDeliveredButton: document.getElementById("fillAllDeliveredButton"),
+  guiaDespachoList: document.getElementById("guiaDespachoList"),
+  btnAgregarGuia: document.getElementById("btnAgregarGuia"),
 };
 
 function escapeHtml(value) {
@@ -1032,6 +1103,13 @@ function normalizeQty(value) {
     .replace(",", ".");
 }
 
+function qtyNum(value) {
+  const norm = normalizeQty(value);
+  if (!norm) return NaN;
+  const num = Number(norm);
+  return Number.isFinite(num) ? num : NaN;
+}
+
 function isAddedItemReadyToSave(item) {
   return Boolean(
     normalizeQty(item?.presupuestado) &&
@@ -1049,17 +1127,24 @@ function isOdsCompleted(detail) {
   for (let i = 0; i < currentItems.length; i += 1) {
     const current = currentItems[i] || {};
     const base = parsedItems[i] || null;
-    if (!normalizeQty(current.presupuestado) || !normalizeQty(current.entregado)) {
+    const presupuestadoNum = qtyNum(current.presupuestado);
+    const entregadoNum = qtyNum(current.entregado);
+    if (!presupuestadoNum || !Number.isFinite(entregadoNum)) {
       return false;
     }
-    if (normalizeQty(current.presupuestado) !== normalizeQty(current.entregado)) {
+    // Completo si se entregó lo presupuestado o más — una entrega mayor a lo
+    // presupuestado también cuenta como completa, no solo el calce exacto.
+    if (entregadoNum < presupuestadoNum) {
       return false;
     }
     if (!(current.nombre || "").trim()) {
       return false;
     }
-    if (base && normalizeQty(base.presupuestado) !== normalizeQty(current.presupuestado)) {
-      return false;
+    if (base) {
+      const basePresupuestadoNum = qtyNum(base.presupuestado);
+      if (basePresupuestadoNum !== presupuestadoNum) {
+        return false;
+      }
     }
   }
   return true;
@@ -1154,10 +1239,58 @@ function renderList() {
   });
 }
 
+function agregarFilaGuia(valor = "", { autoFocus = true } = {}) {
+  const fila = document.createElement("div");
+  fila.className = "guia-despacho-row";
+
+  const input = document.createElement("input");
+  input.type = "text";
+  input.placeholder = "Ej: 12345";
+  input.value = valor || "";
+  fila.appendChild(input);
+
+  const btnQuitar = document.createElement("button");
+  btnQuitar.type = "button";
+  btnQuitar.className = "guia-despacho-remove";
+  btnQuitar.textContent = "×";
+  btnQuitar.title = "Quitar";
+  btnQuitar.onclick = () => {
+    fila.remove();
+    if (!els.guiaDespachoList.children.length) agregarFilaGuia("", { autoFocus: false });
+    persistirGuiasDespacho();
+  };
+  fila.appendChild(btnQuitar);
+
+  els.guiaDespachoList.appendChild(fila);
+  if (autoFocus) input.focus();
+}
+
+function renderGuiasDespacho(lista) {
+  if (!els.guiaDespachoList) return;
+  const valores = (Array.isArray(lista) ? lista : []).filter((v) => String(v || "").trim());
+  els.guiaDespachoList.innerHTML = "";
+  (valores.length ? valores : [""]).forEach((valor) => agregarFilaGuia(valor, { autoFocus: false }));
+}
+
+function collectGuiasDespacho() {
+  if (!els.guiaDespachoList) return [];
+  return Array.from(els.guiaDespachoList.querySelectorAll("input"))
+    .map((input) => input.value.trim())
+    .filter(Boolean);
+}
+
+function persistirGuiasDespacho() {
+  syncDetailFromDom();
+  renderList();
+  void saveCurrent(true, { allowEmpty: true });
+}
+
 function renderMaterials(detail) {
   const parsedItems = parseMateriales(detail.materiales || "");
   const savedItems = getSavedBodegaItems(detail);
   const items = mergeItems(parsedItems, savedItems);
+
+  renderGuiasDespacho(detail?.materialesBodega?.guias_despacho);
 
   els.materialCountBadge.textContent = `${items.length} item${items.length === 1 ? "" : "s"}`;
 
@@ -1266,6 +1399,7 @@ function syncDetailFromDom() {
       guardado: item.guardado,
     })),
     observacion: "",
+    guias_despacho: collectGuiasDespacho(),
   };
   state.detailCache.set(row.codigo, detail);
 }
@@ -1322,7 +1456,9 @@ async function saveCurrent(silent = false, { allowEmpty = false } = {}) {
     return isAddedItemReadyToSave(item);
   });
 
-  if (!itemsToPersist.length && !allowEmpty) {
+  const guiasDespacho = collectGuiasDespacho();
+
+  if (!itemsToPersist.length && !allowEmpty && !guiasDespacho.length) {
     if (!silent) {
       els.saveStatus.textContent = "Completa Presupuesto y Material para guardar la fila agregada.";
     }
@@ -1338,6 +1474,7 @@ async function saveCurrent(silent = false, { allowEmpty = false } = {}) {
       agregado: item.agregado,
     })),
     observacion: "",
+    guias_despacho: guiasDespacho,
   };
 
   state.saveInFlight = true;
@@ -1368,6 +1505,7 @@ async function saveCurrent(silent = false, { allowEmpty = false } = {}) {
         })),
       ],
       observacion: payload.observacion,
+      guias_despacho: payload.guias_despacho,
     };
     state.detailCache.set(row.codigo, detail);
     els.saveStatus.textContent = silent ? "Guardado automatico." : (result.mensaje || "Registro guardado.");
@@ -1397,6 +1535,7 @@ function deleteAddedRow(index) {
       guardado: item.guardado,
     })),
     observacion: "",
+    guias_despacho: collectGuiasDespacho(),
   };
   state.detailCache.set(row.codigo, detail);
   renderMaterials(detail);
@@ -1436,6 +1575,8 @@ els.searchInput.addEventListener("input", applyFilter);
 els.addMaterialButton.addEventListener("click", addMaterialRow);
 els.saveButton.addEventListener("click", () => void saveCurrent(false));
 els.fillAllDeliveredButton.addEventListener("click", fillAllDelivered);
+els.guiaDespachoList?.addEventListener("change", persistirGuiasDespacho);
+els.btnAgregarGuia?.addEventListener("click", () => agregarFilaGuia());
 els.materialTableBody.addEventListener("change", scheduleAutoSave);
 els.materialTableBody.addEventListener("click", (event) => {
   const target = event.target;

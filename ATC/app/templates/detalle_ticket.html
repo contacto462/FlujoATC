@@ -4667,7 +4667,14 @@ body.is-inline-image-resizing{
         shadow.innerHTML = messageShadowStyles + template.innerHTML;
         shadow.querySelectorAll("script, link[rel='stylesheet'], meta, title, head").forEach((node) => node.remove());
         shadow.querySelectorAll("img").forEach((img) => {
-          const rawSrc = (img.getAttribute("src") || "").trim();
+          let rawSrc = (img.getAttribute("src") || "").trim();
+          if (/^uploads\//i.test(rawSrc)) {
+            rawSrc = `/${rawSrc}`;
+            img.setAttribute("src", rawSrc);
+          } else if (/^ticket_replies\//i.test(rawSrc)) {
+            rawSrc = `/uploads/${rawSrc}`;
+            img.setAttribute("src", rawSrc);
+          }
           const marcarNoDisponible = () => {
             const aviso = document.createElement("span");
             aviso.textContent = "Imagen no disponible";

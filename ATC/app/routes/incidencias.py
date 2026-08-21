@@ -591,6 +591,7 @@ def _ensure_registro_optional_columns() -> None:
         "detalle_problema": "TEXT",
         "observacion_soporte": "TEXT",
         "observacion_servicio": "TEXT",
+        "observacion_coordinacion": "TEXT",
         "materiales": "TEXT",
         "responsable_cierre": "VARCHAR(40)",
         "causa_cierre": "VARCHAR(120)",
@@ -2358,6 +2359,7 @@ current_user=Depends(_require_login)):
             payload.avance,
             payload.observacion,
             payload.token or "",
+            camaras_instaladas=payload.camaras_instaladas,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -2412,6 +2414,8 @@ current_user=Depends(_require_login)):
             observacion_final=payload.observacion_final,
             repetida_odt_ref=payload.repetida_odt_ref,
             editar_ultima_observacion_servicio=payload.editar_ultima_observacion_servicio,
+            observacion_coordinacion=payload.observacion_coordinacion,
+            eliminar_ultima_observacion_coordinacion=payload.eliminar_ultima_observacion_coordinacion,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -4013,20 +4017,21 @@ def registrar_prueba_sonido(
     payload: dict = Body(...),
     db: Session = Depends(get_db),
 current_user=Depends(_require_login)):
-    """Registra resultado de prueba de sonido. Si es exitoso envía email; si falla crea incidencia."""
+    """Registra resultado de prueba de sonido. Exitoso o sin coordinación envían email (con copia
+    a tahira.riquelme.atc@gmail.com); falla crea incidencia sin enviar email."""
     from ATC.app.models.incidencias import SucursalBBDD, Registro
     import threading as _thr
 
     sucursal_id = int(payload.get("sucursal_id") or 0)
-    resultado   = str(payload.get("resultado") or "").strip()   # exitoso | falla
+    resultado   = str(payload.get("resultado") or "").strip()   # exitoso | falla | no_coordinacion
     observacion = str(payload.get("observacion") or "").strip()
     equipo_audio = str(payload.get("equipo_audio") or "").strip()
     operador    = str(payload.get("operador") or "").strip()
 
     if not sucursal_id:
         raise HTTPException(400, "sucursal_id requerido")
-    if resultado not in ("exitoso", "falla"):
-        raise HTTPException(400, "resultado debe ser 'exitoso' o 'falla'")
+    if resultado not in ("exitoso", "falla", "no_coordinacion"):
+        raise HTTPException(400, "resultado debe ser 'exitoso', 'falla' o 'no_coordinacion'")
 
     now = datetime.now()
     anio, mes = now.year, now.month
@@ -4105,11 +4110,12 @@ current_user=Depends(_require_login)):
     db.commit()
     db.refresh(prueba)
 
-    # ── Si exitoso: enviar email via SMTP de incidencias ────────
+    # ── Si exitoso o sin coordinación: enviar email via SMTP de incidencias ──
     _MESES_ES = ["enero","febrero","marzo","abril","mayo","junio",
                  "julio","agosto","septiembre","octubre","noviembre","diciembre"]
+    _CC_PRUEBAS_SONIDO = ["tahira.riquelme.atc@gmail.com"]  # copia oculta (BCC), no CC visible
     email_enviado = False
-    if resultado == "exitoso":
+    if resultado in ("exitoso", "no_coordinacion"):
         from ATC.app.models.incidencias import SucursalContactoEmergencia
         _contacto_emails = [
             str(c.email).strip()
@@ -4123,9 +4129,10 @@ current_user=Depends(_require_login)):
         nombre_empresa = suc.nombre_empresa or suc.nombre_sucursal or ""
         nombre_suc = suc.nombre_sucursal or ""
         mes_nombre = f"{_MESES_ES[now.month - 1]} de {now.year}"
-
-        asunto = f"Informe de Prueba de Sistema de Sonido — {nombre_suc}"
         fecha_str = f"{now.day} de {_MESES_ES[now.month - 1]} de {now.year}"
+
+    if resultado == "exitoso":
+        asunto = f"Informe de Prueba de Sistema de Sonido — {nombre_suc}"
 
         cuerpo_txt = (
             f"Estimados,\n\n"
@@ -4138,6 +4145,8 @@ current_user=Depends(_require_login)):
             f"y está lista para responder ante cualquier situación que lo requiera.\n\n"
             f"En Alguien Te Cuida realizamos estas verificaciones de forma periódica para garantizar "
             f"que usted cuente siempre con un sistema operativo al 100%.\n\n"
+            f"Cualquier problema o dificultad que usted visualice en el sistema, ya sea de cámaras, "
+            f"parlantes u otros componentes, le rogamos avisarnos a la brevedad posible.\n\n"
             f"Atentamente,\nEquipo Técnico — Alguien Te Cuida SpA"
         )
 
@@ -4231,6 +4240,163 @@ current_user=Depends(_require_login)):
               audio del sistema. Esto confirma que su instalación opera en condiciones óptimas y está
               lista para responder ante cualquier situación que lo requiera.
             </p>
+            <p style="margin:0 0 13px;font-family:Arial,sans-serif;font-size:14px;
+                      line-height:1.65;color:#374151;">
+              En <strong>Alguien Te Cuida</strong> entendemos que la tranquilidad de su operación
+              depende de que cada componente de su sistema de seguridad funcione correctamente.
+              Por eso realizamos estas verificaciones de forma periódica: para garantizar que usted
+              cuente siempre con un sistema al 100&#37;, sin sorpresas ni imprevistos.
+            </p>
+            <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:14px;
+                      line-height:1.65;color:#374151;">
+              Cualquier problema o dificultad que usted visualice en el sistema, ya sea de
+              <strong>cámaras</strong>, <strong>parlantes</strong> u otros componentes, le rogamos
+              avisarnos a la brevedad posible.
+            </p>
+          </td>
+        </tr>
+
+        <!-- SEPARADOR -->
+        <tr>
+          <td style="padding:0 36px 18px;background-color:#ffffff;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr><td style="border-top:1px solid #e5e7eb;font-size:0;line-height:0;">&nbsp;</td></tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- FIRMA -->
+        <tr>
+          <td style="padding:0 36px 26px;background-color:#ffffff;">
+            <p style="margin:0 0 1px;font-family:Arial,sans-serif;font-size:13px;
+                      font-weight:700;color:#111827;">Equipo Técnico</p>
+            <p style="margin:0 0 1px;font-family:Arial,sans-serif;font-size:12px;color:#6b7280;">Alguien Te Cuida SpA</p>
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:12px;color:#6b7280;">contacto@alguientecuida.cl</p>
+          </td>
+        </tr>
+
+        <!-- FOOTER -->
+        <tr>
+          <td style="background-color:#f8fafc;border-top:1px solid #e5e7eb;
+                     padding:14px 36px;border-radius:0 0 6px 6px;">
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:11px;color:#9ca3af;line-height:1.5;">
+              Este mensaje fue generado automáticamente por el sistema de Alguien Te Cuida SpA.
+              Por favor no responda directamente a este correo.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>"""
+
+    elif resultado == "no_coordinacion":
+        asunto = f"No fue posible coordinar prueba de sonido — {nombre_suc}"
+
+        cuerpo_txt = (
+            f"Estimados,\n\n"
+            f"El equipo técnico de Alguien Te Cuida intentó contactarlos para coordinar la prueba "
+            f"mensual del sistema de sonido correspondiente a {mes_nombre} en la sucursal {nombre_suc} "
+            f"de {nombre_empresa}, y lamentablemente no fue posible concretar la coordinación.\n\n"
+            f"Quedamos atentos y a su entera disposición para agendar la prueba a la brevedad, y así "
+            f"verificar que su sistema de audio se encuentre operativo al 100%.\n\n"
+            f"En Alguien Te Cuida realizamos estas verificaciones de forma periódica para garantizar "
+            f"que usted cuente siempre con un sistema operativo al 100%.\n\n"
+            f"Atentamente,\nEquipo Técnico — Alguien Te Cuida SpA"
+        )
+
+        cuerpo_html = f"""<!DOCTYPE html>
+<html lang="es" xmlns="http://www.w3.org/1999/xhtml" style="color-scheme:light;">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>{asunto}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f2f4f7;-webkit-text-size-adjust:100%;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+       style="background-color:#f2f4f7;min-width:320px;">
+  <tr>
+    <td align="center" style="padding:40px 16px;">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"
+             style="max-width:600px;width:100%;background-color:#ffffff;border-radius:6px;
+                    overflow:hidden;border:1px solid #d1d5db;">
+
+        <!-- HEADER -->
+        <tr>
+          <td style="background-color:#0d1f2d;padding:20px 36px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="vertical-align:middle;">
+                  <img src="cid:logoatc" alt="Alguien Te Cuida"
+                       style="height:38px;width:auto;display:block;border:0;" />
+                </td>
+                <td align="right" style="vertical-align:middle;">
+                  <span style="font-family:Arial,sans-serif;font-size:10px;font-weight:600;
+                               color:#8aabb8;letter-spacing:0.12em;text-transform:uppercase;">
+                    Informe Técnico
+                  </span>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- FRANJA ACENTO -->
+        <tr>
+          <td style="background-color:#1e3a5f;padding:20px 36px;">
+            <p style="margin:0;font-family:Arial,sans-serif;font-size:10px;font-weight:600;
+                      color:#93b4cc;letter-spacing:0.12em;text-transform:uppercase;">
+              Verificación mensual &nbsp;·&nbsp; {mes_nombre}
+            </p>
+            <p style="margin:7px 0 0;font-family:Arial,sans-serif;font-size:20px;font-weight:700;
+                      color:#ffffff;letter-spacing:-0.01em;line-height:1.25;">
+              Prueba de Sistema de Sonido
+            </p>
+            <p style="margin:5px 0 0;font-family:Arial,sans-serif;font-size:13px;
+                      color:#a8c4d8;line-height:1.4;">
+              {nombre_suc} &nbsp;·&nbsp; {nombre_empresa}
+            </p>
+          </td>
+        </tr>
+
+        <!-- BADGE RESULTADO -->
+        <tr>
+          <td style="background-color:#ffffff;padding:26px 36px 4px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="background-color:#fffbeb;border:1px solid #fcd34d;border-radius:5px;
+                           padding:9px 16px;">
+                  <span style="font-family:Arial,sans-serif;font-size:12px;font-weight:700;
+                               color:#b45309;letter-spacing:0.02em;">SIN COORDINACIÓN</span>
+                  <span style="font-family:Arial,sans-serif;font-size:12px;color:#6b7280;
+                               margin-left:14px;">{fecha_str}</span>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- CUERPO -->
+        <tr>
+          <td style="padding:20px 36px 8px;background-color:#ffffff;">
+            <p style="margin:0 0 13px;font-family:Arial,sans-serif;font-size:14px;
+                      line-height:1.65;color:#374151;">Estimados,</p>
+            <p style="margin:0 0 13px;font-family:Arial,sans-serif;font-size:14px;
+                      line-height:1.65;color:#374151;">
+              El equipo técnico de <strong>Alguien Te Cuida</strong> intentó contactarlos para
+              coordinar la prueba mensual del sistema de sonido correspondiente a
+              <strong>{mes_nombre}</strong> en la sucursal <strong>{nombre_suc}</strong>, y
+              lamentablemente no fue posible concretar la coordinación.
+            </p>
+            <p style="margin:0 0 13px;font-family:Arial,sans-serif;font-size:14px;
+                      line-height:1.65;color:#374151;">
+              Quedamos atentos y a su entera disposición para agendar la prueba a la brevedad, y así
+              verificar que su instalación se encuentre operando en condiciones óptimas.
+            </p>
             <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:14px;
                       line-height:1.65;color:#374151;">
               En <strong>Alguien Te Cuida</strong> entendemos que la tranquilidad de su operación
@@ -4278,23 +4444,24 @@ current_user=Depends(_require_login)):
 </body>
 </html>"""
 
-        if email_destino:
-            import pathlib as _pl
-            _logo_path = _pl.Path(__file__).resolve().parents[2] / "static" / "img" / "logo-atc.png"
-            _logo_bytes = _logo_path.read_bytes() if _logo_path.exists() else None
+    if resultado in ("exitoso", "no_coordinacion") and email_destino:
+        import pathlib as _pl
+        _logo_path = _pl.Path(__file__).resolve().parents[2] / "static" / "img" / "logo-atc.png"
+        _logo_bytes = _logo_path.read_bytes() if _logo_path.exists() else None
 
-            def _enviar(dest=email_destino, subj=asunto, txt=cuerpo_txt, html=cuerpo_html,
-                        logo=_logo_bytes, sid=sucursal_id):
-                try:
-                    svc_mail = IncidenciasService(SessionLocal())
-                    svc_mail._enviar_correo_automatico(
-                        dest, subj, txt, html_body=html, logo_bytes=logo,
-                        cfg_override=svc_mail._contacto_smtp_runtime_config(),
-                    )
-                except Exception:
-                    LOGGER.exception("Error enviando email prueba sonido sucursal=%s", sid)
-            _thr.Thread(target=_enviar, daemon=True, name=f"email-sonido-{sucursal_id}").start()
-            email_enviado = True
+        def _enviar(dest=email_destino, subj=asunto, txt=cuerpo_txt, html=cuerpo_html,
+                    logo=_logo_bytes, sid=sucursal_id, bcc=_CC_PRUEBAS_SONIDO):
+            try:
+                svc_mail = IncidenciasService(SessionLocal())
+                svc_mail._enviar_correo_automatico(
+                    dest, subj, txt, html_body=html, logo_bytes=logo,
+                    cfg_override=svc_mail._contacto_smtp_runtime_config(),
+                    bcc_emails_extra=bcc,
+                )
+            except Exception:
+                LOGGER.exception("Error enviando email prueba sonido sucursal=%s", sid)
+        _thr.Thread(target=_enviar, daemon=True, name=f"email-sonido-{sucursal_id}").start()
+        email_enviado = True
 
     return {
         "ok": True,
@@ -4307,10 +4474,31 @@ current_user=Depends(_require_login)):
 
 @router.delete("/api/pruebas-sonido/{prueba_id}")
 def eliminar_prueba_sonido(prueba_id: int, db: Session = Depends(get_db), current_user=Depends(_require_login)):
-    """Elimina el registro de prueba (permite re-marcar)."""
+    """Elimina el registro de prueba (permite re-marcar).
+
+    Si la prueba estaba marcada como 'falla' y la incidencia que generó
+    todavía sigue pendiente (nadie la trabajó ni la cerró), se borra también
+    esa incidencia — evita que quede una ODT huérfana cuando el operador se
+    equivocó de marca y la corrige (p.ej. a exitosa). Si la incidencia ya fue
+    trabajada/finalizada, no se toca: es trabajo real de un técnico."""
     prueba = db.get(PruebaSonido, prueba_id)
     if not prueba:
         raise HTTPException(404, "Registro no encontrado")
+
+    if prueba.resultado == "falla" and prueba.incidencia_odt:
+        from ATC.app.models.incidencias import Registro
+        odt = str(prueba.incidencia_odt).strip()
+        incidencia = db.scalar(select(Registro).where(Registro.odt == odt)) if odt else None
+        if incidencia:
+            estado_norm = _client_notes_key(incidencia.estado)
+            derivacion_norm = _client_notes_key(incidencia.derivacion)
+            finalizada = bool(incidencia.fecha_cierre) or any(
+                marca in estado_norm or marca in derivacion_norm
+                for marca in ("termin", "final", "solucion", "resuelt")
+            )
+            if not finalizada:
+                db.delete(incidencia)
+
     db.delete(prueba)
     db.commit()
     return {"ok": True}

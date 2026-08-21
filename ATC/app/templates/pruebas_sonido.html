@@ -74,6 +74,8 @@ body{
 .stat-n{font-size:18px;font-weight:800;color:var(--text)}
 .stat-l{font-size:12px;color:var(--muted)}
 .stat.ok .stat-n{color:#15803d}
+.stat.terreno .stat-n{color:#1d4ed8}
+.stat.nocoord .stat-n{color:#b45309}
 .stat.fail .stat-n{color:#c92a2a}
 .stat.solved .stat-n{color:#047857}
 .stat.pend .stat-n{color:var(--muted-strong,#475467)}
@@ -125,17 +127,23 @@ body{
 .empresa-label{padding:10px 16px 5px;font-size:11px;font-weight:700;color:var(--blue-3);text-transform:uppercase;letter-spacing:.07em}
 
 /* ── sucursal row ── */
-.suc-row{display:flex;align-items:center;gap:10px;padding:8px 16px;transition:.12s;border-bottom:1px solid #f0f4f8}
+.suc-row{display:flex;align-items:flex-start;flex-wrap:wrap;gap:6px 10px;padding:8px 16px;transition:.12s;border-bottom:1px solid #f0f4f8}
 .suc-row:last-child{border-bottom:none}
 .suc-row:hover{background:#f8fafc}
-.suc-info{flex:1;min-width:0}
+.suc-info{flex:1;min-width:160px}
 .suc-nombre{font-size:13px;font-weight:600;color:var(--text);white-space:normal;overflow-wrap:break-word;word-break:break-word;line-height:1.3}
 .suc-dir{font-size:11px;color:var(--muted);white-space:normal;overflow:visible;text-overflow:clip;line-height:1.35;margin-top:2px}
+.suc-actions{display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:auto}
 .suc-badges{display:flex;gap:6px;flex-shrink:0}
+@media(max-width:480px){
+  .suc-actions{flex-basis:100%;margin-left:0;justify-content:flex-end}
+}
 
 /* badge estado */
 .badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap}
 .badge.ok{background:var(--green-bg);border:1px solid var(--green-bd);color:#15803d}
+.badge.ok.terreno{background:#eff6ff;border:1px solid #93c5fd;color:#1d4ed8}
+.badge.nocoord{background:#fffbeb;border:1px solid #fcd34d;color:#b45309}
 .badge.fail{background:var(--red-bg);border:1px solid var(--red-bd);color:#c92a2a}
 .badge.solved{background:#ecfdf5;border:1px solid #34a36f;color:#047857}
 .badge.pend{background:#f1f5f9;border:1px solid #d8e0ea;color:var(--muted)}
@@ -146,6 +154,8 @@ body{
 .act-btn svg{width:22px;height:22px}
 .act-btn.ok-btn svg{color:#15803d}
 .act-btn.ok-btn:hover svg{color:#166534}
+.act-btn.nocoord-btn svg{color:#b45309}
+.act-btn.nocoord-btn:hover svg{color:#7c3e08}
 .act-btn.fail-btn svg{color:#c92a2a}
 .act-btn.fail-btn:hover svg{color:#7f1d1d}
 .act-btn.undo-btn{opacity:.45}
@@ -155,11 +165,6 @@ body{
 /* ── modal ── */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);z-index:100;display:none;place-items:center;padding:24px}
 .modal-bg.open{display:grid}
-.modal{background:#fff;border-radius:10px;width:min(500px,100%);max-height:calc(100vh - 48px);box-shadow:0 20px 60px rgba(0,0,0,.28);overflow:auto}
-.modal-header{background:#1e293b;border-top:3px solid var(--accent);padding:18px 22px 16px}
-.modal-header h3{font-size:16px;font-weight:700;color:#f1f5f9;margin:0 0 2px}
-.modal-header .modal-sub{font-size:12px;color:#94a3b8;margin:0}
-.modal-body{padding:22px}
 .audio-equipos-box{margin-bottom:16px;padding:13px;border:1px solid #d8e0ea;border-radius:9px;background:#f8fafc}
 .audio-equipos-title{font-size:13px;font-weight:700;color:#1e293b;margin-bottom:4px}
 .audio-equipos-help{font-size:12px;color:#667085;margin-bottom:11px}
@@ -225,9 +230,19 @@ body{
   animation:stampIn .48s .08s cubic-bezier(.16,1,.3,1) both;
 }
 .success-check svg{width:42px;height:42px;stroke-dasharray:36;stroke-dashoffset:36;animation:drawCheck .55s .26s ease-out forwards}
+.success-check.nocoord-check{color:#b45309;background:radial-gradient(circle,#fffbeb 0 52%,transparent 53%),#fff;border-color:rgba(180,83,9,.26);box-shadow:0 10px 24px rgba(180,83,9,.16)}
+.success-check.nocoord-check svg{stroke-dasharray:none;stroke-dashoffset:0;animation:none}
+.success-check.fail-check{color:#c92a2a;background:radial-gradient(circle,#fff1f1 0 52%,transparent 53%),#fff;border-color:rgba(201,42,42,.26);box-shadow:0 10px 24px rgba(201,42,42,.16)}
+.success-check.fail-check svg{stroke-dasharray:none;stroke-dashoffset:0;animation:none}
 .success-question{padding:17px 24px 0;font-size:14px;color:#1f2937;font-weight:700}
 .success-question small{display:block;margin-top:4px;font-size:12px;font-weight:600;color:#667085}
 .success-confirm-modal .modal-actions{padding:20px 24px 24px;margin-top:0}
+.modal-btn.confirm.nocoord{background:#b45309;border-color:#92400e}
+.modal-btn.confirm.nocoord:hover{background:#92400e}
+.modal-btn.confirm.fail{background:#c92a2a;border-color:#7f1d1d}
+.modal-btn.confirm.fail:hover{background:#7f1d1d}
+.fail-confirm-body{padding:14px 24px 0}
+.fail-confirm-body .audio-equipos-box{margin-bottom:12px}
 @keyframes successModalIn{from{opacity:0;transform:translateY(12px) scale(.98);filter:blur(4px)}to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}}
 @keyframes ticketScan{0%{transform:translateX(-42%);opacity:.18}70%{opacity:.75}100%{transform:translateX(42%);opacity:.22}}
 @keyframes stampIn{from{transform:scale(.76) rotate(-8deg);opacity:0}to{transform:scale(1) rotate(-2deg);opacity:1}}
@@ -265,8 +280,10 @@ body{
   <div class="stats-box">
     <div class="stat"><span class="stat-n" id="stTotal">—</span><span class="stat-l">Sucursales</span></div>
     <div class="stat ok"><span class="stat-n" id="stOk">—</span><span class="stat-l">Exitosas</span></div>
-    <div class="stat fail"><span class="stat-n" id="stFail">—</span><span class="stat-l">Con falla</span></div>
     <div class="stat solved"><span class="stat-n" id="stSolved">—</span><span class="stat-l">Solucionadas</span></div>
+    <div class="stat terreno"><span class="stat-n" id="stTerreno">—</span><span class="stat-l">Exitosas en terreno</span></div>
+    <div class="stat nocoord"><span class="stat-n" id="stNoCoord">—</span><span class="stat-l">Sin coordinación</span></div>
+    <div class="stat fail"><span class="stat-n" id="stFail">—</span><span class="stat-l">Con falla</span></div>
     <div class="stat pend"><span class="stat-n" id="stPend">—</span><span class="stat-l">Pendientes</span></div>
   </div>
 </div>
@@ -278,23 +295,33 @@ body{
 </div>
 
 <!-- Modal falla -->
-<div class="modal-bg" id="modalFalla">
-  <div class="modal" role="dialog" aria-modal="true">
-    <div class="modal-header">
-      <h3>Sistema no funciona</h3>
-      <p class="modal-sub" id="modalSucNombre">Sucursal</p>
+<div class="modal-bg success-confirm-bg" id="modalFalla">
+  <div class="success-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="fallaTitulo">
+    <div class="success-confirm-head">
+      <div class="success-kicker">Confirmación de prueba</div>
+      <h3 id="fallaTitulo">Sistema no funciona</h3>
+      <p id="modalSucNombre">Sucursal</p>
     </div>
-    <div class="modal-body">
+    <div class="success-check fail-check" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"/>
+        <line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </div>
+    <div class="success-question">
+      Esta acción marcará la prueba como Falla y creará una incidencia derivada a Servicio Técnico.
+    </div>
+    <div class="fail-confirm-body">
       <div class="audio-equipos-box">
         <div class="audio-equipos-title" id="audioEquiposTitulo">Equipos de audio</div>
-        <div class="audio-equipos-help">Selecciona el equipo que no funciona.</div>
+        <div class="audio-equipos-help">Selecciona el o los equipos que no funcionan.</div>
         <div class="audio-equipos-grid" id="audioEquiposGrid"></div>
       </div>
       <div class="modal-error" id="modalFallaError"></div>
-      <div class="modal-actions">
-        <button class="modal-btn cancel" onclick="cerrarModal()">Cancelar</button>
-        <button class="modal-btn confirm" onclick="confirmarFalla()">Crear incidencia</button>
-      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" type="button" onclick="cerrarModal()">Cancelar</button>
+      <button class="modal-btn confirm fail" type="button" onclick="confirmarFalla()">Crear incidencia</button>
     </div>
   </div>
 </div>
@@ -323,6 +350,31 @@ body{
   </div>
 </div>
 
+<!-- Modal confirmacion sin coordinacion -->
+<div class="modal-bg success-confirm-bg" id="modalNoCoord">
+  <div class="success-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="nocoordTitulo">
+    <div class="success-confirm-head">
+      <div class="success-kicker">Confirmación de prueba</div>
+      <h3 id="nocoordTitulo">¿No se pudo coordinar con el cliente?</h3>
+      <p>Se enviará un correo informando que se intentó contactar a la sucursal sin éxito.</p>
+    </div>
+    <div class="success-check nocoord-check" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="22" y1="2" x2="2" y2="22"/>
+        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+      </svg>
+    </div>
+    <div class="success-question">
+      Esta acción marcará la prueba como <strong>Sin coordinación</strong>.
+      <small>Se enviará un correo al cliente informando que no fue posible contactarlo.</small>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" type="button" onclick="cerrarModalNoCoord()">Cancelar</button>
+      <button class="modal-btn confirm nocoord" type="button" id="btnConfirmarNoCoord" onclick="confirmarNoCoordinacion()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -336,9 +388,11 @@ document.getElementById("pilMes").textContent = MESES[MES_N] + " " + ANIO;
 
 let sucursalesData = [];
 let pendingFallaSucId = null;
-let pendingFallaEquipo = "";
+let pendingFallaEquipos = [];
 let pendingExitosaSucId = null;
 let registrandoExitosa = false;
+let pendingNoCoordSucId = null;
+let registrandoNoCoord = false;
 let semanaActiva = null; // se fija una sola vez (la 1a semana con pendientes); despues manda el click del usuario
 
 /* ── Utilidades ─────────────────────────────────────── */
@@ -352,7 +406,7 @@ function toast(msg, tipo="ok") {
 function cerrarModal() {
   document.getElementById("modalFalla").classList.remove("open");
   pendingFallaSucId = null;
-  pendingFallaEquipo = "";
+  pendingFallaEquipos = [];
   const error = document.getElementById("modalFallaError");
   error.textContent = "";
   error.classList.remove("show");
@@ -366,6 +420,17 @@ function cerrarModalExitosa() {
   if (btn) {
     btn.disabled = false;
     btn.textContent = "Confirmar exitosa";
+  }
+}
+
+function cerrarModalNoCoord() {
+  document.getElementById("modalNoCoord").classList.remove("open");
+  pendingNoCoordSucId = null;
+  registrandoNoCoord = false;
+  const btn = document.getElementById("btnConfirmarNoCoord");
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = "Confirmar";
   }
 }
 
@@ -398,18 +463,22 @@ async function cargarSucursales() {
 
 /* ── Render ─────────────────────────────────────────── */
 function sucursalYaProbada(s) {
-  return s.resultado === "exitoso" || s.resultado === "falla";
+  return s.resultado === "exitoso" || s.resultado === "exitoso_terreno" || s.resultado === "falla" || s.resultado === "no_coordinacion";
 }
 
 function renderizar() {
   // Stats
   const total = sucursalesData.length;
   const ok   = sucursalesData.filter(s => s.resultado === "exitoso").length;
+  const terreno = sucursalesData.filter(s => s.resultado === "exitoso_terreno").length;
+  const nocoord = sucursalesData.filter(s => s.resultado === "no_coordinacion").length;
   const solved = sucursalesData.filter(s => s.resultado === "falla" && s.odt_finalizada).length;
   const fail = sucursalesData.filter(s => s.resultado === "falla" && !s.odt_finalizada).length;
-  const pend = total - ok - fail - solved;
+  const pend = total - ok - terreno - nocoord - fail - solved;
   document.getElementById("stTotal").textContent = total;
   document.getElementById("stOk").textContent    = ok;
+  document.getElementById("stTerreno").textContent = terreno;
+  document.getElementById("stNoCoord").textContent = nocoord;
   document.getElementById("stFail").textContent  = fail;
   document.getElementById("stSolved").textContent = solved;
   document.getElementById("stPend").textContent  = pend;
@@ -489,7 +558,7 @@ function renderizar() {
           <span class="week-tab-check">✓</span>
           <span class="week-tab-lock">🔒</span>
         </div>
-        <span class="week-tab-count">${r.hechas}/${r.total} probadas</span>
+        <span class="week-tab-count">${r.hechas}/${r.total} probadas · ${pct}%</span>
         <div class="week-tab-bar"><div class="week-tab-bar-fill" style="width:${pct}%"></div></div>
       </button>`;
   }).join("");
@@ -573,6 +642,16 @@ function renderSucursal(s) {
     acciones  = `<button class="act-btn undo-btn" title="Deshacer" onclick="deshacerPrueba(${s.id},${s.prueba_id})">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h10a5 5 0 010 10H5"/><polyline points="7 3 3 7 7 11"/></svg>
     </button>`;
+  } else if (estado === "exitoso_terreno") {
+    badgeHtml = `<span class="badge ok terreno">✓ Exitosa en terreno</span>`;
+    acciones  = `<button class="act-btn undo-btn" title="Deshacer" onclick="deshacerPrueba(${s.id},${s.prueba_id})">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h10a5 5 0 010 10H5"/><polyline points="7 3 3 7 7 11"/></svg>
+    </button>`;
+  } else if (estado === "no_coordinacion") {
+    badgeHtml = `<span class="badge nocoord">Sin coordinación</span>`;
+    acciones  = `<button class="act-btn undo-btn" title="Deshacer" onclick="deshacerPrueba(${s.id},${s.prueba_id})">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h10a5 5 0 010 10H5"/><polyline points="7 3 3 7 7 11"/></svg>
+    </button>`;
   } else if (estado === "falla") {
     badgeHtml = `<span class="badge fail">✗ Falla</span>`;
     if (s.incidencia_odt) badgeHtml += `<span class="badge fail" style="font-size:10px">ODT ${s.incidencia_odt}</span>`;
@@ -585,6 +664,12 @@ function renderSucursal(s) {
       <button class="act-btn ok-btn" title="Exitosa" onclick="marcarExitosa(${s.id})">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
       </button>
+      <button class="act-btn nocoord-btn" title="No coordinación" onclick="marcarNoCoordinacion(${s.id})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="2" y2="22"/>
+          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+        </svg>
+      </button>
       <button class="act-btn fail-btn" title="No funciona" onclick="abrirModalFalla(${s.id})">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>`;
@@ -595,8 +680,10 @@ function renderSucursal(s) {
       <div class="suc-nombre">${escHtml(s.nombre_sucursal)}</div>
       <div class="suc-dir">${escHtml(s.direccion || "Sin direccion registrada")}</div>
     </div>
-    <div class="suc-badges">${badgeHtml}</div>
-    ${acciones}`;
+    <div class="suc-actions">
+      <div class="suc-badges">${badgeHtml}</div>
+      ${acciones}
+    </div>`;
   return row;
 }
 
@@ -651,15 +738,63 @@ async function confirmarExitosa() {
   }
 }
 
+function abrirModalNoCoord(sucId) {
+  pendingNoCoordSucId = sucId;
+  registrandoNoCoord = false;
+  const btn = document.getElementById("btnConfirmarNoCoord");
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = "Confirmar";
+  }
+  document.getElementById("modalNoCoord").classList.add("open");
+}
+
+function marcarNoCoordinacion(sucId) {
+  abrirModalNoCoord(sucId);
+}
+
+async function confirmarNoCoordinacion() {
+  if (!pendingNoCoordSucId || registrandoNoCoord) return;
+  const sucId = pendingNoCoordSucId;
+  const btn = document.getElementById("btnConfirmarNoCoord");
+  registrandoNoCoord = true;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Registrando...";
+  }
+  try {
+    const res = await fetch("/api/pruebas-sonido", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({sucursal_id: sucId, resultado:"no_coordinacion", operador: obtenerOperador()})
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Error");
+    actualizarLocal(sucId, {resultado:"no_coordinacion", prueba_id: data.prueba_id, odt_finalizada:false});
+    cerrarModalNoCoord();
+    renderizar();
+    toast("Registrado como sin coordinación" + (data.email_enviado ? " · Email enviado al cliente" : ""));
+  } catch(e) {
+    registrandoNoCoord = false;
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Confirmar";
+    }
+    toast("Error: " + e.message, "fail");
+  }
+}
+
 function cantidadEquiposAudio(sucursal) {
   const n = Number(sucursal && sucursal.cantidad_equipos);
   return Number.isFinite(n) && n > 0 ? Math.max(1, Math.floor(n)) : 1;
 }
 
 function seleccionarEquipoAudio(equipo) {
-  pendingFallaEquipo = equipo;
+  const idx = pendingFallaEquipos.indexOf(equipo);
+  if (idx === -1) pendingFallaEquipos.push(equipo);
+  else pendingFallaEquipos.splice(idx, 1);
   document.querySelectorAll(".equipo-audio-btn").forEach(btn => {
-    btn.classList.toggle("selected", btn.dataset.equipo === equipo);
+    btn.classList.toggle("selected", pendingFallaEquipos.includes(btn.dataset.equipo));
   });
   const error = document.getElementById("modalFallaError");
   error.textContent = "";
@@ -687,7 +822,7 @@ function renderEquiposAudio(sucursal) {
 function abrirModalFalla(sucId) {
   const sucursal = sucursalesData.find(s => Number(s.id) === Number(sucId)) || {};
   pendingFallaSucId = sucId;
-  pendingFallaEquipo = "";
+  pendingFallaEquipos = [];
   document.getElementById("modalSucNombre").textContent = sucursal.nombre_sucursal || "Sucursal";
   const error = document.getElementById("modalFallaError");
   error.textContent = "";
@@ -700,12 +835,12 @@ async function confirmarFalla() {
   if (!pendingFallaSucId) return;
   const sucId = pendingFallaSucId;
   const error = document.getElementById("modalFallaError");
-  if (!pendingFallaEquipo) {
-    error.textContent = "Selecciona el equipo que no funciona.";
+  if (!pendingFallaEquipos.length) {
+    error.textContent = "Selecciona el o los equipos que no funcionan.";
     error.classList.add("show");
     return;
   }
-  const equipoAudio = pendingFallaEquipo;
+  const equipoAudio = pendingFallaEquipos.join(", ");
   cerrarModal();
   try {
     const res = await fetch("/api/pruebas-sonido", {
@@ -750,6 +885,7 @@ document.addEventListener("keydown", e => {
   if (e.key === "Escape") {
     cerrarModal();
     cerrarModalExitosa();
+    cerrarModalNoCoord();
   }
 });
 

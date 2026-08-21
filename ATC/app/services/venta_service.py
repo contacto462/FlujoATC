@@ -43,12 +43,15 @@ from ATC.app.models.incidencias import (
 )
 from ATC.app.services.incidencias_service import IncidenciasService
 from ATC.app.services.venta_trace_email_service import (
+    notify_fechas_instalacion_definidas,
     notify_inicio_servicio,
     notify_instalacion_finalizada,
+    notify_instalacion_terreno_finalizada,
     notify_materiales_bodega,
     notify_oc_requerida,
     notify_ods_registered,
     notify_recepcion_administracion_cliente,
+    notify_servicio_operativo,
     notify_sucursal_lista_para_bitacora,
 )
 from ATC.app.schemas.venta import VentaClienteCreateRequest, VentaODSArchivoRequest, VentaODSCreateRequest, VentaSucursalCreateRequest
@@ -1982,6 +1985,22 @@ def update_servicio_tecnico_ventas_estado(db: Session, codigo: str, campo: str, 
             finally:
                 _db.close()
         threading.Thread(target=_bg_inst, daemon=True).start()
+
+        # Avisamos al comercial que la instalación en terreno ya quedó lista, sin
+        # importar si el tipo de servicio requiere Soporte Técnico después: Servicio
+        # Técnico instala primero, y solo entonces Soporte configura — por eso este
+        # aviso siempre va antes que el de notify_servicio_operativo (que se manda
+        # cuando Soporte marca su propio "Terminado", si aplica para esa ODS).
+        def _bg_instalacion_terreno():
+            from ATC.app.core.db import SessionLocal
+            _db = SessionLocal()
+            try:
+                notify_instalacion_terreno_finalizada(_db, _codigo_bg)
+            except Exception as exc:
+                _log.warning("notify_instalacion_terreno_finalizada %s falló: %s", _codigo_bg, exc)
+            finally:
+                _db.close()
+        threading.Thread(target=_bg_instalacion_terreno, daemon=True).start()
     return {
         "ok": True,
         "codigo": codigo_limpio,
@@ -2010,10 +2029,24 @@ def update_servicio_tecnico_ventas_valor(db: Session, codigo: str, campo: str, v
     row = _get_or_create_servicio_tecnico_venta_row(db, codigo_limpio)
     valor_limpio = str(valor or "").strip()
     previous_value = str(getattr(row, campo_limpio, "") or "").strip()
+    fechas_completas_antes = bool(
+        str(getattr(row, "fecha_inicio_instalacion", "") or "").strip()
+        and str(getattr(row, "fecha_fin_instalacion", "") or "").strip()
+    )
     setattr(row, campo_limpio, valor_limpio)
     if campo_limpio == "solicitud_materiales" and valor_limpio != previous_value:
         ods.materiales = valor_limpio
     db.commit()
+
+    fecha_inicio_final = str(getattr(row, "fecha_inicio_instalacion", "") or "").strip()
+    fecha_fin_final = str(getattr(row, "fecha_fin_instalacion", "") or "").strip()
+    fechas_completas_ahora = bool(fecha_inicio_final and fecha_fin_final)
+    avisar_fechas_instalacion = (
+        campo_limpio in {"fecha_inicio_instalacion", "fecha_fin_instalacion"}
+        and fechas_completas_ahora
+        and not fechas_completas_antes
+    )
+
     if campo_limpio == "solicitud_materiales" and valor_limpio and valor_limpio != previous_value:
         _codigo_bg = codigo_limpio
         def _bg_mat():
@@ -2026,6 +2059,21 @@ def update_servicio_tecnico_ventas_valor(db: Session, codigo: str, campo: str, v
             finally:
                 _db.close()
         threading.Thread(target=_bg_mat, daemon=True).start()
+
+    if avisar_fechas_instalacion:
+        _codigo_bg = codigo_limpio
+        _fecha_inicio_bg = fecha_inicio_final
+        _fecha_fin_bg = fecha_fin_final
+        def _bg_fechas():
+            from ATC.app.core.db import SessionLocal
+            _db = SessionLocal()
+            try:
+                notify_fechas_instalacion_definidas(_db, _codigo_bg, _fecha_inicio_bg, _fecha_fin_bg)
+            except Exception as exc:
+                _log.warning("notify_fechas_instalacion_definidas %s falló: %s", _codigo_bg, exc)
+            finally:
+                _db.close()
+        threading.Thread(target=_bg_fechas, daemon=True).start()
     return {
         "ok": True,
         "codigo": codigo_limpio,
@@ -2911,16 +2959,34 @@ def _calcular_areas_aplicables(tipos: list[str]) -> dict[str, bool]:
     }
 
 
-def _area_estado(checks: list[tuple[str, bool]]) -> dict:
-    detalles = [name for name, done in checks if not done]
-    completados = [name for name, done in checks if done]
-    if not detalles:
+def _area_estado(checks: list[tuple]) -> dict:
+    """checks: cada item es (nombre, hecho) o (nombre, hecho, fecha) — fecha es la
+    datetime en que se marcó ese paso, si se tiene registrada (ver AdministracionODT).
+
+    El ultimo item de la lista es el cierre formal del area ("Finalizado"/"Terminado"/
+    "VB final servicio"): si ya esta marcado, el area cuenta como Terminada aunque
+    queden pasos intermedios sin tildar — el cierre formal manda por sobre el detalle."""
+    normalizados = [item if len(item) == 3 else (*item, None) for item in checks]
+    detalles = [name for name, done, _fecha in normalizados if not done]
+    completados = [
+        {"nombre": name, "fecha": fecha.strftime("%d/%m/%Y") if fecha else None}
+        for name, done, fecha in normalizados if done
+    ]
+    cierre_formal_hecho = bool(normalizados) and normalizados[-1][1]
+    if not detalles or cierre_formal_hecho:
         estado = "Terminado"
     elif not completados:
         estado = "Pendiente"
     else:
         estado = "En proceso"
     return {"estado": estado, "detalles": detalles, "completados": completados}
+
+
+def _area_no_aplica() -> dict:
+    """Estado propio para un area que no corresponde al tipo de servicio contratado
+    de esta ODS (ver _calcular_areas_aplicables) — distinto de "Terminado", para no
+    confundir "no aplica" con "ya se hizo"."""
+    return {"estado": "No aplica", "detalles": [], "completados": []}
 
 
 def get_comercial_todo(db: Session) -> dict:
@@ -2975,66 +3041,70 @@ def get_comercial_todo(db: Session) -> dict:
             and _normalize_text(tipos_lista[0]) in {"servicio tecnico", "instalacion"}
         )
 
-        admin_checks: list[tuple[str, bool]] = [
-            ("Recepcion info", _is_true(getattr(adm, "recepcion_info", False))),
+        admin_checks: list[tuple] = [
+            ("Recepcion info", _is_true(getattr(adm, "recepcion_info", False)), getattr(adm, "fecha_recepcion_info", None)),
         ]
         if not omitir_registros:
-            admin_checks.append(("Registro Alpha3", _is_true(getattr(adm, "registro_alpha3", False))))
-            admin_checks.append(("Registro Intranet", _is_true(getattr(adm, "registro_intranet", False))))
-        admin_checks.append(("Envio solicitud instalacion", _is_true(getattr(adm, "envio_solicitud_instalacion", False))))
-        admin_checks.append(("Envio datos facturacion", _is_true(getattr(adm, "envio_datos_facturacion", False))))
+            admin_checks.append(("Registro Alpha3", _is_true(getattr(adm, "registro_alpha3", False)), getattr(adm, "fecha_registro_alpha3", None)))
+            admin_checks.append(("Registro Intranet", _is_true(getattr(adm, "registro_intranet", False)), getattr(adm, "fecha_registro_intranet", None)))
+        admin_checks.append(("Envio solicitud instalacion", _is_true(getattr(adm, "envio_solicitud_instalacion", False)), getattr(adm, "fecha_envio_solicitud_instalacion", None)))
+        admin_checks.append(("Envio datos facturacion", _is_true(getattr(adm, "envio_datos_facturacion", False)), getattr(adm, "fecha_envio_datos_facturacion", None)))
         if not excluir_carta:
-            admin_checks.append(("Carta de bienvenida", _is_true(getattr(adm, "envio_carta_bienvenida", False))))
-        admin_checks.append(("Finalizado", _is_true(getattr(adm, "finalizado", False))))
+            admin_checks.append(("Carta de bienvenida", _is_true(getattr(adm, "envio_carta_bienvenida", False)), getattr(adm, "fecha_envio_carta_bienvenida", None)))
+        admin_checks.append(("Finalizado", _is_true(getattr(adm, "finalizado", False)), getattr(adm, "fecha_cierre", None)))
         area_admin = _area_estado(admin_checks)
 
         if areas_aplica["servtec"]:
             servicio_finalizado = _is_true(getattr(st, "finalizado", False))
             area_servicio = _area_estado([
-                ("Recepcion solicitud instalacion", _is_true(getattr(st, "recepcion_solicitud_instalacion", False))),
+                ("Recepcion solicitud instalacion", _is_true(getattr(st, "recepcion_solicitud_instalacion", False)), getattr(st, "fecha_recepcion_solicitud_instalacion", None)),
                 ("Llamar cliente", bool(_clean_text(getattr(st, "llamar_cliente", None)))),
                 ("Solicitud materiales", bool(_clean_text(getattr(st, "solicitud_materiales", None)))),
                 # En la vista comercial, los datos de agenda/equipo no bloquean
                 # el termino del area: fecha inicio, fecha fin, tecnico y acompanante.
-                ("Instalacion finalizada", _is_true(getattr(st, "instalacion_finalizada", False)) or servicio_finalizado),
-                ("Finalizado", servicio_finalizado),
+                (
+                    "Instalacion finalizada",
+                    _is_true(getattr(st, "instalacion_finalizada", False)) or servicio_finalizado,
+                    getattr(st, "fecha_instalacion_finalizada", None) or getattr(st, "fecha_cierre", None),
+                ),
+                ("Finalizado", servicio_finalizado, getattr(st, "fecha_cierre", None)),
             ])
         else:
-            area_servicio = _area_estado([("No aplica", True)])
+            area_servicio = _area_no_aplica()
 
         if areas_aplica["soporte"]:
             area_soporte = _area_estado([
-                ("Configuracion camaras", _is_true(getattr(sop, "configuracion_camaras", False))),
-                ("Posicionamiento imagen", _is_true(getattr(sop, "posicionamiento_imagen", False))),
-                ("Enlace servidor", _is_true(getattr(sop, "enlace_servidor", False))),
-                ("Configuracion IVS", _is_true(getattr(sop, "configuracion_ivs", False))),
-                ("Plan grabacion", _is_true(getattr(sop, "plan_grabacion", False))),
+                ("Configuracion camaras", _is_true(getattr(sop, "configuracion_camaras", False)), getattr(sop, "fecha_configuracion_camaras", None)),
+                ("Posicionamiento imagen", _is_true(getattr(sop, "posicionamiento_imagen", False)), getattr(sop, "fecha_posicionamiento_imagen", None)),
+                ("Enlace servidor", _is_true(getattr(sop, "enlace_servidor", False)), getattr(sop, "fecha_enlace_servidor", None)),
+                ("Configuracion IVS", _is_true(getattr(sop, "configuracion_ivs", False)), getattr(sop, "fecha_configuracion_ivs", None)),
+                ("Plan grabacion", _is_true(getattr(sop, "plan_grabacion", False)), getattr(sop, "fecha_plan_grabacion", None)),
                 ("Requiere puesto nuevo", bool(_clean_text(getattr(sop, "requiere_puesto_nuevo", None)))),
                 ("Numero central asignado", bool(_clean_text(getattr(sop, "numero_central_asignado", None)))),
-                ("Configuracion cliente", _is_true(getattr(sop, "configuracion_cliente", False))),
-                ("VB final servicio", _is_true(getattr(sop, "vb_final_servicio", False))),
+                ("Configuracion cliente", _is_true(getattr(sop, "configuracion_cliente", False)), getattr(sop, "fecha_configuracion_cliente", None)),
+                ("VB final servicio", _is_true(getattr(sop, "vb_final_servicio", False)), getattr(sop, "fecha_vb_final_servicio", None)),
             ])
         else:
-            area_soporte = _area_estado([("No aplica", True)])
+            area_soporte = _area_no_aplica()
 
         if areas_aplica["operaciones"]:
             area_operaciones = _area_estado([
                 ("Fecha inicio servicio", bool(_clean_text(getattr(op, "fecha_inicio_servicio", None)))),
-                ("Fecha coordinacion", _is_true(getattr(op, "fecha_coordinacion", False))),
-                ("Reunion coordinacion", _is_true(getattr(op, "reunion_coordinacion", False))),
-                ("Coord. apertura puesto", _is_true(getattr(op, "coord_apertura_puesto", False))),
-                ("Coord. equipo", _is_true(getattr(op, "coord_equipo", False))),
-                ("Terminado", _is_true(getattr(op, "terminado", False))),
+                ("Fecha coordinacion", _is_true(getattr(op, "fecha_coordinacion", False)), getattr(op, "ts_fecha_coordinacion", None)),
+                ("Reunion coordinacion", _is_true(getattr(op, "reunion_coordinacion", False)), getattr(op, "ts_reunion_coordinacion", None)),
+                ("Coord. apertura puesto", _is_true(getattr(op, "coord_apertura_puesto", False)), getattr(op, "ts_coord_apertura_puesto", None)),
+                ("Coord. equipo", _is_true(getattr(op, "coord_equipo", False)), getattr(op, "ts_coord_equipo", None)),
+                ("Terminado", _is_true(getattr(op, "terminado", False)), getattr(op, "ts_terminado", None)),
             ])
         else:
-            area_operaciones = _area_estado([("No aplica", True)])
+            area_operaciones = _area_no_aplica()
 
         area_finanzas = _area_estado([
-            ("Recepcion datos facturacion", _is_true(getattr(fin, "recepcion_datos_facturacion", False))),
-            ("Creacion clientes Piriod", _is_true(getattr(fin, "creacion_clientes_piriod", False))),
-            ("Facturacion instalacion", _is_true(getattr(fin, "facturacion_instalacion", False))),
-            ("Facturacion servicio", _is_true(getattr(fin, "facturacion_servicio", False))),
-            ("Finalizado", _is_true(getattr(fin, "finalizado", False))),
+            ("Recepcion datos facturacion", _is_true(getattr(fin, "recepcion_datos_facturacion", False)), getattr(fin, "fecha_recepcion_datos_facturacion", None)),
+            ("Creacion clientes Piriod", _is_true(getattr(fin, "creacion_clientes_piriod", False)), getattr(fin, "fecha_creacion_clientes_piriod", None)),
+            ("Facturacion instalacion", _is_true(getattr(fin, "facturacion_instalacion", False)), getattr(fin, "fecha_facturacion_instalacion", None)),
+            ("Facturacion servicio", _is_true(getattr(fin, "facturacion_servicio", False)), getattr(fin, "fecha_facturacion_servicio", None)),
+            ("Finalizado", _is_true(getattr(fin, "finalizado", False)), getattr(fin, "fecha_cierre", None)),
         ])
 
         drive_folder_url = (ods.drive_folder_url or "").strip()

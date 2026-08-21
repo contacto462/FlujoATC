@@ -443,64 +443,30 @@ def upload_support_images_for_odt(
     }
 
 
-def _find_sucursal_folder_id(drive, root_id: str, prefix: str) -> tuple[str, str] | None:
-    query = (
-        "mimeType='application/vnd.google-apps.folder' "
-        f"and '{root_id}' in parents and trashed=false"
-    )
-    page_token = None
-    while True:
-        response = drive.files().list(
-            q=query,
-            fields="nextPageToken, files(id,name)",
-            pageSize=200,
-            pageToken=page_token,
-            includeItemsFromAllDrives=True,
-            supportsAllDrives=True,
-        ).execute()
-        for f in response.get("files", []):
-            if str(f.get("name") or "").startswith(prefix):
-                return f["id"], f.get("name", "")
-        page_token = response.get("nextPageToken")
-        if not page_token:
-            return None
-
-
-def _find_or_create_sucursal_folder(drive, root_id: str, sucursal_id: int, nombre_sucursal: str) -> str:
-    # Carpeta nombrada "{sucursal_id} - {nombre}": el prefijo del id permite
-    # ubicar la carpeta aunque la sucursal se haya renombrado en Bitácora
-    # despues (se renombra la carpeta existente en vez de crear una nueva y
-    # dejar huerfanas las fotos ya subidas) — pedido explicito, ago 2026.
-    prefix = f"{sucursal_id} - "
-    desired_name = _clean_filename(f"{prefix}{nombre_sucursal}".strip(), fallback=str(sucursal_id))
-    existing = _find_sucursal_folder_id(drive, root_id, prefix)
-    if existing:
-        folder_id, current_name = existing
-        if current_name != desired_name:
-            drive.files().update(fileId=folder_id, body={"name": desired_name}, fields="id,name").execute()
-        return folder_id
-    return _find_or_create_folder(drive, root_id, desired_name)
-
-
 def upload_camaras_monitoreo_fotos(
     *,
     sucursal_id: int,
     nombre_sucursal: str,
     image_payloads: list[dict[str, object]],
 ) -> dict[str, Any]:
-    """Sube fotos individuales de cámaras a Drive, en una subcarpeta por
-    sucursal bajo GOOGLE_DRIVE_CAMARAS_MONITOREO_FOLDER_ID. No hay fallback a
-    SQL si Drive falla (solo se propaga la excepción) — guardar bytes de
-    imagen en SQL fue lo que infló el log de transacciones a 9GB antes."""
+    """Sube fotos individuales de cámaras a Drive, sueltas (sin subcarpeta
+    propia) dentro de la MISMA carpeta de sucursal que ya usa el flujo de
+    cierre de ODT (ver resolve_odt_cierre_folder: root=
+    GOOGLE_DRIVE_ROOT_FOLDER_ID, carpeta = nombre de sucursal, sin prefijo)
+    — quedan al lado de las carpetas "ODT ..." existentes, no en un árbol
+    aparte — pedido explicito, ago 2026. No hay fallback a SQL si Drive
+    falla (solo se propaga la excepción) — guardar bytes de imagen en SQL
+    fue lo que infló el log de transacciones a 9GB antes."""
     if not settings.google_drive_enabled:
         raise DriveReportError("GOOGLE_DRIVE_ENABLED=false")
 
-    root_id = _safe_text(settings.google_drive_camaras_monitoreo_folder_id)
+    root_id = _safe_text(settings.google_drive_root_folder_id)
     if not root_id:
-        raise DriveReportError("Falta GOOGLE_DRIVE_CAMARAS_MONITOREO_FOLDER_ID")
+        raise DriveReportError("Falta GOOGLE_DRIVE_ROOT_FOLDER_ID")
 
     drive, _ = _build_clients()
-    folder_id = _find_or_create_sucursal_folder(drive, root_id, sucursal_id, nombre_sucursal)
+    safe_sucursal = _clean_filename(nombre_sucursal or "Sucursal", fallback="Sucursal")
+    folder_id = _find_or_create_folder(drive, root_id, safe_sucursal)
 
     urls: dict[str, str] = {}
     for payload in image_payloads or []:
@@ -511,8 +477,9 @@ def upload_camaras_monitoreo_fotos(
         filename = _safe_text(payload.get("filename")) or f"{camara}.jpg"
         mime_type = _safe_text(payload.get("mime_type")) or "image/jpeg"
         _, ext = _guess_mime_and_ext(filename, default_mime=mime_type)
-        stamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        image_name = _clean_filename(f"{camara} {stamp}{ext}", fallback=f"camara_{stamp}{ext}")
+        # Solo el nombre de la cámara, sin fecha ni número — pedido
+        # explicito, ago 2026.
+        image_name = _clean_filename(f"{camara}{ext}", fallback=f"camara{ext}")
         uploaded = _upload_bytes(drive, folder_id, image_name, bytes(content), mime_type)
         _set_public_read(drive, uploaded["id"])
         urls[camara] = f"/api/incidencias/drive-image/{uploaded['id']}"

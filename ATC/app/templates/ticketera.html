@@ -5611,6 +5611,54 @@ body.dark-mode .cw-status.err{color:#f87171;}
   <script>
   </script>
 <script src="/static/atc-volver.js"></script>
+<script src="/static/atc-notificacion-sonido.js"></script>
+<script>
+(function () {
+  // Sonido cuando llega un ticket nuevo: poll a /api/ticketera/recientes
+  // (MAX(id) de tickets visibles para el usuario, un solo número) cada 3s,
+  // comparando contra el ultimo máximo conocido. Si el máximo actual es
+  // mayor al conocido, sonó UNA vez y se actualiza el máximo — comparar un
+  // solo número es mucho más robusto que comparar listas completas de IDs
+  // (nada de falsos positivos por reordenamientos). Se persiste en
+  // localStorage para que un F5/recarga no "olvide" lo ya conocido y
+  // vuelva a sonar de nuevo — pedido explicito, ago 2026. Usa un Web
+  // Worker (iniciarTickerConfiable, en atc-notificacion-sonido.js) en vez
+  // de setInterval directo para que siga sondeando a tiempo aunque la
+  // pestaña lleve rato en segundo plano.
+  const TICKETERA_POLL_MS = 3000;
+  const TICKETERA_MAXID_KEY = "atc_ticketera_max_id_conocido";
+  let ticketeraMaxIdConocido = null;
+  try {
+    const guardado = localStorage.getItem(TICKETERA_MAXID_KEY);
+    if (guardado !== null) ticketeraMaxIdConocido = parseInt(guardado, 10);
+  } catch (_) {}
+
+  async function ticketeraRevisarNuevos() {
+    try {
+      const res = await fetch("/api/ticketera/recientes", { credentials: "same-origin" });
+      if (!res.ok) return;
+      const data = await res.json();
+      const maxIdActual = Number(data.maxId || 0);
+      if (!maxIdActual) return;
+      if (ticketeraMaxIdConocido !== null && maxIdActual > ticketeraMaxIdConocido) {
+        if (window.reproducirSonidoNotificacion) window.reproducirSonidoNotificacion();
+      }
+      if (ticketeraMaxIdConocido === null || maxIdActual > ticketeraMaxIdConocido) {
+        ticketeraMaxIdConocido = maxIdActual;
+        try { localStorage.setItem(TICKETERA_MAXID_KEY, String(maxIdActual)); } catch (_) {}
+      }
+    } catch (_) {
+      // Silencioso: un fallo de red no debe interrumpir nada.
+    }
+  }
+
+  if (window.iniciarTickerConfiable) {
+    window.iniciarTickerConfiable(TICKETERA_POLL_MS, ticketeraRevisarNuevos);
+  } else {
+    setInterval(ticketeraRevisarNuevos, TICKETERA_POLL_MS);
+  }
+})();
+</script>
 </body>
 </html>
 

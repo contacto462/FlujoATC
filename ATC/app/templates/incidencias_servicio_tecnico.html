@@ -851,8 +851,8 @@
       gap: 10px;
     }
 
-    /* ── Registro por puesto (mismo sistema que incidencias_puestos.html) ── */
-    #gridPuestosOdt { display: flex; flex-wrap: wrap; gap: 9px; justify-content: center; margin: 0 0 20px; padding: 4px 0; }
+    /* .boton-puesto: reutilizada para el botón "Oficina ATC" reubicado en
+       el header del modal — pedido explicito, ago 2026. */
     .boton-puesto {
       min-width: 50px; height: 40px; padding: 0 13px;
       font-size: 13px; font-weight: 700; font-family: inherit; color: #d1dbe8;
@@ -1927,10 +1927,10 @@
           <p class="odt-registro-eyebrow">Registro</p>
           <h3 class="odt-registro-title">Crear ODT</h3>
         </div>
+        <button type="button" class="boton-puesto oficina-atc" onclick="abrirPopupOficinaAtcOdt()">Oficina ATC</button>
         <button type="button" class="odt-registro-close" onclick="cerrarOdt()">Cerrar</button>
       </div>
       <div id="odtMsg" class="odt-message"></div>
-      <div id="gridPuestosOdt"></div>
       <div id="formulariosContenedorOdt"></div>
       <div class="acciones-principales">
         <button type="button" id="btnRegistrarTodoOdt" class="btn-odt" onclick="regRegistrarTodas()">Registrar Todas las Incidencias</button>
@@ -4905,6 +4905,7 @@
     }
 
     let sucursalesPorPuesto = {};
+    let sucursalesTodasOdt = [];
     let odtDireccionGlobalPorSucursal = {};
 
     async function cargarListas() {
@@ -4930,6 +4931,19 @@
         : {};
       // sucPorCli: { "Cliente": [{nombre, direccion}, ...] }
       sucursalesPorCliente = (sucPorCli && typeof sucPorCli === "object") ? sucPorCli : {};
+      // El usuario ya no elige puesto a mano — busca directo por sucursal
+      // (el puesto se enlaza solo atrás, ver guardar_incidencia_nueva). La
+      // entrada "30" de sucursales-por-puesto ya trae TODAS las sucursales
+      // reales (bbdd_sucursales ⋈ bbdd_clientes), a diferencia de
+      // listasGlobales.sucursales que en realidad son nombres de EMPRESA —
+      // pedido explicito, ago 2026.
+      sucursalesTodasOdt = (Array.isArray(sucursalesPorPuesto["30"]) && sucursalesPorPuesto["30"].length)
+        ? sucursalesPorPuesto["30"]
+        : Array.from(new Set(
+            Object.values(sucursalesPorCliente).flat()
+              .map((s) => (s && s.nombre) ? String(s.nombre).trim() : "")
+              .filter(Boolean)
+          )).sort((a, b) => a.localeCompare(b));
       odtDireccionGlobalPorSucursal = {};
       Object.values(sucursalesPorCliente).forEach((sucursales) => {
         (Array.isArray(sucursales) ? sucursales : []).forEach((s) => {
@@ -4976,9 +4990,9 @@
       return "otro";
     }
 
-    /* ── Registro por puesto (mismo sistema que incidencias_puestos.html) ── */
-    const TOTAL_PUESTOS_ODT = 30;
-    let regPuestoActivo = null;
+    /* ── Registro de incidencias — busqueda directa por sucursal (el
+       puesto se enlaza solo atras, ver guardar_incidencia_nueva en el
+       backend) — pedido explicito, ago 2026. ── */
     let regUidInc = 0;
     let regCamarasPorSucursal = {};
     let regIncidenciasExistentes = [];
@@ -4990,51 +5004,6 @@
       return String(v ?? "").replace(/[&<>"']/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
     }
     function regALineas(v) { return regEscapeHtml(v).replace(/\n/g, "<br>"); }
-
-    function regActualizarBotonPuestoActivo(puesto) {
-      document.querySelectorAll("#gridPuestosOdt .boton-puesto").forEach((b) => {
-        b.classList.toggle("activo", String(b.dataset.puesto || "") === String(puesto || ""));
-      });
-    }
-
-    function regCrearBotonesPuestos() {
-      const grid = document.getElementById("gridPuestosOdt");
-      if (!grid) return;
-      grid.innerHTML = "";
-      for (let i = 1; i <= TOTAL_PUESTOS_ODT; i++) {
-        const b = document.createElement("button");
-        b.type = "button";
-        b.className = "boton-puesto";
-        b.dataset.puesto = String(i);
-        b.textContent = i === 30 ? "Solo clientes con alarma" : String(i);
-        b.onclick = () => regMostrarFormularioPuesto(i);
-        grid.appendChild(b);
-      }
-      const oficina = document.createElement("button");
-      oficina.className = "boton-puesto oficina-atc";
-      oficina.type = "button";
-      oficina.textContent = "Oficina ATC";
-      oficina.onclick = abrirPopupOficinaAtcOdt;
-      grid.appendChild(oficina);
-    }
-
-    function regMostrarFormularioPuesto(puesto) {
-      const id = `formulario-puesto-odt-${puesto}`;
-      const ex = document.getElementById(id);
-      if (ex) { ex.remove(); regPuestoActivo = null; regActualizarBotonPuestoActivo(null); return; }
-      document.querySelectorAll('[id^="formulario-puesto-odt-"]').forEach((n) => n.remove());
-      const nombre = puesto === 30 ? "Solo clientes con alarma" : `Puesto ${puesto}`;
-      regPuestoActivo = String(puesto);
-      regActualizarBotonPuestoActivo(regPuestoActivo);
-      const div = document.createElement("div");
-      div.className = "formulario-puesto";
-      div.id = id;
-      div.dataset.puesto = String(puesto);
-      div.innerHTML = `<h3 class="titulo-formulario-puesto">Incidencias - ${nombre}</h3><div class="tbody-odt-${puesto} inc-lista"></div><button type="button" class="btn-odt-secondary" onclick="regAgregarIncidencia(${puesto})">Agregar Otra Incidencia</button>`;
-      document.getElementById("formulariosContenedorOdt").appendChild(div);
-      regAgregarIncidencia(puesto);
-      setTimeout(() => div.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
-    }
 
     function regCrearSelectCliente(lista) {
       const s = document.createElement("select");
@@ -5219,7 +5188,7 @@
       function revisarSeleccionCompleta() {
         if (todoCb.checked) return;
         const todosLosEquipos = cantidadEquipos > 1 && equipoChecks.length > 0 && equipoChecks.every(({ cb }) => cb.checked);
-        const todasLasCamaras = camaras.length > 0 && camChecks.length > 0 && camChecks.every(({ cb }) => cb.checked);
+        const todasLasCamaras = camaras.length > 0 && camChecks.length > 1 && camChecks.every(({ cb }) => cb.checked);
         if (todosLosEquipos || todasLasCamaras) {
           todoCb.checked = true;
           todoCb.dispatchEvent(new Event("change"));
@@ -5240,8 +5209,8 @@
       container.appendChild(picker);
     }
 
-    function regAgregarIncidencia(puesto) {
-      const tbody = document.querySelector(`.tbody-odt-${puesto}`);
+    function regAgregarIncidencia() {
+      const tbody = document.querySelector(".tbody-odt-unico");
       if (!tbody) return;
       const gid = `g${Date.now()}_${regUidInc++}`;
 
@@ -5262,8 +5231,7 @@
       const campoCliente = document.createElement("div");
       campoCliente.className = "inc-field";
       campoCliente.innerHTML = '<label class="inc-label">Sucursal</label>';
-      const listaSucursalesPuesto = sucursalesPorPuesto[String(puesto)] || null;
-      const selectCliente = regCrearSelectCliente(listaSucursalesPuesto);
+      const selectCliente = regCrearSelectCliente(sucursalesTodasOdt);
       campoCliente.appendChild(selectCliente);
       card.appendChild(campoCliente);
       regInicializarBuscadorSucursal(selectCliente);
@@ -5296,6 +5264,18 @@
       ta.name = "descripcion"; ta.rows = 2; ta.placeholder = "Descripción..."; ta.readOnly = true;
       campoDesc.appendChild(ta);
       card.appendChild(campoDesc);
+
+      // Descripción escrita, siempre editable, además de las cámaras — se
+      // concatena con la descripción auto-generada al enviar (ver
+      // regObtenerIncidenciasDesdeForm) — pedido explicito, ago 2026.
+      const campoDescExtra = document.createElement("div");
+      campoDescExtra.className = "inc-field inc-field-desc";
+      campoDescExtra.innerHTML = '<label class="inc-label">Descripción adicional (opcional)</label>';
+      const taExtra = document.createElement("textarea");
+      taExtra.name = "descripcionAdicional"; taExtra.rows = 2;
+      taExtra.placeholder = "Agregar detalle adicional...";
+      campoDescExtra.appendChild(taExtra);
+      card.appendChild(campoDescExtra);
 
       tbody.appendChild(card);
 
@@ -5393,46 +5373,47 @@
     function regObtenerIncidenciasDesdeForm() {
       const inc = [];
       const token = obtenerTokenActivo();
-      document.querySelectorAll('[id^="formulario-puesto-odt-"]').forEach((form) => {
-        const puesto = form.dataset.puesto || "";
-        form.querySelectorAll(".inc-card").forEach((f) => {
-          const cliente = String(f.querySelector('select[name="cliente"]')?.value || "").trim();
-          const tipo = String(f.querySelector('select[name="tipoIncidencia"]')?.value || "").trim();
-          let desc = String(f.querySelector('textarea[name="descripcion"]')?.value || "").trim();
+      document.querySelectorAll(".tbody-odt-unico .inc-card").forEach((f) => {
+        const cliente = String(f.querySelector('select[name="cliente"]')?.value || "").trim();
+        const tipo = String(f.querySelector('select[name="tipoIncidencia"]')?.value || "").trim();
+        let desc = String(f.querySelector('textarea[name="descripcion"]')?.value || "").trim();
 
-          const filaCon = f.querySelector(".fila-contacto");
-          const sel = filaCon?.querySelector('select[name="contacto"]');
-          const im = filaCon?.querySelector("input[type='text']");
-          let contacto = "";
-          if (sel) {
-            if (sel.value === "__otros__") contacto = String(im?.value || "").trim();
-            else if (sel.value) contacto = String(sel.value).trim();
-          }
+        const filaCon = f.querySelector(".fila-contacto");
+        const sel = filaCon?.querySelector('select[name="contacto"]');
+        const im = filaCon?.querySelector("input[type='text']");
+        let contacto = "";
+        if (sel) {
+          if (sel.value === "__otros__") contacto = String(im?.value || "").trim();
+          else if (sel.value) contacto = String(sel.value).trim();
+        }
 
-          if (!cliente && !tipo && !desc) return;
-          if (!cliente || !tipo) throw new Error("Debes seleccionar sucursal y tipo de incidencia.");
+        if (!cliente && !tipo && !desc) return;
+        if (!cliente || !tipo) throw new Error("Debes seleccionar sucursal y tipo de incidencia.");
 
-          const claveTipo = odtClaveTipo(tipo);
-          if (claveTipo === "desconexion" && !desc) throw new Error(`Debes indicar el tipo de desconexión para "${cliente}".`);
-          if (claveTipo === "visual" && !desc) throw new Error(`Debes seleccionar la especificación de Problema de Visual para "${cliente}".`);
-          if (claveTipo !== "alarma" && claveTipo !== "instalacion" && !desc) throw new Error(`Debes marcar al menos una cámara, equipo o "Todo" para "${cliente}".`);
-          if (!desc) throw new Error(`Debes completar la descripción para "${cliente}".`);
+        const claveTipo = odtClaveTipo(tipo);
+        if (claveTipo === "desconexion" && !desc) throw new Error(`Debes indicar el tipo de desconexión para "${cliente}".`);
+        if (claveTipo === "visual" && !desc) throw new Error(`Debes seleccionar la especificación de Problema de Visual para "${cliente}".`);
+        if (claveTipo !== "alarma" && claveTipo !== "instalacion" && !desc) throw new Error(`Debes marcar al menos una cámara, equipo o "Todo" para "${cliente}".`);
+        if (!desc) throw new Error(`Debes completar la descripción para "${cliente}".`);
 
-          if (claveTipo !== "hora" && !contacto) throw new Error(`Debes seleccionar contacto de emergencia para "${cliente}".`);
-          if (contacto) desc += `\nContacto: ${contacto}`;
+        // Descripción escrita opcional, además de las cámaras — pedido
+        // explicito, ago 2026.
+        const descAdicional = String(f.querySelector('textarea[name="descripcionAdicional"]')?.value || "").trim();
+        if (descAdicional) desc = `${desc}\n\n${descAdicional}`;
 
-          const direccion = odtDireccionGlobalPorSucursal[cliente] || "";
-          inc.push({
-            puesto: puesto === "30" ? "30" : puesto,
-            cliente,
-            tipoIncidencia: tipo,
-            descripcion: desc,
-            estado: "Pendiente",
-            derivacion: "Servicio Técnico",
-            area: "servicio_tecnico",
-            direccion,
-            token,
-          });
+        if (claveTipo !== "hora" && !contacto) throw new Error(`Debes seleccionar contacto de emergencia para "${cliente}".`);
+        if (contacto) desc += `\nContacto: ${contacto}`;
+
+        const direccion = odtDireccionGlobalPorSucursal[cliente] || "";
+        inc.push({
+          cliente,
+          tipoIncidencia: tipo,
+          descripcion: desc,
+          estado: "Pendiente",
+          derivacion: "Servicio Técnico",
+          area: "servicio_tecnico",
+          direccion,
+          token,
         });
       });
       return inc;
@@ -5543,8 +5524,6 @@
         const data = await api("/api/incidencias/multiples", { method: "POST", body: JSON.stringify(incidencias) });
         const odts = Array.isArray(data?.odts) ? data.odts.filter(Boolean) : [];
         document.getElementById("formulariosContenedorOdt").innerHTML = "";
-        regPuestoActivo = null;
-        regActualizarBotonPuestoActivo(null);
         setMensaje(odts.length ? `Incidencias registradas: ${odts.join(", ")}.` : "Incidencias registradas exitosamente.");
         cerrarOdt();
         await cargarIncidencias();
@@ -5571,9 +5550,9 @@
       const modal = document.getElementById("modalOdt");
       const msg = document.getElementById("odtMsg");
       if (msg) { msg.textContent = ""; msg.style.display = "none"; }
-      document.getElementById("formulariosContenedorOdt").innerHTML = "";
-      regPuestoActivo = null;
-      regCrearBotonesPuestos();
+      document.getElementById("formulariosContenedorOdt").innerHTML =
+        '<div class="tbody-odt-unico inc-lista"></div><button type="button" class="btn-odt-secondary" onclick="regAgregarIncidencia()">Agregar Otra Incidencia</button>';
+      regAgregarIncidencia();
       regCargarIncidenciasExistentes();
       if (modal) {
         modal.style.display = "block";
@@ -5588,8 +5567,6 @@
         modal.setAttribute("aria-hidden", "true");
       }
       document.getElementById("formulariosContenedorOdt").innerHTML = "";
-      regPuestoActivo = null;
-      regActualizarBotonPuestoActivo(null);
       const msg = document.getElementById("odtMsg");
       if (msg) { msg.textContent = ""; msg.style.display = "none"; }
     }

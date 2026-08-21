@@ -9,6 +9,7 @@ import uuid
 from datetime import datetime, timezone, timedelta
 from email.utils import getaddresses, parseaddr, parsedate_to_datetime
 from pathlib import Path
+from urllib.parse import unquote
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -454,28 +455,33 @@ def _extract_html_and_save_images(msg) -> str | None:
     for img in imagenes:
         url = f"/uploads/{img['archivo']}"
         resuelta = False
-        if img["cid"] and f"cid:{img['cid']}" in html_body:
-            html_body = html_body.replace(f"cid:{img['cid']}", url)
-            resuelta = True
-        if img["location"]:
-            for patron in (f'src="{img["location"]}"', f"src='{img['location']}'"):
-                if patron in html_body:
-                    html_body = html_body.replace(patron, f'src="{url}"')
-                    resuelta = True
+        candidates: set[str] = set()
+        for value in (img["cid"], f"cid:{img['cid']}" if img["cid"] else "", img["location"], img["original"]):
+            normalized = _normalize_inline_ref(value)
+            if normalized:
+                candidates.add(normalized)
+                candidates.add(normalized.rsplit("/", 1)[-1])
+        html_body, resuelta = _replace_image_src_refs(html_body, candidates, url)
         if resuelta:
             usadas.add(img["archivo"])
 
     # 2) cids que quedaron colgando: match laxo por nombre de archivo, y si
     #    solo queda una imagen libre, asumirla.
     for cid in re.findall(r'cid:([^"\'\s>)]+)', html_body):
-        cid_low = cid.lower()
+        cid_low = _normalize_inline_ref(cid)
         candidata = None
         for img in imagenes:
             if img["archivo"] in usadas:
                 continue
-            orig = (img["original"] or "").lower()
+            img_cid = _normalize_inline_ref(img.get("cid"))
+            location = _normalize_inline_ref(img.get("location"))
+            orig = _normalize_inline_ref(img.get("original"))
             base = orig.rsplit(".", 1)[0] if orig else ""
-            if orig and (orig in cid_low or (base and cid_low.startswith(base))):
+            if (
+                (img_cid and img_cid == cid_low)
+                or (location and (location == cid_low or location.rsplit("/", 1)[-1] == cid_low))
+                or (orig and (orig in cid_low or (base and cid_low.startswith(base))))
+            ):
                 candidata = img
                 break
         if candidata is None:
@@ -483,7 +489,18 @@ def _extract_html_and_save_images(msg) -> str | None:
             if len(libres) == 1:
                 candidata = libres[0]
         if candidata:
-            html_body = html_body.replace(f"cid:{cid}", f"/uploads/{candidata['archivo']}")
+            html_body, replaced = _replace_image_src_refs(
+                html_body,
+                {_normalize_inline_ref(cid), f"cid:{_normalize_inline_ref(cid)}"},
+                f"/uploads/{candidata['archivo']}",
+            )
+            if not replaced:
+                html_body = re.sub(
+                    rf"cid:{re.escape(cid)}",
+                    f"/uploads/{candidata['archivo']}",
+                    html_body,
+                    flags=re.IGNORECASE,
+                )
             usadas.add(candidata["archivo"])
 
     # 3) Lo que siga sin referencia se anexa al final: la información no se pierde.
@@ -501,6 +518,41 @@ def _extract_html_and_save_images(msg) -> str | None:
         )
 
     return html_body
+
+
+def _normalize_inline_ref(value: str | None) -> str:
+    value = (value or "").strip().strip("<>").strip()
+    if not value:
+        return ""
+    value = _html_mod.unescape(value)
+    value = unquote(value)
+    value = value.strip().strip("<>").strip()
+    return value.casefold()
+
+
+def _replace_image_src_refs(html_body: str, candidates: set[str], url: str) -> tuple[str, bool]:
+    if not html_body or not candidates:
+        return html_body, False
+    matched = False
+
+    def repl(match: re.Match) -> str:
+        nonlocal matched
+        prefix, quote, src = match.group(1), match.group(2), match.group(3)
+        raw_src = (src or "").strip()
+        normalized = _normalize_inline_ref(raw_src)
+        normalized_no_cid = normalized[4:] if normalized.startswith("cid:") else normalized
+        if normalized in candidates or normalized_no_cid in candidates:
+            matched = True
+            return f"{prefix}{quote}{url}{quote}"
+        return match.group(0)
+
+    replaced = re.sub(
+        r"(<img\b[^>]*?\bsrc\s*=\s*)([\"'])([^\"']+)\2",
+        repl,
+        html_body,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    return replaced, matched
 
 
 def _extract_body_text(msg) -> str:

@@ -57,6 +57,13 @@ class Ticket(Base):
         nullable=False
     )
 
+    # Cuando se movio a la papelera — usado por la purga automatica (15
+    # dias) en automation_loop(), ver main.py — pedido explicito, ago 2026.
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
     is_spam: Mapped[bool] = mapped_column(
         Boolean,
         default=False,

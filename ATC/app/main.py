@@ -155,7 +155,9 @@ from ATC.app.services.email_service import fetch_emails_and_create_tickets
 
 
 _ATC_ROOT = Path(__file__).resolve().parents[1]
+_PROJECT_ROOT = _ATC_ROOT.parent
 _UPLOADS_DIR = _ATC_ROOT / "uploads"
+_LEGACY_UPLOADS_DIR = _PROJECT_ROOT / "uploads"
 _APP_STATIC_DIR = Path(__file__).resolve().parent / "static"
 _STATIC_DIR = _ATC_ROOT / "static"
 
@@ -249,7 +251,15 @@ _STATIC_DIR.mkdir(parents=True, exist_ok=True)
 # =========================
 app.mount(
     "/uploads",
-    StaticFiles(directory=str(_UPLOADS_DIR)),
+    MultiDirectoryStaticFiles(
+        [
+            _UPLOADS_DIR,
+            # Compatibilidad: versiones antiguas guardaron imagenes de correos
+            # en uploads/ de la raiz. La app sirve /uploads desde ATC/uploads,
+            # asi que esos mensajes quedaban como "Imagen no disponible".
+            _LEGACY_UPLOADS_DIR,
+        ]
+    ),
     name="uploads",
 )
 
@@ -1102,6 +1112,45 @@ def email_loop() -> None:
         time.sleep(sleep_seconds)
 
 
+def _purge_ticketera_trash(dias: int = 15) -> int:
+    """Borra definitivamente los tickets en Papelera (is_deleted=True) con
+    mas de `dias` dias ahi (segun Ticket.deleted_at) — pedido explicito,
+    ago 2026. Ninguna FK hacia tickets/messages tiene ON DELETE CASCADE, asi
+    que hay que borrar las filas hijas primero (orden: lo que depende de
+    messages antes que messages, todo lo demas antes que tickets)."""
+    from datetime import datetime, timedelta, timezone
+
+    db = SessionLocal()
+    try:
+        corte = datetime.now(timezone.utc) - timedelta(days=dias)
+        rows = db.execute(
+            text("SELECT id FROM tickets WHERE is_deleted = 1 AND deleted_at IS NOT NULL AND deleted_at <= :corte"),
+            {"corte": corte},
+        ).fetchall()
+        ids = [int(r[0]) for r in rows]
+        if not ids:
+            return 0
+        ids_csv = ",".join(str(i) for i in ids)
+        child_tables = [
+            "message_mentions",
+            "ticket_message_read_states",
+            "ticket_internal_note_read_states",
+            "ticket_manual_unread",
+            "ticket_assignment_history",
+            "ticket_sla_feedback_events",
+            "ticket_sla_feedback",
+            "automation_logs",
+            "messages",
+        ]
+        for table in child_tables:
+            db.execute(text(f"DELETE FROM {table} WHERE ticket_id IN ({ids_csv})"))
+        db.execute(text(f"DELETE FROM tickets WHERE id IN ({ids_csv})"))
+        db.commit()
+        return len(ids)
+    finally:
+        db.close()
+
+
 def automation_loop() -> None:
     """
     Worker de automatizaciones programadas.
@@ -1150,6 +1199,15 @@ def automation_loop() -> None:
             LOGGER.exception("Error reintentando cuarentena Drive")
         finally:
             db.close()
+
+        # Papelera de Ticketera: borrado definitivo automatico a los 15
+        # dias — pedido explicito, ago 2026.
+        try:
+            purgados = _purge_ticketera_trash(dias=15)
+            if purgados:
+                LOGGER.info("Purga papelera Ticketera: %s tickets borrados definitivamente", purgados)
+        except Exception:
+            LOGGER.exception("Error purgando papelera de Ticketera")
 
         poll_seconds = int(
             settings.AUTOMATION_POLL_SECONDS or 300

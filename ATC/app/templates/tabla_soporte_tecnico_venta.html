@@ -2102,7 +2102,7 @@ tr.modal-subida {
   async function guardarCamarasServidor() {
     if (!camarasServidorContext) return;
     const { codigo, totalVigilar, info } = camarasServidorContext;
-    const inputs = Array.from(document.querySelectorAll("#camarasServidorInputs input"));
+    const inputs = Array.from(document.querySelectorAll("#camarasServidorInputs input[data-camera-index]"));
     const reemplazoSelects = Array.from(document.querySelectorAll("#camarasServidorInputs select[data-reemplazo-camera]"));
     const ids = inputs.map((input) => String(input.value || "").trim());
     const reemplazos = reemplazoSelects.map((select) => select.disabled ? null : (select.value ? Number(select.value) : null));

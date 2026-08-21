@@ -329,25 +329,27 @@
     }
 
     .nav-parent {
-      width: 100%;
+      width: auto;
       color: var(--sidebar-text);
-      padding: 13px 18px;
-      text-align: left;
+      padding: 10px 26px 10px 14px;
+      border-radius: 8px;
+      text-align: center;
       font-size: 14px;
       font-weight: 600;
       position: relative;
       user-select: none;
+      white-space: nowrap;
       transition: background .16s ease, transform .16s ease, box-shadow .16s ease;
       transform: translateY(0);
     }
 
     .nav-parent.has-children::after {
-      content: "›";
+      content: "⌄";
       position: absolute;
-      right: 16px;
+      right: 10px;
       top: 50%;
       transform: translateY(-50%);
-      font-size: 18px;
+      font-size: 15px;
       color: rgba(255,255,255,.78);
       pointer-events: none;
     }
@@ -375,9 +377,10 @@
 
     .submenu {
       position: absolute;
-      left: 100%;
-      top: 0;
-      min-width: 250px;
+      left: 0;
+      top: calc(100% + 6px);
+      min-width: 220px;
+      border-radius: 10px;
       background: linear-gradient(180deg, var(--sidebar-top) 0%, var(--sidebar-bottom) 100%);
       color: #ffffff;
       border: 1px solid rgba(255,255,255,.06);
@@ -385,7 +388,8 @@
       padding: 0;
       opacity: 0;
       visibility: hidden;
-      transform: translate(10px, 0);
+      overflow: hidden;
+      transform: translate(0, 6px);
       transition: opacity .14s ease, transform .14s ease, visibility .14s ease;
       z-index: 1500;
     }
@@ -421,30 +425,48 @@
     }
 
     .content {
+      flex: 1;
       min-width: 0;
       min-height: 0;
       display: flex;
       flex-direction: column;
-      padding: 42px 18px 18px;
+      padding: 24px 18px 18px;
       gap: 14px;
       overflow-y: auto;
       overflow-x: hidden;
     }
 
+    /* content-top/content-session viven ahora dentro de .sidebar (franja
+       azul de arriba), pegados al extremo derecho gracias a que .nav tiene
+       flex:1 — pedido explicito, ago 2026: el nombre de usuario debe estar
+       en la franja, no abajo en el área blanca. */
     .content-top {
       display: flex;
       justify-content: flex-end;
-      align-items: flex-start;
+      align-items: center;
       gap: 12px;
-      flex-shrink: 0;
-      margin-top: -2px;
+      flex: none;
     }
 
     .content-session {
       display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 4px;
+      flex-direction: row;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .sidebar .user-info .name { color: var(--sidebar-text); }
+    .sidebar .user-info .role { color: rgba(255,255,255,.62); }
+    .sidebar .settings-trigger { color: rgba(255,255,255,.75); }
+    .sidebar .settings-trigger:hover { background: rgba(255,255,255,.12); color: #fff; }
+    .sidebar .btn-light {
+      background: rgba(255,255,255,.10);
+      border-color: rgba(255,255,255,.22);
+      color: #fff;
+    }
+    .sidebar .btn-light:hover {
+      background: rgba(255,255,255,.18);
+      border-color: rgba(255,255,255,.32);
     }
 
     .panel {
@@ -1686,15 +1708,18 @@
     .puestos-pantallas-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 18px;
+      gap: 14px;
     }
     /* Puestos 13-29: 6 pantallas dispuestas como 2 filas x 3 columnas (agregan
-       Centro). A diferencia del layout de 4 pantallas, acá cada columna
-       necesita ancho de sobra para que las 5 cajas de cámara por fila no se
-       aplasten — en vez de encogerlas, se les da un ancho mínimo cómodo y el
-       contenedor completo scrollea horizontal como una sola franja. */
+       Centro). Las 6 pantallas deben verse SIEMPRE sin scroll horizontal
+       (pedido explicito, ago 2026) — por eso NO se usa un ancho mínimo fijo
+       por columna: minmax(0,1fr) reparte el ancho disponible en partes
+       iguales siempre, y las cajas de cámara (.pantalla-grid/.pantalla-box
+       más abajo) se van angostando junto con la columna en vez de forzar
+       overflow. overflow-x:auto queda solo como red de seguridad, no debería
+       activarse en uso normal. */
     .puestos-pantallas-grid.cols-3 {
-      grid-template-columns: repeat(3, minmax(640px, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       overflow-x: auto;
       padding-bottom: 10px;
     }
@@ -1834,26 +1859,29 @@
 
     .pantalla-grid {
       display: grid;
-      grid-template-columns: repeat(5, minmax(112px, 1fr));
-      gap: 8px;
-      padding: 14px;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      padding: 16px;
       background: var(--surface-alt);
     }
     .pantalla-box {
-      min-width: 112px;
+      /* Sin min-width a propósito: las 6 pantallas deben verse siempre sin
+         scroll horizontal, así que la caja se angosta junto con la columna
+         en vez de forzar overflow (el nombre de cámara ya soporta wrap) —
+         pedido explicito, ago 2026. */
       position: relative;
       border: 1px solid var(--border-strong);
       border-radius: var(--radius);
-      padding: 9px 6px 8px;
+      padding: 11px 8px 10px;
       text-align: center;
       background: #fff;
       box-shadow: 0 1px 2px rgba(15,23,42,.04);
-      min-height: 56px;
+      min-height: 66px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 4px;
+      gap: 5px;
       transition: border-color .14s ease, box-shadow .14s ease, transform .14s ease, opacity .14s ease;
     }
     .pantalla-box:not(.is-empty):hover {
@@ -1867,7 +1895,7 @@
        muestra completa, sin truncar. La empresa/sucursal queda como dato
        secundario, más chico y truncado si hace falta. */
     .pantalla-box .empresa {
-      font-size: 9px;
+      font-size: 9.5px;
       font-weight: 600;
       color: var(--text-muted);
       line-height: 1.2;
@@ -1880,7 +1908,7 @@
       -webkit-box-orient: vertical;
     }
     .pantalla-box .camara {
-      font-size: 11.5px;
+      font-size: 12px;
       color: var(--text);
       font-weight: 800;
       line-height: 1.25;
@@ -1893,8 +1921,8 @@
       border-color: rgba(185,28,28,.42);
       background: linear-gradient(180deg, rgba(255,247,247,.96), #fff);
       box-shadow: 0 5px 14px rgba(127,29,29,.08);
-      min-height: 72px;
-      padding: 27px 8px 9px;
+      min-height: 82px;
+      padding: 29px 9px 11px;
     }
     .pantalla-box.has-problem:hover {
       border-color: rgba(185,28,28,.66);
@@ -2466,8 +2494,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      /* Por encima de .sidebar-rail-toggle (1400) y del flyout .submenu
-         (1500) — si no, la flecha de colapsar sidebar quedaba flotando
+      /* Por encima del dropdown .submenu (1500) — si no, quedaba flotando
          encima de cualquier modal de esta pantalla. */
       z-index: 1600;
       padding: 24px;
@@ -2918,30 +2945,6 @@
     }
 
     @media (max-width: 1120px) {
-      .page {
-        grid-template-columns: 1fr;
-      }
-
-      .sidebar {
-        min-height: auto;
-        border-right: 0;
-        border-bottom: 1px solid rgba(255,255,255,.06);
-      }
-
-      .sidebar-rail-toggle {
-        display: none !important;
-      }
-
-      .nav {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .submenu {
-        left: 0;
-        top: calc(100% + 4px);
-        min-width: 100%;
-      }
-
       .users-toolbar,
       .users-modal-grid,
       .buscar-empresa-grid,
@@ -2974,9 +2977,19 @@
       .filters,
       .placeholder-grid,
       .form-grid,
-      .modal-grid,
-      .nav {
+      .modal-grid {
         grid-template-columns: 1fr;
+      }
+      .nav {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .nav-item, .nav-btn, .nav-parent {
+        width: 100%;
+        text-align: left;
+      }
+      .submenu {
+        min-width: 100%;
       }
       .content-top {
         justify-content: stretch;
@@ -3478,13 +3491,6 @@
   </script>
 </head>
 <body>
-  <button
-    id="sidebarRailToggle"
-    class="sidebar-rail-toggle"
-    type="button"
-    aria-label="Contraer barra lateral"
-    title="Contraer barra lateral"
-  ></button>
   <main class="page">
     <aside class="sidebar">
       <div class="brand">
@@ -3510,10 +3516,11 @@
           <button class="nav-btn" type="button" data-panel-target="registro-observacion">Registro de Observación</button>
         </div>
         <div class="nav-item">
-          <button class="nav-btn" type="button" data-panel-target="bitacora-empresa">Bitácora Empresa</button>
-        </div>
-        <div class="nav-item">
-          <button class="nav-btn" type="button" data-panel-target="bitacora-diaria">Bitácora Diaria</button>
+          <div class="nav-parent has-children">Ver Bitácora</div>
+          <div class="submenu" aria-label="Submenú de bitácora">
+            <button type="button" data-panel-target="bitacora-empresa">Bitácora Empresa</button>
+            <button type="button" data-panel-target="bitacora-diaria">Bitácora Diaria</button>
+          </div>
         </div>
         {% else %}
         {# Resto de usuarios con acceso: nav completo original #}
@@ -3539,13 +3546,12 @@
           <button class="nav-btn" type="button" data-panel-target="registro-observacion">Registro de Observación</button>
         </div>
         <div class="nav-item">
-          <button class="nav-btn" type="button" data-panel-target="bitacora-empresa">Bitácora Empresa</button>
-        </div>
-        <div class="nav-item">
-          <button class="nav-btn" type="button" data-panel-target="bitacora-diaria">Bitácora Diaria</button>
-        </div>
-        <div class="nav-item">
-          <button class="nav-btn" type="button" data-panel-target="mensaje-masivo">Mensaje Masivo</button>
+          <div class="nav-parent has-children">Ver Bitácora</div>
+          <div class="submenu" aria-label="Submenú de bitácora">
+            <button type="button" data-panel-target="bitacora-empresa">Bitácora Empresa</button>
+            <button type="button" data-panel-target="bitacora-diaria">Bitácora Diaria</button>
+            <button type="button" data-panel-target="mensaje-masivo">Mensaje Masivo</button>
+          </div>
         </div>
         {% if is_bitacora_admin %}
         <div class="nav-item">
@@ -3557,10 +3563,11 @@
           </div>
         </div>
         <div class="nav-item">
-          <button class="nav-btn" type="button" data-panel-target="informacion-cliente">Información Cliente</button>
-        </div>
-        <div class="nav-item">
-          <button class="nav-btn" type="button" data-panel-target="informacion-puestos">Información Puestos</button>
+          <div class="nav-parent has-children">Información</div>
+          <div class="submenu" aria-label="Submenú de información">
+            <button type="button" data-panel-target="informacion-cliente">Información Cliente</button>
+            <button type="button" data-panel-target="informacion-puestos">Información Puestos</button>
+          </div>
         </div>
         <div class="nav-item">
           <button class="nav-btn" type="button" data-panel-target="sucursales-pendientes">
@@ -3571,9 +3578,7 @@
         {% endif %}
         {% endif %}
       </nav>
-    </aside>
 
-    <section class="content">
       <div class="content-top">
         <div class="content-session">
           <div class="user-box" id="userBox">
@@ -3618,7 +3623,9 @@
           {% endif %}
         </div>
       </div>
+    </aside>
 
+    <section class="content">
       <section class="panel" data-panel="noticias">
         <div class="panel-head">
           <div>
@@ -12709,75 +12716,6 @@
     })();
   </script>
 
-  <script>
-  (function () {
-    const body = document.body;
-    const railToggle = document.getElementById("sidebarRailToggle");
-    const storageKey = "bitacora_sidebar_collapsed";
-
-    if (!railToggle) return;
-
-    const iconCollapsed = `
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <polyline points="8.5 19 15.5 12 8.5 5" style="fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:2;"></polyline>
-        <polyline points="14 5 21 12 14 19" style="fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:2;"></polyline>
-        <polyline points="3 19 10 12 3 5" style="fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:2;"></polyline>
-      </svg>
-    `;
-
-    const iconExpanded = `
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <polyline points="15.5 5 8.5 12 15.5 19" style="fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:2;"></polyline>
-        <polyline points="10 19 3 12 10 5" style="fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:2;"></polyline>
-        <polyline points="21 5 14 12 21 19" style="fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:2;"></polyline>
-      </svg>
-    `;
-
-    function isMobile() {
-      return window.matchMedia("(max-width: 1120px)").matches;
-    }
-
-    function updateToggleVisual(collapsed) {
-      railToggle.innerHTML = collapsed ? iconCollapsed : iconExpanded;
-      railToggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
-      const label = collapsed ? "Expandir barra lateral" : "Contraer barra lateral";
-      railToggle.setAttribute("title", label);
-      railToggle.setAttribute("aria-label", label);
-    }
-
-    function setCollapsed(collapsed, persist = true) {
-      if (isMobile()) {
-        body.classList.remove("sidebar-collapsed");
-        updateToggleVisual(false);
-        return;
-      }
-      body.classList.toggle("sidebar-collapsed", collapsed);
-      updateToggleVisual(collapsed);
-      if (persist) {
-        localStorage.setItem(storageKey, collapsed ? "1" : "0");
-      }
-    }
-
-    const initialCollapsed = localStorage.getItem(storageKey) === "1";
-    setCollapsed(initialCollapsed, false);
-
-    railToggle.addEventListener("click", () => {
-      const collapsed = !body.classList.contains("sidebar-collapsed");
-      setCollapsed(collapsed, true);
-    });
-
-    window.addEventListener("resize", () => {
-      if (isMobile()) {
-        body.classList.remove("sidebar-collapsed");
-        updateToggleVisual(false);
-        return;
-      }
-      const collapsed = localStorage.getItem(storageKey) === "1";
-      body.classList.toggle("sidebar-collapsed", collapsed);
-      updateToggleVisual(collapsed);
-    });
-  })();
-  </script>
   <script src="/static/atc-logo-home.js"></script>
 <script src="/static/atc-volver.js"></script>
 </body>

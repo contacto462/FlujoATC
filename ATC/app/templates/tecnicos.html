@@ -4126,6 +4126,7 @@
             avance: totalCamaras > 0 ? Math.round((avanceNum / totalCamaras) * 100) : avanceNum,
             observacion: obs,
             token: tokenActivo || "",
+            camaras_instaladas: totalCamaras > 0 ? avanceNum : null,
           }),
         });
         cerrarModalEnProceso();

@@ -879,7 +879,7 @@
         if(todoCb.checked)return;
         const equipoUnicoSeleccionado=cantidadEquipos===1&&equipoChecks.length===1&&equipoChecks[0].cb.checked;
         const todosLosEquipos=cantidadEquipos>1&&equipoChecks.length>0&&equipoChecks.every(({cb})=>cb.checked);
-        const todasLasCamaras=camaras.length>0&&camChecks.length>0&&camChecks.every(({cb})=>cb.checked);
+        const todasLasCamaras=camaras.length>0&&camChecks.length>1&&camChecks.every(({cb})=>cb.checked);
         if(equipoUnicoSeleccionado||todosLosEquipos||todasLasCamaras){
           todoCb.checked=true;
           todoCb.dispatchEvent(new Event("change"));
