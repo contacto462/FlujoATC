@@ -473,11 +473,10 @@ td input[type=text].campo-deshabilitado.campo-vacio{
   // camposOk mas abajo, en renderTabla) pero evaluable antes de armar el
   // <tr>, para poder ordenar la tabla dejando arriba lo modificable.
   function esModificable(fila) {
-    if (fila.anulada) return false;
-    const soporteOk = !!fila.terminadoSoporte || !!fila.esGuardia;
-    const camposOk = !!fila.esGuardia || !!(fila.requierePuestoNuevo && String(fila.requierePuestoNuevo).trim() &&
-                        fila.numeroCentralAsignado && String(fila.numeroCentralAsignado).trim());
-    return soporteOk && camposOk;
+    // Antes exigia Soporte terminado + Req. Puesto + N. Central completos
+    // para poder editar — se saco esa exigencia, se puede editar aunque
+    // esos campos esten vacios (pedido explicito, ago 2026).
+    return !fila.anulada;
   }
 
   // ── Render ───────────────────────────────────────────────────────────────
@@ -509,13 +508,6 @@ td input[type=text].campo-deshabilitado.campo-vacio{
       if (fila.anulada) tr.classList.add("anulada");
 
       const estados = fila.estados || {};
-      // Guardia no pasa por Servicio Tecnico/Soporte, asi que exigirle
-      // TERM. SOPORTE / Req. Puesto / N. Central la dejaria bloqueada para
-      // siempre — se da por cumplido automaticamente (pedido explicito,
-      // ago 2026).
-      const soporteOk = !!fila.terminadoSoporte || !!fila.esGuardia;
-      const camposOk = !!fila.esGuardia || !!(fila.requierePuestoNuevo && String(fila.requierePuestoNuevo).trim() &&
-                          fila.numeroCentralAsignado && String(fila.numeroCentralAsignado).trim());
 
       // Intentos de fecha para esta fila
       if (!(fila.codigo in intentosPorFila)) intentosPorFila[fila.codigo] = 0;
@@ -538,18 +530,18 @@ td input[type=text].campo-deshabilitado.campo-vacio{
         <td><input type="text" class="campo-deshabilitado${!fila.requierePuestoNuevo || !String(fila.requierePuestoNuevo).trim() ? ' campo-vacio' : ''}" value="${esc(fila.requierePuestoNuevo)}" disabled readonly></td>
         <td><input type="text" class="campo-deshabilitado${!fila.numeroCentralAsignado || !String(fila.numeroCentralAsignado).trim() ? ' campo-vacio' : ''}" value="${esc(fila.numeroCentralAsignado)}" disabled readonly></td>
         <td>
-          <div class="date-input-wrap" ${!camposOk ? 'title="Completa Req. Puesto y N. Central para modificar"' : ''}>
+          <div class="date-input-wrap">
             <input type="date" id="fecha-${esc(fila.codigo)}"
               value="${isoFecha(fila.fechaInicioServicio)}"
-              ${SOLO_LECTURA_OPERACIONES || !soporteOk || !camposOk || fila.anulada || fechaAgotada ? "disabled" : ""}
+              ${SOLO_LECTURA_OPERACIONES || fila.anulada || fechaAgotada ? "disabled" : ""}
             >
           </div>
         </td>
-        <td>${btnEstado(fila.codigo, "fecha_coordinacion", estados.fecha_coordinacion, SOLO_LECTURA_OPERACIONES || !soporteOk || !camposOk || fila.anulada, "Fecha Coord.")}</td>
-        <td>${btnEstado(fila.codigo, "reunion_coordinacion", estados.reunion_coordinacion, SOLO_LECTURA_OPERACIONES || !soporteOk || !camposOk || fila.anulada, "Reunion")}</td>
-        <td>${btnEstado(fila.codigo, "coord_apertura_puesto", estados.coord_apertura_puesto, SOLO_LECTURA_OPERACIONES || !soporteOk || !camposOk || fila.anulada, "Oper.")}</td>
-        <td>${btnEstado(fila.codigo, "coord_equipo", estados.coord_equipo, SOLO_LECTURA_OPERACIONES || !soporteOk || !camposOk || fila.anulada, "Equipo")}</td>
-        <td>${btnEstado(fila.codigo, "terminado", estados.terminado, SOLO_LECTURA_OPERACIONES || !soporteOk || !camposOk || fila.anulada, "Terminado")}</td>
+        <td>${btnEstado(fila.codigo, "fecha_coordinacion", estados.fecha_coordinacion, SOLO_LECTURA_OPERACIONES || fila.anulada, "Fecha Coord.")}</td>
+        <td>${btnEstado(fila.codigo, "reunion_coordinacion", estados.reunion_coordinacion, SOLO_LECTURA_OPERACIONES || fila.anulada, "Reunion")}</td>
+        <td>${btnEstado(fila.codigo, "coord_apertura_puesto", estados.coord_apertura_puesto, SOLO_LECTURA_OPERACIONES || fila.anulada, "Oper.")}</td>
+        <td>${btnEstado(fila.codigo, "coord_equipo", estados.coord_equipo, SOLO_LECTURA_OPERACIONES || fila.anulada, "Equipo")}</td>
+        <td>${btnEstado(fila.codigo, "terminado", estados.terminado, SOLO_LECTURA_OPERACIONES || fila.anulada, "Terminado")}</td>
       `;
 
       // Fecha inicio handler

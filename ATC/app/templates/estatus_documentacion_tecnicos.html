@@ -135,6 +135,57 @@ table.matriz td.col-avance{width:100px}
 .avance-pct{font-size:12.5px;font-weight:800;color:var(--text);min-width:34px;text-align:right}
 
 .row-oculta{display:none}
+
+.btn-toggle{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 14px;border-radius:7px;font-size:12.5px;font-weight:700;
+  cursor:pointer;border:1px solid var(--border-strong);
+  background:#fff;color:var(--text-soft);
+  transition:border-color .15s,color .15s;white-space:nowrap;
+}
+.btn-toggle:hover{border-color:#1d4ed8;color:#1d4ed8}
+
+/* ── Vista "Documentos por técnico" (navegador tipo Drive) ── */
+.docs-breadcrumb{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-bottom:14px}
+.docs-breadcrumb a{color:#1d4ed8;cursor:pointer;font-weight:700;text-decoration:none}
+.docs-breadcrumb a:hover{text-decoration:underline}
+.docs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.docs-carpeta{
+  display:flex;align-items:center;gap:10px;padding:12px 14px;
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  cursor:pointer;box-shadow:var(--shadow-sm);transition:transform .12s ease,border-color .12s ease;
+}
+.docs-carpeta:hover{transform:translateY(-2px);border-color:#1d4ed8}
+.docs-carpeta .nombre{font-size:12.5px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.docs-carpeta .badge-count{font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:999px;background:#f3f4f6;color:var(--text-soft);flex-shrink:0}
+.docs-carpeta .badge-count.tiene{background:var(--ok-bg);color:var(--ok-text)}
+.docs-lista{display:flex;flex-direction:column;gap:8px;max-width:640px}
+.docs-archivo-fila{
+  display:flex;align-items:center;gap:10px;padding:9px 12px;
+  background:var(--surface);border:1px solid var(--border);border-radius:9px;
+}
+.docs-archivo-nombre{flex:1;font-size:12.5px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.docs-icon-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:30px;height:30px;padding:0;flex:0 0 auto;
+  border-radius:7px;border:1px solid var(--border);background:var(--surface);
+  color:var(--text-soft);cursor:pointer;text-decoration:none;
+  transition:border-color .12s,color .12s;
+}
+.docs-icon-btn:hover{border-color:#1d4ed8;color:#1d4ed8}
+.docs-vacio{padding:30px;text-align:center;color:var(--muted);font-size:13px}
+.docs-upload-row{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;
+  border:1.5px dashed var(--border-strong);border-radius:9px;
+  background:#fafbfc;max-width:640px;
+}
+.docs-upload-row input[type="file"]{flex:1;font-size:12px;min-width:0}
+.btn-subir-doc{
+  padding:7px 14px;border-radius:7px;font-size:12.5px;font-weight:700;
+  border:1px solid #1d4ed8;background:#1d4ed8;color:#fff;cursor:pointer;white-space:nowrap;
+}
+.btn-subir-doc:disabled{opacity:.55;cursor:default}
+.btn-subir-doc:hover:not(:disabled){background:#1a41b8}
 </style>
 </head>
 <body>
@@ -156,6 +207,7 @@ table.matriz td.col-avance{width:100px}
 
 <div class="toolbar">
   <input class="search-box" id="buscador" type="text" placeholder="Buscar técnico o RUT…">
+  <button type="button" class="btn-toggle" id="btnVistaDocumentos" onclick="toggleVistaDocumentos()">Ver documentos por técnico</button>
   <div class="legend">
     <span class="chip chip-ok">≥ 90%</span>
     <span class="chip chip-warn">50–89%</span>
@@ -164,7 +216,7 @@ table.matriz td.col-avance{width:100px}
   </div>
 </div>
 
-<div class="wrap">
+<div class="wrap" id="wrapTabla">
   <div class="tabla-card">
     <table class="matriz">
       <thead>
@@ -198,6 +250,12 @@ table.matriz td.col-avance{width:100px}
       </tbody>
     </table>
   </div>
+</div>
+
+<div class="wrap" id="wrapDocumentos" style="display:none;">
+  <div class="docs-breadcrumb" id="docsBreadcrumb"></div>
+  <div class="docs-grid" id="docsGrid"></div>
+  <div class="docs-lista" id="docsLista" style="display:none;"></div>
 </div>
 
 <script>
@@ -266,6 +324,156 @@ table.matriz td.col-avance{width:100px}
     });
     contador.textContent = q ? `${visibles} de ${totalTecnicos} técnicos` : `${totalTecnicos} técnicos`;
   });
+
+  /* ── Vista "Documentos por técnico" (navegador tipo Drive) ──
+     Un GET por tecnico trae los 11 campos del checklist con sus archivos
+     ya resueltos (docsCamposCache) — subir/ver no toca la BBDD, solo Drive
+     (pedido explicito, ago 2026: los archivos viven solo en Drive, esta
+     pagina solo los lista en vivo). */
+  let docsVistaAbierta = false;
+  let docsTecnicoActual = null;
+  let docsCampoActual = null;
+  const docsCamposCache = {};
+  const TECNICOS_DOC = {{ tecnicos|tojson }};
+
+  const SVG_CARPETA_DOC = `<svg width="30" height="30" viewBox="0 0 24 24" fill="#f4b400" xmlns="http://www.w3.org/2000/svg"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"/></svg>`;
+  const SVG_ARCHIVO_DOC = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>`;
+  const SVG_OJO_DOC = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>`;
+
+  function escDoc(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+
+  function toggleVistaDocumentos() {
+    docsVistaAbierta = !docsVistaAbierta;
+    document.getElementById("wrapTabla").style.display = docsVistaAbierta ? "none" : "";
+    document.getElementById("wrapDocumentos").style.display = docsVistaAbierta ? "" : "none";
+    document.getElementById("btnVistaDocumentos").textContent = docsVistaAbierta ? "Volver a la tabla" : "Ver documentos por técnico";
+    if (docsVistaAbierta) renderTecnicosDoc();
+  }
+
+  function renderTecnicosDoc() {
+    docsTecnicoActual = null;
+    docsCampoActual = null;
+    document.getElementById("docsLista").style.display = "none";
+    const grid = document.getElementById("docsGrid");
+    grid.style.display = "";
+    document.getElementById("docsBreadcrumb").innerHTML = `<span>Técnicos</span>`;
+    if (!TECNICOS_DOC.length) {
+      grid.innerHTML = `<div class="docs-vacio">No hay técnicos.</div>`;
+      return;
+    }
+    grid.innerHTML = TECNICOS_DOC.map(t => `
+      <div class="docs-carpeta" data-id="${t.id}" data-nombre="${escDoc(t.nombre)}">
+        ${SVG_CARPETA_DOC}
+        <span class="nombre" title="${escDoc(t.nombre)}">${escDoc(t.nombre)}</span>
+      </div>
+    `).join("");
+    grid.querySelectorAll(".docs-carpeta").forEach(el => {
+      el.addEventListener("click", () => abrirTecnicoDoc(el.dataset.id, el.dataset.nombre));
+    });
+  }
+
+  async function abrirTecnicoDoc(id, nombre) {
+    docsTecnicoActual = { id, nombre };
+    docsCampoActual = null;
+    const grid = document.getElementById("docsGrid");
+    document.getElementById("docsLista").style.display = "none";
+    grid.style.display = "";
+    grid.innerHTML = `<div class="docs-vacio">Cargando carpetas de ${escDoc(nombre)}...</div>`;
+    document.getElementById("docsBreadcrumb").innerHTML =
+      `<a onclick="renderTecnicosDoc()">Técnicos</a> <span>›</span> <span>${escDoc(nombre)}</span>`;
+    try {
+      const res = await fetch(`/api/prevencion/estatus-documentacion/${id}/archivos?token=${encodeURIComponent(TOKEN)}`);
+      if (!res.ok) throw new Error("Error al cargar");
+      const data = await res.json();
+      docsCamposCache[id] = data.campos || [];
+      renderCamposDoc();
+    } catch (e) {
+      grid.innerHTML = `<div class="docs-vacio">Error al cargar los documentos de este técnico.</div>`;
+    }
+  }
+
+  function renderCamposDoc() {
+    const grid = document.getElementById("docsGrid");
+    const campos = docsCamposCache[docsTecnicoActual.id] || [];
+    grid.innerHTML = campos.map(c => `
+      <div class="docs-carpeta" data-campo="${escDoc(c.campo)}" data-label="${escDoc(c.label)}">
+        ${SVG_CARPETA_DOC}
+        <span class="nombre" title="${escDoc(c.label)}">${escDoc(c.label)}</span>
+        <span class="badge-count ${c.archivos.length ? 'tiene' : ''}">${c.archivos.length}</span>
+      </div>
+    `).join("");
+    grid.querySelectorAll(".docs-carpeta").forEach(el => {
+      el.addEventListener("click", () => abrirCampoDoc(el.dataset.campo, el.dataset.label));
+    });
+  }
+
+  function abrirCampoDoc(campo, label) {
+    docsCampoActual = { campo, label };
+    document.getElementById("docsGrid").style.display = "none";
+    document.getElementById("docsLista").style.display = "";
+    document.getElementById("docsBreadcrumb").innerHTML =
+      `<a onclick="renderTecnicosDoc()">Técnicos</a> <span>›</span> ` +
+      `<a onclick="volverACamposDoc()">${escDoc(docsTecnicoActual.nombre)}</a> <span>›</span> <span>${escDoc(label)}</span>`;
+    renderArchivosCampoDoc();
+  }
+
+  function volverACamposDoc() {
+    document.getElementById("docsLista").style.display = "none";
+    document.getElementById("docsGrid").style.display = "";
+    document.getElementById("docsBreadcrumb").innerHTML =
+      `<a onclick="renderTecnicosDoc()">Técnicos</a> <span>›</span> <span>${escDoc(docsTecnicoActual.nombre)}</span>`;
+    renderCamposDoc();
+  }
+
+  function renderArchivosCampoDoc() {
+    const campos = docsCamposCache[docsTecnicoActual.id] || [];
+    const info = campos.find(c => c.campo === docsCampoActual.campo);
+    const archivos = info ? info.archivos : [];
+    const filas = archivos.length
+      ? archivos.map(a => `
+          <div class="docs-archivo-fila">
+            ${SVG_ARCHIVO_DOC}
+            <span class="docs-archivo-nombre" title="${escDoc(a.name)}">${escDoc(a.name)}</span>
+            <a class="docs-icon-btn" href="${escDoc(a.url)}" target="_blank" rel="noopener" title="Ver archivo">${SVG_OJO_DOC}</a>
+          </div>
+        `).join("")
+      : `<div class="docs-vacio">Sin archivos subidos todavía.</div>`;
+    document.getElementById("docsLista").innerHTML = `
+      ${filas}
+      <div class="docs-upload-row">
+        <input type="file" id="docsInputArchivos" multiple>
+        <button type="button" class="btn-subir-doc" id="docsBtnSubir" onclick="subirArchivosDoc()">Subir</button>
+      </div>
+    `;
+  }
+
+  async function subirArchivosDoc() {
+    const input = document.getElementById("docsInputArchivos");
+    const btn = document.getElementById("docsBtnSubir");
+    const files = input.files;
+    if (!files || !files.length) { alert("Selecciona al menos un archivo."); return; }
+    const fd = new FormData();
+    fd.append("campo", docsCampoActual.campo);
+    Array.from(files).forEach(f => fd.append("files", f));
+    btn.disabled = true;
+    btn.textContent = "Subiendo...";
+    try {
+      const res = await fetch(`/api/prevencion/estatus-documentacion/${docsTecnicoActual.id}/archivos?token=${encodeURIComponent(TOKEN)}`, {
+        method: "POST",
+        body: fd,
+      });
+      if (!res.ok) throw new Error((await res.json()).detail || "Error al subir");
+      const data = await res.json();
+      const campos = docsCamposCache[docsTecnicoActual.id] || [];
+      const info = campos.find(c => c.campo === docsCampoActual.campo);
+      if (info) info.archivos = info.archivos.concat(data.archivos || []);
+      renderArchivosCampoDoc();
+    } catch (e) {
+      alert("No se pudo subir: " + e.message);
+      btn.disabled = false;
+      btn.textContent = "Subir";
+    }
+  }
 </script>
 <script>
 </script>

@@ -65,6 +65,10 @@ class Registro(Base):
     drive_cierre_folder_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     drive_cierre_folder_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     pdf_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # ODT creada porque el cliente contacto/solicito expresamente el
+    # servicio (marcado en el checkbox "Contacto de cliente" del modal
+    # "Crear ODT") — resalta la fila en la tabla. Pedido explicito, ago 2026.
+    solicitud_cliente: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
@@ -236,6 +240,15 @@ class SucursalCamaraMonitoreo(Base):
     # Tabla Soporte ODS, a Google Drive) — se ve al presionar la camara en
     # "Administrar puestos" de Bitácora — pedido explicito, ago 2026.
     foto_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Integracion Dahua DSS/VMS. Estos campos se completan cuando el
+    # integrador entregue los codigos reales de DSS; si estan vacios, el
+    # sistema mantiene el flujo actual sin consultar la plataforma.
+    dss_device_code: Mapped[Optional[str]] = mapped_column(String(120), nullable=True, index=True)
+    dss_channel_id: Mapped[Optional[str]] = mapped_column(String(180), nullable=True, index=True)
+    dss_channel_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    dss_last_status: Mapped[Optional[int]] = mapped_column(nullable=True)
+    dss_last_checked_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     sucursal: Mapped[Optional["SucursalBBDD"]] = relationship(back_populates="camaras_monitoreo")
 

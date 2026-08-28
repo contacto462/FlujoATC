@@ -1944,7 +1944,13 @@ current_user=Depends(_require_login)):
     safe_name = (filename or "imagen").replace('"', "").replace("\\", "_").strip() or "imagen"
     headers = {
         "Content-Disposition": f'inline; filename="{safe_name}"',
-        "Cache-Control": "private, max-age=600",
+        # El contenido de un file_id de Drive es inmutable en el uso que le
+        # da esta app (nunca se edita in-place; un reemplazo sube un archivo
+        # NUEVO con otro id — ver download_support_drive_file_bytes), así
+        # que el navegador puede cachearlo por mucho tiempo sin revalidar —
+        # pedido explicito, ago 2026 (antes 10 min, cada reapertura del
+        # popup de una cámara volvía a pedirla al proxy).
+        "Cache-Control": "private, max-age=31536000, immutable",
     }
     return Response(content=content, media_type=mime_type or "application/octet-stream", headers=headers)
 
@@ -2100,7 +2106,8 @@ async def _read_cierre_odt_uploads(
     max_files: int,
 ) -> list[dict[str, object]]:
     """Lee las imagenes de cierre de ODT a memoria (no se escriben a disco:
-    se suben a Drive de forma sincronica en el propio endpoint)."""
+    la subida a Drive se hace despues, en un thread de segundo plano —
+    ver cerrar_instalacion_venta / continuar_finalizacion_asincrona)."""
     files = [upload for upload in (uploads or []) if upload and upload.filename]
     if not files:
         raise HTTPException(status_code=400, detail="Debes adjuntar al menos una imagen para cerrar la ODT.")
@@ -2155,8 +2162,10 @@ current_user=Depends(_require_login)):
         uploads=files,
         max_files=3,
     )
-    fotos = service.subir_fotos_cierre_odt_sync(odt_limpia, foto_payloads)
-
+    # Igual que en cierre-instalacion-archivos: ya no se sube a Drive acá
+    # sincrónico (bloqueaba la respuesta varios segundos) — se manda
+    # foto_payloads y la subida + informe se hacen en segundo plano dentro
+    # de continuar_finalizacion_asincrona — pedido explicito, ago 2026.
     try:
         service.registrar_finalizacion_rapida(
             odt_limpia,
@@ -2173,7 +2182,7 @@ current_user=Depends(_require_login)):
         )
         result = service.continuar_finalizacion_asincrona(
             odt_limpia,
-            fotos,
+            [],
             str(data.get("observacion") or ""),
             responsable_cierre=str(data.get("responsableCierre") or ""),
             causa_cierre=data.get("causaCierre") or [],
@@ -2189,7 +2198,7 @@ current_user=Depends(_require_login)):
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     if isinstance(result, dict):
-        result["imagenes_guardadas_local"] = len(fotos)
+        result["imagenes_guardadas_local"] = len(foto_payloads)
         return result
     return {"result": result, "imagenes_guardadas_local": len(fotos)}
 
@@ -2233,8 +2242,12 @@ current_user=Depends(_require_login)):
         uploads=files,
         max_files=service.MAX_FOTOS_CIERRE_ODS,
     )
-    fotos = service.subir_fotos_cierre_odt_sync(odt_limpia, foto_payloads)
-
+    # La subida a Drive ya NO se hace acá sincrónica (era ~6-7s por foto,
+    # bloqueando la respuesta — reportado como "Failed to fetch" al cerrar
+    # una instalación con la red del técnico en terreno). Se manda
+    # foto_payloads (bytes en memoria) directo a cerrar_instalacion_venta,
+    # que cierra la ODT al toque y sube las fotos + genera el informe en un
+    # thread de segundo plano — pedido explicito, ago 2026.
     cantidad_instalada_total = data.get("cantidadInstaladaTotal") or data.get("cantidad_instalada_total")
     try:
         result = service.cerrar_instalacion_venta(
@@ -2242,7 +2255,7 @@ current_user=Depends(_require_login)):
             observacion=str(data.get("observacion") or ""),
             instalacion_completa=bool(data.get("instalacionCompleta") or data.get("instalacion_completa")),
             pruebas_cierre=data.get("pruebasCierre") or data.get("pruebas_cierre") or [],
-            fotos_base64=fotos,
+            fotos_base64=[],
             token=token,
             cantidad_instalada_total=int(cantidad_instalada_total) if cantidad_instalada_total else None,
             foto_payloads=foto_payloads,
@@ -2250,7 +2263,7 @@ current_user=Depends(_require_login)):
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    result["imagenes_guardadas_local"] = len(fotos)
+    result["imagenes_guardadas_local"] = len(foto_payloads)
     return result
 
 
@@ -4052,7 +4065,7 @@ current_user=Depends(_require_login)):
     incidencia_odt = existente.incidencia_odt if existente else None
     observacion_registro = observacion
     if resultado == "falla" and equipo_audio:
-        observacion_registro = f"{equipo_audio} sin audio"
+        observacion_registro = f"{equipo_audio}"
         if observacion:
             observacion_registro += f": {observacion}"
 

@@ -794,6 +794,44 @@ def _obs_delete_last_line(current_text: str, entry: dict) -> str:
 _SCHEMAS_CON_TABLA_CACHE: dict[str, list[str]] = {}
 _COLUMNAS_TABLA_CACHE: dict[tuple[str, str], set[str]] = {}
 
+# Engine cacheado para support_db_url (BD de "Ticketera"/Helpdesk — hoy, tras
+# la unificación, apply_unified_defaults en core/config.py la hace apuntar a
+# la MISMA SQL Server que el resto de la app si no se configura
+# SUPPORT_DB_URL aparte). _actualizar_estado_ticket_soporte y
+# _obtener_tecnicos_helpdesk creaban un Engine nuevo (build_engine, pool de
+# hasta 15+25 conexiones) en CADA llamada sin nunca liberarlo — se
+# acumulaban decenas de pools/conexiones abiertas contra SQL Server durante
+# el día (cada avance de ODT, cada cierre) hasta agotar conexiones y colgar
+# el server entero (health checks sin responder). Mismo criterio de cache
+# que ya usa _get_support_notes_engine en routes/incidencias.py — pedido
+# explicito, ago 2026.
+_support_db_engine = None
+
+
+def _get_support_db_engine():
+    global _support_db_engine
+    db_url = (settings.support_db_url or "").strip()
+    if not db_url:
+        return None
+    if _support_db_engine is None:
+        _support_db_engine = build_engine(db_url, pool_pre_ping=True)
+    return _support_db_engine
+
+
+def _support_schema_name() -> str:
+    """'dbo' si support_db_url apunta a SQL Server (el caso real hoy, tras la
+    unificación) — el schema configurado (histórico 'public', pensado para
+    Postgres) solo aplica si support_db_url de verdad es postgresql. Mismo
+    criterio que ya usa _support_requesters_table_name en
+    routes/incidencias.py; sin este guard, las queries acá tiraban
+    "Invalid object name 'public.messages'" contra SQL Server en cada
+    avance/cierre de ODT (silenciado por _sync_estado_ticket_soporte_silencioso,
+    por eso nunca se veía como error visible) — pedido explicito, ago 2026."""
+    db_url = (settings.support_db_url or "").strip()
+    if db_url.startswith("postgresql"):
+        return (settings.support_db_schema or "public").strip() or "public"
+    return "dbo"
+
 
 class IncidenciasService:
     MANTENCION_CIERRE_MAX_IMAGENES = 80
@@ -862,15 +900,15 @@ class IncidenciasService:
     # un tecnico que aparece solo en un equipo (lista de 1) nunca se sugiere
     # con acompanante.
     EQUIPOS_TECNICOS_POR_PATENTE: dict[str, list[str]] = {
-        "RTXG 52": ["Cristopher Enrique Soto Diaz", "Dwait German Aros Contreras"],
+        "RTXG 52": ["Cristopher Enrique Soto Díaz", "Dwait German Aros Contreras"],
         "RHPV 38": ["Emmanuel Issak Correa Ubilla", "Haxel Samir Del Carmen Saavedra Villanueva"],
         "KVTG 28": ["Omar Alejandro Triviño Silva"],
-        "SRVP 17": ["Diego Antonio Moncada Sepulveda", "Ricardo Andres Vergara Guerra"],
-        "SSZW 51": ["Bryan Benjamin Ibaceta Fabrega", "Rodrigo Octavio Carmona Agurto"],
+        "SRVP 17": ["Diego Mondaca Sepulveda", "Ricardo Andres Vergara Guerra"],
+        "SSZW 51": ["Bryan Benjamin Ibaceta Fabrega", "José Cristian Cataldo Madariaga"],
         "SSZS 24": ["Michael Alejandro Herrera Navia", "Hans Reinhold Schemmel Rodriguez"],
         "RJXX 46": ["Marco Antonio Lopez Aguirre", "Bryan Alexander Rebolledo Hidalgo"],
         "VXLG 86": ["Luis Alberto Bustamante Aguilera", "Enrique Alejandro Sandoval Nunez"],
-        "VXLG 93": ["Mauro Estefano Reyes Villegas"],
+        "VXLG 93": ["Mauro Estefano Reyes Villegas", "Rodrigo Octavio Carmona Agurto"],
     }
     PATENTES_TECNICOS_FIJAS: list[str] = [
         "RTXG 52",
@@ -891,6 +929,7 @@ class IncidenciasService:
         "haxel samir del carmen saavedra villanueva": "RHPV 38",
         "diego antonio moncada sepulveda": "SRVP 17",
         "diego moncada sepulveda": "SRVP 17",
+        "diego mondaca sepulveda": "SRVP 17",
         "ricardo vergara": "SRVP 17",
         "michael alejandro herrera navia": "SSZS 24",
         "hans reinhold schemmel rodriguez": "SSZS 24",
@@ -898,7 +937,8 @@ class IncidenciasService:
         "bryan alexander rebolledo hidalgo": "RJXX 46",
         "bryan rebolledo hidalgo": "RJXX 46",
         "bryan benjamin ibaceta fabrega": "SSZW 51",
-        "rodrigo octavio carmona agurto": "SSZW 51",
+        "jose cristian cataldo madariaga": "SSZW 51",
+        "rodrigo octavio carmona agurto": "VXLG 93",
         "luis alberto bustamante aguilera": "VXLG 86",
         "enrique alejandro sandoval nunez": "VXLG 86",
         "enrique alejandro sandoval": "VXLG 86",
@@ -1616,13 +1656,12 @@ class IncidenciasService:
         return out
 
     def _obtener_tecnicos_helpdesk(self, solo_activos: bool = True) -> list[str]:
-        db_url = (settings.support_db_url or "").strip()
-        if not db_url:
+        eng = _get_support_db_engine()
+        if eng is None:
             return []
-        schema = (settings.support_db_schema or "public").strip() or "public"
+        schema = _support_schema_name()
 
         try:
-            eng = build_engine(db_url, pool_pre_ping=True)
             with eng.connect() as conn:
                 cols = conn.execute(
                     text(
@@ -2756,12 +2795,11 @@ class IncidenciasService:
         if estado_limpio not in TICKET_STATUSES_PERMITIDOS:
             raise ValueError("Estado de ticket no permitido.")
 
-        db_url = str(settings.support_db_url or "").strip()
-        if not db_url:
+        engine = _get_support_db_engine()
+        if engine is None:
             return False
 
-        schema = (settings.support_db_schema or "public").strip() or "public"
-        engine = build_engine(db_url, pool_pre_ping=True)
+        schema = _support_schema_name()
         ahora = datetime.utcnow()
         with engine.begin() as conn:
             ticket_id = self._resolver_ticket_id_soporte(conn, schema, odt)
@@ -3722,6 +3760,7 @@ class IncidenciasService:
             tecnicos=tecnico,
             acompanante=acompanante,
             fecha_derivacion_tecnico=(ahora if tecnico else None),
+            solicitud_cliente=bool(data.solicitud_cliente),
         )
         self.db.add(reg)
         try:
@@ -3806,7 +3845,12 @@ class IncidenciasService:
         }
         for miembro in miembros:
             if self._normalizar_nombre_login(miembro) not in candidatos_propios:
-                return self._nombre_corto_tecnico(miembro)
+                # Nombre completo tal como está en EQUIPOS_TECNICOS_POR_PATENTE
+                # (no el acortado con _nombre_corto_tecnico) — ese acortado es
+                # solo para matchear el alias corto, no para mostrarlo: el
+                # modal de confirmación mostraba "Cristopher Soto" en vez de
+                # "Cristopher Enrique Soto Díaz" — pedido explicito, ago 2026.
+                return self._reparar_texto_mojibake(miembro).strip()
         return ""
 
     def derivar_odt_a_tecnico(
@@ -4621,6 +4665,7 @@ class IncidenciasService:
                 comuna,
                 geo_tabla,
                 geo_id or "",
+                bool(getattr(r, "solicitud_cliente", False)),
             ])
             odt_key = self._normalizar_texto(r.odt)
             if odt_key:
@@ -7322,7 +7367,18 @@ class IncidenciasService:
         if len(fotos_recibidas) > self.MAX_FOTOS_CIERRE_ODS:
             raise ValueError(f"Solo puedes adjuntar hasta {self.MAX_FOTOS_CIERRE_ODS} imagenes para esta ODS.")
         fotos = fotos_recibidas[: self.MAX_FOTOS_CIERRE_ODS]
-        if not fotos:
+        # foto_payloads (bytes en memoria, del multipart /cierre-instalacion-archivos)
+        # es la via NUEVA y asincrona: si vienen, no hace falta que `fotos` (URLs ya
+        # subidas) tambien venga — la subida a Drive se hace en segundo plano (ver
+        # threading.Thread mas abajo) en vez de bloquear la respuesta ~6-7s por foto,
+        # que era lo que el cliente reportaba como "Failed to fetch" al cerrar una
+        # instalacion — pedido explicito, ago 2026. El fallback legacy en base64
+        # (/api/incidencias/cierre-instalacion) sigue mandando `fotos_base64` ya
+        # resuelto y sin foto_payloads, así que no cambia su comportamiento.
+        foto_payloads_validos = [
+            p for p in (foto_payloads or []) if isinstance(p.get("bytes"), (bytes, bytearray)) and p.get("bytes")
+        ]
+        if not fotos and not foto_payloads_validos:
             raise ValueError("Debes adjuntar al menos una foto para cerrar la instalación.")
 
         ahora = datetime.now()
@@ -7400,13 +7456,18 @@ class IncidenciasService:
             row.foto_2 = fotos[1]
         if len(fotos) >= 3:
             row.foto_3 = fotos[2]
-        self._upsert_unified_images(
-            odt_limpia,
-            str(row.cliente or venta_row.nombre_sucursal or venta_row.razon_social or "").strip(),
-            "cierre_instalacion",
-            fotos,
-            max_imagenes=self.MAX_FOTOS_CIERRE_ODS,
-        )
+        if fotos:
+            # Si no hay `fotos` (via async con foto_payloads) el worker de
+            # segundo plano hace su propio _upsert_unified_images (tag
+            # "drive_cierre") una vez subidas — no hay nada que unificar
+            # todavía en este punto.
+            self._upsert_unified_images(
+                odt_limpia,
+                str(row.cliente or venta_row.nombre_sucursal or venta_row.razon_social or "").strip(),
+                "cierre_instalacion",
+                fotos,
+                max_imagenes=self.MAX_FOTOS_CIERRE_ODS,
+            )
         if row.fecha_registro and row.fecha_cierre:
             row.dias_ejecucion = (row.fecha_cierre.date() - row.fecha_registro.date()).days
 
@@ -7438,6 +7499,7 @@ class IncidenciasService:
             worker = threading.Thread(
                 target=self._ejecutar_drive_en_segundo_plano,
                 args=(odt_limpia, obs_cierre, fotos, self.MAX_FOTOS_INFORME_ODS, foto_payloads),
+                kwargs={"actualizar_fotos_registro": not fotos and bool(foto_payloads_validos)},
                 daemon=True,
                 name=f"drive-report-{odt_limpia}",
             )
@@ -8426,7 +8488,6 @@ class IncidenciasService:
             if (
                 getattr(st_row, "finalizado", False)
                 or getattr(st_row, "instalacion_finalizada", False)
-                or getattr(st_row, "fecha_cierre", None)
                 or (row and str(getattr(row, "estado", "") or "").strip().lower() in {"terminado", "finalizado"})
             ):
                 raise ValueError(f"La ODT {odt_limpia} ya esta cerrada.")
@@ -9827,13 +9888,32 @@ class IncidenciasService:
         fotos: list[str],
         max_fotos_informe: int | None = None,
         foto_payloads: list[dict[str, object]] | None = None,
+        actualizar_fotos_registro: bool = False,
     ) -> None:
         db = SessionLocal()
         try:
             service = IncidenciasService(db)
-            service._generar_drive_para_cierre(
+            result = service._generar_drive_para_cierre(
                 odt, observacion, fotos, max_fotos_informe=max_fotos_informe, foto_payloads=foto_payloads,
             )
+            # Cierre de instalacion asincrono (ver cerrar_instalacion_venta):
+            # cuando no habia `fotos` (URLs) todavia porque la subida se hizo
+            # aca mismo (no antes, sincronica, en el request original), hay
+            # que guardar foto_1/2/3 en el Registro reciEn ahora que ya se
+            # conocen las URLs — antes esto lo hacia el caller sincronico
+            # antes de que el thread arrancara — pedido explicito, ago 2026.
+            if actualizar_fotos_registro:
+                imagenes = [str(u or "").strip() for u in (result.get("imagenes") or []) if str(u or "").strip()]
+                if imagenes:
+                    row = db.scalar(select(Registro).where(Registro.odt == str(odt or "").strip()))
+                    if row:
+                        if len(imagenes) >= 1:
+                            row.foto_1 = imagenes[0]
+                        if len(imagenes) >= 2:
+                            row.foto_2 = imagenes[1]
+                        if len(imagenes) >= 3:
+                            row.foto_3 = imagenes[2]
+                        db.commit()
         except Exception:
             LOGGER.exception("Fallo la generacion automatica del informe Drive para ODT %s", odt)
         finally:
@@ -9927,9 +10007,13 @@ class IncidenciasService:
 
         drive_enabled = bool(settings.google_drive_enabled)
         if drive_enabled:
+            foto_payloads_validos = [
+                p for p in (foto_payloads or []) if isinstance(p.get("bytes"), (bytes, bytearray)) and p.get("bytes")
+            ]
             worker = threading.Thread(
                 target=self._ejecutar_drive_en_segundo_plano,
                 args=(odt_limpia, self._observacion_drive_cierre(obs_cierre, diagnostico), fotos, None, foto_payloads),
+                kwargs={"actualizar_fotos_registro": not fotos and bool(foto_payloads_validos)},
                 daemon=True,
                 name=f"drive-report-{odt_limpia}",
             )

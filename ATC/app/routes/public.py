@@ -1,9 +1,10 @@
 ﻿from __future__ import annotations
 
 from pathlib import Path
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -13,7 +14,6 @@ from ATC.app.core.config import settings
 from ATC.app.models.ticket import Ticket
 from ATC.app.services.sla_feedback_service import (
     apply_ticket_sla_feedback,
-    build_sla_feedback_link,
     build_sla_feedback_token,
     extract_feedback_from_payload,
     get_or_create_ticket_sla_feedback,
@@ -140,6 +140,7 @@ def ticket_sla_feedback(
     token: str = Query(...),
     rating: int | None = Query(None, ge=1, le=5),
     resolved: str | None = Query(None),
+    observacion: str | None = Query(None),
     db: Session = Depends(get_db),
 ):
     ticket = db.get(Ticket, ticket_id)
@@ -159,30 +160,35 @@ def ticket_sla_feedback(
         else:
             raise HTTPException(status_code=400, detail="Respuesta invalida")
 
-    if rating is not None or resolved_value is not None:
-        feedback = apply_ticket_sla_feedback(
+    if rating is not None or resolved_value is not None or observacion is not None:
+        apply_ticket_sla_feedback(
             db,
             ticket_id=ticket_id,
             rating=rating,
             resolved=resolved_value,
+            observacion=observacion,
         )
-    else:
-        feedback = get_or_create_ticket_sla_feedback(db, ticket_id)
+        # Redirige a la URL "limpia" (solo token, sin rating/resolved/
+        # observacion) despues de guardar. Sin esto, la respuesta quedaba
+        # en la barra de direcciones (GET con efecto secundario) y
+        # cualquier recarga/reapertura de esa misma URL volvia a guardar
+        # la misma respuesta — se veia como si "Si" viniera predeterminado
+        # al abrir la pagina, cuando en realidad era un reenvio silencioso
+        # de la ultima respuesta — pedido explicito, ago 2026.
+        clean_url = f"{request.url.path}?{urlencode({'token': token})}"
+        return RedirectResponse(url=clean_url, status_code=303)
+
+    feedback = get_or_create_ticket_sla_feedback(db, ticket_id)
 
     token_value = build_sla_feedback_token(ticket_id)
 
     return templates.TemplateResponse(
+        request,
         "public_sla_feedback.html",
         {
-            "request": request,
             "ticket": ticket,
             "feedback": feedback,
-            "rating_links": {
-                value: build_sla_feedback_link(ticket_id=ticket_id, token=token_value, rating=value)
-                for value in range(1, 6)
-            },
-            "resolved_yes_link": build_sla_feedback_link(ticket_id=ticket_id, token=token_value, resolved="si"),
-            "resolved_no_link": build_sla_feedback_link(ticket_id=ticket_id, token=token_value, resolved="no"),
+            "observacion_token": token_value,
             "is_complete": (
                 feedback.technician_rating is not None
                 and feedback.resolution_satisfied is not None
@@ -198,6 +204,7 @@ def ticket_sla_feedback_corporate(
     token: str = Query(...),
     rating: int | None = Query(None, ge=1, le=5),
     resolved: str | None = Query(None),
+    observacion: str | None = Query(None),
     db: Session = Depends(get_db),
 ):
     return ticket_sla_feedback(
@@ -206,6 +213,7 @@ def ticket_sla_feedback_corporate(
         token=token,
         rating=rating,
         resolved=resolved,
+        observacion=observacion,
         db=db,
     )
 

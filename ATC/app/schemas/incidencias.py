@@ -31,6 +31,7 @@ class IncidenciaNueva(BaseModel):
     direccion: Optional[str] = None
     tecnico: Optional[str] = None
     acompanante: Optional[str] = None
+    solicitud_cliente: bool = Field(default=False, alias="solicitudCliente")
     token: Optional[str] = ""
 
 

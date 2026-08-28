@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import List, Optional
 
-from sqlalchemy import String, ForeignKey, DateTime, Boolean, Integer, func
+from sqlalchemy import String, ForeignKey, DateTime, Boolean, Integer, Text as SAText, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ATC.app.core.db import Base
@@ -168,10 +168,52 @@ class Ticket(Base):
         order_by="Message.created_at",
     )
 
+    checklist_items: Mapped[List["TicketChecklistItem"]] = relationship(
+        "TicketChecklistItem",
+        back_populates="ticket",
+        cascade="all, delete-orphan",
+        order_by="TicketChecklistItem.orden",
+    )
+
     # =========================
     # REPRESENTACIÃ“N
     # =========================
     def __repr__(self) -> str:
         return f"<Ticket id={self.id} status={self.status}>"
-    
 
+
+
+class TicketChecklistItem(Base):
+    """Checklist embebido en UN solo ticket, para trabajo masivo (ej.
+    'reconfigurar los 29 puestos' o 'revisar todos los clientes'): en vez
+    de crear un ticket por puesto/cliente/sucursal, se crea un unico
+    ticket con un item de checklist por cada uno seleccionado, marcable
+    de a uno y con un % de avance — pedido explicito, ago 2026."""
+
+    __tablename__ = "ticket_checklist_items"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    ticket_id: Mapped[int] = mapped_column(ForeignKey("tickets.id"), nullable=False, index=True)
+
+    etiqueta: Mapped[str] = mapped_column(String(255), nullable=False)
+    # Comentario libre por item (ej. "falta el cable UTP, pendiente de
+    # bodega") — un solo comentario editable por item, no un hilo.
+    comentario: Mapped[Optional[str]] = mapped_column(SAText, nullable=True)
+    # "puesto" | "cliente" | "sucursal" — de donde salio el item, solo
+    # informativo (no cambia el comportamiento del checklist).
+    tipo: Mapped[str] = mapped_column(String(20), nullable=False)
+    # Numero de puesto, o id de bbdd_clientes / bbdd_sucursales segun tipo.
+    referencia_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    orden: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    completado: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    completado_en: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    completado_por_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    ticket = relationship("Ticket", back_populates="checklist_items")
+    completado_por = relationship("User")
+
+    def __repr__(self) -> str:
+        return f"<TicketChecklistItem id={self.id} ticket_id={self.ticket_id} completado={self.completado}>"

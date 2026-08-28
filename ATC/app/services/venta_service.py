@@ -1739,6 +1739,32 @@ def get_finanzas_ods_rows(db: Session) -> dict[str, object]:
     return {"rows": out, "totalAnuladas": total_anuladas}
 
 
+def get_finanzas_ods_pendiente_count(db: Session) -> int:
+    """Cantidad de ODS pendientes en la tabla de Finanzas (con algo que
+    cobrar, ni anulada ni finalizada) — para el badge del panel de Finanzas
+    (venta_finanzas_panel_page). A diferencia de get_finanzas_ods_rows, NO
+    resuelve la carpeta de Drive de cada ODS: esa resolución hace hasta 2
+    llamadas síncronas a la API de Drive POR CADA ODS sin drive_folder_url
+    todavía cacheada (find_ods_drive_folder_id) — con varias decenas de ODS
+    sin cache, el panel de Finanzas completo tardaba 15+ segundos en abrir
+    solo para mostrar un número en un badge. Pedido explicito, ago 2026."""
+    rows = (
+        db.query(VentaODS.estado, VentaODS.montos_a_cobrar, FinanzasODT.finalizado)
+        .outerjoin(FinanzasODT, func.lower(func.trim(FinanzasODT.odt)) == func.lower(func.trim(VentaODS.codigo)))
+        .all()
+    )
+    pendientes = 0
+    for estado, montos_a_cobrar, finalizado in rows:
+        if _monto_es_sin_cobro(montos_a_cobrar):
+            continue
+        if str(estado or "").strip().lower() == "anulada":
+            continue
+        if _is_true(finalizado):
+            continue
+        pendientes += 1
+    return pendientes
+
+
 def get_finanzas_ods_detail(db: Session, codigo: str) -> dict[str, str]:
     detail = get_ods_detail(db, codigo)
     comuna = ""

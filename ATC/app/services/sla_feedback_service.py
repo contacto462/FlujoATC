@@ -51,7 +51,11 @@ def build_sla_feedback_link(
         params["resolved"] = resolved
 
     query = urlencode(params)
-    return f"{get_public_base_url()}/encuesta/{ticket_id}?{query}"
+    # El router de public.py (routes/public.py: router = APIRouter(prefix="/public", ...))
+    # registra esta ruta como "/public/encuesta/{ticket_id}", no "/encuesta/{ticket_id}" —
+    # sin el prefijo el link generado siempre daba 404 (nunca se detectaba porque nada
+    # mandaba este link a un cliente real hasta ahora) — pedido explicito, ago 2026.
+    return f"{get_public_base_url()}/public/encuesta/{ticket_id}?{query}"
 
 
 def build_static_sla_survey_link(
@@ -100,6 +104,7 @@ def apply_ticket_sla_feedback(
     ticket_id: int,
     rating: int | None = None,
     resolved: bool | None = None,
+    observacion: str | None = None,
 ) -> TicketSlaFeedback:
     feedback = get_or_create_ticket_sla_feedback(db, ticket_id)
 
@@ -107,6 +112,11 @@ def apply_ticket_sla_feedback(
         feedback.technician_rating = rating
     if resolved is not None:
         feedback.resolution_satisfied = resolved
+    # observacion es opcional y se manda en un submit aparte (form de texto,
+    # no un link como rating/resolved) — None significa "esta pregunta no
+    # vino en este submit" (no tocar lo que ya hubiera), no "borrarla".
+    if observacion is not None:
+        feedback.observacion = observacion.strip() or None
 
     if feedback.technician_rating is not None and feedback.resolution_satisfied is not None:
         feedback.submitted_at = datetime.now(timezone.utc)

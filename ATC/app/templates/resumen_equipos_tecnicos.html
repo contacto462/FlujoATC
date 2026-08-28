@@ -251,7 +251,7 @@
 
     .odt-row {
       display: grid;
-      grid-template-columns: minmax(44px, .34fr) minmax(0, 1fr);
+      grid-template-columns: minmax(min-content, .34fr) minmax(0, 1fr);
       gap: 6px;
       min-height: 74px;
       padding: 10px 8px;
@@ -344,14 +344,14 @@
       align-items: center;
       justify-content: center;
       align-self: start;
-      min-height: 34px;
-      padding: 0 8px;
-      border-radius: 10px;
+      min-height: 28px;
+      padding: 0 6px;
+      border-radius: 8px;
       background: #edf4fb;
       color: #0d456b;
-      font-size: clamp(11px, .74vw, 13px);
-      font-weight: 900;
-      letter-spacing: .02em;
+      font-size: clamp(9.5px, .6vw, 11px);
+      font-weight: 800;
+      letter-spacing: .01em;
       white-space: nowrap;
       text-shadow: 0 1px 0 rgba(255,255,255,.7);
     }

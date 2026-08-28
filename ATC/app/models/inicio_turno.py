@@ -148,5 +148,36 @@ class TurnoEstipulado(Base):
     # cada tipo caen ese mes especifico.
     turnos_mes_30: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     turnos_mes_31: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # Hora de inicio del turno ("HH:MM"), para las alertas de cobertura
+    # incompleta por turno (ver inicio_turno.py: _verificar_alertas_turno_incompleto)
+    # — se necesita saber cuándo empezó ESTE turno puntual (Día/Noche) para
+    # poder avisar "pasadas 2 horas del inicio", no solo al cierre del día
+    # (que para un turno de Día avisando a medianoche no tiene sentido,
+    # pedido explicito, ago 2026). Se parsea desde el texto libre de
+    # `horario` cuando trae una hora explícita ("12 Hrs 08:00 - 20:00"), o
+    # cae al default del grupo (Día 08:00 / Noche 20:00) si no — ver
+    # scripts/_importar_turnos_estipulados_turnos.py.
+    hora_inicio: Mapped[Optional[str]] = mapped_column(String(5), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class TurnoAlertaEnviada(Base):
+    """Registro de que ya se avisó por un recinto+turno+fecha con cobertura
+    incompleta — el chequeo corre cada AUTOMATION_POLL_SECONDS (~5 min)
+    dentro de la ventana de alerta de ese turno, así que sin esto se
+    reenviaría el mismo correo muchas veces por turno. Una fila por
+    (sucursal_id o dependencia, tipo_turno, fecha) alcanza; no se borra —
+    sirve también de historial de incumplimientos."""
+
+    __tablename__ = "turno_alertas_enviadas"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    grupo: Mapped[str] = mapped_column(String(20), index=True, nullable=False)
+    dependencia: Mapped[str] = mapped_column(String(255), nullable=False)
+    sucursal_id: Mapped[Optional[int]] = mapped_column(nullable=True, index=True)
+    tipo_turno: Mapped[str] = mapped_column(String(20), nullable=False)
+    fecha: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    requerido: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    real: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    enviado_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

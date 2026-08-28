@@ -12,7 +12,7 @@
   <title>Incidencias Soporte Técnico</title>
   <script src="/static/gas_adapter_soporte.js?v=20260522_1"></script>
   <script src="/static/utils.js"></script>
-  <script src="/static/atc-notificacion-sonido.js"></script>
+  <script src="/static/atc-notificacion-sonido.js?v=20260827b"></script>
   <style>
     :root {
       --bg: #f7f8fa;
@@ -378,6 +378,53 @@
 
     tbody tr:hover {
       background: var(--row-hover);
+    }
+
+    /* ODT creada porque el cliente contacto/solicito el servicio (checkbox
+       "Contacto de cliente" en "Crear ODT") — resalta la fila, notorio pero
+       profesional, sin pisar los colores de estado. Pedido explicito, ago 2026. */
+    tbody tr.fila-solicitud-cliente {
+      background: #fff8e6;
+      box-shadow: inset 3px 0 0 #d9a521;
+    }
+    tbody tr.fila-solicitud-cliente:hover {
+      background: #fdefc8;
+    }
+
+    /* Distintivo especial para las filas de un tecnico puntual (id 165) —
+       reemplaza al ambar de "solicitud de cliente" cuando ambos aplicarian
+       a la misma fila. Pedido explicito, ago 2026. */
+    tbody tr.fila-tecnico-especial {
+      background: #ffe6f2;
+      box-shadow: inset 3px 0 0 #e05a9e;
+    }
+    tbody tr.fila-tecnico-especial:hover {
+      background: #ffd2ea;
+    }
+    tbody tr.fila-tecnico-especial td:first-child {
+      position: relative;
+      overflow: visible;
+    }
+    tbody tr.fila-tecnico-especial td:first-child::before {
+      content: "🎀";
+      position: absolute;
+      top: -9px;
+      left: -9px;
+      font-size: 17px;
+      line-height: 1;
+      transform: rotate(-45deg);
+      z-index: 5;
+      pointer-events: none;
+      text-shadow: 0 1px 2px rgba(0,0,0,.18);
+    }
+    .inc-solicitud-cliente {
+      display: flex; align-items: center; gap: 8px;
+      margin-top: 6px; padding: 9px 12px;
+      border: 1px solid #f2d98a; border-radius: 8px; background: #fffaf0;
+      font-size: 12.5px; font-weight: 700; color: #7a5b0a; cursor: pointer;
+    }
+    .inc-solicitud-cliente input[type="checkbox"] {
+      width: 16px; height: 16px; accent-color: #d9a521; cursor: pointer; flex-shrink: 0;
     }
 
     input,
@@ -2819,6 +2866,13 @@
       setTimeout(quitar, 2800);
     }
 
+    // Distintivo especial (rosado + 🎀) para las filas del/de la tecnico con
+    // user id 165 — pedido explicito, ago 2026.
+    const TECNICO_ESPECIAL_NOMBRE = normalizarTexto("Catalina Belén Silva Sagal");
+    function esTecnicoEspecial(...nombres) {
+      return nombres.some((n) => n && normalizarTexto(n) === TECNICO_ESPECIAL_NOMBRE);
+    }
+
     function renderRegistros(items) {
       const tbody = document.getElementById("registrosExistentes");
       tbody.innerHTML = "";
@@ -2842,6 +2896,8 @@
       items.forEach((item) => {
         const fila = item.fila;
         const tr = document.createElement("tr");
+        if (esTecnicoEspecial(fila[6], fila[7])) tr.classList.add("fila-tecnico-especial");
+        else if (fila[19] === true) tr.classList.add("fila-solicitud-cliente");
         const row = [fila[0], fila[1], fila[2], fila[3], fila[5], fila[4], fila[6], fila[7], fila[8], fila[9]];
         const rowSourceCols = [0, 1, 2, 3, 17, 4, 6, 7, 8, 9];
 
@@ -3886,6 +3942,17 @@
       campoDescExtra.appendChild(taExtra);
       card.appendChild(campoDescExtra);
 
+      // Marca que la ODT se crea porque el cliente contacto/solicito el
+      // servicio expresamente — resalta la fila en la tabla al registrar.
+      // Pedido explicito, ago 2026.
+      const campoSolicitud = document.createElement("label");
+      campoSolicitud.className = "inc-solicitud-cliente";
+      const chkSolicitud = document.createElement("input");
+      chkSolicitud.type = "checkbox"; chkSolicitud.name = "solicitudCliente";
+      campoSolicitud.appendChild(chkSolicitud);
+      campoSolicitud.appendChild(document.createTextNode("Contacto de cliente (el cliente solicitó este servicio)"));
+      card.appendChild(campoSolicitud);
+
       tbody.appendChild(card);
 
       let prefijoFijo = "";
@@ -4013,6 +4080,7 @@
         if (contacto) desc += `\nContacto: ${contacto}`;
 
         const direccion = odtDireccionGlobalPorSucursal[cliente] || "";
+        const solicitudCliente = !!f.querySelector('input[name="solicitudCliente"]')?.checked;
         inc.push({
           cliente,
           tipoIncidencia: tipo,
@@ -4020,6 +4088,7 @@
           estado: "Pendiente",
           area: "soporte",
           direccion,
+          solicitudCliente,
           token: "",
         });
       });
@@ -4208,7 +4277,7 @@
           const maxIdActual = Number(data.maxId || 0);
           if (!maxIdActual) return;
           if (soporteMaxIdConocido !== null && maxIdActual > soporteMaxIdConocido) {
-            if (window.reproducirSonidoNotificacion) window.reproducirSonidoNotificacion();
+            if (window.reproducirSonidoNotificacion) window.reproducirSonidoNotificacion("incidencia");
           }
           if (soporteMaxIdConocido === null || maxIdActual > soporteMaxIdConocido) {
             soporteMaxIdConocido = maxIdActual;

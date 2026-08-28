@@ -3,7 +3,9 @@ from __future__ import annotations
 import io
 import logging
 import re
+import threading
 import time
+from collections import OrderedDict
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
@@ -538,6 +540,164 @@ def list_support_images_for_odt(
     return out[:3]
 
 
+# ── Documentacion/capacitaciones por tecnico (pagina "Estatus Documentación
+#    Técnicos" de Prevencion): arbol Drive
+#    <root soporte>/Documentacion Tecnicos/<Tecnico>/<Campo del checklist>/archivos...
+#    Sin copia local de los archivos — solo se suben y se leen del Drive,
+#    pedido explicito del usuario, ago 2026 (mismo criterio que las fotos de
+#    ODT: guardar bytes en SQL fue lo que infló el log de transacciones a
+#    9GB antes). ──
+def _documentacion_tecnicos_root_folder_id(drive) -> str:
+    root_id = _safe_text(settings.google_drive_support_folder_id) or _safe_text(settings.google_drive_root_folder_id)
+    if not root_id:
+        raise DriveReportError("Falta GOOGLE_DRIVE_SUPPORT_FOLDER_ID o GOOGLE_DRIVE_ROOT_FOLDER_ID")
+    return _find_or_create_folder(drive, root_id, "Documentacion Tecnicos")
+
+
+def upload_documentacion_tecnico_archivos(
+    *,
+    tecnico: str,
+    campo_label: str,
+    file_payloads: list[dict[str, object]],
+) -> dict[str, Any]:
+    if not settings.google_drive_enabled:
+        raise DriveReportError("GOOGLE_DRIVE_ENABLED=false")
+    tecnico_limpio = _safe_text(tecnico)
+    if not tecnico_limpio:
+        raise DriveReportError("Falta el tecnico")
+
+    drive, _ = _build_clients()
+    doc_root_id = _documentacion_tecnicos_root_folder_id(drive)
+    tecnico_folder_id = _find_or_create_folder(drive, doc_root_id, _clean_filename(tecnico_limpio, fallback="Tecnico"))
+    campo_folder_id = _find_or_create_folder(
+        drive, tecnico_folder_id, _clean_filename(campo_label, fallback="Documento")
+    )
+
+    subidos: list[dict[str, str]] = []
+    for payload in file_payloads or []:
+        content = payload.get("bytes")
+        if not isinstance(content, (bytes, bytearray)) or not content:
+            continue
+        filename = _safe_text(payload.get("filename")) or "archivo"
+        mime_type = _safe_text(payload.get("mime_type")) or "application/octet-stream"
+        safe_name = _clean_filename(filename, fallback="archivo")
+        uploaded = _upload_bytes(drive, campo_folder_id, safe_name, bytes(content), mime_type)
+        subidos.append(
+            {
+                "id": uploaded["id"],
+                "name": uploaded.get("name", safe_name),
+                "url": f"/api/incidencias/drive-image/{uploaded['id']}",
+            }
+        )
+
+    return {
+        "tecnico_folder_id": tecnico_folder_id,
+        "campo_folder_id": campo_folder_id,
+        "archivos": subidos,
+    }
+
+
+def listar_documentacion_tecnico_archivos(*, tecnico: str) -> dict[str, list[dict[str, str]]]:
+    """Devuelve {nombre_de_carpeta_de_campo: [archivos]} leyendo en vivo
+    desde Drive. El caller (routes/venta.py) es quien sabe mapear esos
+    nombres de vuelta a las claves del checklist (DOCUMENTACION_TECNICO_CHECK_FIELDS)."""
+    if not settings.google_drive_enabled:
+        return {}
+    tecnico_limpio = _safe_text(tecnico)
+    if not tecnico_limpio:
+        return {}
+    try:
+        drive, _ = _build_clients()
+        root_id = _safe_text(settings.google_drive_support_folder_id) or _safe_text(settings.google_drive_root_folder_id)
+        if not root_id:
+            return {}
+        doc_root_id = _find_folder(drive, root_id, "Documentacion Tecnicos")
+        if not doc_root_id:
+            return {}
+        tecnico_folder_id = _find_folder(drive, doc_root_id, _clean_filename(tecnico_limpio, fallback="Tecnico"))
+        if not tecnico_folder_id:
+            return {}
+        subcarpetas = (
+            drive.files()
+            .list(
+                q=f"'{tecnico_folder_id}' in parents and trashed=false and mimeType='application/vnd.google-apps.folder'",
+                fields="files(id,name)",
+                pageSize=200,
+                includeItemsFromAllDrives=True,
+                supportsAllDrives=True,
+            )
+            .execute()
+            .get("files", [])
+        )
+        out: dict[str, list[dict[str, str]]] = {}
+        for carpeta in subcarpetas:
+            archivos = (
+                drive.files()
+                .list(
+                    q=f"'{carpeta['id']}' in parents and trashed=false",
+                    fields="files(id,name,mimeType)",
+                    pageSize=200,
+                    orderBy="name",
+                    includeItemsFromAllDrives=True,
+                    supportsAllDrives=True,
+                )
+                .execute()
+                .get("files", [])
+            )
+            out[carpeta["name"]] = [
+                {
+                    "id": _safe_text(a.get("id")),
+                    "name": _safe_text(a.get("name")),
+                    "mimeType": _safe_text(a.get("mimeType")),
+                    "url": f"/api/incidencias/drive-image/{_safe_text(a.get('id'))}",
+                }
+                for a in archivos
+                if a.get("id")
+            ]
+        return out
+    except Exception:
+        return {}
+
+
+# Cache en memoria de archivos descargados de Drive, keyed por file_id — el
+# proxy /api/incidencias/drive-image/{file_id} (fotos de cámaras, imágenes
+# de ODT) hacia esta función en CADA request sin ningún cache propio: dos
+# llamadas sincronas a la API de Drive (metadata + descarga completa del
+# archivo) por cada vista de una imagen, aunque sea siempre la misma. Estos
+# archivos son inmutables una vez subidos (esta app nunca los edita in-place:
+# "eliminar imagen" solo desvincula la URL en SQL, no borra en Drive, y un
+# reemplazo sube un archivo NUEVO con otro file_id — ver
+# eliminar_foto_camara_puesto en routes/bitacora.py), asi que cachear por
+# file_id para siempre (mientras el proceso viva) es seguro — pedido
+# explicito, ago 2026. Acotado por cantidad de entradas Y por bytes totales
+# (LRU) para no crecer sin limite en RAM.
+_DRIVE_FILE_CACHE_MAX_ENTRIES = 300
+_DRIVE_FILE_CACHE_MAX_BYTES = 150 * 1024 * 1024
+_drive_file_cache: "OrderedDict[str, tuple[bytes, str, str]]" = OrderedDict()
+_drive_file_cache_lock = threading.Lock()
+
+
+def _drive_file_cache_get(fid: str) -> tuple[bytes, str, str] | None:
+    with _drive_file_cache_lock:
+        cached = _drive_file_cache.get(fid)
+        if cached is not None:
+            _drive_file_cache.move_to_end(fid)
+        return cached
+
+
+def _drive_file_cache_put(fid: str, value: tuple[bytes, str, str]) -> None:
+    with _drive_file_cache_lock:
+        _drive_file_cache[fid] = value
+        _drive_file_cache.move_to_end(fid)
+        total_bytes = sum(len(v[0]) for v in _drive_file_cache.values())
+        while _drive_file_cache and (
+            len(_drive_file_cache) > _DRIVE_FILE_CACHE_MAX_ENTRIES
+            or total_bytes > _DRIVE_FILE_CACHE_MAX_BYTES
+        ):
+            _, oldest = _drive_file_cache.popitem(last=False)
+            total_bytes -= len(oldest[0])
+
+
 def download_support_drive_file_bytes(*, file_id: str) -> tuple[bytes, str, str]:
     """
     Descarga un archivo binario desde Google Drive usando las credenciales del sistema.
@@ -550,6 +710,10 @@ def download_support_drive_file_bytes(*, file_id: str) -> tuple[bytes, str, str]
     fid = _safe_text(file_id)
     if not fid:
         raise DriveReportError("file_id invalido")
+
+    cached = _drive_file_cache_get(fid)
+    if cached is not None:
+        return cached
 
     # Bajo trafico alto contra la API de Drive aparecen fallos transitorios
     # (timeout, conexion cortada) que en un segundo intento funcionan bien
@@ -573,7 +737,9 @@ def download_support_drive_file_bytes(*, file_id: str) -> tuple[bytes, str, str]
                 content = _export_doc_pdf(drive, fid)
                 if not filename.lower().endswith(".pdf"):
                     filename = f"{filename}.pdf"
-                return content, "application/pdf", filename
+                result = (content, "application/pdf", filename)
+                _drive_file_cache_put(fid, result)
+                return result
 
             request = drive.files().get_media(fileId=fid, supportsAllDrives=True)
             fh = io.BytesIO()
@@ -581,7 +747,9 @@ def download_support_drive_file_bytes(*, file_id: str) -> tuple[bytes, str, str]
             done = False
             while not done:
                 _, done = downloader.next_chunk()
-            return fh.getvalue(), mime_type, filename
+            result = (fh.getvalue(), mime_type, filename)
+            _drive_file_cache_put(fid, result)
+            return result
         except DriveReportError:
             raise
         except Exception as exc:

@@ -844,10 +844,19 @@ tr.fila-detalles {
   flex: 1;
   min-width: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 14px;
   align-content: start;
 }
+/* Columnas fijas (no auto-fit) para que el orden de las tarjetas —
+   Izquierda Arriba, [Centro Arriba,] Derecha Arriba, Izquierda Abajo, ...
+   ver _ST_PANTALLAS_4 / _ST_PANTALLAS_6 en routes/web.py — arme siempre la
+   misma disposición física del puesto real (2x2 en un puesto de 4
+   pantallas, 3x2 en uno de 6), sin importar el ancho de ventana. Con
+   auto-fit el número de columnas dependía del espacio disponible y podía
+   mezclar filas (p.ej. Derecha Arriba quedando debajo de Izquierda Arriba
+   en vez de al lado) — pedido explicito, ago 2026. */
+.ubc-pantallas.ubc-cols-2 { grid-template-columns: repeat(2, minmax(240px, 1fr)); }
+.ubc-pantallas.ubc-cols-3 { grid-template-columns: repeat(3, minmax(200px, 1fr)); }
 .ubc-pantalla-card {
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -886,7 +895,10 @@ tr.fila-detalles {
   cursor: pointer;
 }
 .ubc-slot.is-empty:hover { border-color: var(--accent); }
-.ubc-slot.is-occupied { background: #f1f5f9; color: var(--text-soft); }
+.ubc-slot.is-occupied { background: #f1f5f9; color: var(--text-soft); cursor: grab; }
+.ubc-slot.is-occupied:active { cursor: grabbing; }
+.ubc-slot.is-dragging { opacity: .35; }
+.ubc-slot.is-drag-over { border-color: var(--accent); border-style: dashed; background: rgba(59,130,246,.12); }
 .ubc-slot.is-replace {
   background: #fff7ed;
   border-color: #ea580c;
@@ -1275,7 +1287,7 @@ tr.modal-subida {
   <div class="ubc-head">
     <div>
       <h2 id="ubicarCamarasTitle" class="ubc-title">Ubicar cámaras — Puesto</h2>
-      <p class="ubc-sub">Click en una cámara pendiente y despues en el casillero donde va. Las que reemplazan a otra ya quedan ubicadas en su mismo lugar.</p>
+      <p class="ubc-sub">Click en una cámara pendiente y despues en el casillero donde va. Las que reemplazan a otra ya quedan ubicadas en su mismo lugar. Las cámaras ya guardadas (fondo gris) se pueden arrastrar a otro casillero.</p>
     </div>
     <button type="button" class="btn btn-light" id="btnCerrarUbicarCamaras">Cerrar</button>
   </div>
@@ -1947,6 +1959,8 @@ tr.modal-subida {
 
   /* ===== Ubicar cámaras en pantallas (simula Administrar Puestos de Bitácora) ===== */
   let ubcState = null;
+  let ubcDragPayload = null;
+  let ubcMoviendo = false;
 
   function ubcRecolectarPendientes() {
     const inputs = Array.from(document.querySelectorAll("#camarasServidorInputs input[data-camera-index]"));
@@ -2020,6 +2034,8 @@ tr.modal-subida {
       return `<button type="button" class="${clases.join(" ")}" data-pool-index="${p.index}">${htmlEsc(p.nombre)}${detalle}</button>`;
     }).join("");
 
+    pantallasEl.classList.toggle("ubc-cols-2", ubcState.pantallas.length > 0 && ubcState.pantallas.length <= 4);
+    pantallasEl.classList.toggle("ubc-cols-3", ubcState.pantallas.length > 4);
     pantallasEl.innerHTML = ubcState.pantallas.map((pantalla) => {
       const slotsHtml = Array.from({ length: pantalla.capacidad }, (_, i) => {
         const propia = Object.entries(ubicaciones).find(([, u]) => u.pantalla === pantalla.nombre && u.slotIndex === i);
@@ -2035,7 +2051,10 @@ tr.modal-subida {
         }
         const ocupado = pantalla.slots[i];
         if (ocupado) {
-          return `<div class="ubc-slot is-occupied" title="${htmlEsc(ocupado.empresa || "")}">${htmlEsc(ocupado.camara || "")}</div>`;
+          // Cámara ya guardada (de esta u otra sucursal) — arrastrable a
+          // cualquier otro casillero del mismo puesto, igual que en
+          // Bitácora ("Administrar Puestos").
+          return `<div class="ubc-slot is-occupied" draggable="true" data-existing-camera-id="${ocupado.id}" data-slot-pantalla="${htmlEsc(pantalla.nombre)}" data-slot-index="${i}" title="${htmlEsc(ocupado.empresa || "")} — arrastrar para mover">${htmlEsc(ocupado.camara || "")}</div>`;
         }
         return `<div class="ubc-slot is-empty" data-slot-pantalla="${htmlEsc(pantalla.nombre)}" data-slot-index="${i}">+</div>`;
       }).join("");
@@ -2084,6 +2103,69 @@ tr.modal-subida {
     };
     ubcState.armado = null;
     ubcRender();
+  });
+
+  /* ── Mover cámaras ya existentes arrastrándolas (igual que Bitácora) ── */
+  const ubcPantallasEl = document.getElementById("ubcPantallas");
+
+  ubcPantallasEl?.addEventListener("dragstart", (event) => {
+    const slot = event.target.closest(".ubc-slot[data-existing-camera-id]");
+    if (!slot || ubcMoviendo) { event.preventDefault(); return; }
+    ubcDragPayload = {
+      camaraId: Number(slot.dataset.existingCameraId),
+      pantallaOrigen: slot.dataset.slotPantalla,
+      slotIndexOrigen: Number(slot.dataset.slotIndex),
+    };
+    slot.classList.add("is-dragging");
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", String(ubcDragPayload.camaraId));
+  });
+
+  ubcPantallasEl?.addEventListener("dragend", (event) => {
+    const slot = event.target.closest(".ubc-slot[data-existing-camera-id]");
+    if (slot) slot.classList.remove("is-dragging");
+    ubcPantallasEl.querySelectorAll(".is-drag-over").forEach((n) => n.classList.remove("is-drag-over"));
+    ubcDragPayload = null;
+  });
+
+  ubcPantallasEl?.addEventListener("dragover", (event) => {
+    if (!ubcDragPayload) return;
+    const slot = event.target.closest(".ubc-slot.is-empty, .ubc-slot.is-occupied");
+    if (!slot) return;
+    event.preventDefault();
+    slot.classList.add("is-drag-over");
+  });
+
+  ubcPantallasEl?.addEventListener("dragleave", (event) => {
+    const slot = event.target.closest(".ubc-slot.is-empty, .ubc-slot.is-occupied");
+    if (slot) slot.classList.remove("is-drag-over");
+  });
+
+  ubcPantallasEl?.addEventListener("drop", async (event) => {
+    const slot = event.target.closest(".ubc-slot.is-empty, .ubc-slot.is-occupied");
+    const payload = ubcDragPayload;
+    if (!slot || !payload || !ubcState) return;
+    event.preventDefault();
+    slot.classList.remove("is-drag-over");
+    const pantallaDestino = slot.dataset.slotPantalla;
+    const slotIndexDestino = Number(slot.dataset.slotIndex);
+    if (pantallaDestino === payload.pantallaOrigen && slotIndexDestino === payload.slotIndexOrigen) return;
+    if (ubcMoviendo) return;
+    ubcMoviendo = true;
+    try {
+      await apiPost(`/api/soporte-tecnico/puesto/${ubcState.puesto}/mover-camara`, {
+        camaraId: payload.camaraId,
+        pantalla: pantallaDestino,
+        slotIndex: slotIndexDestino,
+      });
+      const data = await apiGet(`/api/soporte-tecnico/puesto/${ubcState.puesto}/pantallas`);
+      ubcState.pantallas = data.pantallas || [];
+      ubcRender();
+    } catch (err) {
+      alert("No se pudo mover la cámara: " + err.message);
+    } finally {
+      ubcMoviendo = false;
+    }
   });
 
   document.getElementById("btnCerrarUbicarCamaras")?.addEventListener("click", cerrarUbicarCamaras);

@@ -28,7 +28,7 @@ from sqlalchemy import inspect, text
 
 from ATC.app.core.config import settings
 from ATC.app.core.db import Base, SessionLocal, engine
-from ATC.app.core.db_compat import add_column, rename_column
+from ATC.app.core.db_compat import add_column, rename_column, table_has_column
 from ATC.app.core.static import MultiDirectoryStaticFiles
 from ATC.app.core.text import decode_mime_words
 
@@ -86,6 +86,7 @@ from ATC.app.models.inicio_turno import (  # noqa: F401
     RecintoQrGenerado,
     RondaRegistro,
     SupervisorRegistro,
+    TurnoAlertaEnviada,
     TurnoEstipulado,
 )
 from ATC.app.models.message import Message  # noqa: F401
@@ -94,7 +95,7 @@ from ATC.app.models.requester import Requester  # noqa: F401
 from ATC.app.models.requester_internal_note_read_state import (  # noqa: F401
     RequesterInternalNoteReadState,
 )
-from ATC.app.models.ticket import Ticket  # noqa: F401
+from ATC.app.models.ticket import Ticket, TicketChecklistItem  # noqa: F401
 from ATC.app.models.ticket_alert_read_state import TicketAlertReadState  # noqa: F401
 from ATC.app.models.ticket_history import TicketAssignmentHistory  # noqa: F401
 from ATC.app.models.ticket_internal_note_read_state import (  # noqa: F401
@@ -778,12 +779,51 @@ def ensure_incidencias_trabajo_columns() -> None:
                 add_column(conn, "incidencias", "fecha_fin_trabajo", "DATETIME")
                 print("Schema updated: incidencias.fecha_fin_trabajo")
 
+            if "solicitud_cliente" not in column_names:
+                add_column(conn, "incidencias", "solicitud_cliente", "BIT")
+                print("Schema updated: incidencias.solicitud_cliente")
+
             if "tecnico_cierre" not in column_names:
                 add_column(conn, "incidencias", "tecnico_cierre", "VARCHAR(255)")
                 print("Schema updated: incidencias.tecnico_cierre")
 
     except Exception as exc:
         print("Error ensuring incidencias trabajo columns:", exc)
+
+
+def ensure_sucursal_camaras_dss_columns() -> None:
+    """Campos opcionales para vincular camaras de ATC con Dahua DSS/VMS."""
+    columns = {
+        "dss_device_code": "VARCHAR(120)",
+        "dss_channel_id": "VARCHAR(180)",
+        "dss_channel_name": "VARCHAR(255)",
+        "dss_last_status": "INT",
+        "dss_last_checked_at": "DATETIME",
+    }
+    try:
+        with engine.begin() as conn:
+            for col_name, col_type in columns.items():
+                if not table_has_column(conn, "sucursal_camaras_monitoreo", col_name):
+                    add_column(conn, "sucursal_camaras_monitoreo", col_name, col_type)
+                    print(f"Schema updated: sucursal_camaras_monitoreo.{col_name}")
+    except Exception as exc:
+        print("Error ensuring sucursal_camaras_monitoreo DSS columns:", exc)
+
+
+def ensure_ticket_checklist_columns() -> None:
+    """Columnas agregadas despues del create_all inicial de
+    ticket_checklist_items (create_all no altera tablas existentes)."""
+    columns = {
+        "comentario": "NVARCHAR(MAX)",
+    }
+    try:
+        with engine.begin() as conn:
+            for col_name, col_type in columns.items():
+                if not table_has_column(conn, "ticket_checklist_items", col_name):
+                    add_column(conn, "ticket_checklist_items", col_name, col_type)
+                    print(f"Schema updated: ticket_checklist_items.{col_name}")
+    except Exception as exc:
+        print("Error ensuring ticket_checklist_items columns:", exc)
 
 
 # =========================
@@ -1209,11 +1249,45 @@ def automation_loop() -> None:
         except Exception:
             LOGGER.exception("Error purgando papelera de Ticketera")
 
+        # Alertas de turno (Día/Noche) incompleto pasadas 2 horas del inicio
+        # de cada turno — ver routes/inicio_turno.py:
+        # _verificar_alertas_turno_incompleto. Sesion propia para que un
+        # fallo aca no afecte el resto del loop.
+        db = SessionLocal()
+        try:
+            from ATC.app.routes.inicio_turno import _verificar_alertas_turno_incompleto
+
+            _verificar_alertas_turno_incompleto(db)
+        except Exception:
+            LOGGER.exception("Error verificando alertas de turno incompleto")
+        finally:
+            db.close()
+
         poll_seconds = int(
             settings.AUTOMATION_POLL_SECONDS or 300
         )
 
         time.sleep(max(poll_seconds, 60))
+
+
+def piriod_suscripciones_loop() -> None:
+    """Refresca en background el cache de suscripciones de Piriod (Registro
+    de Suscripción de Finanzas) — la API pagina de a 20 y hay ~600
+    suscripciones, así que traerlas todas toma ~30 llamadas; hacerlo acá
+    evita que el hilo de un request tenga que esperar eso (pedido
+    explícito, ago 2026)."""
+    from ATC.app.integrations.piriod_client import PiriodError
+    from ATC.app.services.suscripciones_service import refrescar_cache_piriod
+
+    while True:
+        try:
+            refrescar_cache_piriod()
+        except PiriodError as exc:
+            LOGGER.warning("No se pudo refrescar cache de suscripciones Piriod: %s", exc)
+        except Exception:
+            LOGGER.exception("Error refrescando cache de suscripciones Piriod")
+
+        time.sleep(300)
 
 
 # =========================
@@ -1243,6 +1317,8 @@ def startup_tasks() -> None:
     ensure_tickets_inbound_mailbox_column()
     ensure_tickets_team_broadcast_column()
     ensure_incidencias_trabajo_columns()
+    ensure_sucursal_camaras_dss_columns()
+    ensure_ticket_checklist_columns()
 
     # Normalización de información existente.
     normalize_requester_names()
@@ -1272,6 +1348,11 @@ def startup_tasks() -> None:
 
     threading.Thread(
         target=automation_loop,
+        daemon=True,
+    ).start()
+
+    threading.Thread(
+        target=piriod_suscripciones_loop,
         daemon=True,
     ).start()
 

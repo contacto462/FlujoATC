@@ -14,13 +14,16 @@ from __future__ import annotations
 
 import csv
 import re
+import threading
 import unicodedata
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ATC.app.integrations.piriod_client import listar_todas_suscripciones
 from ATC.app.models.incidencias import SucursalBBDD, SucursalCamaraMonitoreo
 from ATC.app.models.suscripciones import Suscripcion
 
@@ -203,6 +206,139 @@ def obtener_camaras_monitoreadas_por_sucursal(db: Session) -> dict[int, int]:
     return conteo
 
 
+_PIRIOD_CACHE_LOCK = threading.Lock()
+_PIRIOD_CACHE: dict[str, Any] = {"por_codigo": {}, "actualizado_en": None}
+
+
+def _mapear_estado_piriod(status: Any) -> str:
+    status_norm = str(status or "").strip().lower()
+    if status_norm in ("cancelled", "finalized"):
+        return "Cancelada"
+    if status_norm == "paused":
+        return "Pausada"
+    return "Vigente"
+
+
+def _fecha_termino_piriod(sub: dict[str, Any]) -> str:
+    """cancelled (fecha real de cancelacion) tiene prioridad sobre end_date
+    (fecha calculada por ciclos de facturacion, puede ser una proyeccion a
+    futuro que todavia no paso)."""
+    fecha = sub.get("cancelled") or sub.get("end_date")
+    if not fecha:
+        return ""
+    fecha_str = str(fecha)[:10]
+    try:
+        anio, mes, dia = fecha_str.split("-")
+        return f"{dia}/{mes}/{anio}"
+    except ValueError:
+        return ""
+
+
+def _valor_y_moneda_piriod(sub: dict[str, Any]) -> tuple[float | None, str | None]:
+    """Suma el monto de todas las lineas de la suscripcion que comparten la
+    moneda de la primera linea (no tiene sentido sumar UF con CLP)."""
+    lineas = sub.get("lines") or []
+    if not lineas:
+        return None, None
+    primera_moneda = ((lineas[0].get("plan") or {}).get("currency") or {}).get("id")
+    total = 0.0
+    encontro_alguna = False
+    for linea in lineas:
+        plan = linea.get("plan") or {}
+        moneda_linea = (plan.get("currency") or {}).get("id")
+        if moneda_linea != primera_moneda:
+            continue
+        monto = plan.get("amount")
+        if monto is None:
+            continue
+        cantidad = linea.get("quantity") or 1
+        total += float(monto) * float(cantidad)
+        encontro_alguna = True
+    if not encontro_alguna:
+        return None, None
+    # round() evita arrastrar imprecision de punto flotante de la suma
+    # (ej. 62.699999999999996 en vez de 62.7) hasta la respuesta del API.
+    return round(total, 3), primera_moneda
+
+
+def refrescar_cache_piriod() -> None:
+    """Trae todas las suscripciones de Piriod (paginando) y actualiza el
+    cache en memoria, indexado por id — que coincide exactamente con
+    Suscripcion.codigo. Si la llamada falla, se propaga la excepcion y el
+    cache anterior queda intacto (una caida de Piriod no debe borrar los
+    ultimos datos buenos que se mostraban)."""
+    suscripciones = listar_todas_suscripciones()
+    por_codigo = {sub["id"]: sub for sub in suscripciones if sub.get("id")}
+    with _PIRIOD_CACHE_LOCK:
+        _PIRIOD_CACHE["por_codigo"] = por_codigo
+        _PIRIOD_CACHE["actualizado_en"] = datetime.now(timezone.utc)
+
+
+def obtener_cache_piriod() -> dict[str, Any]:
+    with _PIRIOD_CACHE_LOCK:
+        return {
+            "por_codigo": _PIRIOD_CACHE["por_codigo"],
+            "actualizado_en": _PIRIOD_CACHE["actualizado_en"],
+        }
+
+
+def _lineas_piriod_texto(sub: dict[str, Any]) -> str:
+    partes = []
+    for linea in sub.get("lines") or []:
+        plan = linea.get("plan") or {}
+        moneda = (plan.get("currency") or {}).get("id") or ""
+        nombre = plan.get("name") or ""
+        monto = plan.get("amount")
+        cantidad = linea.get("quantity") or 1
+        partes.append(f"{nombre} ({monto} {moneda} x{cantidad})")
+    return " | ".join(partes)
+
+
+def suscripciones_piriod_crudo(db: Session) -> list[dict[str, Any]]:
+    """Todas las suscripciones que hay en Piriod (no solo las que están en
+    nuestra tabla local `suscripcion`), con sus datos tal cual los entrega
+    la API — sin curar, sin cruzar contra bbdd_sucursales ni nada. "En
+    Registro Local" es el único dato que no viene de Piriod: compara el id
+    contra los códigos que sí tenemos importados, para ver de un vistazo
+    qué suscripciones de Piriod nunca se importaron."""
+    codigos_locales = {c for (c,) in db.query(Suscripcion.codigo).all()}
+    piriod_por_codigo = obtener_cache_piriod()["por_codigo"]
+
+    resultado: list[dict[str, Any]] = []
+    for sub in piriod_por_codigo.values():
+        customer = sub.get("customer") or {}
+        estado_raw = sub.get("status") or ""
+        resultado.append(
+            {
+                "id": sub.get("id") or "",
+                "estado": estado_raw,
+                "cliente": customer.get("name") or "",
+                "rut": customer.get("tax_id") or "",
+                "email_cliente": customer.get("email") or "",
+                "direccion_cliente": customer.get("address") or "",
+                "comuna_cliente": ((customer.get("state") or {}).get("name")) or "",
+                "nota": sub.get("note") or "",
+                "fecha_inicio": sub.get("date_start") or "",
+                "proximo_cobro": sub.get("next_billing") or "",
+                "cobro_anterior": sub.get("previous_billing") or "",
+                "fecha_fin": sub.get("end_date") or "",
+                "cancelado_en": sub.get("cancelled") or "",
+                "motivo_cancelacion": sub.get("cancel_reason") or "",
+                "pausado_en": sub.get("paused") or "",
+                "motivo_pausa": sub.get("paused_reason") or "",
+                "ciclos_facturacion": sub.get("billing_cycles"),
+                "modo_prueba": bool(sub.get("test_mode")),
+                "esquema_cobro": sub.get("collection_scheme") or "",
+                "lineas": _lineas_piriod_texto(sub),
+                "creado": sub.get("created") or "",
+                "actualizado": sub.get("updated") or "",
+                "en_registro_local": sub.get("id") in codigos_locales,
+            }
+        )
+    resultado.sort(key=lambda r: (r["cliente"], r["id"]))
+    return resultado
+
+
 def obtener_suscripciones(
     db: Session, camaras_por_sucursal: dict[int, int] | None = None
 ) -> list[dict[str, Any]]:
@@ -213,8 +349,17 @@ def obtener_suscripciones(
     existe más. "Cantidad Cámaras" se reemplaza por el dato de
     bbdd_sucursales SOLO cuando Servicio == "Televigilancia" y hay
     sucursal_id con datos en camaras_por_sucursal — si no, se deja el
-    valor original importado del CSV y se marca "camaras_sin_bbdd": true."""
+    valor original importado del CSV y se marca "camaras_sin_bbdd": true.
+
+    Estado, Fecha Término, Valor Neto Mensual, Moneda y Link Piriod se
+    reemplazan por el dato en vivo del cache de Piriod (ver
+    refrescar_cache_piriod) cuando el código de la fila (que es el id real
+    de la suscripción en Piriod) aparece ahí — el resto de columnas
+    "curadas" (Servicio, Cámaras, Descuento, Internet, Comuna, Región, etc.)
+    no tienen equivalente limpio en la API de Piriod y se dejan como están
+    en la tabla importada del CSV (pedido explícito, ago 2026)."""
     camaras_por_sucursal = camaras_por_sucursal or {}
+    piriod_por_codigo = obtener_cache_piriod()["por_codigo"]
     filas = (
         db.query(Suscripcion, SucursalBBDD.nombre_sucursal)
         .outerjoin(SucursalBBDD, Suscripcion.sucursal_id == SucursalBBDD.id)
@@ -226,7 +371,26 @@ def obtener_suscripciones(
     for sus, nombre_sucursal_actual in filas:
         nombre_sucursal = nombre_sucursal_actual or sus.nombre_sucursal or ""
 
-        cancelada = str(sus.estado or "").strip().casefold() == "cancelada"
+        sub_piriod = piriod_por_codigo.get(sus.codigo)
+        if sub_piriod:
+            estado = _mapear_estado_piriod(sub_piriod.get("status"))
+            fecha_termino = _fecha_termino_piriod(sub_piriod)
+            valor_neto_mensual_piriod, moneda_piriod = _valor_y_moneda_piriod(sub_piriod)
+            valor_neto_mensual = (
+                valor_neto_mensual_piriod
+                if valor_neto_mensual_piriod is not None
+                else _numero_o_vacio(sus.valor_neto_mensual)
+            )
+            moneda = moneda_piriod or (sus.moneda or "")
+            link_piriod = f"https://app.piriod.com/subscriptions/{sus.codigo}"
+        else:
+            estado = sus.estado or ""
+            fecha_termino = sus.fecha_termino or ""
+            valor_neto_mensual = _numero_o_vacio(sus.valor_neto_mensual)
+            moneda = sus.moneda or ""
+            link_piriod = sus.link_piriod or ""
+
+        cancelada = str(estado).strip().casefold() == "cancelada"
 
         camaras_sin_bbdd = False
         if sus.servicio == "Televigilancia":
@@ -247,13 +411,13 @@ def obtener_suscripciones(
                 "codigo": sus.codigo,
                 "rut": sus.rut or "",
                 "nombre_cliente": sus.nombre_cliente or "",
-                "link_piriod": sus.link_piriod or "",
+                "link_piriod": link_piriod,
                 "servicio": sus.servicio or "",
                 "inicio_servicio": sus.inicio_servicio or "",
                 "cantidad_camaras": cantidad_camaras,
                 "camaras_sin_bbdd": camaras_sin_bbdd,
-                "moneda": sus.moneda or "",
-                "valor_neto_mensual": _numero_o_vacio(sus.valor_neto_mensual),
+                "moneda": moneda,
+                "valor_neto_mensual": valor_neto_mensual,
                 "descuento": _numero_o_vacio(sus.descuento),
                 "internet": _numero_o_vacio(sus.internet),
                 "valor_neto_televigilancia": _numero_o_vacio(sus.valor_neto_televigilancia),
@@ -266,8 +430,9 @@ def obtener_suscripciones(
                 "nombre_sucursal": nombre_sucursal,
                 "sucursal_id": sus.sucursal_id,
                 "asignado_manual": bool(sus.sucursal_asignada_manual),
-                "estado": sus.estado or "",
-                "fecha_termino": sus.fecha_termino or "",
+                "estado": estado,
+                "fecha_termino": fecha_termino,
+                "piriod_en_vivo": bool(sub_piriod),
             }
         )
     return resultado

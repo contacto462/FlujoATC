@@ -30,6 +30,7 @@ from ATC.app.routes.bitacora_access import (
 )
 from ATC.app.core.config import settings
 from ATC.app.core.db import get_db, get_incidencias_db
+from ATC.app.integrations.dss_platform import DSSPlatformClient, DSSPlatformError
 from ATC.app.models.incidencias import (
     SucursalBBDD,
     SucursalCamaraMonitoreo,
@@ -562,6 +563,30 @@ def _ficha_sucursal(incidencias_db: Session, selected_row: dict, empresa_limpia:
     total_camaras_vigilar = sum(int(o.get("numero_camaras_vigilar") or 0) for o in ods_validas)
     total_camaras_contratadas = max(total_camaras_instalar - total_camaras_desinstalar, 0)
 
+    # "Cámaras televigiladas" en esta ficha mostraba lo CONTRATADO en venta
+    # (numero_camaras_vigilar de la ODS), que no siempre coincide con lo que
+    # de verdad se está monitoreando hoy. Si la sucursal ya tiene registro
+    # en "Administrar Puestos" (sucursal_camaras_monitoreo), se prioriza el
+    # conteo real de ahí — solo las filas CON nombre_camara_monitoreo
+    # (vigiladas), sin contar camara_sin_monitoreo. Si no hay ningún
+    # registro ahí, se deja el comportamiento de siempre (contratado /
+    # sucursal_info_extra) — pedido explicito, ago 2026.
+    camaras_monitoreadas_count: int | None = None
+    try:
+        camaras_monitoreadas_count = incidencias_db.execute(
+            text("""
+                SELECT COUNT(*)
+                FROM sucursal_camaras_monitoreo
+                WHERE sucursal_id = :sid
+                  AND eliminado_en IS NULL
+                  AND nombre_camara_monitoreo IS NOT NULL
+                  AND LTRIM(RTRIM(nombre_camara_monitoreo)) <> ''
+            """),
+            {"sid": selected_row.get("id")},
+        ).scalar_one_or_none()
+    except Exception:
+        camaras_monitoreadas_count = None
+
     cliente_row = None
     try:
         cliente_row = incidencias_db.execute(
@@ -764,7 +789,11 @@ def _ficha_sucursal(incidencias_db: Session, selected_row: dict, empresa_limpia:
         "fecha_inicio": _first_non_empty(info_extra_row.get("fecha_inicio") if info_extra_row else None),
         "tipo_vigilancia": _first_non_empty(venta_row.get("tipo_plan") if venta_row else None, info_extra_row.get("tipo_vigilancia") if info_extra_row else None),
         "camaras_contratadas": _first_non_empty(str(total_camaras_contratadas) if ods_validas else None, info_extra_row.get("camaras_contratadas") if info_extra_row else None),
-        "camaras_televigiladas": _first_non_empty(str(total_camaras_vigilar) if ods_validas else None, info_extra_row.get("camaras_televigiladas") if info_extra_row else None),
+        "camaras_televigiladas": _first_non_empty(
+            str(camaras_monitoreadas_count) if camaras_monitoreadas_count else None,
+            str(total_camaras_vigilar) if ods_validas else None,
+            info_extra_row.get("camaras_televigiladas") if info_extra_row else None,
+        ),
         "plano_camaras": _first_non_empty(layout_row.get("ruta_archivo") if layout_row else None),
         "plan_cuadrante": _first_non_empty(info_extra_row.get("plan_cuadrante") if info_extra_row else None),
         "carabineros": _first_non_empty(info_extra_row.get("carabineros") if info_extra_row else None),
@@ -3998,6 +4027,11 @@ def api_bitacora_puestos(
             SucursalCamaraMonitoreo.sucursal_id,
             SucursalCamaraMonitoreo.slot_index,
             SucursalCamaraMonitoreo.foto_url,
+            SucursalCamaraMonitoreo.dss_device_code,
+            SucursalCamaraMonitoreo.dss_channel_id,
+            SucursalCamaraMonitoreo.dss_channel_name,
+            SucursalCamaraMonitoreo.dss_last_status,
+            SucursalCamaraMonitoreo.dss_last_checked_at,
             SucursalBBDD.nombre_sucursal,
         )
         .outerjoin(SucursalBBDD, SucursalCamaraMonitoreo.sucursal_id == SucursalBBDD.id)
@@ -4019,7 +4053,23 @@ def api_bitacora_puestos(
     # grouped[central][etiqueta_pantalla] = [ {id, empresa, camara, slotIndex}, ... ] — solo monitoreadas
     grouped: dict[int, dict[str, list[dict]]] = {}
     camaras_sin_monitoreo: list[dict] = []
-    for fila_id, central, ubicacion_pantalla, cam_monitoreada, cam_sin_monitoreo, cantidad_equipos, sucursal_id, slot_index, foto_url, nombre_sucursal in rows:
+    for (
+        fila_id,
+        central,
+        ubicacion_pantalla,
+        cam_monitoreada,
+        cam_sin_monitoreo,
+        cantidad_equipos,
+        sucursal_id,
+        slot_index,
+        foto_url,
+        dss_device_code,
+        dss_channel_id,
+        dss_channel_name,
+        dss_last_status,
+        dss_last_checked_at,
+        nombre_sucursal,
+    ) in rows:
         empresa = (nombre_sucursal or "").strip() or "(sucursal sin nombre)"
         try:
             cantidad_equipos_int = max(1, int(cantidad_equipos or 1))
@@ -4045,6 +4095,11 @@ def api_bitacora_puestos(
                 "sucursalId": sucursal_id,
                 "slotIndex": slot_index,
                 "fotoUrl": (foto_url or "").strip() or None,
+                "dssDeviceCode": (dss_device_code or "").strip() or None,
+                "dssChannelId": (dss_channel_id or "").strip() or None,
+                "dssChannelName": (dss_channel_name or "").strip() or None,
+                "dssLastStatus": dss_last_status,
+                "dssLastCheckedAt": dss_last_checked_at.isoformat() if dss_last_checked_at else None,
             }
             if incidencias_camara:
                 item["incidencias_count"] = len(incidencias_camara)
@@ -4100,6 +4155,282 @@ def api_bitacora_puestos(
         "puestos": puestos,
         "camaras_sin_monitoreo": camaras_sin_monitoreo,
         "can_manage": can_manage_bitacora_puestos(current_user),
+    }
+
+
+def _dss_channel_id_de_fila(fila: SucursalCamaraMonitoreo) -> str:
+    channel_id = str(getattr(fila, "dss_channel_id", None) or "").strip()
+    if not channel_id:
+        raise HTTPException(status_code=400, detail="Esta cámara todavía no tiene channelId de DSS configurado.")
+    return channel_id
+
+
+def _dss_device_code_de_fila(fila: SucursalCamaraMonitoreo) -> str:
+    device_code = str(getattr(fila, "dss_device_code", None) or "").strip()
+    if device_code:
+        return device_code
+    channel_id = _dss_channel_id_de_fila(fila)
+    if "$" in channel_id:
+        return channel_id.split("$", 1)[0].strip()
+    raise HTTPException(status_code=400, detail="Esta cámara no tiene deviceCode de DSS configurado.")
+
+
+def _get_camara_dss(incidencias_db: Session, camara_id: int) -> SucursalCamaraMonitoreo:
+    fila = incidencias_db.get(SucursalCamaraMonitoreo, camara_id)
+    if not fila or fila.eliminado_en is not None:
+        raise HTTPException(status_code=404, detail="No se encontró esa cámara.")
+    return fila
+
+
+def _dss_error(exc: DSSPlatformError) -> HTTPException:
+    return HTTPException(status_code=502, detail=str(exc))
+
+
+class DSSCamaraConfigPayload(BaseModel):
+    deviceCode: str = ""
+    channelId: str
+    channelName: str = ""
+
+
+@router.put("/api/bitacora/camaras/{camara_id}/dss/config")
+def configurar_dss_camara(
+    camara_id: int,
+    payload: DSSCamaraConfigPayload,
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    _require_bitacora_access(current_user)
+    if not can_manage_bitacora_puestos(current_user):
+        raise HTTPException(status_code=403, detail="Solo usuarios de Soporte pueden configurar DSS en cámaras.")
+
+    fila = _get_camara_dss(incidencias_db, camara_id)
+    channel_id = (payload.channelId or "").strip()
+    if not channel_id:
+        raise HTTPException(status_code=400, detail="channelId de DSS requerido.")
+    device_code = (payload.deviceCode or "").strip()
+    if not device_code and "$" in channel_id:
+        device_code = channel_id.split("$", 1)[0].strip()
+
+    fila.dss_device_code = device_code or None
+    fila.dss_channel_id = channel_id
+    fila.dss_channel_name = (payload.channelName or "").strip() or None
+    incidencias_db.commit()
+
+    return {
+        "ok": True,
+        "camaraId": fila.id,
+        "deviceCode": fila.dss_device_code,
+        "channelId": fila.dss_channel_id,
+        "channelName": fila.dss_channel_name,
+    }
+
+
+@router.get("/api/bitacora/camaras/{camara_id}/dss/status")
+def dss_estado_camara(
+    camara_id: int,
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    _require_bitacora_access(current_user)
+    fila = _get_camara_dss(incidencias_db, camara_id)
+    device_code = _dss_device_code_de_fila(fila)
+    channel_id = _dss_channel_id_de_fila(fila)
+    try:
+        payload = DSSPlatformClient().fetch_status([device_code])
+    except DSSPlatformError as exc:
+        raise _dss_error(exc)
+
+    status = None
+    for result in ((payload.get("data") or {}).get("results") or []):
+        for channel in result.get("channels") or []:
+            if str(channel.get("channelId") or "") == channel_id:
+                try:
+                    status = int(channel.get("status"))
+                except (TypeError, ValueError):
+                    status = None
+                break
+        if status is not None:
+            break
+
+    fila.dss_device_code = device_code
+    fila.dss_channel_id = channel_id
+    fila.dss_last_status = status
+    fila.dss_last_checked_at = datetime.now()
+    incidencias_db.commit()
+
+    return {
+        "ok": True,
+        "camaraId": fila.id,
+        "deviceCode": device_code,
+        "channelId": channel_id,
+        "status": status,
+        "statusLabel": "Online" if status == 1 else "Offline" if status == 0 else "Desconocido",
+        "raw": payload,
+    }
+
+
+@router.post("/api/bitacora/camaras/{camara_id}/dss/capture")
+def dss_capturar_camara(
+    camara_id: int,
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    _require_bitacora_access(current_user)
+    fila = _get_camara_dss(incidencias_db, camara_id)
+    channel_id = _dss_channel_id_de_fila(fila)
+    try:
+        payload = DSSPlatformClient().capture_channel(channel_id)
+    except DSSPlatformError as exc:
+        raise _dss_error(exc)
+    return {"ok": True, "camaraId": fila.id, "channelId": channel_id, "raw": payload}
+
+
+@router.get("/api/bitacora/camaras/{camara_id}/dss/live-url")
+def dss_live_url_camara(
+    camara_id: int,
+    fmt: Literal["hls", "flv"] = Query(default="hls"),
+    protocol: Literal["http", "https"] | None = Query(default=None),
+    streamType: int | None = Query(default=None, ge=1, le=3),
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    _require_bitacora_access(current_user)
+    fila = _get_camara_dss(incidencias_db, camara_id)
+    channel_id = _dss_channel_id_de_fila(fila)
+    protocol_resolved = protocol or (settings.dss_default_protocol or "https")
+    stream_type_resolved = streamType or int(settings.dss_default_stream_type or 1)
+    try:
+        payload = DSSPlatformClient().live_stream_url(
+            channel_id,
+            fmt=fmt,
+            protocol=protocol_resolved,
+            stream_type=stream_type_resolved,
+        )
+    except DSSPlatformError as exc:
+        raise _dss_error(exc)
+    return {
+        "ok": True,
+        "camaraId": fila.id,
+        "channelId": channel_id,
+        "format": fmt,
+        "streamUrl": (payload.get("data") or {}).get("streamUrl"),
+        "raw": payload,
+    }
+
+
+@router.get("/api/bitacora/camaras/{camara_id}/dss/records")
+def dss_buscar_grabaciones_camara(
+    camara_id: int,
+    startTime: str = Query(...),
+    endTime: str = Query(...),
+    streamType: int | None = Query(default=None, ge=1, le=3),
+    recordType: int = Query(default=0, ge=0),
+    recordSource: int | None = Query(default=None),
+    page: int = Query(default=1, ge=1),
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    _require_bitacora_access(current_user)
+    fila = _get_camara_dss(incidencias_db, camara_id)
+    channel_id = _dss_channel_id_de_fila(fila)
+    try:
+        payload = DSSPlatformClient().search_records(
+            channel_id,
+            start_time=startTime,
+            end_time=endTime,
+            stream_type=streamType or int(settings.dss_default_stream_type or 1),
+            record_type=recordType,
+            record_source=recordSource or int(settings.dss_default_record_source or 3),
+            page=page,
+        )
+    except DSSPlatformError as exc:
+        raise _dss_error(exc)
+    return {"ok": True, "camaraId": fila.id, "channelId": channel_id, "raw": payload}
+
+
+class DSSPlaybackHlsPayload(BaseModel):
+    startTime: str
+    endTime: str
+    streamId: str
+    recordSource: int | None = None
+    recordType: int = 0
+    streamType: int | None = None
+    protocol: Literal["http", "https"] | None = None
+
+
+@router.post("/api/bitacora/camaras/{camara_id}/dss/playback-hls")
+def dss_playback_hls_camara(
+    camara_id: int,
+    payload: DSSPlaybackHlsPayload,
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    _require_bitacora_access(current_user)
+    fila = _get_camara_dss(incidencias_db, camara_id)
+    channel_id = _dss_channel_id_de_fila(fila)
+    try:
+        result = DSSPlatformClient().playback_hls(
+            channel_id,
+            record_source=payload.recordSource or int(settings.dss_default_record_source or 3),
+            stream_id=payload.streamId,
+            record_type=payload.recordType,
+            stream_type=payload.streamType or int(settings.dss_default_stream_type or 1),
+            start_time=payload.startTime,
+            end_time=payload.endTime,
+            protocol=payload.protocol or (settings.dss_default_protocol or "https"),
+        )
+    except DSSPlatformError as exc:
+        raise _dss_error(exc)
+    return {
+        "ok": True,
+        "camaraId": fila.id,
+        "channelId": channel_id,
+        "streamUrl": (result.get("data") or {}).get("streamUrl"),
+        "raw": result,
+    }
+
+
+class DSSPlaybackTimePayload(BaseModel):
+    startTime: str
+    endTime: str
+    streamId: str
+    ssId: str
+    recordSource: int | None = None
+    recordType: int = 1
+    streamType: int | None = None
+    refer: Literal[1, 2] = 1
+
+
+@router.post("/api/bitacora/camaras/{camara_id}/dss/playback-rtsp")
+def dss_playback_rtsp_camara(
+    camara_id: int,
+    payload: DSSPlaybackTimePayload,
+    incidencias_db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_bitacora),
+):
+    _require_bitacora_access(current_user)
+    fila = _get_camara_dss(incidencias_db, camara_id)
+    channel_id = _dss_channel_id_de_fila(fila)
+    try:
+        result = DSSPlatformClient().playback_by_time(
+            channel_id,
+            ss_id=payload.ssId,
+            stream_id=payload.streamId,
+            record_source=payload.recordSource or int(settings.dss_default_record_source or 3),
+            record_type=payload.recordType,
+            stream_type=payload.streamType or int(settings.dss_default_stream_type or 1),
+            start_time=payload.startTime,
+            end_time=payload.endTime,
+            refer=payload.refer,
+        )
+    except DSSPlatformError as exc:
+        raise _dss_error(exc)
+    return {
+        "ok": True,
+        "camaraId": fila.id,
+        "channelId": channel_id,
+        "rtspUrl": (result.get("data") or {}).get("url"),
+        "raw": result,
     }
 
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -56,6 +56,7 @@ from ATC.app.services.venta_service import (
     get_coordinates_for_address,
     get_finanzas_ods_detail,
     get_finanzas_ods_facturacion,
+    get_finanzas_ods_pendiente_count,
     get_finanzas_ods_rows,
     get_ods_codes,
     get_ods_data_by_rut,
@@ -89,8 +90,10 @@ from ATC.app.services.venta_service import (
 )
 from ATC.app.services.suscripciones_service import (
     asignar_sucursal_suscripcion,
+    obtener_cache_piriod,
     obtener_camaras_monitoreadas_por_sucursal,
     obtener_suscripciones,
+    suscripciones_piriod_crudo,
 )
 
 
@@ -453,12 +456,7 @@ def venta_finanzas_panel_page(
     guard = _guard_page(request, db, service, token, next_form="panelSelectorFinanzas")
     if guard:
         return guard
-    filas_finanzas = get_finanzas_ods_rows(db).get("rows", [])
-    pendiente_finanzas_tabla = sum(
-        1
-        for fila in filas_finanzas
-        if not fila.get("anulada") and not fila.get("estados", {}).get("finalizado")
-    )
+    pendiente_finanzas_tabla = get_finanzas_ods_pendiente_count(db)
     # A diferencia de "Aprobar Rendiciones" (Servicio Tecnico, que cuenta las que
     # esperan revision), Finanzas paga rendiciones ya aceptadas: el badge cuenta
     # "Por pagar" (estado_revision = Aceptada), no las pendientes de aprobacion.
@@ -903,7 +901,24 @@ def venta_finanzas_suscripciones_api(db: Session = Depends(get_db), current_user
     (Bitácora > Información Puestos) solo cuando Servicio es
     "Televigilancia" (ver suscripciones_service.obtener_suscripciones)."""
     camaras_por_sucursal = obtener_camaras_monitoreadas_por_sucursal(db)
-    return {"rows": obtener_suscripciones(db, camaras_por_sucursal)}
+    piriod_actualizado_en = obtener_cache_piriod()["actualizado_en"]
+    return {
+        "rows": obtener_suscripciones(db, camaras_por_sucursal),
+        "piriod_actualizado_en": piriod_actualizado_en.isoformat() if piriod_actualizado_en else None,
+    }
+
+
+@router.get("/api/venta/finanzas/suscripciones/piriod-crudo")
+def venta_finanzas_suscripciones_piriod_crudo_api(
+    db: Session = Depends(get_db), current_user=Depends(_require_login)
+):
+    """Todas las suscripciones que hay en Piriod, sin curar — ver
+    suscripciones_service.suscripciones_piriod_crudo."""
+    piriod_actualizado_en = obtener_cache_piriod()["actualizado_en"]
+    return {
+        "rows": suscripciones_piriod_crudo(db),
+        "piriod_actualizado_en": piriod_actualizado_en.isoformat() if piriod_actualizado_en else None,
+    }
 
 
 @router.get("/api/venta/sucursales/opciones")
@@ -1330,35 +1345,59 @@ def descargar_informe_estatus_gestion(db: Session = Depends(get_db)):
 
 # ─── Estatus Documentación Técnicos ──────────────────────────────────────
 
-_ESTATUS_DOCUMENTACION_EXCEPCIONES_USER_ID = (6, 7)
+# Personas que SI aparecen en la lista general de tecnicos (usada por
+# incidencias_servicio_tecnico y tabla_servicio_tecnico_venta para asignar
+# servicios) pero que no corresponden a esta matriz de documentacion/
+# capacitaciones de tecnicos de terreno — sacados a pedido explicito del
+# usuario, ago 2026, y excluidos aca para que la sincronizacion no los
+# vuelva a agregar en la proxima carga de la pagina.
+_ESTATUS_DOCUMENTACION_EXCLUIDOS = {
+    "christopher esteban villegas ruz",
+    "gianpiero alessandro lubiano forno",
+    "kevin ignacio valenzuela valenzuela",
+}
 
 
-def _tecnicos_reales_para_estatus_documentacion(db: Session):
+def _sincronizar_estatus_documentacion_tecnicos(db: Session, service: IncidenciasService) -> None:
+    """Alinea prevencion_estatus_documentacion_tecnicos con la misma lista de
+    tecnicos que usan incidencias_servicio_tecnico.html y
+    tabla_servicio_tecnico_venta.html (service.obtener_listas_bbdd()["tecnicos"]),
+    en vez de la lista propia (por department de Users) que quedaba
+    desincronizada, salvo _ESTATUS_DOCUMENTACION_EXCLUIDOS. Agrega los
+    tecnicos nuevos y borra los que ya no figuran en esa lista — decision
+    explicita del usuario, ago 2026 (se pierde el checklist de los que se
+    borran, pero deja la lista igual en las 3 paginas)."""
+    from sqlalchemy import func
     from ATC.app.models.incidencias import User as _UserModel
-
-    usuarios = db.query(_UserModel).filter(_UserModel.is_active == True).order_by(_UserModel.name.asc()).all()
-    resultado = []
-    for u in usuarios:
-        if u.id in _ESTATUS_DOCUMENTACION_EXCEPCIONES_USER_ID:
-            resultado.append(u)
-            continue
-        if str(u.role or "").strip().lower() in ("admin", "superadmin"):
-            continue
-        partes = {p.strip().lower() for p in str(u.department or "").split(";") if p.strip()}
-        if "tecnicos" in partes or "técnicos" in partes:
-            resultado.append(u)
-    return resultado
-
-
-def _ensure_estatus_documentacion_tecnicos_seed(db: Session) -> None:
     from ATC.app.models.prevencion import EstatusDocumentacionTecnico
 
-    existe = db.query(EstatusDocumentacionTecnico.id).first()
-    if existe:
-        return
-    tecnicos = _tecnicos_reales_para_estatus_documentacion(db)
-    for orden, u in enumerate(tecnicos):
-        db.add(EstatusDocumentacionTecnico(orden=orden, nombre=u.name, rut=u.username))
+    nombres_canonicos = service.obtener_listas_bbdd().get("tecnicos") or []
+    canonicos_por_key = {
+        service._normalizar_texto(n): n
+        for n in nombres_canonicos
+        if service._normalizar_texto(n) not in _ESTATUS_DOCUMENTACION_EXCLUIDOS
+    }
+    ruts_por_key = {
+        service._normalizar_texto(u.name): u.username
+        for u in db.query(_UserModel).all()
+    }
+
+    filas = db.query(EstatusDocumentacionTecnico).all()
+    keys_existentes = set()
+    for fila in filas:
+        key = service._normalizar_texto(fila.nombre)
+        if key not in canonicos_por_key:
+            db.delete(fila)
+        else:
+            keys_existentes.add(key)
+
+    siguiente_orden = (db.query(func.max(EstatusDocumentacionTecnico.orden)).scalar() or 0) + 1
+    for key, nombre in canonicos_por_key.items():
+        if key in keys_existentes:
+            continue
+        db.add(EstatusDocumentacionTecnico(orden=siguiente_orden, nombre=nombre, rut=ruts_por_key.get(key, "")))
+        siguiente_orden += 1
+
     db.commit()
 
 
@@ -1401,7 +1440,7 @@ def prevencion_estatus_documentacion_page(
     if guard:
         return guard
 
-    _ensure_estatus_documentacion_tecnicos_seed(db)
+    _sincronizar_estatus_documentacion_tecnicos(db, service)
     tecnicos = _serializar_estatus_documentacion_tecnicos(db)
     promedio_general = round(sum(t["avance"] for t in tecnicos) / len(tecnicos), 1) if tecnicos else 0
 
@@ -1444,6 +1483,89 @@ current_user=Depends(_require_login)):
     completados = sum(1 for c, _ in DOCUMENTACION_TECNICO_CHECK_FIELDS if getattr(item, c))
     avance = round((completados / total_campos) * 100) if total_campos else 0
     return {"ok": True, "id": item.id, "avance": avance}
+
+
+def _campo_documentacion_folder_map() -> dict[str, str]:
+    """campo_key -> nombre de carpeta Drive (mismo criterio de limpieza que
+    upload_documentacion_tecnico_archivos, que arma el nombre de carpeta a
+    partir del label con _clean_filename)."""
+    from ATC.app.models.prevencion import DOCUMENTACION_TECNICO_CHECK_FIELDS
+    from ATC.app.services.drive_base_service import _clean_filename
+
+    return {campo: _clean_filename(label, fallback=campo) for campo, label in DOCUMENTACION_TECNICO_CHECK_FIELDS}
+
+
+@router.get("/api/prevencion/estatus-documentacion/{item_id}/archivos")
+def obtener_archivos_documentacion_tecnico(
+    item_id: int,
+    db: Session = Depends(get_db),
+current_user=Depends(_require_login)):
+    from ATC.app.models.prevencion import DOCUMENTACION_TECNICO_CHECK_FIELDS, EstatusDocumentacionTecnico
+    from ATC.app.services.incidencias_drive_report_service import listar_documentacion_tecnico_archivos
+
+    item = db.get(EstatusDocumentacionTecnico, item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Técnico no encontrado")
+
+    por_carpeta = listar_documentacion_tecnico_archivos(tecnico=item.nombre)
+    folder_por_campo = _campo_documentacion_folder_map()
+
+    campos = [
+        {"campo": campo, "label": label, "archivos": por_carpeta.get(folder_por_campo[campo], [])}
+        for campo, label in DOCUMENTACION_TECNICO_CHECK_FIELDS
+    ]
+    return {"tecnico": item.nombre, "campos": campos}
+
+
+@router.post("/api/prevencion/estatus-documentacion/{item_id}/archivos")
+async def subir_archivos_documentacion_tecnico(
+    item_id: int,
+    campo: str = Form(...),
+    files: list[UploadFile] = File(default=[]),
+    db: Session = Depends(get_db),
+current_user=Depends(_require_login)):
+    from ATC.app.models.prevencion import DOCUMENTACION_TECNICO_CHECK_FIELDS, EstatusDocumentacionTecnico
+    from ATC.app.services.incidencias_drive_report_service import (
+        DriveReportError,
+        upload_documentacion_tecnico_archivos,
+    )
+
+    item = db.get(EstatusDocumentacionTecnico, item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Técnico no encontrado")
+
+    campos_por_key = dict(DOCUMENTACION_TECNICO_CHECK_FIELDS)
+    campo_limpio = (campo or "").strip()
+    if campo_limpio not in campos_por_key:
+        raise HTTPException(status_code=400, detail="Campo inválido")
+
+    payloads: list[dict[str, object]] = []
+    for upload in files or []:
+        if not upload:
+            continue
+        content = await upload.read()
+        if not content:
+            continue
+        payloads.append(
+            {
+                "filename": upload.filename or "archivo",
+                "mime_type": upload.content_type or "application/octet-stream",
+                "bytes": content,
+            }
+        )
+    if not payloads:
+        raise HTTPException(status_code=400, detail="Debes adjuntar al menos un archivo.")
+
+    try:
+        resultado = upload_documentacion_tecnico_archivos(
+            tecnico=item.nombre,
+            campo_label=campos_por_key[campo_limpio],
+            file_payloads=payloads,
+        )
+    except DriveReportError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    return {"ok": True, "archivos": resultado["archivos"]}
 
 
 # ─── Guardia / Supervisores ──────────────────────────────────────────────

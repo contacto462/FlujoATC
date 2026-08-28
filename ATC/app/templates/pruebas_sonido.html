@@ -80,6 +80,45 @@ body{
 .stat.solved .stat-n{color:#047857}
 .stat.pend .stat-n{color:var(--muted-strong,#475467)}
 
+/* ── búsqueda de sucursal ── */
+.suc-search{position:relative;padding:0 30px;margin-bottom:16px}
+.suc-search-input{
+  width:100%;max-width:420px;padding:10px 14px 10px 38px;border-radius:9px;
+  border:1px solid var(--border);background:var(--surface);font-size:13px;color:var(--text);
+  box-shadow:var(--shadow-sm);transition:.15s;
+}
+.suc-search-input:focus{outline:none;border-color:var(--blue-3);box-shadow:0 0 0 3px rgba(29,79,122,.12)}
+.suc-search-icon{
+  position:absolute;left:44px;top:50%;transform:translateY(-50%);
+  width:15px;height:15px;color:var(--muted);pointer-events:none;
+}
+.suc-search-results{
+  position:absolute;top:calc(100% + 4px);left:30px;width:100%;max-width:420px;
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  box-shadow:var(--shadow-md);max-height:340px;overflow-y:auto;z-index:40;display:none;
+}
+.suc-search-results.is-open{display:block}
+.suc-search-item{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:9px 14px;cursor:pointer;border-bottom:1px solid #f0f4f8;
+}
+.suc-search-item:last-child{border-bottom:none}
+.suc-search-item:hover,.suc-search-item.is-active{background:#eef5fb}
+.suc-search-item-info{min-width:0}
+.suc-search-item-nombre{font-size:12.5px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.suc-search-item-sub{font-size:11px;color:var(--muted);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.suc-search-item-week{font-size:10.5px;font-weight:700;color:var(--blue-3);background:#eef5fb;border-radius:99px;padding:3px 9px;flex-shrink:0}
+.suc-search-empty{padding:14px;font-size:12.5px;color:var(--muted);text-align:center}
+@keyframes sucSearchHighlight{
+  0%{box-shadow:inset 0 0 0 999px rgba(222,123,54,.28)}
+  100%{box-shadow:inset 0 0 0 999px rgba(222,123,54,0)}
+}
+.suc-row.is-search-hit{animation:sucSearchHighlight 1.8s ease-out}
+@media(max-width:600px){
+  .suc-search{padding:0 14px}
+  .suc-search-results{left:14px}
+}
+
 /* ── semanas: una a la vez, para avanzar en orden sin saltarse ninguna ── */
 .week-tabs{display:flex;gap:8px;padding:0 30px;margin-bottom:16px;overflow-x:auto}
 .week-tab{
@@ -286,6 +325,12 @@ body{
     <div class="stat fail"><span class="stat-n" id="stFail">—</span><span class="stat-l">Con falla</span></div>
     <div class="stat pend"><span class="stat-n" id="stPend">—</span><span class="stat-l">Pendientes</span></div>
   </div>
+</div>
+
+<div class="suc-search">
+  <svg class="suc-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+  <input type="text" class="suc-search-input" id="sucSearchInput" placeholder="Buscar sucursal por nombre, comuna o dirección…" autocomplete="off">
+  <div class="suc-search-results" id="sucSearchResults"></div>
 </div>
 
 <div class="week-tabs" id="weekTabs"></div>
@@ -519,13 +564,10 @@ function renderizar() {
     return { idx, total: items.length, hechas, completa: items.length > 0 && hechas === items.length };
   });
 
-  // Semana 1 y 2 al dia: terminadas, o sin sucursales asignadas (nada que
-  // bloquee). Semana 4 queda bloqueada hasta que eso se cumpla, para forzar
-  // el orden en vez de saltar semanas. Semana 3 se desbloqueo a pedido
-  // explicito (ago 2026) — ya no depende de que 1 y 2 esten completas.
-  const semanaOk = (r) => r.total === 0 || r.completa;
-  const semanas1y2Ok = semanaOk(resumenSemanas[0]) && semanaOk(resumenSemanas[1]);
-  resumenSemanas.forEach(r => { r.bloqueada = r.idx === 3 && !semanas1y2Ok; });
+  // Semana 3 se desbloqueo a pedido explicito (ago 2026) y Semana 4 igual
+  // (ago 2026) — ninguna de las dos depende ya de que 1 y 2 esten
+  // completas, se puede saltar de semana libremente.
+  resumenSemanas.forEach(r => { r.bloqueada = false; });
 
   // La primera vez, arrancar en la primera semana con pendientes — asi se
   // avanza semana por semana en orden y no queda ninguna a medio hacer sin
@@ -689,6 +731,114 @@ function renderSucursal(s) {
 
 function escHtml(t) {
   return String(t||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+/* ── Búsqueda inteligente de sucursal: filtra mientras se escribe (nombre,
+   comuna, dirección — sin importar tildes/mayúsculas, ver normOrden) y al
+   elegir una salta a su semana y la resalta en la lista — pedido explicito,
+   ago 2026. ── */
+const sucSearchInput = document.getElementById("sucSearchInput");
+const sucSearchResults = document.getElementById("sucSearchResults");
+let sucSearchMatches = [];
+let sucSearchActiveIndex = -1;
+
+function sucSemanaIndex(s) {
+  return Math.min(3, Math.max(0, (Number(s.semana || 1) - 1)));
+}
+
+function sucSearchBuscar(query) {
+  const q = normOrden(query);
+  if (!q) return [];
+  return sucursalesData
+    .map((s) => {
+      const nombreN = normOrden(s.nombre_sucursal);
+      let score = -1;
+      if (nombreN.startsWith(q)) score = 0;
+      else if (nombreN.includes(q)) score = 1;
+      else if (normOrden(s.comuna).includes(q)) score = 2;
+      else if (normOrden(s.direccion).includes(q)) score = 3;
+      return { s, score };
+    })
+    .filter((m) => m.score >= 0)
+    .sort((a, b) => a.score - b.score || normOrden(a.s.nombre_sucursal).localeCompare(normOrden(b.s.nombre_sucursal), "es"))
+    .slice(0, 8)
+    .map((m) => m.s);
+}
+
+function sucSearchRender() {
+  if (!sucSearchMatches.length) {
+    sucSearchResults.innerHTML = `<div class="suc-search-empty">Sin resultados</div>`;
+    sucSearchResults.classList.add("is-open");
+    return;
+  }
+  sucSearchResults.innerHTML = sucSearchMatches.map((s, idx) => `
+    <div class="suc-search-item${idx === sucSearchActiveIndex ? " is-active" : ""}" data-idx="${idx}">
+      <div class="suc-search-item-info">
+        <div class="suc-search-item-nombre">${escHtml(s.nombre_sucursal)}</div>
+        <div class="suc-search-item-sub">${escHtml(s.comuna || s.direccion || "")}</div>
+      </div>
+      <span class="suc-search-item-week">Semana ${sucSemanaIndex(s) + 1}</span>
+    </div>
+  `).join("");
+  sucSearchResults.classList.add("is-open");
+}
+
+function sucSearchCerrar() {
+  sucSearchResults.classList.remove("is-open");
+  sucSearchResults.innerHTML = "";
+  sucSearchMatches = [];
+  sucSearchActiveIndex = -1;
+}
+
+function sucSearchSeleccionar(s) {
+  semanaActiva = sucSemanaIndex(s);
+  renderizar();
+  sucSearchInput.value = "";
+  sucSearchCerrar();
+  requestAnimationFrame(() => {
+    const row = document.querySelector(`.suc-row[data-id="${s.id}"]`);
+    if (!row) return;
+    row.scrollIntoView({ behavior: "smooth", block: "center" });
+    row.classList.remove("is-search-hit");
+    void row.offsetWidth; // fuerza reflow para poder re-disparar la animación
+    row.classList.add("is-search-hit");
+    setTimeout(() => row.classList.remove("is-search-hit"), 1800);
+  });
+}
+
+if (sucSearchInput) {
+  sucSearchInput.addEventListener("input", () => {
+    sucSearchMatches = sucSearchBuscar(sucSearchInput.value);
+    sucSearchActiveIndex = -1;
+    if (sucSearchInput.value.trim()) sucSearchRender();
+    else sucSearchCerrar();
+  });
+  sucSearchInput.addEventListener("keydown", (event) => {
+    if (!sucSearchResults.classList.contains("is-open") || !sucSearchMatches.length) return;
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      sucSearchActiveIndex = Math.min(sucSearchMatches.length - 1, sucSearchActiveIndex + 1);
+      sucSearchRender();
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      sucSearchActiveIndex = Math.max(0, sucSearchActiveIndex - 1);
+      sucSearchRender();
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+      sucSearchSeleccionar(sucSearchMatches[sucSearchActiveIndex] ?? sucSearchMatches[0]);
+    } else if (event.key === "Escape") {
+      sucSearchCerrar();
+    }
+  });
+  sucSearchResults.addEventListener("click", (event) => {
+    const item = event.target.closest("[data-idx]");
+    if (!item) return;
+    const s = sucSearchMatches[Number(item.dataset.idx)];
+    if (s) sucSearchSeleccionar(s);
+  });
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest(".suc-search")) sucSearchCerrar();
+  });
 }
 
 /* ── Acciones ───────────────────────────────────────── */

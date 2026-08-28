@@ -115,6 +115,17 @@
       line-height:1.65;
       font-size:15px;
     }
+    /* Los radios de rating/resolved quedan ocultos pero accesibles — la
+       seleccion se ve al toque (via CSS :checked) sin mandar nada todavia;
+       solo se envia todo junto al apretar "Enviar Encuesta" — pedido
+       explicito, ago 2026. */
+    .face-radio, .choice-radio{
+      position:absolute;
+      opacity:0;
+      width:1px;
+      height:1px;
+      overflow:hidden;
+    }
     .faces{
       display:flex;
       flex-wrap:wrap;
@@ -125,6 +136,8 @@
       text-decoration:none;
       text-align:center;
       color:var(--ink);
+      cursor:pointer;
+      display:block;
     }
     .face-bubble{
       display:flex;
@@ -135,16 +148,32 @@
       border-radius:22px;
       border:1px solid var(--line);
       background:#fff;
-      font-size:34px;
       transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+    .face-icon{
+      width:30px;
+      height:30px;
+      color:var(--muted);
+      transition:color .15s ease;
     }
     .face:hover .face-bubble{
       transform:translateY(-2px);
       box-shadow:0 16px 30px rgba(16,32,58,.10);
     }
-    .face.selected .face-bubble{
+    .face:hover .face-icon{
+      color:var(--brand-2);
+    }
+    .face-radio:checked + .face .face-bubble{
       border-color:#60a5fa;
+      background:#eef5ff;
       box-shadow:0 0 0 4px rgba(96,165,250,.18);
+    }
+    .face-radio:checked + .face .face-icon{
+      color:var(--brand-2);
+    }
+    .face-radio:focus-visible + .face .face-bubble{
+      outline:2px solid #60a5fa;
+      outline-offset:2px;
     }
     .face small{
       display:block;
@@ -169,35 +198,60 @@
       font-weight:700;
       color:var(--ink);
       background:#fff;
+      cursor:pointer;
       transition:transform .15s ease, box-shadow .15s ease;
     }
     .choice:hover{
       transform:translateY(-2px);
       box-shadow:0 16px 30px rgba(16,32,58,.10);
     }
-    .choice.selected-yes{
+    .choice-radio:focus-visible + .choice{
+      outline:2px solid #60a5fa;
+      outline-offset:2px;
+    }
+    .choice-radio:checked + .choice-yes{
       border-color:#86efac;
       background:#dcfce7;
       color:#166534;
     }
-    .choice.selected-no{
+    .choice-radio:checked + .choice-no{
       border-color:#fca5a5;
       background:#fee2e2;
       color:#991b1b;
     }
-    .summary{
-      margin-top:22px;
-      padding:18px;
-      border-radius:20px;
-      background:#eef6ff;
-      border:1px solid #cfe0ff;
+    .obs-textarea{
+      width:100%;
+      min-height:110px;
+      padding:14px 16px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      font-family:Arial,sans-serif;
+      font-size:15px;
+      color:var(--ink);
+      resize:vertical;
     }
-    .summary p{
-      margin:0 0 10px;
-      line-height:1.7;
+    .obs-textarea:focus{
+      outline:none;
+      border-color:#60a5fa;
+      box-shadow:0 0 0 4px rgba(96,165,250,.18);
     }
-    .summary p:last-child{
-      margin-bottom:0;
+    .submit-encuesta{
+      display:block;
+      width:100%;
+      margin:24px 0 4px;
+      padding:16px 24px;
+      border-radius:16px;
+      border:none;
+      background:var(--brand-2);
+      color:#fff;
+      font-weight:800;
+      font-size:17px;
+      cursor:pointer;
+      transition:transform .15s ease, box-shadow .15s ease;
+    }
+    .submit-encuesta:hover{
+      transform:translateY(-2px);
+      box-shadow:0 16px 30px rgba(16,32,58,.14);
     }
     @media (max-width: 640px){
       .hero{
@@ -215,9 +269,73 @@
         padding:18px;
       }
     }
+    #confettiCanvas{
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      z-index:9998;
+    }
+    .wrap.fading{
+      transition:opacity .8s ease;
+      opacity:0;
+    }
+    #blackoutOverlay{
+      position:fixed;
+      inset:0;
+      background:#000;
+      display:flex;
+      flex-direction:row;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      padding:0 24px;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity 1.1s ease;
+      z-index:9999;
+    }
+    #blackoutOverlay.show{
+      opacity:1;
+      pointer-events:auto;
+    }
+    #blackoutOverlay p{
+      margin:0;
+      font-size:22px;
+      font-weight:600;
+      color:#ffffff;
+      opacity:.88;
+      letter-spacing:.02em;
+      white-space:nowrap;
+    }
+    #blackoutOverlay img{
+      height:48px;
+      width:auto;
+      max-width:50vw;
+      filter:drop-shadow(0 0 24px rgba(255,255,255,.15));
+    }
+    @media (max-width: 480px){
+      #blackoutOverlay{
+        flex-direction:column;
+        gap:14px;
+      }
+      #blackoutOverlay p{
+        white-space:normal;
+        text-align:center;
+        font-size:19px;
+      }
+      #blackoutOverlay img{
+        height:64px;
+      }
+    }
   </style>
 </head>
 <body>
+  <canvas id="confettiCanvas"></canvas>
+  <div id="blackoutOverlay">
+    <p>Gracias por ser parte de</p>
+    <img src="/static/img/logo-atc.png" alt="ATC">
+  </div>
   <main class="wrap">
     <section class="card">
       <header class="hero">
@@ -236,58 +354,119 @@
         {% if is_complete %}
         <div class="status done">Encuesta respondida con exito</div>
         {% else %}
-        <div class="status pending">Puede responder una o ambas preguntas desde esta pagina</div>
+        <div class="status pending">Seleccione sus respuestas y presione "Enviar Encuesta" al final — nada se guarda hasta ese momento</div>
         {% endif %}
 
-        <section class="panel">
-          <h2>1. La atencion del tecnico fue buena</h2>
-          <p>Seleccione la cara que mejor represente su experiencia.</p>
-          <div class="faces">
-            {% set emojis = {1:'😡', 2:'🙁', 3:'😐', 4:'🙂', 5:'😁'} %}
-            {% for value in [1,2,3,4,5] %}
-            <a class="face{% if feedback.technician_rating == value %} selected{% endif %}" href="{{ rating_links[value] }}">
-              <span class="face-bubble">{{ emojis[value] }}</span>
-              <small>{{ value }}</small>
-            </a>
-            {% endfor %}
-          </div>
-        </section>
+        <form method="get" action="{{ request.url.path }}" autocomplete="off">
+          <input type="hidden" name="token" value="{{ observacion_token }}">
 
-        <section class="panel">
-          <h2>2. El tiempo de resolucion le parecio satisfactorio</h2>
-          <p>Seleccione la opcion que mejor describa su experiencia.</p>
-          <div class="choices">
-            <a class="choice{% if feedback.resolution_satisfied is sameas true %} selected-yes{% endif %}" href="{{ resolved_yes_link }}">Si</a>
-            <a class="choice{% if feedback.resolution_satisfied is sameas false %} selected-no{% endif %}" href="{{ resolved_no_link }}">No</a>
-          </div>
-        </section>
+          <section class="panel">
+            <h2>1. La atencion del tecnico fue buena</h2>
+            <p>Seleccione la cara que mejor represente su experiencia.</p>
+            <div class="faces">
+              {% set face_icons = {
+                1: '<svg class="face-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.25"/><path d="M8.5 9.5h.01"/><path d="M15.5 9.5h.01"/><path d="M8.3 16c1.1-1.8 2.4-2.7 3.7-2.7s2.6.9 3.7 2.7"/></svg>',
+                2: '<svg class="face-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.25"/><path d="M8.5 9.5h.01"/><path d="M15.5 9.5h.01"/><path d="M8.5 15.3c1-1.1 2.2-1.7 3.5-1.7s2.5.6 3.5 1.7"/></svg>',
+                3: '<svg class="face-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.25"/><path d="M8.5 9.5h.01"/><path d="M15.5 9.5h.01"/><path d="M8.3 15h7.4"/></svg>',
+                4: '<svg class="face-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.25"/><path d="M8.5 9.5h.01"/><path d="M15.5 9.5h.01"/><path d="M8.5 14.2c1 1 2.2 1.6 3.5 1.6s2.5-.6 3.5-1.6"/></svg>',
+                5: '<svg class="face-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.25"/><path d="M8.5 9.5h.01"/><path d="M15.5 9.5h.01"/><path d="M8 13.7c1.2 1.8 2.6 2.7 4 2.7s2.8-.9 4-2.7"/></svg>'
+              } %}
+              {% for value in [1,2,3,4,5] %}
+              <input type="radio" class="face-radio" id="rating-{{ value }}" name="rating" value="{{ value }}"{% if feedback.technician_rating == value %} checked{% endif %}>
+              <label class="face" for="rating-{{ value }}">
+                <span class="face-bubble">{{ face_icons[value]|safe }}</span>
+                <small>{{ value }}</small>
+              </label>
+              {% endfor %}
+            </div>
+          </section>
 
-        <section class="summary">
-          <p><strong>Estado actual:</strong></p>
-          <p>Atencion del tecnico:
-            {% if feedback.technician_rating %}
-              {{ feedback.technician_rating }}/5
-            {% else %}
-              pendiente
-            {% endif %}
-          </p>
-          <p>Tiempo de resolucion:
-            {% if feedback.resolution_satisfied is sameas true %}
-              Si
-            {% elif feedback.resolution_satisfied is sameas false %}
-              No
-            {% else %}
-              pendiente
-            {% endif %}
-          </p>
-          {% if is_complete %}
-          <p>Gracias por ser parte de ATC.</p>
-          {% else %}
-          <p>Puede volver a hacer clic en cualquier opcion si desea actualizar su respuesta.</p>
-          {% endif %}
-        </section>
+          <section class="panel">
+            <h2>2. El tiempo de resolucion le parecio satisfactorio</h2>
+            <p>Seleccione la opcion que mejor describa su experiencia.</p>
+            <div class="choices">
+              <input type="radio" class="choice-radio" id="resolved-si" name="resolved" value="si"{% if feedback.resolution_satisfied is sameas true %} checked{% endif %}>
+              <label class="choice choice-yes" for="resolved-si">Si</label>
+              <input type="radio" class="choice-radio" id="resolved-no" name="resolved" value="no"{% if feedback.resolution_satisfied is sameas false %} checked{% endif %}>
+              <label class="choice choice-no" for="resolved-no">No</label>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h2>3. Observacion (opcional)</h2>
+            <p>Si quiere contarnos algo mas sobre su experiencia, escribalo aca.</p>
+            <textarea class="obs-textarea" name="observacion" maxlength="2000" placeholder="Escriba su comentario aqui...">{{ feedback.observacion or "" }}</textarea>
+          </section>
+
+          <button type="submit" class="submit-encuesta">Enviar Encuesta</button>
+        </form>
       </div>
     </section>
   </main>
+
+  {% if is_complete %}
+  <script>
+    (function () {
+      var canvas = document.getElementById("confettiCanvas");
+      var ctx = canvas.getContext("2d");
+
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      resize();
+      window.addEventListener("resize", resize);
+
+      var colors = ["#2957d5", "#16388b", "#60a5fa", "#facc15", "#34d399", "#f87171", "#a78bfa"];
+      var particles = [];
+      var total = 160;
+      for (var i = 0; i < total; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: -20 - Math.random() * canvas.height * 0.5,
+          w: 6 + Math.random() * 6,
+          h: 8 + Math.random() * 10,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          vy: 2 + Math.random() * 3,
+          vx: -1.5 + Math.random() * 3,
+          rot: Math.random() * 360,
+          vr: -6 + Math.random() * 12,
+        });
+      }
+
+      var startedAt = Date.now();
+      var confettiDuration = 2600;
+
+      function tick() {
+        var elapsed = Date.now() - startedAt;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(function (p) {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.rot += p.vr;
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate((p.rot * Math.PI) / 180);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+          ctx.restore();
+        });
+        if (elapsed < confettiDuration) {
+          requestAnimationFrame(tick);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+      }
+      requestAnimationFrame(tick);
+
+      // Deja caer el confeti un rato y despues se apaga todo menos el logo,
+      // en negro — pedido explicito, ago 2026.
+      setTimeout(function () {
+        document.querySelector(".wrap").classList.add("fading");
+        document.getElementById("blackoutOverlay").classList.add("show");
+      }, 1700);
+    })();
+  </script>
+  {% endif %}
 </body>
 </html>

@@ -75,3 +75,33 @@ def crear_cliente(
         raise PiriodError(f"Piriod respondio {response.status_code}: {response.text[:300]}")
 
     return response.json()
+
+
+def listar_todas_suscripciones() -> list[dict[str, Any]]:
+    """Trae todas las suscripciones de la organizacion, paginando (la API
+    fuerza 20 resultados por pagina sin importar el 'limit' que se pida).
+
+    https://piriod.readme.io/reference/list-subscriptions
+    """
+    resultados: list[dict[str, Any]] = []
+    url = _api_url("/subscriptions/")
+    headers = _headers()
+
+    while url:
+        try:
+            response = requests.get(url, headers=headers, timeout=settings.piriod_timeout_seconds)
+        except requests.RequestException as exc:
+            raise PiriodError(f"Error de red llamando a Piriod: {exc}") from exc
+
+        if response.status_code >= 400:
+            raise PiriodError(f"Piriod respondio {response.status_code}: {response.text[:300]}")
+
+        payload = response.json()
+        resultados.extend(payload.get("results") or [])
+        siguiente = payload.get("next")
+        # La API a veces devuelve el "next" en http:// aunque la llamada
+        # original fue https:// — se fuerza https para no salir del canal
+        # cifrado en la siguiente pagina.
+        url = siguiente.replace("http://", "https://", 1) if siguiente else None
+
+    return resultados

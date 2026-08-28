@@ -74,6 +74,40 @@
   .filter-summary{font-size:12.5px;color:var(--text-muted);font-weight:600;}
   .filter-summary.has-filters{color:#1d4ed8;}
   .btn-filter-reset:disabled{opacity:.5;cursor:not-allowed;}
+
+  /* Pestañas estilo Excel (hojas del libro), fijas abajo del todo.
+     .shell es flex-column con overflow:hidden y el scroll real pasa
+     adentro de .table-wrap (flex:1) — eso solo funciona si .table-wrap
+     es hijo directo de un contenedor flex, asi que cada sheet-panel
+     activo tiene que ser flex-column el mismo, si no el contenido se
+     corta sin poder scrollear (bug reportado, ago 2026). */
+  .sheet-panel{display:none;}
+  .sheet-panel.active{display:flex;flex-direction:column;flex:1;min-height:0;}
+  .sheet-tabs{
+    flex-shrink:0;
+    display:flex; align-items:flex-end; gap:2px;
+    padding:8px 12px 0; margin-top:10px;
+    background:#e2e8f0; border-top:1px solid #cbd5e1;
+  }
+  .sheet-tab{
+    appearance:none; border:1px solid #cbd5e1; border-bottom:none;
+    background:#dbe3ee; color:#475569; font:inherit; font-size:12.5px; font-weight:700;
+    padding:9px 18px; border-radius:8px 8px 0 0; cursor:pointer;
+    transition:background .12s,color .12s;
+  }
+  .sheet-tab:hover{background:#eef2f7;color:#1e293b;}
+  .sheet-tab.active{background:#fff;color:#0f172a;border-bottom:1px solid #fff;margin-bottom:-1px;}
+
+  .raw-badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;}
+  .raw-badge.si{background:#dcfce7;color:#166534;}
+  .raw-badge.no{background:#fee2e2;color:#991b1b;}
+
+  /* Consolidado: celdas editables a mano, estilo hoja de calculo. */
+  td[contenteditable="true"]{cursor:text;}
+  td[contenteditable="true"]:hover{outline:1px dashed #93c5fd;outline-offset:-1px;}
+  td[contenteditable="true"]:focus{outline:2px solid #1d4ed8;outline-offset:-2px;background:#eff6ff !important;}
+  .consolidado-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .consolidado-hint{font-size:12px;color:var(--text-muted);}
 </style>
 <script>if(new URLSearchParams(location.search).get('embed')==='1')document.documentElement.classList.add('embed');</script>
     <script src="/static/utils.js"></script>
@@ -86,6 +120,7 @@
       <div>
         <h1>Registro de Suscripción</h1>
         <p class="subtitle">Registro de suscripciones — solo los clientes que están en ese registro</p>
+        <p class="subtitle" id="piriodSyncStatus"></p>
       </div>
     </div>
     <nav class="actions">
@@ -94,45 +129,139 @@
     </nav>
   </header>
 
-  <section class="panel">
-    <div class="filters">
-      <label for="fQ">Buscar</label>
-      <input id="fQ" type="search" placeholder="RUT, nombre cliente o dirección...">
-    </div>
-    <span class="filter-summary" id="filterSummary" aria-live="polite">Sin filtros activos</span>
-    <button class="btn btn-small btn-filter-reset" type="button" id="clearAllFilters" disabled>Limpiar filtros</button>
-    <div class="sheet-note">Cada fila es un registro del CSV de suscripciones (no una sucursal de ATC). "Nombre Sucursal" se completa cruzando por RUT + dirección exacta contra ATC cuando el registro no lo trae — si no hay coincidencia clara se deja vacío a propósito (no se adivina).</div>
-  </section>
+  <div id="panelRegistro" class="sheet-panel active">
+    <section class="panel">
+      <div class="filters">
+        <label for="fQ">Buscar</label>
+        <input id="fQ" type="search" placeholder="RUT, nombre cliente o dirección...">
+      </div>
+      <span class="filter-summary" id="filterSummary" aria-live="polite">Sin filtros activos</span>
+      <button class="btn btn-small btn-filter-reset" type="button" id="clearAllFilters" disabled>Limpiar filtros</button>
+    </section>
 
-  <section class="table-wrap">
-    <table>
-      <thead><tr>
-        <th style="text-align:right;">N°</th>
-        <th><div class="th-inner"><span>Código</span><button class="filter-chip" data-filter-btn="codigo" type="button">▼</button></div></th>
-        <th><div class="th-inner"><span>RUT</span><button class="filter-chip" data-filter-btn="rut" type="button">▼</button></div></th>
-        <th><div class="th-inner"><span>Nombre Cliente</span><button class="filter-chip" data-filter-btn="nombreCliente" type="button">▼</button></div></th>
-        <th><div class="th-inner"><span>Link Piriod</span><button class="filter-chip" data-filter-btn="linkPiriod" type="button">▼</button></div></th>
-        <th><div class="th-inner"><span>Servicio</span><button class="filter-chip" data-filter-btn="servicio" type="button">▼</button></div></th>
-        <th><div class="th-inner"><span>Inicio Servicio</span><button class="filter-chip" data-filter-btn="inicioServicio" type="button">▼</button></div></th>
-        <th style="text-align:right;"><div class="th-inner"><span>Cantidad Cámaras</span><button class="filter-chip" data-filter-btn="cantidadCamaras" type="button">▼</button></div></th>
-        <th><div class="th-inner"><span>Moneda</span><button class="filter-chip" data-filter-btn="moneda" type="button">▼</button></div></th>
-        <th style="text-align:right;"><div class="th-inner"><span>Valor Neto Mensual</span><button class="filter-chip" data-filter-btn="valorNetoMensual" type="button">▼</button></div></th>
-        <th style="text-align:right;"><div class="th-inner"><span>Descuento</span><button class="filter-chip" data-filter-btn="descuento" type="button">▼</button></div></th>
-        <th style="text-align:right;"><div class="th-inner"><span>Internet</span><button class="filter-chip" data-filter-btn="internet" type="button">▼</button></div></th>
-        <th style="text-align:right;"><div class="th-inner"><span>Valor Neto Televigilancia</span><button class="filter-chip" data-filter-btn="valorNetoTelevigilancia" type="button">▼</button></div></th>
-        <th style="text-align:right;"><div class="th-inner"><span>Valor Neto Total</span><button class="filter-chip" data-filter-btn="valorNetoTotal" type="button">▼</button></div></th>
-        <th style="text-align:right;"><div class="th-inner"><span>Valor por Cámara</span><button class="filter-chip" data-filter-btn="valorPorCamara" type="button">▼</button></div></th>
-        <th><div class="th-inner"><span>Dirección</span><button class="filter-chip" data-filter-btn="direccion" type="button">▼</button></div></th>
-        <th><div class="th-inner"><span>Comuna</span><button class="filter-chip" data-filter-btn="comuna" type="button">▼</button></div></th>
-        <th><div class="th-inner"><span>Región</span><button class="filter-chip" data-filter-btn="region" type="button">▼</button></div></th>
-        <th><div class="th-inner"><span>Dirección Completa</span><button class="filter-chip" data-filter-btn="direccionCompleta" type="button">▼</button></div></th>
-        <th><div class="th-inner"><span>Nombre Sucursal</span><button class="filter-chip" data-filter-btn="nombreSucursal" type="button">▼</button></div></th>
-        <th><div class="th-inner"><span>Estado</span><button class="filter-chip" data-filter-btn="estado" type="button">▼</button></div></th>
-        <th><div class="th-inner"><span>Fecha Término Suscripción</span><button class="filter-chip" data-filter-btn="fechaTermino" type="button">▼</button></div></th>
-      </tr></thead>
-      <tbody id="tbody"><tr><td class="empty-cell" colspan="22">Cargando...</td></tr></tbody>
-    </table>
-  </section>
+    <section class="table-wrap">
+      <table>
+        <thead><tr>
+          <th style="text-align:right;">N°</th>
+          <th><div class="th-inner"><span>Código</span><button class="filter-chip" data-filter-btn="codigo" data-sheet="registro" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>RUT</span><button class="filter-chip" data-filter-btn="rut" data-sheet="registro" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Nombre Cliente</span><button class="filter-chip" data-filter-btn="nombreCliente" data-sheet="registro" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Link Piriod</span><button class="filter-chip" data-filter-btn="linkPiriod" data-sheet="registro" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Servicio</span><button class="filter-chip" data-filter-btn="servicio" data-sheet="registro" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Inicio Servicio</span><button class="filter-chip" data-filter-btn="inicioServicio" data-sheet="registro" type="button">▼</button></div></th>
+          <th style="text-align:right;"><div class="th-inner"><span>Cantidad Cámaras</span><button class="filter-chip" data-filter-btn="cantidadCamaras" data-sheet="registro" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Moneda</span><button class="filter-chip" data-filter-btn="moneda" data-sheet="registro" type="button">▼</button></div></th>
+          <th style="text-align:right;"><div class="th-inner"><span>Valor Neto Mensual</span><button class="filter-chip" data-filter-btn="valorNetoMensual" data-sheet="registro" type="button">▼</button></div></th>
+          <th style="text-align:right;"><div class="th-inner"><span>Descuento</span><button class="filter-chip" data-filter-btn="descuento" data-sheet="registro" type="button">▼</button></div></th>
+          <th style="text-align:right;"><div class="th-inner"><span>Internet</span><button class="filter-chip" data-filter-btn="internet" data-sheet="registro" type="button">▼</button></div></th>
+          <th style="text-align:right;"><div class="th-inner"><span>Valor Neto Televigilancia</span><button class="filter-chip" data-filter-btn="valorNetoTelevigilancia" data-sheet="registro" type="button">▼</button></div></th>
+          <th style="text-align:right;"><div class="th-inner"><span>Valor Neto Total</span><button class="filter-chip" data-filter-btn="valorNetoTotal" data-sheet="registro" type="button">▼</button></div></th>
+          <th style="text-align:right;"><div class="th-inner"><span>Valor por Cámara</span><button class="filter-chip" data-filter-btn="valorPorCamara" data-sheet="registro" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Dirección</span><button class="filter-chip" data-filter-btn="direccion" data-sheet="registro" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Comuna</span><button class="filter-chip" data-filter-btn="comuna" data-sheet="registro" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Región</span><button class="filter-chip" data-filter-btn="region" data-sheet="registro" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Dirección Completa</span><button class="filter-chip" data-filter-btn="direccionCompleta" data-sheet="registro" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Nombre Sucursal</span><button class="filter-chip" data-filter-btn="nombreSucursal" data-sheet="registro" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Estado</span><button class="filter-chip" data-filter-btn="estado" data-sheet="registro" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Fecha Término Suscripción</span><button class="filter-chip" data-filter-btn="fechaTermino" data-sheet="registro" type="button">▼</button></div></th>
+        </tr></thead>
+        <tbody id="tbody"><tr><td class="empty-cell" colspan="22">Cargando...</td></tr></tbody>
+      </table>
+    </section>
+  </div>
+
+  <div id="panelPiriodCrudo" class="sheet-panel">
+    <section class="panel">
+      <div class="filters">
+        <label for="fQPiriod">Buscar</label>
+        <input id="fQPiriod" type="search" placeholder="RUT, cliente, dirección o ID de suscripción...">
+      </div>
+      <span class="filter-summary" id="filterSummaryPiriod" aria-live="polite">Sin filtros activos</span>
+      <button class="btn btn-small btn-filter-reset" type="button" id="clearAllFiltersPiriod" disabled>Limpiar filtros</button>
+      <span class="filter-summary" id="piriodCrudoSyncStatus" style="margin-left:auto;"></span>
+    </section>
+    <section class="table-wrap">
+      <table>
+        <thead><tr>
+          <th style="text-align:right;">N°</th>
+          <th><div class="th-inner"><span>ID Suscripción</span><button class="filter-chip" data-filter-btn="id" data-sheet="piriod" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Estado (Piriod)</span><button class="filter-chip" data-filter-btn="estado" data-sheet="piriod" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>En Registro Local</span><button class="filter-chip" data-filter-btn="en_registro_local" data-sheet="piriod" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Cliente</span><button class="filter-chip" data-filter-btn="cliente" data-sheet="piriod" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>RUT</span><button class="filter-chip" data-filter-btn="rut" data-sheet="piriod" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Email Cliente</span><button class="filter-chip" data-filter-btn="email_cliente" data-sheet="piriod" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Dirección Cliente</span><button class="filter-chip" data-filter-btn="direccion_cliente" data-sheet="piriod" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Comuna (Piriod)</span><button class="filter-chip" data-filter-btn="comuna_cliente" data-sheet="piriod" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Nota (dirección instalación)</span><button class="filter-chip" data-filter-btn="nota" data-sheet="piriod" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Líneas (plan / monto / moneda)</span><button class="filter-chip" data-filter-btn="lineas" data-sheet="piriod" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Fecha Inicio</span><button class="filter-chip" data-filter-btn="fecha_inicio" data-sheet="piriod" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Próximo Cobro</span><button class="filter-chip" data-filter-btn="proximo_cobro" data-sheet="piriod" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Cobro Anterior</span><button class="filter-chip" data-filter-btn="cobro_anterior" data-sheet="piriod" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Fecha Fin</span><button class="filter-chip" data-filter-btn="fecha_fin" data-sheet="piriod" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Cancelado En</span><button class="filter-chip" data-filter-btn="cancelado_en" data-sheet="piriod" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Motivo Cancelación</span><button class="filter-chip" data-filter-btn="motivo_cancelacion" data-sheet="piriod" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Pausado En</span><button class="filter-chip" data-filter-btn="pausado_en" data-sheet="piriod" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Motivo Pausa</span><button class="filter-chip" data-filter-btn="motivo_pausa" data-sheet="piriod" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Ciclos Facturación</span><button class="filter-chip" data-filter-btn="ciclos_facturacion" data-sheet="piriod" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Modo Prueba</span><button class="filter-chip" data-filter-btn="modo_prueba" data-sheet="piriod" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Esquema Cobro</span><button class="filter-chip" data-filter-btn="esquema_cobro" data-sheet="piriod" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Creado</span><button class="filter-chip" data-filter-btn="creado" data-sheet="piriod" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Actualizado</span><button class="filter-chip" data-filter-btn="actualizado" data-sheet="piriod" type="button">▼</button></div></th>
+        </tr></thead>
+        <tbody id="tbodyPiriodCrudo"><tr><td class="empty-cell" colspan="24">Cargando...</td></tr></tbody>
+      </table>
+    </section>
+  </div>
+
+  <div id="panelConsolidado" class="sheet-panel">
+    <section class="panel">
+      <div class="filters">
+        <label for="fQConsolidado">Buscar</label>
+        <input id="fQConsolidado" type="search" placeholder="RUT, nombre cliente o dirección...">
+      </div>
+      <span class="filter-summary" id="filterSummaryConsolidado" aria-live="polite">Sin filtros activos</span>
+      <button class="btn btn-small btn-filter-reset" type="button" id="clearAllFiltersConsolidado" disabled>Limpiar filtros</button>
+      <button class="btn btn-small" type="button" onclick="restablecerConsolidado()" style="margin-left:auto;">Restablecer desde Registro</button>
+    </section>
+    <section class="panel">
+      <span class="consolidado-hint">Copia editable — escribe directo en cualquier celda. Se guarda sola en este navegador (no se sincroniza con el servidor ni con otros equipos).</span>
+    </section>
+    <section class="table-wrap">
+      <table>
+        <thead><tr>
+          <th style="text-align:right;">N°</th>
+          <th><div class="th-inner"><span>Código</span><button class="filter-chip" data-filter-btn="codigo" data-sheet="consolidado" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>RUT</span><button class="filter-chip" data-filter-btn="rut" data-sheet="consolidado" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Nombre Cliente</span><button class="filter-chip" data-filter-btn="nombreCliente" data-sheet="consolidado" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Link Piriod</span><button class="filter-chip" data-filter-btn="linkPiriod" data-sheet="consolidado" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Servicio</span><button class="filter-chip" data-filter-btn="servicio" data-sheet="consolidado" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Inicio Servicio</span><button class="filter-chip" data-filter-btn="inicioServicio" data-sheet="consolidado" type="button">▼</button></div></th>
+          <th style="text-align:right;"><div class="th-inner"><span>Cantidad Cámaras</span><button class="filter-chip" data-filter-btn="cantidadCamaras" data-sheet="consolidado" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Moneda</span><button class="filter-chip" data-filter-btn="moneda" data-sheet="consolidado" type="button">▼</button></div></th>
+          <th style="text-align:right;"><div class="th-inner"><span>Valor Neto Mensual</span><button class="filter-chip" data-filter-btn="valorNetoMensual" data-sheet="consolidado" type="button">▼</button></div></th>
+          <th style="text-align:right;"><div class="th-inner"><span>Descuento</span><button class="filter-chip" data-filter-btn="descuento" data-sheet="consolidado" type="button">▼</button></div></th>
+          <th style="text-align:right;"><div class="th-inner"><span>Internet</span><button class="filter-chip" data-filter-btn="internet" data-sheet="consolidado" type="button">▼</button></div></th>
+          <th style="text-align:right;"><div class="th-inner"><span>Valor Neto Televigilancia</span><button class="filter-chip" data-filter-btn="valorNetoTelevigilancia" data-sheet="consolidado" type="button">▼</button></div></th>
+          <th style="text-align:right;"><div class="th-inner"><span>Valor Neto Total</span><button class="filter-chip" data-filter-btn="valorNetoTotal" data-sheet="consolidado" type="button">▼</button></div></th>
+          <th style="text-align:right;"><div class="th-inner"><span>Valor por Cámara</span><button class="filter-chip" data-filter-btn="valorPorCamara" data-sheet="consolidado" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Dirección</span><button class="filter-chip" data-filter-btn="direccion" data-sheet="consolidado" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Comuna</span><button class="filter-chip" data-filter-btn="comuna" data-sheet="consolidado" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Región</span><button class="filter-chip" data-filter-btn="region" data-sheet="consolidado" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Dirección Completa</span><button class="filter-chip" data-filter-btn="direccionCompleta" data-sheet="consolidado" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Nombre Sucursal</span><button class="filter-chip" data-filter-btn="nombreSucursal" data-sheet="consolidado" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Estado</span><button class="filter-chip" data-filter-btn="estado" data-sheet="consolidado" type="button">▼</button></div></th>
+          <th><div class="th-inner"><span>Fecha Término Suscripción</span><button class="filter-chip" data-filter-btn="fechaTermino" data-sheet="consolidado" type="button">▼</button></div></th>
+        </tr></thead>
+        <tbody id="tbodyConsolidado"><tr><td class="empty-cell" colspan="22">Sin datos todavía — carga el Registro primero.</td></tr></tbody>
+      </table>
+    </section>
+  </div>
+
+  <nav class="sheet-tabs">
+    <button type="button" class="sheet-tab active" data-sheet="panelRegistro" onclick="cambiarHoja('panelRegistro')">Registro de Suscripción</button>
+    <button type="button" class="sheet-tab" data-sheet="panelPiriodCrudo" onclick="cambiarHoja('panelPiriodCrudo')">Piriod (crudo)</button>
+    <button type="button" class="sheet-tab" data-sheet="panelConsolidado" onclick="cambiarHoja('panelConsolidado')">Consolidado</button>
+  </nav>
 </main>
 
 <div id="filterMenu" class="filter-menu">
@@ -159,28 +288,32 @@ let data = [];
 function $(id){return document.getElementById(id);}
 function esc(t){const d=document.createElement("div");d.textContent=String(t||"");return d.innerHTML;}
 function dash(v){return v ? esc(v) : '<span class="dash">—</span>';}
+function linkPiriodCell(url){
+  if(!url) return '<span class="dash">—</span>';
+  return `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">Suscripción</a>`;
+}
+// Numeros con maximo 3 decimales, sin ceros de mas (5 en vez de 5.000,
+// 62.7 en vez de 62.700) — tambien corta imprecision de punto flotante
+// que pueda venir de sumas en el navegador (pedido explicito, ago 2026).
+function fmtNum(v){
+  if (v === "" || v === null || v === undefined) return "";
+  const n = Number(v);
+  if (Number.isNaN(n)) return String(v);
+  const redondeado = Math.round(n * 1000) / 1000;
+  return redondeado.toFixed(3).replace(/\.?0+$/, "");
+}
 function showToast(t,ok=true){const el=$("toast");el.className=ok?"":"error";el.textContent=t;el.style.display="block";clearTimeout(showToast._id);showToast._id=setTimeout(()=>{el.style.display="none";},2800);}
 
-function applyFilter(){
-  const q=$("fQ").value.trim().toLowerCase();
-  let rows = q
-    ? data.filter(r => [r.rut, r.nombreCliente, r.direccion, r.direccionCompleta].some(x => String(x||"").toLowerCase().includes(q)))
-    : data;
-  rows = rows.filter(r => Object.entries(filtrosCabecera).every(([campo, values]) => coincideFiltroCampo(r, campo, values)));
-  // Orden: primero las filas rojas (sin Nombre Sucursal), luego las
-  // amarillas (sin cruce de camaras en BBDD), luego el resto — pedido
-  // explicito, ago 2026. Sort estable: dentro de cada grupo se conserva
-  // el orden original.
-  const prioridad = r => !r.nombreSucursal ? 0 : (r.camarasSinBbdd ? 1 : 2);
-  return [...rows].sort((a, b) => prioridad(a) - prioridad(b));
-}
-
-// ── Filtros por columna estilo Google Sheets (mismo patrón que
-// finanzas_rendiciones.html / "Panel Rendiciones") ──
-let filtrosCabecera = {};   // { campo: string[] de valores seleccionados }
-let filterState = { campo: "", label: "", values: [], selected: new Set(), anchor: null };
+// ── Filtros por columna estilo Google Sheets — un solo popover
+// compartido entre las 3 hojas (Registro / Piriod crudo / Consolidado);
+// cada hoja tiene su propio balde de filtros activos y su propia
+// funcion de render, pero el mecanismo de abrir/aplicar/limpiar es el
+// mismo para las tres (pedido explicito, ago 2026). ──
+let filtrosPorHoja = { registro: {}, piriod: {}, consolidado: {} };
+let filterState = { hoja: "", campo: "", label: "", values: [], selected: new Set(), anchor: null };
 const EMPTY_FILTER_TOKEN = "__ATC_FILTER_EMPTY_SELECTION__";
-const FILTER_LABELS = {
+
+const FILTER_LABELS_REGISTRO = {
   codigo: "Código", rut: "RUT", nombreCliente: "Nombre Cliente", linkPiriod: "Link Piriod",
   servicio: "Servicio", inicioServicio: "Inicio Servicio", cantidadCamaras: "Cantidad Cámaras",
   moneda: "Moneda", valorNetoMensual: "Valor Neto Mensual", descuento: "Descuento", internet: "Internet",
@@ -188,6 +321,39 @@ const FILTER_LABELS = {
   valorPorCamara: "Valor por Cámara", direccion: "Dirección", comuna: "Comuna", region: "Región",
   direccionCompleta: "Dirección Completa", nombreSucursal: "Nombre Sucursal", estado: "Estado",
   fechaTermino: "Fecha Término Suscripción",
+};
+const FILTER_LABELS_PIRIOD = {
+  id: "ID Suscripción", estado: "Estado (Piriod)", en_registro_local: "En Registro Local",
+  cliente: "Cliente", rut: "RUT", email_cliente: "Email Cliente", direccion_cliente: "Dirección Cliente",
+  comuna_cliente: "Comuna (Piriod)", nota: "Nota (dirección instalación)", lineas: "Líneas",
+  fecha_inicio: "Fecha Inicio", proximo_cobro: "Próximo Cobro", cobro_anterior: "Cobro Anterior",
+  fecha_fin: "Fecha Fin", cancelado_en: "Cancelado En", motivo_cancelacion: "Motivo Cancelación",
+  pausado_en: "Pausado En", motivo_pausa: "Motivo Pausa", ciclos_facturacion: "Ciclos Facturación",
+  modo_prueba: "Modo Prueba", esquema_cobro: "Esquema Cobro", creado: "Creado", actualizado: "Actualizado",
+};
+
+// Config por hoja: de donde saca sus datos, en que campos busca el texto
+// libre, los ids de sus elementos de resumen/limpiar, y que funcion
+// vuelve a pintar su tabla despues de aplicar o limpiar un filtro.
+const HOJAS = {
+  registro: {
+    labels: FILTER_LABELS_REGISTRO, getData: () => data,
+    searchInput: "fQ", searchCampos: ["rut","nombreCliente","direccion","direccionCompleta"],
+    summaryId: "filterSummary", clearBtnId: "clearAllFilters",
+    render: () => render(),
+  },
+  piriod: {
+    labels: FILTER_LABELS_PIRIOD, getData: () => dataPiriodCrudo,
+    searchInput: "fQPiriod", searchCampos: ["rut","cliente","direccion_cliente","nota","id"],
+    summaryId: "filterSummaryPiriod", clearBtnId: "clearAllFiltersPiriod",
+    render: () => renderPiriodCrudoTabla(),
+  },
+  consolidado: {
+    labels: FILTER_LABELS_REGISTRO, getData: () => dataConsolidado,
+    searchInput: "fQConsolidado", searchCampos: ["rut","nombreCliente","direccion","direccionCompleta"],
+    summaryId: "filterSummaryConsolidado", clearBtnId: "clearAllFiltersConsolidado",
+    render: () => renderConsolidado(),
+  },
 };
 
 function normalizarBusquedaFiltro(v){
@@ -197,6 +363,7 @@ function normalizarBusquedaFiltro(v){
 function valorFiltroCampo(row, campo){
   const v = row?.[campo];
   if (v === null || v === undefined || v === "") return "(Vacío)";
+  if (typeof v === "boolean") return v ? "Sí" : "No";
   return String(v).trim() || "(Vacío)";
 }
 
@@ -206,19 +373,42 @@ function coincideFiltroCampo(row, campo, values){
   return values.includes(valorFiltroCampo(row, campo));
 }
 
-function valoresUnicosCampo(campo){
-  return Array.from(new Set(data.map(row => valorFiltroCampo(row, campo))))
+function valoresUnicosCampo(hoja, campo){
+  const filas = HOJAS[hoja].getData();
+  return Array.from(new Set(filas.map(row => valorFiltroCampo(row, campo))))
     .sort((a,b) => String(a).localeCompare(String(b), "es"));
 }
 
-function actualizarEstadoBotonesFiltro(){
-  const filtrosActivos = Object.entries(filtrosCabecera).filter(([, values]) => Array.isArray(values) && values.length > 0);
-  document.querySelectorAll("[data-filter-btn]").forEach(btn => {
-    const activo = Array.isArray(filtrosCabecera[btn.dataset.filterBtn]) && filtrosCabecera[btn.dataset.filterBtn].length > 0;
+// Busqueda de texto libre + filtros por columna de una hoja, sobre su
+// propio arreglo de datos — no muta nada, devuelve las filas que pasan.
+function aplicarFiltrosHoja(hoja){
+  const cfg = HOJAS[hoja];
+  const filas = cfg.getData();
+  const inputBusqueda = $(cfg.searchInput);
+  const q = inputBusqueda ? inputBusqueda.value.trim().toLowerCase() : "";
+  let rows = !q ? filas : filas.filter(r => cfg.searchCampos.some(c => String(r[c]||"").toLowerCase().includes(q)));
+  const filtros = filtrosPorHoja[hoja];
+  return rows.filter(r => Object.entries(filtros).every(([campo, values]) => coincideFiltroCampo(r, campo, values)));
+}
+
+function applyFilter(){
+  const rows = aplicarFiltrosHoja("registro");
+  // Orden: primero las filas rojas (sin Nombre Sucursal), luego las
+  // amarillas (sin cruce de camaras en BBDD), luego el resto — pedido
+  // explicito, ago 2026. Sort estable: dentro de cada grupo se conserva
+  // el orden original.
+  const prioridad = r => !r.nombreSucursal ? 0 : (r.camarasSinBbdd ? 1 : 2);
+  return [...rows].sort((a, b) => prioridad(a) - prioridad(b));
+}
+
+function actualizarEstadoBotonesFiltro(hoja){
+  const filtrosActivos = Object.entries(filtrosPorHoja[hoja]).filter(([, values]) => Array.isArray(values) && values.length > 0);
+  document.querySelectorAll(`[data-filter-btn][data-sheet="${hoja}"]`).forEach(btn => {
+    const activo = Array.isArray(filtrosPorHoja[hoja][btn.dataset.filterBtn]) && filtrosPorHoja[hoja][btn.dataset.filterBtn].length > 0;
     btn.classList.toggle("active", activo);
   });
-  const resumen = $("filterSummary");
-  const limpiar = $("clearAllFilters");
+  const resumen = $(HOJAS[hoja].summaryId);
+  const limpiar = $(HOJAS[hoja].clearBtnId);
   if (resumen){
     resumen.classList.toggle("has-filters", filtrosActivos.length > 0);
     resumen.textContent = filtrosActivos.length
@@ -230,6 +420,7 @@ function actualizarEstadoBotonesFiltro(){
 
 function cerrarMenuFiltro(){
   $("filterMenu").classList.remove("open");
+  filterState.hoja = "";
   filterState.campo = "";
   filterState.anchor = null;
 }
@@ -253,11 +444,12 @@ function renderValoresFiltro(){
   });
 }
 
-function abrirMenuFiltro(campo, anchor){
+function abrirMenuFiltro(hoja, campo, anchor){
+  filterState.hoja = hoja;
   filterState.campo = campo;
-  filterState.label = FILTER_LABELS[campo] || campo;
-  filterState.values = valoresUnicosCampo(campo);
-  const guardado = Array.isArray(filtrosCabecera[campo]) && filtrosCabecera[campo].length ? filtrosCabecera[campo] : null;
+  filterState.label = HOJAS[hoja].labels[campo] || campo;
+  filterState.values = valoresUnicosCampo(hoja, campo);
+  const guardado = Array.isArray(filtrosPorHoja[hoja][campo]) && filtrosPorHoja[hoja][campo].length ? filtrosPorHoja[hoja][campo] : null;
   filterState.selected = new Set(guardado ? guardado.filter(v => v !== EMPTY_FILTER_TOKEN) : filterState.values);
   filterState.anchor = anchor;
   $("filterTitle").textContent = `Filtrar por ${filterState.label}`;
@@ -276,42 +468,52 @@ function abrirMenuFiltro(campo, anchor){
 }
 
 function aplicarFiltroActual(){
-  if (!filterState.campo) return;
+  if (!filterState.campo || !filterState.hoja) return;
+  const hoja = filterState.hoja;
   const seleccion = Array.from(filterState.selected);
   if (seleccion.length === 0){
-    filtrosCabecera[filterState.campo] = [EMPTY_FILTER_TOKEN];
+    filtrosPorHoja[hoja][filterState.campo] = [EMPTY_FILTER_TOKEN];
   } else if (seleccion.length === filterState.values.length){
-    delete filtrosCabecera[filterState.campo];
+    delete filtrosPorHoja[hoja][filterState.campo];
   } else {
-    filtrosCabecera[filterState.campo] = seleccion;
+    filtrosPorHoja[hoja][filterState.campo] = seleccion;
   }
-  actualizarEstadoBotonesFiltro();
-  render();
+  actualizarEstadoBotonesFiltro(hoja);
+  HOJAS[hoja].render();
   cerrarMenuFiltro();
 }
 
-function limpiarTodosLosFiltros(){
-  filtrosCabecera = {};
-  actualizarEstadoBotonesFiltro();
-  render();
+function limpiarTodosLosFiltros(hoja){
+  filtrosPorHoja[hoja] = {};
+  actualizarEstadoBotonesFiltro(hoja);
+  HOJAS[hoja].render();
 }
 
 document.querySelectorAll("[data-filter-btn]").forEach(btn => {
   btn.addEventListener("click", ev => {
     ev.stopPropagation();
+    const hoja = btn.dataset.sheet;
     const campo = btn.dataset.filterBtn;
     const menu = $("filterMenu");
-    if (menu.classList.contains("open") && filterState.campo === campo){ cerrarMenuFiltro(); return; }
-    abrirMenuFiltro(campo, btn);
+    if (menu.classList.contains("open") && filterState.hoja === hoja && filterState.campo === campo){ cerrarMenuFiltro(); return; }
+    abrirMenuFiltro(hoja, campo, btn);
   });
 });
 $("filterSearch").addEventListener("input", renderValoresFiltro);
 $("filterSelectAll").addEventListener("click", () => { filterState.selected = new Set(filterState.values); renderValoresFiltro(); });
 $("filterDeselectAll").addEventListener("click", () => { filterState.selected = new Set(); renderValoresFiltro(); });
-$("filterClear").addEventListener("click", () => { delete filtrosCabecera[filterState.campo]; actualizarEstadoBotonesFiltro(); render(); cerrarMenuFiltro(); });
+$("filterClear").addEventListener("click", () => {
+  if (!filterState.hoja) { cerrarMenuFiltro(); return; }
+  delete filtrosPorHoja[filterState.hoja][filterState.campo];
+  actualizarEstadoBotonesFiltro(filterState.hoja);
+  HOJAS[filterState.hoja].render();
+  cerrarMenuFiltro();
+});
 $("filterCancel").addEventListener("click", cerrarMenuFiltro);
 $("filterApply").addEventListener("click", aplicarFiltroActual);
-$("clearAllFilters").addEventListener("click", limpiarTodosLosFiltros);
+$("clearAllFilters").addEventListener("click", () => limpiarTodosLosFiltros("registro"));
+$("clearAllFiltersPiriod").addEventListener("click", () => limpiarTodosLosFiltros("piriod"));
+$("clearAllFiltersConsolidado").addEventListener("click", () => limpiarTodosLosFiltros("consolidado"));
 document.addEventListener("click", ev => {
   const menu = $("filterMenu");
   if (!menu.classList.contains("open")) return;
@@ -329,17 +531,17 @@ function render(){
       <td>${dash(r.codigo)}</td>
       <td class="text-strong">${dash(r.rut)}</td>
       <td class="text-strong">${dash(r.nombreCliente)}</td>
-      <td>${dash(r.linkPiriod)}</td>
+      <td>${linkPiriodCell(r.linkPiriod)}</td>
       <td>${dash(r.servicio)}</td>
       <td>${dash(r.inicioServicio)}</td>
-      <td class="right${r.camarasSinBbdd ? " celda-camaras-sin-bbdd" : ""}" title="${r.camarasSinBbdd ? "Sin dato de cámaras en BBDD (Información Puestos) — se muestra el valor del CSV" : ""}">${dash(r.cantidadCamaras)}</td>
+      <td class="right${r.camarasSinBbdd ? " celda-camaras-sin-bbdd" : ""}" title="${r.camarasSinBbdd ? "Sin dato de cámaras en BBDD (Información Puestos) — se muestra el valor del CSV" : ""}">${dash(fmtNum(r.cantidadCamaras))}</td>
       <td>${dash(r.moneda)}</td>
-      <td class="right">${dash(r.valorNetoMensual)}</td>
-      <td class="right">${dash(r.descuento)}</td>
-      <td class="right">${dash(r.internet)}</td>
-      <td class="right">${dash(r.valorNetoTelevigilancia)}</td>
-      <td class="right">${dash(r.valorNetoTotal)}</td>
-      <td class="right">${dash(r.valorPorCamara)}</td>
+      <td class="right">${dash(fmtNum(r.valorNetoMensual))}</td>
+      <td class="right">${dash(fmtNum(r.descuento))}</td>
+      <td class="right">${dash(fmtNum(r.internet))}</td>
+      <td class="right">${dash(fmtNum(r.valorNetoTelevigilancia))}</td>
+      <td class="right">${dash(fmtNum(r.valorNetoTotal))}</td>
+      <td class="right">${dash(fmtNum(r.valorPorCamara))}</td>
       <td class="wrap">${dash(r.direccion)}</td>
       <td>${dash(r.comuna)}</td>
       <td>${dash(r.region)}</td>
@@ -463,10 +665,149 @@ $("tbody").addEventListener("click", (e) => {
   abrirPopoverSucursal(td, td.dataset.codigo, td.dataset.rut);
 });
 
+function actualizarEstadoSyncPiriod(isoTimestamp){
+  const el = $("piriodSyncStatus");
+  if(!el) return;
+  if(!isoTimestamp){
+    el.textContent = "Estado, valor y vencimiento de Piriod: aún no sincronizado (esperando primer refresco del servidor).";
+    return;
+  }
+  const fecha = new Date(isoTimestamp);
+  const minutos = Math.max(0, Math.round((Date.now() - fecha.getTime()) / 60000));
+  const texto = minutos < 1 ? "hace instantes" : minutos === 1 ? "hace 1 minuto" : `hace ${minutos} minutos`;
+  el.textContent = `Estado, valor y vencimiento en vivo desde Piriod — actualizado ${texto}.`;
+}
+
+// ── Hojas estilo Excel (Registro / Piriod crudo / Consolidado) ──
+function cambiarHoja(id){
+  document.querySelectorAll(".sheet-panel").forEach(p => p.classList.toggle("active", p.id === id));
+  document.querySelectorAll(".sheet-tab").forEach(t => t.classList.toggle("active", t.dataset.sheet === id));
+  if(id === "panelPiriodCrudo" && !dataPiriodCrudo.length) cargarPiriodCrudo();
+  if(id === "panelConsolidado" && !dataConsolidado.length) inicializarConsolidado();
+}
+
+// ── Hoja "Piriod (crudo)" — dump sin curar de todas las suscripciones
+// que existen en Piriod (no solo las importadas al Registro). ──
+let dataPiriodCrudo = [];
+function actualizarEstadoSyncPiriodCrudo(isoTimestamp){
+  const el = $("piriodCrudoSyncStatus");
+  if(!el) return;
+  if(!isoTimestamp){ el.textContent = "Aún no sincronizado."; return; }
+  const fecha = new Date(isoTimestamp);
+  const minutos = Math.max(0, Math.round((Date.now() - fecha.getTime()) / 60000));
+  const texto = minutos < 1 ? "hace instantes" : minutos === 1 ? "hace 1 minuto" : `hace ${minutos} minutos`;
+  el.textContent = `${dataPiriodCrudo.length} suscripciones en Piriod — actualizado ${texto}.`;
+}
+async function cargarPiriodCrudo(){
+  try{
+    const resp = await api("/api/venta/finanzas/suscripciones/piriod-crudo");
+    dataPiriodCrudo = resp.rows || [];
+    actualizarEstadoSyncPiriodCrudo(resp.piriod_actualizado_en);
+    renderPiriodCrudoTabla();
+  }catch(err){
+    $("tbodyPiriodCrudo").innerHTML = `<tr><td class="empty-cell" colspan="24">Error: ${esc(err.message)}</td></tr>`;
+    showToast("Error: "+err.message,false);
+  }
+}
+function renderPiriodCrudoTabla(){
+  const rows = aplicarFiltrosHoja("piriod");
+  if(!rows.length){ $("tbodyPiriodCrudo").innerHTML = `<tr><td class="empty-cell" colspan="24">Sin resultados.</td></tr>`; return; }
+  $("tbodyPiriodCrudo").innerHTML = rows.map((r,i) => `
+    <tr>
+      <td class="right">${i+1}</td>
+      <td>${dash(r.id)}</td>
+      <td>${dash(r.estado)}</td>
+      <td><span class="raw-badge ${r.en_registro_local ? "si" : "no"}">${r.en_registro_local ? "Sí" : "No"}</span></td>
+      <td class="text-strong">${dash(r.cliente)}</td>
+      <td>${dash(r.rut)}</td>
+      <td>${dash(r.email_cliente)}</td>
+      <td class="wrap">${dash(r.direccion_cliente)}</td>
+      <td>${dash(r.comuna_cliente)}</td>
+      <td class="wrap">${dash(r.nota)}</td>
+      <td class="wrap">${dash(r.lineas)}</td>
+      <td>${dash(r.fecha_inicio)}</td>
+      <td>${dash(r.proximo_cobro)}</td>
+      <td>${dash(r.cobro_anterior)}</td>
+      <td>${dash(r.fecha_fin)}</td>
+      <td>${dash(r.cancelado_en)}</td>
+      <td>${dash(r.motivo_cancelacion)}</td>
+      <td>${dash(r.pausado_en)}</td>
+      <td>${dash(r.motivo_pausa)}</td>
+      <td class="right">${dash(fmtNum(r.ciclos_facturacion))}</td>
+      <td>${r.modo_prueba ? "Sí" : "No"}</td>
+      <td>${dash(r.esquema_cobro)}</td>
+      <td>${dash(r.creado)}</td>
+      <td>${dash(r.actualizado)}</td>
+    </tr>
+  `).join("");
+}
+$("fQPiriod").addEventListener("input", renderPiriodCrudoTabla);
+
+// ── Hoja "Consolidado" — copia editable a mano del Registro, guardada
+// solo en este navegador (localStorage), para ir cruzando fila por fila
+// contra la hoja de Piriod crudo. No se sincroniza con el servidor. ──
+const CONSOLIDADO_LS_KEY = "atc_finanzas_consolidado_v1";
+let dataConsolidado = [];
+const CONSOLIDADO_CAMPOS = [
+  "codigo","rut","nombreCliente","linkPiriod","servicio","inicioServicio","cantidadCamaras",
+  "moneda","valorNetoMensual","descuento","internet","valorNetoTelevigilancia","valorNetoTotal",
+  "valorPorCamara","direccion","comuna","region","direccionCompleta","nombreSucursal","estado","fechaTermino",
+];
+const CONSOLIDADO_CAMPOS_NUMERICOS = new Set([
+  "cantidadCamaras","valorNetoMensual","descuento","internet","valorNetoTelevigilancia","valorNetoTotal","valorPorCamara",
+]);
+function inicializarConsolidado(){
+  let guardado = null;
+  try{ guardado = JSON.parse(localStorage.getItem(CONSOLIDADO_LS_KEY) || "null"); }catch(_e){ guardado = null; }
+  dataConsolidado = Array.isArray(guardado) && guardado.length ? guardado : data.map(r => ({...r}));
+  renderConsolidado();
+}
+function guardarConsolidado(){
+  try{ localStorage.setItem(CONSOLIDADO_LS_KEY, JSON.stringify(dataConsolidado)); }catch(_e){}
+}
+function restablecerConsolidado(){
+  if(!confirm("Esto reemplaza todas las ediciones manuales del Consolidado por los datos actuales del Registro. ¿Continuar?")) return;
+  dataConsolidado = data.map(r => ({...r}));
+  guardarConsolidado();
+  renderConsolidado();
+  showToast("Consolidado restablecido desde el Registro.");
+}
+function renderConsolidado(){
+  if(!dataConsolidado.length){
+    $("tbodyConsolidado").innerHTML = `<tr><td class="empty-cell" colspan="22">Sin datos todavía — carga el Registro primero.</td></tr>`;
+    return;
+  }
+  const rows = aplicarFiltrosHoja("consolidado");
+  if(!rows.length){ $("tbodyConsolidado").innerHTML = `<tr><td class="empty-cell" colspan="22">Sin resultados.</td></tr>`; return; }
+  // data-idx usa la posicion real dentro de dataConsolidado (no la de la
+  // lista filtrada) para que editar una celda con un filtro activo siga
+  // guardando en la fila correcta.
+  $("tbodyConsolidado").innerHTML = rows.map((r,i) => `
+    <tr data-idx="${dataConsolidado.indexOf(r)}">
+      <td class="right">${i+1}</td>
+      ${CONSOLIDADO_CAMPOS.map(campo => campo === "linkPiriod"
+        ? `<td>${linkPiriodCell(r[campo])}</td>`
+        : `<td contenteditable="true" data-campo="${campo}">${esc(CONSOLIDADO_CAMPOS_NUMERICOS.has(campo) ? fmtNum(r[campo]) : (r[campo] ?? ""))}</td>`
+      ).join("")}
+    </tr>
+  `).join("");
+}
+$("tbodyConsolidado").addEventListener("blur", (e) => {
+  const td = e.target.closest("td[data-campo]");
+  if(!td) return;
+  const tr = td.closest("tr[data-idx]");
+  const idx = Number(tr.dataset.idx);
+  const campo = td.dataset.campo;
+  if(dataConsolidado[idx]) dataConsolidado[idx][campo] = td.textContent.trim();
+  guardarConsolidado();
+}, true);
+$("fQConsolidado").addEventListener("input", renderConsolidado);
+
 async function cargar(){
   try{
     const resp = await api("/api/venta/finanzas/suscripciones");
     const filas = resp.rows || [];
+    actualizarEstadoSyncPiriod(resp.piriod_actualizado_en);
     data = filas.map(r => ({
       codigo: r.codigo || "",
       rut: r.rut || "",

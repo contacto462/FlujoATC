@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import html
 import json
@@ -81,13 +81,13 @@ from ATC.app.services.incidencias_drive_report_service import (
     upload_camaras_monitoreo_fotos as _upload_camaras_monitoreo_fotos,
 )
 from ATC.app.services.sla_feedback_service import (
-    build_configured_sla_survey_link,
-    build_static_sla_survey_link,
+    build_sla_feedback_link,
+    build_sla_feedback_token,
 )
 from ATC.app.services.incidencias_service import IncidenciasService
 from ATC.app.routes.bitacora_access import can_access_bitacora
 
-from ATC.app.models.ticket import Ticket
+from ATC.app.models.ticket import Ticket, TicketChecklistItem
 
 from ATC.app.models.message import Message
 from ATC.app.models.message_mention import MessageMention
@@ -96,10 +96,11 @@ from ATC.app.models.ticket_alert_read_state import TicketAlertReadState
 from ATC.app.models.ticket_message_read_state import TicketMessageReadState
 from ATC.app.models.ticket_internal_note_read_state import TicketInternalNoteReadState
 from ATC.app.models.ticket_manual_unread import TicketManualUnread
+from ATC.app.models.ticket_sla_feedback import TicketSlaFeedback
 from ATC.app.models.requester_internal_note_read_state import RequesterInternalNoteReadState
 
 from ATC.app.models.user import User
-from ATC.app.models.incidencias import AdministracionODT, LoginSession, Registro, ServicioTecnicoVentaODT, VentaODS
+from ATC.app.models.incidencias import AdministracionODT, ClienteBBDD, LoginSession, Registro, ServicioTecnicoVentaODT, SucursalBBDD, VentaODS
 
 from ATC.app.models.requester import Requester
 
@@ -1055,12 +1056,19 @@ def _send_sla_satisfaction_email(ticket: Ticket) -> None:
     ticket_id = ticket.id
     subject = f"Encuesta de satisfaccion SLA - Ticket #{ticket_id}"
     logo_cid = "logo-atc"
-    survey_link = build_configured_sla_survey_link(
+    # Antes mandaba al formulario externo de Fillout (o a una pagina
+    # estatica de respaldo) — ninguno de los dos cerraba el circuito: el
+    # texto del correo describe las 2 preguntas de la encuesta EN LA APP
+    # (public_sla_feedback.html /tickets/{id}/sla-feedback), pero el link
+    # real llevaba a otro lado, y las respuestas de Fillout solo llegan a
+    # este sistema si su webhook externo esta configurado (no verificable
+    # desde el codigo). Ahora manda directo a la encuesta propia — la
+    # respuesta queda guardada al toque en TicketSlaFeedback (ver
+    # analytics_service.py) sin depender de nada externo — pedido
+    # explicito, ago 2026.
+    survey_link = build_sla_feedback_link(
         ticket_id=ticket_id,
-        requester_name=requester_name,
-    ) or build_static_sla_survey_link(
-        ticket_id=ticket_id,
-        requester_name=requester_name,
+        token=build_sla_feedback_token(ticket_id),
     )
 
     body = f"""
@@ -2764,9 +2772,18 @@ def _ticketera_build_filtered_query(
         # seguir viendo TODO el mundo aunque filtre por un agente puntual,
         # incluso despues de que alguien ya lo haya tomado — antes esto
         # solo aplicaba para Ronald Montilla (pedido explicito, jul 2026),
-        # se generalizo a todos los usuarios (ago 2026).
+        # se generalizo a todos los usuarios (ago 2026). Pero esa condicion
+        # nunca se apagaba: un ticket ya Resuelto por OTRO agente hace
+        # semanas seguia apareciendo para SIEMPRE al filtrar por cualquier
+        # usuario puntual, solo por haber pasado alguna vez por "Equipo" —
+        # ensuciaba el filtro por agente con tickets resueltos de otra
+        # persona (reportado con capturas, ago 2026). Ahora el carve-out
+        # solo aplica mientras el ticket sigue activo (no Resuelto); una vez
+        # resuelto, vuelve a filtrar solo por su asignado real.
         if user_clauses:
-            user_clauses.append(Ticket.team_broadcast_at.isnot(None))
+            user_clauses.append(
+                and_(Ticket.team_broadcast_at.isnot(None), Ticket.status != "resolved")
+            )
         if user_clauses:
             query = query.filter(or_(*user_clauses))
 
@@ -3142,6 +3159,22 @@ def ticketera(
         pending_incidencias = []
         pending_incidencias_count = 0
 
+    # Para el picker "Nuevo Ticket -> Por Cliente/Por Sucursal" (checklist
+    # embebido en un solo ticket para trabajo masivo, ej. reconfigurar
+    # puestos de todos) — pedido explicito, ago 2026. Sucursales solo
+    # habilitadas (habilitada=1 o NULL, mismo criterio que bitacora.py).
+    clientes_ticket_nuevo = [
+        {"id": c.id, "nombre": c.cliente}
+        for c in db.query(ClienteBBDD.id, ClienteBBDD.cliente).order_by(ClienteBBDD.cliente.asc()).all()
+    ]
+    sucursales_ticket_nuevo = [
+        {"id": s.id, "nombre": s.nombre_sucursal, "empresa": s.nombre_empresa or ""}
+        for s in db.query(SucursalBBDD.id, SucursalBBDD.nombre_sucursal, SucursalBBDD.nombre_empresa)
+        .filter(or_(SucursalBBDD.habilitada == True, SucursalBBDD.habilitada.is_(None)))  # noqa: E712
+        .order_by(SucursalBBDD.nombre_sucursal.asc())
+        .all()
+    ]
+
     return templates.TemplateResponse(
         request,
         "ticketera.html",
@@ -3150,6 +3183,8 @@ def ticketera(
             "user": current_user,
             "user_signature": signature_html_for_user(current_user),
             "tickets": tickets,
+            "clientes_ticket_nuevo": clientes_ticket_nuevo,
+            "sucursales_ticket_nuevo": sucursales_ticket_nuevo,
             "ticket_has_new_message": ticket_has_new_message,
             "ticket_has_mention": ticket_has_mention,
             "ticket_unseen_message_id": ticket_unseen_message_id,
@@ -3270,7 +3305,22 @@ def soporte_page(
     )
 
 
+# La resolucion de la tabla (nombre real + columna observacion_soporte +
+# reflection completa via SQLAlchemy Core) implicaba varias consultas de
+# catalogo contra SQL Server en CADA request a /api/registros/tabla y otros
+# endpoints de soporte — el esquema no cambia durante la vida del proceso
+# (las columnas nuevas se agregan al arrancar, ver ensure_*_columns en
+# main.py), asi que se cachea el Table ya resuelto una sola vez por proceso.
+# Bottleneck real detras de los ~4s que tardaba en cargar la tabla de
+# soporte — pedido explicito, ago 2026.
+_SUPPORT_INCIDENCIAS_TABLE_CACHE: Table | None = None
+
+
 def _support_incidencias_table(db: Session) -> Table:
+    global _SUPPORT_INCIDENCIAS_TABLE_CACHE
+    if _SUPPORT_INCIDENCIAS_TABLE_CACHE is not None:
+        return _SUPPORT_INCIDENCIAS_TABLE_CACHE
+
     # AJUSTE SOPORTE REGISTRO SQL #
     # Soporte Tecnico debe consumir unicamente la tabla Registro.
     metadata = MetaData()
@@ -3290,7 +3340,8 @@ def _support_incidencias_table(db: Session) -> Table:
                     retry_cols = {col["name"] for col in inspector_retry.get_columns(table_name)}
                     if "observacion_soporte" not in retry_cols:
                         raise
-            return Table(table_name, metadata, autoload_with=db.bind)
+            _SUPPORT_INCIDENCIAS_TABLE_CACHE = Table(table_name, metadata, autoload_with=db.bind)
+            return _SUPPORT_INCIDENCIAS_TABLE_CACHE
 
     raise RuntimeError("# AJUSTE SOPORTE REGISTRO SQL # No se encontro la tabla Registro/registros para soporte.")
 
@@ -3628,7 +3679,18 @@ def _support_ensure_cierre_tables_UNUSED_MIGRATION(db: Session) -> None:
     # y no romper el flujo principal de ODT.
 
 
+_SUPPORT_SCHEMA_ENSURED: set[str] = set()
+
+
 def _support_ensure_support_images_table(db: Session) -> None:
+    # Corria CREATE TABLE/indice/constraint-if-missing + 2 UPDATE de barrido
+    # completo + un escaneo de migracion legacy en CADA llamada (esta funcion
+    # se invoca en cada carga de /api/registros/tabla) — una vez que la tabla
+    # y la migracion quedan al dia no hay nada mas que hacer en lo que dure
+    # el proceso. Bottleneck real detras de los ~4s que tardaba en cargar la
+    # tabla de soporte — pedido explicito, ago 2026.
+    if "support_images" in _SUPPORT_SCHEMA_ENSURED:
+        return
     try:
         db.execute(
             text(
@@ -3738,12 +3800,18 @@ def _support_ensure_support_images_table(db: Session) -> None:
             db.execute(text(f"DROP TABLE {legacy}"))
 
         db.commit()
+        _SUPPORT_SCHEMA_ENSURED.add("support_images")
     except Exception:
         db.rollback()
         raise
 
 
 def _support_ensure_mantenciones_images_table(db: Session) -> None:
+    # Misma razon que _support_ensure_support_images_table: sin esta guarda
+    # corria un escaneo/migracion completo de filas 'M%' en CADA carga de la
+    # tabla de soporte. Pedido explicito, ago 2026.
+    if "mantenciones_images" in _SUPPORT_SCHEMA_ENSURED:
+        return
     try:
         db.execute(
             text(
@@ -3845,6 +3913,7 @@ def _support_ensure_mantenciones_images_table(db: Session) -> None:
             )
 
         db.commit()
+        _SUPPORT_SCHEMA_ENSURED.add("mantenciones_images")
     except Exception:
         db.rollback()
         raise
@@ -4069,6 +4138,7 @@ def _support_query_incidencias(db: Session) -> tuple[Table, list[dict[str, objec
         "fecha_derivacion_tecnico",
         "fecha_derivacion",
         "observacion_final",
+        "solicitud_cliente",
     )
     for col_name in optional_columns:
         if col_name in table.c:
@@ -4133,17 +4203,6 @@ def soporte_obtener_registros_tabla(
     _ = current_user  # Mantiene autenticacion por cookie.
 
     _table, incidencias = _support_query_incidencias(db)
-    extra_images_by_odt: dict[str, list[str]] = {}
-    mantencion_images_by_sucursal_key: dict[str, list[str]] = {}
-    try:
-        extra_images_by_odt = _support_fetch_support_images_by_odt(db)
-    except Exception:
-        # Si falla la lectura de tabla de soporte, seguimos sin imagenes.
-        pass
-    try:
-        mantencion_images_by_sucursal_key = _support_fetch_mantencion_images_by_sucursal_key(db)
-    except Exception:
-        pass
 
     rows: list[list[str | int]] = []
 
@@ -4152,19 +4211,18 @@ def soporte_obtener_registros_tabla(
         odt = _support_pick(incidencia, "odt") or f"#{incidencia.get('id')}"
         tecnico_titular = _support_pick_person(incidencia, "tecnico", "tecnicos")
         tecnico_acompanante = _support_pick_person(incidencia, "acompanante")
-        if _support_is_mantencion_odt(odt):
-            key = _support_normalize_sucursal_key(cliente)
-            odt_images = mantencion_images_by_sucursal_key.get(key, []) if key else []
-        else:
-            odt_images = extra_images_by_odt.get(odt, [])
+        # Las imagenes reales (algunas con fallback base64 de varios MB cada
+        # una, ver incidencias_imagenes_odt) NO se usan en la tabla — el
+        # boton "Imagenes" las pide en vivo, por ODT, recien al abrir el
+        # modal (openSoporteImagenModal -> /api/incidencias/imagenes-tabla).
+        # Cargarlas aca para las ~14 mil filas inflaba esta respuesta a
+        # ~25MB y era el cuello de botella real detras de la demora al
+        # cargar la tabla — pedido explicito, ago 2026.
         extra_images: list[str] = []
-        for image_url in odt_images:
-            if image_url and image_url not in extra_images:
-                extra_images.append(image_url)
 
         # Estructura compatible con incidencias_soporte.html:
         # [0..9] columnas + [10..12] reservadas + [13..15] metadatos tecnico + [16] imagenes soporte
-        # + [17] observacion soporte + [18] observacion servicio tecnico.
+        # + [17] observacion soporte + [18] observacion servicio tecnico + [19] solicitud_cliente.
         rows.append(
             [
                 odt,  # ODT
@@ -4186,6 +4244,7 @@ def soporte_obtener_registros_tabla(
                 extra_images,  # Imagenes soporte (max 3)
                 _support_pick(incidencia, "observacion_soporte"),  # Observacion soporte (solo soporte)
                 _support_pick(incidencia, "observacion_servicio"),  # Observacion servicio tecnico
+                bool(incidencia.get("solicitud_cliente")),  # ODT solicitada por el cliente (resalta la fila)
             ]
         )
 
@@ -6157,6 +6216,15 @@ def ticket_detail(
     reception_sent = _has_reception_sent(db, ticket.id) if requires_reception else True
     ticket_locked = _ticket_is_locked(ticket)
 
+    # Encuesta de satisfaccion SLA respondida por el cliente (si la
+    # respondio) — se muestra en el detalle del ticket, ver
+    # detalle_ticket.html — pedido explicito, ago 2026.
+    sla_feedback = db.get(TicketSlaFeedback, ticket_id)
+
+    # Checklist embebido (trabajo masivo por puesto/cliente/sucursal) —
+    # ver create_ticket. Vacio para un ticket normal.
+    checklist_items = ticket.checklist_items
+
     # Modo "No es un ticket": omitir gate de recepción si la flag está activa
     direct_reply_mode = ticket.is_no_ticket or request.query_params.get("direct_reply") == "1"
     if direct_reply_mode and not ticket_locked:
@@ -6170,6 +6238,8 @@ def ticket_detail(
             "request": request,
             "user": current_user,
             "ticket": ticket,
+            "sla_feedback": sla_feedback,
+            "checklist_items": checklist_items,
             "messages": messages,
             "has_agent_reply": has_agent_reply,
             "requester_notes": requester_notes,
@@ -8858,6 +8928,15 @@ def create_ticket(
 
     priority: str = Form(""),
 
+    # Creacion masiva por puesto (1-29) o por cliente: un ticket por cada
+    # puesto/cliente seleccionado, mismo asunto base + sufijo, para poder
+    # llevar un checklist de trabajo (ej. "reconfigurar todos los puestos")
+    # — pedido explicito, ago 2026.
+    modo: str = Form("general"),
+    puestos: list[int] = Form(default=[]),
+    cliente_ids: list[int] = Form(default=[]),
+    sucursal_ids: list[int] = Form(default=[]),
+
     assigned_to_id: int | None = Form(None),  # ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã‹Å“Ãƒâ€šÃ‚Â¤ Usuario asignado (opcional)
 
     current_user: User = Depends(get_current_user_web),  # ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒâ€šÃ‚Â Usuario autenticado
@@ -8937,82 +9016,197 @@ def create_ticket(
         raise HTTPException(status_code=400, detail="Usuario asignado invalido")
 
     # =====================================
-
-    # 3ÃƒÆ’Ã‚Â¯Ãƒâ€šÃ‚Â¸Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢Ãƒâ€ Ã¢â‚¬â„¢Ãƒâ€šÃ‚Â£ Crear Ticket
+    # 3) Armar los items del checklist (si aplica)
+    # =====================================
+    # "general" crea el ticket de siempre, sin checklist. "puesto",
+    # "cliente" y "sucursal" crean UN SOLO ticket con un item de checklist
+    # por cada elemento seleccionado -- para trabajo masivo (ej.
+    # reconfigurar los 29 puestos) sin inundar la ticketera de tickets
+    # sueltos; el ticket muestra el % de avance a medida que se van
+    # marcando (pedido explicito, ago 2026).
+    modo = (modo or "general").strip().lower()
+    checklist_items: list[dict] = []  # [{"etiqueta": str, "referencia_id": int}]
+    if modo == "puesto":
+        puestos_validos = sorted({p for p in puestos if 1 <= p <= 29})
+        if not puestos_validos:
+            raise HTTPException(status_code=400, detail="Selecciona al menos un puesto.")
+        checklist_items = [{"etiqueta": f"Puesto {p}", "referencia_id": p} for p in puestos_validos]
+    elif modo == "cliente":
+        cliente_ids_validos = sorted({c for c in cliente_ids if c})
+        if not cliente_ids_validos:
+            raise HTTPException(status_code=400, detail="Selecciona al menos un cliente.")
+        nombres_por_id = {
+            c.id: c.cliente
+            for c in db.query(ClienteBBDD.id, ClienteBBDD.cliente)
+            .filter(ClienteBBDD.id.in_(cliente_ids_validos))
+            .all()
+        }
+        checklist_items = [
+            {"etiqueta": nombres_por_id[cid], "referencia_id": cid}
+            for cid in cliente_ids_validos if cid in nombres_por_id
+        ]
+        if not checklist_items:
+            raise HTTPException(status_code=400, detail="Los clientes seleccionados ya no existen.")
+    elif modo == "sucursal":
+        sucursal_ids_validos = sorted({s for s in sucursal_ids if s})
+        if not sucursal_ids_validos:
+            raise HTTPException(status_code=400, detail="Selecciona al menos una sucursal.")
+        filas_sucursal = {
+            s.id: (s.nombre_sucursal, s.nombre_empresa)
+            for s in db.query(SucursalBBDD.id, SucursalBBDD.nombre_sucursal, SucursalBBDD.nombre_empresa)
+            .filter(SucursalBBDD.id.in_(sucursal_ids_validos))
+            .all()
+        }
+        checklist_items = [
+            {
+                "etiqueta": f"{filas_sucursal[sid][0]} — {filas_sucursal[sid][1]}" if filas_sucursal[sid][1] else filas_sucursal[sid][0],
+                "referencia_id": sid,
+            }
+            for sid in sucursal_ids_validos if sid in filas_sucursal
+        ]
+        if not checklist_items:
+            raise HTTPException(status_code=400, detail="Las sucursales seleccionadas ya no existen.")
 
     # =====================================
-
-    # ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸Ãƒâ€¦Ã‚Â½Ãƒâ€šÃ‚Â« Creamos el registro principal del ticket.
-
-    # source="internal" permite diferenciarlo
-
-    # de tickets por email o whatsapp.
-
+    # 4) Crear el Ticket + mensaje inicial + checklist (si corresponde)
+    # =====================================
+    # source="internal" permite diferenciarlo de tickets por email o
+    # whatsapp.
     ticket = Ticket(
-
         subject=subject,
-
         requester_id=requester.id,    # ID del requester interno
-
         assigned_to_id=assigned_to_id,
-
         priority=priority,
-
         status="open",
-
         source="internal",
-
         team_broadcast_at=datetime.now(timezone.utc) if assigned_to_id is None else None,
-
     )
-
     db.add(ticket)
-
     db.commit()
-
     db.refresh(ticket)
 
-    # =====================================
-
-    # 4ÃƒÆ’Ã‚Â¯Ãƒâ€šÃ‚Â¸Ãƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢Ãƒâ€ Ã¢â‚¬â„¢Ãƒâ€šÃ‚Â£ Crear mensaje inicial
-
-    # =====================================
-
-    # ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢Ãƒâ€šÃ‚Â¬ Todo ticket debe tener al menos un mensaje.
-
-    # AquÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­ creamos el mensaje inicial del agente.
-
     message = Message(
-
         ticket_id=ticket.id,
-
         sender_id=current_user.id,
-
         sender_type="agent",
-
-        channel="internal",          # ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã‹Å“Ãƒâ€¹Ã¢â‚¬Â  obligatorio
-
+        channel="internal",
         content=content,
-
-        is_internal_note=False,       # opcional pero recomendable
-
+        is_internal_note=False,
         created_at=chile_now(),
-
     )
-
     db.add(message)
+
+    for orden, item in enumerate(checklist_items):
+        db.add(
+            TicketChecklistItem(
+                ticket_id=ticket.id,
+                etiqueta=item["etiqueta"],
+                tipo=modo,
+                referencia_id=item["referencia_id"],
+                orden=orden,
+            )
+        )
 
     db.commit()
 
     # =====================================
-
     # Redirigir a la ticketera
-
     # =====================================
-
-    # ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒâ€šÃ‚Â Volvemos al inbox despuÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s de crear el ticket.
-
     return RedirectResponse("/ticketera", status_code=303)
+
+
+@router.post("/ticketera/tickets/{ticket_id}/checklist/{item_id}/toggle")
+def toggle_ticket_checklist_item(
+    ticket_id: int,
+    item_id: int,
+    current_user: User = Depends(get_current_user_web),
+    db: Session = Depends(get_db),
+):
+    """Marca/desmarca un item del checklist embebido de un ticket (ver
+    create_ticket / TicketChecklistItem) y devuelve el % de avance
+    actualizado para refrescar la barra de progreso sin recargar la
+    pagina — pedido explicito, ago 2026."""
+    _require_area_access(db, current_user, "soporte")
+
+    ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket no encontrado")
+    if not _can_view_ticket(ticket, current_user):
+        raise HTTPException(status_code=403, detail="Ticket no autorizado")
+
+    item = (
+        db.query(TicketChecklistItem)
+        .filter(TicketChecklistItem.id == item_id, TicketChecklistItem.ticket_id == ticket_id)
+        .first()
+    )
+    if not item:
+        raise HTTPException(status_code=404, detail="Item de checklist no encontrado")
+
+    # Desmarcar un item ya completado solo se permite dentro de los 30
+    # segundos siguientes a marcarlo (ventana para deshacer un click por
+    # error) — pasado ese tiempo queda fijo para siempre, ni la API lo
+    # permite. Marcar (de pendiente a completado) no tiene esta
+    # restriccion, siempre esta permitido — pedido explicito, ago 2026.
+    if item.completado:
+        segundos_desde = (
+            (datetime.now(timezone.utc) - item.completado_en).total_seconds()
+            if item.completado_en else 9999
+        )
+        if segundos_desde > 30:
+            raise HTTPException(
+                status_code=400,
+                detail="Este item ya quedo marcado como listo de forma definitiva (pasaron los 30 segundos para deshacerlo).",
+            )
+
+    item.completado = not item.completado
+    item.completado_en = datetime.now(timezone.utc) if item.completado else None
+    item.completado_por_id = current_user.id if item.completado else None
+    db.commit()
+
+    total = db.query(TicketChecklistItem).filter(TicketChecklistItem.ticket_id == ticket_id).count()
+    hechos = (
+        db.query(TicketChecklistItem)
+        .filter(TicketChecklistItem.ticket_id == ticket_id, TicketChecklistItem.completado == True)  # noqa: E712
+        .count()
+    )
+    return {
+        "completado": item.completado,
+        "completado_por": current_user.name if item.completado else None,
+        "hechos": hechos,
+        "total": total,
+        "porcentaje": round(hechos / total * 100) if total else 0,
+    }
+
+
+@router.post("/ticketera/tickets/{ticket_id}/checklist/{item_id}/comentario")
+def guardar_comentario_checklist_item(
+    ticket_id: int,
+    item_id: int,
+    comentario: str = Form(""),
+    current_user: User = Depends(get_current_user_web),
+    db: Session = Depends(get_db),
+):
+    """Guarda/edita el comentario libre de un item del checklist (ej.
+    'falta el cable UTP, pendiente de bodega') — pedido explicito, ago 2026."""
+    _require_area_access(db, current_user, "soporte")
+
+    ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket no encontrado")
+    if not _can_view_ticket(ticket, current_user):
+        raise HTTPException(status_code=403, detail="Ticket no autorizado")
+
+    item = (
+        db.query(TicketChecklistItem)
+        .filter(TicketChecklistItem.id == item_id, TicketChecklistItem.ticket_id == ticket_id)
+        .first()
+    )
+    if not item:
+        raise HTTPException(status_code=404, detail="Item de checklist no encontrado")
+
+    item.comentario = (comentario or "").strip() or None
+    db.commit()
+    return {"comentario": item.comentario}
 
 
 # ============================================================
@@ -9233,6 +9427,20 @@ def _st_normalizar_pantalla(value: object, puesto: int | None = None) -> str | N
     return pantalla
 
 
+def _st_normalize_text(value: object) -> str:
+    """Normaliza nombre/dirección de sucursal para comparar 'GR PLANTA' con
+    'Gr. Planta' o 'GR  PLANTA' como la misma sucursal — mayúsculas, sin
+    tildes, sin puntuación y con espacios colapsados. La comparación exacta
+    (LOWER/TRIM) de _st_find_sucursal_para_ods fallaba en silencio ante
+    diferencias así entre venta_comercial y bbdd_sucursales: la cámara se
+    guardaba igual pero nunca aparecía como 'existente' en el siguiente
+    guardado de esa misma sucursal — pedido explicito, ago 2026."""
+    text_val = unicodedata.normalize("NFD", str(value or ""))
+    text_val = "".join(ch for ch in text_val if unicodedata.category(ch) != "Mn")
+    text_val = re.sub(r"[.,;:'\"-]", " ", text_val.upper())
+    return " ".join(text_val.split())
+
+
 def _st_find_sucursal_para_ods(db: Session, ods_row) -> tuple[int | None, str]:
     rut = str(ods_row.get("rut_cliente") or "").strip()
     nombre = str(ods_row.get("nombre_sucursal") or "").strip()
@@ -9289,6 +9497,32 @@ def _st_find_sucursal_para_ods(db: Session, ods_row) -> tuple[int | None, str]:
         row = db.execute(text(query), params).mappings().first()
         if row:
             return int(row.get("id")), str(row.get("nombre_sucursal") or nombre or razon).strip()
+
+    # Fallback difuso: los candidatos de arriba exigen coincidencia EXACTA
+    # (tras LOWER/TRIM) de nombre_sucursal/direccion_sucursal contra
+    # bbdd_sucursales, y venta_comercial se tipea a mano — una sucursal como
+    # "GR PLANTA" con un punto, doble espacio o tilde de más en una de las
+    # dos tablas hacía que nunca se encontrara sucursal_id, y la cámara
+    # quedaba guardada solo en esa ODS puntual sin sincronizar a
+    # sucursal_camaras_monitoreo (no aparecía como 'existente' en el
+    # siguiente guardado de esa sucursal). Acá se compara normalizado
+    # (sin tildes/puntuación, espacios colapsados) — pedido explicito,
+    # ago 2026.
+    if rut:
+        candidatas = db.execute(text("""
+            SELECT id, nombre_sucursal, direccion_sucursal
+            FROM bbdd_sucursales
+            WHERE LOWER(TRIM(rut)) = LOWER(TRIM(:rut))
+        """), {"rut": rut}).mappings().all()
+        nombre_norm = _st_normalize_text(nombre)
+        direccion_norm = _st_normalize_text(direccion)
+        for candidata in candidatas:
+            if nombre_norm and _st_normalize_text(candidata.get("nombre_sucursal")) == nombre_norm:
+                return int(candidata.get("id")), str(candidata.get("nombre_sucursal") or nombre or razon).strip()
+        for candidata in candidatas:
+            if direccion_norm and _st_normalize_text(candidata.get("direccion_sucursal")) == direccion_norm:
+                return int(candidata.get("id")), str(candidata.get("nombre_sucursal") or nombre or razon).strip()
+
     return None, nombre or razon
 
 
@@ -9387,6 +9621,27 @@ def _st_sync_camaras_sucursal(
         """), {"c": codigo}).mappings().all()
         if r["nombre_camara_monitoreo"]
     }
+    # Mismo rescate para el casillero exacto (pantalla + slot_index) elegido
+    # en el picker 'Ubicar cámaras' — esta función también se llama SIN
+    # `ubicaciones` (ver st_ods_actualizar_campo, al editar "N° Central
+    # Asignado" o "Pantalla Asignada" directo en la tabla). Sin este rescate,
+    # cualquier edición de esos dos campos después de haber ubicado las
+    # cámaras con el picker las re-insertaba sin casillero — perdían su
+    # posición exacta y quedaban "Sin pantalla asignada" si tampoco había
+    # cargado un valor legado en pantalla_asignada (caso Gasco La Calera,
+    # ago 2026).
+    ubicaciones_previas = {
+        str(r["nombre_camara_monitoreo"] or "").strip(): {
+            "pantalla": r["ubicacion_pantalla"],
+            "slotIndex": r["slot_index"],
+        }
+        for r in db.execute(text("""
+            SELECT nombre_camara_monitoreo, ubicacion_pantalla, slot_index
+            FROM sucursal_camaras_monitoreo
+            WHERE LOWER(TRIM(COALESCE(odt_origen, ''))) = LOWER(TRIM(:c))
+        """), {"c": codigo}).mappings().all()
+        if r["nombre_camara_monitoreo"]
+    }
 
     db.execute(
         text("DELETE FROM sucursal_camaras_monitoreo WHERE LOWER(TRIM(COALESCE(odt_origen, ''))) = LOWER(TRIM(:c))"),
@@ -9421,7 +9676,7 @@ def _st_sync_camaras_sucursal(
     capacidad = _st_capacidad_puesto(puesto)
     total = len(camaras)
     for camara in camaras:
-        ubicacion = ubicaciones.get(camara) or {}
+        ubicacion = ubicaciones.get(camara) or ubicaciones_previas.get(camara) or {}
         pantalla_camara = _st_normalizar_pantalla(ubicacion.get("pantalla"), puesto) or pantalla_legada
         slot_index = ubicacion.get("slotIndex")
         try:
@@ -9791,14 +10046,95 @@ def st_puesto_pantallas(
     pantallas = []
     for nombre in pantallas_nombres:
         ocupados: dict[int, dict] = {}
+        sin_slot: list[dict] = []
         for item in por_pantalla.get(nombre, []):
             si = item.get("slotIndex")
             if isinstance(si, int) and 0 <= si < capacidad and si not in ocupados:
                 ocupados[si] = item
+            else:
+                sin_slot.append(item)
+        # Cámaras ya guardadas con pantalla válida pero sin casillero exacto
+        # (ubicadas con el campo legado "Pantalla Asignada" en vez del
+        # picker, o con slot_index perdido en un resync viejo) igual se
+        # muestran acá — se les asigna el primer casillero libre, mismo
+        # criterio que usa Bitácora ("Administrar Puestos") al armar su
+        # grilla. Antes se descartaban en silencio: una cámara ya guardada
+        # (caso GR Planta) se veía bien en Bitácora pero nunca aparecía en
+        # este picker de 'Tabla Soporte ODS' — pedido explicito, ago 2026.
+        for item in sin_slot:
+            libre = next((i for i in range(capacidad) if i not in ocupados), None)
+            if libre is not None:
+                ocupados[libre] = item
         slots = [ocupados.get(i) for i in range(capacidad)]
         pantallas.append({"nombre": nombre, "capacidad": capacidad, "slots": slots})
 
     return {"puesto": puesto, "pantallas": pantallas}
+
+
+@router.post("/api/soporte-tecnico/puesto/{puesto}/mover-camara")
+def st_puesto_mover_camara(
+    puesto: int,
+    payload: dict,
+    db: Session = Depends(get_incidencias_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    """Mueve una cámara YA GUARDADA (de cualquier ODT/sucursal) a otro
+    casillero/pantalla dentro del mismo puesto — arrastrar y soltar en
+    'Ubicar cámaras en pantallas', igual que 'Administrar Puestos' en
+    Bitácora (routes/bitacora.py: colocar_camaras_puesto), pero con el auth
+    de 'Tabla Soporte ODS' (cualquier usuario logueado, no solo quienes
+    tienen acceso a Bitácora) — pedido explicito, ago 2026."""
+    _ = current_user
+    if puesto < 1 or puesto > 29:
+        raise HTTPException(status_code=400, detail="Puesto inválido.")
+
+    pantalla_destino = _st_normalizar_pantalla(payload.get("pantalla"), puesto)
+    if not pantalla_destino:
+        raise HTTPException(status_code=400, detail="Pantalla destino inválida para ese puesto.")
+    try:
+        camara_id = int(payload.get("camaraId"))
+        slot_index = int(payload.get("slotIndex"))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Datos de movimiento inválidos.")
+
+    capacidad = _st_capacidad_puesto(puesto)
+    if slot_index < 0 or slot_index >= capacidad:
+        raise HTTPException(status_code=400, detail="Casillero inválido para esa pantalla.")
+
+    fila = db.execute(text("""
+        SELECT id FROM sucursal_camaras_monitoreo
+        WHERE id = :id AND eliminado_en IS NULL
+    """), {"id": camara_id}).mappings().first()
+    if not fila:
+        raise HTTPException(status_code=404, detail="Cámara no encontrada.")
+
+    # Si el casillero destino ya está ocupado por otra cámara de este mismo
+    # puesto, esa cámara queda "sin casillero" (mismo criterio que un
+    # 'puesto nuevo' sin grid fisico todavia) — el usuario la reubica
+    # arrastrándola después. ubicacion_pantalla en la BBDD puede traer
+    # variantes ("IZQ ARRIBA" vs "Izquierda Arriba"), por eso se compara
+    # normalizado en Python en vez de con texto exacto en el WHERE.
+    ocupantes = db.execute(text("""
+        SELECT id, ubicacion_pantalla, slot_index
+        FROM sucursal_camaras_monitoreo
+        WHERE central = :puesto AND eliminado_en IS NULL AND id <> :id
+    """), {"puesto": puesto, "id": camara_id}).mappings().all()
+    for ocupante in ocupantes:
+        if ocupante["slot_index"] != slot_index:
+            continue
+        if _st_normalizar_pantalla(ocupante["ubicacion_pantalla"], puesto) != pantalla_destino:
+            continue
+        db.execute(text("""
+            UPDATE sucursal_camaras_monitoreo SET slot_index = NULL WHERE id = :id
+        """), {"id": ocupante["id"]})
+
+    db.execute(text("""
+        UPDATE sucursal_camaras_monitoreo
+        SET central = :puesto, ubicacion_pantalla = :pantalla, slot_index = :slot_index
+        WHERE id = :id
+    """), {"puesto": puesto, "pantalla": pantalla_destino, "slot_index": slot_index, "id": camara_id})
+    db.commit()
+    return {"ok": True, "puesto": puesto, "pantalla": pantalla_destino, "slotIndex": slot_index}
 
 
 @router.get("/api/soporte-tecnico/ods/{codigo}/vistas-ejecutivo")

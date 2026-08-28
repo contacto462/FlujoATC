@@ -138,6 +138,19 @@ class Settings(BaseSettings):
     smtp_informe_timeout_sec: int = 20
 
     # ==============================
+    # DAHUA DSS / VMS API
+    # ==============================
+    dss_base_url: str = ""
+    dss_username: str = ""
+    dss_password: str = ""
+    dss_static_token: str = ""
+    dss_verify_ssl: bool = False
+    dss_timeout_sec: int = 15
+    dss_default_protocol: str = "https"
+    dss_default_stream_type: int = 1
+    dss_default_record_source: int = 3
+
+    # ==============================
     # IA (OpenAI / Anthropic)
     # ==============================
     ia_formalizador_enabled: bool = True

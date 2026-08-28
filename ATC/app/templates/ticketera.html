@@ -421,7 +421,8 @@ body.sidebar-collapsed .main{
   width:min(560px, 96vw);
   background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,252,.96));
   border:1px solid rgba(15,23,42,.12);
-  border-radius:22px;
+  /* En punta, no redondo — pedido explicito, ago 2026. */
+  border-radius:0;
   box-shadow:0 34px 80px rgba(2,6,23,.28), 0 10px 26px rgba(15,23,42,.16);
   overflow:clip;
 
@@ -538,6 +539,152 @@ body.sidebar-collapsed .main{
   min-height:120px;
   resize:vertical;
 }
+
+/* ── Tipo de ticket: General / Por Puesto / Por Cliente ── */
+.modo-ticket-options{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.modo-ticket-opt{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:7px 12px;
+  border:1px solid #d9e2ee;
+  border-radius:10px;
+  font-size:12.5px;
+  font-weight:700;
+  color:#475569;
+  cursor:pointer;
+  transition:all .15s ease;
+}
+.modo-ticket-opt:has(input:checked){
+  border-color:#3b82f6;
+  background:rgba(59,130,246,.10);
+  color:#1d4ed8;
+}
+.modo-ticket-opt input{ margin:0; accent-color:#3b82f6; }
+
+.picker-masivo{
+  display:none;
+  border:1px solid #d9e2ee;
+  border-radius:12px;
+  padding:12px;
+  background:rgba(248,250,252,.95);
+}
+.picker-masivo.visible{ display:block; }
+.picker-masivo-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin-bottom:10px;
+}
+.picker-masivo-selall{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:12px;
+  font-weight:700;
+  color:#3b82f6;
+  cursor:pointer;
+}
+.picker-puestos-grid{
+  display:grid;
+  grid-template-columns:repeat(6, 1fr);
+  gap:6px;
+}
+.picker-puesto-item{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  padding:7px 4px;
+  border:1px solid #d9e2ee;
+  border-radius:8px;
+  font-size:12px;
+  font-weight:700;
+  color:#475569;
+  cursor:pointer;
+  background:#fff;
+}
+.picker-puesto-item:has(input:checked){
+  border-color:#3b82f6;
+  background:rgba(59,130,246,.12);
+  color:#1d4ed8;
+}
+.picker-puesto-item input{ margin:0; accent-color:#3b82f6; }
+.picker-clientes-buscar{
+  width:100%;
+  border:1px solid #d9e2ee;
+  border-radius:10px;
+  padding:8px 10px;
+  font-size:12.5px;
+  font-family:inherit;
+  margin-bottom:8px;
+  outline:none;
+  background:#fff;
+  color:#0f172a;
+  box-sizing:border-box;
+}
+.picker-clientes-lista{
+  max-height:220px;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.picker-cliente-item{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 8px;
+  border-radius:8px;
+  font-size:12.5px;
+  color:#334155;
+  cursor:pointer;
+}
+.picker-cliente-item:hover{ background:rgba(59,130,246,.08); }
+.picker-cliente-item input{ margin:0; accent-color:#3b82f6; flex-shrink:0; }
+.picker-masivo-contador{
+  font-size:11.5px;
+  font-weight:700;
+  color:#64748b;
+  margin-top:8px;
+}
+
+body.dark-mode .modo-ticket-opt{
+  border-color:rgba(148,163,184,.32);
+  color:#cbd5e1;
+}
+body.dark-mode .modo-ticket-opt:has(input:checked){
+  border-color:#3b82f6;
+  background:rgba(59,130,246,.18);
+  color:#93c5fd;
+}
+body.dark-mode .picker-masivo{
+  border-color:rgba(148,163,184,.32);
+  background:rgba(13,25,45,.92);
+}
+body.dark-mode .picker-puesto-item{
+  border-color:rgba(148,163,184,.32);
+  background:rgba(20,32,54,.9);
+  color:#cbd5e1;
+}
+body.dark-mode .picker-puesto-item:has(input:checked){
+  border-color:#3b82f6;
+  background:rgba(59,130,246,.22);
+  color:#93c5fd;
+}
+body.dark-mode .picker-clientes-buscar{
+  border-color:rgba(148,163,184,.32);
+  background:rgba(20,32,54,.9);
+  color:#e6edf8;
+}
+body.dark-mode .picker-cliente-item{ color:#cbd5e1; }
+body.dark-mode .picker-cliente-item:hover{ background:rgba(59,130,246,.16); }
+body.dark-mode .picker-masivo-contador{ color:#9fb0c9; }
 
 /* ================= ACTIONS ================= */
 
@@ -675,7 +822,7 @@ body.sidebar-collapsed .main{
 }
 
 .search{
-  flex:1 1 560px;
+  flex:1 1 420px;
   width:100%;
   min-width:0;
   display:flex;
@@ -700,7 +847,8 @@ body.sidebar-collapsed .main{
   background: rgba(255,255,255,.82);
   border: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
-  border-radius: 10px;
+  /* En punta, no redondo — pedido explicito, ago 2026. */
+  border-radius: 0;
   padding: 5px 10px;
   box-shadow: var(--shadow-sm);
   transition: border-color .18s ease, box-shadow .18s ease;
@@ -2604,7 +2752,8 @@ body.dark-mode .ticket-date{
   overflow:hidden;
   border:1px solid rgba(34,197,94,.28);
   background:rgba(5,13,27,.84);
-  border-radius:16px;
+  /* En punta, no redondo — pedido explicito, ago 2026. */
+  border-radius:0;
   padding:0;
   box-shadow:0 18px 38px rgba(2,6,23,.34), inset 0 1px 0 rgba(255,255,255,.05);
   background-clip: padding-box;
@@ -2624,7 +2773,7 @@ body.dark-mode .ticket-date{
   background:
     linear-gradient(90deg, rgba(34,197,94,.13), rgba(15,23,42,0) 58%),
     rgba(15,23,42,.32);
-  border-radius:16px 16px 0 0;
+  border-radius:0;
   cursor:pointer;
   transition:border-color .18s ease;
 }
@@ -3361,20 +3510,20 @@ body.dark-mode .kpi.kpi-resolved{
             <button class="buscar-btn" type="submit">Buscar</button>
           </div>
 
+          <button
+            class="filter-trigger"
+            type="button"
+            onclick="openFilterModal()"
+            aria-label="Abrir filtros"
+            title="Abrir filtros"
+          >
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M15 11a4.002 4.002 0 0 1-3.874-3H3a1 1 0 1 1 0-2h8.126a4.002 4.002 0 0 1 7.748 0H21a1 1 0 1 1 0 2h-2.126A4.002 4.002 0 0 1 15 11zM3 16a1 1 0 1 0 0 2h2.126a4.002 4.002 0 0 0 7.748 0H21a1 1 0 1 0 0-2h-8.126a4.002 4.002 0 0 0-7.748 0H3zm12-7a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm-4 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/>
+            </svg>
+          </button>
+
         </div>
       </form>
-
-        <button
-          class="filter-trigger"
-          type="button"
-          onclick="openFilterModal()"
-          aria-label="Abrir filtros"
-          title="Abrir filtros"
-        >
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M15 11a4.002 4.002 0 0 1-3.874-3H3a1 1 0 1 1 0-2h8.126a4.002 4.002 0 0 1 7.748 0H21a1 1 0 1 1 0 2h-2.126A4.002 4.002 0 0 1 15 11zM3 16a1 1 0 1 0 0 2h2.126a4.002 4.002 0 0 0 7.748 0H21a1 1 0 1 0 0-2h-8.126a4.002 4.002 0 0 0-7.748 0H3zm12-7a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm-4 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/>
-          </svg>
-        </button>
       </div>
 
 </div>
@@ -3756,11 +3905,98 @@ body.dark-mode .kpi.kpi-resolved{
       <button class="modal-close" onclick="closeTicketModal()" aria-label="Cerrar">&times;</button>
     </div>
 
-    <form method="POST" action="/ticketera/tickets/create">
+    <form method="POST" action="/ticketera/tickets/create" id="ticketForm">
 
       <div class="field">
         <label>Asunto</label>
         <input name="subject"required />
+      </div>
+
+      <div class="field">
+        <label>Tipo de ticket</label>
+        <div class="modo-ticket-options">
+          <label class="modo-ticket-opt">
+            <input type="radio" name="modo" value="general" checked onchange="actualizarModoTicket()">
+            Único
+          </label>
+          <label class="modo-ticket-opt">
+            <input type="radio" name="modo" value="puesto" onchange="actualizarModoTicket()">
+            Por Puesto
+          </label>
+          <label class="modo-ticket-opt">
+            <input type="radio" name="modo" value="cliente" onchange="actualizarModoTicket()">
+            Por Cliente
+          </label>
+          <label class="modo-ticket-opt">
+            <input type="radio" name="modo" value="sucursal" onchange="actualizarModoTicket()">
+            Por Sucursal
+          </label>
+        </div>
+      </div>
+
+      <div class="field" id="pickerPuestosWrap" style="display:none;">
+        <label>Puestos (checklist dentro de un solo ticket)</label>
+        <div class="picker-masivo visible">
+          <div class="picker-masivo-head">
+            <label class="picker-masivo-selall">
+              <input type="checkbox" id="chkTodosPuestos" onchange="toggleTodosPuestos(this.checked)">
+              Seleccionar todos (29)
+            </label>
+          </div>
+          <div class="picker-puestos-grid" id="gridPuestos">
+            {% for n in range(1, 30) %}
+              <label class="picker-puesto-item">
+                <input type="checkbox" name="puestos" value="{{ n }}" class="chk-puesto" onchange="actualizarContadorMasivo()">
+                {{ n }}
+              </label>
+            {% endfor %}
+          </div>
+          <div class="picker-masivo-contador" id="contadorPuestos">0 puestos seleccionados</div>
+        </div>
+      </div>
+
+      <div class="field" id="pickerClientesWrap" style="display:none;">
+        <label>Clientes (checklist dentro de un solo ticket)</label>
+        <div class="picker-masivo visible">
+          <div class="picker-masivo-head">
+            <label class="picker-masivo-selall">
+              <input type="checkbox" id="chkTodosClientes" onchange="toggleTodosLista('Clientes', 'cliente', this.checked)">
+              Seleccionar todos ({{ clientes_ticket_nuevo|length }})
+            </label>
+          </div>
+          <input type="search" id="buscarClientesMasivo" class="picker-clientes-buscar" placeholder="Buscar cliente..." oninput="filtrarListaMasivo('Clientes')">
+          <div class="picker-clientes-lista" id="listaClientesMasivo">
+            {% for c in clientes_ticket_nuevo %}
+              <label class="picker-cliente-item" data-nombre="{{ c.nombre|lower }}">
+                <input type="checkbox" name="cliente_ids" value="{{ c.id }}" class="chk-cliente" onchange="actualizarContadorMasivo()">
+                {{ c.nombre }}
+              </label>
+            {% endfor %}
+          </div>
+          <div class="picker-masivo-contador" id="contadorClientes">0 clientes seleccionados</div>
+        </div>
+      </div>
+
+      <div class="field" id="pickerSucursalesWrap" style="display:none;">
+        <label>Sucursales habilitadas (checklist dentro de un solo ticket)</label>
+        <div class="picker-masivo visible">
+          <div class="picker-masivo-head">
+            <label class="picker-masivo-selall">
+              <input type="checkbox" id="chkTodosSucursales" onchange="toggleTodosLista('Sucursales', 'sucursal', this.checked)">
+              Seleccionar todos ({{ sucursales_ticket_nuevo|length }})
+            </label>
+          </div>
+          <input type="search" id="buscarSucursalesMasivo" class="picker-clientes-buscar" placeholder="Buscar sucursal..." oninput="filtrarListaMasivo('Sucursales')">
+          <div class="picker-clientes-lista" id="listaSucursalesMasivo">
+            {% for s in sucursales_ticket_nuevo %}
+              <label class="picker-cliente-item" data-nombre="{{ (s.nombre ~ ' ' ~ s.empresa)|lower }}">
+                <input type="checkbox" name="sucursal_ids" value="{{ s.id }}" class="chk-sucursal" onchange="actualizarContadorMasivo()">
+                {{ s.nombre }}{% if s.empresa %} <span style="opacity:.65;">— {{ s.empresa }}</span>{% endif %}
+              </label>
+            {% endfor %}
+          </div>
+          <div class="picker-masivo-contador" id="contadorSucursales">0 sucursales seleccionadas</div>
+        </div>
       </div>
 
       <div class="field">
@@ -4288,6 +4524,82 @@ function closeTicketModal(){
   if (!modal) return;
   modal.classList.remove('active');
   document.body.style.overflow = "";
+  const form = document.getElementById('ticketForm');
+  if (form) form.reset();
+  actualizarModoTicket();
+}
+
+// ── Tipo de ticket: General / Por Puesto / Por Cliente / Por Sucursal ──
+// Crea UN SOLO ticket; en los modos masivos, ese ticket lleva un
+// checklist embebido con un item por cada puesto/cliente/sucursal
+// marcado (con % de avance, ver detalle_ticket.html) — pedido
+// explicito, ago 2026.
+function actualizarModoTicket(){
+  const modo = (document.querySelector('input[name="modo"]:checked') || {}).value || "general";
+  const wrapPuestos = document.getElementById('pickerPuestosWrap');
+  const wrapClientes = document.getElementById('pickerClientesWrap');
+  const wrapSucursales = document.getElementById('pickerSucursalesWrap');
+  if (wrapPuestos) wrapPuestos.style.display = modo === "puesto" ? "" : "none";
+  if (wrapClientes) wrapClientes.style.display = modo === "cliente" ? "" : "none";
+  if (wrapSucursales) wrapSucursales.style.display = modo === "sucursal" ? "" : "none";
+  actualizarContadorMasivo();
+}
+
+function toggleTodosPuestos(marcar){
+  document.querySelectorAll('.chk-puesto').forEach(chk => { chk.checked = marcar; });
+  actualizarContadorMasivo();
+}
+
+// Generico para Clientes y Sucursales (misma estructura: buscador +
+// checklist con select-all). pluralId = "Clientes"/"Sucursales" (para
+// armar los ids de los elementos), claseSingular = "cliente"/"sucursal"
+// (para el selector de checkbox de cada fila).
+function toggleTodosLista(pluralId, claseSingular, marcar){
+  document.querySelectorAll(`#lista${pluralId}Masivo .picker-cliente-item`).forEach(item => {
+    // Solo afecta los items visibles (respeta el filtro de busqueda activo).
+    if (item.style.display === "none") return;
+    const chk = item.querySelector(`.chk-${claseSingular}`);
+    if (chk) chk.checked = marcar;
+  });
+  actualizarContadorMasivo();
+}
+
+function filtrarListaMasivo(pluralId){
+  const input = document.getElementById(`buscar${pluralId}Masivo`);
+  const q = (input && input.value || "").trim().toLowerCase();
+  document.querySelectorAll(`#lista${pluralId}Masivo .picker-cliente-item`).forEach(item => {
+    const nombre = item.dataset.nombre || "";
+    item.style.display = !q || nombre.includes(q) ? "" : "none";
+  });
+}
+
+function actualizarContadorMasivo(){
+  const nPuestos = document.querySelectorAll('.chk-puesto:checked').length;
+  const nClientes = document.querySelectorAll('.chk-cliente:checked').length;
+  const nSucursales = document.querySelectorAll('.chk-sucursal:checked').length;
+  const elPuestos = document.getElementById('contadorPuestos');
+  const elClientes = document.getElementById('contadorClientes');
+  const elSucursales = document.getElementById('contadorSucursales');
+  if (elPuestos) elPuestos.textContent = `${nPuestos} puesto${nPuestos === 1 ? "" : "s"} seleccionado${nPuestos === 1 ? "" : "s"}`;
+  if (elClientes) elClientes.textContent = `${nClientes} cliente${nClientes === 1 ? "" : "s"} seleccionado${nClientes === 1 ? "" : "s"}`;
+  if (elSucursales) elSucursales.textContent = `${nSucursales} sucursal${nSucursales === 1 ? "" : "es"} seleccionada${nSucursales === 1 ? "" : "s"}`;
+}
+
+const ticketFormMasivo = document.getElementById('ticketForm');
+if (ticketFormMasivo) {
+  ticketFormMasivo.addEventListener('submit', function(e){
+    const modo = (document.querySelector('input[name="modo"]:checked') || {}).value || "general";
+    if (modo === "puesto") {
+      const n = document.querySelectorAll('.chk-puesto:checked').length;
+      if (n === 0) { e.preventDefault(); alert("Selecciona al menos un puesto."); return; }
+    } else if (modo === "cliente") {
+      const n = document.querySelectorAll('.chk-cliente:checked').length;
+      if (n === 0) { e.preventDefault(); alert("Selecciona al menos un cliente."); return; }
+    } else if (modo === "sucursal") {
+      const n = document.querySelectorAll('.chk-sucursal:checked').length;
+      if (n === 0) { e.preventDefault(); alert("Selecciona al menos una sucursal."); return; }
+    }
+  });
 }
 
 // Cerrar al hacer click fuera
@@ -5611,7 +5923,7 @@ body.dark-mode .cw-status.err{color:#f87171;}
   <script>
   </script>
 <script src="/static/atc-volver.js"></script>
-<script src="/static/atc-notificacion-sonido.js"></script>
+<script src="/static/atc-notificacion-sonido.js?v=20260827b"></script>
 <script>
 (function () {
   // Sonido cuando llega un ticket nuevo: poll a /api/ticketera/recientes
@@ -5641,7 +5953,7 @@ body.dark-mode .cw-status.err{color:#f87171;}
       const maxIdActual = Number(data.maxId || 0);
       if (!maxIdActual) return;
       if (ticketeraMaxIdConocido !== null && maxIdActual > ticketeraMaxIdConocido) {
-        if (window.reproducirSonidoNotificacion) window.reproducirSonidoNotificacion();
+        if (window.reproducirSonidoNotificacion) window.reproducirSonidoNotificacion("ticket");
       }
       if (ticketeraMaxIdConocido === null || maxIdActual > ticketeraMaxIdConocido) {
         ticketeraMaxIdConocido = maxIdActual;

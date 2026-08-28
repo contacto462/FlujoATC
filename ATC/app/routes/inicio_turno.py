@@ -44,6 +44,7 @@ from ATC.app.models.inicio_turno import (
     RecintoQrGenerado,
     RondaRegistro,
     SupervisorRegistro,
+    TurnoAlertaEnviada,
     TurnoEstipulado,
 )
 from ATC.app.models.user import User
@@ -699,13 +700,25 @@ _SIN_TURNO_DESTINOS = [
 ]
 
 
-def _email_alerta_sucursal_sin_turno(*, dependencia: str, fecha_str: str, estipulado: int) -> str:
+def _email_alerta_turno_incompleto(
+    *,
+    dependencia: str,
+    tipo_turno_label: str,
+    fecha_str: str,
+    hora_inicio: str,
+    requerido: int,
+    real: int,
+) -> str:
     """Alerta de alto impacto (pedido explicito: 'profesional, unico y
-    llamativo de advertencia, sin emoji, con presencia') para una sucursal
-    que quedo un dia entero sin ningun turno registrado. Deliberadamente NO
-    reusa el estilo generico de _email_html (venta_trace_email_service) —
-    esto tiene que destacar por sobre las demas alertas de turnos."""
-    estipulado_txt = str(estipulado) if estipulado else "—"
+    llamativo de advertencia, sin emoji, con presencia') para un TURNO
+    puntual (Día o Noche, no el día completo) que sigue con cobertura
+    incompleta 2 horas después de su hora de inicio — generaliza la alerta
+    original de "sucursal sin ningún turno" (0 de N) para cualquier faltante
+    parcial (ej. 1 de 2). Deliberadamente NO reusa el estilo genérico de
+    _email_html (venta_trace_email_service) — esto tiene que destacar por
+    sobre las demás alertas de turnos."""
+    sin_cobertura = real <= 0
+    estado_txt = "Sin cobertura" if sin_cobertura else "Cobertura incompleta"
     return f"""<!doctype html>
 <html>
 <body style="margin:0;padding:0;background:#eef1f5;font-family:Arial,Helvetica,sans-serif;">
@@ -718,7 +731,7 @@ def _email_alerta_sucursal_sin_turno(*, dependencia: str, fecha_str: str, estipu
     <tr><td style="background:#b91c1c;height:6px;line-height:6px;font-size:0;">&nbsp;</td></tr>
     <tr><td style="padding:30px 32px 26px;">
       <div style="font-size:11px;font-weight:700;letter-spacing:.16em;color:#f87171;text-transform:uppercase;margin:0 0 12px;">Alerta operacional &mdash; cobertura de guardia</div>
-      <div style="font-size:27px;font-weight:800;letter-spacing:-.01em;color:#ffffff;line-height:1.18;margin:0;">Sucursal sin guardia registrado</div>
+      <div style="font-size:27px;font-weight:800;letter-spacing:-.01em;color:#ffffff;line-height:1.18;margin:0;">Turno de {tipo_turno_label} incompleto</div>
     </td></tr>
   </table>
 </td></tr>
@@ -727,12 +740,12 @@ def _email_alerta_sucursal_sin_turno(*, dependencia: str, fecha_str: str, estipu
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
     <tr>
       <td style="width:100px;vertical-align:top;">
-        <div style="font-size:46px;font-weight:800;color:#b91c1c;line-height:1;">0</div>
-        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#9ca3af;text-transform:uppercase;margin-top:5px;">Turnos</div>
+        <div style="font-size:46px;font-weight:800;color:#b91c1c;line-height:1;">{real}/{requerido}</div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#9ca3af;text-transform:uppercase;margin-top:5px;">Guardias</div>
       </td>
       <td style="vertical-align:top;padding-left:6px;">
         <div style="font-size:18px;font-weight:800;color:#111827;line-height:1.3;">{dependencia}</div>
-        <div style="font-size:13px;color:#4b5563;margin-top:6px;line-height:1.6;">No se registro ningun inicio de turno en esta sucursal durante el {fecha_str}. La sucursal quedó sin cobertura.</div>
+        <div style="font-size:13px;color:#4b5563;margin-top:6px;line-height:1.6;">Ya pasaron 2 horas desde el inicio del turno de {tipo_turno_label} ({hora_inicio}) y sigue sin completarse la dotación requerida.</div>
       </td>
     </tr>
   </table>
@@ -745,16 +758,20 @@ def _email_alerta_sucursal_sin_turno(*, dependencia: str, fecha_str: str, estipu
       <td style="padding:12px 16px;font-size:13.5px;font-weight:700;color:#111827;border-bottom:1px solid #e5e7eb;">{dependencia}</td>
     </tr>
     <tr>
+      <td style="padding:12px 16px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#6b7280;border-bottom:1px solid #e5e7eb;">Turno</td>
+      <td style="padding:12px 16px;font-size:13.5px;font-weight:700;color:#111827;border-bottom:1px solid #e5e7eb;">{tipo_turno_label} &mdash; inicio {hora_inicio}</td>
+    </tr>
+    <tr style="background:#f8fafc;">
       <td style="padding:12px 16px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#6b7280;border-bottom:1px solid #e5e7eb;">Fecha</td>
       <td style="padding:12px 16px;font-size:13.5px;font-weight:700;color:#111827;border-bottom:1px solid #e5e7eb;">{fecha_str}</td>
     </tr>
-    <tr style="background:#f8fafc;">
-      <td style="padding:12px 16px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#6b7280;border-bottom:1px solid #e5e7eb;">Turnos estipulados</td>
-      <td style="padding:12px 16px;font-size:13.5px;font-weight:700;color:#111827;border-bottom:1px solid #e5e7eb;">{estipulado_txt}</td>
-    </tr>
     <tr>
+      <td style="padding:12px 16px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#6b7280;border-bottom:1px solid #e5e7eb;">Guardias registrados / requeridos</td>
+      <td style="padding:12px 16px;font-size:13.5px;font-weight:700;color:#111827;border-bottom:1px solid #e5e7eb;">{real} / {requerido}</td>
+    </tr>
+    <tr style="background:#f8fafc;">
       <td style="padding:12px 16px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#6b7280;">Estado</td>
-      <td style="padding:12px 16px;font-size:13.5px;font-weight:800;color:#b91c1c;">Sin cobertura</td>
+      <td style="padding:12px 16px;font-size:13.5px;font-weight:800;color:#b91c1c;">{estado_txt}</td>
     </tr>
   </table>
 </td></tr>
@@ -776,10 +793,149 @@ def _email_alerta_sucursal_sin_turno(*, dependencia: str, fecha_str: str, estipu
 </html>"""
 
 
-def _enviar_alerta_sucursal_sin_turno(*, dependencia: str, fecha_str: str, estipulado: int) -> None:
-    subject = f"ALERTA: {dependencia} sin guardia registrado — {fecha_str}"
-    body = _email_alerta_sucursal_sin_turno(dependencia=dependencia, fecha_str=fecha_str, estipulado=estipulado)
+def _enviar_alerta_turno_incompleto(
+    *,
+    dependencia: str,
+    tipo_turno_label: str,
+    fecha_str: str,
+    hora_inicio: str,
+    requerido: int,
+    real: int,
+) -> None:
+    subject = f"ALERTA: {dependencia} — turno de {tipo_turno_label} incompleto ({real}/{requerido}) — {fecha_str}"
+    body = _email_alerta_turno_incompleto(
+        dependencia=dependencia,
+        tipo_turno_label=tipo_turno_label,
+        fecha_str=fecha_str,
+        hora_inicio=hora_inicio,
+        requerido=requerido,
+        real=real,
+    )
     _send_contacto_inicio_turno(_SIN_TURNO_DESTINOS, subject, body)
+
+
+def _verificar_alertas_turno_incompleto(db: Session) -> None:
+    """Corre cada AUTOMATION_POLL_SECONDS (~5 min, ver main.py:
+    automation_loop). Para cada turno (Día o Noche) de cada dependencia con
+    sucursal_id conocido, si ya pasaron 2 horas desde que arrancó ESE turno
+    puntual hoy y la cobertura real (marcajes de inicio_turno de ese mismo
+    tipo, hoy) es menor a la requerida, envía una alerta — una sola vez por
+    dependencia+turno+fecha (ver TurnoAlertaEnviada), para no reenviar el
+    mismo aviso en cada pasada del loop. El chequeo es por TURNO (Día o
+    Noche por separado), no por el total del día completo — pedido
+    explicito, ago 2026: avisar de un turno de Día faltante recién a
+    medianoche no tiene sentido."""
+    ahora = datetime.now()
+    hoy = ahora.date()
+    weekday_hoy = hoy.weekday()
+
+    filas = (
+        db.query(TurnoEstipulado)
+        .filter(TurnoEstipulado.sucursal_id.isnot(None))
+        .all()
+    )
+
+    # Puede haber varias reglas (turnos_dia distinto segun dia de semana)
+    # para el mismo turno puntual — se suman las que aplican hoy.
+    por_turno: dict[tuple[int, str], dict] = {}
+    for fila in filas:
+        cobertura_norm = _normalizar_texto(fila.cobertura or "")
+        if cobertura_norm not in ("dia", "noche"):
+            continue
+        dias_semana = None
+        if fila.dias_semana:
+            try:
+                dias_semana = {int(x) for x in fila.dias_semana.split(",") if x.strip() != ""}
+            except ValueError:
+                dias_semana = None
+        if dias_semana is not None and weekday_hoy not in dias_semana:
+            continue
+        clave = (fila.sucursal_id, cobertura_norm)
+        grupo = por_turno.setdefault(clave, {
+            "sucursal_id": fila.sucursal_id,
+            "dependencia": fila.dependencia,
+            "grupo": fila.grupo,
+            "requerido": 0,
+            "hora_inicio": None,
+        })
+        grupo["requerido"] += fila.turnos_dia or 0
+        if not grupo["hora_inicio"] and fila.hora_inicio:
+            grupo["hora_inicio"] = fila.hora_inicio
+
+    for (sucursal_id, tipo_turno), info in por_turno.items():
+        requerido = info["requerido"]
+        if requerido <= 0:
+            continue
+
+        hora_inicio_txt = info["hora_inicio"] or ("08:00" if tipo_turno == "dia" else "20:00")
+        try:
+            hh, mm = (int(x) for x in hora_inicio_txt.split(":"))
+        except ValueError:
+            hh, mm = (8, 0) if tipo_turno == "dia" else (20, 0)
+        inicio_turno_dt = datetime(hoy.year, hoy.month, hoy.day, hh, mm)
+        transcurrido = ahora - inicio_turno_dt
+        # Ventana de alerta: entre 2 y 12 horas despues del inicio — antes
+        # de las 2h es normal que falten marcajes (recien empezo el turno),
+        # y pasadas 12h el turno tipico de 12hs ya casi termino (evita
+        # seguir avisando de un turno viejo si el chequeo se atraso).
+        if transcurrido < timedelta(hours=2) or transcurrido > timedelta(hours=12):
+            continue
+
+        ya_alertado = (
+            db.query(TurnoAlertaEnviada)
+            .filter(
+                TurnoAlertaEnviada.sucursal_id == sucursal_id,
+                TurnoAlertaEnviada.tipo_turno == tipo_turno,
+                TurnoAlertaEnviada.fecha == hoy,
+            )
+            .first()
+        )
+        if ya_alertado:
+            continue
+
+        tipo_turno_db = "Dia" if tipo_turno == "dia" else "Noche"
+        inicio_dia = datetime(hoy.year, hoy.month, hoy.day)
+        real = (
+            db.query(InicioTurnoRegistro)
+            .filter(
+                InicioTurnoRegistro.sucursal_id == sucursal_id,
+                InicioTurnoRegistro.tipo_turno == tipo_turno_db,
+                InicioTurnoRegistro.estado != "archivado",
+                InicioTurnoRegistro.registrado_at >= inicio_dia,
+                InicioTurnoRegistro.registrado_at < inicio_dia + timedelta(days=1),
+            )
+            .count()
+        )
+        if real >= requerido:
+            continue
+
+        tipo_turno_label = "Día" if tipo_turno == "dia" else "Noche"
+        try:
+            _enviar_alerta_turno_incompleto(
+                dependencia=info["dependencia"],
+                tipo_turno_label=tipo_turno_label,
+                fecha_str=hoy.strftime("%d-%m-%Y"),
+                hora_inicio=hora_inicio_txt,
+                requerido=requerido,
+                real=real,
+            )
+        except Exception:
+            _log.exception(
+                "No se pudo enviar alerta de turno incompleto para %s (%s)",
+                info["dependencia"], tipo_turno_label,
+            )
+            continue
+
+        db.add(TurnoAlertaEnviada(
+            grupo=info["grupo"],
+            dependencia=info["dependencia"],
+            sucursal_id=sucursal_id,
+            tipo_turno=tipo_turno_db,
+            fecha=hoy,
+            requerido=requerido,
+            real=real,
+        ))
+        db.commit()
 
 
 def _dias_trabajados_guardia(db: Session, nombre_guardia: str, centro: date | None = None) -> set:

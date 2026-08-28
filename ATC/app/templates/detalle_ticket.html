@@ -564,7 +564,11 @@ body{
   grid-template-columns: 268px minmax(0, 1fr) 296px;
   gap:12px;
   padding:12px 14px;
-  align-items:start;
+  /* Las 3 columnas se estiran a la altura de la mas alta (antes "start"
+     las dejaba cada una con su propio alto de contenido, se veian
+     descuadradas si el checklist o el detalle del cliente eran mas
+     largos que el resto) — pedido explicito, ago 2026. */
+  align-items:stretch;
   overflow-x:hidden;
 }
 .main > *{
@@ -577,9 +581,10 @@ body{
 }
 
 .leftcol{
-  position:sticky;
-  top:14px;
-  align-self:start;
+  /* position:sticky + align-self:start (antes) hacia que esta columna se
+     desalineara respecto a las otras dos — se saca para que las 3
+     columnas partan exactamente en el mismo punto y se estiren parejo
+     (ver .main align-items:stretch) — pedido explicito, ago 2026. */
   max-height:calc(100vh - 58px - 28px);
   overflow:auto;
   display:flex;
@@ -588,18 +593,37 @@ body{
 }
 
 .rightcol{
+  /* Mismo tope de altura + scroll interno que .leftcol. Sin esto, cuando
+     "Acciones" (Cliente + varios botones) necesita mas alto del que hay
+     disponible, el align-items:stretch del grid fuerza a TODAS las
+     columnas a esa altura — y como .rightcol no tenia como acortarse,
+     terminaba empujando el bloque completo (incluido el composer del
+     centro, con el boton "Enviar respuesta") mas abajo del viewport —
+     solo se veia completo en pantalla completa. Bug reportado, ago 2026.*/
+  max-height:calc(100vh - 58px - 28px);
+  overflow:auto;
   display:flex;
   flex-direction:column;
   gap:12px;
   min-width:0;
   min-height:0;
 }
+.actions-panel{
+  /* Igual que .details-panel: se estira para llenar el alto de .rightcol
+     — la tarjeta de Cliente arriba se queda con su tamaño natural, esta
+     absorbe el resto del alto — pedido explicito, ago 2026. */
+  flex:1;
+}
 
 /* Panels */
 .panel{
   background:var(--panel);
   border:1px solid var(--border);
-  border-radius:var(--r-md);
+  /* En punta, no redondo — solo el recuadro exterior de cada panel
+     (Detalles, ticket+mesa tecnica, checklist, cliente, acciones); lo de
+     adentro (botones, badges, inputs) conserva su propio radio, no se
+     toca — pedido explicito, ago 2026. */
+  border-radius:0;
   box-shadow: var(--shadow);
   overflow:hidden;
   min-height:0;
@@ -637,28 +661,27 @@ body{
   line-height:1;
 }
 
-.leftcol .panel{
-  border-radius:14px;
-  border-color:rgba(15,23,42,.09);
-  box-shadow:0 10px 28px rgba(15,23,42,.06), 0 2px 6px rgba(15,23,42,.04);
-}
-
-.leftcol .panel:hover{
-  box-shadow:0 14px 32px rgba(15,23,42,.08), 0 3px 8px rgba(15,23,42,.05);
-}
+/* Antes "Detalles" tenia su propio radio/sombra/hover, distinto del
+   resto de los recuadros (conv, checklist, cliente, acciones) — eso es
+   justo lo que se veia raro/inconsistente. Ahora hereda lo mismo que
+   .panel (esquina en punta, sin hover especial) — pedido explicito,
+   ago 2026. */
 
 .leftcol .panel .panel-b{
   padding:10px 16px 14px;
 }
 
+.details-panel{
+  /* Se estira para llenar el alto de .leftcol (ahora que .main estira
+     las 3 columnas parejo) en vez de quedar como una tarjeta chica con
+     espacio vacio abajo — pedido explicito, ago 2026. */
+  flex:1;
+}
 .details-panel .panel-b{
   padding-top:12px;
   padding-bottom:16px;
 }
 
-.details-panel{
-  margin-top:-10px;
-}
 
 .details-panel .kv{
   grid-template-columns:1fr;
@@ -798,6 +821,18 @@ body{
   background:#e2e8f0;
   border-color:#94a3b8;
   color:#334155;
+}
+/* Mismo morado que las burbujas de "Comentario interno" en el hilo
+   (.msg.internal-note) — pedido explicito, ago 2026. */
+.action-purple{
+  background:#faf5ff;
+  color:#7e22ce;
+  border-color:rgba(147,51,234,.35);
+}
+.action-purple:hover{
+  background:#f3e8ff;
+  border-color:#9333ea;
+  color:#6b21a8;
 }
 
 /* ===== LEFT: FIELDS (Zendesk-ish) ===== */
@@ -1038,6 +1073,44 @@ select::-ms-expand{
   gap:8px;
 }
 
+/* ── Checklist embebido (ticket masivo por puesto/cliente/sucursal) ── */
+.checklist-progress-bar{
+  width:100%;
+  height:8px;
+  border-radius:999px;
+  background:var(--blue-soft);
+  overflow:hidden;
+  margin-bottom:12px;
+}
+.checklist-progress-fill{
+  height:100%;
+  background:var(--blue);
+  border-radius:999px;
+  transition:width .25s ease;
+}
+.checklist-item{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  padding:7px 8px;
+  border-radius:8px;
+  font-size:13px;
+  color:#334155;
+  cursor:pointer;
+}
+.checklist-item:hover{ background:var(--blue-soft); }
+.checklist-item input{ margin:0; accent-color:var(--blue); flex-shrink:0; }
+.checklist-item-label{ flex:1; }
+.checklist-item.done .checklist-item-label{
+  text-decoration:line-through;
+  color:#94a3b8;
+}
+.checklist-item-meta{
+  font-size:11px;
+  color:#94a3b8;
+  white-space:nowrap;
+}
+
 .team-broadcast-tag{
   display:inline-flex;
   align-items:center;
@@ -1070,6 +1143,152 @@ select::-ms-expand{
   display:flex;
   flex-direction:column;
   min-height:0;
+}
+
+/* Cuando el ticket tiene checklist embebido, el centro se parte:
+   cuerpo del ticket + mesa tecnica (67%) y checklist (33%). Este wrapper
+   solo existe en el DOM si hay checklist_items (ver detalle_ticket.html)
+   -- un ticket normal no lo tiene, asi que estas reglas nunca lo tocan —
+   pedido explicito, ago 2026. */
+.center-split.with-checklist{
+  display:flex;
+  align-items:stretch;
+  min-height:0;
+  min-width:0;
+  gap:12px;
+}
+.center-split.with-checklist > .center{
+  flex:0 0 67%;
+  min-width:0;
+  min-height:0;
+  align-self:stretch;
+}
+.checklist-col{
+  flex:0 0 calc(33% - 12px);
+  min-width:0;
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  align-self:stretch;
+}
+.checklist-panel{
+  flex:1;
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+}
+.checklist-panel .panel-b{
+  flex:1;
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+}
+.checklist-items{
+  /* Tope de altura fijo en vez de depender de que el grid del layout
+     estire .checklist-col (con align-items:start el grid NO estira sus
+     columnas, se acomodan a su contenido) — con un checklist de "Todas"
+     las sucursales (500+) eso hacia crecer toda la pagina hacia abajo en
+     vez de scrollear adentro. Tope + scroll interno soluciona esto sin
+     depender de la altura del resto del layout — pedido explicito,
+     ago 2026. */
+  max-height:min(58vh, 560px);
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.checklist-buscar{
+  width:100%;
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:7px 10px;
+  font:inherit;
+  font-size:12.5px;
+  margin-bottom:10px;
+  outline:none;
+  box-sizing:border-box;
+}
+.checklist-buscar:focus{
+  border-color:var(--blue);
+  box-shadow:0 0 0 3px var(--blue-soft);
+}
+.checklist-vacio-filtro{
+  padding:14px 6px;
+  text-align:center;
+  color:#94a3b8;
+  font-size:12.5px;
+}
+.checklist-item-row{
+  border-bottom:1px solid var(--border);
+  padding-bottom:8px;
+}
+.checklist-item-row:last-child{ border-bottom:none; }
+.checklist-comment{
+  margin:2px 0 6px 27px;
+  font-size:12px;
+  color:#475569;
+  white-space:pre-wrap;
+  cursor:pointer;
+  border-radius:6px;
+  padding:4px 7px;
+}
+.checklist-comment:hover{ background:var(--blue-soft); }
+.checklist-comment.vacio{
+  color:#94a3b8;
+  font-style:italic;
+}
+.checklist-comment-edit{
+  margin:2px 0 6px 27px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.checklist-comment-edit textarea{
+  width:100%;
+  min-height:56px;
+  resize:vertical;
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:7px 9px;
+  font:inherit;
+  font-size:12.5px;
+  outline:none;
+  box-sizing:border-box;
+}
+.checklist-comment-edit textarea:focus{
+  border-color:var(--blue);
+  box-shadow:0 0 0 3px var(--blue-soft);
+}
+.checklist-comment-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:6px;
+}
+.btn-mini{
+  appearance:none;
+  border:1px solid var(--border);
+  background:#fff;
+  color:#64748b;
+  padding:5px 11px;
+  border-radius:7px;
+  font-size:11.5px;
+  font-weight:700;
+  cursor:pointer;
+}
+.btn-mini:hover{ background:#f1f5f9; }
+.btn-mini.primary{
+  background:var(--blue);
+  border-color:var(--blue);
+  color:#fff;
+}
+.btn-mini.primary:hover{ opacity:.9; }
+
+@media (max-width:1180px){
+  .center-split.with-checklist{
+    flex-direction:column;
+  }
+  .center-split.with-checklist > .center{ flex:1 1 auto; }
+  .checklist-col{ flex:1 1 auto; }
 }
 .conv{
   flex:1;
@@ -1395,6 +1614,12 @@ select::-ms-expand{
   border-top:1px solid var(--border);
   background:#fafcff;
   padding:12px 14px 14px;
+  /* Nunca se comprime — con el editor ya acotado (.gmail-editor
+     max-height arriba), el composer completo (con el boton "Enviar
+     respuesta" al final) siempre muestra su alto real; si hace falta
+     ceder espacio, es el hilo de mensajes (.messages, arriba) el que se
+     acorta primero. */
+  flex-shrink:0;
 }
 .composer-workbench-head{
   display:flex;
@@ -1682,11 +1907,20 @@ select::-ms-expand{
   border:1px solid var(--border);
   border-radius:14px;
   background:#fff;
-  overflow:hidden;
+  /* Tope al bloque COMPLETO (destinatarios + editor + barra de
+     herramientas + adjuntos), no solo al editor — acotar solo
+     .gmail-editor no alcanzaba: el resto de filas alrededor tambien
+     suma altura y seguia empujando el boton "Enviar respuesta" (que va
+     DESPUES de este bloque) fuera de la pantalla. Bug reportado, ago
+     2026 — reportado con captura despues del primer intento. */
+  max-height:min(56vh, 600px);
+  overflow-y:auto;
+  overflow-x:hidden;
   transition:all .2s ease;
 }
 .gmail-compose.is-expanded .gmail-editor{
   min-height:min(52vh, 540px);
+  max-height:min(52vh, 540px);
 }
 .compose-size-toggle-wrap{
   display:flex;
@@ -1864,6 +2098,12 @@ select::-ms-expand{
 }
 .gmail-editor{
   min-height:170px;
+  /* Tope de altura + scroll interno — sin esto, un cuerpo largo (firma
+     con logo/banner, por ejemplo) crecia sin limite y empujaba el boton
+     "Enviar respuesta" (que va DESPUES del editor en el mismo formulario)
+     fuera de la pantalla. Bug reportado, ago 2026. */
+  max-height:40vh;
+  overflow-y:auto;
   padding:10px 12px;
   font-size:14px;
   line-height:1.5;
@@ -3022,12 +3262,6 @@ body.is-inline-image-resizing{
   <div class="tickethead">
     <div class="tickethead-inner">
 
-      <div class="tabs">
-        <div class="tab active">Cliente: {{ ticket.requester.display_name if ticket.requester else "Cliente" }}</div>
-        <div class="tab active">Ticket {{ ticket.id }}</div>
-        <div class="spacer"></div>
-      </div>
-
       <div class="headrow">
 
         <!-- SUBJECT + REGRESAR -->
@@ -3164,6 +3398,43 @@ body.is-inline-image-resizing{
         </div>
       </div>
 
+      <!-- Panel: Checklist embebido (ticket masivo por puesto/cliente/
+           sucursal, ver create_ticket en web.py) — pedido explicito, ago 2026. -->
+      <!-- Panel: Encuesta de satisfaccion SLA (si el cliente respondio algo) -->
+      {% if sla_feedback and (sla_feedback.technician_rating is not none or sla_feedback.resolution_satisfied is not none or sla_feedback.observacion) %}
+      <div class="panel">
+        <div class="panel-h">
+          <h3>Encuesta de satisfaccion</h3>
+          {% if sla_feedback.submitted_at %}
+            <span class="badge badge-resolved" style="font-size:11px;">Completa</span>
+          {% else %}
+            <span class="badge badge-pending" style="font-size:11px;">Parcial</span>
+          {% endif %}
+        </div>
+        <div class="panel-b">
+          <div class="kv">
+            <span class="kv-k">Atencion del tecnico</span>
+            <span class="kv-v">{{ (sla_feedback.technician_rating ~ "/5") if sla_feedback.technician_rating is not none else "Sin responder" }}</span>
+          </div>
+          <div class="kv">
+            <span class="kv-k">Tiempo de resolucion</span>
+            <span class="kv-v">
+              {% if sla_feedback.resolution_satisfied is sameas true %}Satisfactorio
+              {% elif sla_feedback.resolution_satisfied is sameas false %}No satisfactorio
+              {% else %}Sin responder
+              {% endif %}
+            </span>
+          </div>
+          {% if sla_feedback.observacion %}
+          <div class="kv">
+            <span class="kv-k">Observacion</span>
+            <span class="kv-v" style="white-space:pre-wrap;">{{ sla_feedback.observacion }}</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
       <!-- Panel: ODT Vinculada (si existe) -->
       {% if linked_odt %}
       {%- set _obs_serv = linked_odt.get('observacion_servicio') or '' -%}
@@ -3297,7 +3568,11 @@ body.is-inline-image-resizing{
 
     </div>
 
-    <!-- CENTER COLUMN (CONVERSATION) -->
+    <!-- CENTER COLUMN (CONVERSATION) + CHECKLIST (33% cuando hay checklist embebido).
+         El wrapper center-split SOLO se agrega al DOM si hay checklist_items -- un
+         ticket normal (sin checklist) queda con exactamente el mismo HTML/layout de
+         siempre, sin ningun wrapper nuevo de por medio (pedido explicito, ago 2026). -->
+    {% if checklist_items %}<div class="center-split with-checklist">{% endif %}
     <div class="center">
       <div class="panel conv">
 
@@ -3624,6 +3899,51 @@ body.is-inline-image-resizing{
       </div>
     </div>
 
+    {% if checklist_items %}
+    {%- set _hechos = checklist_items|selectattr('completado')|list|length -%}
+    {%- set _total = checklist_items|length -%}
+    {%- set _pct = ((_hechos / _total * 100)|round|int) if _total else 0 -%}
+    <div class="checklist-col">
+      <div class="panel checklist-panel" id="panelChecklist">
+        <div class="panel-h">
+          <h3>Checklist</h3>
+          <span class="badge badge-medium" id="checklistBadge" style="font-size:11px;">{{ _hechos }}/{{ _total }} — {{ _pct }}%</span>
+        </div>
+        <div class="panel-b">
+          <div class="checklist-progress-bar">
+            <div class="checklist-progress-fill" id="checklistProgressFill" style="width:{{ _pct }}%;"></div>
+          </div>
+          {% if _total > 8 %}
+          <input type="search" class="checklist-buscar" id="checklistBuscar" placeholder="Buscar en el checklist ({{ _total }})..." oninput="filtrarChecklist()">
+          {% endif %}
+          <div class="checklist-items" id="checklistItems">
+            {% for item in checklist_items %}
+            <div class="checklist-item-row" data-item-id="{{ item.id }}" data-etiqueta="{{ item.etiqueta|lower }}" data-completado-en="{{ item.completado_en.isoformat() if item.completado_en else '' }}">
+              <label class="checklist-item{{ ' done' if item.completado else '' }}">
+                <input type="checkbox" {{ 'checked' if item.completado else '' }} onchange="toggleChecklistItem({{ ticket.id }}, {{ item.id }}, this)">
+                <span class="checklist-item-label">{{ item.etiqueta }}</span>
+                <span class="checklist-item-meta" {{ '' if (item.completado and item.completado_por) else 'style="display:none;"' }}>
+                  {{ item.completado_por.name if item.completado_por else '' }}{% if item.completado_en %} · {{ item.completado_en.strftime('%d/%m %H:%M') }}{% endif %}
+                </span>
+              </label>
+              <div class="checklist-comment{{ '' if item.comentario else ' vacio' }}" id="checklistComentario-{{ item.id }}" onclick="abrirComentarioChecklist({{ item.id }})">{{ item.comentario if item.comentario else '+ Agregar comentario' }}</div>
+              <div class="checklist-comment-edit" id="checklistComentarioEdit-{{ item.id }}" style="display:none;">
+                <textarea id="checklistComentarioTexto-{{ item.id }}" placeholder="Escribe un comentario para este item..." data-original="{{ item.comentario or '' }}">{{ item.comentario or '' }}</textarea>
+                <div class="checklist-comment-actions">
+                  <button type="button" class="btn-mini" onclick="cerrarComentarioChecklist({{ item.id }})">Cancelar</button>
+                  <button type="button" class="btn-mini primary" onclick="guardarComentarioChecklist({{ ticket.id }}, {{ item.id }})">Guardar</button>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+            <div class="checklist-vacio-filtro" id="checklistVacioFiltro" style="display:none;">Sin resultados para esa búsqueda.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+    {% endif %}
+
     <!-- RIGHT COLUMN (PROFILE + HISTORY) -->
     <div class="rightcol">
 
@@ -3683,7 +4003,7 @@ body.is-inline-image-resizing{
         </div>
       </div>
 
-<div class="panel">
+<div class="panel actions-panel">
   <div class="panel-h">
     <h3> Acciones</h3>
   </div>
@@ -3710,7 +4030,7 @@ body.is-inline-image-resizing{
     <button
       id="openInternalCommentModalBtn"
       type="button"
-      class="action-btn action-neutral cta-moderation"
+      class="action-btn action-purple cta-moderation"
       title="Deja un comentario interno en el hilo, visible solo para el equipo — no se envía nada al solicitante"
     >
       Comentario interno
@@ -6819,6 +7139,160 @@ body.is-inline-image-resizing{
     );
     if (api) wireContactAutocomplete(document.getElementById("receptionCcTyping"), api.addAddress);
   })();
+</script>
+
+<script>
+// Buscador dentro del checklist — solo existe si hay mas de 8 items (ver
+// detalle_ticket.html). Filtra sin pegarle al servidor, la lista ya esta
+// completa en el DOM (max unos pocos miles de filas, no vale la pena
+// paginar en el backend para esto) — pedido explicito, ago 2026.
+function filtrarChecklist(){
+  const input = document.getElementById("checklistBuscar");
+  const q = (input && input.value || "").trim().toLowerCase();
+  let visibles = 0;
+  document.querySelectorAll("#checklistItems .checklist-item-row").forEach(row => {
+    const coincide = !q || (row.dataset.etiqueta || "").includes(q);
+    row.style.display = coincide ? "" : "none";
+    if (coincide) visibles++;
+  });
+  const vacio = document.getElementById("checklistVacioFiltro");
+  if (vacio) vacio.style.display = visibles === 0 ? "" : "none";
+}
+
+// Checklist embebido (ticket masivo por puesto/cliente/sucursal) — marca
+// o desmarca un item y refresca la barra de progreso / badge sin
+// recargar la pagina. Desmarcar un item ya listo solo se permite dentro
+// de los 30 segundos siguientes a marcarlo (para deshacer un click por
+// error); pasado ese tiempo el checkbox se bloquea solo, sin avisos ni
+// cuenta regresiva visible — queda fijo para siempre. El servidor tambien
+// lo exige (ver toggle_ticket_checklist_item), esto es solo para que la
+// UI no deje ni intentarlo — pedido explicito, ago 2026.
+const CHECKLIST_VENTANA_DESHACER_MS = 30000;
+
+function bloquearChecklistCheckbox(checkboxEl){
+  // Solo bloquea si sigue marcado — si mientras tanto se desmarco dentro
+  // de la ventana, no corresponde bloquearlo.
+  if (checkboxEl.checked) checkboxEl.disabled = true;
+}
+
+function programarBloqueoChecklist(checkboxEl, msRestantes){
+  setTimeout(() => bloquearChecklistCheckbox(checkboxEl), Math.max(0, msRestantes));
+}
+
+// Al cargar la pagina: los items ya marcados como listos hace mas de 30
+// segundos se bloquean de una, los marcados hace menos se programan para
+// bloquearse cuando corresponda.
+document.querySelectorAll(".checklist-item-row[data-completado-en]").forEach(row => {
+  const completadoEn = row.dataset.completadoEn;
+  if (!completadoEn) return;
+  const checkbox = row.querySelector('input[type="checkbox"]');
+  if (!checkbox || !checkbox.checked) return;
+  const transcurridoMs = Date.now() - new Date(completadoEn).getTime();
+  const restanteMs = CHECKLIST_VENTANA_DESHACER_MS - transcurridoMs;
+  if (restanteMs <= 0) checkbox.disabled = true;
+  else programarBloqueoChecklist(checkbox, restanteMs);
+});
+
+async function toggleChecklistItem(ticketId, itemId, checkboxEl){
+  const label = checkboxEl.closest(".checklist-item");
+  checkboxEl.disabled = true;
+  try {
+    const resp = await fetch(`/ticketera/tickets/${ticketId}/checklist/${itemId}/toggle`, {
+      method: "POST",
+      credentials: "same-origin",
+    });
+
+    if (resp.status === 400) {
+      // Se intento desmarcar despues de la ventana de 30 segundos -- el
+      // servidor lo rechazo, el item sigue completado: revertir el click
+      // y bloquear el checkbox para siempre.
+      const data = await resp.json().catch(() => ({}));
+      checkboxEl.checked = true;
+      checkboxEl.disabled = true;
+      alert((data && data.detail) || "Este item ya quedo marcado como listo de forma definitiva.");
+      return;
+    }
+    if (!resp.ok) throw new Error("No se pudo actualizar el item.");
+    const data = await resp.json();
+
+    label.classList.toggle("done", data.completado);
+    const meta = label.querySelector(".checklist-item-meta");
+    if (meta) {
+      if (data.completado && data.completado_por) {
+        const ahora = new Date();
+        const fecha = `${String(ahora.getDate()).padStart(2,"0")}/${String(ahora.getMonth()+1).padStart(2,"0")} ${String(ahora.getHours()).padStart(2,"0")}:${String(ahora.getMinutes()).padStart(2,"0")}`;
+        meta.textContent = `${data.completado_por} · ${fecha}`;
+        meta.style.display = "";
+      } else {
+        meta.style.display = "none";
+      }
+    }
+
+    const badge = document.getElementById("checklistBadge");
+    if (badge) badge.textContent = `${data.hechos}/${data.total} — ${data.porcentaje}%`;
+    const fill = document.getElementById("checklistProgressFill");
+    if (fill) fill.style.width = `${data.porcentaje}%`;
+
+    checkboxEl.disabled = false;
+    if (data.completado) {
+      programarBloqueoChecklist(checkboxEl, CHECKLIST_VENTANA_DESHACER_MS);
+    }
+  } catch (err) {
+    checkboxEl.checked = !checkboxEl.checked;
+    checkboxEl.disabled = false;
+    alert(err.message || "No se pudo actualizar el item.");
+  }
+}
+
+// Comentario libre por item del checklist — un click en el texto abre el
+// editor, "Guardar" lo persiste, "Cancelar" descarta cambios sin guardar.
+function abrirComentarioChecklist(itemId){
+  const display = document.getElementById(`checklistComentario-${itemId}`);
+  const edit = document.getElementById(`checklistComentarioEdit-${itemId}`);
+  if (!display || !edit) return;
+  display.style.display = "none";
+  edit.style.display = "";
+  const textarea = document.getElementById(`checklistComentarioTexto-${itemId}`);
+  if (textarea) { textarea.focus(); textarea.setSelectionRange(textarea.value.length, textarea.value.length); }
+}
+
+function cerrarComentarioChecklist(itemId){
+  const display = document.getElementById(`checklistComentario-${itemId}`);
+  const edit = document.getElementById(`checklistComentarioEdit-${itemId}`);
+  const textarea = document.getElementById(`checklistComentarioTexto-${itemId}`);
+  if (textarea) textarea.value = textarea.dataset.original || "";
+  if (edit) edit.style.display = "none";
+  if (display) display.style.display = "";
+}
+
+async function guardarComentarioChecklist(ticketId, itemId){
+  const textarea = document.getElementById(`checklistComentarioTexto-${itemId}`);
+  const display = document.getElementById(`checklistComentario-${itemId}`);
+  const edit = document.getElementById(`checklistComentarioEdit-${itemId}`);
+  if (!textarea || !display || !edit) return;
+  const boton = edit.querySelector(".btn-mini.primary");
+  const texto = textarea.value.trim();
+  if (boton) { boton.disabled = true; boton.textContent = "Guardando..."; }
+  try {
+    const resp = await fetch(`/ticketera/tickets/${ticketId}/checklist/${itemId}/comentario`, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: `comentario=${encodeURIComponent(texto)}`,
+    });
+    if (!resp.ok) throw new Error("No se pudo guardar el comentario.");
+    const data = await resp.json();
+    textarea.dataset.original = data.comentario || "";
+    display.textContent = data.comentario || "+ Agregar comentario";
+    display.classList.toggle("vacio", !data.comentario);
+    edit.style.display = "none";
+    display.style.display = "";
+  } catch (err) {
+    alert(err.message || "No se pudo guardar el comentario.");
+  } finally {
+    if (boton) { boton.disabled = false; boton.textContent = "Guardar"; }
+  }
+}
 </script>
 
 <script>

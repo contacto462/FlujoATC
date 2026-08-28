@@ -463,6 +463,38 @@ td textarea { resize: vertical; min-height: 48px; }
   margin-top: 16px;
 }
 
+/* ── MATERIALES (lista estructurada, en vez de texto libre) ── */
+.materiales-list { display: flex; flex-direction: column; gap: 6px; }
+.material-row { display: grid; grid-template-columns: 96px 1fr 36px; gap: 8px; align-items: stretch; }
+.material-row input {
+  width: 100%; padding: 9px 11px; font-size: 13px; font-family: inherit;
+  color: var(--text); background: #fff; border: 1px solid var(--border);
+  border-radius: 8px; outline: none; transition: border-color .15s, box-shadow .15s;
+}
+.material-row input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(244,166,114,.20); }
+.material-row .material-cantidad { text-align: center; font-weight: 600; }
+.material-row input::placeholder { color: var(--placeholder); font-size: 12.5px; }
+.btn-remove-material {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; padding: 0; border: 1px solid var(--border);
+  border-radius: 8px; background: var(--surface-alt); color: var(--text-muted); cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.btn-remove-material svg { width: 14px; height: 14px; fill: currentColor; display: block; pointer-events: none; }
+.btn-remove-material .icon-hover { display: none; }
+.btn-remove-material:hover { background: #fef2f2; border-color: #fca5a5; color: #dc2626; }
+.btn-remove-material:hover .icon-default { display: none; }
+.btn-remove-material:hover .icon-hover { display: block; }
+.btn-add-material {
+  display: inline-flex; align-items: center; gap: 6px; align-self: flex-start;
+  margin-top: 2px; padding: 8px 14px; font-size: 12.5px; font-weight: 600;
+  font-family: inherit; color: var(--text-muted); background: var(--surface-alt);
+  border: 1px dashed var(--border); border-radius: 8px; cursor: pointer;
+  transition: border-color .15s, color .15s, background .15s;
+}
+.btn-add-material svg { width: 13px; height: 13px; }
+.btn-add-material:hover { border-color: var(--accent); color: var(--accent-hover); border-style: solid; }
+
 #loading { text-align: center; padding: 56px 20px; color: var(--text-muted); font-size: 14px; font-weight: 500; }
 @media (max-width: 760px) {
   .tabla-container { max-width: 100vw; overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -550,6 +582,11 @@ td textarea { resize: vertical; min-height: 48px; }
         <label id="editorModalLabel" for="editorModalText">Detalle</label>
         <input id="editorModalInput" type="text" autocomplete="name" maxlength="120"/>
         <textarea id="editorModalText"></textarea>
+        <div id="editorModalMateriales" class="materiales-list" style="display:none;"></div>
+        <button type="button" id="btnAgregarMaterialEditor" class="btn-add-material" style="display:none;" onclick="agregarFilaMaterialEditor()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Agregar material
+        </button>
       </div>
       <div class="editor-modal-actions">
         <button class="boton-estado pendiente" type="button" onclick="cerrarEditorModal()">Cancelar</button>
@@ -717,6 +754,86 @@ td textarea { resize: vertical; min-height: 48px; }
   let editorModalGuardar = null;
   let editorModalTipo = "textarea";
 
+  // ── Materiales: lista estructurada (cantidad + nombre por fila, igual
+  // que Registro ODS) en vez de texto libre. Se sigue guardando como texto
+  // plano ("cantidad nombre" por linea) via el mismo onGuardar de siempre,
+  // asi que no hace falta tocar nada del backend — pedido explicito, ago 2026.
+  function escapeAttr(value) { return String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+  const TRASH_ICON_DEFAULT = '<svg class="icon-default" viewBox="0 0 297 297" aria-hidden="true"><path d="M221.227 32.615H191V9.884C191 4.426 186.575 0 181.116 0h-65.231c-5.458 0-9.884 4.425-9.884 9.884v22.732H75.773c-19.301 0-35.004 15.703-35.004 35.004v23.803c0 5.458 4.425 9.884 9.884 9.884h6.967l11.124 186.399A9.883 9.883 0 0 0 78.61 297h139.78a9.884 9.884 0 0 0 9.866-9.295l11.124-186.399h6.967c5.458 0 9.884-4.425 9.884-9.884V67.619c0-19.301-15.703-35.004-35.004-35.004m-95.459-12.848h45.464v12.849h-45.464zM89.693 277.233h-1.772L77.452 101.8h12.241zm31.451 0H109.46V101.306h11.684zm34.946 0h-15.179V101.8h15.179zm31.45 0h-11.684V101.306h11.684zm21.539 0h-1.772V101.8h12.241zm27.384-195.694H60.537v-13.92c0-8.401 6.835-15.236 15.236-15.236h145.453c8.402 0 15.237 6.835 15.237 15.236z"/></svg>';
+  const TRASH_ICON_HOVER = '<svg class="icon-hover" viewBox="0 0 297 297" aria-hidden="true"><path d="M248.596 80.468c-3.988-8.124-10.903-14.209-19.467-17.133l-27.689-9.453 7.109-20.824c1.707-5-.962-10.437-5.962-12.144L142.833.512a9.57 9.57 0 0 0-12.146 5.963l-7.109 20.823-27.69-9.454c-17.676-6.036-36.974 3.438-43.012 21.118l-7.444 21.804a9.57 9.57 0 0 0 5.962 12.146l46.897 16.011H57.694a9.566 9.566 0 0 0-9.55 10.136L59.42 288.003A9.57 9.57 0 0 0 68.97 297h135.3a9.567 9.567 0 0 0 9.55-8.997l9.336-156.45 7.502 2.561a9.6 9.6 0 0 0 3.092.516 9.57 9.57 0 0 0 9.053-6.478l7.444-21.805c2.924-8.564 2.338-17.756-1.651-25.879M79.697 277.866h-1.715l-10.134-169.81h11.849zM145.704 21.71l41.647 14.219-4.018 11.77-41.647-14.219zM110.14 277.866H98.831v-169.81h11.309zm33.826 0h-14.692v-169.81h14.692zm30.442.001h-11.309V111.049l11.309 3.861zm20.849-.001h-1.715V121.442l10.83 3.698zm36.883-177.701-4.353 12.751L66.631 57.895l4.354-12.75c2.628-7.695 11.03-11.818 18.722-9.193l133.241 45.491a14.65 14.65 0 0 1 8.474 7.457 14.65 14.65 0 0 1 .718 11.265"/></svg>';
+
+  function agregarFilaMaterialEditor(cantidad = "", nombre = "") {
+    const container = document.getElementById("editorModalMateriales");
+    if (!container) return;
+    const row = document.createElement("div");
+    row.className = "material-row";
+    row.innerHTML = `
+      <input type="text" inputmode="decimal" class="material-cantidad" placeholder="0" value="${escapeAttr(cantidad)}">
+      <input type="text" class="material-nombre" placeholder="Nombre del material" value="${escapeAttr(nombre)}">
+      <button type="button" class="btn-remove-material" aria-label="Eliminar fila" title="Eliminar fila">${TRASH_ICON_DEFAULT}${TRASH_ICON_HOVER}</button>
+    `;
+    row.querySelector(".btn-remove-material").addEventListener("click", () => {
+      const filas = container.querySelectorAll(".material-row");
+      if (filas.length <= 1) {
+        row.querySelector(".material-cantidad").value = "";
+        row.querySelector(".material-nombre").value = "";
+        row.querySelector(".material-cantidad").focus();
+      } else {
+        row.remove();
+      }
+    });
+    row.querySelectorAll(".material-cantidad, .material-nombre").forEach((input) => {
+      input.addEventListener("paste", (event) => manejarPegadoMaterial(event, row));
+    });
+    container.appendChild(row);
+  }
+
+  // Pegar un bloque de varias lineas ("4 imanes 750kg\n3 camaras\n...") en
+  // cualquier campo de una fila reparte cada linea en su propia fila
+  // (cantidad + nombre) en vez de pegar todo el texto en un solo campo.
+  // Pedido explicito, ago 2026.
+  function manejarPegadoMaterial(event, row) {
+    const texto = (event.clipboardData || window.clipboardData)?.getData("text") || "";
+    if (!texto.includes("\n")) return;
+    event.preventDefault();
+    const filas = parsearMaterialesTexto(texto);
+    if (!filas.length) return;
+    row.querySelector(".material-cantidad").value = filas[0].cantidad;
+    row.querySelector(".material-nombre").value = filas[0].nombre;
+    let ultimaFila = row;
+    filas.slice(1).forEach((f) => {
+      agregarFilaMaterialEditor(f.cantidad, f.nombre);
+      ultimaFila = document.querySelector("#editorModalMateriales .material-row:last-child");
+    });
+    ultimaFila.querySelector(".material-nombre").focus();
+  }
+
+  function serializarMaterialesEditor() {
+    const lineas = [];
+    document.querySelectorAll("#editorModalMateriales .material-row").forEach((fila) => {
+      const cantidad = (fila.querySelector(".material-cantidad")?.value || "").trim();
+      const nombre = (fila.querySelector(".material-nombre")?.value || "").trim();
+      if (!cantidad && !nombre) return;
+      if (cantidad && nombre) lineas.push(`${cantidad} ${nombre}`);
+      else lineas.push(nombre || cantidad);
+    });
+    return lineas.join("\n");
+  }
+
+  // Texto guardado ("2 Cámara IP\nCable UTP") -> filas {cantidad, nombre}.
+  // Si una linea empieza con numero, ese numero es la cantidad y el resto
+  // el nombre; si no, todo el texto de la linea es el nombre.
+  function parsearMaterialesTexto(texto) {
+    return String(texto || "")
+      .split("\n")
+      .map((linea) => linea.trim())
+      .filter(Boolean)
+      .map((linea) => {
+        const match = linea.match(/^(\d+(?:[.,]\d+)?)\s+(.*)$/);
+        return match ? { cantidad: match[1], nombre: match[2] } : { cantidad: "", nombre: linea };
+      });
+  }
+
   function abrirEditorModal({ titulo, etiqueta, valor, placeholder, tipo = "textarea", compact = false, onGuardar }){
     const modal = document.getElementById("editorModal");
     const card = document.getElementById("editorModalCard");
@@ -724,23 +841,37 @@ td textarea { resize: vertical; min-height: 48px; }
     const label = document.getElementById("editorModalLabel");
     const text = document.getElementById("editorModalText");
     const input = document.getElementById("editorModalInput");
+    const materiales = document.getElementById("editorModalMateriales");
+    const btnAgregar = document.getElementById("btnAgregarMaterialEditor");
     const save = document.getElementById("editorModalSave");
     title.textContent = titulo || "Editar";
     label.textContent = etiqueta || "Detalle";
-    editorModalTipo = tipo === "input" ? "input" : "textarea";
+    editorModalTipo = tipo === "input" ? "input" : (tipo === "materiales" ? "materiales" : "textarea");
     card.classList.toggle("editor-compact", !!compact);
     input.style.display = editorModalTipo === "input" ? "" : "none";
     text.style.display = editorModalTipo === "textarea" ? "" : "none";
+    materiales.style.display = editorModalTipo === "materiales" ? "" : "none";
+    btnAgregar.style.display = editorModalTipo === "materiales" ? "" : "none";
     input.placeholder = placeholder || "";
     text.placeholder = placeholder || "";
     input.value = valor || "";
     text.value = valor || "";
+    if (editorModalTipo === "materiales") {
+      materiales.innerHTML = "";
+      const filas = parsearMaterialesTexto(valor || "");
+      if (filas.length) filas.forEach((f) => agregarFilaMaterialEditor(f.cantidad, f.nombre));
+      else agregarFilaMaterialEditor();
+    }
     editorModalGuardar = onGuardar;
     save.disabled = false;
     save.textContent = "Guardar";
     modal.classList.add("abierto");
     modal.setAttribute("aria-hidden", "false");
     setTimeout(() => {
+      if (editorModalTipo === "materiales") {
+        materiales.querySelector(".material-cantidad")?.focus();
+        return;
+      }
       const field = editorModalTipo === "input" ? input : text;
       field.focus();
       field.setSelectionRange(field.value.length, field.value.length);
@@ -761,19 +892,23 @@ td textarea { resize: vertical; min-height: 48px; }
     const input = document.getElementById("editorModalInput");
     const save = document.getElementById("editorModalSave");
     if (typeof editorModalGuardar !== "function") return;
-    const field = editorModalTipo === "input" ? input : text;
-    // El input de una linea colapsa todo el espacio en blanco; el textarea
-    // debe conservar los saltos de linea (ej. materiales, uno por fila).
-    const valor = editorModalTipo === "input"
-      ? field.value.replace(/\s+/g, " ").trim()
-      : field.value
-          .split("\n")
-          .map((linea) => linea.replace(/[ \t]+/g, " ").trim())
-          .filter(Boolean)
-          .join("\n");
+    let valor;
+    if (editorModalTipo === "materiales") {
+      valor = serializarMaterialesEditor();
+    } else {
+      const field = editorModalTipo === "input" ? input : text;
+      // El input de una linea colapsa todo el espacio en blanco; el textarea
+      // debe conservar los saltos de linea.
+      valor = editorModalTipo === "input"
+        ? field.value.replace(/\s+/g, " ").trim()
+        : field.value
+            .split("\n")
+            .map((linea) => linea.replace(/[ \t]+/g, " ").trim())
+            .filter(Boolean)
+            .join("\n");
+    }
     if (!valor) {
-      alert(editorModalTipo === "input" ? "Ingresa un nombre completo." : "Ingresa un detalle antes de guardar.");
-      field.focus();
+      alert(editorModalTipo === "input" ? "Ingresa un nombre completo." : editorModalTipo === "materiales" ? "Agrega al menos un material." : "Ingresa un detalle antes de guardar.");
       return;
     }
     try {
@@ -862,6 +997,7 @@ td textarea { resize: vertical; min-height: 48px; }
         etiqueta: "Materiales solicitados",
         valor: btn.title || valor || row.materialesBase || "",
         placeholder: "Ej: DVR, balunes, transformador...",
+        tipo: "materiales",
         onGuardar: async (comentario) => {
           const final = comentario.trim();
           if(!final) return;
