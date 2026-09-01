@@ -7,7 +7,7 @@
 <link rel="shortcut icon" href="/favicon.ico?v=2">
 
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <title>Generador de QR por recinto</title>
 <link rel="stylesheet" href="/static/base.css">
 <style>
@@ -263,6 +263,7 @@ select{
   }
 }
 </style>
+<link rel="stylesheet" href="/static/guardia-mobile.css?v=20260831">
 </head>
 <body>
 
@@ -314,18 +315,24 @@ select{
   const galeriaCount = document.getElementById("galeriaCount");
   const galeriaTitulo = document.getElementById("galeriaTitulo");
 
+  function escHtml(s) {
+    return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
   function tarjetaHTML(item) {
+    const label = escHtml(item.recinto_label);
+    const verificador = escHtml(item.verificador);
     return `
       <div class="card-wrap" data-id="${item.id}">
         <article class="card">
           <img class="card-logo" src="/shared-static/img/logo-atc2.jpeg" alt="Logo ATC">
           <div class="qr-row">
             <div class="qr">
-              <img alt="QR ${item.recinto_label} N° ${item.numero}" src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(item.target)}">
+              <img alt="QR ${label} N° ${item.numero}" src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(item.target)}">
             </div>
-            <div class="verificador-strip" title="Código verificador">${item.verificador}</div>
+            <div class="verificador-strip" title="Código verificador">${verificador}</div>
           </div>
-          <div class="recinto-nombre">${item.recinto_label}</div>
+          <div class="recinto-nombre">${label}</div>
           <div class="recinto-numero">N° ${item.numero}</div>
         </article>
         <button class="del-btn" type="button" onclick="borrarQr(${item.id}, this)">Eliminar</button>

@@ -7,7 +7,7 @@
 <link rel="shortcut icon" href="/favicon.ico?v=2">
 
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <title>Cumplimiento de Turnos — {{ month_name }} {{ year }}</title>
 <link rel="stylesheet" href="/static/base.css">
 <style>
@@ -152,6 +152,7 @@ tfoot td.real-col,tfoot td.estipulado-col,tfoot td.diferencia-col{background:#ee
   .summary-bar{padding:12px 16px;gap:14px}
 }
 </style>
+<link rel="stylesheet" href="/static/guardia-mobile.css?v=20260831c">
 </head>
 <body>
 
@@ -164,11 +165,11 @@ tfoot td.real-col,tfoot td.estipulado-col,tfoot td.diferencia-col{background:#ee
     <p>Turnos estipulados vs turnos reales registrados — {{ month_name }} {{ year }}</p>
   </div>
   <div class="hero-actions">
-    <a class="btn-hero" href="/gerencia?token={{ token|default('') }}">Volver</a>
+    <a class="btn-hero" href="{{ '/guardia' if origen == 'guardia' else '/gerencia?token=' ~ (token|default('')) }}">Volver</a>
     <div class="month-nav">
-      <a class="btn-hero" href="?year={{ prev_y }}&month={{ prev_m }}&grupo={{ grupo }}">&#8249;</a>
+      <a class="btn-hero" href="?year={{ prev_y }}&month={{ prev_m }}&grupo={{ grupo }}&origen={{ origen }}&token={{ token|default('') }}">&#8249;</a>
       <span class="month-label">{{ month_name }} {{ year }}</span>
-      <a class="btn-hero" href="?year={{ next_y }}&month={{ next_m }}&grupo={{ grupo }}">&#8250;</a>
+      <a class="btn-hero" href="?year={{ next_y }}&month={{ next_m }}&grupo={{ grupo }}&origen={{ origen }}&token={{ token|default('') }}">&#8250;</a>
     </div>
   </div>
 </header>
@@ -264,13 +265,13 @@ tfoot td.real-col,tfoot td.estipulado-col,tfoot td.diferencia-col{background:#ee
 </div>
 
 <nav class="grupo-tabs">
-  <a class="grupo-tab {% if grupo == 'quintero' %}active{% endif %}" href="?year={{ year }}&month={{ month }}&grupo=quintero">
+  <a class="grupo-tab {% if grupo == 'quintero' %}active{% endif %}" href="?year={{ year }}&month={{ month }}&grupo=quintero&origen={{ origen }}&token={{ token|default('') }}">
     <span class="dot dot-quintero"></span>Quintero
   </a>
-  <a class="grupo-tab {% if grupo == 'concon' %}active{% endif %}" href="?year={{ year }}&month={{ month }}&grupo=concon">
+  <a class="grupo-tab {% if grupo == 'concon' %}active{% endif %}" href="?year={{ year }}&month={{ month }}&grupo=concon&origen={{ origen }}&token={{ token|default('') }}">
     <span class="dot dot-concon"></span>Concón
   </a>
-  <a class="grupo-tab {% if grupo == 'privados' %}active{% endif %}" href="?year={{ year }}&month={{ month }}&grupo=privados">
+  <a class="grupo-tab {% if grupo == 'privados' %}active{% endif %}" href="?year={{ year }}&month={{ month }}&grupo=privados&origen={{ origen }}&token={{ token|default('') }}">
     <span class="dot dot-privados"></span>Privados
   </a>
 </nav>

@@ -7,7 +7,7 @@
 <link rel="shortcut icon" href="/favicon.ico?v=2">
 
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <title>Registro Supervisor Privados — {{ month_name }} {{ year }}</title>
 <link rel="stylesheet" href="/static/guardias-informe-preview.css">
 <style>
@@ -47,6 +47,7 @@ body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:#172124;f
 .hero-copy h1{margin:0;font-size:18px;font-weight:700;letter-spacing:-.02em;color:#fff}
 .hero-copy .sub{margin:4px 0 0;font-size:12.5px;color:rgba(255,255,255,.65)}
 .hero-nav{display:flex;align-items:center;gap:8px;margin-left:auto}
+.hero-nav .month-nav{display:flex;align-items:center;gap:6px}
 .hero-nav a,.hero-nav button{
   display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:8px;
   font-size:13px;font-weight:600;text-decoration:none;
@@ -222,7 +223,13 @@ td.data-cell:hover{background:#e8f1fc !important}
   thead th.col-recinto,td.col-recinto{position:static}
   .add-btn,.del-btn{display:none!important}
 }
+
+/* Celular: que la pagina scrollee entera, el header no debe quedar fijo. */
+@media (max-width:720px), (max-height:520px){
+  html,body{overflow-x:hidden;overflow-y:auto}
+}
 </style>
+<link rel="stylesheet" href="/static/guardia-mobile.css?v=20260831c">
 </head>
 <body>
 
@@ -236,9 +243,11 @@ td.data-cell:hover{background:#e8f1fc !important}
   </div>
   <div class="hero-nav">
     <a id="btnVolver" href="{{ '/guardia' if origen == 'guardia' else '/supervisores' }}">Volver</a>
-    <a href="/guardia/tabla-supervisor?year={{ prev_y }}&month={{ prev_m }}&grupo=privados&origen={{ origen|default('supervisores') }}">&#8249;</a>
-    <span class="month-label">{{ month_name }} {{ year }}</span>
-    <a href="/guardia/tabla-supervisor?year={{ next_y }}&month={{ next_m }}&grupo=privados&origen={{ origen|default('supervisores') }}">&#8250;</a>
+    <div class="month-nav">
+      <a href="/guardia/tabla-supervisor?year={{ prev_y }}&month={{ prev_m }}&grupo=privados&origen={{ origen|default('supervisores') }}">&#8249;</a>
+      <span class="month-label">{{ month_name }} {{ year }}</span>
+      <a href="/guardia/tabla-supervisor?year={{ next_y }}&month={{ next_m }}&grupo=privados&origen={{ origen|default('supervisores') }}">&#8250;</a>
+    </div>
     <button class="informe-preview-trigger" type="button"
             data-informe-preview="/guardia/tabla-supervisor/informes/preview?year={{ year }}&month={{ month }}&grupo=privados"
             data-informe-download="/guardia/tabla-supervisor/informes?year={{ year }}&month={{ month }}&grupo=privados"

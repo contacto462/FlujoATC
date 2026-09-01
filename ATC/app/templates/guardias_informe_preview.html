@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>{{ titulo }}</title>
   <style>
     :root {
@@ -124,6 +124,15 @@
     tr:last-child td { border-bottom: 0; }
     td:last-child, th:last-child { border-right: 0; }
     .num { text-align: center; font-weight: 800; }
+    .total-label, .total-cell {
+      background: #eef2f7 !important;
+      border-top: 2px solid var(--navy-2);
+      font-weight: 900;
+      color: var(--navy-2);
+      position: sticky;
+      bottom: 0;
+      z-index: 4;
+    }
     .muted { color: var(--muted); }
     .ok { color: var(--ok); font-weight: 800; }
     .warn { color: var(--warn); font-weight: 800; }
@@ -162,7 +171,8 @@
       .table-scroll { max-height: none; overflow: visible; }
       .page-head { position: static; }
     }
-  </style>
+</style>
+<link rel="stylesheet" href="/static/guardia-mobile.css?v=20260831">
 </head>
 <body>
   <header class="page-head">

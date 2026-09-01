@@ -27,7 +27,7 @@ from sqlalchemy import extract, func, text
 from sqlalchemy.exc import IntegrityError
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -58,17 +58,18 @@ from ATC.app.services import contrato_diario_service
 router = APIRouter(tags=["inicio-turno"])
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parents[1] / "templates"))
 _log = logging.getLogger(__name__)
+_INICIO_TURNO_REGISTRO_LOCK = threading.Lock()
 
 
 def _require_login(request: Request, db: Session = Depends(get_db)) -> User:
-    """Exige sesion activa (misma cookie access_token que _usuario_sesion,
-    definida mas abajo en este archivo — la referencia se resuelve recien
-    cuando esta dependencia corre, no al definir esta funcion, asi que el
-    orden no importa). Usar en endpoints de gestion (BBDD Guardias, aprobar
-    rondas) que antes no verificaban ninguna sesion (hallazgo de auditoria
-    de seguridad, ago 2026) — no se aplica al flujo de escaneo de QR de
-    rondas, que es publico por diseno (el guardia no tiene cuenta, solo el
-    codigo fisico)."""
+    """Exige sesion activa (misma resolucion que _usuario_sesion — cookie
+    access_token, cookie atc_token o ?token=, definida mas abajo en este
+    archivo — la referencia se resuelve recien cuando esta dependencia
+    corre, no al definir esta funcion, asi que el orden no importa). Usar en
+    endpoints de gestion (BBDD Guardias, aprobar rondas) que antes no
+    verificaban ninguna sesion (hallazgo de auditoria de seguridad, ago
+    2026) — no se aplica al flujo de escaneo de QR de rondas, que es publico
+    por diseno (el guardia no tiene cuenta, solo el codigo fisico)."""
     user = _usuario_sesion(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="No autenticado.")
@@ -1953,6 +1954,49 @@ def _agregar_faltas_por_justificacion_falta(
     return sorted(rows_faltas, key=lambda item: (-int(item["faltas"]), item["nombre"].casefold(), item["rut"]))
 
 
+def _licencia_medica_por_guardia(
+    db: Session,
+    year: int,
+    month: int,
+    rut_lookup: dict[str, str],
+) -> dict[str, int]:
+    """Cantidad de dias con Licencia Medica (GuardiaJustificacion.motivo ==
+    "Licencia Médica") que caen dentro del mes del informe, usando el rango
+    fecha_desde/fecha_hasta declarado en la justificacion (recortado a los
+    limites del mes) — no depende de marcajes reales como "Faltas", es la
+    licencia declarada tal cual. Va al lado de la columna Faltas en Registro
+    Guardias — pedido explicito, sep 2026. La clave del dict usa el mismo
+    criterio que faltas_por_guardia (rut normalizado si hay, si no nombre
+    normalizado) para poder cruzarse directo contra rows_qr en el informe."""
+    primer_dia = date(year, month, 1)
+    ultimo_dia = date(year, month, calendar.monthrange(year, month)[1])
+    conteo: dict[str, int] = defaultdict(int)
+    justificaciones = (
+        db.query(GuardiaJustificacion)
+        .filter(
+            GuardiaJustificacion.motivo == "Licencia Médica",
+            GuardiaJustificacion.fecha_desde <= ultimo_dia,
+            GuardiaJustificacion.fecha_hasta >= primer_dia,
+        )
+        .all()
+    )
+    for j in justificaciones:
+        if not j.fecha_desde or not j.fecha_hasta:
+            continue
+        desde = max(j.fecha_desde, primer_dia)
+        hasta = min(j.fecha_hasta, ultimo_dia)
+        if hasta < desde:
+            continue
+        dias = (hasta - desde).days + 1
+        nombre_key = _normalizar_texto(j.nombre_guardia)
+        rut = _normalizar_rut(j.rut) or rut_lookup.get(nombre_key, "")
+        identidad = rut or nombre_key
+        if not identidad:
+            continue
+        conteo[identidad] += dias
+    return dict(conteo)
+
+
 def _alertas_permiso_sin_goce(rows_faltas: list[dict], month: int) -> list[dict]:
     alertas: list[dict] = []
     for row in rows_faltas:
@@ -2083,6 +2127,25 @@ def _agrupar_turnos_extra(
     return sorted(salida, key=lambda item: (item["nombre"].casefold(), item["rut"]))
 
 
+def _agregar_fila_total_hoja(ws, num_columnas: int, sumas: dict[int, int]) -> None:
+    """Fila 'Total' al pie de la hoja: 'Total' en la primera columna, la
+    suma de cada columna numerica (columna 1-indexed -> suma, ver `sumas`)
+    y en blanco el resto (RUT, tipo de contrato, texto libre). Se llama
+    justo despues de escribir las filas de datos y ANTES del loop de
+    bordes/estilos de cada hoja, para que la fila de Total quede con el
+    mismo formato que el resto. No se llama en hojas sin ninguna columna
+    numerica (Guardia por Recinto, Justificaciones) porque no hay nada que
+    sumar. Pedido explicito, ago 2026."""
+    from openpyxl.styles import Font
+
+    fila = ["Total"] + ["" for _ in range(num_columnas - 1)]
+    for col_idx, total in sumas.items():
+        fila[col_idx - 1] = total
+    ws.append(fila)
+    for cell in ws[ws.max_row]:
+        cell.font = Font(bold=True)
+
+
 def _crear_hoja_turno_extra(ws, periodo: str, rows: list[dict], *, tipo_turno: str = "Extra") -> None:
     from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 
@@ -2097,17 +2160,22 @@ def _crear_hoja_turno_extra(ws, periodo: str, rows: list[dict], *, tipo_turno: s
     ws.append([])
     ws.append(headers)
 
+    suma_total = 0
     for row in rows:
         inconsistencias = row["inconsistencias"]
+        total_fila = int(row["total"])
+        suma_total += total_fila
         ws.append([
             row["nombre"],
             row["rut"],
             row.get("tipo_guardia", ""),
-            int(row["total"]),
+            total_fila,
             "\n".join(row["lugares"]),
             "OK" if not inconsistencias else "Con inconsistencias",
             "\n".join(inconsistencias) if inconsistencias else "Registro de guardia y supervisor coinciden",
         ])
+    if rows:
+        _agregar_fila_total_hoja(ws, len(headers), {4: suma_total})
 
     ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(headers))
     ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=len(headers))
@@ -2330,6 +2398,7 @@ def _crear_hoja_informe_turnos(
     rows: list[dict],
     *,
     faltas_por_guardia: dict[str, int] | None = None,
+    lm_por_guardia: dict[str, int] | None = None,
 ) -> None:
     from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 
@@ -2337,8 +2406,8 @@ def _crear_hoja_informe_turnos(
     azul_medio = "1E3A5F"
     borde = Side(style="thin", color="CBD5E1")
     if faltas_por_guardia is not None:
-        headers = ["Nombre", "RUT", "Tipo de Contrato", "Turno Normal", "Extra", "Contrato Diario", "Faltas"]
-        widths = [34, 16, 14, 16, 10, 18, 12]
+        headers = ["Nombre", "RUT", "Tipo de Contrato", "Turno Normal", "Extra", "Contrato Diario", "Faltas", "Licencia Médica"]
+        widths = [34, 16, 14, 16, 10, 18, 12, 15]
     else:
         headers = ["Nombre", "RUT", "Tipo de Contrato", "Dia", "Noche", "Turno Normal", "Extra", "Contrato Diario", "Total Turnos"]
         widths = [34, 16, 14, 10, 10, 16, 10, 18, 14]
@@ -2348,6 +2417,7 @@ def _crear_hoja_informe_turnos(
     ws.append([])
     ws.append(headers)
 
+    sumas: dict[int, int] = defaultdict(int)
     for row in rows:
         turnos = row["turnos"]
         dia = int(turnos["Dia"])
@@ -2357,10 +2427,19 @@ def _crear_hoja_informe_turnos(
         if faltas_por_guardia is not None:
             identidad = row["rut"] or _normalizar_texto(row["nombre"])
             faltas = int(faltas_por_guardia.get(identidad, 0))
-            ws.append([row["nombre"], row["rut"], row.get("tipo_guardia", ""), dia + noche, extra, contrato, faltas])
+            lm = int((lm_por_guardia or {}).get(identidad, 0))
+            valores = [dia + noche, extra, contrato, faltas, lm]
+            columnas = [4, 5, 6, 7, 8]
+            ws.append([row["nombre"], row["rut"], row.get("tipo_guardia", ""), *valores])
         else:
             total = dia + noche + extra + contrato
-            ws.append([row["nombre"], row["rut"], row.get("tipo_guardia", ""), dia, noche, dia + noche, extra, contrato, total])
+            valores = [dia, noche, dia + noche, extra, contrato, total]
+            columnas = [4, 5, 6, 7, 8, 9]
+            ws.append([row["nombre"], row["rut"], row.get("tipo_guardia", ""), *valores])
+        for col, val in zip(columnas, valores):
+            sumas[col] += val
+    if rows:
+        _agregar_fila_total_hoja(ws, len(headers), sumas)
 
     ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(headers))
     ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=len(headers))
@@ -2413,12 +2492,14 @@ def _crear_hoja_cruce(ws, periodo: str, rows: list[dict]) -> None:
     ws.append([])
     ws.append(headers)
 
+    sumas: dict[int, int] = defaultdict(int)
     for row in rows:
         turnos = row["turnos"]
         dia = int(turnos["Dia"])
         noche = int(turnos["Noche"])
         extra = int(turnos["Extra"])
         contrato = int(turnos["Contrato Diario"])
+        coincidencias = int(row["coincidencias"])
         disyuntivas = int(row["solo_registro"]) + int(row["solo_supervisor"])
         resultado = "Coincide" if disyuntivas == 0 else "Con disyuntivas"
         detalle = "Coincidencia completa"
@@ -2433,11 +2514,15 @@ def _crear_hoja_cruce(ws, periodo: str, rows: list[dict]) -> None:
             dia + noche,
             extra,
             contrato,
-            row["coincidencias"],
+            coincidencias,
             disyuntivas,
             resultado,
             detalle,
         ])
+        for col, val in zip((4, 5, 6, 7, 8, 9, 10), (dia, noche, dia + noche, extra, contrato, coincidencias, disyuntivas)):
+            sumas[col] += val
+    if rows:
+        _agregar_fila_total_hoja(ws, len(headers), sumas)
 
     ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(headers))
     ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=len(headers))
@@ -2478,18 +2563,23 @@ def _crear_hoja_faltas(ws, periodo: str, rows: list[dict]) -> None:
     ws.append([])
     ws.append(headers)
 
+    suma_faltas = 0
     for row in rows:
         lineas = [
             f"{texto} (Permiso sin Goce)" if es_permiso else texto
             for texto, es_permiso in row["detalle"]
         ]
+        faltas_fila = int(row["faltas"])
+        suma_faltas += faltas_fila
         ws.append([
             row["nombre"],
             row["rut"],
             row.get("tipo_guardia", ""),
-            int(row["faltas"]),
+            faltas_fila,
             "\n".join(lineas),
         ])
+    if rows:
+        _agregar_fila_total_hoja(ws, len(headers), {4: suma_faltas})
 
     ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(headers))
     ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=len(headers))
@@ -2535,14 +2625,19 @@ def _crear_hoja_domingos(ws, periodo: str, rows: list[dict]) -> None:
     ws.append([])
     ws.append(headers)
 
+    suma_domingos = 0
     for row in rows:
+        domingos_fila = int(row["domingos"])
+        suma_domingos += domingos_fila
         ws.append([
             row["nombre"],
             row["rut"],
             row.get("tipo_guardia", ""),
-            int(row["domingos"]),
+            domingos_fila,
             "\n".join(row["detalle"]),
         ])
+    if rows:
+        _agregar_fila_total_hoja(ws, len(headers), {4: suma_domingos})
 
     ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(headers))
     ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=len(headers))
@@ -2928,6 +3023,7 @@ def crear_qr_generado(
     payload: QrGeneradoCreate,
     request: Request,
     db: Session = Depends(get_db),
+    current_user: User = Depends(_require_login),
 ):
     recinto_id = payload.recinto_id.strip()
     ultimo_numero = (
@@ -2953,6 +3049,7 @@ def crear_qr_generado(
 def borrar_qr_generado(
     item_id: int,
     db: Session = Depends(get_db),
+    current_user: User = Depends(_require_login),
 ):
     item = db.get(RecintoQrGenerado, item_id)
     if not item:
@@ -3121,6 +3218,11 @@ def aprobar_ronda(
     db: Session = Depends(get_db),
     current_user: User = Depends(_require_login),
 ):
+    if _es_area_supervisores(current_user):
+        raise HTTPException(
+            status_code=403,
+            detail="Panel Supervisores solo tiene acceso de visualización a la Tabla de Rondas.",
+        )
     registro = db.get(RondaRegistro, registro_id)
     if not registro:
         raise HTTPException(status_code=404, detail="Registro no encontrado")
@@ -3332,11 +3434,26 @@ def _preview_cell(value: object, css: str = "") -> dict:
     return {"value": value if value not in (None, "") else "—", "css": css}
 
 
+def _preview_fila_total(headers: list[str], sumas: dict[int, int]) -> list[dict]:
+    """Fila 'Total' al pie de una hoja de la vista previa — mismo criterio
+    que _agregar_fila_total_hoja para el Excel: 'Total' en la primera
+    columna, la suma en las columnas numericas (indice 0-based -> suma) y
+    en blanco el resto. Pedido explicito, ago 2026."""
+    fila = [_preview_cell("Total", "total-label")]
+    for idx in range(1, len(headers)):
+        if idx in sumas:
+            fila.append(_preview_cell(sumas[idx], "num total-cell"))
+        else:
+            fila.append(_preview_cell("", "total-cell"))
+    return fila
+
+
 def _preview_turnos_section(
     titulo: str,
     rows: list[dict],
     *,
     faltas_por_guardia: dict[str, int] | None = None,
+    lm_por_guardia: dict[str, int] | None = None,
 ) -> dict:
     preview_rows = []
     for row in rows:
@@ -3348,6 +3465,7 @@ def _preview_turnos_section(
         if faltas_por_guardia is not None:
             identidad = row["rut"] or _normalizar_texto(row["nombre"])
             faltas = int(faltas_por_guardia.get(identidad, 0))
+            lm = int((lm_por_guardia or {}).get(identidad, 0))
             preview_rows.append([
                 _preview_cell(row["nombre"]),
                 _preview_cell(row["rut"]),
@@ -3356,6 +3474,7 @@ def _preview_turnos_section(
                 _preview_cell(extra, "num"),
                 _preview_cell(contrato, "num"),
                 _preview_cell(faltas, "num"),
+                _preview_cell(lm, "num"),
             ])
         else:
             preview_rows.append([
@@ -3370,13 +3489,20 @@ def _preview_turnos_section(
                 _preview_cell(dia + noche + extra + contrato, "num"),
             ])
     headers = (
-        ["Nombre", "RUT", "Tipo de Contrato", "Turno Normal", "Extra", "Contrato Diario", "Faltas"]
+        ["Nombre", "RUT", "Tipo de Contrato", "Turno Normal", "Extra", "Contrato Diario", "Faltas", "Licencia Médica"]
         if faltas_por_guardia is not None
         else ["Nombre", "RUT", "Tipo de Contrato", "Dia", "Noche", "Turno Normal", "Extra", "Contrato Diario", "Total Turnos"]
     )
+    if preview_rows:
+        columnas_numericas = (3, 4, 5, 6, 7) if faltas_por_guardia is not None else (3, 4, 5, 6, 7, 8)
+        sumas = {
+            idx: sum(fila[idx]["value"] for fila in preview_rows)
+            for idx in columnas_numericas
+        }
+        preview_rows.append(_preview_fila_total(headers, sumas))
     return {
         "title": titulo,
-        "subtitle": f"{len(preview_rows)} guardia(s)",
+        "subtitle": f"{len(rows)} guardia(s)",
         "headers": headers,
         "rows": preview_rows,
     }
@@ -3411,10 +3537,14 @@ def _preview_cruce_section(rows: list[dict]) -> dict:
             _preview_cell(resultado, css_resultado),
             _preview_cell(detalle),
         ])
+    headers = ["Nombre", "RUT", "Tipo de Contrato", "Dia", "Noche", "Turno Normal", "Extra", "Contrato Diario", "Coincidencias", "Disyuntivas", "Resultado", "Detalle"]
+    if preview_rows:
+        sumas = {idx: sum(int(fila[idx]["value"]) for fila in preview_rows) for idx in (3, 4, 5, 6, 7, 8, 9)}
+        preview_rows.append(_preview_fila_total(headers, sumas))
     return {
         "title": "Cruce",
-        "subtitle": f"{len(preview_rows)} guardia(s)",
-        "headers": ["Nombre", "RUT", "Tipo de Contrato", "Dia", "Noche", "Turno Normal", "Extra", "Contrato Diario", "Coincidencias", "Disyuntivas", "Resultado", "Detalle"],
+        "subtitle": f"{len(rows)} guardia(s)",
+        "headers": headers,
         "rows": preview_rows,
     }
 
@@ -3437,10 +3567,13 @@ def _preview_faltas_section(rows: list[dict]) -> dict:
             _preview_cell(int(row["faltas"]), "num bad"),
             detalle_cell,
         ])
+    headers = ["Nombre", "RUT", "Tipo de Contrato", "Nro de faltas", "Cuándo y dónde tenía que estar"]
+    if preview_rows:
+        preview_rows.append(_preview_fila_total(headers, {3: sum(int(row["faltas"]) for row in rows)}))
     return {
         "title": "Faltas",
         "subtitle": f"{sum(int(row['faltas']) for row in rows)} falta(s)",
-        "headers": ["Nombre", "RUT", "Tipo de Contrato", "Nro de faltas", "Cuándo y dónde tenía que estar"],
+        "headers": headers,
         "rows": preview_rows,
     }
 
@@ -3457,10 +3590,13 @@ def _preview_domingos_section(rows: list[dict]) -> dict:
             _preview_cell(int(row["domingos"]), "num"),
             detalle_cell,
         ])
+    headers = ["Nombre", "RUT", "Tipo de Contrato", "Domingos trabajados", "Fecha y lugar"]
+    if preview_rows:
+        preview_rows.append(_preview_fila_total(headers, {3: sum(int(row["domingos"]) for row in rows)}))
     return {
         "title": "Conteo días domingo",
         "subtitle": f"{sum(int(row['domingos']) for row in rows)} domingo(s) trabajado(s)",
-        "headers": ["Nombre", "RUT", "Tipo de Contrato", "Domingos trabajados", "Fecha y lugar"],
+        "headers": headers,
         "rows": preview_rows,
     }
 
@@ -3479,10 +3615,13 @@ def _preview_turnos_extra_section(titulo: str, rows: list[dict], *, tipo_turno: 
             _preview_cell(estado, "ok" if estado == "OK" else "bad"),
             _preview_cell("\n".join(inconsistencias) if inconsistencias else "Registro de guardia y supervisor coinciden"),
         ])
+    headers = ["Nombre", "RUT", "Tipo de Contrato", f"Turnos {tipo_turno}", "Dónde (fecha · recinto)", "Consistencia", "Detalle inconsistencia"]
+    if preview_rows:
+        preview_rows.append(_preview_fila_total(headers, {3: sum(int(row["total"]) for row in rows)}))
     return {
         "title": titulo,
-        "subtitle": f"{len(preview_rows)} guardia(s)",
-        "headers": ["Nombre", "RUT", "Tipo de Contrato", f"Turnos {tipo_turno}", "Dónde (fecha · recinto)", "Consistencia", "Detalle inconsistencia"],
+        "subtitle": f"{len(rows)} guardia(s)",
+        "headers": headers,
         "rows": preview_rows,
     }
 
@@ -3655,6 +3794,7 @@ def _datos_informe_guardias(db: Session, year: int, month: int, grupo: str) -> d
         db, rows_faltas, rut_lookup, tipo_guardia_lookup, year, month, today - timedelta(days=1),
         recintos_permitidos=recintos_set,
     )
+    lm_por_guardia = _licencia_medica_por_guardia(db, year, month, rut_lookup)
     rows_extra = _agrupar_turnos_extra(registros_qr, registros_sv, rut_lookup, tipo_guardia_lookup, tipo_turno="Extra")
     rows_contrato_diario = _agrupar_turnos_extra(registros_qr, registros_sv, rut_lookup, tipo_guardia_lookup, tipo_turno="Contrato Diario")
     rows_domingos = _agrupar_domingos_guardias(registros_qr, rut_lookup, tipo_guardia_lookup)
@@ -3687,6 +3827,7 @@ def _datos_informe_guardias(db: Session, year: int, month: int, grupo: str) -> d
         "rows_sv": rows_sv,
         "rows_cruce": rows_cruce,
         "rows_faltas": rows_faltas,
+        "lm_por_guardia": lm_por_guardia,
         "rows_extra": rows_extra,
         "rows_contrato_diario": rows_contrato_diario,
         "rows_domingos": rows_domingos,
@@ -3880,6 +4021,8 @@ def guardia_cumplimiento_turnos_page(
     year: int = Query(default=None),
     month: int = Query(default=None),
     grupo: str = Query(default="concon"),
+    origen: str = Query(default="gerencia"),
+    token: str = Query(default=""),
     db: Session = Depends(get_db),
 ):
     tz = ZoneInfo(settings.timezone or "America/Santiago")
@@ -3911,6 +4054,8 @@ def guardia_cumplimiento_turnos_page(
             "total_dependencias": data["total_dependencias"],
             "prev_y": prev_y, "prev_m": prev_m,
             "next_y": next_y, "next_m": next_m,
+            "origen": origen,
+            "token": token,
         },
     )
 
@@ -3922,6 +4067,7 @@ def preview_informes_rondas(
     month: int = Query(default=None),
     db: Session = Depends(get_db),
 ):
+    _requerir_no_solo_lectura_tabla_guardia(request, db)
     today = date.today()
     year = year or today.year
     month = month or today.month
@@ -3955,6 +4101,7 @@ def descargar_informes_rondas(
     preview: bool = Query(default=False),
     db: Session = Depends(get_db),
 ):
+    _requerir_no_solo_lectura_tabla_guardia(request, db)
     from openpyxl import Workbook
 
     today = date.today()
@@ -4016,6 +4163,14 @@ def guardia_tabla_rondas_page(
     if grupo not in ("quintero", "privados", "concon"):
         grupo = "quintero"
 
+    current_user = _usuario_sesion(request, db)
+    grupo_forzado = _grupo_forzado_supervisor(current_user)
+    if grupo_forzado and grupo != grupo_forzado:
+        return RedirectResponse(
+            url=f"/guardia/tabla-rondas?year={year}&month={month}&grupo={grupo_forzado}",
+            status_code=303,
+        )
+
     filas, days_info = _construir_filas_rondas(db, grupo, year, month)
 
     prev_y, prev_m = (year - 1, 12) if month == 1  else (year, month - 1)
@@ -4035,7 +4190,10 @@ def guardia_tabla_rondas_page(
             "next_y": next_y, "next_m": next_m,
             "today_day": today.day if (today.year == year and today.month == month) else -1,
             "supervisor_nombre": _nombre_usuario_sesion(request, db),
+            "solo_lectura": _es_area_supervisores(current_user),
+            "grupo_forzado": grupo_forzado,
         },
+        headers={"Cache-Control": "no-store"},
     )
 
 
@@ -4265,6 +4423,68 @@ MOTIVOS_JUSTIFICACION = (
     "Renuncia",
 )
 
+# Motivos que garantizan que el guardia NO va a poder cubrir ningun turno
+# futuro (a diferencia de "Falta", que documenta algo que ya paso) — pedido
+# explicito, sep 2026: si el supervisor ya tenia a este guardia PLANIFICADO
+# a futuro (Registro Supervisor) y cae uno de estos motivos, esos turnos
+# planificados quedan fantasma (nunca se van a poder cumplir) y hay que
+# borrarlos solos. Los "Permiso con/sin Goce" se incluyeron tambien —
+# normalmente son de un dia para otro y no alcanzan a pisar un turno ya
+# planificado, pero si el rango llegara a cubrir algun dia planificado,
+# debe borrarse igual que los demas (pedido explicito).
+_MOTIVOS_INVALIDAN_PLANIFICACION_FUTURA = {
+    "Licencia Médica",
+    "Vacaciones",
+    "Renuncia",
+    "Desvinculado",
+    "Permiso con Goce",
+    "Permiso sin Goce",
+}
+
+
+def _borrar_registros_supervisor_futuros_por_justificacion(
+    db: Session,
+    nombre: str,
+    motivo: str,
+    fecha_desde: date | None,
+    fecha_hasta: date | None,
+) -> int:
+    """Borra automaticamente los SupervisorRegistro (Tabla Supervisor) que ya
+    estaban planificados a futuro (fecha >= hoy) para este guardia, dentro
+    del rango de una justificacion cuyo motivo garantiza que no va a poder
+    cubrir el turno (ver _MOTIVOS_INVALIDAN_PLANIFICACION_FUTURA). No toca
+    fechas pasadas (son registro historico). SupervisorRegistro no tiene
+    columna de RUT — el cruce es por nombre normalizado, unico identificador
+    disponible en esa tabla. Se llama al crear/editar una justificacion
+    (crear_justificacion, actualizar_justificacion, justificar_supervisor_registro).
+    Retorna la cantidad de filas borradas."""
+    if motivo not in _MOTIVOS_INVALIDAN_PLANIFICACION_FUTURA:
+        return 0
+    if not fecha_desde or not fecha_hasta:
+        return 0
+    hoy = date.today()
+    desde = max(fecha_desde, hoy)
+    hasta = fecha_hasta
+    if hasta < desde:
+        return 0
+    nombre_norm = _normalizar_texto(nombre)
+    if not nombre_norm:
+        return 0
+    candidatos = (
+        db.query(SupervisorRegistro)
+        .filter(SupervisorRegistro.fecha >= desde, SupervisorRegistro.fecha <= hasta)
+        .all()
+    )
+    borrados = 0
+    for reg in candidatos:
+        if _normalizar_texto(reg.nombre_guardia) != nombre_norm:
+            continue
+        db.delete(reg)
+        borrados += 1
+    if borrados:
+        db.commit()
+    return borrados
+
 
 class JustificacionCreate(BaseModel):
     rut: str = Field(min_length=1, max_length=40)
@@ -4361,6 +4581,7 @@ def crear_justificacion(
     payload: JustificacionCreate,
     request: Request,
     db: Session = Depends(get_db),
+    current_user: User = Depends(_require_login),
 ):
     rut_norm, nombre, desde, hasta = _validar_payload_justificacion(payload)
     conflicto = _justificacion_conflicto_vigente(db, rut_norm, desde, hasta)
@@ -4383,7 +4604,8 @@ def crear_justificacion(
     db.add(j)
     db.commit()
     db.refresh(j)
-    return _serializar_justificacion(j)
+    borrados = _borrar_registros_supervisor_futuros_por_justificacion(db, nombre, j.motivo, desde, hasta)
+    return {**_serializar_justificacion(j), "turnos_planificados_borrados": borrados}
 
 
 @router.get("/api/inicio-turno/justificaciones/listar")
@@ -4407,6 +4629,7 @@ def actualizar_justificacion(
     justificacion_id: int,
     payload: JustificacionUpdate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(_require_login),
 ):
     j = db.get(GuardiaJustificacion, justificacion_id)
     if not j:
@@ -4428,13 +4651,15 @@ def actualizar_justificacion(
     j.notas = payload.notas.strip() or None
     db.commit()
     db.refresh(j)
-    return _serializar_justificacion(j)
+    borrados = _borrar_registros_supervisor_futuros_por_justificacion(db, nombre, j.motivo, desde, hasta)
+    return {**_serializar_justificacion(j), "turnos_planificados_borrados": borrados}
 
 
 @router.delete("/api/inicio-turno/justificaciones/{justificacion_id}")
 def eliminar_justificacion(
     justificacion_id: int,
     db: Session = Depends(get_db),
+    current_user: User = Depends(_require_login),
 ):
     j = db.get(GuardiaJustificacion, justificacion_id)
     if not j:
@@ -4563,6 +4788,13 @@ def guardia_tabla_page(
         })
 
     grupo = grupo.lower().strip()
+    current_user = _usuario_sesion(request, db)
+    grupo_forzado = _grupo_forzado_supervisor(current_user)
+    if grupo_forzado and grupo != grupo_forzado:
+        return RedirectResponse(
+            url=f"/guardia/tabla-registro-guardia?year={year}&month={month}&grupo={grupo_forzado}&origen=supervisores",
+            status_code=303,
+        )
     if grupo == "privados":
         qr_sucursales   = _listar_recintos_privados(db)
         sucursal_labels = [s["label"] for s in qr_sucursales]
@@ -4862,7 +5094,10 @@ def guardia_tabla_page(
             "grupo": grupo,
             "tipos_turno": list(TIPOS_TURNO),
             "supervisor_nombre": _nombre_usuario_sesion(request, db),
+            "solo_lectura": _es_area_supervisores(current_user),
+            "grupo_forzado": grupo_forzado,
         },
+        headers={"Cache-Control": "no-store"},
     )
 
 
@@ -4874,6 +5109,7 @@ def preview_informes_guardias(
     grupo: str = Query(default="quintero"),
     db: Session = Depends(get_db),
 ):
+    _requerir_no_solo_lectura_tabla_guardia(request, db)
     today = date.today()
     year = year or today.year
     month = month or today.month
@@ -4884,7 +5120,12 @@ def preview_informes_guardias(
     }
 
     sections = [
-        _preview_turnos_section("Registro Guardias", data["rows_qr"], faltas_por_guardia=faltas_por_guardia),
+        _preview_turnos_section(
+            "Registro Guardias",
+            data["rows_qr"],
+            faltas_por_guardia=faltas_por_guardia,
+            lm_por_guardia=data["lm_por_guardia"],
+        ),
         _preview_turnos_section("Supervisores", data["rows_sv"]),
         _preview_cruce_section(data["rows_cruce"]),
         _preview_faltas_section(data["rows_faltas"]),
@@ -4927,6 +5168,7 @@ def descargar_informes_guardias(
     preview: bool = Query(default=False),
     db: Session = Depends(get_db),
 ):
+    _requerir_no_solo_lectura_tabla_guardia(request, db)
     from openpyxl import Workbook
 
     today = date.today()
@@ -4998,6 +5240,7 @@ def descargar_informes_guardias(
         db, rows_faltas, rut_lookup, tipo_guardia_lookup, year, month, today - timedelta(days=1),
         recintos_permitidos=recintos_set,
     )
+    lm_por_guardia = _licencia_medica_por_guardia(db, year, month, rut_lookup)
     rows_extra = _agrupar_turnos_extra(registros_qr, registros_sv, rut_lookup, tipo_guardia_lookup, tipo_turno="Extra")
     rows_contrato_diario = _agrupar_turnos_extra(registros_qr, registros_sv, rut_lookup, tipo_guardia_lookup, tipo_turno="Contrato Diario")
     rows_domingos = _agrupar_domingos_guardias(registros_qr, rut_lookup, tipo_guardia_lookup)
@@ -5033,7 +5276,7 @@ def descargar_informes_guardias(
     wb = Workbook()
     ws = wb.active
     ws.title = "Registro Guardias"
-    _crear_hoja_informe_turnos(ws, "Registro Guardias", periodo, rows_qr, faltas_por_guardia=faltas_por_guardia)
+    _crear_hoja_informe_turnos(ws, "Registro Guardias", periodo, rows_qr, faltas_por_guardia=faltas_por_guardia, lm_por_guardia=lm_por_guardia)
     _crear_hoja_informe_turnos(wb.create_sheet("Supervisores"), "Supervisores", periodo, rows_sv)
     _crear_hoja_cruce(wb.create_sheet("Cruce"), periodo, rows_cruce)
     _crear_hoja_faltas(wb.create_sheet("Faltas"), periodo, rows_faltas)
@@ -5161,27 +5404,61 @@ def registrar_inicio_turno(
     guardia = _buscar_guardia_por_rut(db, payload.rut, payload.sucursal_id)
     if not guardia:
         raise HTTPException(status_code=404, detail="No existe un guardia registrado con ese RUT")
+    rut_guardia = _normalizar_rut(guardia.rut or payload.rut)
 
-    registro = InicioTurnoRegistro(
-        rut=_normalizar_rut(guardia.rut or payload.rut),
-        nombre_guardia=str(guardia.nombre or "").strip(),
-        tipo_turno=tipo_turno,
-        recinto=recinto,
-        sucursal_id=sucursal.id if sucursal else payload.sucursal_id,
-        latitud=payload.latitud,
-        longitud=payload.longitud,
-        precision_metros=payload.precision_metros,
-        ubicacion_estado=(
-            str(payload.ubicacion_estado or "").strip() or None
-            if _UBICACION_INICIO_TURNO_HABILITADA
-            else "inhabilitada"
-        ),
-        ip_origen=request.client.host if request.client else None,
-        user_agent=request.headers.get("user-agent"),
-    )
-    db.add(registro)
-    db.commit()
-    db.refresh(registro)
+    with _INICIO_TURNO_REGISTRO_LOCK:
+        ahora_registro = datetime.now()
+        dia_inicio = datetime(ahora_registro.year, ahora_registro.month, ahora_registro.day)
+        dia_fin = dia_inicio + timedelta(days=1)
+        registros_hoy = (
+            db.query(InicioTurnoRegistro)
+            .filter(
+                InicioTurnoRegistro.registrado_at >= dia_inicio,
+                InicioTurnoRegistro.registrado_at < dia_fin,
+            )
+            .order_by(InicioTurnoRegistro.registrado_at.asc(), InicioTurnoRegistro.id.asc())
+            .all()
+        )
+        existente = next((r for r in registros_hoy if _normalizar_rut(r.rut) == rut_guardia), None)
+        if existente:
+            return JSONResponse(
+                status_code=409,
+                content={
+                    "ok": False,
+                    "duplicado": True,
+                    "detail": "Este guardia ya tiene un inicio de turno registrado hoy.",
+                    "id": existente.id,
+                    "rut": existente.rut,
+                    "nombre": existente.nombre_guardia,
+                    "tipo_turno": existente.tipo_turno,
+                    "recinto": existente.recinto,
+                    "registrado_at": existente.registrado_at.isoformat(sep=" ", timespec="seconds")
+                    if existente.registrado_at
+                    else "",
+                },
+            )
+
+        registro = InicioTurnoRegistro(
+            rut=rut_guardia,
+            nombre_guardia=str(guardia.nombre or "").strip(),
+            tipo_turno=tipo_turno,
+            recinto=recinto,
+            sucursal_id=sucursal.id if sucursal else payload.sucursal_id,
+            latitud=payload.latitud,
+            longitud=payload.longitud,
+            precision_metros=payload.precision_metros,
+            ubicacion_estado=(
+                str(payload.ubicacion_estado or "").strip() or None
+                if _UBICACION_INICIO_TURNO_HABILITADA
+                else "inhabilitada"
+            ),
+            ip_origen=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+            registrado_at=ahora_registro,
+        )
+        db.add(registro)
+        db.commit()
+        db.refresh(registro)
 
     # Notificación de Turno Extra / Contrato Diario (misma que la del registro
     # del supervisor; para Dia/Noche la función no envía nada).
@@ -5247,6 +5524,34 @@ def _usuario_sesion(request: Request, db) -> User | None:
                 return user
     except Exception:
         pass
+    # Fallback: el login normal de la app (POST /api/login, en incidencias.py)
+    # setea la cookie "atc_token" (token crudo de LoginSession) y navega con
+    # ?token=... en la URL — NUNCA la cookie JWT "access_token" de arriba,
+    # que solo la setea el bridge /sso/login entre modulos. Sin este
+    # fallback, cualquier supervisor/guardia logueado normalmente aparecia
+    # como sesion anonima en TODAS las rutas de este archivo (hallazgo real,
+    # ago 2026 — dejaba sin efecto toda la restriccion de solo-lectura).
+    try:
+        from datetime import timezone as _tz
+        from ATC.app.models.incidencias import LoginSession as _LoginSession
+
+        token = request.cookies.get("atc_token", "") or request.query_params.get("token", "")
+        token = str(token or "").strip()
+        if token:
+            user = (
+                db.query(User)
+                .join(_LoginSession, User.id == _LoginSession.user_id)
+                .filter(
+                    _LoginSession.token == token,
+                    _LoginSession.expires_at > datetime.now(_tz.utc),
+                    User.is_active == 1,
+                )
+                .first()
+            )
+            if user:
+                return user
+    except Exception:
+        pass
     return None
 
 
@@ -5277,6 +5582,67 @@ def _es_solo_supervisor_concon(user: User | None) -> bool:
         if parte.strip()
     }
     return "supervisorconcon" in departamentos
+
+
+def _es_solo_supervisor_privados(user: User | None) -> bool:
+    """El sector "Privados" nunca tuvo tag propio en department — históricamente
+    se identifica por RUT hardcodeado (ver mismo criterio en /supervisores,
+    routes/venta.py). Solo aplica a cuentas sin tag de sector (Quintero/Concón)
+    y sin acceso admin real."""
+    if not user or getattr(user, "is_admin", False):
+        return False
+    if _es_solo_supervisor_quintero(user) or _es_solo_supervisor_concon(user):
+        return False
+    rut_norm = str(user.username or "").replace(".", "").strip().casefold()
+    return rut_norm in ("11825227-6", "11111111-1")
+
+
+def _grupo_forzado_supervisor(user: User | None) -> str | None:
+    """Sector al que debe quedar anclado un supervisor en Tabla de Asistencia
+    (pedido explicito, ago 2026: ni el supervisor "general" ni el "por sector"
+    deben poder ver otros grupos que el que les corresponde). None = sin
+    restricción (admin, cuenta sin sesión detectable, o cuenta con doble rol
+    real vía "guardia"/"rrhh"/"coordinacion" — mismo criterio que
+    _es_area_supervisores, para no anclar a un sector a quien de todos modos
+    tiene acceso completo)."""
+    if not _es_area_supervisores(user):
+        return None
+    if _es_solo_supervisor_quintero(user):
+        return "quintero"
+    if _es_solo_supervisor_concon(user):
+        return "concon"
+    if _es_solo_supervisor_privados(user):
+        return "privados"
+    return None
+
+
+def _es_area_supervisores(user: User | None) -> bool:
+    """True para quien usa Tabla de Asistencia como supervisor (general o por
+    sector: Quintero/Concón) y por eso debe quedar en solo lectura (pedido
+    explicito, ago 2026). Sin sesión detectable NO cuenta como supervisor
+    (deja el comportamiento actual, sin auth, intacto). Si la cuenta tiene
+    ADEMÁS "guardia"/"rrhh"/"coordinacion" en el departamento (acceso real a
+    esos paneles, no solo a Supervisores), se la excluye de la restricción —
+    de lo contrario alguien con doble rol (ej. superadmin que también figura
+    como guardia) quedaría sin poder editar desde su propio panel de Guardia."""
+    if not user:
+        return False
+    departamentos = {
+        parte.strip().casefold()
+        for parte in str(user.department or "").split(";")
+        if parte.strip()
+    }
+    if departamentos & {"guardia", "rrhh", "coordinacion"}:
+        return False
+    return bool(departamentos & {"supervisores", "supervisorquintero", "supervisorconcon"})
+
+
+def _requerir_no_solo_lectura_tabla_guardia(request: Request, db: Session) -> None:
+    if _es_area_supervisores(_usuario_sesion(request, db)):
+        raise HTTPException(
+            status_code=403,
+            detail="Panel Supervisores solo tiene acceso de visualización a la Tabla de Asistencia.",
+        )
 
 
 @router.get("/guardia/tabla-supervisor", response_class=HTMLResponse)
@@ -5314,10 +5680,12 @@ def guardia_tabla_supervisor_page(
 
     grupo = grupo.lower().strip()
     current_user = _usuario_sesion(request, db)
-    if _es_solo_supervisor_quintero(current_user) and grupo in {"concon", "privados"}:
-        return RedirectResponse(url=f"/guardia/tabla-supervisor?year={year}&month={month}&grupo=quintero", status_code=303)
-    if _es_solo_supervisor_concon(current_user) and grupo in {"quintero", "privados"}:
-        return RedirectResponse(url=f"/guardia/tabla-supervisor?year={year}&month={month}&grupo=concon", status_code=303)
+    grupo_forzado_sv = _grupo_forzado_supervisor(current_user)
+    if grupo_forzado_sv and grupo != grupo_forzado_sv:
+        return RedirectResponse(
+            url=f"/guardia/tabla-supervisor?year={year}&month={month}&grupo={grupo_forzado_sv}",
+            status_code=303,
+        )
 
     if grupo == "privados":
         recintos = [s["label"] for s in _listar_recintos_privados(db)]
@@ -5377,6 +5745,7 @@ def guardia_tabla_supervisor_page(
             "titulo_tabla": titulo_tabla,
             "subtitulo_tabla": subtitulo_tabla,
         },
+        headers={"Cache-Control": "no-store"},
     )
 
 
@@ -5690,8 +6059,10 @@ def obtener_racha_consecutiva(
 
 @router.post("/api/guardia/supervisor-registro")
 def crear_supervisor_registro(
+    request: Request,
     payload: SupervisorRegistroPayload,
     db: Session = Depends(get_db),
+    current_user: User = Depends(_require_login),
 ):
     from datetime import date as _date
     try:
@@ -5751,7 +6122,9 @@ def crear_supervisor_registro(
 @router.delete("/api/guardia/supervisor-registro/{registro_id}")
 def eliminar_supervisor_registro(
     registro_id: int,
+    request: Request,
     db: Session = Depends(get_db),
+    current_user: User = Depends(_require_login),
 ):
     reg = db.get(SupervisorRegistro, registro_id)
     if not reg:
@@ -5775,7 +6148,9 @@ class SupervisorRegistroEditPayload(BaseModel):
 def editar_supervisor_registro(
     registro_id: int,
     payload: SupervisorRegistroEditPayload,
+    request: Request,
     db: Session = Depends(get_db),
+    current_user: User = Depends(_require_login),
 ):
     reg = db.get(SupervisorRegistro, registro_id)
     if not reg:
@@ -5807,6 +6182,7 @@ def justificar_supervisor_registro(
     payload: SupervisorRegistroJustificarPayload,
     request: Request,
     db: Session = Depends(get_db),
+    current_user: User = Depends(_require_login),
 ):
     """Reemplaza al guardia de un registro del supervisor por licencia/falta/
     permiso/vacaciones Y deja la justificacion guardada en la bitacora
@@ -5877,7 +6253,15 @@ def justificar_supervisor_registro(
     reg.tipo_turno = tipo_turno_reemplazo
     reg.notas = nota
     db.commit()
-    return {"ok": True, "id": reg.id, "notas": nota, "tipo_turno": tipo_turno_reemplazo, "justificacion_guardada": bool(rut_original)}
+    borrados = _borrar_registros_supervisor_futuros_por_justificacion(db, nombre_original, motivo, desde, hasta)
+    return {
+        "ok": True,
+        "id": reg.id,
+        "notas": nota,
+        "tipo_turno": tipo_turno_reemplazo,
+        "justificacion_guardada": bool(rut_original),
+        "turnos_planificados_borrados": borrados,
+    }
 
 
 class RegistroGuardiaManualPayload(BaseModel):
@@ -5909,9 +6293,12 @@ def _parse_hora(valor: str):
 
 @router.post("/api/guardia/registro-guardia")
 def crear_registro_guardia_manual(
+    request: Request,
     payload: RegistroGuardiaManualPayload,
     db: Session = Depends(get_db),
+    current_user: User = Depends(_require_login),
 ):
+    _requerir_no_solo_lectura_tabla_guardia(request, db)
     from datetime import date as _date, time as _time
     try:
         fecha = _date.fromisoformat(payload.fecha)
@@ -5967,8 +6354,11 @@ def crear_registro_guardia_manual(
 def editar_registro_guardia_manual(
     registro_id: int,
     payload: RegistroGuardiaEditPayload,
+    request: Request,
     db: Session = Depends(get_db),
+    current_user: User = Depends(_require_login),
 ):
+    _requerir_no_solo_lectura_tabla_guardia(request, db)
     reg = db.get(InicioTurnoRegistro, registro_id)
     if not reg:
         raise HTTPException(status_code=404, detail="Registro no encontrado")
@@ -5990,8 +6380,11 @@ def editar_registro_guardia_manual(
 @router.delete("/api/guardia/registro-guardia/{registro_id}")
 def eliminar_registro_guardia_manual(
     registro_id: int,
+    request: Request,
     db: Session = Depends(get_db),
+    current_user: User = Depends(_require_login),
 ):
+    _requerir_no_solo_lectura_tabla_guardia(request, db)
     reg = db.get(InicioTurnoRegistro, registro_id)
     if not reg:
         raise HTTPException(status_code=404, detail="Registro no encontrado")
@@ -6011,10 +6404,12 @@ def fusionar_registros_guardia(
     request: Request,
     payload: FusionarRegistrosPayload,
     db: Session = Depends(get_db),
+    current_user: User = Depends(_require_login),
 ):
     """Marcha blanca (ago 2026): fusion de marcajes duplicados por traslado
     entre recintos del mismo grupo (_GRUPOS_FUSION_RECINTOS). Requiere
     confirmacion manual de un supervisor por ahora — no se ejecuta sola."""
+    _requerir_no_solo_lectura_tabla_guardia(request, db)
     sobreviviente = db.get(InicioTurnoRegistro, payload.sobreviviente_id)
     if not sobreviviente:
         raise HTTPException(status_code=404, detail="Registro sobreviviente no encontrado")
@@ -6045,8 +6440,11 @@ def fusionar_registros_guardia(
 @router.post("/api/guardia/registro-guardia/{registro_id}/restaurar")
 def restaurar_registro_guardia(
     registro_id: int,
+    request: Request,
     db: Session = Depends(get_db),
+    current_user: User = Depends(_require_login),
 ):
+    _requerir_no_solo_lectura_tabla_guardia(request, db)
     reg = db.get(InicioTurnoRegistro, registro_id)
     if not reg:
         raise HTTPException(status_code=404, detail="Registro no encontrado")

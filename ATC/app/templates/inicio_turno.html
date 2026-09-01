@@ -495,6 +495,7 @@
     }
     @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
   </style>
+  <link rel="stylesheet" href="/static/guardia-mobile.css?v=20260831">
 </head>
 <body class="location-disabled">
   <main class="shell">
@@ -587,6 +588,8 @@
     const appModalText = document.getElementById("appModalText");
     const appModalButton = document.getElementById("appModalButton");
     const UBICACION_HABILITADA = false;
+    let inicioTurnoSubmitEnCurso = false;
+    let inicioTurnoBloqueado = false;
 
     // Los radios de tipo_turno son opcionales (sin seleccion = Turno Normal):
     // si el guardia marca "Extra" o "Contrato Diario" por error, debe poder
@@ -888,9 +891,12 @@
 
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
+      if (inicioTurnoSubmitEnCurso || inicioTurnoBloqueado) return;
+      inicioTurnoSubmitEnCurso = true;
       btnSubmit.disabled = true;
       const originalText = btnSubmit.textContent;
       btnSubmit.textContent = "Registrando...";
+      let mantenerBotonBloqueado = false;
       formStatus.className = "status";
       formStatus.textContent = "";
 
@@ -923,6 +929,13 @@
           body: JSON.stringify(payload)
         });
         const data = await res.json();
+        if (res.status === 409 && data?.duplicado) {
+          mantenerBotonBloqueado = true;
+          inicioTurnoBloqueado = true;
+          btnSubmit.textContent = "Turno ya registrado";
+          showModal("Turno ya registrado", data.detail || "Este guardia ya tiene un inicio de turno registrado hoy.");
+          return;
+        }
         if (!res.ok || !data.ok) {
           const detalle = typeof data.detail === "string"
             ? data.detail
@@ -932,6 +945,9 @@
           throw new Error(detalle);
         }
 
+        mantenerBotonBloqueado = true;
+        inicioTurnoBloqueado = true;
+        btnSubmit.textContent = "Turno registrado";
         mostrarExito({
           nombre: data.nombre || "",
           hora: (data.registrado_at || "").split(" ")[1] || data.registrado_at || "",
@@ -950,8 +966,13 @@
           showModal("No se registro el turno", err.message || "No se pudo registrar el inicio de turno.");
         }
       } finally {
-        btnSubmit.textContent = originalText;
-        btnSubmit.disabled = false;
+        inicioTurnoSubmitEnCurso = false;
+        if (mantenerBotonBloqueado || inicioTurnoBloqueado) {
+          btnSubmit.disabled = true;
+        } else {
+          btnSubmit.textContent = originalText;
+          btnSubmit.disabled = false;
+        }
       }
     });
 

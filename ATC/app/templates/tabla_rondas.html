@@ -7,7 +7,7 @@
 <link rel="shortcut icon" href="/favicon.ico?v=2">
 
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <title>Tabla de Rondas — {{ month_name }} {{ year }}</title>
 <link rel="stylesheet" href="/static/base.css">
 <link rel="stylesheet" href="/static/guardias-informe-preview.css">
@@ -240,7 +240,13 @@ tr.recinto-header.open .recinto-caret{transform:rotate(90deg)}
 .dot-quintero{background:#3d73a8}
 .dot-privados{background:#22c55e}
 .dot-concon{background:#20a6b8}
+
+/* Celular: que la pagina scrollee entera, el header no debe quedar fijo. */
+@media (max-width:720px), (max-height:520px){
+  html,body{overflow-x:hidden;overflow-y:auto}
+}
 </style>
+<link rel="stylesheet" href="/static/guardia-mobile.css?v=20260831c">
 </head>
 <body>
 
@@ -257,11 +263,13 @@ tr.recinto-header.open .recinto-caret{transform:rotate(90deg)}
       <span class="month-label">{{ month_name }} {{ year }}</span>
       <a class="btn-hero" href="/guardia/tabla-rondas?year={{ next_y }}&month={{ next_m }}&grupo={{ grupo }}">&#8250;</a>
     </div>
+    {% if not solo_lectura %}
     <button class="btn-hero informe-preview-trigger" type="button"
             data-informe-preview="/guardia/tabla-rondas/informes/preview?year={{ year }}&month={{ month }}"
             data-informe-download="/guardia/tabla-rondas/informes?year={{ year }}&month={{ month }}"
             data-informe-title="Vista previa - Informe de rondas">Vista previa</button>
     <a class="btn-hero" href="/guardia/tabla-rondas/informes?year={{ year }}&month={{ month }}" title="Informe de rondas (Quintero, Privados y Concón) del 1 al {{ days_info|length }}">Descargar informes</a>
+    {% endif %}
   </div>
 </header>
 
@@ -331,6 +339,7 @@ tr.recinto-header.open .recinto-caret{transform:rotate(90deg)}
 </table>
 </div>
 
+{% if not grupo_forzado %}
 <nav class="grupo-tabs">
   <a class="grupo-tab {% if grupo == 'quintero' %}active{% endif %}"
      href="/guardia/tabla-rondas?year={{ year }}&month={{ month }}&grupo=quintero">
@@ -346,6 +355,7 @@ tr.recinto-header.open .recinto-caret{transform:rotate(90deg)}
   </a>
 </nav>
 <div style="height:46px"></div>
+{% endif %}
 
 <div class="popup-overlay" id="popupOverlay" onclick="if(event.target===this) cerrarPopup()">
   <div class="popup">
@@ -361,6 +371,7 @@ tr.recinto-header.open .recinto-caret{transform:rotate(90deg)}
   const YEAR = {{ year }};
   const MONTH = {{ month }};
   const SUPERVISOR_NOMBRE = {{ supervisor_nombre|default('')|tojson }};
+  const SOLO_LECTURA = {{ 'true' if solo_lectura else 'false' }};
 
   async function abrirPopup(checkpointId, day) {
     const overlay = document.getElementById("popupOverlay");
@@ -398,13 +409,14 @@ tr.recinto-header.open .recinto-caret{transform:rotate(90deg)}
         ${it.nota ? `<div class="registro-nota">${esc(it.nota)}</div>` : ""}
         ${it.aprobado
           ? `<div class="aprobado-tag">✓ Aprobado${it.aprobado_por ? ' por ' + esc(it.aprobado_por) : ''}</div>`
-          : `<button class="btn-aprobar" onclick="aprobar(${it.id}, this)">Dar visto bueno</button>`
+          : (SOLO_LECTURA ? "" : `<button class="btn-aprobar" onclick="aprobar(${it.id}, this)">Dar visto bueno</button>`)
         }
       </div>
     `).join("");
   }
 
   async function aprobar(id, btn) {
+    if (SOLO_LECTURA) return;
     const supervisor = SUPERVISOR_NOMBRE || "Supervisor";
     btn.disabled = true;
     btn.textContent = "Guardando…";

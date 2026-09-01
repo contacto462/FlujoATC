@@ -7,7 +7,7 @@
 <link rel="shortcut icon" href="/favicon.ico?v=2">
 
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>Panel Supervisores</title>
 <link rel="stylesheet" href="/static/base.css">
 <style>
@@ -138,6 +138,7 @@ h1{font-size:32px;line-height:1.08;margin:0 0 12px;letter-spacing:0}
 .brand-badge img{width:122px!important;height:auto!important;object-fit:contain!important;filter:drop-shadow(0 6px 14px rgba(0,0,0,.22))!important}
 
 </style>
+<link rel="stylesheet" href="/static/guardia-mobile.css?v=20260831">
 </head>
 <body>
   <main class="shell">
@@ -204,6 +205,15 @@ h1{font-size:32px;line-height:1.08;margin:0 0 12px;letter-spacing:0}
           <p>Registros del supervisor para recintos privados.</p>
         </a>
         {% endif %}
+
+        {% set grupo_asistencia = 'concon' if mostrar_concon and not mostrar_quintero else ('privados' if mostrar_privados and not mostrar_quintero and not mostrar_concon else 'quintero') %}
+        <a class="option tabla-asistencia" href="/guardia/tabla-registro-guardia?origen=supervisores&grupo={{ grupo_asistencia }}">
+          <div class="option-top">
+            <div class="icon">TA</div>
+            <strong>Tabla de Asistencia</strong>
+          </div>
+          <p>Registro de guardias por recinto de tu sector — solo visualización, sin editar.</p>
+        </a>
 
         <a class="option bbdd-guardias" href="/guardia/bbdd-guardias?origen=supervisores">
           <div class="option-top">

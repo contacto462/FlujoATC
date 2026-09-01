@@ -5,6 +5,7 @@ import bcrypt
 import json
 import logging
 from decimal import Decimal
+from functools import lru_cache
 import mimetypes
 import os
 import re
@@ -833,6 +834,26 @@ def _support_schema_name() -> str:
     return "dbo"
 
 
+# Cache a nivel de modulo (no de instancia) para los normalizadores de texto
+# usados en el match difuso de nombres de sucursal/cliente
+# (_score_nombre_sucursal_match) — un mismo nombre de sucursal se normaliza
+# cientos de veces por request (una vez por cada candidato contra el que se
+# compara); memoizar por string evita recalcular unicodedata.normalize +
+# regex en cada repeticion. maxsize acotado para no crecer sin limite en
+# procesos de larga vida. Pedido explicito, ago 2026.
+@lru_cache(maxsize=8192)
+def _normalizar_texto_cacheado(texto: str) -> str:
+    txt = texto.strip().lower()
+    txt = unicodedata.normalize("NFD", txt)
+    return "".join(c for c in txt if unicodedata.category(c) != "Mn")
+
+
+@lru_cache(maxsize=8192)
+def _normalizar_nombre_sucursal_match_cacheado(texto: str) -> str:
+    txt = re.sub(r"[^a-z0-9]+", " ", _normalizar_texto_cacheado(texto))
+    return re.sub(r"\s+", " ", txt).strip()
+
+
 class IncidenciasService:
     MANTENCION_CIERRE_MAX_IMAGENES = 80
     MANTENCION_CIERRE_MAX_BYTES = 10 * 1024 * 1024
@@ -1448,21 +1469,23 @@ class IncidenciasService:
         }
 
     def _visita_smtp_runtime_config(self) -> dict[str, Any]:
-        """Cuenta catalina.silva@soporteatc.cl para el aviso de visita tecnica ATC."""
+        """Cuenta Catalina.silva@soporteatc.cl para el aviso de visita tecnica ATC."""
         env_file = self._load_env_runtime()
         env_get = lambda k, d="": (os.getenv(k) or env_file.get(k) or d)
 
+        cuenta_visita = "Catalina.silva@soporteatc.cl"
         host = str(env_get("SMTP_VISITA_HOST", "mail.soporteatc.cl")).strip()
         port_raw = env_get("SMTP_VISITA_PORT", "587")
         try:
             port = int(port_raw)
         except Exception:
             port = 587
-        username = str(env_get("SMTP_VISITA_USERNAME", "")).strip()
+        username = str(env_get("SMTP_VISITA_USERNAME", cuenta_visita)).strip()
         password = str(env_get("SMTP_VISITA_PASSWORD", ""))
-        from_email = str(env_get("SMTP_VISITA_FROM_EMAIL", username)).strip()
-        from_name = str(env_get("SMTP_VISITA_FROM_NAME", "Alguien Te Cuida")).strip()
+        from_email = str(env_get("SMTP_VISITA_FROM_EMAIL", cuenta_visita)).strip()
+        from_name = str(env_get("SMTP_VISITA_FROM_NAME", "Catalina Silva - Soporte ATC")).strip()
         use_tls = self._to_bool_env(env_get("SMTP_VISITA_USE_TLS", "true"), True)
+        use_ssl = self._to_bool_env(env_get("SMTP_VISITA_USE_SSL", "false"), False)
 
         return {
             "enabled": bool(host and username and password),
@@ -1473,7 +1496,7 @@ class IncidenciasService:
             "from_email": from_email,
             "from_name": from_name,
             "use_tls": use_tls,
-            "use_ssl": False,
+            "use_ssl": use_ssl,
             "timeout": 20,
         }
 
@@ -2878,10 +2901,9 @@ class IncidenciasService:
     def _proximo_odt_incidencias(self, prefijo: str = "I") -> str:
         return self._proximo_odt(prefijo)
 
-    def _normalizar_nombre_sucursal_match(self, valor: Any) -> str:
-        txt = self._normalizar_texto(valor)
-        txt = re.sub(r"[^a-z0-9]+", " ", txt)
-        return re.sub(r"\s+", " ", txt).strip()
+    @staticmethod
+    def _normalizar_nombre_sucursal_match(valor: Any) -> str:
+        return _normalizar_nombre_sucursal_match_cacheado(str(valor or ""))
 
     def _score_nombre_sucursal_match(self, objetivo: str, candidato: str) -> int:
         obj = self._normalizar_nombre_sucursal_match(objetivo)
@@ -4712,7 +4734,21 @@ class IncidenciasService:
 
                 estado_venta = str(ods.estado or "").strip() or "Pendiente"
                 tipo_servicio_norm = self._normalizar_texto(ods.tipo_servicio or "")
-                if "televigilancia" in tipo_servicio_norm:
+                if solo_panel_tecnico:
+                    # Panel de tecnicos (tecnicos.html): a ellos les compete la
+                    # instalacion, no el cierre de Soporte sobre Televigilancia
+                    # (que puede quedar "Pendiente" por tramites ajenos al
+                    # tecnico) — siempre usar "Instalacion Finalizada"
+                    # (instalacion_finalizada), no "finalizado"/"Terminado"
+                    # (esa es otra columna distinta, el cierre general de la ODS).
+                    venta_finalizada = bool(
+                        st
+                        and (
+                            getattr(st, "instalacion_finalizada", False)
+                            or getattr(st, "fecha_instalacion_finalizada", None)
+                        )
+                    )
+                elif "televigilancia" in tipo_servicio_norm:
                     venta_finalizada = bool(
                         soporte
                         and (
@@ -7525,10 +7561,16 @@ class IncidenciasService:
             "drive_queued": drive_enabled,
         }
 
-    def _normalizar_texto(self, valor: Any) -> str:
-        txt = str(valor or "").strip().lower()
-        txt = unicodedata.normalize("NFD", txt)
-        return "".join(c for c in txt if unicodedata.category(c) != "Mn")
+    @staticmethod
+    def _normalizar_texto(valor: Any) -> str:
+        # Envoltorio fino sobre una version cacheada (por string, no por
+        # "self" — evitando que el lru_cache retenga instancias de servicio
+        # de request en request) — este normalizador es el hot path de los
+        # matches difusos de sucursal (_score_nombre_sucursal_match), que
+        # sin cache repetia miles de normalizaciones identicas por request
+        # y era buena parte de los ~2.6s que tardaba en cargar la tabla de
+        # servicio tecnico. Pedido explicito, ago 2026.
+        return _normalizar_texto_cacheado(str(valor or ""))
     def _filtrar_incidencias_para_tecnico(
         self,
         filas: list[list[Any]],
@@ -10935,18 +10977,18 @@ class IncidenciasService:
                 "",
             )
 
-        # EN PAUSA: la cuenta propia (SMTP_VISITA_* / jperez@alguientecuida.cl)
-        # todavia no tiene password configurado, asi que por ahora se sigue
-        # enviando por contacto@alguientecuida.cl, con jperez en copia. Cuando
-        # esa cuenta este lista, cambiar cfg_override a
-        # self._visita_smtp_runtime_config() y sacar jperez de cc_destinatarios.
-        cfg_contacto = self._contacto_smtp_runtime_config()
+        cfg_visita = self._visita_smtp_runtime_config()
+        if not cfg_visita.get("enabled"):
+            raise ValueError(
+                "Configura SMTP_VISITA_PASSWORD en ATC/.env para enviar el aviso de visita tecnica "
+                "desde Catalina.silva@soporteatc.cl."
+            )
         emails_enviados: set[str] = set()
         errores_email: list[str] = []
-        # Un solo correo con el resto de los contactos + jperez en copia, en
-        # vez de un correo individual por cada destinatario.
+        # Un solo correo con el resto de los contactos en copia, en vez de un
+        # correo individual por cada destinatario.
         to_principal = emails_unicos[0]
-        cc_destinatarios = emails_unicos[1:] + ["jperez@alguientecuida.cl"]
+        cc_destinatarios = emails_unicos[1:]
         try:
             self._enviar_correo_automatico(
                 to_principal,
@@ -10954,7 +10996,7 @@ class IncidenciasService:
                 cuerpo,
                 html_body=cuerpo_html,
                 logo_bytes=logo_atc,
-                cfg_override=cfg_contacto,
+                cfg_override=cfg_visita,
                 cc_emails=cc_destinatarios,
             )
             emails_enviados.update(email.lower() for email in emails_unicos)
@@ -11846,11 +11888,13 @@ class IncidenciasService:
         tipo de gasto (Materiales/Combustible van a VL).
 
         Los codigos diario repetidos se funden en una sola fila sumando el
-        monto, para no duplicar pagos hacia la misma persona/gasto. Tanto en
-        Pagos ATC como en Pagos VL se exporta el menor valor entre el total
-        rendido y el tope: $5.000 por defecto o el viatico especial configurado
-        para el codigo. Cada lista queda ordenada por RUT para que los codigos
-        de una misma persona queden agrupados uno debajo del otro.
+        monto, para no duplicar pagos hacia la misma persona/gasto. El tope
+        ($5.000 por defecto, o el viatico especial configurado para el
+        codigo) es un concepto exclusivo de Viatico: solo se aplica a los
+        grupos "atc" cuyo tipo de gasto es Viatico — Peaje, Pasaje y demas
+        tipos dentro de "atc" (y todo VL) se exportan por el monto rendido
+        completo, sin tope. Cada lista queda ordenada por RUT para que los
+        codigos de una misma persona queden agrupados uno debajo del otro.
         """
         rows = self.db.scalars(select(Rendicion).order_by(Rendicion.id.asc())).all()
         caps_personalizados = self._viatico_caps_personalizados()
@@ -11881,6 +11925,7 @@ class IncidenciasService:
                     "rut": self._resolver_rut_tecnico(tecnico_row),
                     "tecnico": tecnico_row,
                     "codigo": codigo,
+                    "tipo_gasto": tipo_gasto_norm,
                     "monto": Decimal("0"),
                     "ids": [],
                 }
@@ -11892,7 +11937,13 @@ class IncidenciasService:
         def _ordenar(grupos: dict[str, dict[str, Any]], aplicar_tope: bool) -> list[dict[str, Any]]:
             filas: list[dict[str, Any]] = []
             for grupo in grupos.values():
-                if aplicar_tope:
+                # El tope de $5.000 (o el viatico especial configurado) es un
+                # concepto de Viatico, no de "todo lo que no sea Materiales/
+                # Combustible": dentro de "atc" tambien caen Peaje, Pasaje,
+                # etc., que deben exportarse por el monto rendido completo,
+                # igual que VL. Antes se aplicaba a todo el grupo "atc" sin
+                # filtrar por tipo — pedido explicito, ago 2026.
+                if aplicar_tope and grupo.get("tipo_gasto") == "viatico":
                     codigo_norm = self._normalizar_codigo_diario(grupo["codigo"])
                     tope = caps_normalizados.get(codigo_norm, self.VIATICO_CAP_DIARIO_DEFECTO)
                     monto_exportable = min(grupo["monto"], tope)
