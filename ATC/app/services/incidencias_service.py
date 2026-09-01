@@ -10989,6 +10989,7 @@ class IncidenciasService:
         # correo individual por cada destinatario.
         to_principal = emails_unicos[0]
         cc_destinatarios = emails_unicos[1:]
+        bcc_interno_visita = ["jperez@alguientecuida.cl", "contacto@alguientecuida.cl"]
         try:
             self._enviar_correo_automatico(
                 to_principal,
@@ -10998,6 +10999,7 @@ class IncidenciasService:
                 logo_bytes=logo_atc,
                 cfg_override=cfg_visita,
                 cc_emails=cc_destinatarios,
+                bcc_emails_extra=bcc_interno_visita,
             )
             emails_enviados.update(email.lower() for email in emails_unicos)
         except Exception as exc:
