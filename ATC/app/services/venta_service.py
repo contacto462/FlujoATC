@@ -566,6 +566,7 @@ def upsert_sucursal_info_extra(db: Session, sucursal_id: int, campo: str, valor:
         record = SucursalInfoExtra(sucursal_id=sucursal_id)
         db.add(record)
     setattr(record, col, valor or None)
+    _marcar_sucursal_pendiente_modificada(db, sucursal_id)
     db.commit()
 
 
@@ -605,6 +606,7 @@ def add_persona_registro(db: Session, payload) -> None:
     else:
         raise HTTPException(status_code=400, detail="Categoria no reconocida.")
 
+    _marcar_sucursal_pendiente_modificada(db, int(sucursal.id))
     db.commit()
 
 
@@ -652,6 +654,7 @@ def update_persona_campo(db: Session, payload) -> None:
     else:
         setattr(record, target_field, _clean_text(nuevo_valor))
 
+    _marcar_sucursal_pendiente_modificada(db, int(record.sucursal_id or 0))
     db.commit()
 
 
@@ -688,6 +691,37 @@ def create_cliente(db: Session, payload: VentaClienteCreateRequest, ejecutivo_em
 def _clean_text(value: str | None) -> str | None:
     cleaned = str(value or "").strip()
     return cleaned or None
+
+
+def _ensure_sucursal_info_extra_recordatorio_columns(db: Session) -> None:
+    for columna in ("campos_pendientes_recordatorio_fecha", "campos_pendientes_modificado_fecha"):
+        db.execute(text(f"""
+            IF NOT EXISTS (
+                SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_NAME = 'sucursal_info_extra' AND COLUMN_NAME = '{columna}'
+            )
+            BEGIN
+                ALTER TABLE sucursal_info_extra ADD {columna} DATETIME
+            END
+        """))
+
+
+def _marcar_sucursal_pendiente_modificada(db: Session, sucursal_id: int) -> None:
+    """Detiene recordatorios diarios si Comercial ya guardo una correccion."""
+    if not sucursal_id:
+        return
+    _ensure_sucursal_info_extra_recordatorio_columns(db)
+    db.execute(text("""
+        UPDATE sucursal_info_extra
+        SET campos_pendientes_modificado_fecha = GETDATE()
+        WHERE sucursal_id = :sid
+          AND COALESCE(TRIM(campos_pendientes), '') <> ''
+          AND (
+            campos_pendientes_fecha IS NULL
+            OR campos_pendientes_modificado_fecha IS NULL
+            OR campos_pendientes_modificado_fecha < campos_pendientes_fecha
+          )
+    """), {"sid": sucursal_id})
 
 
 def _split_lat_lng(latitud_longitud: str | None, latitud: str | None, longitud: str | None) -> tuple[str | None, str | None, str | None]:
@@ -2404,6 +2438,7 @@ def update_sucursal_row(db: Session, row_id: int, values: list[str]) -> None:
             nombre=nombre_emergencia,
         ))
 
+    _marcar_sucursal_pendiente_modificada(db, int(record.id))
     db.commit()
 
 
@@ -2610,11 +2645,17 @@ def avisar_sucursal_lista_bitacora(
     if resultado.get("email_sent"):
         restantes = [c for c in todos_los_marcados if c not in seleccionados]
         db.execute(text("""
-            UPDATE sucursal_info_extra SET campos_pendientes = :campos, campos_pendientes_obs = :obs
+            UPDATE sucursal_info_extra
+            SET campos_pendientes = :campos,
+                campos_pendientes_obs = :obs,
+                campos_pendientes_fecha = CASE WHEN :hay_restantes = 1 THEN GETDATE() ELSE campos_pendientes_fecha END,
+                campos_pendientes_recordatorio_fecha = NULL,
+                campos_pendientes_modificado_fecha = NULL
             WHERE sucursal_id = :sid
         """), {
             "sid": sucursal_id,
             "campos": ",".join(restantes),
+            "hay_restantes": 1 if restantes else 0,
             # Si queda algo pendiente se conserva la observación original de Bitácora
             # como contexto; si ya se resolvió todo, se limpia.
             "obs": revision["observacion"] if restantes else "",

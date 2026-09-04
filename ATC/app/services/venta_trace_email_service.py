@@ -812,3 +812,166 @@ def notify_sucursal_lista_para_bitacora(
     except Exception as exc:
         _log.warning("No se pudo enviar aviso de sucursal lista para bitacora (id=%s): %s", sucursal_id, exc)
         return {"email_sent": False, "email_to": [], "email_error": str(exc)}
+
+
+_SUCURSAL_CAMPO_LABELS_RECORDATORIO: dict[str, str] = {
+    "direccion_sucursal": "Dirección",
+    "latitud_longitud": "Latitud, Longitud",
+    "referencia_ubicacion": "Referencia ubicación",
+    "contacto": "Contacto",
+    "email_facturas": "Correo",
+    "horario_apertura": "Horario de apertura",
+    "horario_cierre": "Horario de cierre",
+    "horario_habil": "Días hábiles",
+    "plan_cuadrante": "Plan cuadrante",
+    "carabineros": "Carabineros",
+    "bomberos": "Bomberos",
+    "seguridad_ciudadana": "Seguridad ciudadana",
+    "camaras_contratadas": "Cámaras a instalar",
+    "camaras_televigiladas": "Cámaras televigiladas",
+    "codigo_p2p": "Código P2P",
+    "codigo_dss": "Código DSS",
+    "telefono_porton": "Teléfono portón",
+    "telefono_recepcion": "Teléfono recepción",
+    "compania_electricidad": "Compañía electricidad",
+    "numero_cliente_electricidad": "N° cliente electricidad",
+    "proveedor_internet_cliente": "Proveedor internet cliente",
+    "internet_atc": "Internet ATC",
+    "contactos_emergencia": "Contacto de emergencia",
+    "personas_autorizadas": "Personas autorizadas",
+}
+
+
+def _ensure_sucursal_recordatorio_columns(db: Session) -> None:
+    for columna in ("campos_pendientes_recordatorio_fecha", "campos_pendientes_modificado_fecha"):
+        db.execute(text(f"""
+            IF NOT EXISTS (
+                SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_NAME = 'sucursal_info_extra' AND COLUMN_NAME = '{columna}'
+            )
+            BEGIN
+                ALTER TABLE sucursal_info_extra ADD {columna} DATETIME
+            END
+        """))
+
+
+def _render_sucursal_pendiente_recordatorio_html(row: dict[str, Any], campos: list[str]) -> str:
+    empresa = _clean(row.get("nombre_empresa"))
+    sucursal = _clean(row.get("nombre_sucursal"))
+    comercial = _clean(row.get("comercial_nombre")) or _clean(row.get("created_by")) or "Comercial"
+    solicitado_por = _clean(row.get("campos_pendientes_por")) or "Bitácora"
+    fecha = _fmt_fecha(row.get("campos_pendientes_fecha")) or "-"
+    labels = [_SUCURSAL_CAMPO_LABELS_RECORDATORIO.get(campo, campo) for campo in campos]
+    campos_html = "".join(f"<li>{_esc(label)}</li>" for label in labels) or "<li>Información indicada por Bitácora</li>"
+    detalle = _clean(row.get("campos_pendientes_obs"))
+
+    return _email_html(
+        title=f"Recordatorio: falta completar {sucursal or empresa}".strip(),
+        sections=[
+            _paragraphs(
+                f"Hola, {comercial}:",
+                "Bitácora mantiene esta sucursal pendiente porque todavía no se registra una modificación posterior a la solicitud.",
+            ),
+            _table([
+                ("Empresa", empresa),
+                ("Sucursal", sucursal),
+                ("RUT", row.get("rut")),
+                ("Dirección", row.get("direccion_sucursal")),
+                ("Solicitado por", solicitado_por),
+                ("Fecha solicitud", fecha),
+            ]),
+            (
+                '<div style="margin:0 0 16px 0;color:#334155;font-family:Arial,sans-serif;'
+                'font-size:14px;line-height:1.72;">'
+                '<div style="font-weight:700;margin-bottom:8px;color:#0f172a;">Falta corregir:</div>'
+                f'<ul style="margin:0;padding-left:20px;">{campos_html}</ul>'
+                "</div>"
+            ),
+            _paragraphs(detalle) if detalle else "",
+            _paragraphs("Este aviso se reenviará diariamente hasta que se guarde una corrección en la sucursal."),
+        ],
+    )
+
+
+def notify_sucursales_pendientes_bitacora_recordatorios(db: Session, limit: int = 50) -> dict[str, Any]:
+    """Reenvia una vez al dia los avisos de Bitacora a Comercial mientras la
+    sucursal siga pendiente y no tenga modificaciones posteriores al aviso."""
+    _ensure_sucursal_recordatorio_columns(db)
+    top = max(1, min(int(limit or 50), 200))
+    rows = db.execute(text(f"""
+        SELECT TOP {top}
+               s.id AS sucursal_id,
+               s.rut,
+               s.nombre_empresa,
+               s.nombre_sucursal,
+               s.direccion_sucursal,
+               s.created_by,
+               e.campos_pendientes,
+               e.campos_pendientes_obs,
+               e.campos_pendientes_fecha,
+               e.campos_pendientes_por,
+               u.name AS comercial_nombre,
+               u.email AS comercial_email
+        FROM bbdd_sucursales s
+        JOIN sucursal_info_extra e ON e.sucursal_id = s.id
+        OUTER APPLY (
+            SELECT TOP 1 name, email
+            FROM users
+            WHERE email IS NOT NULL
+              AND (
+                LOWER(TRIM(COALESCE(name, ''))) = LOWER(TRIM(COALESCE(s.created_by, '')))
+                OR LOWER(TRIM(COALESCE([user], ''))) = LOWER(TRIM(COALESCE(s.created_by, '')))
+                OR LOWER(TRIM(COALESCE(email, ''))) = LOWER(TRIM(COALESCE(s.created_by, '')))
+              )
+            ORDER BY id ASC
+        ) u
+        WHERE s.aceptada_bitacora = 0
+          AND COALESCE(TRIM(e.campos_pendientes), '') <> ''
+          AND e.campos_pendientes_fecha IS NOT NULL
+          AND CAST(e.campos_pendientes_fecha AS date) < CAST(GETDATE() AS date)
+          AND (
+            e.campos_pendientes_modificado_fecha IS NULL
+            OR e.campos_pendientes_modificado_fecha < e.campos_pendientes_fecha
+          )
+          AND (
+            e.campos_pendientes_recordatorio_fecha IS NULL
+            OR CAST(e.campos_pendientes_recordatorio_fecha AS date) < CAST(GETDATE() AS date)
+          )
+        ORDER BY e.campos_pendientes_fecha ASC, s.id ASC
+    """)).mappings().all()
+
+    enviados = 0
+    errores: list[str] = []
+    sin_email: list[int] = []
+    for raw in rows:
+        row = dict(raw)
+        sucursal_id = int(row.get("sucursal_id") or 0)
+        destino = _clean(row.get("comercial_email"))
+        if not destino:
+            sin_email.append(sucursal_id)
+            continue
+
+        campos = [c.strip() for c in _clean(row.get("campos_pendientes")).split(",") if c.strip()]
+        subject = f"Recordatorio: falta completar {row.get('nombre_sucursal') or 'sucursal'} - {row.get('nombre_empresa') or ''}".strip()
+        body = _render_sucursal_pendiente_recordatorio_html(row, campos)
+        try:
+            _send_contact_message(to=destino, subject=subject, html_body=body)
+            db.execute(text("""
+                UPDATE sucursal_info_extra
+                SET campos_pendientes_recordatorio_fecha = GETDATE()
+                WHERE sucursal_id = :sid
+                  AND COALESCE(TRIM(campos_pendientes), '') <> ''
+            """), {"sid": sucursal_id})
+            db.commit()
+            enviados += 1
+        except Exception as exc:
+            db.rollback()
+            errores.append(f"{sucursal_id}: {exc}")
+            _log.warning("No se pudo reenviar recordatorio de sucursal pendiente %s a %s: %s", sucursal_id, destino, exc)
+
+    return {
+        "revisados": len(rows),
+        "enviados": enviados,
+        "sin_email": sin_email,
+        "errores": errores,
+    }

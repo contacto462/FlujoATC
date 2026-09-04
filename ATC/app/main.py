@@ -826,6 +826,26 @@ def ensure_ticket_checklist_columns() -> None:
         print("Error ensuring ticket_checklist_items columns:", exc)
 
 
+def ensure_sucursal_info_extra_bitacora_columns() -> None:
+    """Columnas para avisos de Bitacora a Comercial sobre sucursales pendientes."""
+    columns = {
+        "campos_pendientes": "NVARCHAR(MAX)",
+        "campos_pendientes_obs": "NVARCHAR(MAX)",
+        "campos_pendientes_fecha": "DATETIME",
+        "campos_pendientes_por": "NVARCHAR(255)",
+        "campos_pendientes_recordatorio_fecha": "DATETIME",
+        "campos_pendientes_modificado_fecha": "DATETIME",
+    }
+    try:
+        with engine.begin() as conn:
+            for col_name, col_type in columns.items():
+                if not table_has_column(conn, "sucursal_info_extra", col_name):
+                    add_column(conn, "sucursal_info_extra", col_name, col_type)
+                    print(f"Schema updated: sucursal_info_extra.{col_name}")
+    except Exception as exc:
+        print("Error ensuring sucursal_info_extra Bitacora columns:", exc)
+
+
 # =========================
 # ROUTERS API
 # =========================
@@ -1263,6 +1283,20 @@ def automation_loop() -> None:
         finally:
             db.close()
 
+        # Recordatorios diarios a Comercial por sucursales que Bitacora marco
+        # como incompletas y que aun no tienen una modificacion guardada.
+        db = SessionLocal()
+        try:
+            from ATC.app.services.venta_trace_email_service import notify_sucursales_pendientes_bitacora_recordatorios
+
+            resultado_sucursales = notify_sucursales_pendientes_bitacora_recordatorios(db)
+            if resultado_sucursales.get("enviados") or resultado_sucursales.get("errores"):
+                LOGGER.info("Recordatorio sucursales pendientes Bitacora: %s", resultado_sucursales)
+        except Exception:
+            LOGGER.exception("Error enviando recordatorios de sucursales pendientes Bitacora")
+        finally:
+            db.close()
+
         poll_seconds = int(
             settings.AUTOMATION_POLL_SECONDS or 300
         )
@@ -1319,6 +1353,7 @@ def startup_tasks() -> None:
     ensure_incidencias_trabajo_columns()
     ensure_sucursal_camaras_dss_columns()
     ensure_ticket_checklist_columns()
+    ensure_sucursal_info_extra_bitacora_columns()
 
     # Normalización de información existente.
     normalize_requester_names()

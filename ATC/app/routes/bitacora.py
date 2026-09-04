@@ -1933,6 +1933,8 @@ def _ensure_sucursal_info_extra_campos_pendientes(db: Session) -> None:
         ("campos_pendientes_obs", "NVARCHAR(MAX)"),
         ("campos_pendientes_fecha", "DATETIME"),
         ("campos_pendientes_por", "NVARCHAR(255)"),
+        ("campos_pendientes_recordatorio_fecha", "DATETIME"),
+        ("campos_pendientes_modificado_fecha", "DATETIME"),
     ):
         try:
             db.execute(text(f"""
@@ -3520,9 +3522,15 @@ def bitacora_sucursal_notificar_comercial(
                 campos_pendientes = :campos,
                 campos_pendientes_obs = :obs,
                 campos_pendientes_fecha = GETDATE(),
-                campos_pendientes_por = :por
-            WHEN NOT MATCHED THEN INSERT (sucursal_id, campos_pendientes, campos_pendientes_obs, campos_pendientes_fecha, campos_pendientes_por)
-            VALUES (:sid, :campos, :obs, GETDATE(), :por);
+                campos_pendientes_por = :por,
+                campos_pendientes_recordatorio_fecha = NULL,
+                campos_pendientes_modificado_fecha = NULL
+            WHEN NOT MATCHED THEN INSERT (
+                sucursal_id, campos_pendientes, campos_pendientes_obs,
+                campos_pendientes_fecha, campos_pendientes_por,
+                campos_pendientes_recordatorio_fecha, campos_pendientes_modificado_fecha
+            )
+            VALUES (:sid, :campos, :obs, GETDATE(), :por, NULL, NULL);
         """),
         {
             "sid": sucursal_id,
